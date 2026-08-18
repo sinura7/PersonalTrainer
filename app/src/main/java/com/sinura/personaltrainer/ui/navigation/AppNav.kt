@@ -11,9 +11,12 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -27,6 +30,9 @@ import com.sinura.personaltrainer.ui.history.SessionDetailScreen
 import com.sinura.personaltrainer.ui.home.HomeScreen
 import com.sinura.personaltrainer.ui.routines.RoutineEditorScreen
 import com.sinura.personaltrainer.ui.routines.RoutinesScreen
+import com.sinura.personaltrainer.ui.settings.SettingsScreen
+import com.sinura.personaltrainer.ui.settings.SettingsViewModel
+import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.workout.ActiveWorkoutScreen
 import com.sinura.personaltrainer.ui.workout.StartWorkoutScreen
 
@@ -44,6 +50,7 @@ sealed class Route(val path: String) {
     data object SessionDetail : Route("history/{sessionId}") {
         fun create(sessionId: String): String = "history/$sessionId"
     }
+    data object Settings : Route("settings")
 }
 
 private data class Tab(
@@ -53,7 +60,10 @@ private data class Tab(
 )
 
 @Composable
-fun PersonalTrainerNav() {
+fun PersonalTrainerNav(
+    settingsViewModel: SettingsViewModel = viewModel(),
+) {
+    val weightUnit by settingsViewModel.weightUnit.collectAsStateWithLifecycle()
     val navController = rememberNavController()
     val tabs = listOf(
         Tab(Route.Home, "Home", Icons.Outlined.Home),
@@ -66,7 +76,8 @@ fun PersonalTrainerNav() {
         currentDestination?.hierarchy?.any { it.route == tab.route.path } == true
     }
 
-    Scaffold(
+    CompositionLocalProvider(LocalWeightUnit provides weightUnit) {
+        Scaffold(
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar {
@@ -103,6 +114,13 @@ fun PersonalTrainerNav() {
                     onOpenRoutines = { navController.navigate(Route.Routines.path) },
                     onOpenHistory = { navController.navigate(Route.History.path) },
                     onOpenSession = { navController.navigate(Route.SessionDetail.create(it)) },
+                    onOpenSettings = { navController.navigate(Route.Settings.path) },
+                )
+            }
+            composable(Route.Settings.path) {
+                SettingsScreen(
+                    onBack = { navController.popBackStack() },
+                    viewModel = settingsViewModel,
                 )
             }
             composable(Route.Routines.path) {
@@ -149,6 +167,7 @@ fun PersonalTrainerNav() {
             ) {
                 SessionDetailScreen(onBack = { navController.popBackStack() })
             }
+        }
         }
     }
 }

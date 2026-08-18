@@ -37,9 +37,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.RoutineExercise
+import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -117,7 +119,7 @@ fun RoutineEditorScreen(
                 item {
                     EmptyState(
                         title = "No exercises",
-                        body = "Search the library or create a custom lift, then set target sets, reps, and kg.",
+                        body = "Search the library or create a custom lift, then set target sets, reps, and weight.",
                     )
                 }
             } else {
@@ -179,10 +181,15 @@ private fun RoutineExerciseCard(
     onRemove: () -> Unit,
     onSaveTargets: (Int, Int, Double?, Int) -> Unit,
 ) {
+    val unit = LocalWeightUnit.current
     var sets by rememberSaveable(item.id) { mutableStateOf(item.targetSets.toString()) }
     var reps by rememberSaveable(item.id) { mutableStateOf(item.targetReps.toString()) }
-    var weight by rememberSaveable(item.id) {
-        mutableStateOf(item.targetWeightKg?.toString().orEmpty())
+    var weight by rememberSaveable(item.id, unit) {
+        mutableStateOf(
+            item.targetWeightKg?.let {
+                WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(it, unit))
+            }.orEmpty(),
+        )
     }
     var rest by rememberSaveable(item.id) { mutableStateOf(item.restSeconds.toString()) }
 
@@ -209,7 +216,7 @@ private fun RoutineExerciseCard(
                 SmallNumberField("Reps", reps, Modifier.weight(1f)) { reps = it.filter(Char::isDigit) }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SmallNumberField("Target kg", weight, Modifier.weight(1f)) { value ->
+                SmallNumberField("Target ${unit.suffix}", weight, Modifier.weight(1f)) { value ->
                     weight = value.filter { it.isDigit() || it == '.' }
                 }
                 SmallNumberField("Rest s", rest, Modifier.weight(1f)) { rest = it.filter(Char::isDigit) }
@@ -221,7 +228,7 @@ private fun RoutineExerciseCard(
                         onSaveTargets(
                             sets.toIntOrNull() ?: item.targetSets,
                             reps.toIntOrNull() ?: item.targetReps,
-                            weight.toDoubleOrNull(),
+                            WeightConverter.parseDisplayToKg(weight, unit, item.targetWeightKg),
                             rest.toIntOrNull() ?: item.restSeconds,
                         )
                     },

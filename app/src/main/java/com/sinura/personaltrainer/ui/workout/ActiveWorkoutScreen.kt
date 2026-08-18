@@ -44,14 +44,16 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.ProgressionAction
+import com.sinura.personaltrainer.domain.ProgressionCalculator
 import com.sinura.personaltrainer.domain.SetLog
-import com.sinura.personaltrainer.domain.toKgLabel
+import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
-import com.sinura.personaltrainer.ui.components.KgStepper
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.RepsStepper
 import com.sinura.personaltrainer.ui.components.RestTimerBar
+import com.sinura.personaltrainer.ui.components.WeightStepper
+import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,6 +68,8 @@ fun ActiveWorkoutScreen(
     val session = state.session
     val selected = session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId }
     val lastLoggedSet = session?.sets?.maxByOrNull { it.completedAt }
+    val unit = LocalWeightUnit.current
+    val incrementLabel = ProgressionCalculator.INCREMENT_KG.toWeightLabel(unit)
     val view = LocalView.current
 
     DisposableEffect(Unit) {
@@ -155,7 +159,7 @@ fun ActiveWorkoutScreen(
                             )
                             Text(
                                 "Target ${selected.targetSets} × ${selected.targetReps}" +
-                                    (selected.targetWeightKg?.let { " @ ${it.toKgLabel()}" } ?: ""),
+                                    (selected.targetWeightKg?.let { " @ ${it.toWeightLabel(unit)}" } ?: ""),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
@@ -172,18 +176,18 @@ fun ActiveWorkoutScreen(
                                         verticalArrangement = Arrangement.spacedBy(8.dp),
                                     ) {
                                         Text(
-                                            "Suggested: ${hint.suggestedWeightKg.toKgLabel()}",
+                                            "Suggested: ${hint.suggestedWeightKg.toWeightLabel(unit)}",
                                             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                                         )
                                         val reason = when (hint.action) {
                                             ProgressionAction.INCREASE ->
-                                                "Hit all ${hint.targetReps} target reps last time. Add 2.5 kg."
+                                                "Hit all ${hint.targetReps} target reps last time. Add $incrementLabel."
                                             ProgressionAction.HOLD ->
-                                                "1–2 reps short of ${hint.targetReps}. Keep ${hint.lastWeightKg.toKgLabel()}."
+                                                "1–2 reps short of ${hint.targetReps}. Keep ${hint.lastWeightKg.toWeightLabel(unit)}."
                                             ProgressionAction.DECREASE ->
-                                                "3+ reps short of ${hint.targetReps}. Drop 2.5 kg."
+                                                "3+ reps short of ${hint.targetReps}. Drop $incrementLabel."
                                         }
-                                        Text("Last: ${hint.lastWeightKg.toKgLabel()} × ${hint.lastReps}")
+                                        Text("Last: ${hint.lastWeightKg.toWeightLabel(unit)} × ${hint.lastReps}")
                                         Text(reason)
                                         PrimaryGymButton(
                                             text = "Use suggested",
@@ -194,9 +198,9 @@ fun ActiveWorkoutScreen(
                             }
                         }
                         item {
-                            KgStepper(
+                            WeightStepper(
                                 valueKg = state.draft.weightKg,
-                                onAdjust = viewModel::adjustWeight,
+                                onWeightKgChange = viewModel::setWeight,
                             )
                         }
                         item {
@@ -260,7 +264,7 @@ fun ActiveWorkoutScreen(
                             item {
                                 EmptyState(
                                     title = "No sets yet",
-                                    body = "Log weight in kg and reps. The rest timer starts after working sets.",
+                                    body = "Log weight and reps. The rest timer starts after working sets.",
                                 )
                             }
                         } else {
@@ -362,7 +366,7 @@ private fun LastSetCard(
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Last logged set", style = MaterialTheme.typography.labelLarge)
             Text(
-                "${set.exerciseName} · ${set.weightKg.toKgLabel()} × ${set.reps}",
+                "${set.exerciseName} · ${set.weightKg.toWeightLabel(LocalWeightUnit.current)} × ${set.reps}",
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
             )
             val extras = buildList {
@@ -406,7 +410,7 @@ private fun SetRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Set ${set.setNumber} · ${set.weightKg.toKgLabel()} × ${set.reps}")
+                Text("Set ${set.setNumber} · ${set.weightKg.toWeightLabel(LocalWeightUnit.current)} × ${set.reps}")
                 val extras = buildList {
                     if (set.isWarmup) add("Warm-up")
                     set.rpe?.let { add("RPE $it") }

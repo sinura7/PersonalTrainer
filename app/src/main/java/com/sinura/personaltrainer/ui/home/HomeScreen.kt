@@ -3,13 +3,18 @@ package com.sinura.personaltrainer.ui.home
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -21,9 +26,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.ProgressionAction
-import com.sinura.personaltrainer.domain.toKgLabel
+import com.sinura.personaltrainer.domain.ProgressionCalculator
+import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import java.text.DateFormat
 import java.util.Date
 
@@ -34,9 +41,11 @@ fun HomeScreen(
     onOpenRoutines: () -> Unit,
     onOpenHistory: () -> Unit,
     onOpenSession: (String) -> Unit,
+    onOpenSettings: () -> Unit,
     viewModel: HomeViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val unit = LocalWeightUnit.current
     val dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM)
 
     if (state.isLoading) {
@@ -56,11 +65,22 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
-            Text("Personal Trainer", style = MaterialTheme.typography.headlineLarge)
-            Text(
-                "Local strength tracker · kg only",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Personal Trainer", style = MaterialTheme.typography.headlineLarge)
+                    Text(
+                        "Local strength tracker",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                IconButton(onClick = onOpenSettings) {
+                    Icon(Icons.Outlined.Settings, contentDescription = "Settings")
+                }
+            }
         }
         item {
             if (state.inProgress != null) {
@@ -92,10 +112,13 @@ fun HomeScreen(
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(hint.exerciseName, style = MaterialTheme.typography.titleMedium)
                         Text(
-                            "Last ${hint.lastWeightKg.toKgLabel()} × ${hint.lastReps} → next ${hint.suggestedWeightKg.toKgLabel()}",
+                            "Last ${hint.lastWeightKg.toWeightLabel(unit)} × ${hint.lastReps} → next ${hint.suggestedWeightKg.toWeightLabel(unit)}",
                         )
                         if (hint.action == ProgressionAction.INCREASE) {
-                            Text("+2.5 kg", color = MaterialTheme.colorScheme.primary)
+                            Text(
+                                "+${ProgressionCalculator.INCREMENT_KG.toWeightLabel(unit)}",
+                                color = MaterialTheme.colorScheme.primary,
+                            )
                         }
                     }
                 }
@@ -120,7 +143,7 @@ fun HomeScreen(
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(session.routineName ?: "Workout", style = MaterialTheme.typography.titleMedium)
                         Text(dateFormat.format(Date(session.date)))
-                        Text("${session.durationMinutes} min · ${session.workingVolumeKg().toKgLabel()} volume")
+                        Text("${session.durationMinutes} min · ${session.workingVolumeKg().toWeightLabel(unit)} volume")
                     }
                 }
             }

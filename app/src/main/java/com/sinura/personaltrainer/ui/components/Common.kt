@@ -21,8 +21,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sinura.personaltrainer.domain.toKgLabel
-import com.sinura.personaltrainer.domain.toKgNumber
+import com.sinura.personaltrainer.domain.WeightConverter
+import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.toWeightLabel
+import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 
 @Composable
 fun EmptyState(
@@ -46,30 +48,37 @@ fun EmptyState(
 }
 
 @Composable
-fun KgStepper(
+fun WeightStepper(
     valueKg: Double,
-    onAdjust: (Double) -> Unit,
+    onWeightKgChange: (Double) -> Unit,
     modifier: Modifier = Modifier,
-    stepKg: Double = 2.5,
+    unit: WeightUnit = LocalWeightUnit.current,
 ) {
+    val displayNumber = WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(valueKg, unit))
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        StepperButton(label = "−2.5", onClick = { onAdjust(-stepKg) })
+        StepperButton(
+            label = "−${unit.stepLabel}",
+            onClick = { onWeightKgChange(WeightConverter.incrementKg(valueKg, unit, -1)) },
+        )
         Column(
             modifier = Modifier.weight(1f),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text("WEIGHT", style = MaterialTheme.typography.labelLarge)
             Text(
-                valueKg.toKgNumber(),
+                displayNumber,
                 style = MaterialTheme.typography.headlineLarge.copy(fontSize = 56.sp, fontWeight = FontWeight.Bold),
             )
-            Text(valueKg.toKgLabel(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(valueKg.toWeightLabel(unit), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        StepperButton(label = "+2.5", onClick = { onAdjust(stepKg) })
+        StepperButton(
+            label = "+${unit.stepLabel}",
+            onClick = { onWeightKgChange(WeightConverter.incrementKg(valueKg, unit, 1)) },
+        )
     }
 }
 

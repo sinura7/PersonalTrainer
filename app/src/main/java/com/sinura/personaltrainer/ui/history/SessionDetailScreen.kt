@@ -26,8 +26,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.sinura.personaltrainer.domain.toKgLabel
+import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
+import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import java.text.DateFormat
 import java.util.Date
 
@@ -39,6 +40,7 @@ fun SessionDetailScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val session = state.session
+    val unit = LocalWeightUnit.current
     val dateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
 
     Scaffold(
@@ -85,7 +87,7 @@ fun SessionDetailScreen(
                 ) {
                     item {
                         Text(dateFormat.format(Date(session.date)))
-                        Text("${session.durationMinutes} min · ${session.workingVolumeKg().toKgLabel()} working volume")
+                        Text("${session.durationMinutes} min · ${session.workingVolumeKg().toWeightLabel(unit)} working volume")
                         if (session.notes.isNotBlank()) {
                             Text(session.notes)
                         }
@@ -100,7 +102,7 @@ fun SessionDetailScreen(
                             ) {
                                 Text(exerciseName, style = MaterialTheme.typography.titleLarge)
                                 Text(
-                                    "${volume.toKgLabel()} volume",
+                                    "${volume.toWeightLabel(unit)} volume",
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 if (sets.isEmpty()) {
@@ -108,7 +110,7 @@ fun SessionDetailScreen(
                                 } else {
                                     sets.forEach { set ->
                                         val tag = buildString {
-                                            append("Set ${set.setNumber}: ${set.weightKg.toKgLabel()} × ${set.reps}")
+                                            append("Set ${set.setNumber}: ${set.weightKg.toWeightLabel(unit)} × ${set.reps}")
                                             if (set.isWarmup) append(" · WU")
                                             set.rpe?.let { append(" · RPE $it") }
                                         }

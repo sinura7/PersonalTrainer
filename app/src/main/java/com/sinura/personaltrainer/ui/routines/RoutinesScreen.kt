@@ -33,8 +33,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.sinura.personaltrainer.domain.toKgLabel
+import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
+import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,6 +45,7 @@ fun RoutinesScreen(
     viewModel: RoutinesViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val unit = LocalWeightUnit.current
     var pendingDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
 
     Scaffold(
@@ -69,7 +71,7 @@ fun RoutinesScreen(
             state.routines.isEmpty() -> {
                 EmptyState(
                     title = "No routines yet",
-                    body = "Create a program with your lifts, target sets, reps, and optional kg targets.",
+                    body = "Create a program with your lifts, target sets, reps, and optional weight targets.",
                     modifier = Modifier.padding(padding),
                 )
             }
@@ -102,7 +104,7 @@ fun RoutinesScreen(
                                 if (routine.exercises.isNotEmpty()) {
                                     Text(
                                         routine.exercises.take(3).joinToString(" · ") { item ->
-                                            val weight = item.targetWeightKg?.toKgLabel()?.let { " $it" }.orEmpty()
+                                            val weight = item.targetWeightKg?.toWeightLabel(unit)?.let { " $it" }.orEmpty()
                                             "${item.exercise.name} ${item.targetSets}×${item.targetReps}$weight"
                                         },
                                         style = MaterialTheme.typography.bodyMedium,

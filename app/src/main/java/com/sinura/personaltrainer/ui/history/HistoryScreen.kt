@@ -22,8 +22,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.sinura.personaltrainer.domain.toKgLabel
+import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
+import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import java.text.DateFormat
 import java.util.Date
 
@@ -34,6 +35,7 @@ fun HistoryScreen(
     viewModel: HistoryViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val unit = LocalWeightUnit.current
     val dateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
 
     Scaffold(
@@ -73,7 +75,7 @@ fun HistoryScreen(
                                 Text(session.routineName ?: "Workout", style = MaterialTheme.typography.titleLarge)
                                 Text(dateFormat.format(Date(session.date)))
                                 Text(
-                                    "${session.durationMinutes} min · ${session.sets.count { !it.isWarmup }} working sets · ${session.workingVolumeKg().toKgLabel()} volume",
+                                    "${session.durationMinutes} min · ${session.sets.count { !it.isWarmup }} working sets · ${session.workingVolumeKg().toWeightLabel(unit)} volume",
                                 )
                             }
                         }
