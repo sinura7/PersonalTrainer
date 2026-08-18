@@ -1,6 +1,6 @@
 # Personal Trainer
 
-Android app for following strength, cardio, and mobility workouts. Open this repository in Android Studio, sync Gradle, and run it on an emulator or device.
+Local-first strength training tracker for Android. Weights are kilograms only. All routines, sets, and history persist in a Room database on the device.
 
 ## Open in Android Studio
 
@@ -8,38 +8,38 @@ Android app for following strength, cardio, and mobility workouts. Open this rep
    ```bash
    git clone https://github.com/sinura7/PersonalTrainer.git
    ```
-2. In Android Studio choose **File → Open** and select the `PersonalTrainer` folder (the one that contains `settings.gradle.kts`).
+2. In Android Studio choose **File → Open** and select the folder that contains `settings.gradle.kts`.
 3. Trust the project and wait for Gradle sync.
-4. Create or start an emulator (API 26+), then click **Run**.
+4. Run on an API 26+ emulator or device.
 
-Android Studio will use the included Gradle wrapper (`gradlew`). You do not need a system-wide Gradle install.
+## What it does
 
-## What’s in the app
+- **Home** — start or resume a workout, jump to routines/history, see lifts ready for +2.5 kg
+- **Routines** — create, edit, reorder, and delete your own programs
+- **Logging** — start a routine or a free workout, log weight (kg) + reps, optional RPE and warm-up
+- **Rest timer** — starts after working sets (default 90s, or the routine rest target)
+- **Progression** — last working set vs target reps:
+  - hit target → suggest **+2.5 kg**
+  - 1–2 reps short → keep the same weight
+  - 3+ reps short → suggest **−2.5 kg**
+- **History** — finished sessions with every set grouped by exercise and working volume
 
-- **Home** — weekly goal, last session, and a featured workout
-- **Workouts** — filterable library (full body, strength, cardio, mobility)
-- **Session** — step through each exercise, then save the completed workout
-- **Progress** — session history
-- **Profile** — name, goal, and weekly target
+The first launch seeds a lift library. You can search it or create custom exercises when building a routine or mid-workout.
 
-Sample programs and exercises live in `app/src/main/java/com/sinura/personaltrainer/data/SampleData.kt`. History is kept in memory for this first upload so the project opens and runs without a backend or database.
-
-## Project layout
+## Architecture
 
 ```
-app/src/main/java/com/sinura/personaltrainer/
-  data/           models, sample workouts, repository
-  ui/home         dashboard
-  ui/workouts     library + detail
-  ui/session      guided workout
-  ui/progress     history
-  ui/profile      settings
-  ui/navigation   bottom tabs
+data/local     Room entities, DAOs, TrainerDatabase
+data/repository
+domain         models, ProgressionCalculator
+ui/home, ui/routines, ui/workout, ui/history
 ```
+
+ViewModels talk to repositories. No Hilt — `PersonalTrainerApp` holds an `AppContainer`.
 
 ## Requirements
 
 - Android Studio Ladybug or newer
-- JDK 17 (bundled with Android Studio)
+- JDK 17
 - Android SDK 35
 - minSdk 26
