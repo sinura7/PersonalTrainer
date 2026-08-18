@@ -6,20 +6,24 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -27,12 +31,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -55,8 +62,16 @@ fun ActiveWorkoutScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
+    var confirmFinish by rememberSaveable { mutableStateOf(false) }
     val session = state.session
     val selected = session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId }
+    val lastLoggedSet = session?.sets?.maxByOrNull { it.completedAt }
+    val view = LocalView.current
+
+    DisposableEffect(Unit) {
+        view.keepScreenOn = true
+        onDispose { view.keepScreenOn = false }
+    }
 
     Scaffold(
         topBar = {
@@ -102,6 +117,7 @@ fun ActiveWorkoutScreen(
                             remainingSeconds = state.restRemainingSeconds,
                             totalSeconds = state.restTotalSeconds,
                             onSkip = viewModel::skipRest,
+                            onAdjust = viewModel::adjustRest,
                         )
                     }
                     item {
@@ -129,8 +145,14 @@ fun ActiveWorkoutScreen(
                             )
                         }
                     } else {
+                        val workingLogged = session.setsFor(selected.exercise.id).count { !it.isWarmup }
+                        val nextWorkingSet = workingLogged + 1
                         item {
                             Text(selected.exercise.name, style = MaterialTheme.typography.headlineMedium)
+                            Text(
+                                "Set $nextWorkingSet of ${selected.targetSets}",
+                                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                            )
                             Text(
                                 "Target ${selected.targetSets} × ${selected.targetReps}" +
                                     (selected.targetWeightKg?.let { " @ ${it.toKgLabel()}" } ?: ""),
@@ -139,15 +161,19 @@ fun ActiveWorkoutScreen(
                         }
                         state.hint?.let { hint ->
                             item {
-                                Card(onClick = viewModel::applySuggestedWeight, modifier = Modifier.fillMaxWidth()) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    ),
+                                ) {
                                     Column(
                                         modifier = Modifier.padding(16.dp),
-                                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
                                     ) {
-                                        Text("Suggested next weight", style = MaterialTheme.typography.titleMedium)
                                         Text(
-                                            hint.suggestedWeightKg.toKgLabel(),
-                                            style = MaterialTheme.typography.headlineMedium,
+                                            "Suggested: ${hint.suggestedWeightKg.toKgLabel()}",
+                                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                                         )
                                         val reason = when (hint.action) {
                                             ProgressionAction.INCREASE ->
@@ -159,6 +185,10 @@ fun ActiveWorkoutScreen(
                                         }
                                         Text("Last: ${hint.lastWeightKg.toKgLabel()} × ${hint.lastReps}")
                                         Text(reason)
+                                        PrimaryGymButton(
+                                            text = "Use suggested",
+                                            onClick = viewModel::applySuggestedWeight,
+                                        )
                                     }
                                 }
                             }
@@ -203,8 +233,24 @@ fun ActiveWorkoutScreen(
                             }
                         }
                         item {
-                            PrimaryGymButton(text = "Log set", onClick = viewModel::logSet)
+                            PrimaryGymButton(
+                                text = if (state.editingSetId == null) "Log set" else "Save set",
+                                onClick = viewModel::logSet,
+                            )
+                            if (state.editingSetId != null) {
+                                TextButton(onClick = viewModel::cancelEdit) { Text("Cancel edit") }
+                            }
                             state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                        }
+                        lastLoggedSet?.let { set ->
+                            item {
+                                LastSetCard(
+                                    set = set,
+                                    isEditing = state.editingSetId == set.id,
+                                    onEdit = { viewModel.editSet(set.id) },
+                                    onDelete = { viewModel.deleteSet(set.id) },
+                                )
+                            }
                         }
                         item {
                             Text("This exercise", style = MaterialTheme.typography.titleLarge)
@@ -219,7 +265,12 @@ fun ActiveWorkoutScreen(
                             }
                         } else {
                             items(logged, key = { it.id }) { set ->
-                                SetRow(set = set, onDelete = { viewModel.deleteSet(set.id) })
+                                SetRow(
+                                    set = set,
+                                    isLatest = set.id == lastLoggedSet?.id,
+                                    onEdit = { viewModel.editSet(set.id) },
+                                    onDelete = { viewModel.deleteSet(set.id) },
+                                )
                             }
                         }
                     }
@@ -234,7 +285,7 @@ fun ActiveWorkoutScreen(
                     item {
                         PrimaryGymButton(
                             text = "Finish workout",
-                            onClick = { viewModel.finishWorkout(onFinished) },
+                            onClick = { confirmFinish = true },
                         )
                     }
                 }
@@ -253,8 +304,27 @@ fun ActiveWorkoutScreen(
         )
     }
 
+    if (confirmFinish) {
+        AlertDialog(
+            onDismissRequest = { confirmFinish = false },
+            title = { Text("Finish workout?") },
+            text = { Text("This saves the session to history. You can still leave without finishing if you need more sets.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmFinish = false
+                        viewModel.finishWorkout(onFinished)
+                    },
+                ) { Text("Finish") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmFinish = false }) { Text("Keep logging") }
+            },
+        )
+    }
+
     if (confirmDiscard) {
-        androidx.compose.material3.AlertDialog(
+        AlertDialog(
             onDismissRequest = { confirmDiscard = false },
             title = { Text("Leave workout?") },
             text = { Text("Discard deletes this in-progress session. Cancel to keep logging.") },
@@ -279,7 +349,54 @@ fun ActiveWorkoutScreen(
 }
 
 @Composable
-private fun SetRow(set: SetLog, onDelete: () -> Unit) {
+private fun LastSetCard(
+    set: SetLog,
+    isEditing: Boolean,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Last logged set", style = MaterialTheme.typography.labelLarge)
+            Text(
+                "${set.exerciseName} · ${set.weightKg.toKgLabel()} × ${set.reps}",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+            )
+            val extras = buildList {
+                add("Set ${set.setNumber}")
+                if (set.isWarmup) add("Warm-up")
+                set.rpe?.let { add("RPE $it") }
+                if (isEditing) add("Editing")
+            }.joinToString(" · ")
+            Text(extras, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    onClick = onEdit,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                ) { Text("Edit") }
+                OutlinedButton(
+                    onClick = onDelete,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                ) { Text("Delete") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SetRow(
+    set: SetLog,
+    isLatest: Boolean,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -288,17 +405,21 @@ private fun SetRow(set: SetLog, onDelete: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text("Set ${set.setNumber} · ${set.weightKg.toKgLabel()} × ${set.reps}")
                 val extras = buildList {
                     if (set.isWarmup) add("Warm-up")
                     set.rpe?.let { add("RPE $it") }
+                    if (isLatest) add("Latest")
                 }.joinToString(" · ")
                 if (extras.isNotEmpty()) {
                     Text(extras, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            TextButton(onClick = onDelete) { Text("Undo") }
+            if (isLatest) {
+                TextButton(onClick = onEdit) { Text("Edit") }
+                TextButton(onClick = onDelete) { Text("Delete") }
+            }
         }
     }
 }

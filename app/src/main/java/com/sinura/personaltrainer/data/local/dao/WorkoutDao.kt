@@ -56,6 +56,12 @@ interface WorkoutDao {
     @Insert
     suspend fun insertSet(set: SetLogEntity)
 
+    @Query("SELECT * FROM set_logs WHERE id = :id")
+    suspend fun getSet(id: String): SetLogEntity?
+
+    @Update
+    suspend fun updateSet(set: SetLogEntity)
+
     @Query("DELETE FROM set_logs WHERE id = :id")
     suspend fun deleteSet(id: String)
 

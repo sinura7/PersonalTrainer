@@ -9,11 +9,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,14 +55,17 @@ fun KgStepper(
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         StepperButton(label = "−2.5", onClick = { onAdjust(-stepKg) })
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = Modifier.weight(1f),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             Text("WEIGHT", style = MaterialTheme.typography.labelLarge)
             Text(
                 valueKg.toKgNumber(),
-                style = MaterialTheme.typography.headlineLarge.copy(fontSize = 42.sp, fontWeight = FontWeight.Bold),
+                style = MaterialTheme.typography.headlineLarge.copy(fontSize = 56.sp, fontWeight = FontWeight.Bold),
             )
             Text(valueKg.toKgLabel(), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -78,14 +82,17 @@ fun RepsStepper(
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         StepperButton(label = "−1", onClick = { onAdjust(-1) })
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            modifier = Modifier.weight(1f),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             Text("REPS", style = MaterialTheme.typography.labelLarge)
             Text(
                 value.toString(),
-                style = MaterialTheme.typography.headlineLarge.copy(fontSize = 42.sp, fontWeight = FontWeight.Bold),
+                style = MaterialTheme.typography.headlineLarge.copy(fontSize = 56.sp, fontWeight = FontWeight.Bold),
             )
         }
         StepperButton(label = "+1", onClick = { onAdjust(1) })
@@ -99,10 +106,10 @@ fun StepperButton(
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = Modifier.size(width = 88.dp, height = 72.dp),
-        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.size(width = 108.dp, height = 96.dp),
+        shape = RoundedCornerShape(20.dp),
     ) {
-        Text(label, style = MaterialTheme.typography.titleLarge)
+        Text(label, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -111,30 +118,58 @@ fun RestTimerBar(
     remainingSeconds: Int,
     totalSeconds: Int,
     onSkip: () -> Unit,
+    onAdjust: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (remainingSeconds <= 0) return
     val progress = if (totalSeconds <= 0) 0f else remainingSeconds.toFloat() / totalSeconds.toFloat()
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(bottom = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+    val minutes = remainingSeconds / 60
+    val seconds = remainingSeconds % 60
+    val clock = "%d:%02d".format(minutes, seconds)
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("Rest ${remainingSeconds}s", style = MaterialTheme.typography.titleLarge)
-            TextButton(onClick = onSkip) { Text("Skip rest") }
+            Text("REST", style = MaterialTheme.typography.labelLarge)
+            Text(
+                clock,
+                style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Bold),
+            )
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(14.dp),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedButton(
+                    onClick = { onAdjust(-15) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                ) { Text("−15s") }
+                Button(
+                    onClick = onSkip,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                ) { Text("Skip") }
+                OutlinedButton(
+                    onClick = { onAdjust(15) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                ) { Text("+15s") }
+            }
         }
-        LinearProgressIndicator(
-            progress = { progress },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(10.dp),
-        )
     }
 }
 

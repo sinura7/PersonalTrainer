@@ -138,6 +138,24 @@ class WorkoutRepository(
         )
     }
 
+    suspend fun updateSet(
+        setId: String,
+        weightKg: Double,
+        reps: Int,
+        rpe: Int?,
+        isWarmup: Boolean,
+    ) {
+        val current = workoutDao.getSet(setId) ?: return
+        workoutDao.updateSet(
+            current.copy(
+                weightKg = weightKg.coerceAtLeast(0.0),
+                reps = reps.coerceAtLeast(0),
+                rpe = rpe,
+                isWarmup = isWarmup,
+            ),
+        )
+    }
+
     suspend fun deleteSet(setId: String) {
         workoutDao.deleteSet(setId)
     }

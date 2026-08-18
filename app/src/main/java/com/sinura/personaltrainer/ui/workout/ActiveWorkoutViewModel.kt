@@ -40,6 +40,7 @@ data class ActiveWorkoutUiState(
     val notes: String = "",
     val error: String? = null,
     val finished: Boolean = false,
+    val editingSetId: String? = null,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -59,6 +60,7 @@ class ActiveWorkoutViewModel(
     private val notes = MutableStateFlow("")
     private val error = MutableStateFlow<String?>(null)
     private val finished = MutableStateFlow(false)
+    private val editingSetId = MutableStateFlow<String?>(null)
     private var restJob: Job? = null
     private var lastPrefillExerciseId: String? = null
 
@@ -90,11 +92,19 @@ class ActiveWorkoutViewModel(
             combine(restTotal, searchQuery, showPicker) { total, query, picker ->
                 Triple(total, query, picker)
             },
-            combine(notes, error, finished) { sessionNotes, err, done ->
-                Triple(sessionNotes, err, done)
+            combine(notes, error, finished, editingSetId) { sessionNotes, err, done, editing ->
+                EditorMeta(sessionNotes, err, done, editing)
             },
         ) { first, second ->
-            WorkoutExtras(first.first, first.second, first.third, second.first, second.second, second.third)
+            WorkoutExtras(
+                restTotal = first.first,
+                query = first.second,
+                showPicker = first.third,
+                notes = second.notes,
+                error = second.error,
+                finished = second.finished,
+                editingSetId = second.editingSetId,
+            )
         },
     ) { core, extras ->
         ActiveWorkoutUiState(
@@ -111,6 +121,7 @@ class ActiveWorkoutViewModel(
             notes = extras.notes,
             error = extras.error,
             finished = extras.finished,
+            editingSetId = extras.editingSetId,
         )
     }.combine(searchQuery.flatMapLatest { container.exerciseRepository.search(it) }) { state, results ->
         state.copy(searchResults = results)
@@ -216,24 +227,56 @@ class ActiveWorkoutViewModel(
             return
         }
         viewModelScope.launch {
-            container.workoutRepository.logSet(
-                sessionId = sessionId,
-                exerciseId = exerciseId,
-                weightKg = current.weightKg,
-                reps = current.reps,
-                rpe = current.rpe,
-                isWarmup = current.isWarmup,
-            )
-            error.value = null
-            if (!current.isWarmup) {
-                startRest(restTotal.value)
+            val editingId = editingSetId.value
+            if (editingId != null) {
+                container.workoutRepository.updateSet(
+                    setId = editingId,
+                    weightKg = current.weightKg,
+                    reps = current.reps,
+                    rpe = current.rpe,
+                    isWarmup = current.isWarmup,
+                )
+                editingSetId.value = null
+            } else {
+                container.workoutRepository.logSet(
+                    sessionId = sessionId,
+                    exerciseId = exerciseId,
+                    weightKg = current.weightKg,
+                    reps = current.reps,
+                    rpe = current.rpe,
+                    isWarmup = current.isWarmup,
+                )
+                if (!current.isWarmup) {
+                    startRest(restTotal.value)
+                }
             }
+            error.value = null
             draft.value = current.copy(isWarmup = false, rpe = null)
         }
     }
 
+    fun editSet(setId: String) {
+        val set = uiState.value.session?.sets?.firstOrNull { it.id == setId } ?: return
+        lastPrefillExerciseId = set.exerciseId
+        selectedExerciseId.value = set.exerciseId
+        draft.value = ActiveExerciseDraft(
+            weightKg = set.weightKg,
+            reps = set.reps,
+            rpe = set.rpe,
+            isWarmup = set.isWarmup,
+        )
+        editingSetId.value = set.id
+    }
+
+    fun cancelEdit() {
+        editingSetId.value = null
+    }
+
     fun deleteSet(setId: String) {
         viewModelScope.launch {
+            if (editingSetId.value == setId) {
+                editingSetId.value = null
+            }
             container.workoutRepository.deleteSet(setId)
         }
     }
@@ -243,9 +286,25 @@ class ActiveWorkoutViewModel(
         restRemaining.value = 0
     }
 
+    fun adjustRest(deltaSeconds: Int) {
+        if (restRemaining.value <= 0 && deltaSeconds < 0) return
+        val next = (restRemaining.value + deltaSeconds).coerceAtLeast(0)
+        restJob?.cancel()
+        if (next == 0) {
+            restRemaining.value = 0
+            return
+        }
+        restJob = viewModelScope.launch {
+            for (remaining in next downTo 0) {
+                restRemaining.value = remaining
+                if (remaining == 0) break
+                delay(1_000)
+            }
+        }
+    }
+
     fun startRest(seconds: Int = restTotal.value) {
         restJob?.cancel()
-        restTotal.value = seconds
         restJob = viewModelScope.launch {
             for (remaining in seconds downTo 0) {
                 restRemaining.value = remaining
@@ -295,5 +354,13 @@ class ActiveWorkoutViewModel(
         val notes: String,
         val error: String?,
         val finished: Boolean,
+        val editingSetId: String?,
+    )
+
+    private data class EditorMeta(
+        val notes: String,
+        val error: String?,
+        val finished: Boolean,
+        val editingSetId: String?,
     )
 }
