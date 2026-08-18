@@ -18,6 +18,9 @@ data class BackupPreferences(
     val trainingDaysPerWeek: Int = 4,
     val splitStyle: String = "auto",
     val weekStart: String = "MONDAY",
+    val restSoundEnabled: Boolean = true,
+    val restVibrationEnabled: Boolean = true,
+    val defaultRestSeconds: Int = 90,
 )
 
 data class BackupExercise(

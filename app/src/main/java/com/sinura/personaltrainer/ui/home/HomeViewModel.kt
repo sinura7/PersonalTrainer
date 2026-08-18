@@ -37,6 +37,13 @@ data class HomeUiState(
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(application: Application) : AppViewModel(application) {
+    val restRemainingSeconds: StateFlow<Int> = container.restTimerController.remainingSeconds
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = 0,
+        )
+
     val uiState: StateFlow<HomeUiState> = combine(
         container.workoutRepository.observeInProgress(),
         container.routineRepository.observeAll(),

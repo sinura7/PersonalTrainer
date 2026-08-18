@@ -18,6 +18,7 @@ import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
+import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -36,6 +37,7 @@ class LocalBackupRepository(
         val sets = database.workoutDao().getAllSets()
         val unit = preferencesRepository.weightUnit.first()
         val schedule = preferencesRepository.schedulePreferences.first()
+        val rest = preferencesRepository.restTimerPreferences.first()
         return BackupDocument(
             version = BackupJson.CURRENT_VERSION,
             app = BackupJson.APP_ID,
@@ -45,6 +47,9 @@ class LocalBackupRepository(
                 trainingDaysPerWeek = schedule.trainingDaysPerWeek,
                 splitStyle = schedule.splitStyle.storageKey,
                 weekStart = schedule.weekStart.name,
+                restSoundEnabled = rest.soundEnabled,
+                restVibrationEnabled = rest.vibrationEnabled,
+                defaultRestSeconds = rest.defaultRestSeconds,
             ),
             exercises = exercises.map {
                 BackupExercise(it.id, it.name, it.muscleGroup, it.notes, it.isCustom)
@@ -202,6 +207,13 @@ class LocalBackupRepository(
                 trainingDaysPerWeek = document.preferences.trainingDaysPerWeek,
                 splitStyle = SplitStyle.fromStorage(document.preferences.splitStyle),
                 weekStart = SchedulePreferences.weekStartFromStorage(document.preferences.weekStart),
+            ),
+        )
+        preferencesRepository.setRestTimerPreferences(
+            RestTimerPreferences(
+                soundEnabled = document.preferences.restSoundEnabled,
+                vibrationEnabled = document.preferences.restVibrationEnabled,
+                defaultRestSeconds = document.preferences.defaultRestSeconds,
             ),
         )
     }

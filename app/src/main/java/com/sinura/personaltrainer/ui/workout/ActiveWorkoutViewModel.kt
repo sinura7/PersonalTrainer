@@ -7,13 +7,13 @@ import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.domain.RestTimer
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
@@ -34,6 +34,7 @@ data class ActiveWorkoutUiState(
     val hint: ProgressionHint? = null,
     val restRemainingSeconds: Int = 0,
     val restTotalSeconds: Int = 90,
+    val restRunning: Boolean = false,
     val searchQuery: String = "",
     val searchResults: List<Exercise> = emptyList(),
     val showExercisePicker: Boolean = false,
@@ -41,6 +42,12 @@ data class ActiveWorkoutUiState(
     val error: String? = null,
     val finished: Boolean = false,
     val editingSetId: String? = null,
+)
+
+data class RestTimerUiState(
+    val remainingSeconds: Int = 0,
+    val totalSeconds: Int = 90,
+    val running: Boolean = false,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -53,7 +60,6 @@ class ActiveWorkoutViewModel(
     private val selectedExerciseId = MutableStateFlow<String?>(null)
     private val draft = MutableStateFlow(ActiveExerciseDraft())
     private val hint = MutableStateFlow<ProgressionHint?>(null)
-    private val restRemaining = MutableStateFlow(0)
     private val restTotal = MutableStateFlow(90)
     private val searchQuery = MutableStateFlow("")
     private val showPicker = MutableStateFlow(false)
@@ -61,8 +67,8 @@ class ActiveWorkoutViewModel(
     private val error = MutableStateFlow<String?>(null)
     private val finished = MutableStateFlow(false)
     private val editingSetId = MutableStateFlow<String?>(null)
-    private var restJob: Job? = null
     private var lastPrefillExerciseId: String? = null
+    private val restTimer = container.restTimerController
 
     private val sessionFlow = container.workoutRepository.observeSession(sessionId)
 
@@ -79,14 +85,29 @@ class ActiveWorkoutViewModel(
         }
     }
 
+    val restTimerState: StateFlow<RestTimerUiState> = combine(
+        restTimer.remainingSeconds,
+        restTimer.snapshot,
+        restTotal,
+    ) { remaining, snapshot, planned ->
+        RestTimerUiState(
+            remainingSeconds = remaining,
+            totalSeconds = if (snapshot.running) snapshot.totalSeconds else planned,
+            running = snapshot.running,
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = RestTimerUiState(),
+    )
+
     val uiState: StateFlow<ActiveWorkoutUiState> = combine(
         sessionFlow,
         selectedExerciseId,
         draft,
         hint,
-        restRemaining,
-    ) { session, selected, currentDraft, currentHint, rest ->
-        WorkoutCore(session, selected, currentDraft, currentHint, rest)
+    ) { session, selected, currentDraft, currentHint ->
+        WorkoutCore(session, selected, currentDraft, currentHint)
     }.combine(
         combine(
             combine(restTotal, searchQuery, showPicker) { total, query, picker ->
@@ -113,8 +134,9 @@ class ActiveWorkoutViewModel(
             selectedExerciseId = core.selected,
             draft = core.draft,
             hint = core.hint,
-            restRemainingSeconds = core.rest,
+            restRemainingSeconds = restTimerState.value.remainingSeconds,
             restTotalSeconds = extras.restTotal,
+            restRunning = restTimerState.value.running,
             searchQuery = extras.query,
             searchResults = emptyList(),
             showExercisePicker = extras.showPicker,
@@ -267,7 +289,7 @@ class ActiveWorkoutViewModel(
                         isWarmup = current.isWarmup,
                     )
                     if (!current.isWarmup) {
-                        startRest(restTotal.value)
+                        startRestAfterSet()
                     }
                 }
                 error.value = null
@@ -307,7 +329,7 @@ class ActiveWorkoutViewModel(
             try {
                 container.workoutRepository.deleteSet(setId)
                 if (wasLatest) {
-                    stopRest()
+                    restTimer.stop()
                 }
                 error.value = null
             } catch (_: Exception) {
@@ -317,41 +339,25 @@ class ActiveWorkoutViewModel(
     }
 
     fun skipRest() {
-        stopRest()
-    }
-
-    private fun stopRest() {
-        restJob?.cancel()
-        restJob = null
-        restRemaining.value = 0
+        restTimer.stop()
     }
 
     fun adjustRest(deltaSeconds: Int) {
-        if (restRemaining.value <= 0 && deltaSeconds < 0) return
-        val next = (restRemaining.value + deltaSeconds).coerceAtLeast(0)
-        restJob?.cancel()
-        if (next == 0) {
-            restRemaining.value = 0
-            return
-        }
-        restJob = viewModelScope.launch {
-            for (remaining in next downTo 0) {
-                restRemaining.value = remaining
-                if (remaining == 0) break
-                delay(1_000)
-            }
+        restTimer.adjust(deltaSeconds)
+    }
+
+    fun startPreset(seconds: Int) {
+        viewModelScope.launch {
+            container.preferencesRepository.setLastRestPresetSeconds(seconds)
+            restTotal.value = seconds
+            restTimer.start(seconds, sessionId)
         }
     }
 
-    fun startRest(seconds: Int = restTotal.value) {
-        restJob?.cancel()
-        restJob = viewModelScope.launch {
-            for (remaining in seconds downTo 0) {
-                restRemaining.value = remaining
-                if (remaining == 0) break
-                delay(1_000)
-            }
-        }
+    fun startCustom(input: String): Boolean {
+        val seconds = RestTimer.parseCustom(input) ?: return false
+        startPreset(seconds)
+        return true
     }
 
     fun applySuggestedWeight() {
@@ -367,7 +373,7 @@ class ActiveWorkoutViewModel(
                 return@launch
             }
             try {
-                stopRest()
+                restTimer.stop()
                 container.workoutRepository.finishSession(sessionId, notes.value)
                 finished.value = true
                 onFinished()
@@ -379,7 +385,7 @@ class ActiveWorkoutViewModel(
 
     fun discardWorkout(onDiscarded: () -> Unit) {
         viewModelScope.launch {
-            stopRest()
+            restTimer.stop()
             try {
                 container.workoutRepository.discardSession(sessionId)
                 onDiscarded()
@@ -389,9 +395,17 @@ class ActiveWorkoutViewModel(
         }
     }
 
-    override fun onCleared() {
-        stopRest()
-        super.onCleared()
+    private fun startRestAfterSet() {
+        viewModelScope.launch {
+            val prefs = container.preferencesRepository.restTimerPreferences.first()
+            val planned = uiState.value.session
+                ?.exercises
+                ?.firstOrNull { it.exercise.id == selectedExerciseId.value }
+                ?.restSeconds
+            val seconds = RestTimer.secondsToStart(planned, prefs)
+            restTotal.value = seconds
+            restTimer.start(seconds, sessionId)
+        }
     }
 
     private data class WorkoutCore(
@@ -399,7 +413,6 @@ class ActiveWorkoutViewModel(
         val selected: String?,
         val draft: ActiveExerciseDraft,
         val hint: ProgressionHint?,
-        val rest: Int,
     )
 
     private data class WorkoutExtras(

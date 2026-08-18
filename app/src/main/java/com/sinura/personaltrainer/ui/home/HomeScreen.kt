@@ -52,6 +52,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.ProgressionCalculator
 import com.sinura.personaltrainer.domain.ProgressionHint
+import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.toWeightLabel
@@ -77,6 +78,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val restRemaining by viewModel.restRemainingSeconds.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
     val dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM)
 
@@ -101,6 +103,17 @@ fun HomeScreen(
                 unit = unit,
                 onOpenSettings = onOpenSettings,
             )
+        }
+        if (restRemaining > 0) {
+            item {
+                RestRemainingCard(
+                    remainingSeconds = restRemaining,
+                    onResume = {
+                        val current = state.inProgress
+                        if (current != null) onResumeWorkout(current.id)
+                    },
+                )
+            }
         }
         item {
             PrimaryGymButton(
@@ -207,6 +220,35 @@ fun HomeScreen(
                     onClick = { onOpenSession(session.id) },
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun RestRemainingCard(
+    remainingSeconds: Int,
+    onResume: () -> Unit,
+) {
+    Card(
+        onClick = onResume,
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                "REST",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+            Text(
+                RestTimer.formatClock(remainingSeconds),
+                style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+            Text(
+                "Timer keeps running in the notification. Tap to return to the workout.",
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
         }
     }
 }

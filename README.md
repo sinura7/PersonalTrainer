@@ -23,13 +23,14 @@ Debug builds use the default debug keystore. Release signing, OAuth, and updates
 - **Weekly schedule** — suggested training days from heat, routines, and your day/split prefs; start a day as a routine or focused free workout
 - **Routines** — create, edit, reorder, and delete programs
 - **Library** — search the lift list, filter by muscle, add custom exercises
-- **Logging** — weight + reps, optional RPE and warm-up, rest timer, suggested next weight
+- **Logging** — weight + reps, optional RPE and warm-up, suggested next weight
+- **Rest timer** — foreground service + notification so rest keeps running when the app is minimized; 1:00 / 1:30 / 2:00 / custom presets; sound and vibration when rest ends
 - **Progression** — last working set vs target reps:
   - hit target → suggest **+2.5 kg**
   - 1–2 reps short → keep the same weight
   - 3+ reps short → suggest **−2.5 kg**
 - **History** — finished sessions with sets grouped by exercise
-- **Settings** — kg/lbs display, optional Google Drive backup/restore, current app version
+- **Settings** — kg/lbs display, rest sound/vibration and default rest, optional Google Drive backup/restore, current app version
 
 Training works offline. Drive is only used when you back up or restore.
 
@@ -50,6 +51,7 @@ data/local       Room entities, DAOs, TrainerDatabase
 data/repository
 data/backup      Drive JSON backup / restore
 domain           models, units, muscle heat, recommendations, weekly schedule, ProgressionCalculator
+timer            foreground rest service, notification, alerts
 ui/home, ui/progress, ui/schedule, ui/routines, ui/workout, ui/history, ui/library, ui/settings
 ```
 

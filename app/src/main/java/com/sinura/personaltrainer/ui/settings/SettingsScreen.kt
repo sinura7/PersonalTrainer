@@ -28,12 +28,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -43,9 +47,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.BuildConfig
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
+import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.ui.components.CustomRestDialog
+import com.sinura.personaltrainer.ui.components.RestPresetChips
 import java.time.DayOfWeek
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.schedule.PreferenceBlock
@@ -61,6 +68,7 @@ fun SettingsScreen(
 ) {
     val selectedUnit by viewModel.weightUnit.collectAsStateWithLifecycle()
     val schedulePrefs by viewModel.schedulePreferences.collectAsStateWithLifecycle()
+    val restPrefs by viewModel.restTimerPreferences.collectAsStateWithLifecycle()
     val backup by viewModel.backupState.collectAsStateWithLifecycle()
     val activity = LocalContext.current.findActivity()
     val dateTimeFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
@@ -107,6 +115,13 @@ fun SettingsScreen(
                 onSplit = viewModel::setSplitStyle,
                 onWeekStart = viewModel::setWeekStart,
                 onOpenSchedule = onOpenSchedule,
+            )
+            RestTimerPrefsSection(
+                preferences = restPrefs,
+                onSound = viewModel::setRestSoundEnabled,
+                onVibrate = viewModel::setRestVibrationEnabled,
+                onDefaultRest = viewModel::setDefaultRestSeconds,
+                onCustomDefault = viewModel::setDefaultRestCustom,
             )
             BackupRestoreSection(
                 state = backup,
@@ -203,6 +218,58 @@ private fun SchedulePrefsSection(
             onWeekStart = onWeekStart,
         )
         TextButton(onClick = onOpenSchedule) { Text("Open this week’s plan") }
+    }
+}
+
+@Composable
+private fun RestTimerPrefsSection(
+    preferences: RestTimerPreferences,
+    onSound: (Boolean) -> Unit,
+    onVibrate: (Boolean) -> Unit,
+    onDefaultRest: (Int) -> Unit,
+    onCustomDefault: (String) -> Boolean,
+) {
+    var showCustom by rememberSaveable { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("Rest timer", style = MaterialTheme.typography.headlineSmall)
+        Text(
+            "Sound and vibration when rest ends. The default is used after a working set if the lift has no rest of its own and you haven’t picked a preset this session.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Sound", style = MaterialTheme.typography.titleMedium)
+            Switch(checked = preferences.soundEnabled, onCheckedChange = onSound)
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Vibration", style = MaterialTheme.typography.titleMedium)
+            Switch(checked = preferences.vibrationEnabled, onCheckedChange = onVibrate)
+        }
+        Text("Default rest", style = MaterialTheme.typography.titleMedium)
+        RestPresetChips(
+            selectedSeconds = preferences.defaultRestSeconds,
+            onSelect = onDefaultRest,
+            onCustom = { showCustom = true },
+        )
+    }
+    if (showCustom) {
+        CustomRestDialog(
+            title = "Default rest",
+            confirmLabel = "Save",
+            onConfirm = { input ->
+                val ok = onCustomDefault(input)
+                if (ok) showCustom = false
+                ok
+            },
+            onDismiss = { showCustom = false },
+        )
     }
 }
 

@@ -15,6 +15,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -74,6 +75,8 @@ private data class Tab(
 
 @Composable
 fun PersonalTrainerNav(
+    openSessionId: String? = null,
+    onOpenSessionConsumed: () -> Unit = {},
     settingsViewModel: SettingsViewModel = viewModel(),
 ) {
     val weightUnit by settingsViewModel.weightUnit.collectAsStateWithLifecycle()
@@ -89,6 +92,14 @@ fun PersonalTrainerNav(
     val currentDestination = navBackStackEntry?.destination
     val showBottomBar = tabs.any { tab ->
         currentDestination?.hierarchy?.any { isTabRoute(it.route, tab.route.path) } == true
+    }
+
+    LaunchedEffect(openSessionId) {
+        val sessionId = openSessionId ?: return@LaunchedEffect
+        navController.navigate(Route.ActiveWorkout.create(sessionId)) {
+            launchSingleTop = true
+        }
+        onOpenSessionConsumed()
     }
 
     fun goToTab(path: String) {

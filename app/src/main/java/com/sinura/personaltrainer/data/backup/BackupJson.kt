@@ -79,6 +79,9 @@ object BackupJson {
             trainingDaysPerWeek = prefs?.get("trainingDaysPerWeek")?.asInt ?: 4,
             splitStyle = prefs?.get("splitStyle")?.asString ?: "auto",
             weekStart = prefs?.get("weekStart")?.asString ?: "MONDAY",
+            restSoundEnabled = prefs?.get("restSoundEnabled")?.asBoolean ?: true,
+            restVibrationEnabled = prefs?.get("restVibrationEnabled")?.asBoolean ?: true,
+            defaultRestSeconds = prefs?.get("defaultRestSeconds")?.asInt ?: 90,
         )
     }
 

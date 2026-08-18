@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
+import com.sinura.personaltrainer.domain.RestTimer
+import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -46,6 +48,14 @@ class SettingsViewModel(application: Application) : AppViewModel(application) {
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000),
                 initialValue = SchedulePreferences.DEFAULT,
+            )
+
+    val restTimerPreferences: StateFlow<RestTimerPreferences> =
+        container.preferencesRepository.restTimerPreferences
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = RestTimerPreferences.DEFAULT,
             )
 
     private val isBusy = MutableStateFlow(false)
@@ -110,6 +120,30 @@ class SettingsViewModel(application: Application) : AppViewModel(application) {
         viewModelScope.launch {
             container.preferencesRepository.setWeekStart(day)
         }
+    }
+
+    fun setRestSoundEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            container.preferencesRepository.setRestSoundEnabled(enabled)
+        }
+    }
+
+    fun setRestVibrationEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            container.preferencesRepository.setRestVibrationEnabled(enabled)
+        }
+    }
+
+    fun setDefaultRestSeconds(seconds: Int) {
+        viewModelScope.launch {
+            container.preferencesRepository.setDefaultRestSeconds(seconds)
+        }
+    }
+
+    fun setDefaultRestCustom(input: String): Boolean {
+        val seconds = RestTimer.parseCustom(input) ?: return false
+        setDefaultRestSeconds(seconds)
+        return true
     }
 
     fun signIn(activity: Activity) {

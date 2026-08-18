@@ -184,3 +184,24 @@ Sideload without Obtainium: download the same APK from the GitHub Release and op
 5. Optional: Settings → Backup & restore → Sign in with Google, then Create backup now.
 
 Core training (routines, logging, history, units, library) does not need Google or a network. Backup/restore replaces local data from a Drive JSON file you created earlier.
+
+## 7. Rest timer on Samsung / Android 13+
+
+The rest timer is a **foreground service** with an ongoing notification. It keeps counting if you leave the workout screen, switch apps, or lock the phone. Finishing or discarding a workout stops the service.
+
+### Notifications (Android 13+)
+
+The first time you open an active workout, Android asks for notification permission. Allow it so remaining time stays visible in the shade and you get the “Rest done” alert.
+
+Settings → Apps → Personal Trainer → Notifications → Rest timer / Rest complete should stay on.
+
+### Battery (Samsung and other OEMs)
+
+Aggressive battery savers can still pause background work. For reliable rest between sets:
+
+1. Settings → Apps → Personal Trainer → Battery
+2. Choose **Unrestricted** (not Optimized or Restricted)
+
+On some Samsung builds the path is Settings → Battery → Background usage limits, then remove Personal Trainer from sleeping / deep-sleeping apps.
+
+You do not need a lock-screen overlay. The notification chronometer is the always-visible indicator.

@@ -46,6 +46,9 @@ class BackupJsonTest {
         assertEquals(4, parsed.preferences.trainingDaysPerWeek)
         assertEquals("auto", parsed.preferences.splitStyle)
         assertEquals("MONDAY", parsed.preferences.weekStart)
+        assertEquals(true, parsed.preferences.restSoundEnabled)
+        assertEquals(true, parsed.preferences.restVibrationEnabled)
+        assertEquals(90, parsed.preferences.defaultRestSeconds)
     }
 
     @Test

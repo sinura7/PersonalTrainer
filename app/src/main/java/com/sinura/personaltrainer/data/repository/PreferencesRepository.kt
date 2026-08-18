@@ -3,11 +3,13 @@ package com.sinura.personaltrainer.data.repository
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -72,6 +74,57 @@ class PreferencesRepository(context: Context) {
     suspend fun setWeekStart(day: DayOfWeek) {
         dataStore.edit { prefs ->
             prefs[WEEK_START] = day.name
+        }
+    }
+
+    val restTimerPreferences: Flow<RestTimerPreferences> = dataStore.data
+        .catch { error ->
+            if (error is IOException) {
+                emit(androidx.datastore.preferences.core.emptyPreferences())
+            } else {
+                throw error
+            }
+        }
+        .map { prefs ->
+            RestTimerPreferences(
+                soundEnabled = prefs[REST_SOUND] ?: true,
+                vibrationEnabled = prefs[REST_VIBRATE] ?: true,
+                defaultRestSeconds = prefs[REST_DEFAULT] ?: RestTimerPreferences.DEFAULT_SECONDS,
+                lastPresetSeconds = prefs[REST_LAST_PRESET],
+            ).sanitized()
+        }
+
+    suspend fun setRestSoundEnabled(enabled: Boolean) {
+        dataStore.edit { prefs -> prefs[REST_SOUND] = enabled }
+    }
+
+    suspend fun setRestVibrationEnabled(enabled: Boolean) {
+        dataStore.edit { prefs -> prefs[REST_VIBRATE] = enabled }
+    }
+
+    suspend fun setDefaultRestSeconds(seconds: Int) {
+        dataStore.edit { prefs ->
+            prefs[REST_DEFAULT] = seconds.coerceIn(RestTimerPreferences.MIN_SECONDS, RestTimerPreferences.MAX_SECONDS)
+        }
+    }
+
+    suspend fun setLastRestPresetSeconds(seconds: Int) {
+        dataStore.edit { prefs ->
+            prefs[REST_LAST_PRESET] = seconds.coerceIn(RestTimerPreferences.MIN_SECONDS, RestTimerPreferences.MAX_SECONDS)
+        }
+    }
+
+    suspend fun setRestTimerPreferences(value: RestTimerPreferences) {
+        val clean = value.sanitized()
+        dataStore.edit { prefs ->
+            prefs[REST_SOUND] = clean.soundEnabled
+            prefs[REST_VIBRATE] = clean.vibrationEnabled
+            prefs[REST_DEFAULT] = clean.defaultRestSeconds
+            if (clean.lastPresetSeconds == null) {
+                prefs.remove(REST_LAST_PRESET)
+            } else {
+                prefs[REST_LAST_PRESET] = clean.lastPresetSeconds
+            }
         }
     }
 
@@ -155,6 +208,10 @@ class PreferencesRepository(context: Context) {
         val TRAINING_DAYS = intPreferencesKey("training_days_per_week")
         val SPLIT_STYLE = stringPreferencesKey("split_style")
         val WEEK_START = stringPreferencesKey("week_start")
+        val REST_SOUND = booleanPreferencesKey("rest_sound")
+        val REST_VIBRATE = booleanPreferencesKey("rest_vibrate")
+        val REST_DEFAULT = intPreferencesKey("rest_default_seconds")
+        val REST_LAST_PRESET = intPreferencesKey("rest_last_preset_seconds")
         val DRIVE_ACCOUNT = stringPreferencesKey("drive_account_email")
         val DRIVE_FOLDER_ID = stringPreferencesKey("drive_folder_id")
         val LAST_BACKUP_AT = longPreferencesKey("last_backup_at")

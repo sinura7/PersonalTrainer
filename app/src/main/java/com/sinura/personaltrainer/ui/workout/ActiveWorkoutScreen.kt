@@ -1,5 +1,9 @@
 package com.sinura.personaltrainer.ui.workout
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -32,17 +36,21 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import android.content.pm.PackageManager
 import com.sinura.personaltrainer.domain.ProgressionAction
 import com.sinura.personaltrainer.domain.ProgressionCalculator
 import com.sinura.personaltrainer.domain.SetLog
@@ -63,8 +71,10 @@ fun ActiveWorkoutScreen(
     viewModel: ActiveWorkoutViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val rest by viewModel.restTimerState.collectAsStateWithLifecycle()
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     var confirmFinish by rememberSaveable { mutableStateOf(false) }
+    RequestRestNotificationPermission()
     val session = state.session
     val selected = session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId }
     val lastLoggedSet = session?.sets?.maxByOrNull { it.completedAt }
@@ -118,10 +128,13 @@ fun ActiveWorkoutScreen(
                 ) {
                     item {
                         RestTimerBar(
-                            remainingSeconds = state.restRemainingSeconds,
-                            totalSeconds = state.restTotalSeconds,
+                            remainingSeconds = rest.remainingSeconds,
+                            totalSeconds = rest.totalSeconds,
+                            running = rest.running,
                             onSkip = viewModel::skipRest,
                             onAdjust = viewModel::adjustRest,
+                            onPreset = viewModel::startPreset,
+                            onCustom = viewModel::startCustom,
                         )
                     }
                     item {
@@ -433,6 +446,25 @@ private fun SetRow(
             if (isLatest) {
                 TextButton(onClick = onEdit) { Text("Edit") }
                 TextButton(onClick = onDelete) { Text("Delete") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RequestRestNotificationPermission() {
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { }
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= 33) {
+            val granted = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS,
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
     }
