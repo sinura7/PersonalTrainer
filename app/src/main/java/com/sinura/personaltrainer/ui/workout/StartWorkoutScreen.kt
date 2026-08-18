@@ -75,36 +75,47 @@ fun StartWorkoutScreen(
                         onClick = { onWorkoutStarted(session.id) },
                     )
                 }
+                item {
+                    Text(
+                        "Finish or discard the current session before starting another.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
-            item {
-                PrimaryGymButton(
-                    text = "Free workout",
-                    onClick = { viewModel.startFree(onWorkoutStarted) },
-                )
-            }
-            item {
-                Text("Start a routine", style = MaterialTheme.typography.titleLarge)
+            if (state.inProgress == null) {
+                item {
+                    PrimaryGymButton(
+                        text = "Free workout",
+                        onClick = { viewModel.startFree(onWorkoutStarted) },
+                    )
+                }
+                item {
+                    Text("Start a routine", style = MaterialTheme.typography.titleLarge)
+                }
             }
             state.error?.let { error ->
                 item { Text(error, color = MaterialTheme.colorScheme.error) }
             }
-            if (state.routines.isEmpty()) {
+            if (state.inProgress == null && state.routines.isEmpty()) {
                 item {
                     EmptyState(
-                        title = "No routines",
-                        body = "Create a routine first, or start a free workout and add lifts as you go.",
+                        title = "No routines yet",
+                        body = "Start a free workout and add lifts as you go, or build a routine first.",
                     )
                 }
-            } else {
+            } else if (state.inProgress == null) {
                 items(state.routines, key = { it.id }) { routine ->
+                    val empty = routine.exercises.isEmpty()
                     Card(
-                        onClick = { viewModel.startRoutine(routine.id, onWorkoutStarted) },
+                        onClick = {
+                            if (!empty) viewModel.startRoutine(routine.id, onWorkoutStarted)
+                        },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(routine.name, style = MaterialTheme.typography.titleMedium)
                             Text(
-                                "${routine.exercises.size} exercises",
+                                if (empty) "Add at least one lift before starting" else "${routine.exercises.size} exercises",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }

@@ -58,8 +58,11 @@ class RestTimerController(
     fun stop(fromService: Boolean = false) {
         val wasRunning = store.current().running
         store.clear()
-        if (!fromService && wasRunning) {
-            dispatch(RestTimerService.ACTION_STOP)
+        if (!fromService) {
+            if (wasRunning) {
+                dispatch(RestTimerService.ACTION_STOP)
+            }
+            RestTimerService.cancelDone(appContext)
         }
     }
 

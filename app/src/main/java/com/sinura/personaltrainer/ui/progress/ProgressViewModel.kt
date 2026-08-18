@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.domain.MuscleLoadCalculator
 import com.sinura.personaltrainer.domain.RecommendationEngine
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.TrainingRecommendation
+import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +26,7 @@ data class ProgressUiState(
     val window: HeatWindow = HeatWindow.LAST_7_DAYS,
     val snapshot: BodyHeatSnapshot? = null,
     val recommendations: List<TrainingRecommendation> = emptyList(),
+    val error: String? = null,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -36,8 +38,9 @@ class ProgressViewModel(application: Application) : AppViewModel(application) {
         container.exerciseRepository.observeAll(),
         container.routineRepository.observeAll(),
         window,
-    ) { history, exercises, routines, selectedWindow ->
-        ProgressInputs(history, exercises.associateBy { it.id }, routines, selectedWindow)
+        container.preferencesRepository.weightUnit,
+    ) { history, exercises, routines, selectedWindow, unit ->
+        ProgressInputs(history, exercises.associateBy { it.id }, routines, selectedWindow, unit)
     }.mapLatest { inputs ->
         val snapshot = try {
             MuscleLoadCalculator.snapshot(
@@ -56,15 +59,21 @@ class ProgressViewModel(application: Application) : AppViewModel(application) {
             emptyList()
         }
         val recs = if (snapshot != null) {
-            RecommendationEngine.recommend(snapshot, hints)
+            RecommendationEngine.recommend(snapshot, hints, inputs.unit)
         } else {
             emptyList()
+        }
+        val error = if (snapshot == null && inputs.history.isNotEmpty()) {
+            "Couldn’t load the body map. Try switching the window."
+        } else {
+            null
         }
         ProgressUiState(
             isLoading = false,
             window = inputs.window,
             snapshot = snapshot,
             recommendations = recs,
+            error = error,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -81,5 +90,6 @@ class ProgressViewModel(application: Application) : AppViewModel(application) {
         val exercises: Map<String, Exercise>,
         val routines: List<Routine>,
         val window: HeatWindow,
+        val unit: WeightUnit,
     )
 }

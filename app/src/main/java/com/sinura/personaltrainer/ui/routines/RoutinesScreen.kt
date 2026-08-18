@@ -12,7 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.MenuBook
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -22,7 +21,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.toWeightLabel
+import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 
@@ -122,7 +121,11 @@ fun RoutinesScreen(
                                     }
                                 }
                                 Text(
-                                    "${routine.exercises.size} exercises",
+                                    if (routine.exercises.isEmpty()) {
+                                        "Add at least one lift before starting"
+                                    } else {
+                                        "${routine.exercises.size} exercises"
+                                    },
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                                 if (routine.exercises.isNotEmpty()) {
@@ -144,21 +147,15 @@ fun RoutinesScreen(
 
     pendingDeleteId?.let { id ->
         val pendingName = state.routines.firstOrNull { it.id == id }?.name ?: "this routine"
-        AlertDialog(
-            onDismissRequest = { pendingDeleteId = null },
-            title = { Text("Delete $pendingName?") },
-            text = { Text("This cannot be undone. Past workout history stays saved.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.delete(id)
-                        pendingDeleteId = null
-                    },
-                ) { Text("Delete") }
+        ConfirmActionDialog(
+            title = "Delete $pendingName?",
+            body = "This cannot be undone. Past workout history stays saved.",
+            confirmLabel = "Delete",
+            onConfirm = {
+                viewModel.delete(id)
+                pendingDeleteId = null
             },
-            dismissButton = {
-                TextButton(onClick = { pendingDeleteId = null }) { Text("Cancel") }
-            },
+            onDismiss = { pendingDeleteId = null },
         )
     }
 }

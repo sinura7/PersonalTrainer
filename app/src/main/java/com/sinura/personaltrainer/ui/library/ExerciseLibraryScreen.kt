@@ -172,7 +172,7 @@ fun ExerciseLibraryScreen(
         AlertDialog(
             onDismissRequest = viewModel::dismissDelete,
             title = { Text("Delete ${exercise.name}?") },
-            text = { Text("This removes it from the library. It isn’t used in any routine or workout history.") },
+            text = { Text("This removes it from your library. Lifts used in routines or history can’t be deleted.") },
             confirmButton = {
                 TextButton(onClick = viewModel::confirmDelete) { Text("Delete") }
             },
@@ -288,7 +288,7 @@ private fun AddToRoutineDialog(
         title = { Text("Add ${exercise.name}") },
         text = {
             if (routines.isEmpty()) {
-                Text("Create a routine first, then you can add this lift to it.")
+                Text("No routines yet. Create one first, then add this lift.")
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("Choose a routine. Targets default to 3 × 5.")

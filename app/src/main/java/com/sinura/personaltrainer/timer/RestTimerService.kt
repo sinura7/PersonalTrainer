@@ -213,5 +213,15 @@ class RestTimerService : Service() {
         private const val CHANNEL_DONE = "rest_timer_done"
         private const val RUNNING_ID = 4101
         private const val DONE_ID = 4102
+
+        fun cancelDone(context: android.content.Context) {
+            try {
+                context.applicationContext
+                    .getSystemService(NotificationManager::class.java)
+                    ?.cancel(DONE_ID)
+            } catch (_: Exception) {
+                // Notification manager may be unavailable.
+            }
+        }
     }
 }

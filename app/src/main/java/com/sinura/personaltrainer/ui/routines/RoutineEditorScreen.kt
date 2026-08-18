@@ -38,6 +38,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.RoutineExercise
 import com.sinura.personaltrainer.domain.WeightConverter
+import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
@@ -51,6 +52,7 @@ fun RoutineEditorScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var pendingTargets by rememberSaveable { mutableStateOf(TargetDraft()) }
+    var pendingRemoveId by rememberSaveable { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {
@@ -140,7 +142,7 @@ fun RoutineEditorScreen(
                         canMoveDown = index < exercises.lastIndex,
                         onMoveUp = { viewModel.moveExercise(item.id, -1) },
                         onMoveDown = { viewModel.moveExercise(item.id, 1) },
-                        onRemove = { viewModel.removeExercise(item.id) },
+                        onRemove = { pendingRemoveId = item.id },
                         onSaveTargets = { sets, reps, weight, rest ->
                             viewModel.updateExercise(item.id, sets, reps, weight, rest)
                         },
@@ -178,6 +180,20 @@ fun RoutineEditorScreen(
                 onDismiss = { viewModel.setPickerVisible(false) },
             )
         }
+    }
+
+    pendingRemoveId?.let { itemId ->
+        val name = state.routine?.exercises?.firstOrNull { it.id == itemId }?.exercise?.name ?: "this lift"
+        ConfirmActionDialog(
+            title = "Remove $name?",
+            body = "This takes it off the routine. Workout history stays saved.",
+            confirmLabel = "Remove",
+            onConfirm = {
+                viewModel.removeExercise(itemId)
+                pendingRemoveId = null
+            },
+            onDismiss = { pendingRemoveId = null },
+        )
     }
 }
 

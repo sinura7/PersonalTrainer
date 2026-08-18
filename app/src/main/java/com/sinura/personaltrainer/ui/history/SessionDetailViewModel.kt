@@ -19,7 +19,7 @@ class SessionDetailViewModel(
     application: Application,
     savedStateHandle: SavedStateHandle,
 ) : AppViewModel(application) {
-    private val sessionId: String = checkNotNull(savedStateHandle["sessionId"])
+    private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
 
     val uiState: StateFlow<SessionDetailUiState> = container.workoutRepository.observeSession(sessionId)
         .map { SessionDetailUiState(isLoading = false, session = it) }

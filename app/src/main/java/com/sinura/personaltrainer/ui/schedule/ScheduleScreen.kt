@@ -21,7 +21,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -259,15 +258,14 @@ fun ThisWeekHomeCard(
                 Text(day.focusTitle, style = MaterialTheme.typography.titleMedium)
                 day.routineName?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 Text(day.reason, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                OutlinedButton(onClick = onStart, modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        when {
-                            inProgress -> "Resume workout"
-                            loggedToday -> "Train again"
-                            else -> "Start today’s session"
-                        },
-                    )
-                }
+                PrimaryGymButton(
+                    text = when {
+                        inProgress -> "Resume workout"
+                        loggedToday -> "Train again"
+                        else -> "Start today’s session"
+                    },
+                    onClick = onStart,
+                )
             }
             TextButton(onClick = onOpenSchedule) { Text("Open week plan") }
         }

@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.RestTimer
+import com.sinura.personaltrainer.workout.WorkoutDraft
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -32,9 +33,6 @@ data class ActiveWorkoutUiState(
     val selectedExerciseId: String? = null,
     val draft: ActiveExerciseDraft = ActiveExerciseDraft(),
     val hint: ProgressionHint? = null,
-    val restRemainingSeconds: Int = 0,
-    val restTotalSeconds: Int = 90,
-    val restRunning: Boolean = false,
     val searchQuery: String = "",
     val searchResults: List<Exercise> = emptyList(),
     val showExercisePicker: Boolean = false,
@@ -55,7 +53,8 @@ class ActiveWorkoutViewModel(
     application: Application,
     savedStateHandle: SavedStateHandle,
 ) : AppViewModel(application) {
-    private val sessionId: String = checkNotNull(savedStateHandle["sessionId"])
+    private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
+    private val draftCache = container.workoutDraftCache
 
     private val selectedExerciseId = MutableStateFlow<String?>(null)
     private val draft = MutableStateFlow(ActiveExerciseDraft())
@@ -73,13 +72,29 @@ class ActiveWorkoutViewModel(
     private val sessionFlow = container.workoutRepository.observeSession(sessionId)
 
     init {
+        if (sessionId.isBlank()) {
+            error.value = "This workout is no longer available."
+        }
+        draftCache.get(sessionId)?.let { cached ->
+            selectedExerciseId.value = cached.exerciseId
+            draft.value = ActiveExerciseDraft(
+                weightKg = cached.weightKg,
+                reps = cached.reps.coerceAtLeast(1),
+                rpe = cached.rpe,
+                isWarmup = cached.isWarmup,
+            )
+            notes.value = cached.notes
+            lastPrefillExerciseId = cached.exerciseId
+        }
         viewModelScope.launch {
             sessionFlow.collect { session ->
                 if (session != null && selectedExerciseId.value == null) {
                     selectedExerciseId.value = session.exercises.firstOrNull()?.exercise?.id
+                    persistDraft()
                 }
                 if (session != null && notes.value.isEmpty() && session.notes.isNotEmpty()) {
                     notes.value = session.notes
+                    persistDraft()
                 }
             }
         }
@@ -129,14 +144,11 @@ class ActiveWorkoutViewModel(
         },
     ) { core, extras ->
         ActiveWorkoutUiState(
-            isLoading = core.session == null && !extras.finished,
+            isLoading = sessionId.isNotBlank() && core.session == null && !extras.finished,
             session = core.session,
             selectedExerciseId = core.selected,
             draft = core.draft,
             hint = core.hint,
-            restRemainingSeconds = restTimerState.value.remainingSeconds,
-            restTotalSeconds = extras.restTotal,
-            restRunning = restTimerState.value.running,
             searchQuery = extras.query,
             searchResults = emptyList(),
             showExercisePicker = extras.showPicker,
@@ -177,41 +189,57 @@ class ActiveWorkoutViewModel(
             ?: 0.0
         draft.value = ActiveExerciseDraft(
             weightKg = lastWeight,
-            reps = targetReps,
+            reps = targetReps.coerceAtLeast(1),
             rpe = null,
             isWarmup = false,
         )
+        persistDraft()
     }
 
     fun selectExercise(exerciseId: String) {
         selectedExerciseId.value = exerciseId
         lastPrefillExerciseId = null
+        persistDraft()
     }
 
     fun adjustWeight(deltaKg: Double) {
         val next = if (deltaKg.isFinite()) draft.value.weightKg + deltaKg else draft.value.weightKg
         draft.value = draft.value.copy(weightKg = next.coerceAtLeast(0.0))
+        persistDraft()
     }
 
     fun setWeight(weightKg: Double) {
         if (!weightKg.isFinite()) return
         draft.value = draft.value.copy(weightKg = weightKg.coerceAtLeast(0.0))
+        persistDraft()
     }
 
     fun adjustReps(delta: Int) {
-        draft.value = draft.value.copy(reps = (draft.value.reps + delta).coerceAtLeast(0))
+        draft.value = draft.value.copy(reps = (draft.value.reps + delta).coerceAtLeast(1))
+        persistDraft()
     }
 
     fun setRpe(rpe: Int?) {
         draft.value = draft.value.copy(rpe = rpe)
+        persistDraft()
     }
 
     fun setWarmup(isWarmup: Boolean) {
         draft.value = draft.value.copy(isWarmup = isWarmup)
+        persistDraft()
     }
 
     fun setNotes(value: String) {
         notes.value = value
+        persistDraft()
+        if (sessionId.isBlank()) return
+        viewModelScope.launch {
+            try {
+                container.workoutRepository.updateSessionNotes(sessionId, value)
+            } catch (_: Exception) {
+                // Notes stay in the draft cache if the write fails.
+            }
+        }
     }
 
     fun setPickerVisible(visible: Boolean) {
@@ -225,30 +253,48 @@ class ActiveWorkoutViewModel(
 
     fun addExercise(exercise: Exercise) {
         viewModelScope.launch {
-            try {
-                container.workoutRepository.addExerciseToSession(sessionId, exercise)
-                selectedExerciseId.value = exercise.id
-                lastPrefillExerciseId = null
-                showPicker.value = false
-                error.value = null
-            } catch (_: Exception) {
-                error.value = "Could not add that lift. Try again."
-            }
+            addExerciseInternal(exercise)
         }
     }
 
     fun createAndAddExercise(name: String, muscleGroup: String) {
         viewModelScope.launch {
             if (name.isBlank()) {
-                error.value = "Exercise name is required."
+                error.value = "Give that lift a name."
                 return@launch
             }
             try {
                 val created = container.exerciseRepository.createCustom(name, muscleGroup)
-                addExercise(created)
+                addExerciseInternal(created)
             } catch (_: Exception) {
                 error.value = "Could not create that exercise. Try again."
             }
+        }
+    }
+
+    private suspend fun addExerciseInternal(exercise: Exercise) {
+        if (sessionId.isBlank()) {
+            error.value = "This workout is no longer available."
+            return
+        }
+        val alreadyAdded = uiState.value.session?.exercises?.any { it.exercise.id == exercise.id } == true
+        if (alreadyAdded) {
+            selectedExerciseId.value = exercise.id
+            lastPrefillExerciseId = null
+            showPicker.value = false
+            persistDraft()
+            error.value = null
+            return
+        }
+        try {
+            container.workoutRepository.addExerciseToSession(sessionId, exercise)
+            selectedExerciseId.value = exercise.id
+            lastPrefillExerciseId = null
+            showPicker.value = false
+            persistDraft()
+            error.value = null
+        } catch (_: Exception) {
+            error.value = "Could not add that lift. Try again."
         }
     }
 
@@ -294,8 +340,10 @@ class ActiveWorkoutViewModel(
                 }
                 error.value = null
                 draft.value = current.copy(isWarmup = false, rpe = null)
-            } catch (_: Exception) {
-                error.value = "Could not save that set. Try again."
+                persistDraft()
+            } catch (thrown: Exception) {
+                error.value = thrown.message?.takeIf { it.startsWith("This workout") || it.startsWith("Reps") }
+                    ?: "Could not save that set. Try again."
             }
         }
     }
@@ -311,6 +359,7 @@ class ActiveWorkoutViewModel(
             isWarmup = set.isWarmup,
         )
         editingSetId.value = set.id
+        persistDraft()
     }
 
     fun cancelEdit() {
@@ -375,6 +424,7 @@ class ActiveWorkoutViewModel(
             try {
                 restTimer.stop()
                 container.workoutRepository.finishSession(sessionId, notes.value)
+                draftCache.clear(sessionId)
                 finished.value = true
                 onFinished()
             } catch (_: Exception) {
@@ -388,6 +438,7 @@ class ActiveWorkoutViewModel(
             restTimer.stop()
             try {
                 container.workoutRepository.discardSession(sessionId)
+                draftCache.clear(sessionId)
                 onDiscarded()
             } catch (_: Exception) {
                 error.value = "Could not discard this workout. Try again."
@@ -406,6 +457,33 @@ class ActiveWorkoutViewModel(
             restTotal.value = seconds
             restTimer.start(seconds, sessionId)
         }
+    }
+
+    fun persistDraftForExit() {
+        persistDraft()
+        if (sessionId.isBlank()) return
+        viewModelScope.launch {
+            try {
+                container.workoutRepository.updateSessionNotes(sessionId, notes.value)
+            } catch (_: Exception) {
+                // Draft cache still holds the notes.
+            }
+        }
+    }
+
+    private fun persistDraft() {
+        if (sessionId.isBlank()) return
+        draftCache.put(
+            WorkoutDraft(
+                sessionId = sessionId,
+                exerciseId = selectedExerciseId.value,
+                weightKg = draft.value.weightKg,
+                reps = draft.value.reps,
+                rpe = draft.value.rpe,
+                isWarmup = draft.value.isWarmup,
+                notes = notes.value,
+            ),
+        )
     }
 
     private data class WorkoutCore(

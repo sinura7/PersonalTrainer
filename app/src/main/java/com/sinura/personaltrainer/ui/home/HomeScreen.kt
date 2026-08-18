@@ -104,6 +104,11 @@ fun HomeScreen(
                 onOpenSettings = onOpenSettings,
             )
         }
+        state.error?.let { message ->
+            item {
+                Text(message, color = MaterialTheme.colorScheme.error)
+            }
+        }
         if (restRemaining > 0) {
             item {
                 RestRemainingCard(
@@ -131,7 +136,7 @@ fun HomeScreen(
             ThisWeekHomeCard(
                 day = todayDay,
                 nextDay = plan?.nextTrainingOnOrAfter(today),
-                summary = plan?.summary ?: "A starter week is ready. Suggestions improve as you log sets.",
+                summary = plan?.summary ?: "Open the week plan to generate this week.",
                 loggedToday = state.recentSessions.any { session ->
                     todayEpochDay(session.date) == today
                 },
@@ -352,10 +357,10 @@ private fun InProgressCard(
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
             Text(
-                "Pick up where you left off. Rest timer and last set are still there.",
+                "Pick up where you left off. The rest timer keeps running in the notification.",
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
-            TextButton(onClick = onResume) { Text("Resume") }
+            PrimaryGymButton(text = "Resume workout", onClick = onResume)
         }
     }
 }

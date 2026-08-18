@@ -58,6 +58,8 @@ class RoutineRepository(
         targetWeightKg: Double?,
         restSeconds: Int,
     ) {
+        val existing = routineDao.getById(routineId)
+        if (existing?.items?.any { it.exercise.id == exercise.id } == true) return
         val nextOrder = routineDao.maxSortOrder(routineId) + 1
         routineDao.upsertRoutineExercise(
             RoutineExerciseEntity(

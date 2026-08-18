@@ -45,14 +45,15 @@ object RecommendationEngine {
     fun recommend(
         snapshot: BodyHeatSnapshot,
         progression: List<ProgressionHint>,
+        weightUnit: WeightUnit = WeightUnit.KG,
     ): List<TrainingRecommendation> {
         if (!snapshot.hasAnyWorkingSets) return emptyList()
 
         val recovery = recoverySignal(snapshot)
         val suppressedUpper = recovery != null
         val neglected = neglectedMuscles(snapshot, suppressUpper = suppressedUpper)
-        val imbalances = imbalances(snapshot)
-        val progressionRec = progressionOpportunity(progression)
+        val imbalances = imbalances(snapshot, weightUnit)
+        val progressionRec = progressionOpportunity(progression, weightUnit)
         val coreGap = coreCoverageGap(snapshot)
 
         val suppressedByImbalance = buildSet {
@@ -115,7 +116,10 @@ object RecommendationEngine {
             }
     }
 
-    internal fun imbalances(snapshot: BodyHeatSnapshot): List<TrainingRecommendation> {
+    internal fun imbalances(
+        snapshot: BodyHeatSnapshot,
+        weightUnit: WeightUnit = WeightUnit.KG,
+    ): List<TrainingRecommendation> {
         if (!snapshot.hasWindowWorkingSets) return emptyList()
         return imbalancePairs.mapNotNull { (left, right) ->
             val a = snapshot.load(left)
@@ -129,7 +133,7 @@ object RecommendationEngine {
                 return@mapNotNull TrainingRecommendation(
                     id = "imbalance-${left.name}-${right.name}",
                     title = "No ${missing.displayName} vs ${heavy.displayName} this window",
-                    reason = "${heavy.displayName} has ${formatKg(high)} kg volume and ${missing.displayName} has none.",
+                    reason = "${heavy.displayName} has ${high.toWeightLabel(weightUnit)} volume and ${missing.displayName} has none.",
                     priority = RecommendationPriority.HIGH,
                     action = RecommendationAction.OPEN_LIBRARY_MUSCLE,
                     actionMuscle = missing,
@@ -195,7 +199,10 @@ object RecommendationEngine {
         )
     }
 
-    internal fun progressionOpportunity(progression: List<ProgressionHint>): TrainingRecommendation? {
+    internal fun progressionOpportunity(
+        progression: List<ProgressionHint>,
+        weightUnit: WeightUnit = WeightUnit.KG,
+    ): TrainingRecommendation? {
         val ready = progression
             .filter { it.action == ProgressionAction.INCREASE }
             .distinctBy { it.exerciseId }
@@ -203,16 +210,17 @@ object RecommendationEngine {
         val names = ready.take(MAX_PROGRESSION_NAMES).map { it.exerciseName }
         val extra = ready.size - names.size
         val listed = names.joinToString(" and ")
+        val increment = ProgressionCalculator.INCREMENT_KG.toWeightLabel(weightUnit)
         val title = if (ready.size == 1) {
-            "${names.first()} is ready to progress (+${ProgressionCalculator.INCREMENT_KG} kg)"
+            "${names.first()} is ready to progress (+$increment)"
         } else {
             val label = if (extra > 0) "$listed and $extra more" else listed
-            "$label are ready to progress (+${ProgressionCalculator.INCREMENT_KG} kg)"
+            "$label are ready to progress (+$increment)"
         }
         return TrainingRecommendation(
             id = "progression-ready",
             title = title,
-            reason = "Last working set hit the target reps. Next session, add ${ProgressionCalculator.INCREMENT_KG} kg.",
+            reason = "Last working set hit the target reps. Next session, add $increment.",
             priority = RecommendationPriority.INFO,
             action = RecommendationAction.START_WORKOUT,
             rankScore = 18 + ready.size.coerceAtMost(5),
@@ -244,9 +252,6 @@ object RecommendationEngine {
             rounded.toString()
         }
     }
-
-    private fun formatKg(value: Double): String =
-        WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(value, WeightUnit.KG))
 
     private val RecommendationPriority.rank: Int
         get() = when (this) {

@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.data.repository
 
+import androidx.room.withTransaction
+import com.sinura.personaltrainer.data.local.TrainerDatabase
 import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
@@ -18,6 +20,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 class WorkoutRepository(
+    private val database: TrainerDatabase,
     private val workoutDao: WorkoutDao,
 ) {
     fun observeHistory(): Flow<List<WorkoutSession>> =
@@ -33,9 +36,6 @@ class WorkoutRepository(
         workoutDao.getInProgressSession()?.toSummary()
 
     suspend fun startRoutine(routine: Routine): WorkoutSession {
-        getInProgress()?.let { existing ->
-            return workoutDao.getSession(existing.id)?.toDomain() ?: existing
-        }
         val now = System.currentTimeMillis()
         val session = WorkoutSessionEntity(
             id = UUID.randomUUID().toString(),
@@ -47,29 +47,24 @@ class WorkoutRepository(
             startedAt = now,
             finishedAt = null,
         )
-        workoutDao.upsertSession(session)
-        workoutDao.insertSessionExercises(
-            routine.exercises.mapIndexed { index, item ->
-                SessionExerciseEntity(
-                    id = UUID.randomUUID().toString(),
-                    sessionId = session.id,
-                    exerciseId = item.exercise.id,
-                    sortOrder = index,
-                    targetSets = item.targetSets,
-                    targetReps = item.targetReps,
-                    targetWeightKg = item.targetWeightKg,
-                    restSeconds = item.restSeconds,
-                )
-            },
-        )
-        return workoutDao.getSession(session.id)?.toDomain()
-            ?: error("Failed to start routine session")
+        val exercises = routine.exercises.mapIndexed { index, item ->
+            SessionExerciseEntity(
+                id = UUID.randomUUID().toString(),
+                sessionId = session.id,
+                exerciseId = item.exercise.id,
+                sortOrder = index,
+                targetSets = item.targetSets,
+                targetReps = item.targetReps,
+                targetWeightKg = item.targetWeightKg,
+                restSeconds = item.restSeconds,
+            )
+        }
+        val sessionId = insertSessionIfIdle(session, exercises)
+        return workoutDao.getSession(sessionId)?.toDomain()
+            ?: error("Could not start that workout.")
     }
 
     suspend fun startFreeWorkout(focusTitle: String? = null): WorkoutSession {
-        getInProgress()?.let { existing ->
-            return workoutDao.getSession(existing.id)?.toDomain() ?: existing
-        }
         val now = System.currentTimeMillis()
         val focus = focusTitle?.trim().orEmpty()
         val session = WorkoutSessionEntity(
@@ -82,9 +77,23 @@ class WorkoutRepository(
             startedAt = now,
             finishedAt = null,
         )
-        workoutDao.upsertSession(session)
-        return workoutDao.getSession(session.id)?.toDomain()
-            ?: error("Failed to start free workout")
+        val sessionId = insertSessionIfIdle(session, emptyList())
+        return workoutDao.getSession(sessionId)?.toDomain()
+            ?: error("Could not start that workout.")
+    }
+
+    private suspend fun insertSessionIfIdle(
+        session: WorkoutSessionEntity,
+        exercises: List<SessionExerciseEntity>,
+    ): String {
+        return database.withTransaction {
+            workoutDao.getInProgressSession()?.id?.let { return@withTransaction it }
+            workoutDao.upsertSession(session)
+            if (exercises.isNotEmpty()) {
+                workoutDao.insertSessionExercises(exercises)
+            }
+            session.id
+        }
     }
 
     suspend fun addExerciseToSession(
@@ -95,6 +104,9 @@ class WorkoutRepository(
         targetWeightKg: Double? = null,
         restSeconds: Int = 90,
     ) {
+        val current = workoutDao.getSession(sessionId) ?: return
+        if (current.session.finishedAt != null) return
+        if (current.exercises.any { it.exercise.id == exercise.id }) return
         val nextOrder = workoutDao.maxSessionExerciseOrder(sessionId) + 1
         workoutDao.upsertSessionExercise(
             SessionExerciseEntity(
@@ -122,7 +134,12 @@ class WorkoutRepository(
         rpe: Int?,
         isWarmup: Boolean,
     ) {
-        val current = workoutDao.getSession(sessionId) ?: return
+        val current = workoutDao.getSession(sessionId)
+            ?: error("This workout is no longer available.")
+        if (current.session.finishedAt != null) {
+            error("This workout is already finished.")
+        }
+        if (reps < 1) error("Reps must be at least 1.")
         val nextNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
         val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else 0.0
         workoutDao.insertSet(
@@ -132,7 +149,7 @@ class WorkoutRepository(
                 exerciseId = exerciseId,
                 setNumber = nextNumber,
                 weightKg = safeWeight,
-                reps = reps.coerceAtLeast(0),
+                reps = reps.coerceAtLeast(1),
                 rpe = rpe,
                 isWarmup = isWarmup,
                 completedAt = System.currentTimeMillis(),
@@ -147,12 +164,17 @@ class WorkoutRepository(
         rpe: Int?,
         isWarmup: Boolean,
     ) {
-        val current = workoutDao.getSet(setId) ?: return
+        val current = workoutDao.getSet(setId) ?: error("That set is no longer available.")
+        val session = workoutDao.getSession(current.sessionId)
+        if (session?.session?.finishedAt != null) {
+            error("This workout is already finished.")
+        }
+        if (reps < 1) error("Reps must be at least 1.")
         val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else current.weightKg
         workoutDao.updateSet(
             current.copy(
                 weightKg = safeWeight,
-                reps = reps.coerceAtLeast(0),
+                reps = reps.coerceAtLeast(1),
                 rpe = rpe,
                 isWarmup = isWarmup,
             ),
@@ -171,8 +193,16 @@ class WorkoutRepository(
             }
     }
 
-    suspend fun finishSession(sessionId: String, notes: String) {
+    suspend fun updateSessionNotes(sessionId: String, notes: String) {
         val current = workoutDao.getSession(sessionId)?.session ?: return
+        if (current.finishedAt != null) return
+        workoutDao.updateSession(current.copy(notes = notes.trim()))
+    }
+
+    suspend fun finishSession(sessionId: String, notes: String) {
+        val current = workoutDao.getSession(sessionId)?.session
+            ?: error("This workout is no longer available.")
+        if (current.finishedAt != null) return
         val finishedAt = System.currentTimeMillis()
         val duration = TimeUnit.MILLISECONDS.toMinutes(finishedAt - current.startedAt)
             .toInt()

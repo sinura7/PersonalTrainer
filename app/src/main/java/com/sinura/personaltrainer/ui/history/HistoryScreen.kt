@@ -56,7 +56,7 @@ fun HistoryScreen(
             state.sessions.isEmpty() -> {
                 EmptyState(
                     title = "No workouts yet",
-                    body = "Finish a session from Home and it will show up here, grouped by date with your logged sets.",
+                    body = "Finish a workout and it lands here with sets, volume, and duration.",
                     modifier = Modifier.padding(padding),
                 )
             }

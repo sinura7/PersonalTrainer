@@ -138,7 +138,11 @@ fun PersonalTrainerNav(
             composable(Route.Home.path) {
                 HomeScreen(
                     onStartWorkout = { navController.navigate(Route.StartWorkout.path) },
-                    onResumeWorkout = { navController.navigate(Route.ActiveWorkout.create(it)) },
+                    onResumeWorkout = { sessionId ->
+                        navController.navigate(Route.ActiveWorkout.create(sessionId)) {
+                            launchSingleTop = true
+                        }
+                    },
                     onOpenRoutines = { goToTab(Route.Routines.path) },
                     onOpenLibrary = { goToTab(Route.Library.path) },
                     onOpenHistory = { goToTab(Route.History.path) },
@@ -192,6 +196,7 @@ fun PersonalTrainerNav(
                     onBack = { navController.popBackStack() },
                     onWorkoutStarted = { sessionId ->
                         navController.navigate(Route.ActiveWorkout.create(sessionId)) {
+                            launchSingleTop = true
                             popUpTo(Route.Schedule.path) { inclusive = true }
                         }
                     },
@@ -222,6 +227,7 @@ fun PersonalTrainerNav(
                     onBack = { navController.popBackStack() },
                     onWorkoutStarted = { sessionId ->
                         navController.navigate(Route.ActiveWorkout.create(sessionId)) {
+                            launchSingleTop = true
                             popUpTo(Route.StartWorkout.path) { inclusive = true }
                         }
                     },

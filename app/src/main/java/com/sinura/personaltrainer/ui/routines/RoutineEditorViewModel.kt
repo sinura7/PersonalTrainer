@@ -171,6 +171,12 @@ class RoutineEditorViewModel(
             return
         }
         viewModelScope.launch {
+            val alreadyAdded = uiState.value.routine?.exercises?.any { it.exercise.id == exercise.id } == true
+            if (alreadyAdded) {
+                error.value = "${exercise.name} is already in this routine."
+                showPicker.value = false
+                return@launch
+            }
             try {
                 container.routineRepository.addExercise(
                     routineId = id,

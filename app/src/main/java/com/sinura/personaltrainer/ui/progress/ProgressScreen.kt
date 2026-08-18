@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.ui.progress
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -69,10 +68,19 @@ fun ProgressScreen(
                     CircularProgressIndicator()
                 }
             }
+            state.error != null -> {
+                EmptyState(
+                    title = "Couldn’t load the map",
+                    body = state.error ?: "Try switching the 7 / 14 / week window.",
+                    actionLabel = "Start workout",
+                    onAction = onStartWorkout,
+                    modifier = Modifier.padding(padding),
+                )
+            }
             snapshot == null || !snapshot.hasAnyWorkingSets -> {
                 EmptyState(
                     title = "Log work to heat the map",
-                    body = "The body map reads finished working sets. After a few sessions you’ll see which muscles are loaded and which are quiet.",
+                    body = "The map uses finished working sets. After a few sessions you’ll see which muscles are loaded.",
                     actionLabel = "Start workout",
                     onAction = onStartWorkout,
                     modifier = Modifier.padding(padding),
@@ -192,7 +200,6 @@ private fun MuscleDetailSheet(
     onDismiss: () -> Unit,
     onFindLifts: () -> Unit,
 ) {
-    val dark = isSystemInDarkTheme()
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -207,7 +214,7 @@ private fun MuscleDetailSheet(
             Text(load.muscle.displayName, style = MaterialTheme.typography.headlineSmall)
             Text(
                 "${load.band.legendLabel} · ${recencyLabel(load)}",
-                color = heatFill(load.heat, dark),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.titleMedium,
             )
             DetailLine("Volume", "${load.volumeKg.toWeightLabel(unit)}  ·  $windowLabel")

@@ -17,11 +17,9 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -55,9 +53,11 @@ import com.sinura.personaltrainer.domain.ProgressionAction
 import com.sinura.personaltrainer.domain.ProgressionCalculator
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.toWeightLabel
+import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.RepsStepper
 import com.sinura.personaltrainer.ui.components.RestTimerBar
 import com.sinura.personaltrainer.ui.components.WeightStepper
@@ -74,10 +74,13 @@ fun ActiveWorkoutScreen(
     val rest by viewModel.restTimerState.collectAsStateWithLifecycle()
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     var confirmFinish by rememberSaveable { mutableStateOf(false) }
+    var pendingDeleteSetId by rememberSaveable { mutableStateOf<String?>(null) }
     RequestRestNotificationPermission()
     val session = state.session
     val selected = session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId }
-    val lastLoggedSet = session?.sets?.maxByOrNull { it.completedAt }
+    val lastLoggedSet = session?.sets
+        ?.filter { selected == null || it.exerciseId == selected.exercise.id }
+        ?.maxByOrNull { it.completedAt }
     val unit = LocalWeightUnit.current
     val incrementLabel = ProgressionCalculator.INCREMENT_KG.toWeightLabel(unit)
     val view = LocalView.current
@@ -101,15 +104,7 @@ fun ActiveWorkoutScreen(
     ) { padding ->
         when {
             state.isLoading -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    CircularProgressIndicator()
-                }
+                ScreenLoading(modifier = Modifier.padding(padding))
             }
             session == null -> {
                 EmptyState(
@@ -268,7 +263,7 @@ fun ActiveWorkoutScreen(
                                     set = set,
                                     isEditing = state.editingSetId == set.id,
                                     onEdit = { viewModel.editSet(set.id) },
-                                    onDelete = { viewModel.deleteSet(set.id) },
+                                    onDelete = { pendingDeleteSetId = set.id },
                                 )
                             }
                         }
@@ -289,7 +284,7 @@ fun ActiveWorkoutScreen(
                                     set = set,
                                     isLatest = set.id == lastLoggedSet?.id,
                                     onEdit = { viewModel.editSet(set.id) },
-                                    onDelete = { viewModel.deleteSet(set.id) },
+                                    onDelete = { pendingDeleteSetId = set.id },
                                 )
                             }
                         }
@@ -312,7 +307,14 @@ fun ActiveWorkoutScreen(
                                     confirmFinish = true
                                 }
                             },
+                            enabled = session.sets.isNotEmpty(),
                         )
+                        if (session.sets.isEmpty()) {
+                            Text(
+                                "Log at least one set before finishing.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                     }
                 }
@@ -332,45 +334,52 @@ fun ActiveWorkoutScreen(
     }
 
     if (confirmFinish) {
-        AlertDialog(
-            onDismissRequest = { confirmFinish = false },
-            title = { Text("Finish workout?") },
-            text = { Text("This saves the session to history. You can still leave without finishing if you need more sets.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        confirmFinish = false
-                        viewModel.finishWorkout(onFinished)
-                    },
-                ) { Text("Finish") }
+        ConfirmActionDialog(
+            title = "Finish workout?",
+            body = "This saves the session to history. Leave without finishing if you still have sets to log.",
+            confirmLabel = "Finish",
+            dismissLabel = "Keep logging",
+            onConfirm = {
+                confirmFinish = false
+                viewModel.finishWorkout(onFinished)
             },
-            dismissButton = {
-                TextButton(onClick = { confirmFinish = false }) { Text("Keep logging") }
-            },
+            onDismiss = { confirmFinish = false },
         )
     }
 
     if (confirmDiscard) {
-        AlertDialog(
-            onDismissRequest = { confirmDiscard = false },
-            title = { Text("Leave workout?") },
-            text = { Text("Discard deletes this in-progress session. Cancel to keep logging.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        confirmDiscard = false
-                        viewModel.discardWorkout(onExit)
-                    },
-                ) { Text("Discard") }
+        ConfirmActionDialog(
+            title = "Leave workout?",
+            body = "Discard deletes this session. Keep and exit saves your draft and leaves the rest timer running.",
+            confirmLabel = "Discard",
+            dismissLabel = "Keep and exit",
+            onConfirm = {
+                confirmDiscard = false
+                viewModel.discardWorkout(onExit)
             },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        confirmDiscard = false
-                        onExit()
-                    },
-                ) { Text("Keep and exit") }
+            onDismiss = {
+                confirmDiscard = false
+                viewModel.persistDraftForExit()
+                onExit()
             },
+        )
+    }
+
+    pendingDeleteSetId?.let { setId ->
+        val set = session?.sets?.firstOrNull { it.id == setId }
+        ConfirmActionDialog(
+            title = "Delete this set?",
+            body = if (set == null) {
+                "Remove this set from the session."
+            } else {
+                "Delete ${set.weightKg.toWeightLabel(unit)} × ${set.reps}${if (set.isWarmup) " warm-up" else ""}?"
+            },
+            confirmLabel = "Delete",
+            onConfirm = {
+                viewModel.deleteSet(setId)
+                pendingDeleteSetId = null
+            },
+            onDismiss = { pendingDeleteSetId = null },
         )
     }
 }
@@ -387,7 +396,7 @@ private fun LastSetCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Last logged set", style = MaterialTheme.typography.labelLarge)
+            Text("Last set this lift", style = MaterialTheme.typography.labelLarge)
             Text(
                 "${set.exerciseName} · ${set.weightKg.toWeightLabel(LocalWeightUnit.current)} × ${set.reps}",
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),

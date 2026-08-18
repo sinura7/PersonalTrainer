@@ -12,6 +12,7 @@ import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.WeeklySchedulePlan
 import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
+import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,9 +49,10 @@ class ScheduleViewModel(application: Application) : AppViewModel(application) {
         ) { history, routines, prefs, inProgress, tick ->
             ScheduleInputs(history, routines, prefs, inProgress, tick)
         },
+        container.preferencesRepository.weightUnit,
         error,
-    ) { inputs, _ ->
-        inputs
+    ) { inputs, unit, _ ->
+        inputs.copy(unit = unit)
     }.mapLatest { inputs ->
         val zone = ZoneId.systemDefault()
         val now = System.currentTimeMillis()
@@ -64,7 +66,7 @@ class ScheduleViewModel(application: Application) : AppViewModel(application) {
         } catch (_: Exception) {
             emptyList()
         }
-        val recs = RecommendationEngine.recommend(snapshot, hints)
+        val recs = RecommendationEngine.recommend(snapshot, hints, inputs.unit)
         val plan = try {
             WeeklySchedulePlanner.plan(
                 preferences = inputs.prefs,
@@ -151,5 +153,6 @@ class ScheduleViewModel(application: Application) : AppViewModel(application) {
         val prefs: SchedulePreferences,
         val inProgress: WorkoutSession?,
         val tick: Long,
+        val unit: WeightUnit = WeightUnit.KG,
     )
 }

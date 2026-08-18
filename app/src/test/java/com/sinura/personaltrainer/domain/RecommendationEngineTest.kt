@@ -124,6 +124,8 @@ class RecommendationEngineTest {
         assertTrue(rec.title.contains("Bench"))
         assertTrue(rec.title.contains("+2.5 kg"))
         assertEquals(RecommendationAction.START_WORKOUT, rec.action)
+        val lbs = RecommendationEngine.progressionOpportunity(hints, WeightUnit.LBS)
+        assertTrue(lbs!!.title.contains(WeightUnit.LBS.suffix))
     }
 
     @Test

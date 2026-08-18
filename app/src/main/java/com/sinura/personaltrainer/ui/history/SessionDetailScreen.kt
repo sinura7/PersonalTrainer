@@ -70,7 +70,7 @@ fun SessionDetailScreen(
             session == null -> {
                 EmptyState(
                     title = "Session not found",
-                    body = "This workout is no longer in the local database.",
+                    body = "This workout is no longer on this phone.",
                     modifier = Modifier.padding(padding),
                 )
             }

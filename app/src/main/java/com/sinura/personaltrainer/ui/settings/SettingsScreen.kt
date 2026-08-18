@@ -18,7 +18,6 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -54,6 +53,7 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.CustomRestDialog
 import com.sinura.personaltrainer.ui.components.RestPresetChips
 import java.time.DayOfWeek
+import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.schedule.PreferenceBlock
 import java.text.DateFormat
@@ -137,22 +137,12 @@ fun SettingsScreen(
     }
 
     backup.pendingRestore?.let { file ->
-        AlertDialog(
-            onDismissRequest = viewModel::cancelRestore,
-            title = { Text("Replace all training data?") },
-            text = {
-                Text(
-                    "Restoring ${file.name} replaces every exercise, routine, and workout on this phone. This cannot be undone.",
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { viewModel.confirmRestore(activity) }) {
-                    Text("Restore backup")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = viewModel::cancelRestore) { Text("Cancel") }
-            },
+        ConfirmActionDialog(
+            title = "Replace all training data?",
+            body = "Restoring ${file.name} replaces every exercise, routine, and workout on this phone. This cannot be undone.",
+            confirmLabel = "Restore backup",
+            onConfirm = { viewModel.confirmRestore(activity) },
+            onDismiss = viewModel::cancelRestore,
         )
     }
 }
@@ -233,7 +223,7 @@ private fun RestTimerPrefsSection(
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Rest timer", style = MaterialTheme.typography.headlineSmall)
         Text(
-            "Sound and vibration when rest ends. The default is used after a working set if the lift has no rest of its own and you haven’t picked a preset this session.",
+            "Plays when rest ends. Default rest is used after a working set if the lift has none and you haven’t picked a preset.",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Row(

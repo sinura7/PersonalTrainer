@@ -15,8 +15,10 @@ import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.domain.WeeklySchedulePlan
 import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.domain.WeightUnit
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -33,6 +35,7 @@ data class HomeUiState(
     val heatSnapshot: BodyHeatSnapshot? = null,
     val recommendations: List<TrainingRecommendation> = emptyList(),
     val weekPlan: WeeklySchedulePlan? = null,
+    val error: String? = null,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -44,13 +47,16 @@ class HomeViewModel(application: Application) : AppViewModel(application) {
             initialValue = 0,
         )
 
+    private val actionError = MutableStateFlow<String?>(null)
+
     val uiState: StateFlow<HomeUiState> = combine(
         container.workoutRepository.observeInProgress(),
         container.routineRepository.observeAll(),
         container.workoutRepository.observeHistory(),
         container.preferencesRepository.schedulePreferences,
-    ) { inProgress, routines, history, prefs ->
-        HomeInputs(inProgress, routines, history, prefs)
+        container.preferencesRepository.weightUnit,
+    ) { inProgress, routines, history, prefs, unit ->
+        HomeInputs(inProgress, routines, history, prefs, unit)
     }.mapLatest { inputs ->
         val hints = try {
             container.workoutRepository.readyForProgression(inputs.routines)
@@ -70,7 +76,7 @@ class HomeViewModel(application: Application) : AppViewModel(application) {
             null
         }
         val recommendations = if (snapshot != null) {
-            RecommendationEngine.recommend(snapshot, hints)
+            RecommendationEngine.recommend(snapshot, hints, inputs.unit)
         } else {
             emptyList()
         }
@@ -98,9 +104,14 @@ class HomeViewModel(application: Application) : AppViewModel(application) {
             recentSessions = inputs.history.take(3),
             readyToProgress = hints,
             heatSnapshot = snapshot,
-            recommendations = recommendations,
+            recommendations = recommendations.filterNot { rec ->
+                rec.id == "progression-ready" && hints.isNotEmpty()
+            },
             weekPlan = weekPlan,
+            error = actionError.value,
         )
+    }.combine(actionError) { state, err ->
+        state.copy(error = err)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -116,6 +127,7 @@ class HomeViewModel(application: Application) : AppViewModel(application) {
                 null
             }
             if (current != null) {
+                actionError.value = null
                 onStarted(current.id)
                 return@launch
             }
@@ -130,9 +142,10 @@ class HomeViewModel(application: Application) : AppViewModel(application) {
                 } else {
                     container.workoutRepository.startFreeWorkout(day.focusTitle)
                 }
+                actionError.value = null
                 onStarted(session.id)
             } catch (_: Exception) {
-                // Home already offers Start workout as a fallback.
+                actionError.value = "Could not start that session. Try again."
             }
         }
     }
@@ -142,5 +155,6 @@ class HomeViewModel(application: Application) : AppViewModel(application) {
         val routines: List<Routine>,
         val history: List<WorkoutSession>,
         val prefs: SchedulePreferences,
+        val unit: WeightUnit,
     )
 }
