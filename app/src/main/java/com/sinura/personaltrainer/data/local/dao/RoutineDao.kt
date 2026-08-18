@@ -48,4 +48,22 @@ interface RoutineDao {
 
     @Query("SELECT COUNT(*) FROM routine_exercises WHERE exerciseId = :exerciseId")
     suspend fun countForExercise(exerciseId: String): Int
+
+    @Query("SELECT * FROM routines ORDER BY id")
+    suspend fun getAllRoutines(): List<RoutineEntity>
+
+    @Query("SELECT * FROM routine_exercises ORDER BY id")
+    suspend fun getAllRoutineExercises(): List<RoutineExerciseEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun replaceRoutines(items: List<RoutineEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun replaceRoutineExercises(items: List<RoutineExerciseEntity>)
+
+    @Query("DELETE FROM routine_exercises")
+    suspend fun deleteAllRoutineExercises()
+
+    @Query("DELETE FROM routines")
+    suspend fun deleteAllRoutines()
 }

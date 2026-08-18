@@ -114,4 +114,28 @@ interface WorkoutDao {
 
     @Query("SELECT COUNT(*) FROM session_exercises WHERE exerciseId = :exerciseId")
     suspend fun countSessionExercisesFor(exerciseId: String): Int
+
+    @Query("SELECT * FROM workout_sessions ORDER BY id")
+    suspend fun getAllSessions(): List<WorkoutSessionEntity>
+
+    @Query("SELECT * FROM session_exercises ORDER BY id")
+    suspend fun getAllSessionExercises(): List<SessionExerciseEntity>
+
+    @Query("SELECT * FROM set_logs ORDER BY id")
+    suspend fun getAllSets(): List<SetLogEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun replaceSessions(items: List<WorkoutSessionEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun replaceSets(items: List<SetLogEntity>)
+
+    @Query("DELETE FROM set_logs")
+    suspend fun deleteAllSets()
+
+    @Query("DELETE FROM session_exercises")
+    suspend fun deleteAllSessionExercises()
+
+    @Query("DELETE FROM workout_sessions")
+    suspend fun deleteAllSessions()
 }

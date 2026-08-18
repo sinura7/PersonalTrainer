@@ -13,6 +13,9 @@ interface ExerciseDao {
     @Query("SELECT * FROM exercises ORDER BY name COLLATE NOCASE")
     fun observeAll(): Flow<List<ExerciseEntity>>
 
+    @Query("SELECT * FROM exercises ORDER BY id")
+    suspend fun getAll(): List<ExerciseEntity>
+
     @Query(
         """
         SELECT * FROM exercises
@@ -40,4 +43,10 @@ interface ExerciseDao {
 
     @Query("DELETE FROM exercises WHERE id = :id AND isCustom = 1")
     suspend fun deleteCustom(id: String)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun replaceAll(exercises: List<ExerciseEntity>)
+
+    @Query("DELETE FROM exercises")
+    suspend fun deleteAll()
 }
