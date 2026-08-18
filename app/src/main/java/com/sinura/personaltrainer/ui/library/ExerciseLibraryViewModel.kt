@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.data.repository.DeleteExerciseResult
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseUsage
 import com.sinura.personaltrainer.domain.MuscleGroups
+import com.sinura.personaltrainer.domain.MuscleNormalizer
 import com.sinura.personaltrainer.domain.Routine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -64,7 +65,7 @@ class ExerciseLibraryViewModel(application: Application) : AppViewModel(applicat
     ) { core, dialogs, notices ->
         val needle = core.query.trim()
         val visible = core.exercises.filter { exercise ->
-            val matchesGroup = core.group == null || exercise.muscleGroup.equals(core.group, ignoreCase = true)
+            val matchesGroup = MuscleNormalizer.matchesFilter(exercise.muscleGroup, core.group)
             val matchesQuery = needle.isEmpty() ||
                 exercise.name.contains(needle, ignoreCase = true) ||
                 exercise.muscleGroup.contains(needle, ignoreCase = true) ||
@@ -98,6 +99,10 @@ class ExerciseLibraryViewModel(application: Application) : AppViewModel(applicat
 
     fun onGroupSelected(group: String?) {
         selectedGroup.value = if (selectedGroup.value == group) null else group
+    }
+
+    fun applyMuscleFilter(group: String?) {
+        selectedGroup.value = group?.trim()?.ifBlank { null }
     }
 
     fun openCreate() {

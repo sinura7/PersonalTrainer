@@ -20,6 +20,12 @@ private val LightColors = lightColorScheme(
     onSurface = Ink,
     surfaceVariant = Color(0xFFE7EFE8),
     onSurfaceVariant = WarmGray,
+    tertiary = Color(0xFFB86E00),
+    onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFFFE08A),
+    onTertiaryContainer = Color(0xFF3F2A00),
+    errorContainer = Color(0xFFFFDAD6),
+    onErrorContainer = Color(0xFF410002),
 )
 
 private val DarkColors = darkColorScheme(
@@ -35,6 +41,12 @@ private val DarkColors = darkColorScheme(
     onSurface = Sand,
     surfaceVariant = Color(0xFF1E3A30),
     onSurfaceVariant = Color(0xFFC5D2CA),
+    tertiary = Color(0xFFFFB74D),
+    onTertiary = Color(0xFF3F2A00),
+    tertiaryContainer = Color(0xFF5C4300),
+    onTertiaryContainer = Color(0xFFFFE08A),
+    errorContainer = Color(0xFF8C1D18),
+    onErrorContainer = Color(0xFFFFDAD6),
 )
 
 @Composable

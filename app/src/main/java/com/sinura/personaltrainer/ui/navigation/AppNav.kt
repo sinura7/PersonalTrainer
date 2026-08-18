@@ -2,10 +2,12 @@ package com.sinura.personaltrainer.ui.navigation
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import android.net.Uri
 import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.outlined.Whatshot
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -30,6 +32,7 @@ import com.sinura.personaltrainer.ui.history.HistoryScreen
 import com.sinura.personaltrainer.ui.history.SessionDetailScreen
 import com.sinura.personaltrainer.ui.home.HomeScreen
 import com.sinura.personaltrainer.ui.library.ExerciseLibraryScreen
+import com.sinura.personaltrainer.ui.progress.ProgressScreen
 import com.sinura.personaltrainer.ui.routines.RoutineEditorScreen
 import com.sinura.personaltrainer.ui.routines.RoutinesScreen
 import com.sinura.personaltrainer.ui.settings.SettingsScreen
@@ -53,7 +56,12 @@ sealed class Route(val path: String) {
         fun create(sessionId: String): String = "history/$sessionId"
     }
     data object Settings : Route("settings")
-    data object Library : Route("library")
+    data object Progress : Route("progress")
+    data object Library : Route("library") {
+        fun create(muscle: String? = null): String =
+            if (muscle.isNullOrBlank()) path
+            else "$path?muscle=${Uri.encode(muscle)}"
+    }
 }
 
 private data class Tab(
@@ -70,6 +78,7 @@ fun PersonalTrainerNav(
     val navController = rememberNavController()
     val tabs = listOf(
         Tab(Route.Home, "Home", Icons.Outlined.Home),
+        Tab(Route.Progress, "Body", Icons.Outlined.Whatshot),
         Tab(Route.Routines, "Routines", Icons.Outlined.FitnessCenter),
         Tab(Route.Library, "Library", Icons.Outlined.MenuBook),
         Tab(Route.History, "History", Icons.Outlined.History),
@@ -77,7 +86,7 @@ fun PersonalTrainerNav(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val showBottomBar = tabs.any { tab ->
-        currentDestination?.hierarchy?.any { it.route == tab.route.path } == true
+        currentDestination?.hierarchy?.any { isTabRoute(it.route, tab.route.path) } == true
     }
 
     fun goToTab(path: String) {
@@ -96,7 +105,7 @@ fun PersonalTrainerNav(
             if (showBottomBar) {
                 NavigationBar {
                     tabs.forEach { tab ->
-                        val selected = currentDestination?.hierarchy?.any { it.route == tab.route.path } == true
+                        val selected = currentDestination?.hierarchy?.any { isTabRoute(it.route, tab.route.path) } == true
                         NavigationBarItem(
                             selected = selected,
                             onClick = { goToTab(tab.route.path) },
@@ -120,13 +129,48 @@ fun PersonalTrainerNav(
                     onOpenRoutines = { goToTab(Route.Routines.path) },
                     onOpenLibrary = { goToTab(Route.Library.path) },
                     onOpenHistory = { goToTab(Route.History.path) },
+                    onOpenProgress = { goToTab(Route.Progress.path) },
+                    onOpenLibraryMuscle = { muscle ->
+                        navController.navigate(Route.Library.create(muscle)) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = false
+                        }
+                    },
                     onOpenSession = { navController.navigate(Route.SessionDetail.create(it)) },
                     onOpenSettings = { navController.navigate(Route.Settings.path) },
                 )
             }
-            composable(Route.Library.path) {
+            composable(Route.Progress.path) {
+                ProgressScreen(
+                    onOpenLibrary = { muscle ->
+                        navController.navigate(Route.Library.create(muscle)) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = false
+                        }
+                    },
+                    onStartWorkout = { navController.navigate(Route.StartWorkout.path) },
+                    onOpenRoutines = { goToTab(Route.Routines.path) },
+                )
+            }
+            composable(
+                route = "library?muscle={muscle}",
+                arguments = listOf(
+                    navArgument("muscle") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
+            ) { entry ->
                 ExerciseLibraryScreen(
                     onCreateRoutine = { navController.navigate(Route.RoutineEditor.create("new")) },
+                    initialMuscle = entry.arguments?.getString("muscle"),
                 )
             }
             composable(Route.Settings.path) {
@@ -183,4 +227,10 @@ fun PersonalTrainerNav(
         }
         }
     }
+}
+
+private fun isTabRoute(destinationRoute: String?, tabPath: String): Boolean {
+    if (destinationRoute == null) return false
+    if (destinationRoute == tabPath) return true
+    return destinationRoute.substringBefore("?") == tabPath
 }

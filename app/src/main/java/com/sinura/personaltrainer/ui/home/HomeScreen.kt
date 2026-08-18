@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.home
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -13,10 +14,20 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Whatshot
+import androidx.compose.ui.draw.clip
+import com.sinura.personaltrainer.domain.CanonicalMuscle
+import com.sinura.personaltrainer.domain.TrainingRecommendation
+import com.sinura.personaltrainer.ui.progress.RecommendationCard
+import com.sinura.personaltrainer.ui.progress.dispatchRecommendation
+import com.sinura.personaltrainer.ui.progress.heatFill
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -36,6 +47,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.ProgressionCalculator
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -55,6 +67,8 @@ fun HomeScreen(
     onOpenRoutines: () -> Unit,
     onOpenLibrary: () -> Unit,
     onOpenHistory: () -> Unit,
+    onOpenProgress: () -> Unit,
+    onOpenLibraryMuscle: (String?) -> Unit,
     onOpenSession: (String) -> Unit,
     onOpenSettings: () -> Unit,
     viewModel: HomeViewModel = viewModel(),
@@ -99,6 +113,22 @@ fun HomeScreen(
                 onOpenRoutines = onOpenRoutines,
                 onOpenLibrary = onOpenLibrary,
                 onOpenHistory = onOpenHistory,
+            )
+        }
+        item {
+            TrainingBalanceCard(
+                snapshot = state.heatSnapshot,
+                recommendations = state.recommendations.take(2),
+                onOpenProgress = onOpenProgress,
+                onRecommendation = { rec ->
+                    dispatchRecommendation(
+                        recommendation = rec,
+                        onOpenLibrary = onOpenLibraryMuscle,
+                        onStartWorkout = onStartWorkout,
+                        onOpenRoutines = onOpenRoutines,
+                        onOpenProgress = onOpenProgress,
+                    )
+                },
             )
         }
         state.inProgress?.let { session ->
@@ -304,6 +334,77 @@ private fun RecentSessionCard(
                 "$workingSets working sets · ${session.workingVolumeKg().toWeightLabel(unit)} volume · ${session.durationMinutes} min",
                 style = MaterialTheme.typography.bodyMedium,
             )
+        }
+    }
+}
+
+@Composable
+private fun TrainingBalanceCard(
+    snapshot: BodyHeatSnapshot?,
+    recommendations: List<TrainingRecommendation>,
+    onOpenProgress: () -> Unit,
+    onRecommendation: (TrainingRecommendation) -> Unit,
+) {
+    val dark = isSystemInDarkTheme()
+    val highlights = listOf(
+        CanonicalMuscle.CHEST,
+        CanonicalMuscle.BACK,
+        CanonicalMuscle.SHOULDERS,
+        CanonicalMuscle.QUADRICEPS,
+        CanonicalMuscle.HAMSTRINGS,
+        CanonicalMuscle.CORE,
+    )
+    Card(onClick = onOpenProgress, modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Outlined.Whatshot, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Text("Training balance", style = MaterialTheme.typography.titleLarge)
+            }
+            if (snapshot == null || !snapshot.hasAnyWorkingSets) {
+                Text(
+                    "The body map fills in as you finish workouts. Tap to see the full view.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Text(
+                    "Last 7 days · tap for the full map",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    highlights.forEach { muscle ->
+                        val load = snapshot.load(muscle)
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .clip(CircleShape)
+                                    .background(heatFill(load.heat, dark)),
+                            )
+                            Text(
+                                muscle.shortLabel,
+                                style = MaterialTheme.typography.labelLarge,
+                                textAlign = TextAlign.Center,
+                                maxLines = 2,
+                            )
+                        }
+                    }
+                }
+            }
+            recommendations.forEach { rec ->
+                RecommendationCard(
+                    recommendation = rec,
+                    compact = true,
+                    onClick = { onRecommendation(rec) },
+                )
+            }
+            TextButton(onClick = onOpenProgress) { Text("Open body map") }
         }
     }
 }

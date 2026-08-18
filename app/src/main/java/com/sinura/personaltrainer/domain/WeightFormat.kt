@@ -23,7 +23,7 @@ enum class WeightUnit(
     );
 
     val stepLabel: String
-        get() = formatDisplayNumber(step)
+        get() = WeightConverter.formatDisplayNumber(step)
 
     companion object {
         fun fromStorage(value: String?): WeightUnit =

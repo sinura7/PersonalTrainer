@@ -18,7 +18,8 @@ Debug builds use the default debug keystore. Release signing, OAuth, and updates
 
 ## What it does
 
-- **Home** — start or resume a workout, jump to routines / library / history, see lifts ready to progress
+- **Home** — start or resume a workout, jump to routines / library / history, training balance, lifts ready to progress
+- **Body map** — heat from real working sets (7 / 14 / this week), muscle detail, rule-based recommendations
 - **Routines** — create, edit, reorder, and delete programs
 - **Library** — search the lift list, filter by muscle, add custom exercises
 - **Logging** — weight + reps, optional RPE and warm-up, rest timer, suggested next weight
@@ -47,8 +48,8 @@ Obtainium can install and update from those releases. One standard APK per relea
 data/local       Room entities, DAOs, TrainerDatabase
 data/repository
 data/backup      Drive JSON backup / restore
-domain           models, units, ProgressionCalculator
-ui/home, ui/routines, ui/workout, ui/history, ui/library, ui/settings
+domain           models, units, muscle heat, recommendations, ProgressionCalculator
+ui/home, ui/progress, ui/routines, ui/workout, ui/history, ui/library, ui/settings
 ```
 
 ViewModels talk to repositories. No Hilt — `PersonalTrainerApp` holds an `AppContainer`.
