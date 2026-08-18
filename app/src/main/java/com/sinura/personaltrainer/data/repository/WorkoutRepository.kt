@@ -66,17 +66,18 @@ class WorkoutRepository(
             ?: error("Failed to start routine session")
     }
 
-    suspend fun startFreeWorkout(): WorkoutSession {
+    suspend fun startFreeWorkout(focusTitle: String? = null): WorkoutSession {
         getInProgress()?.let { existing ->
             return workoutDao.getSession(existing.id)?.toDomain() ?: existing
         }
         val now = System.currentTimeMillis()
+        val focus = focusTitle?.trim().orEmpty()
         val session = WorkoutSessionEntity(
             id = UUID.randomUUID().toString(),
             routineId = null,
-            routineName = "Free workout",
+            routineName = focus.ifBlank { "Free workout" },
             date = now,
-            notes = "",
+            notes = if (focus.isBlank()) "" else "Suggested focus: $focus",
             durationMinutes = 0,
             startedAt = now,
             finishedAt = null,

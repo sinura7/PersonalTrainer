@@ -28,6 +28,8 @@ import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.ui.progress.RecommendationCard
 import com.sinura.personaltrainer.ui.progress.dispatchRecommendation
 import com.sinura.personaltrainer.ui.progress.heatFill
+import com.sinura.personaltrainer.ui.schedule.ThisWeekHomeCard
+import com.sinura.personaltrainer.ui.schedule.todayEpochDay
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -68,6 +70,7 @@ fun HomeScreen(
     onOpenLibrary: () -> Unit,
     onOpenHistory: () -> Unit,
     onOpenProgress: () -> Unit,
+    onOpenSchedule: () -> Unit,
     onOpenLibraryMuscle: (String?) -> Unit,
     onOpenSession: (String) -> Unit,
     onOpenSettings: () -> Unit,
@@ -105,6 +108,29 @@ fun HomeScreen(
                 onClick = {
                     val current = state.inProgress
                     if (current != null) onResumeWorkout(current.id) else onStartWorkout()
+                },
+            )
+        }
+        item {
+            val plan = state.weekPlan
+            val today = todayEpochDay()
+            val todayDay = plan?.dayOn(today)
+            ThisWeekHomeCard(
+                day = todayDay,
+                nextDay = plan?.nextTrainingOnOrAfter(today),
+                summary = plan?.summary ?: "A starter week is ready. Suggestions improve as you log sets.",
+                loggedToday = state.recentSessions.any { session ->
+                    todayEpochDay(session.date) == today
+                },
+                inProgress = state.inProgress != null,
+                onOpenSchedule = onOpenSchedule,
+                onStart = {
+                    val target = todayDay?.takeUnless { it.isRest } ?: plan?.nextTrainingOnOrAfter(today)
+                    if (target != null && !target.isRest) {
+                        viewModel.startSuggestedDay(target, onResumeWorkout)
+                    } else {
+                        onOpenSchedule()
+                    }
                 },
             )
         }

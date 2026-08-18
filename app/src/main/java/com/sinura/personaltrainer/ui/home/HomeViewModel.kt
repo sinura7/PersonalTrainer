@@ -9,8 +9,13 @@ import com.sinura.personaltrainer.domain.MuscleLoadCalculator
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RecommendationEngine
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.SchedulePreferences
+import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.TrainingRecommendation
+import com.sinura.personaltrainer.domain.WeeklySchedulePlan
+import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
 import com.sinura.personaltrainer.domain.WorkoutSession
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +32,7 @@ data class HomeUiState(
     val readyToProgress: List<ProgressionHint> = emptyList(),
     val heatSnapshot: BodyHeatSnapshot? = null,
     val recommendations: List<TrainingRecommendation> = emptyList(),
+    val weekPlan: WeeklySchedulePlan? = null,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -35,20 +41,23 @@ class HomeViewModel(application: Application) : AppViewModel(application) {
         container.workoutRepository.observeInProgress(),
         container.routineRepository.observeAll(),
         container.workoutRepository.observeHistory(),
-    ) { inProgress, routines, history ->
-        Triple(inProgress, routines, history)
-    }.mapLatest { (inProgress, routines, history) ->
+        container.preferencesRepository.schedulePreferences,
+    ) { inProgress, routines, history, prefs ->
+        HomeInputs(inProgress, routines, history, prefs)
+    }.mapLatest { inputs ->
         val hints = try {
-            container.workoutRepository.readyForProgression(routines)
+            container.workoutRepository.readyForProgression(inputs.routines)
         } catch (_: Exception) {
             emptyList()
         }
+        val now = System.currentTimeMillis()
+        val zone = ZoneId.systemDefault()
         val snapshot = try {
             MuscleLoadCalculator.snapshot(
-                sessions = history,
+                sessions = inputs.history,
                 window = HeatWindow.LAST_7_DAYS,
-                nowMs = System.currentTimeMillis(),
-                zone = ZoneId.systemDefault(),
+                nowMs = now,
+                zone = zone,
             )
         } catch (_: Exception) {
             null
@@ -58,18 +67,73 @@ class HomeViewModel(application: Application) : AppViewModel(application) {
         } else {
             emptyList()
         }
+        val weekPlan = if (snapshot != null) {
+            try {
+                WeeklySchedulePlanner.plan(
+                    preferences = inputs.prefs,
+                    snapshot = snapshot,
+                    recommendations = recommendations,
+                    routines = inputs.routines,
+                    recentSessions = inputs.history,
+                    nowMs = now,
+                    zone = zone,
+                )
+            } catch (_: Exception) {
+                null
+            }
+        } else {
+            null
+        }
         HomeUiState(
             isLoading = false,
-            inProgress = inProgress,
-            routines = routines,
-            recentSessions = history.take(3),
+            inProgress = inputs.inProgress,
+            routines = inputs.routines,
+            recentSessions = inputs.history.take(3),
             readyToProgress = hints,
             heatSnapshot = snapshot,
             recommendations = recommendations,
+            weekPlan = weekPlan,
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = HomeUiState(),
+    )
+
+    fun startSuggestedDay(day: SuggestedTrainingDay, onStarted: (String) -> Unit) {
+        if (day.isRest) return
+        viewModelScope.launch {
+            val current = try {
+                container.workoutRepository.getInProgress()
+            } catch (_: Exception) {
+                null
+            }
+            if (current != null) {
+                onStarted(current.id)
+                return@launch
+            }
+            try {
+                val session = if (day.routineId != null) {
+                    val routine = container.routineRepository.getById(day.routineId)
+                    if (routine == null || routine.exercises.isEmpty()) {
+                        container.workoutRepository.startFreeWorkout(day.focusTitle)
+                    } else {
+                        container.workoutRepository.startRoutine(routine)
+                    }
+                } else {
+                    container.workoutRepository.startFreeWorkout(day.focusTitle)
+                }
+                onStarted(session.id)
+            } catch (_: Exception) {
+                // Home already offers Start workout as a fallback.
+            }
+        }
+    }
+
+    private data class HomeInputs(
+        val inProgress: WorkoutSession?,
+        val routines: List<Routine>,
+        val history: List<WorkoutSession>,
+        val prefs: SchedulePreferences,
     )
 }

@@ -4,10 +4,14 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.sinura.personaltrainer.domain.SchedulePreferences
+import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.WeightUnit
+import java.time.DayOfWeek
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
@@ -34,6 +38,49 @@ class PreferencesRepository(context: Context) {
     suspend fun setWeightUnit(unit: WeightUnit) {
         dataStore.edit { prefs ->
             prefs[WEIGHT_UNIT] = unit.storageKey
+        }
+    }
+
+    val schedulePreferences: Flow<SchedulePreferences> = dataStore.data
+        .catch { error ->
+            if (error is IOException) {
+                emit(androidx.datastore.preferences.core.emptyPreferences())
+            } else {
+                throw error
+            }
+        }
+        .map { prefs ->
+            SchedulePreferences(
+                trainingDaysPerWeek = prefs[TRAINING_DAYS] ?: SchedulePreferences.DEFAULT_DAYS,
+                splitStyle = SplitStyle.fromStorage(prefs[SPLIT_STYLE]),
+                weekStart = SchedulePreferences.weekStartFromStorage(prefs[WEEK_START]),
+            ).sanitized()
+        }
+
+    suspend fun setTrainingDaysPerWeek(days: Int) {
+        dataStore.edit { prefs ->
+            prefs[TRAINING_DAYS] = days.coerceIn(SchedulePreferences.MIN_DAYS, SchedulePreferences.MAX_DAYS)
+        }
+    }
+
+    suspend fun setSplitStyle(style: SplitStyle) {
+        dataStore.edit { prefs ->
+            prefs[SPLIT_STYLE] = style.storageKey
+        }
+    }
+
+    suspend fun setWeekStart(day: DayOfWeek) {
+        dataStore.edit { prefs ->
+            prefs[WEEK_START] = day.name
+        }
+    }
+
+    suspend fun setSchedulePreferences(value: SchedulePreferences) {
+        val clean = value.sanitized()
+        dataStore.edit { prefs ->
+            prefs[TRAINING_DAYS] = clean.trainingDaysPerWeek
+            prefs[SPLIT_STYLE] = clean.splitStyle.storageKey
+            prefs[WEEK_START] = clean.weekStart.name
         }
     }
 
@@ -105,6 +152,9 @@ class PreferencesRepository(context: Context) {
 
     private companion object {
         val WEIGHT_UNIT = stringPreferencesKey("weight_unit")
+        val TRAINING_DAYS = intPreferencesKey("training_days_per_week")
+        val SPLIT_STYLE = stringPreferencesKey("split_style")
+        val WEEK_START = stringPreferencesKey("week_start")
         val DRIVE_ACCOUNT = stringPreferencesKey("drive_account_email")
         val DRIVE_FOLDER_ID = stringPreferencesKey("drive_folder_id")
         val LAST_BACKUP_AT = longPreferencesKey("last_backup_at")

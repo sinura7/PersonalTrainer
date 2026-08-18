@@ -7,7 +7,10 @@ import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
+import com.sinura.personaltrainer.domain.SchedulePreferences
+import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.WeightUnit
+import java.time.DayOfWeek
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,6 +39,14 @@ class SettingsViewModel(application: Application) : AppViewModel(application) {
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = WeightUnit.KG,
         )
+
+    val schedulePreferences: StateFlow<SchedulePreferences> =
+        container.preferencesRepository.schedulePreferences
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = SchedulePreferences.DEFAULT,
+            )
 
     private val isBusy = MutableStateFlow(false)
     private val busyLabel = MutableStateFlow<String?>(null)
@@ -80,6 +91,24 @@ class SettingsViewModel(application: Application) : AppViewModel(application) {
     fun setWeightUnit(unit: WeightUnit) {
         viewModelScope.launch {
             container.preferencesRepository.setWeightUnit(unit)
+        }
+    }
+
+    fun setTrainingDays(days: Int) {
+        viewModelScope.launch {
+            container.preferencesRepository.setTrainingDaysPerWeek(days)
+        }
+    }
+
+    fun setSplitStyle(style: SplitStyle) {
+        viewModelScope.launch {
+            container.preferencesRepository.setSplitStyle(style)
+        }
+    }
+
+    fun setWeekStart(day: DayOfWeek) {
+        viewModelScope.launch {
+            container.preferencesRepository.setWeekStart(day)
         }
     }
 

@@ -18,6 +18,8 @@ import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
+import com.sinura.personaltrainer.domain.SchedulePreferences
+import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.WeightUnit
 import kotlinx.coroutines.flow.first
 
@@ -33,11 +35,17 @@ class LocalBackupRepository(
         val sessionExercises = database.workoutDao().getAllSessionExercises()
         val sets = database.workoutDao().getAllSets()
         val unit = preferencesRepository.weightUnit.first()
+        val schedule = preferencesRepository.schedulePreferences.first()
         return BackupDocument(
             version = BackupJson.CURRENT_VERSION,
             app = BackupJson.APP_ID,
             exportedAt = BackupJson.nowIso(),
-            preferences = BackupPreferences(weightUnit = unit.storageKey),
+            preferences = BackupPreferences(
+                weightUnit = unit.storageKey,
+                trainingDaysPerWeek = schedule.trainingDaysPerWeek,
+                splitStyle = schedule.splitStyle.storageKey,
+                weekStart = schedule.weekStart.name,
+            ),
             exercises = exercises.map {
                 BackupExercise(it.id, it.name, it.muscleGroup, it.notes, it.isCustom)
             },
@@ -189,5 +197,12 @@ class LocalBackupRepository(
             }
         }
         preferencesRepository.setWeightUnit(WeightUnit.fromStorage(document.preferences.weightUnit))
+        preferencesRepository.setSchedulePreferences(
+            SchedulePreferences(
+                trainingDaysPerWeek = document.preferences.trainingDaysPerWeek,
+                splitStyle = SplitStyle.fromStorage(document.preferences.splitStyle),
+                weekStart = SchedulePreferences.weekStartFromStorage(document.preferences.weekStart),
+            ),
+        )
     }
 }

@@ -43,8 +43,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.BuildConfig
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
+import com.sinura.personaltrainer.domain.SchedulePreferences
+import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.WeightUnit
+import java.time.DayOfWeek
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.schedule.PreferenceBlock
 import java.text.DateFormat
 import java.util.Date
 
@@ -52,9 +56,11 @@ import java.util.Date
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onOpenSchedule: () -> Unit = {},
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val selectedUnit by viewModel.weightUnit.collectAsStateWithLifecycle()
+    val schedulePrefs by viewModel.schedulePreferences.collectAsStateWithLifecycle()
     val backup by viewModel.backupState.collectAsStateWithLifecycle()
     val activity = LocalContext.current.findActivity()
     val dateTimeFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
@@ -94,6 +100,13 @@ fun SettingsScreen(
             WeightUnitsSection(
                 selectedUnit = selectedUnit,
                 onSelect = viewModel::setWeightUnit,
+            )
+            SchedulePrefsSection(
+                preferences = schedulePrefs,
+                onDays = viewModel::setTrainingDays,
+                onSplit = viewModel::setSplitStyle,
+                onWeekStart = viewModel::setWeekStart,
+                onOpenSchedule = onOpenSchedule,
             )
             BackupRestoreSection(
                 state = backup,
@@ -166,6 +179,30 @@ private fun WeightUnitsSection(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SchedulePrefsSection(
+    preferences: SchedulePreferences,
+    onDays: (Int) -> Unit,
+    onSplit: (SplitStyle) -> Unit,
+    onWeekStart: (DayOfWeek) -> Unit,
+    onOpenSchedule: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("Weekly schedule", style = MaterialTheme.typography.headlineSmall)
+        Text(
+            "How many days you want to train, and the split the planner should use. The week itself is built from your heat map and routines.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        PreferenceBlock(
+            preferences = preferences,
+            onDays = onDays,
+            onSplit = onSplit,
+            onWeekStart = onWeekStart,
+        )
+        TextButton(onClick = onOpenSchedule) { Text("Open this week’s plan") }
     }
 }
 

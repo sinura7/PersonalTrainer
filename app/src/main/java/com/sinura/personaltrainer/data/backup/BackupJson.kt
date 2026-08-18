@@ -74,7 +74,12 @@ object BackupJson {
     private fun parsePreferences(root: JsonObject): BackupPreferences {
         val prefs = root.getAsJsonObject("preferences")
         val unit = prefs?.get("weightUnit")?.asString ?: "kg"
-        return BackupPreferences(weightUnit = unit)
+        return BackupPreferences(
+            weightUnit = unit,
+            trainingDaysPerWeek = prefs?.get("trainingDaysPerWeek")?.asInt ?: 4,
+            splitStyle = prefs?.get("splitStyle")?.asString ?: "auto",
+            weekStart = prefs?.get("weekStart")?.asString ?: "MONDAY",
+        )
     }
 
     private fun <T> Gson.fromJsonList(root: JsonObject, key: String, type: Class<Array<T>>): List<T> {

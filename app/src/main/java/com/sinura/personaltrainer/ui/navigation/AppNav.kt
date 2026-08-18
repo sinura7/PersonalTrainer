@@ -34,6 +34,7 @@ import com.sinura.personaltrainer.ui.home.HomeScreen
 import com.sinura.personaltrainer.ui.library.ExerciseLibraryScreen
 import com.sinura.personaltrainer.ui.progress.ProgressScreen
 import com.sinura.personaltrainer.ui.routines.RoutineEditorScreen
+import com.sinura.personaltrainer.ui.schedule.ScheduleScreen
 import com.sinura.personaltrainer.ui.routines.RoutinesScreen
 import com.sinura.personaltrainer.ui.settings.SettingsScreen
 import com.sinura.personaltrainer.ui.settings.SettingsViewModel
@@ -56,6 +57,7 @@ sealed class Route(val path: String) {
         fun create(sessionId: String): String = "history/$sessionId"
     }
     data object Settings : Route("settings")
+    data object Schedule : Route("schedule")
     data object Progress : Route("progress")
     data object Library : Route("library") {
         fun create(muscle: String? = null): String =
@@ -130,6 +132,7 @@ fun PersonalTrainerNav(
                     onOpenLibrary = { goToTab(Route.Library.path) },
                     onOpenHistory = { goToTab(Route.History.path) },
                     onOpenProgress = { goToTab(Route.Progress.path) },
+                    onOpenSchedule = { navController.navigate(Route.Schedule.path) },
                     onOpenLibraryMuscle = { muscle ->
                         navController.navigate(Route.Library.create(muscle)) {
                             popUpTo(navController.graph.findStartDestination().id) {
@@ -173,9 +176,21 @@ fun PersonalTrainerNav(
                     initialMuscle = entry.arguments?.getString("muscle"),
                 )
             }
+            composable(Route.Schedule.path) {
+                ScheduleScreen(
+                    onBack = { navController.popBackStack() },
+                    onWorkoutStarted = { sessionId ->
+                        navController.navigate(Route.ActiveWorkout.create(sessionId)) {
+                            popUpTo(Route.Schedule.path) { inclusive = true }
+                        }
+                    },
+                    onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
+                )
+            }
             composable(Route.Settings.path) {
                 SettingsScreen(
                     onBack = { navController.popBackStack() },
+                    onOpenSchedule = { navController.navigate(Route.Schedule.path) },
                     viewModel = settingsViewModel,
                 )
             }

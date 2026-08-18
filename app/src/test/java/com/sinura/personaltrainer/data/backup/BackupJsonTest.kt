@@ -38,6 +38,17 @@ class BackupJsonTest {
     }
 
     @Test
+    fun missingSchedulePreferencesUseDefaults() {
+        val parsed = BackupJson.decode(
+            """{"version": 1, "app": "personal-trainer", "preferences": {"weightUnit": "kg"}}""",
+        )
+        assertEquals("kg", parsed.preferences.weightUnit)
+        assertEquals(4, parsed.preferences.trainingDaysPerWeek)
+        assertEquals("auto", parsed.preferences.splitStyle)
+        assertEquals("MONDAY", parsed.preferences.weekStart)
+    }
+
+    @Test
     fun rejectsNewerVersions() {
         try {
             BackupJson.decode("""{"version": 99, "app": "personal-trainer", "preferences": {"weightUnit": "kg"}}""")

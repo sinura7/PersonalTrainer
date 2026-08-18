@@ -15,6 +15,9 @@ data class BackupDocument(
 
 data class BackupPreferences(
     val weightUnit: String,
+    val trainingDaysPerWeek: Int = 4,
+    val splitStyle: String = "auto",
+    val weekStart: String = "MONDAY",
 )
 
 data class BackupExercise(
