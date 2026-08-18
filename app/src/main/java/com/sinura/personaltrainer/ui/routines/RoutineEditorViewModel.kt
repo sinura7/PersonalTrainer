@@ -35,6 +35,7 @@ class RoutineEditorViewModel(
 ) : AppViewModel(application) {
     private val incomingId: String? = savedStateHandle.get<String>("routineId")
         ?.takeIf { it.isNotBlank() && it != "new" }
+    private val createdThisSession: Boolean = incomingId == null
 
     private val routineId = MutableStateFlow(incomingId)
     private val name = MutableStateFlow("")
@@ -104,15 +105,47 @@ class RoutineEditorViewModel(
     }
 
     fun saveDetails() {
-        val id = routineId.value ?: return
+        val id = routineId.value
+        if (id == null) {
+            error.value = "Routine is still loading. Try again."
+            return
+        }
         viewModelScope.launch {
-            if (name.value.isBlank()) {
+            val trimmedName = name.value.trim()
+            if (trimmedName.isEmpty()) {
                 error.value = "Give this routine a name."
+                saved.value = false
                 return@launch
             }
-            container.routineRepository.updateDetails(id, name.value, notes.value)
-            error.value = null
-            saved.value = true
+            val exercises = uiState.value.routine?.exercises.orEmpty()
+            if (exercises.isEmpty()) {
+                error.value = "Add at least one exercise before saving."
+                saved.value = false
+                return@launch
+            }
+            try {
+                container.routineRepository.updateDetails(id, trimmedName, notes.value)
+                error.value = null
+                saved.value = true
+            } catch (_: Exception) {
+                error.value = "Could not save this routine. Try again."
+                saved.value = false
+            }
+        }
+    }
+
+    fun leave(onLeave: () -> Unit) {
+        viewModelScope.launch {
+            val id = routineId.value
+            val exercises = uiState.value.routine?.exercises.orEmpty()
+            if (createdThisSession && id != null && exercises.isEmpty()) {
+                try {
+                    container.routineRepository.delete(id)
+                } catch (_: Exception) {
+                    // Keep navigating back; an empty stub can be deleted later.
+                }
+            }
+            onLeave()
         }
     }
 
@@ -132,18 +165,27 @@ class RoutineEditorViewModel(
         targetWeightKg: Double?,
         restSeconds: Int,
     ) {
-        val id = routineId.value ?: return
+        val id = routineId.value
+        if (id == null) {
+            error.value = "Routine is still loading. Try again."
+            return
+        }
         viewModelScope.launch {
-            container.routineRepository.addExercise(
-                routineId = id,
-                exercise = exercise,
-                targetSets = targetSets,
-                targetReps = targetReps,
-                targetWeightKg = targetWeightKg,
-                restSeconds = restSeconds,
-            )
-            showPicker.value = false
-            searchQuery.value = ""
+            try {
+                container.routineRepository.addExercise(
+                    routineId = id,
+                    exercise = exercise,
+                    targetSets = targetSets,
+                    targetReps = targetReps,
+                    targetWeightKg = targetWeightKg,
+                    restSeconds = restSeconds,
+                )
+                showPicker.value = false
+                searchQuery.value = ""
+                error.value = null
+            } catch (_: Exception) {
+                error.value = "Could not add that exercise. Try again."
+            }
         }
     }
 
@@ -160,8 +202,12 @@ class RoutineEditorViewModel(
                 error.value = "Exercise name is required."
                 return@launch
             }
-            val created = container.exerciseRepository.createCustom(customName, muscleGroup)
-            addExercise(created, targetSets, targetReps, targetWeightKg, restSeconds)
+            try {
+                val created = container.exerciseRepository.createCustom(customName, muscleGroup)
+                addExercise(created, targetSets, targetReps, targetWeightKg, restSeconds)
+            } catch (_: Exception) {
+                error.value = "Could not create that exercise. Try again."
+            }
         }
     }
 
@@ -172,30 +218,56 @@ class RoutineEditorViewModel(
         targetWeightKg: Double?,
         restSeconds: Int,
     ) {
-        val id = routineId.value ?: return
+        val id = routineId.value
+        if (id == null) {
+            error.value = "Routine is still loading. Try again."
+            return
+        }
         viewModelScope.launch {
-            container.routineRepository.updateExercise(
-                itemId = itemId,
-                routineId = id,
-                targetSets = targetSets,
-                targetReps = targetReps,
-                targetWeightKg = targetWeightKg,
-                restSeconds = restSeconds,
-            )
+            if (targetSets < 1 || targetReps < 1) {
+                error.value = "Sets and reps must be at least 1."
+                return@launch
+            }
+            try {
+                container.routineRepository.updateExercise(
+                    itemId = itemId,
+                    routineId = id,
+                    targetSets = targetSets,
+                    targetReps = targetReps,
+                    targetWeightKg = targetWeightKg,
+                    restSeconds = restSeconds,
+                )
+                error.value = null
+            } catch (_: Exception) {
+                error.value = "Could not update those targets. Try again."
+            }
         }
     }
 
     fun removeExercise(itemId: String) {
-        val id = routineId.value ?: return
+        val id = routineId.value
+        if (id == null) {
+            error.value = "Routine is still loading. Try again."
+            return
+        }
         viewModelScope.launch {
-            container.routineRepository.removeExercise(itemId, id)
+            try {
+                container.routineRepository.removeExercise(itemId, id)
+                error.value = null
+            } catch (_: Exception) {
+                error.value = "Could not remove that exercise. Try again."
+            }
         }
     }
 
     fun moveExercise(itemId: String, direction: Int) {
         val id = routineId.value ?: return
         viewModelScope.launch {
-            container.routineRepository.moveExercise(id, itemId, direction)
+            try {
+                container.routineRepository.moveExercise(id, itemId, direction)
+            } catch (_: Exception) {
+                error.value = "Could not reorder that exercise. Try again."
+            }
         }
     }
 

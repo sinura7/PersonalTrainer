@@ -66,8 +66,12 @@ fun ExercisePickerSheet(
             }
             if (results.isEmpty()) {
                 EmptyState(
-                    title = "No matches",
-                    body = "Create a custom exercise with the button above.",
+                    title = if (query.isBlank()) "Search the library" else "No matches",
+                    body = if (query.isBlank()) {
+                        "Type a lift name to search, or enter a new name and create it."
+                    } else {
+                        "No library match. Use Create above to add this as a custom lift."
+                    },
                 )
             } else {
                 LazyColumn(

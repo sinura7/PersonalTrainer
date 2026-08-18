@@ -39,7 +39,7 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text("Weight units") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
@@ -55,9 +55,13 @@ fun SettingsScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("Display unit", style = MaterialTheme.typography.titleLarge)
+            Text("Weight units", style = MaterialTheme.typography.headlineSmall)
             Text(
-                "Workouts are stored in kilograms. This only changes how weights appear and how you enter them.",
+                "Currently showing ${selectedUnit.displayName}. Numbers on Home, workouts, and history all use this unit.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                "Workouts stay stored in kilograms. This only changes how weights appear and how you enter them.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Column(modifier = Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(4.dp)) {

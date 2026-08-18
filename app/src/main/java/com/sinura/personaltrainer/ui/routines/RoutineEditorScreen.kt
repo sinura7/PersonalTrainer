@@ -57,7 +57,7 @@ fun RoutineEditorScreen(
             TopAppBar(
                 title = { Text("Edit routine") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = { viewModel.leave(onBack) }) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -91,6 +91,12 @@ fun RoutineEditorScreen(
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text("Routine name") },
                     singleLine = true,
+                    isError = state.error?.contains("name", ignoreCase = true) == true,
+                    supportingText = {
+                        if (state.error?.contains("name", ignoreCase = true) == true) {
+                            Text(state.error.orEmpty())
+                        }
+                    },
                 )
             }
             item {
@@ -106,7 +112,9 @@ fun RoutineEditorScreen(
                 if (state.saved) {
                     Text("Saved.", color = MaterialTheme.colorScheme.primary)
                 }
-                state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                state.error
+                    ?.takeUnless { it.contains("name", ignoreCase = true) }
+                    ?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
             item {
                 PrimaryGymButton(
@@ -118,8 +126,10 @@ fun RoutineEditorScreen(
             if (exercises.isEmpty()) {
                 item {
                     EmptyState(
-                        title = "No exercises",
-                        body = "Search the library or create a custom lift, then set target sets, reps, and weight.",
+                        title = "Add your first lift",
+                        body = "A routine needs at least one exercise before you can save it or start it from Home.",
+                        actionLabel = "Add exercise",
+                        onAction = { viewModel.setPickerVisible(true) },
                     )
                 }
             } else {

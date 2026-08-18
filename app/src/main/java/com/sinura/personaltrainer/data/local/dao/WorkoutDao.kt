@@ -68,6 +68,15 @@ interface WorkoutDao {
     @Query(
         """
         SELECT * FROM set_logs
+        WHERE sessionId = :sessionId AND exerciseId = :exerciseId
+        ORDER BY setNumber ASC, completedAt ASC
+        """,
+    )
+    suspend fun setsForExercise(sessionId: String, exerciseId: String): List<SetLogEntity>
+
+    @Query(
+        """
+        SELECT * FROM set_logs
         WHERE exerciseId = :exerciseId
           AND isWarmup = 0
           AND sessionId IN (SELECT id FROM workout_sessions WHERE finishedAt IS NOT NULL AND id != :excludeSessionId)

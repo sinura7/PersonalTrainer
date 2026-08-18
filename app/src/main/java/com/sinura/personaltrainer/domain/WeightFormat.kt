@@ -34,18 +34,20 @@ enum class WeightUnit(
 object WeightConverter {
     const val LBS_PER_KG = 2.20462
 
-    fun kgToLbs(kg: Double): Double = kg * LBS_PER_KG
+    fun sanitizeKg(kg: Double): Double = if (kg.isFinite()) kg.coerceAtLeast(0.0) else 0.0
 
-    fun lbsToKg(lbs: Double): Double = lbs / LBS_PER_KG
+    fun kgToLbs(kg: Double): Double = sanitizeKg(kg) * LBS_PER_KG
+
+    fun lbsToKg(lbs: Double): Double = sanitizeKg(lbs) / LBS_PER_KG
 
     fun toDisplayValue(kg: Double, unit: WeightUnit): Double = when (unit) {
-        WeightUnit.KG -> roundToTenth(kg)
+        WeightUnit.KG -> roundToTenth(sanitizeKg(kg))
         WeightUnit.LBS -> roundToHalf(kgToLbs(kg))
     }
 
     fun toKg(displayValue: Double, unit: WeightUnit): Double = when (unit) {
-        WeightUnit.KG -> roundToTenth(displayValue.coerceAtLeast(0.0))
-        WeightUnit.LBS -> roundToTenth(lbsToKg(displayValue.coerceAtLeast(0.0)))
+        WeightUnit.KG -> roundToTenth(sanitizeKg(displayValue))
+        WeightUnit.LBS -> roundToTenth(lbsToKg(displayValue))
     }
 
     fun incrementKg(currentKg: Double, unit: WeightUnit, direction: Int): Double {

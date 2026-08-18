@@ -31,6 +31,8 @@ fun EmptyState(
     title: String,
     body: String,
     modifier: Modifier = Modifier,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
 ) {
     Column(
         modifier = modifier
@@ -44,6 +46,9 @@ fun EmptyState(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        if (actionLabel != null && onAction != null) {
+            PrimaryGymButton(text = actionLabel, onClick = onAction)
+        }
     }
 }
 

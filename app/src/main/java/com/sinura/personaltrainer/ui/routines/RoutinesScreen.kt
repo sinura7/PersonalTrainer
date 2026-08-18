@@ -69,11 +69,21 @@ fun RoutinesScreen(
                 }
             }
             state.routines.isEmpty() -> {
-                EmptyState(
-                    title = "No routines yet",
-                    body = "Create a program with your lifts, target sets, reps, and optional weight targets.",
-                    modifier = Modifier.padding(padding),
-                )
+                Column(modifier = Modifier.padding(padding)) {
+                    state.error?.let { message ->
+                        Text(
+                            message,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                        )
+                    }
+                    EmptyState(
+                        title = "No routines yet",
+                        body = "Build a program with your lifts and targets, then start it from Home when you get to the gym.",
+                        actionLabel = "Create a routine",
+                        onAction = onCreateRoutine,
+                    )
+                }
             }
             else -> {
                 LazyColumn(
@@ -81,6 +91,9 @@ fun RoutinesScreen(
                     contentPadding = PaddingValues(20.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    state.error?.let { message ->
+                        item { Text(message, color = MaterialTheme.colorScheme.error) }
+                    }
                     items(state.routines, key = { it.id }) { routine ->
                         Card(
                             onClick = { onOpenRoutine(routine.id) },
@@ -119,10 +132,11 @@ fun RoutinesScreen(
     }
 
     pendingDeleteId?.let { id ->
+        val pendingName = state.routines.firstOrNull { it.id == id }?.name ?: "this routine"
         AlertDialog(
             onDismissRequest = { pendingDeleteId = null },
-            title = { Text("Delete routine?") },
-            text = { Text("This removes the routine. Past workout history stays saved.") },
+            title = { Text("Delete $pendingName?") },
+            text = { Text("This cannot be undone. Past workout history stays saved.") },
             confirmButton = {
                 TextButton(
                     onClick = {

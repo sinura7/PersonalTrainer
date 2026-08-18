@@ -144,22 +144,26 @@ fun ActiveWorkoutScreen(
                     if (selected == null) {
                         item {
                             EmptyState(
-                                title = "Add a lift",
-                                body = "Start a free workout by adding the first exercise.",
+                                title = "No lifts yet",
+                                body = "Add the first exercise, then log weight and reps. You can keep adding lifts as you move around the gym.",
+                                actionLabel = "Add a lift",
+                                onAction = { viewModel.setPickerVisible(true) },
                             )
                         }
                     } else {
                         val workingLogged = session.setsFor(selected.exercise.id).count { !it.isWarmup }
                         val nextWorkingSet = workingLogged + 1
                         item {
+                            val targetSets = selected.targetSets.coerceAtLeast(1)
+                            val targetReps = selected.targetReps.coerceAtLeast(1)
                             Text(selected.exercise.name, style = MaterialTheme.typography.headlineMedium)
                             Text(
-                                "Set $nextWorkingSet of ${selected.targetSets}",
+                                "Set $nextWorkingSet of $targetSets",
                                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                             )
                             Text(
-                                "Target ${selected.targetSets} × ${selected.targetReps}" +
-                                    (selected.targetWeightKg?.let { " @ ${it.toWeightLabel(unit)}" } ?: ""),
+                                "Target $targetSets × $targetReps" +
+                                    (selected.targetWeightKg?.takeIf { it > 0.0 }?.let { " @ ${it.toWeightLabel(unit)}" } ?: ""),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
@@ -244,7 +248,6 @@ fun ActiveWorkoutScreen(
                             if (state.editingSetId != null) {
                                 TextButton(onClick = viewModel::cancelEdit) { Text("Cancel edit") }
                             }
-                            state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                         }
                         lastLoggedSet?.let { set ->
                             item {
@@ -264,7 +267,7 @@ fun ActiveWorkoutScreen(
                             item {
                                 EmptyState(
                                     title = "No sets yet",
-                                    body = "Log weight and reps. The rest timer starts after working sets.",
+                                    body = "Set the weight and reps above, then tap Log set. Rest starts after working sets.",
                                 )
                             }
                         } else {
@@ -289,8 +292,15 @@ fun ActiveWorkoutScreen(
                     item {
                         PrimaryGymButton(
                             text = "Finish workout",
-                            onClick = { confirmFinish = true },
+                            onClick = {
+                                if (session.sets.isEmpty()) {
+                                    viewModel.finishWorkout(onFinished)
+                                } else {
+                                    confirmFinish = true
+                                }
+                            },
                         )
+                        state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                     }
                 }
             }

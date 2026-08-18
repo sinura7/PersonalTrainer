@@ -55,8 +55,8 @@ fun HistoryScreen(
             }
             state.sessions.isEmpty() -> {
                 EmptyState(
-                    title = "No completed workouts",
-                    body = "Finished sessions are stored on this phone and survive restarts.",
+                    title = "No workouts yet",
+                    body = "Finish a session from Home and it will show up here, grouped by date with your logged sets.",
                     modifier = Modifier.padding(padding),
                 )
             }

@@ -42,19 +42,33 @@ class StartWorkoutViewModel(application: Application) : AppViewModel(application
     fun startRoutine(routineId: String, onStarted: (String) -> Unit) {
         viewModelScope.launch {
             val routine = container.routineRepository.getById(routineId)
-            if (routine == null || routine.exercises.isEmpty()) {
+            if (routine == null) {
+                error.value = "That routine is no longer available."
+                return@launch
+            }
+            if (routine.exercises.isEmpty()) {
                 error.value = "Add at least one exercise before starting this routine."
                 return@launch
             }
-            val session = container.workoutRepository.startRoutine(routine)
-            onStarted(session.id)
+            try {
+                val session = container.workoutRepository.startRoutine(routine)
+                error.value = null
+                onStarted(session.id)
+            } catch (_: Exception) {
+                error.value = "Could not start that routine. Try again."
+            }
         }
     }
 
     fun startFree(onStarted: (String) -> Unit) {
         viewModelScope.launch {
-            val session = container.workoutRepository.startFreeWorkout()
-            onStarted(session.id)
+            try {
+                val session = container.workoutRepository.startFreeWorkout()
+                error.value = null
+                onStarted(session.id)
+            } catch (_: Exception) {
+                error.value = "Could not start a free workout. Try again."
+            }
         }
     }
 }

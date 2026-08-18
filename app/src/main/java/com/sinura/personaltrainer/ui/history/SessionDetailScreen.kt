@@ -92,6 +92,14 @@ fun SessionDetailScreen(
                             Text(session.notes)
                         }
                     }
+                    if (exerciseCards.isEmpty() && session.sets.isEmpty()) {
+                        item {
+                            EmptyState(
+                                title = "No sets in this session",
+                                body = "Nothing was logged for this workout. Future sessions will list each lift and its sets here.",
+                            )
+                        }
+                    }
                     items(exerciseCards) { (exerciseId, exerciseName) ->
                         val sets = session.setsFor(exerciseId)
                         val volume = sets.filterNot { it.isWarmup }.sumOf { it.weightKg * it.reps }

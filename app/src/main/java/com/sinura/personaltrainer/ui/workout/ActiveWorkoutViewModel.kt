@@ -167,10 +167,12 @@ class ActiveWorkoutViewModel(
     }
 
     fun adjustWeight(deltaKg: Double) {
-        draft.value = draft.value.copy(weightKg = (draft.value.weightKg + deltaKg).coerceAtLeast(0.0))
+        val next = if (deltaKg.isFinite()) draft.value.weightKg + deltaKg else draft.value.weightKg
+        draft.value = draft.value.copy(weightKg = next.coerceAtLeast(0.0))
     }
 
     fun setWeight(weightKg: Double) {
+        if (!weightKg.isFinite()) return
         draft.value = draft.value.copy(weightKg = weightKg.coerceAtLeast(0.0))
     }
 
@@ -201,10 +203,15 @@ class ActiveWorkoutViewModel(
 
     fun addExercise(exercise: Exercise) {
         viewModelScope.launch {
-            container.workoutRepository.addExerciseToSession(sessionId, exercise)
-            selectedExerciseId.value = exercise.id
-            lastPrefillExerciseId = null
-            showPicker.value = false
+            try {
+                container.workoutRepository.addExerciseToSession(sessionId, exercise)
+                selectedExerciseId.value = exercise.id
+                lastPrefillExerciseId = null
+                showPicker.value = false
+                error.value = null
+            } catch (_: Exception) {
+                error.value = "Could not add that lift. Try again."
+            }
         }
     }
 
@@ -214,44 +221,60 @@ class ActiveWorkoutViewModel(
                 error.value = "Exercise name is required."
                 return@launch
             }
-            val created = container.exerciseRepository.createCustom(name, muscleGroup)
-            addExercise(created)
+            try {
+                val created = container.exerciseRepository.createCustom(name, muscleGroup)
+                addExercise(created)
+            } catch (_: Exception) {
+                error.value = "Could not create that exercise. Try again."
+            }
         }
     }
 
     fun logSet() {
-        val exerciseId = selectedExerciseId.value ?: return
+        val exerciseId = selectedExerciseId.value
+        if (exerciseId == null) {
+            error.value = "Add a lift before logging a set."
+            return
+        }
         val current = draft.value
-        if (current.reps <= 0 && current.weightKg <= 0.0) {
-            error.value = "Enter weight and reps before logging a set."
+        if (!current.weightKg.isFinite() || current.weightKg < 0.0) {
+            error.value = "Weight must be zero or greater."
+            return
+        }
+        if (current.reps < 1) {
+            error.value = "Reps must be at least 1."
             return
         }
         viewModelScope.launch {
-            val editingId = editingSetId.value
-            if (editingId != null) {
-                container.workoutRepository.updateSet(
-                    setId = editingId,
-                    weightKg = current.weightKg,
-                    reps = current.reps,
-                    rpe = current.rpe,
-                    isWarmup = current.isWarmup,
-                )
-                editingSetId.value = null
-            } else {
-                container.workoutRepository.logSet(
-                    sessionId = sessionId,
-                    exerciseId = exerciseId,
-                    weightKg = current.weightKg,
-                    reps = current.reps,
-                    rpe = current.rpe,
-                    isWarmup = current.isWarmup,
-                )
-                if (!current.isWarmup) {
-                    startRest(restTotal.value)
+            try {
+                val editingId = editingSetId.value
+                if (editingId != null) {
+                    container.workoutRepository.updateSet(
+                        setId = editingId,
+                        weightKg = current.weightKg,
+                        reps = current.reps,
+                        rpe = current.rpe,
+                        isWarmup = current.isWarmup,
+                    )
+                    editingSetId.value = null
+                } else {
+                    container.workoutRepository.logSet(
+                        sessionId = sessionId,
+                        exerciseId = exerciseId,
+                        weightKg = current.weightKg,
+                        reps = current.reps,
+                        rpe = current.rpe,
+                        isWarmup = current.isWarmup,
+                    )
+                    if (!current.isWarmup) {
+                        startRest(restTotal.value)
+                    }
                 }
+                error.value = null
+                draft.value = current.copy(isWarmup = false, rpe = null)
+            } catch (_: Exception) {
+                error.value = "Could not save that set. Try again."
             }
-            error.value = null
-            draft.value = current.copy(isWarmup = false, rpe = null)
         }
     }
 
@@ -274,15 +297,32 @@ class ActiveWorkoutViewModel(
 
     fun deleteSet(setId: String) {
         viewModelScope.launch {
+            val session = uiState.value.session
+            val deleted = session?.sets?.firstOrNull { it.id == setId }
+            val wasLatest = deleted != null &&
+                session.sets.maxByOrNull { it.completedAt }?.id == setId
             if (editingSetId.value == setId) {
                 editingSetId.value = null
             }
-            container.workoutRepository.deleteSet(setId)
+            try {
+                container.workoutRepository.deleteSet(setId)
+                if (wasLatest) {
+                    stopRest()
+                }
+                error.value = null
+            } catch (_: Exception) {
+                error.value = "Could not delete that set. Try again."
+            }
         }
     }
 
     fun skipRest() {
+        stopRest()
+    }
+
+    private fun stopRest() {
         restJob?.cancel()
+        restJob = null
         restRemaining.value = 0
     }
 
@@ -326,17 +366,32 @@ class ActiveWorkoutViewModel(
                 error.value = "Log at least one set before finishing."
                 return@launch
             }
-            container.workoutRepository.finishSession(sessionId, notes.value)
-            finished.value = true
-            onFinished()
+            try {
+                stopRest()
+                container.workoutRepository.finishSession(sessionId, notes.value)
+                finished.value = true
+                onFinished()
+            } catch (_: Exception) {
+                error.value = "Could not finish this workout. Try again."
+            }
         }
     }
 
     fun discardWorkout(onDiscarded: () -> Unit) {
         viewModelScope.launch {
-            container.workoutRepository.discardSession(sessionId)
-            onDiscarded()
+            stopRest()
+            try {
+                container.workoutRepository.discardSession(sessionId)
+                onDiscarded()
+            } catch (_: Exception) {
+                error.value = "Could not discard this workout. Try again."
+            }
         }
+    }
+
+    override fun onCleared() {
+        stopRest()
+        super.onCleared()
     }
 
     private data class WorkoutCore(

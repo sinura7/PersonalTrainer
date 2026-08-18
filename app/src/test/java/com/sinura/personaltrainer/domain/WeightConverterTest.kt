@@ -65,4 +65,13 @@ class WeightConverterTest {
         assertEquals(WeightUnit.KG, WeightUnit.fromStorage("kg"))
         assertEquals(WeightUnit.LBS, WeightUnit.fromStorage("lbs"))
     }
+
+    @Test
+    fun rejectsNegativeAndNonFiniteWeights() {
+        assertEquals(0.0, WeightConverter.sanitizeKg(Double.NaN), 0.0)
+        assertEquals(0.0, WeightConverter.sanitizeKg(Double.NEGATIVE_INFINITY), 0.0)
+        assertEquals(0.0, WeightConverter.sanitizeKg(-12.5), 0.0)
+        assertEquals("0 kg", Double.NaN.toWeightLabel(WeightUnit.KG))
+        assertEquals(0.0, WeightConverter.toKg(-10.0, WeightUnit.LBS), 0.001)
+    }
 }

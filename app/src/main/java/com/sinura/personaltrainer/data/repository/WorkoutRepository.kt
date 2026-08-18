@@ -123,13 +123,14 @@ class WorkoutRepository(
     ) {
         val current = workoutDao.getSession(sessionId) ?: return
         val nextNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
+        val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else 0.0
         workoutDao.insertSet(
             SetLogEntity(
                 id = UUID.randomUUID().toString(),
                 sessionId = sessionId,
                 exerciseId = exerciseId,
                 setNumber = nextNumber,
-                weightKg = weightKg.coerceAtLeast(0.0),
+                weightKg = safeWeight,
                 reps = reps.coerceAtLeast(0),
                 rpe = rpe,
                 isWarmup = isWarmup,
@@ -146,9 +147,10 @@ class WorkoutRepository(
         isWarmup: Boolean,
     ) {
         val current = workoutDao.getSet(setId) ?: return
+        val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else current.weightKg
         workoutDao.updateSet(
             current.copy(
-                weightKg = weightKg.coerceAtLeast(0.0),
+                weightKg = safeWeight,
                 reps = reps.coerceAtLeast(0),
                 rpe = rpe,
                 isWarmup = isWarmup,
@@ -157,7 +159,15 @@ class WorkoutRepository(
     }
 
     suspend fun deleteSet(setId: String) {
+        val deleted = workoutDao.getSet(setId) ?: return
         workoutDao.deleteSet(setId)
+        workoutDao.setsForExercise(deleted.sessionId, deleted.exerciseId)
+            .forEachIndexed { index, set ->
+                val nextNumber = index + 1
+                if (set.setNumber != nextNumber) {
+                    workoutDao.updateSet(set.copy(setNumber = nextNumber))
+                }
+            }
     }
 
     suspend fun finishSession(sessionId: String, notes: String) {

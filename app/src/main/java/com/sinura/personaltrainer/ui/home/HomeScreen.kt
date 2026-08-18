@@ -4,9 +4,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -14,7 +16,6 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -73,12 +74,14 @@ fun HomeScreen(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Personal Trainer", style = MaterialTheme.typography.headlineLarge)
                     Text(
-                        "Local strength tracker",
+                        "Weights shown in ${unit.suffix}",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                IconButton(onClick = onOpenSettings) {
-                    Icon(Icons.Outlined.Settings, contentDescription = "Settings")
+                TextButton(onClick = onOpenSettings) {
+                    Icon(Icons.Outlined.Settings, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Units · ${unit.suffix}")
                 }
             }
         }
@@ -102,8 +105,8 @@ fun HomeScreen(
         if (state.readyToProgress.isEmpty()) {
             item {
                 EmptyState(
-                    title = "No lifts queued",
-                    body = "Finish a working set at target reps and the next suggested load shows up here.",
+                    title = "Nothing ready to progress",
+                    body = "Hit every target rep on a working set. The next suggested weight for that lift shows up here.",
                 )
             }
         } else {
@@ -130,8 +133,10 @@ fun HomeScreen(
         if (state.recentSessions.isEmpty()) {
             item {
                 EmptyState(
-                    title = "No history yet",
-                    body = "Complete a workout to start building a training log.",
+                    title = "No recent workouts",
+                    body = "Start a workout, log at least one set, then finish it. Completed sessions appear here and in History.",
+                    actionLabel = if (state.inProgress == null) "Start workout" else null,
+                    onAction = if (state.inProgress == null) onStartWorkout else null,
                 )
             }
         } else {

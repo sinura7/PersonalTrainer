@@ -30,12 +30,17 @@ class HomeViewModel(application: Application) : AppViewModel(application) {
     ) { inProgress, routines, history ->
         Triple(inProgress, routines, history)
     }.mapLatest { (inProgress, routines, history) ->
+        val hints = try {
+            container.workoutRepository.readyForProgression(routines)
+        } catch (_: Exception) {
+            emptyList()
+        }
         HomeUiState(
             isLoading = false,
             inProgress = inProgress,
             routines = routines,
             recentSessions = history.take(3),
-            readyToProgress = container.workoutRepository.readyForProgression(routines),
+            readyToProgress = hints,
         )
     }.stateIn(
         scope = viewModelScope,
