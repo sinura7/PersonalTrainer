@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -33,6 +34,9 @@ interface ExerciseDao {
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(exercise: ExerciseEntity)
+
+    @Update
+    suspend fun update(exercise: ExerciseEntity)
 
     @Query("DELETE FROM exercises WHERE id = :id AND isCustom = 1")
     suspend fun deleteCustom(id: String)

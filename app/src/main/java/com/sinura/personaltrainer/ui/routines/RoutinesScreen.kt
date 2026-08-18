@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -42,6 +43,7 @@ import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 fun RoutinesScreen(
     onCreateRoutine: () -> Unit,
     onOpenRoutine: (String) -> Unit,
+    onOpenLibrary: () -> Unit,
     viewModel: RoutinesViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -49,7 +51,16 @@ fun RoutinesScreen(
     var pendingDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("My routines") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("My routines") },
+                actions = {
+                    IconButton(onClick = onOpenLibrary) {
+                        Icon(Icons.Outlined.MenuBook, contentDescription = "Exercise library")
+                    }
+                },
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = onCreateRoutine) {
                 Icon(Icons.Outlined.Add, contentDescription = "Create routine")

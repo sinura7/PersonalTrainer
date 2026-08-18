@@ -108,4 +108,10 @@ interface WorkoutDao {
         """,
     )
     suspend fun lastTargetReps(exerciseId: String): Int?
+
+    @Query("SELECT COUNT(*) FROM set_logs WHERE exerciseId = :exerciseId")
+    suspend fun countSetsForExercise(exerciseId: String): Int
+
+    @Query("SELECT COUNT(*) FROM session_exercises WHERE exerciseId = :exerciseId")
+    suspend fun countSessionExercisesFor(exerciseId: String): Int
 }

@@ -45,4 +45,7 @@ interface RoutineDao {
 
     @Query("UPDATE routine_exercises SET sort_order = :sortOrder WHERE id = :id")
     suspend fun updateSortOrder(id: String, sortOrder: Int)
+
+    @Query("SELECT COUNT(*) FROM routine_exercises WHERE exerciseId = :exerciseId")
+    suspend fun countForExercise(exerciseId: String): Int
 }
