@@ -1,9 +1,27 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
 }
+
+// Bump both values for every GitHub Release.
+// versionCode must increase so Android and Obtainium treat the APK as an update.
+val appVersionCode = 1
+val appVersionName = "1.0.0"
+
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties()
+val releaseStoreFile = if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
+    val storePath = keystoreProperties.getProperty("storeFile").orEmpty()
+    if (storePath.isNotBlank()) rootProject.file(storePath) else null
+} else {
+    null
+}
+val releaseSigningReady = releaseStoreFile != null && releaseStoreFile.exists()
 
 android {
     namespace = "com.sinura.personaltrainer"
@@ -13,17 +31,36 @@ android {
         applicationId = "com.sinura.personaltrainer"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
+        setProperty("archivesBaseName", "PersonalTrainer-$appVersionName")
+    }
+
+    signingConfigs {
+        if (releaseSigningReady) {
+            create("release") {
+                storeFile = releaseStoreFile
+                storePassword = keystoreProperties.getProperty("storePassword").orEmpty()
+                keyAlias = keystoreProperties.getProperty("keyAlias").orEmpty()
+                keyPassword = keystoreProperties.getProperty("keyPassword").orEmpty()
+            }
+        }
     }
 
     buildTypes {
+        debug {
+            // Debug signing stays on the default debug keystore.
+        }
         release {
             isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            if (releaseSigningReady) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
@@ -38,6 +75,23 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+}
+
+// Copy the release APK to PersonalTrainer-<version>.apk for GitHub / Obtainium.
+// No ABI or density splits — this stays a single standard APK.
+tasks.matching { it.name == "assembleRelease" }.configureEach {
+    doLast {
+        val apkDir = layout.buildDirectory.dir("outputs/apk/release").get().asFile
+        val produced = apkDir.listFiles()
+            ?.filter { it.isFile && it.extension == "apk" && "unsigned" !in it.name }
+            ?.maxByOrNull { it.lastModified() }
+            ?: return@doLast
+        val named = apkDir.resolve("PersonalTrainer-$appVersionName.apk")
+        if (produced.canonicalPath != named.canonicalPath) {
+            produced.copyTo(named, overwrite = true)
+        }
     }
 }
 

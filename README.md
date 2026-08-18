@@ -1,6 +1,8 @@
 # Personal Trainer
 
-Local-first strength training tracker for Android. Weights are kilograms only. All routines, sets, and history persist in a Room database on the device.
+Local-first strength tracker for Android. Workouts stay on the device (Room). Weights are stored in kilograms and can be shown as kg or lbs.
+
+The Play Store is not required. Install the signed APK yourself or let Obtainium watch GitHub Releases.
 
 ## Open in Android Studio
 
@@ -8,31 +10,45 @@ Local-first strength training tracker for Android. Weights are kilograms only. A
    ```bash
    git clone https://github.com/sinura7/PersonalTrainer.git
    ```
-2. In Android Studio choose **File → Open** and select the folder that contains `settings.gradle.kts`.
+2. **File → Open** the folder that contains `settings.gradle.kts`.
 3. Trust the project and wait for Gradle sync.
-4. Run on an API 26+ emulator or device.
+4. Run on an API 26+ emulator or phone.
+
+Debug builds use the default debug keystore. Release signing, OAuth, and updates are in [SETUP.md](SETUP.md).
 
 ## What it does
 
-- **Home** — start or resume a workout, jump to routines/history, see lifts ready for +2.5 kg
-- **Routines** — create, edit, reorder, and delete your own programs
-- **Logging** — start a routine or a free workout, log weight (kg) + reps, optional RPE and warm-up
-- **Rest timer** — starts after working sets (default 90s, or the routine rest target)
+- **Home** — start or resume a workout, jump to routines / library / history, see lifts ready to progress
+- **Routines** — create, edit, reorder, and delete programs
+- **Library** — search the lift list, filter by muscle, add custom exercises
+- **Logging** — weight + reps, optional RPE and warm-up, rest timer, suggested next weight
 - **Progression** — last working set vs target reps:
   - hit target → suggest **+2.5 kg**
   - 1–2 reps short → keep the same weight
   - 3+ reps short → suggest **−2.5 kg**
-- **History** — finished sessions with every set grouped by exercise and working volume
+- **History** — finished sessions with sets grouped by exercise
+- **Settings** — kg/lbs display, optional Google Drive backup/restore, current app version
 
-The first launch seeds a lift library. You can search it or create custom exercises when building a routine or mid-workout.
+Training works offline. Drive is only used when you back up or restore.
+
+## Version and updates
+
+Bump `appVersionCode` and `appVersionName` at the top of `app/build.gradle.kts`, then follow [SETUP.md](SETUP.md):
+
+1. Bump version
+2. Build the signed release APK (`PersonalTrainer-<version>.apk`)
+3. Create a GitHub Release and attach that APK
+
+Obtainium can install and update from those releases. One standard APK per release — no Play Store, no app bundle, no split APKs.
 
 ## Architecture
 
 ```
-data/local     Room entities, DAOs, TrainerDatabase
+data/local       Room entities, DAOs, TrainerDatabase
 data/repository
-domain         models, ProgressionCalculator
-ui/home, ui/routines, ui/workout, ui/history
+data/backup      Drive JSON backup / restore
+domain           models, units, ProgressionCalculator
+ui/home, ui/routines, ui/workout, ui/history, ui/library, ui/settings
 ```
 
 ViewModels talk to repositories. No Hilt — `PersonalTrainerApp` holds an `AppContainer`.

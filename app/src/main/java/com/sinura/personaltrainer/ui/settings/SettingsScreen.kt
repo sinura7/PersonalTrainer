@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.BuildConfig
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
@@ -103,6 +104,7 @@ fun SettingsScreen(
                 onRefresh = { viewModel.refreshBackups(activity) },
                 onRestore = viewModel::requestRestore,
             )
+            AboutSection()
         }
     }
 
@@ -262,6 +264,21 @@ private fun BackupRestoreSection(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AboutSection() {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("About", style = MaterialTheme.typography.headlineSmall)
+        Text(
+            "Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            "Install or update the APK yourself, or let Obtainium watch GitHub Releases. The Play Store is not required.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

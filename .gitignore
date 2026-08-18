@@ -16,6 +16,9 @@
 .navigation
 /output.json
 google-services.json
+
+# Local release signing — never commit secrets or the keystore itself
 keystore.properties
 *.jks
 *.keystore
+/release/
