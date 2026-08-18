@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.PersonalTrainer" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
