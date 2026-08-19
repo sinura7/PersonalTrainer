@@ -1,5 +1,12 @@
 package com.sinura.personaltrainer.domain
 
+/**
+ * Turns one reference set into a suggestion for next time.
+ *
+ * The reference set is always the TOP set of the last finished session, chosen by
+ * [ProgressionBasis] — never the last set logged. Everything here assumes that: feed it a
+ * back-off set and it will happily suggest progressing from the lighter weight.
+ */
 object ProgressionCalculator {
     const val INCREMENT_KG = 2.5
 

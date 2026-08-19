@@ -10,10 +10,12 @@ import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toSummary
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ProgressionAction
+import com.sinura.personaltrainer.domain.ProgressionBasis
 import com.sinura.personaltrainer.domain.ProgressionCalculator
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SetLogRules
+import com.sinura.personaltrainer.domain.WorkingSetCandidate
 import com.sinura.personaltrainer.domain.WorkoutSession
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -225,21 +227,27 @@ class WorkoutRepository(
         workoutDao.deleteSession(sessionId)
     }
 
+    /**
+     * The progression hint for one exercise, judged on the TOP set of the last finished
+     * session containing it — see [ProgressionBasis] for the rule and the back-off-set bug it
+     * fixes. Every progression surface goes through here or [readyForProgression]; there is no
+     * other path to a suggested weight.
+     */
     suspend fun progressionFor(
         exerciseId: String,
         exerciseName: String,
         targetReps: Int,
         excludeSessionId: String,
     ): ProgressionHint? {
-        val last = workoutDao.lastWorkingSetExcluding(exerciseId, excludeSessionId) ?: return null
+        val topSet = topSetOfLastSession(exerciseId, excludeSessionId) ?: return null
         val resolvedTarget = targetReps.takeIf { it > 0 }
             ?: workoutDao.lastTargetReps(exerciseId)
-            ?: last.reps
+            ?: topSet.reps
         return ProgressionCalculator.hint(
             exerciseId = exerciseId,
             exerciseName = exerciseName,
-            lastWeightKg = last.weightKg,
-            lastWorkingReps = last.reps,
+            lastWeightKg = topSet.weightKg,
+            lastWorkingReps = topSet.reps,
             targetReps = resolvedTarget,
         )
     }
@@ -250,12 +258,12 @@ class WorkoutRepository(
         routines.forEach { routine ->
             routine.exercises.forEach { item ->
                 if (seen.add(item.exercise.id)) {
-                    val last = workoutDao.lastFinishedWorkingSet(item.exercise.id) ?: return@forEach
+                    val topSet = topSetOfLastSession(item.exercise.id) ?: return@forEach
                     val hint = ProgressionCalculator.hint(
                         exerciseId = item.exercise.id,
                         exerciseName = item.exercise.name,
-                        lastWeightKg = last.weightKg,
-                        lastWorkingReps = last.reps,
+                        lastWeightKg = topSet.weightKg,
+                        lastWorkingReps = topSet.reps,
                         targetReps = item.targetReps,
                     )
                     if (hint.action == ProgressionAction.INCREASE) {
@@ -265,5 +273,24 @@ class WorkoutRepository(
             }
         }
         return hints
+    }
+
+    /**
+     * Finds the last finished session containing [exerciseId], then applies the pure top-set
+     * rule to its working sets. Two small queries rather than one clever one: the selection
+     * stays in testable Kotlin instead of SQL nobody can unit-test on the JVM.
+     *
+     * @param excludeSessionId a session to skip (the one being logged right now); empty
+     * string excludes nothing.
+     */
+    private suspend fun topSetOfLastSession(
+        exerciseId: String,
+        excludeSessionId: String = "",
+    ): WorkingSetCandidate? {
+        val sessionId = workoutDao.lastFinishedSessionIdWithExercise(exerciseId, excludeSessionId)
+            ?: return null
+        val candidates = workoutDao.workingSetsForExerciseInSession(sessionId, exerciseId)
+            .map { WorkingSetCandidate(it.weightKg, it.reps, it.completedAt) }
+        return ProgressionBasis.topWorkingSet(candidates)
     }
 }

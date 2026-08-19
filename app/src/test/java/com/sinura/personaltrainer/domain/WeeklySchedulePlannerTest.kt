@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.DayOfWeek
@@ -222,6 +223,94 @@ class WeeklySchedulePlannerTest {
         recentSessions = sessions,
         nowMs = now,
         zone = zone,
+    )
+
+    // ---- recovery override (audit: the planner deleted the week's last lower day) ----
+
+    @Test
+    fun recoveryOverrideNeverDowngradesALowerDayOnAnUpperLowerSplit() {
+        // The audit's exact scenario. The recovery-upper signal only fires when the lower body
+        // is COLD, and a 4-day Upper/Lower week is [U, L, U, L] — so the old rule, which took
+        // the last slot and exempted only LEGS, converted the final LOWER day to "Recovery
+        // lean" precisely because legs were undertrained.
+        val plan = plan(
+            prefs = SchedulePreferences(trainingDaysPerWeek = 4, splitStyle = SplitStyle.UPPER_LOWER),
+            snapshot = hotChestQuietBack(),
+            recommendations = listOf(recoveryUpper()),
+        )
+        val kinds = plan.trainingDays.map { it.focusKind }
+        assertEquals(
+            "a lower day must survive the recovery override",
+            2,
+            kinds.count { it == SessionFocusKind.LOWER || it == SessionFocusKind.LEGS },
+        )
+        assertTrue("the recovery day should replace upper work", kinds.contains(SessionFocusKind.RECOVERY))
+    }
+
+    @Test
+    fun recoveryOverrideClaimsTheLastUpperSlot() {
+        val slot = WeeklySchedulePlanner.recoveryOverrideSlot(
+            listOf(
+                SessionFocusKind.UPPER,
+                SessionFocusKind.LOWER,
+                SessionFocusKind.UPPER,
+                SessionFocusKind.LOWER,
+            ),
+        )
+        assertEquals(2, slot)
+    }
+
+    @Test
+    fun recoveryOverrideTreatsLegsAndLowerAsTheSameFamily() {
+        // LEGS and LOWER are different enum constants but the same training region; guarding
+        // on the constant was the whole bug.
+        listOf(SessionFocusKind.LEGS, SessionFocusKind.LOWER).forEach { lower ->
+            val slot = WeeklySchedulePlanner.recoveryOverrideSlot(
+                listOf(SessionFocusKind.PUSH, SessionFocusKind.PULL, lower),
+            )
+            assertEquals("must not claim a $lower slot", 1, slot)
+        }
+    }
+
+    @Test
+    fun recoveryOverrideFallsBackToFullBodyAndOtherwiseDoesNothing() {
+        assertEquals(
+            1,
+            WeeklySchedulePlanner.recoveryOverrideSlot(
+                listOf(SessionFocusKind.FULL_BODY, SessionFocusKind.FULL_BODY, SessionFocusKind.LEGS),
+            ),
+        )
+        // An all-lower week has nothing to recover from: convert nothing rather than a leg day.
+        assertNull(
+            WeeklySchedulePlanner.recoveryOverrideSlot(
+                listOf(SessionFocusKind.LEGS, SessionFocusKind.LOWER),
+            ),
+        )
+        assertNull(WeeklySchedulePlanner.recoveryOverrideSlot(emptyList()))
+    }
+
+    @Test
+    fun aPplWeekStillGetsARecoveryDayOnUpperWork() {
+        val plan = plan(
+            prefs = SchedulePreferences(trainingDaysPerWeek = 6, splitStyle = SplitStyle.PUSH_PULL_LEGS),
+            snapshot = hotChestQuietBack(),
+            recommendations = listOf(recoveryUpper()),
+        )
+        val kinds = plan.trainingDays.map { it.focusKind }
+        assertTrue(kinds.contains(SessionFocusKind.RECOVERY))
+        assertTrue(
+            "legs days must be untouched",
+            kinds.count { it == SessionFocusKind.LEGS || it == SessionFocusKind.LOWER } >= 2,
+        )
+    }
+
+    private fun recoveryUpper() = TrainingRecommendation(
+        id = "recovery-upper",
+        title = "Upper-body load is very high",
+        reason = "test fixture",
+        priority = RecommendationPriority.HIGH,
+        action = RecommendationAction.OPEN_ROUTINES,
+        rankScore = 70,
     )
 
     private fun hotChestQuietBack(): BodyHeatSnapshot {

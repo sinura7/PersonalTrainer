@@ -279,7 +279,7 @@ private fun ProgressCard(
             color = MaterialTheme.colorScheme.primary,
         )
         Text(
-            "Last ${hint.lastWeightKg.toWeightLabel(unit)} × ${hint.lastReps}  ·  +${ProgressionCalculator.INCREMENT_KG.toWeightLabel(unit)}",
+            "Top set ${hint.lastWeightKg.toWeightLabel(unit)} × ${hint.lastReps}  ·  +${ProgressionCalculator.INCREMENT_KG.toWeightLabel(unit)}",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodyMedium,
         )

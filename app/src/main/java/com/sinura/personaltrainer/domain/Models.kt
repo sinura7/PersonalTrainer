@@ -92,6 +92,13 @@ data class WorkoutSession(
     }
 }
 
+/**
+ * A suggestion for the next time this exercise is trained.
+ *
+ * [lastWeightKg] and [lastReps] are the TOP set of the last finished session (see
+ * [ProgressionBasis]), not the last set logged — the UI shows them as the basis for the
+ * suggestion, so they must be the numbers the decision was actually made on.
+ */
 data class ProgressionHint(
     val exerciseId: String,
     val exerciseName: String,

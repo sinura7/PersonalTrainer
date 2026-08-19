@@ -74,29 +74,49 @@ interface WorkoutDao {
     )
     suspend fun setsForExercise(sessionId: String, exerciseId: String): List<SetLogEntity>
 
+    /**
+     * The id of the most recently finished session that contains a working set of this
+     * exercise, or null if there is none.
+     *
+     * Deliberately returns the SESSION, not a set: which set within it counts is a coaching
+     * decision that lives in [com.sinura.personaltrainer.domain.ProgressionBasis], where it is
+     * unit-testable. Pass an empty string for [excludeSessionId] to exclude nothing.
+     *
+     * Replaces the old lastWorkingSetExcluding / lastFinishedWorkingSet pair, which ordered by
+     * completedAt and so returned whatever set happened to be logged last — a back-off set
+     * after a top set. Those queries are gone rather than deprecated so the bug cannot be
+     * reintroduced by calling them.
+     */
     @Query(
         """
-        SELECT * FROM set_logs
-        WHERE exerciseId = :exerciseId
-          AND isWarmup = 0
-          AND sessionId IN (SELECT id FROM workout_sessions WHERE finishedAt IS NOT NULL AND id != :excludeSessionId)
-        ORDER BY completedAt DESC
+        SELECT ws.id FROM workout_sessions ws
+        INNER JOIN set_logs sl ON sl.sessionId = ws.id
+        WHERE sl.exerciseId = :exerciseId
+          AND sl.isWarmup = 0
+          AND ws.finishedAt IS NOT NULL
+          AND ws.id != :excludeSessionId
+        ORDER BY ws.finishedAt DESC
         LIMIT 1
         """,
     )
-    suspend fun lastWorkingSetExcluding(exerciseId: String, excludeSessionId: String): SetLogEntity?
+    suspend fun lastFinishedSessionIdWithExercise(
+        exerciseId: String,
+        excludeSessionId: String,
+    ): String?
 
+    /** Every non-warmup set of one exercise in one session, for top-set selection. */
     @Query(
         """
         SELECT * FROM set_logs
-        WHERE exerciseId = :exerciseId
+        WHERE sessionId = :sessionId
+          AND exerciseId = :exerciseId
           AND isWarmup = 0
-          AND sessionId IN (SELECT id FROM workout_sessions WHERE finishedAt IS NOT NULL)
-        ORDER BY completedAt DESC
-        LIMIT 1
         """,
     )
-    suspend fun lastFinishedWorkingSet(exerciseId: String): SetLogEntity?
+    suspend fun workingSetsForExerciseInSession(
+        sessionId: String,
+        exerciseId: String,
+    ): List<SetLogEntity>
 
     @Query(
         """

@@ -34,13 +34,15 @@ object WeeklySchedulePlanner {
         )
         val usedRoutineIds = linkedSetOf<String>()
         val recovery = recommendations.any { it.id == "recovery-upper" }
+        // Which slot (if any) the recovery signal should claim. See recoveryOverrideSlot.
+        val recoverySlot = if (recovery) recoveryOverrideSlot(kinds) else null
         val days = dates.mapIndexed { index, date ->
             val slot = trainIndices.indexOf(index)
             if (slot < 0) {
                 restDay(date)
             } else {
                 val rawKind = kinds.getOrElse(slot) { SessionFocusKind.FULL_BODY }
-                val kind = if (recovery && slot == kinds.lastIndex && rawKind != SessionFocusKind.LEGS) {
+                val kind = if (recoverySlot != null && slot == recoverySlot) {
                     SessionFocusKind.RECOVERY
                 } else {
                     rawKind
@@ -66,6 +68,31 @@ object WeeklySchedulePlanner {
             thinHistory = thinHistory,
             summary = summary(thinHistory, resolved, prefs, snapshot),
         )
+    }
+
+    /**
+     * Which training slot the "recovery-upper" signal converts to a recovery day, or null to
+     * convert nothing.
+     *
+     * The signal fires on UPPER overload — it requires three or more upper muscles at high
+     * heat AND a cold lower body — so it must claim an UPPER-family slot. The previous rule
+     * took the last slot outright and exempted only [SessionFocusKind.LEGS]; an Upper/Lower
+     * split emits [SessionFocusKind.LOWER], which is a different enum constant, so a 4-day
+     * U/L week [U, L, U, L] had its final LOWER day downgraded to "Recovery lean" precisely
+     * because lower-body volume was too low. The planner removed a leg day for being
+     * undertrained.
+     *
+     * Lower-family slots are now never eligible (both LEGS and LOWER share
+     * [MuscleRegion.LOWER], so the region is the guard rather than the constant). A full-body
+     * day is the fallback since it carries upper work too; if the week has neither, no day is
+     * converted.
+     */
+    internal fun recoveryOverrideSlot(kinds: List<SessionFocusKind>): Int? {
+        if (kinds.isEmpty()) return null
+        val lastUpper = kinds.indexOfLast { it.regionHint == MuscleRegion.UPPER }
+        if (lastUpper >= 0) return lastUpper
+        val lastFullBody = kinds.indexOfLast { it == SessionFocusKind.FULL_BODY }
+        return lastFullBody.takeIf { it >= 0 }
     }
 
     internal fun trainingDayIndices(count: Int): List<Int> = when (count.coerceIn(SchedulePreferences.MIN_DAYS, SchedulePreferences.MAX_DAYS)) {

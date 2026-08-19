@@ -56,6 +56,28 @@ class HeatWindowTest {
     }
 
     @Test
+    fun heatWindowAndPlannerAgreeOnWhereTheWeekStarts() {
+        // The single-source-of-truth check: SchedulePreferences.weekStart must move BOTH the
+        // body map's "This week" boundary and the planner's week, or "this week" means two
+        // different things on two screens.
+        listOf(DayOfWeek.MONDAY, DayOfWeek.SUNDAY).forEach { weekStart ->
+            val prefs = SchedulePreferences(weekStart = weekStart)
+            val thursdayNoon = LocalDate.of(2026, 8, 20).atTime(12, 0)
+            val nowMs = thursdayNoon.atZone(zone).toInstant().toEpochMilli()
+
+            val heatStart = HeatWindow.CURRENT_WEEK.startMs(nowMs, zone, prefs.weekStart)
+            val plannerWeekStart = thursdayNoon.toLocalDate()
+                .with(java.time.temporal.TemporalAdjusters.previousOrSame(prefs.weekStart))
+
+            assertEquals(
+                "heat window and planner disagree for $weekStart",
+                plannerWeekStart.atStartOfDay(zone).toInstant().toEpochMilli(),
+                heatStart,
+            )
+        }
+    }
+
+    @Test
     fun rollingWindowCrossesADstBoundaryWithoutDrift() {
         // 2026-03-08 is the US spring-forward. minusDays must stay calendar-correct.
         val afterDst = LocalDateTime.of(2026, 3, 10, 9, 0).atZone(zone).toInstant().toEpochMilli()
