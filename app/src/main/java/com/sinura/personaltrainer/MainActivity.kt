@@ -17,7 +17,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        openSessionId = intent.sessionId()
+        // Only a genuinely NEW launch may carry a session to open. Android redelivers the
+        // creating intent on every recreation (rotation, theme change, process-death
+        // restore), so reading it unconditionally meant one rest-notification tap could
+        // force-navigate back into that workout for the rest of the Activity's life —
+        // including after it had been finished or discarded.
+        openSessionId = if (savedInstanceState == null) consumeSessionId(intent) else null
         enableEdgeToEdge()
         setContent {
             PersonalTrainerTheme {
@@ -32,8 +37,17 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        openSessionId = intent.sessionId()
+        consumeSessionId(intent)?.let { openSessionId = it }
     }
 
-    private fun Intent.sessionId(): String? = getStringExtra(RestTimerService.EXTRA_SESSION_ID)
+    /**
+     * Reads the session id and strips it from the intent, so the same tap can never be
+     * delivered twice. Belt and braces with the savedInstanceState gate above: that stops the
+     * cold-restore replay, this stops a warm one.
+     */
+    private fun consumeSessionId(intent: Intent?): String? {
+        val id = intent?.getStringExtra(RestTimerService.EXTRA_SESSION_ID) ?: return null
+        intent.removeExtra(RestTimerService.EXTRA_SESSION_ID)
+        return id.takeIf { it.isNotBlank() }
+    }
 }

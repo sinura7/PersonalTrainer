@@ -9,7 +9,9 @@ import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SetLogRules
+import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
 import com.sinura.personaltrainer.workout.WorkoutDraft
+import com.sinura.personaltrainer.workout.WorkoutDraftRecovery
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -18,6 +20,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -28,8 +31,24 @@ data class ActiveExerciseDraft(
     val isWarmup: Boolean = false,
 )
 
+/** Whether the session row behind this screen has been resolved yet. */
+enum class SessionLoadState {
+    /** The session Flow has not emitted anything yet. */
+    LOADING,
+
+    /** A session row exists and is in [ActiveWorkoutUiState.session]. */
+    FOUND,
+
+    /**
+     * The Flow emitted null for a real id: the workout was discarded, restored over, or the
+     * id came from a stale notification. Terminal — never resolves into FOUND on its own, so
+     * the UI must offer a way out instead of spinning forever.
+     */
+    MISSING,
+}
+
 data class ActiveWorkoutUiState(
-    val isLoading: Boolean = true,
+    val loadState: SessionLoadState = SessionLoadState.LOADING,
     val session: WorkoutSession? = null,
     val selectedExerciseId: String? = null,
     val draft: ActiveExerciseDraft = ActiveExerciseDraft(),
@@ -41,7 +60,9 @@ data class ActiveWorkoutUiState(
     val error: String? = null,
     val finished: Boolean = false,
     val editingSetId: String? = null,
-)
+) {
+    val isLoading: Boolean get() = loadState == SessionLoadState.LOADING
+}
 
 data class RestTimerUiState(
     val remainingSeconds: Int = 0,
@@ -56,6 +77,7 @@ class ActiveWorkoutViewModel(
 ) : AppViewModel(application) {
     private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
     private val draftCache = container.workoutDraftCache
+    private val savedDraft = SavedStateWorkoutDraft(savedStateHandle)
 
     private val selectedExerciseId = MutableStateFlow<String?>(null)
     private val draft = MutableStateFlow(ActiveExerciseDraft())
@@ -71,13 +93,29 @@ class ActiveWorkoutViewModel(
     private var pendingResumeDraft: WorkoutDraft? = null
     private val restTimer = container.restTimerController
 
+    /**
+     * Flips true the first time the session query emits — including when it emits null.
+     * "Session is null" alone cannot distinguish "still loading" from "gone", which is how a
+     * discarded workout used to leave the screen on a spinner with no exit.
+     */
+    private val sessionResolved = MutableStateFlow(false)
+
     private val sessionFlow = container.workoutRepository.observeSession(sessionId)
+        .onEach { sessionResolved.value = true }
 
     init {
         if (sessionId.isBlank()) {
             error.value = "This workout is no longer available."
+            // Nothing will ever emit for a blank id, so resolve immediately rather than spin.
+            sessionResolved.value = true
         }
-        draftCache.get(sessionId)?.let { cached ->
+        // Survives process death; the in-memory cache does not. See WorkoutDraftRecovery.
+        val recovered = WorkoutDraftRecovery.resolve(
+            sessionId = sessionId,
+            inMemory = draftCache.get(sessionId),
+            persisted = savedDraft.read(sessionId),
+        )
+        recovered?.let { cached ->
             pendingResumeDraft = cached
             selectedExerciseId.value = cached.exerciseId
             draft.value = ActiveExerciseDraft(
@@ -155,7 +193,8 @@ class ActiveWorkoutViewModel(
         },
     ) { core, extras ->
         ActiveWorkoutUiState(
-            isLoading = sessionId.isNotBlank() && core.session == null && !extras.finished,
+            // Overwritten below once sessionResolved is known; see the combine on that flow.
+            loadState = SessionLoadState.LOADING,
             session = core.session,
             selectedExerciseId = core.session?.resolveSelectedExerciseId(core.selected) ?: core.selected,
             draft = core.draft,
@@ -167,6 +206,14 @@ class ActiveWorkoutViewModel(
             error = extras.error,
             finished = extras.finished,
             editingSetId = extras.editingSetId,
+        )
+    }.combine(sessionResolved) { state, resolved ->
+        state.copy(
+            loadState = when {
+                !resolved && sessionId.isNotBlank() -> SessionLoadState.LOADING
+                state.session != null -> SessionLoadState.FOUND
+                else -> SessionLoadState.MISSING
+            },
         )
     }.combine(searchQuery.flatMapLatest { container.exerciseRepository.search(it) }) { state, results ->
         state.copy(searchResults = results)
@@ -437,7 +484,7 @@ class ActiveWorkoutViewModel(
             try {
                 restTimer.stop()
                 container.workoutRepository.finishSession(sessionId, notes.value)
-                draftCache.clear(sessionId)
+                clearDraft()
                 finished.value = true
                 onFinished()
             } catch (_: Exception) {
@@ -451,7 +498,7 @@ class ActiveWorkoutViewModel(
             restTimer.stop()
             try {
                 container.workoutRepository.discardSession(sessionId)
-                draftCache.clear(sessionId)
+                clearDraft()
                 onDiscarded()
             } catch (_: Exception) {
                 error.value = "Could not discard this workout. Try again."
@@ -486,17 +533,24 @@ class ActiveWorkoutViewModel(
 
     private fun persistDraft() {
         if (sessionId.isBlank()) return
-        draftCache.put(
-            WorkoutDraft(
-                sessionId = sessionId,
-                exerciseId = selectedExerciseId.value,
-                weightKg = draft.value.weightKg,
-                reps = draft.value.reps,
-                rpe = draft.value.rpe,
-                isWarmup = draft.value.isWarmup,
-                notes = notes.value,
-            ),
+        val current = WorkoutDraft(
+            sessionId = sessionId,
+            exerciseId = selectedExerciseId.value,
+            weightKg = draft.value.weightKg,
+            reps = draft.value.reps,
+            rpe = draft.value.rpe,
+            isWarmup = draft.value.isWarmup,
+            notes = notes.value,
         )
+        draftCache.put(current)
+        // Written through to saved state so the numbers dialed in before a rest survive the
+        // process being killed while the phone sits in a pocket.
+        savedDraft.write(current)
+    }
+
+    private fun clearDraft() {
+        draftCache.clear(sessionId)
+        savedDraft.clear()
     }
 
     private data class WorkoutCore(

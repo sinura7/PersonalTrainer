@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -105,6 +106,12 @@ fun ActiveWorkoutScreen(
         onDispose { view.keepScreenOn = false }
     }
 
+    // One leave path: system back behaves exactly like the top-bar X. Previously back popped
+    // silently, skipping the notes flush in persistDraftForExit, so the two exits from the
+    // same screen did different things. Only armed while a session is actually loaded, so
+    // back still works normally on the loading and missing states.
+    BackHandler(enabled = state.session != null) { confirmLeave = true }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -138,9 +145,16 @@ fun ActiveWorkoutScreen(
                 ScreenLoading(modifier = Modifier.padding(padding))
             }
             session == null -> {
+                // Terminal state, reached when the session flow has emitted null for a real
+                // id: the workout was discarded, restored over, or the id came from a stale
+                // notification. It must offer a way out — this used to be an unreachable
+                // branch behind a spinner that never resolved.
                 EmptyState(
                     title = "Workout missing",
-                    body = "This session is no longer available.",
+                    body = "This session was finished, discarded, or replaced by a restore. " +
+                        "Nothing was lost from your history.",
+                    actionLabel = "Back to home",
+                    onAction = onExit,
                     modifier = Modifier.padding(padding),
                 )
             }
