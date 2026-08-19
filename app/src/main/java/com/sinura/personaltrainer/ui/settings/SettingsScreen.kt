@@ -141,6 +141,7 @@ fun SettingsScreen(
             title = "Replace all training data?",
             body = "Restoring ${file.name} replaces every exercise, routine, and workout on this phone. This cannot be undone.",
             confirmLabel = "Restore backup",
+            destructive = true,
             onConfirm = { viewModel.confirmRestore(activity) },
             onDismiss = viewModel::cancelRestore,
         )

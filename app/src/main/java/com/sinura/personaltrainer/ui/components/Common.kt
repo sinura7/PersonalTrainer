@@ -65,21 +65,29 @@ fun EmptyState(
     modifier: Modifier = Modifier,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
+    compact: Boolean = false,
 ) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(24.dp),
+            .padding(if (compact) 0.dp else 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(title, style = MaterialTheme.typography.titleLarge)
+        Text(
+            title,
+            style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
+        )
         Text(
             body,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         if (actionLabel != null && onAction != null) {
-            PrimaryGymButton(text = actionLabel, onClick = onAction)
+            if (compact) {
+                TextButton(onClick = onAction) { Text(actionLabel) }
+            } else {
+                PrimaryGymButton(text = actionLabel, onClick = onAction)
+            }
         }
     }
 }
@@ -103,13 +111,19 @@ fun ConfirmActionDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     dismissLabel: String = "Cancel",
+    destructive: Boolean = false,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { Text(body) },
         confirmButton = {
-            TextButton(onClick = onConfirm) { Text(confirmLabel) }
+            TextButton(onClick = onConfirm) {
+                Text(
+                    confirmLabel,
+                    color = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                )
+            }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(dismissLabel) }
@@ -481,5 +495,25 @@ fun PrimaryGymButton(
         shape = RoundedCornerShape(16.dp),
     ) {
         Text(text, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun SecondaryGymButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    height: Dp = 52.dp,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height),
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Text(text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
     }
 }

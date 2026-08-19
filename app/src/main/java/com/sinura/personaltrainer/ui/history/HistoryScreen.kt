@@ -1,29 +1,25 @@
 package com.sinura.personaltrainer.ui.history
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
+import com.sinura.personaltrainer.ui.components.GymMetrics
+import com.sinura.personaltrainer.ui.components.ScreenLoading
+import com.sinura.personaltrainer.ui.components.SessionLogRow
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import java.text.DateFormat
 import java.util.Date
@@ -32,6 +28,7 @@ import java.util.Date
 @Composable
 fun HistoryScreen(
     onOpenSession: (String) -> Unit,
+    onStartWorkout: () -> Unit,
     viewModel: HistoryViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -43,42 +40,35 @@ fun HistoryScreen(
     ) { padding ->
         when {
             state.isLoading -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    CircularProgressIndicator()
-                }
+                ScreenLoading(modifier = Modifier.padding(padding))
             }
             state.sessions.isEmpty() -> {
                 EmptyState(
-                    title = "No workouts yet",
-                    body = "Finish a workout and it lands here with sets, volume, and duration.",
-                    modifier = Modifier.padding(padding),
+                    title = "No sessions yet",
+                    body = "Finish a workout and it lands here.",
+                    actionLabel = "Start workout",
+                    onAction = onStartWorkout,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .padding(GymMetrics.screenPadding),
                 )
             }
             else -> {
                 LazyColumn(
                     modifier = Modifier.padding(padding),
-                    contentPadding = PaddingValues(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(GymMetrics.screenPadding),
+                    verticalArrangement = Arrangement.spacedBy(GymMetrics.listGap),
                 ) {
                     items(state.sessions, key = { it.id }) { session ->
-                        Card(
+                        SessionLogRow(
+                            title = session.routineName ?: "Workout",
+                            dateLabel = dateFormat.format(Date(session.date)),
+                            workingSets = session.sets.count { !it.isWarmup },
+                            volumeLabel = session.workingVolumeKg().toWeightLabel(unit),
+                            durationMinutes = session.durationMinutes,
                             onClick = { onOpenSession(session.id) },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text(session.routineName ?: "Workout", style = MaterialTheme.typography.titleLarge)
-                                Text(dateFormat.format(Date(session.date)))
-                                Text(
-                                    "${session.durationMinutes} min · ${session.sets.count { !it.isWarmup }} working sets · ${session.workingVolumeKg().toWeightLabel(unit)} volume",
-                                )
-                            }
-                        }
+                        )
                     }
                 }
             }

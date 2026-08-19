@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -13,9 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -27,8 +24,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -37,7 +34,12 @@ import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.shortLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
+import com.sinura.personaltrainer.ui.components.GymCard
+import com.sinura.personaltrainer.ui.components.GymMetrics
+import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.components.ScreenLoading
+import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -74,23 +76,17 @@ fun ScheduleScreen(
     ) { padding ->
         when {
             state.isLoading -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    CircularProgressIndicator()
-                }
+                ScreenLoading(modifier = Modifier.padding(padding))
             }
             state.plan == null -> {
                 EmptyState(
-                    title = "Could not build a week",
-                    body = "Try again, or log a workout first. Suggestions get sharper with history.",
-                    actionLabel = "Regenerate",
+                    title = "No week plan yet",
+                    body = "Generate a week, or log a workout so suggestions can follow your training.",
+                    actionLabel = "Generate week",
                     onAction = viewModel::regenerate,
-                    modifier = Modifier.padding(padding),
+                    modifier = Modifier
+                        .padding(padding)
+                        .padding(GymMetrics.screenPadding),
                 )
             }
             else -> {
@@ -99,11 +95,27 @@ fun ScheduleScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding),
-                    contentPadding = PaddingValues(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    contentPadding = PaddingValues(GymMetrics.screenPadding),
+                    verticalArrangement = Arrangement.spacedBy(GymMetrics.listGap),
                 ) {
                     item {
-                        Text(plan.summary, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            if (plan.thinHistory) {
+                                "Starter week from your split. It follows neglected muscles after a few logged sessions."
+                            } else {
+                                plan.summary
+                            },
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                    state.inProgress?.let { session ->
+                        item {
+                            PrimaryGymButton(
+                                text = "Resume ${session.routineName ?: "workout"}",
+                                onClick = { onWorkoutStarted(session.id) },
+                            )
+                        }
                     }
                     item {
                         PreferenceBlock(
@@ -121,7 +133,7 @@ fun ScheduleScreen(
                             day = day,
                             isToday = day.epochDay == today,
                             logged = day.epochDay in state.loggedEpochDays,
-                            inProgress = state.inProgress != null,
+                            showStart = state.inProgress == null && !day.isRest,
                             onStart = { viewModel.startDay(day, onWorkoutStarted) },
                             onOpenRoutine = day.routineId?.let { id -> { onOpenRoutine(id) } },
                         )
@@ -140,7 +152,7 @@ fun PreferenceBlock(
     onWeekStart: (DayOfWeek) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Training days", style = MaterialTheme.typography.titleMedium)
+        GymSectionHeader("Training days", compact = true)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items((SchedulePreferences.MIN_DAYS..SchedulePreferences.MAX_DAYS).toList()) { days ->
                 FilterChip(
@@ -150,7 +162,7 @@ fun PreferenceBlock(
                 )
             }
         }
-        Text("Split", style = MaterialTheme.typography.titleMedium)
+        GymSectionHeader("Split", compact = true)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(SplitStyle.entries) { style ->
                 FilterChip(
@@ -160,8 +172,12 @@ fun PreferenceBlock(
                 )
             }
         }
-        Text(preferences.splitStyle.blurb, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("Week starts", style = MaterialTheme.typography.titleMedium)
+        Text(
+            preferences.splitStyle.blurb,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        GymSectionHeader("Week starts", compact = true)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(DayOfWeek.MONDAY, DayOfWeek.SUNDAY).forEach { day ->
                 FilterChip(
@@ -179,50 +195,58 @@ fun ScheduleDayCard(
     day: SuggestedTrainingDay,
     isToday: Boolean,
     logged: Boolean,
-    inProgress: Boolean,
+    showStart: Boolean,
     onStart: () -> Unit,
     onOpenRoutine: (() -> Unit)?,
-    compact: Boolean = false,
 ) {
     val colors = when {
-        day.isRest -> CardDefaults.cardColors()
+        day.isRest -> CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+        )
         isToday -> CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
         else -> CardDefaults.cardColors()
     }
     val dateLabel = DateTimeFormatter.ofPattern("MMM d")
         .format(LocalDate.ofEpochDay(day.epochDay))
-    Card(modifier = Modifier.fillMaxWidth(), colors = colors) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
+    val status = buildString {
+        append(day.dayOfWeek.shortLabel())
+        append(" · ")
+        append(dateLabel)
+        if (isToday) append(" · Today")
+        if (logged) append(" · Logged")
+    }
+    GymCard(colors = colors) {
+        Text(
+            status,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (day.isRest) {
+            Text("Rest day", style = MaterialTheme.typography.titleMedium)
+        } else {
+            Text(day.focusTitle, style = MaterialTheme.typography.titleMedium)
+            day.routineName?.let {
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Text(
-                buildString {
-                    append(day.dayOfWeek.shortLabel())
-                    append(" · ")
-                    append(dateLabel)
-                    if (isToday) append(" · Today")
-                    if (logged) append(" · Logged")
-                },
-                style = MaterialTheme.typography.labelLarge,
+                day.reason,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
-            Text(day.focusTitle, style = MaterialTheme.typography.titleLarge)
-            if (day.routineName != null) {
-                Text(day.routineName, style = MaterialTheme.typography.titleMedium)
-            }
-            if (!compact) {
-                Text(day.reason, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            if (!day.isRest) {
+            if (showStart) {
                 val action = when {
-                    inProgress -> "Resume workout"
                     logged -> "Train again"
-                    day.routineId != null -> "Start ${day.routineName}"
-                    else -> "Start this focus"
+                    day.routineName != null -> "Start ${day.routineName}"
+                    else -> "Start this session"
                 }
-                PrimaryGymButton(text = action, onClick = onStart)
-                if (onOpenRoutine != null && !compact) {
+                PrimaryGymButton(text = action, onClick = onStart, height = 52.dp)
+                if (onOpenRoutine != null) {
                     TextButton(onClick = onOpenRoutine) { Text("Open routine") }
                 }
             }
@@ -234,40 +258,61 @@ fun ScheduleDayCard(
 fun ThisWeekHomeCard(
     day: SuggestedTrainingDay?,
     nextDay: SuggestedTrainingDay?,
-    summary: String,
+    thinHistory: Boolean,
     loggedToday: Boolean,
     inProgress: Boolean,
     onOpenSchedule: () -> Unit,
     onStart: () -> Unit,
 ) {
-    Card(onClick = onOpenSchedule, modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("This week", style = MaterialTheme.typography.titleLarge)
-            Text(summary, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Column(verticalArrangement = Arrangement.spacedBy(GymMetrics.listGap)) {
+        GymSectionHeader(
+            title = "This week",
+            actionLabel = "Plan",
+            onAction = onOpenSchedule,
+        )
+        GymCard(onClick = onOpenSchedule) {
             if (day == null) {
-                Text("Open the week plan to set days and split.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Open the week plan to set days and split.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             } else if (day.isRest) {
                 Text("Rest day", style = MaterialTheme.typography.titleMedium)
                 nextDay?.let {
                     Text(
-                        "Next: ${it.dayOfWeek.shortLabel()} · ${it.focusTitle}",
+                        "Next · ${it.dayOfWeek.shortLabel()} · ${it.focusTitle}",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                 }
             } else {
-                Text(day.focusTitle, style = MaterialTheme.typography.titleMedium)
-                day.routineName?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                Text(day.reason, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                PrimaryGymButton(
-                    text = when {
-                        inProgress -> "Resume workout"
-                        loggedToday -> "Train again"
-                        else -> "Start today’s session"
-                    },
-                    onClick = onStart,
+                val headline = buildString {
+                    append(day.focusTitle)
+                    if (loggedToday) append(" · logged")
+                }
+                Text(headline, style = MaterialTheme.typography.titleMedium)
+                day.routineName?.let {
+                    Text(
+                        it,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+            if (thinHistory) {
+                Text(
+                    "Starter week — tightens after a few sessions.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
                 )
             }
-            TextButton(onClick = onOpenSchedule) { Text("Open week plan") }
+        }
+        if (!inProgress && day != null && !day.isRest) {
+            SecondaryGymButton(
+                text = if (loggedToday) "Train again" else "Start this session",
+                onClick = onStart,
+            )
         }
     }
 }

@@ -2,57 +2,56 @@ package com.sinura.personaltrainer.ui.progress
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.RecommendationAction
-import com.sinura.personaltrainer.domain.RecommendationPriority
 import com.sinura.personaltrainer.domain.TrainingRecommendation
+import com.sinura.personaltrainer.ui.components.GymCard
+import com.sinura.personaltrainer.ui.components.GymNumericStyle
 
 @Composable
 fun RecommendationCard(
     recommendation: TrainingRecommendation,
+    rank: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    compact: Boolean = false,
 ) {
-    val colors = recommendationColors(recommendation.priority)
-    Card(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = colors.first, contentColor = colors.second),
-    ) {
-        Column(
-            modifier = Modifier.padding(if (compact) 14.dp else 16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+    GymCard(onClick = onClick, modifier = modifier) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top,
         ) {
             Text(
-                recommendation.priority.name.lowercase().replaceFirstChar { it.titlecase() },
-                style = MaterialTheme.typography.labelLarge,
+                rank.toString(),
+                style = GymNumericStyle.copy(
+                    fontSize = MaterialTheme.typography.titleLarge.fontSize,
+                    lineHeight = MaterialTheme.typography.titleLarge.lineHeight,
+                ),
+                color = MaterialTheme.colorScheme.primary,
             )
-            Text(recommendation.title, style = MaterialTheme.typography.titleMedium)
-            if (!compact) {
-                Text(recommendation.reason, style = MaterialTheme.typography.bodyMedium)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.weight(1f)) {
+                Text(
+                    recommendation.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    recommendation.reason,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
-    }
-}
-
-@Composable
-private fun recommendationColors(priority: RecommendationPriority): Pair<Color, Color> {
-    val scheme = MaterialTheme.colorScheme
-    return when (priority) {
-        RecommendationPriority.HIGH -> scheme.errorContainer to scheme.onErrorContainer
-        RecommendationPriority.ATTENTION -> scheme.tertiaryContainer to scheme.onTertiaryContainer
-        RecommendationPriority.INFO -> scheme.secondaryContainer to scheme.onSecondaryContainer
     }
 }
 

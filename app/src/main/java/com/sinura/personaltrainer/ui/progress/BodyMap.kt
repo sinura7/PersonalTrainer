@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -109,6 +110,7 @@ fun BodyMapCard(
                     label = "heat-${spot.muscle}-${spot.left}",
                 )
                 val selectedBorder = selected == spot.muscle
+                val outlineAlpha = if (dark) 0.22f else 0.08f
                 Box(
                     modifier = Modifier
                         .offset(
@@ -121,16 +123,14 @@ fun BodyMapCard(
                         )
                         .clip(RoundedCornerShape(40))
                         .background(fill)
-                        .then(
+                        .border(
+                            if (selectedBorder) 2.dp else 1.dp,
                             if (selectedBorder) {
-                                Modifier.border(
-                                    2.dp,
-                                    MaterialTheme.colorScheme.onSurface,
-                                    RoundedCornerShape(40),
-                                )
+                                MaterialTheme.colorScheme.onSurface
                             } else {
-                                Modifier
+                                Color.White.copy(alpha = outlineAlpha)
                             },
+                            RoundedCornerShape(40),
                         )
                         .semantics {
                             contentDescription = "${spot.muscle.displayName}, ${load.band.legendLabel} load"
@@ -179,6 +179,7 @@ fun MuscleHeatRow(
     load: MuscleLoadSummary,
     selected: Boolean,
     onClick: () -> Unit,
+    volumeLabel: String,
     modifier: Modifier = Modifier,
 ) {
     val dark = isSystemInDarkTheme()
@@ -205,13 +206,18 @@ fun MuscleHeatRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(load.muscle.displayName, style = MaterialTheme.typography.titleMedium)
             Text(
-                recencyLabel(load),
+                muscleRowMeta(load, volumeLabel),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         Text(load.band.legendLabel, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
+}
+
+private fun muscleRowMeta(load: MuscleLoadSummary, volumeLabel: String): String {
+    val sets = if (load.workingSets == 1) "1 set" else "${load.workingSets} sets"
+    return "$sets · $volumeLabel · ${recencyLabel(load)}"
 }
 
 fun recencyLabel(load: MuscleLoadSummary): String = when (val days = load.daysSinceLastTrained) {
@@ -224,10 +230,10 @@ fun recencyLabel(load: MuscleLoadSummary): String = when (val days = load.daysSi
 fun heatFill(heat: Double, dark: Boolean): Color = heatFill(heat.toFloat(), dark)
 
 fun heatFill(heat: Float, dark: Boolean): Color {
-    val empty = if (dark) Color(0xFF1B332A) else Color(0xFFD7E3DB)
-    val low = if (dark) Color(0xFF2F6B4F) else Color(0xFF8FBF9A)
-    val mid = if (dark) Color(0xFFE0B33A) else Color(0xFFE0A317)
-    val high = if (dark) Color(0xFFFF7043) else Color(0xFFD64B3A)
+    val empty = if (dark) Color(0xFF2A4A3C) else Color(0xFFD7E3DB)
+    val low = if (dark) Color(0xFF3D8A62) else Color(0xFF8FBF9A)
+    val mid = if (dark) Color(0xFFF0C14A) else Color(0xFFE0A317)
+    val high = if (dark) Color(0xFFFF8A50) else Color(0xFFD64B3A)
     val t = heat.coerceIn(0f, 1f)
     return when {
         t <= 0.02f -> empty

@@ -3,6 +3,11 @@ package com.sinura.personaltrainer.ui.navigation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import android.net.Uri
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Whatshot
 import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
@@ -71,6 +76,7 @@ private data class Tab(
     val route: Route,
     val label: String,
     val icon: ImageVector,
+    val selectedIcon: ImageVector,
 )
 
 @Composable
@@ -82,11 +88,11 @@ fun PersonalTrainerNav(
     val weightUnit by settingsViewModel.weightUnit.collectAsStateWithLifecycle()
     val navController = rememberNavController()
     val tabs = listOf(
-        Tab(Route.Home, "Home", Icons.Outlined.Home),
-        Tab(Route.Progress, "Body", Icons.Outlined.Whatshot),
-        Tab(Route.Routines, "Routines", Icons.Outlined.FitnessCenter),
-        Tab(Route.Library, "Library", Icons.Outlined.MenuBook),
-        Tab(Route.History, "History", Icons.Outlined.History),
+        Tab(Route.Home, "Home", Icons.Outlined.Home, Icons.Filled.Home),
+        Tab(Route.Progress, "Body", Icons.Outlined.Whatshot, Icons.Filled.Whatshot),
+        Tab(Route.Routines, "Routines", Icons.Outlined.FitnessCenter, Icons.Filled.FitnessCenter),
+        Tab(Route.Library, "Library", Icons.Outlined.MenuBook, Icons.Filled.MenuBook),
+        Tab(Route.History, "History", Icons.Outlined.History, Icons.Filled.History),
     )
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -122,7 +128,12 @@ fun PersonalTrainerNav(
                         NavigationBarItem(
                             selected = selected,
                             onClick = { goToTab(tab.route.path) },
-                            icon = { Icon(tab.icon, contentDescription = tab.label) },
+                            icon = {
+                                Icon(
+                                    if (selected) tab.selectedIcon else tab.icon,
+                                    contentDescription = tab.label,
+                                )
+                            },
                             label = { Text(tab.label) },
                         )
                     }
@@ -144,7 +155,6 @@ fun PersonalTrainerNav(
                         }
                     },
                     onOpenRoutines = { goToTab(Route.Routines.path) },
-                    onOpenLibrary = { goToTab(Route.Library.path) },
                     onOpenHistory = { goToTab(Route.History.path) },
                     onOpenProgress = { goToTab(Route.Progress.path) },
                     onOpenSchedule = { navController.navigate(Route.Schedule.path) },
@@ -214,12 +224,12 @@ fun PersonalTrainerNav(
                 RoutinesScreen(
                     onCreateRoutine = { navController.navigate(Route.RoutineEditor.create("new")) },
                     onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
-                    onOpenLibrary = { goToTab(Route.Library.path) },
                 )
             }
             composable(Route.History.path) {
                 HistoryScreen(
                     onOpenSession = { navController.navigate(Route.SessionDetail.create(it)) },
+                    onStartWorkout = { navController.navigate(Route.StartWorkout.path) },
                 )
             }
             composable(Route.StartWorkout.path) {

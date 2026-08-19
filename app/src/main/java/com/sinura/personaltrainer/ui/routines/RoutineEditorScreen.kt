@@ -15,7 +15,6 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,7 +41,9 @@ import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
+import com.sinura.personaltrainer.ui.components.GymMetrics
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,15 +71,7 @@ fun RoutineEditorScreen(
         },
     ) { padding ->
         if (state.isLoading) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                CircularProgressIndicator()
-            }
+            ScreenLoading(modifier = Modifier.padding(padding))
             return@Scaffold
         }
         if (state.missing) {
@@ -96,8 +89,8 @@ fun RoutineEditorScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            contentPadding = PaddingValues(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(GymMetrics.screenPadding),
+            verticalArrangement = Arrangement.spacedBy(GymMetrics.listGap),
         ) {
             item {
                 OutlinedTextField(
@@ -142,9 +135,8 @@ fun RoutineEditorScreen(
                 item {
                     EmptyState(
                         title = "Add your first lift",
-                        body = "A routine needs at least one exercise before you can save it or start it from Home.",
-                        actionLabel = "Add exercise",
-                        onAction = { viewModel.setPickerVisible(true) },
+                        body = "Targets stay on the routine. Start it from Home when you’re in the gym.",
+                        compact = true,
                     )
                 }
             } else {
@@ -201,6 +193,7 @@ fun RoutineEditorScreen(
             title = "Remove $name?",
             body = "This takes it off the routine. Workout history stays saved.",
             confirmLabel = "Remove",
+            destructive = true,
             onConfirm = {
                 viewModel.removeExercise(itemId)
                 pendingRemoveId = null
@@ -233,7 +226,7 @@ private fun RoutineExerciseCard(
     var rest by rememberSaveable(item.id) { mutableStateOf(item.restSeconds.toString()) }
 
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(modifier = Modifier.padding(GymMetrics.cardPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -261,7 +254,9 @@ private fun RoutineExerciseCard(
                 SmallNumberField("Rest s", rest, Modifier.weight(1f)) { rest = it.filter(Char::isDigit) }
             }
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                TextButton(onClick = onRemove) { Text("Remove") }
+                TextButton(onClick = onRemove) {
+                    Text("Remove", color = MaterialTheme.colorScheme.error)
+                }
                 TextButton(
                     onClick = {
                         onSaveTargets(
