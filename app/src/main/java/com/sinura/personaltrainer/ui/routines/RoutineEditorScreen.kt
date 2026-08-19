@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.routines
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -54,6 +55,8 @@ fun RoutineEditorScreen(
     var pendingTargets by rememberSaveable { mutableStateOf(TargetDraft()) }
     var pendingRemoveId by rememberSaveable { mutableStateOf<String?>(null) }
 
+    BackHandler { viewModel.leave(onBack) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -76,6 +79,16 @@ fun RoutineEditorScreen(
             ) {
                 CircularProgressIndicator()
             }
+            return@Scaffold
+        }
+        if (state.missing) {
+            EmptyState(
+                title = "Routine missing",
+                body = "This routine was deleted. Create a new one from the list.",
+                actionLabel = "Back to routines",
+                onAction = { viewModel.leave(onBack) },
+                modifier = Modifier.padding(padding),
+            )
             return@Scaffold
         }
 

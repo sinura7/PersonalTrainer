@@ -72,6 +72,24 @@ data class WorkoutSession(
 
     fun setsFor(exerciseId: String): List<SetLog> =
         sets.filter { it.exerciseId == exerciseId }.sortedBy { it.setNumber }
+
+    fun hasLifts(): Boolean = exercises.isNotEmpty() || sets.isNotEmpty()
+
+    /**
+     * Resume must never treat a stale selected id as an empty workout.
+     * Prefer the last selected lift when it is still in the session, otherwise
+     * the first lift that already has sets, otherwise the first lift.
+     */
+    fun resolveSelectedExerciseId(preferredId: String?): String? {
+        val exerciseIds = exercises.map { it.exercise.id }
+        if (preferredId != null && preferredId in exerciseIds) return preferredId
+        val withSets = exercises.firstOrNull { item ->
+            sets.any { it.exerciseId == item.exercise.id }
+        }?.exercise?.id
+        if (withSets != null) return withSets
+        exerciseIds.firstOrNull()?.let { return it }
+        return sets.maxByOrNull { it.completedAt }?.exerciseId
+    }
 }
 
 data class ProgressionHint(

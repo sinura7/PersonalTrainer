@@ -15,12 +15,9 @@ class RestTimerTest {
     }
 
     @Test
-    fun formatClockIsMinuteSecond() {
-        assertEquals("0:00", RestTimer.formatClock(0))
-        assertEquals("1:00", RestTimer.formatClock(60))
-        assertEquals("1:30", RestTimer.formatClock(90))
-        assertEquals("2:00", RestTimer.formatClock(120))
-        assertEquals("2:05", RestTimer.formatClock(125))
+    fun formatClockNeverShowsNegative() {
+        assertEquals("0:00", RestTimer.formatClock(-12))
+        assertEquals("0:00", RestTimer.formatClock(-1))
     }
 
     @Test

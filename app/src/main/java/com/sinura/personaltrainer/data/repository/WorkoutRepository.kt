@@ -13,6 +13,7 @@ import com.sinura.personaltrainer.domain.ProgressionAction
 import com.sinura.personaltrainer.domain.ProgressionCalculator
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.WorkoutSession
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -140,6 +141,8 @@ class WorkoutRepository(
             error("This workout is already finished.")
         }
         if (reps < 1) error("Reps must be at least 1.")
+        val violation = SetLogRules.validate(weightKg, reps, isWarmup)
+        if (violation != null) error(violation)
         val nextNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
         val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else 0.0
         workoutDao.insertSet(
@@ -170,6 +173,8 @@ class WorkoutRepository(
             error("This workout is already finished.")
         }
         if (reps < 1) error("Reps must be at least 1.")
+        val violation = SetLogRules.validate(weightKg, reps, isWarmup)
+        if (violation != null) error(violation)
         val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else current.weightKg
         workoutDao.updateSet(
             current.copy(

@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.RestTimer
+import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.workout.WorkoutDraft
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -67,6 +68,7 @@ class ActiveWorkoutViewModel(
     private val finished = MutableStateFlow(false)
     private val editingSetId = MutableStateFlow<String?>(null)
     private var lastPrefillExerciseId: String? = null
+    private var pendingResumeDraft: WorkoutDraft? = null
     private val restTimer = container.restTimerController
 
     private val sessionFlow = container.workoutRepository.observeSession(sessionId)
@@ -76,6 +78,7 @@ class ActiveWorkoutViewModel(
             error.value = "This workout is no longer available."
         }
         draftCache.get(sessionId)?.let { cached ->
+            pendingResumeDraft = cached
             selectedExerciseId.value = cached.exerciseId
             draft.value = ActiveExerciseDraft(
                 weightKg = cached.weightKg,
@@ -84,18 +87,26 @@ class ActiveWorkoutViewModel(
                 isWarmup = cached.isWarmup,
             )
             notes.value = cached.notes
-            lastPrefillExerciseId = cached.exerciseId
         }
         viewModelScope.launch {
             sessionFlow.collect { session ->
-                if (session != null && selectedExerciseId.value == null) {
-                    selectedExerciseId.value = session.exercises.firstOrNull()?.exercise?.id
-                    persistDraft()
+                if (session == null) return@collect
+                val resolved = session.resolveSelectedExerciseId(selectedExerciseId.value)
+                if (resolved != selectedExerciseId.value) {
+                    selectedExerciseId.value = resolved
                 }
-                if (session != null && notes.value.isEmpty() && session.notes.isNotEmpty()) {
+                val resume = pendingResumeDraft
+                if (resume != null) {
+                    val cacheMatches = resume.exerciseId == null || resume.exerciseId == resolved
+                    if (cacheMatches) {
+                        lastPrefillExerciseId = resolved
+                    }
+                    pendingResumeDraft = null
+                }
+                if (notes.value.isEmpty() && session.notes.isNotEmpty()) {
                     notes.value = session.notes
-                    persistDraft()
                 }
+                persistDraft()
             }
         }
     }
@@ -146,7 +157,7 @@ class ActiveWorkoutViewModel(
         ActiveWorkoutUiState(
             isLoading = sessionId.isNotBlank() && core.session == null && !extras.finished,
             session = core.session,
-            selectedExerciseId = core.selected,
+            selectedExerciseId = core.session?.resolveSelectedExerciseId(core.selected) ?: core.selected,
             draft = core.draft,
             hint = core.hint,
             searchQuery = extras.query,
@@ -305,12 +316,13 @@ class ActiveWorkoutViewModel(
             return
         }
         val current = draft.value
-        if (!current.weightKg.isFinite() || current.weightKg < 0.0) {
-            error.value = "Weight must be zero or greater."
-            return
-        }
-        if (current.reps < 1) {
-            error.value = "Reps must be at least 1."
+        val invalid = SetLogRules.validate(
+            weightKg = current.weightKg,
+            reps = current.reps,
+            isWarmup = current.isWarmup,
+        )
+        if (invalid != null) {
+            error.value = invalid
             return
         }
         viewModelScope.launch {
@@ -342,8 +354,9 @@ class ActiveWorkoutViewModel(
                 draft.value = current.copy(isWarmup = false, rpe = null)
                 persistDraft()
             } catch (thrown: Exception) {
-                error.value = thrown.message?.takeIf { it.startsWith("This workout") || it.startsWith("Reps") }
-                    ?: "Could not save that set. Try again."
+                error.value = thrown.message?.takeIf { message ->
+                    SetLogRules.isUserMessage(message)
+                } ?: "Could not save that set. Try again."
             }
         }
     }

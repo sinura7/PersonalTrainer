@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -25,7 +24,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -78,9 +76,6 @@ fun ActiveWorkoutScreen(
     RequestRestNotificationPermission()
     val session = state.session
     val selected = session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId }
-    val lastLoggedSet = session?.sets
-        ?.filter { selected == null || it.exerciseId == selected.exercise.id }
-        ?.maxByOrNull { it.completedAt }
     val unit = LocalWeightUnit.current
     val incrementLabel = ProgressionCalculator.INCREMENT_KG.toWeightLabel(unit)
     val view = LocalView.current
@@ -149,7 +144,7 @@ fun ActiveWorkoutScreen(
                             }
                         }
                     }
-                    if (selected == null) {
+                    if (!session.hasLifts()) {
                         item {
                             EmptyState(
                                 title = "No lifts yet",
@@ -158,9 +153,34 @@ fun ActiveWorkoutScreen(
                                 onAction = { viewModel.setPickerVisible(true) },
                             )
                         }
+                    } else if (selected == null) {
+                        item {
+                            EmptyState(
+                                title = "Pick a lift",
+                                body = "Choose a lift above, or add one to keep logging.",
+                                actionLabel = "Add a lift",
+                                onAction = { viewModel.setPickerVisible(true) },
+                            )
+                        }
+                        if (session.sets.isNotEmpty()) {
+                            item {
+                                Text("Logged sets", style = MaterialTheme.typography.titleLarge)
+                            }
+                            items(session.sets, key = { it.id }) { set ->
+                                SetRow(
+                                    set = set,
+                                    isLatest = set.id == session.sets.maxByOrNull { it.completedAt }?.id,
+                                    isEditing = state.editingSetId == set.id,
+                                    onEdit = { viewModel.editSet(set.id) },
+                                    onDelete = { pendingDeleteSetId = set.id },
+                                )
+                            }
+                        }
                     } else {
                         val workingLogged = session.setsFor(selected.exercise.id).count { !it.isWarmup }
                         val nextWorkingSet = workingLogged + 1
+                        val logged = session.setsFor(selected.exercise.id)
+                        val latestSetId = logged.maxByOrNull { it.completedAt }?.id
                         item {
                             val targetSets = selected.targetSets.coerceAtLeast(1)
                             val targetReps = selected.targetReps.coerceAtLeast(1)
@@ -257,20 +277,9 @@ fun ActiveWorkoutScreen(
                                 TextButton(onClick = viewModel::cancelEdit) { Text("Cancel edit") }
                             }
                         }
-                        lastLoggedSet?.let { set ->
-                            item {
-                                LastSetCard(
-                                    set = set,
-                                    isEditing = state.editingSetId == set.id,
-                                    onEdit = { viewModel.editSet(set.id) },
-                                    onDelete = { pendingDeleteSetId = set.id },
-                                )
-                            }
-                        }
                         item {
-                            Text("This exercise", style = MaterialTheme.typography.titleLarge)
+                            Text("Sets", style = MaterialTheme.typography.titleLarge)
                         }
-                        val logged = session.setsFor(selected.exercise.id)
                         if (logged.isEmpty()) {
                             item {
                                 EmptyState(
@@ -282,7 +291,8 @@ fun ActiveWorkoutScreen(
                             items(logged, key = { it.id }) { set ->
                                 SetRow(
                                     set = set,
-                                    isLatest = set.id == lastLoggedSet?.id,
+                                    isLatest = set.id == latestSetId,
+                                    isEditing = state.editingSetId == set.id,
                                     onEdit = { viewModel.editSet(set.id) },
                                     onDelete = { pendingDeleteSetId = set.id },
                                 )
@@ -385,55 +395,21 @@ fun ActiveWorkoutScreen(
 }
 
 @Composable
-private fun LastSetCard(
+private fun SetRow(
     set: SetLog,
+    isLatest: Boolean,
     isEditing: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = if (isLatest) {
+            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        } else {
+            CardDefaults.cardColors()
+        },
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Last set this lift", style = MaterialTheme.typography.labelLarge)
-            Text(
-                "${set.exerciseName} · ${set.weightKg.toWeightLabel(LocalWeightUnit.current)} × ${set.reps}",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            )
-            val extras = buildList {
-                add("Set ${set.setNumber}")
-                if (set.isWarmup) add("Warm-up")
-                set.rpe?.let { add("RPE $it") }
-                if (isEditing) add("Editing")
-            }.joinToString(" · ")
-            Text(extras, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                OutlinedButton(
-                    onClick = onEdit,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp),
-                ) { Text("Edit") }
-                OutlinedButton(
-                    onClick = onDelete,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(56.dp),
-                ) { Text("Delete") }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SetRow(
-    set: SetLog,
-    isLatest: Boolean,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -447,6 +423,7 @@ private fun SetRow(
                     if (set.isWarmup) add("Warm-up")
                     set.rpe?.let { add("RPE $it") }
                     if (isLatest) add("Latest")
+                    if (isEditing) add("Editing")
                 }.joinToString(" · ")
                 if (extras.isNotEmpty()) {
                     Text(extras, color = MaterialTheme.colorScheme.onSurfaceVariant)

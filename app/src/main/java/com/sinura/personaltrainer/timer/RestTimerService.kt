@@ -31,6 +31,19 @@ class RestTimerService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val completeRunnable = Runnable { onComplete() }
+    private val tickRunnable = object : Runnable {
+        override fun run() {
+            val state = controller.snapshot.value
+            val remaining = state.remainingSeconds(SystemClock.elapsedRealtime())
+            if (!state.running || remaining <= 0) {
+                if (state.running) onComplete() else stopNow()
+                return
+            }
+            publishRunning(state)
+            handler.postDelayed(this, 250L)
+        }
+    }
+    private var completing = false
     private val controller: RestTimerController
         get() = (application as PersonalTrainerApp).container.restTimerController
 
@@ -58,13 +71,15 @@ class RestTimerService : Service() {
 
     override fun onDestroy() {
         handler.removeCallbacks(completeRunnable)
+        handler.removeCallbacks(tickRunnable)
         scope.cancel()
         super.onDestroy()
     }
 
     private fun syncForeground() {
         val state = controller.snapshot.value
-        if (!state.running || state.remainingSeconds(SystemClock.elapsedRealtime()) <= 0) {
+        val remaining = state.remainingSeconds(SystemClock.elapsedRealtime())
+        if (!state.running || remaining <= 0) {
             if (state.running) {
                 onComplete()
             } else {
@@ -72,8 +87,17 @@ class RestTimerService : Service() {
             }
             return
         }
+        completing = false
         ensureChannels()
         getSystemService(NotificationManager::class.java)?.cancel(DONE_ID)
+        publishRunning(state)
+        handler.removeCallbacks(completeRunnable)
+        handler.removeCallbacks(tickRunnable)
+        handler.postAtTime(completeRunnable, state.endsAtElapsedRealtime)
+        handler.post(tickRunnable)
+    }
+
+    private fun publishRunning(state: RestTimerSnapshot) {
         val notification = runningNotification(state)
         if (Build.VERSION.SDK_INT >= 34) {
             ServiceCompat.startForeground(
@@ -85,12 +109,13 @@ class RestTimerService : Service() {
         } else {
             startForeground(RUNNING_ID, notification)
         }
-        handler.removeCallbacks(completeRunnable)
-        handler.postAtTime(completeRunnable, state.endsAtElapsedRealtime)
     }
 
     private fun onComplete() {
+        if (completing) return
+        completing = true
         handler.removeCallbacks(completeRunnable)
+        handler.removeCallbacks(tickRunnable)
         val sessionId = controller.snapshot.value.sessionId
         controller.stop(fromService = true)
         scope.launch {
@@ -107,6 +132,8 @@ class RestTimerService : Service() {
 
     private fun stopNow() {
         handler.removeCallbacks(completeRunnable)
+        handler.removeCallbacks(tickRunnable)
+        completing = false
         try {
             ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         } catch (_: Exception) {
@@ -116,9 +143,8 @@ class RestTimerService : Service() {
     }
 
     private fun runningNotification(state: RestTimerSnapshot): Notification {
-        val remainingMs = (state.endsAtElapsedRealtime - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
-        val endAtWall = System.currentTimeMillis() + remainingMs
-        val remainingLabel = RestTimer.formatClock(state.remainingSeconds(SystemClock.elapsedRealtime()))
+        val remaining = state.remainingSeconds(SystemClock.elapsedRealtime()).coerceAtLeast(0)
+        val remainingLabel = RestTimer.formatClock(remaining)
         return NotificationCompat.Builder(this, CHANNEL_RUNNING)
             .setSmallIcon(R.drawable.ic_stat_timer)
             .setContentTitle("Rest")
@@ -127,10 +153,8 @@ class RestTimerService : Service() {
             .setOnlyAlertOnce(true)
             .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setUsesChronometer(true)
-            .setChronometerCountDown(true)
-            .setWhen(endAtWall)
-            .setShowWhen(true)
+            .setUsesChronometer(false)
+            .setShowWhen(false)
             .setContentIntent(openAppIntent(state.sessionId))
             .addAction(0, "−15s", serviceIntent(ACTION_MINUS_15, 11))
             .addAction(0, "+15s", serviceIntent(ACTION_ADD_15, 12))
