@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.workout
 
 import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -10,12 +11,17 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -24,9 +30,10 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -42,22 +49,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import android.content.pm.PackageManager
 import com.sinura.personaltrainer.domain.ProgressionAction
 import com.sinura.personaltrainer.domain.ProgressionCalculator
+import com.sinura.personaltrainer.domain.ProgressionHint
+import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.domain.SetLog
+import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.toWeightLabel
-import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
+import com.sinura.personaltrainer.ui.components.GymNumericStyle
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
-import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.RepsStepper
 import com.sinura.personaltrainer.ui.components.RestTimerBar
+import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.WeightStepper
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 
@@ -70,9 +81,10 @@ fun ActiveWorkoutScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val rest by viewModel.restTimerState.collectAsStateWithLifecycle()
-    var confirmDiscard by rememberSaveable { mutableStateOf(false) }
+    var confirmLeave by rememberSaveable { mutableStateOf(false) }
     var confirmFinish by rememberSaveable { mutableStateOf(false) }
     var pendingDeleteSetId by rememberSaveable { mutableStateOf<String?>(null) }
+    var notesOpen by rememberSaveable { mutableStateOf(false) }
     RequestRestNotificationPermission()
     val session = state.session
     val selected = session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId }
@@ -88,13 +100,29 @@ fun ActiveWorkoutScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(session?.routineName ?: "Workout") },
+                title = {
+                    Text(
+                        session?.routineName ?: "Workout",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
                 navigationIcon = {
-                    IconButton(onClick = { confirmDiscard = true }) {
+                    IconButton(onClick = { confirmLeave = true }) {
                         Icon(Icons.Outlined.Close, contentDescription = "Exit workout")
                     }
                 },
             )
+        },
+        bottomBar = {
+            if (session != null && selected != null) {
+                LogBar(
+                    editing = state.editingSetId != null,
+                    error = state.error,
+                    onLog = viewModel::logSet,
+                    onCancelEdit = viewModel::cancelEdit,
+                )
+            }
         },
     ) { padding ->
         when {
@@ -113,7 +141,7 @@ fun ActiveWorkoutScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding),
-                    contentPadding = PaddingValues(20.dp),
+                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 28.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     item {
@@ -128,27 +156,19 @@ fun ActiveWorkoutScreen(
                         )
                     }
                     item {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items(session.exercises, key = { it.id }) { item ->
-                                FilterChip(
-                                    selected = item.exercise.id == state.selectedExerciseId,
-                                    onClick = { viewModel.selectExercise(item.exercise.id) },
-                                    label = { Text(item.exercise.name) },
-                                )
-                            }
-                            item {
-                                AssistChip(
-                                    onClick = { viewModel.setPickerVisible(true) },
-                                    label = { Text("Add lift") },
-                                )
-                            }
-                        }
+                        LiftSwitcher(
+                            lifts = session.exercises,
+                            selectedExerciseId = state.selectedExerciseId,
+                            logged = session.sets,
+                            onSelect = viewModel::selectExercise,
+                            onAdd = { viewModel.setPickerVisible(true) },
+                        )
                     }
                     if (!session.hasLifts()) {
                         item {
                             EmptyState(
-                                title = "No lifts yet",
-                                body = "Add the first exercise, then log weight and reps. You can keep adding lifts as you move around the gym.",
+                                title = "Add a lift",
+                                body = "Pick the first exercise, then log weight and reps.",
                                 actionLabel = "Add a lift",
                                 onAction = { viewModel.setPickerVisible(true) },
                             )
@@ -157,15 +177,13 @@ fun ActiveWorkoutScreen(
                         item {
                             EmptyState(
                                 title = "Pick a lift",
-                                body = "Choose a lift above, or add one to keep logging.",
+                                body = "Choose one above to keep logging.",
                                 actionLabel = "Add a lift",
                                 onAction = { viewModel.setPickerVisible(true) },
                             )
                         }
                         if (session.sets.isNotEmpty()) {
-                            item {
-                                Text("Logged sets", style = MaterialTheme.typography.titleLarge)
-                            }
+                            item { SectionLabel("Sets") }
                             items(session.sets, key = { it.id }) { set ->
                                 SetRow(
                                     set = set,
@@ -178,55 +196,23 @@ fun ActiveWorkoutScreen(
                         }
                     } else {
                         val workingLogged = session.setsFor(selected.exercise.id).count { !it.isWarmup }
-                        val nextWorkingSet = workingLogged + 1
                         val logged = session.setsFor(selected.exercise.id)
                         val latestSetId = logged.maxByOrNull { it.completedAt }?.id
                         item {
-                            val targetSets = selected.targetSets.coerceAtLeast(1)
-                            val targetReps = selected.targetReps.coerceAtLeast(1)
-                            Text(selected.exercise.name, style = MaterialTheme.typography.headlineMedium)
-                            Text(
-                                "Set $nextWorkingSet of $targetSets",
-                                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                            )
-                            Text(
-                                "Target $targetSets × $targetReps" +
-                                    (selected.targetWeightKg?.takeIf { it > 0.0 }?.let { " @ ${it.toWeightLabel(unit)}" } ?: ""),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            CurrentLiftHeader(
+                                lift = selected,
+                                nextWorkingSet = workingLogged + 1,
+                                unit = unit,
                             )
                         }
                         state.hint?.let { hint ->
                             item {
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    ),
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(16.dp),
-                                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    ) {
-                                        Text(
-                                            "Suggested: ${hint.suggestedWeightKg.toWeightLabel(unit)}",
-                                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                                        )
-                                        val reason = when (hint.action) {
-                                            ProgressionAction.INCREASE ->
-                                                "Hit all ${hint.targetReps} target reps last time. Add $incrementLabel."
-                                            ProgressionAction.HOLD ->
-                                                "1–2 reps short of ${hint.targetReps}. Keep ${hint.lastWeightKg.toWeightLabel(unit)}."
-                                            ProgressionAction.DECREASE ->
-                                                "3+ reps short of ${hint.targetReps}. Drop $incrementLabel."
-                                        }
-                                        Text("Last: ${hint.lastWeightKg.toWeightLabel(unit)} × ${hint.lastReps}")
-                                        Text(reason)
-                                        PrimaryGymButton(
-                                            text = "Use suggested",
-                                            onClick = viewModel::applySuggestedWeight,
-                                        )
-                                    }
-                                }
+                                ProgressionStrip(
+                                    hint = hint,
+                                    incrementLabel = incrementLabel,
+                                    unit = unit,
+                                    onApply = viewModel::applySuggestedWeight,
+                                )
                             }
                         }
                         item {
@@ -242,49 +228,20 @@ fun ActiveWorkoutScreen(
                             )
                         }
                         item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text("Warm-up set", style = MaterialTheme.typography.titleMedium)
-                                Switch(
-                                    checked = state.draft.isWarmup,
-                                    onCheckedChange = viewModel::setWarmup,
-                                )
-                            }
-                        }
-                        item {
-                            Text("RPE (optional)", style = MaterialTheme.typography.titleMedium)
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                items((6..10).toList()) { value ->
-                                    FilterChip(
-                                        selected = state.draft.rpe == value,
-                                        onClick = {
-                                            viewModel.setRpe(if (state.draft.rpe == value) null else value)
-                                        },
-                                        label = { Text(value.toString()) },
-                                    )
-                                }
-                            }
-                        }
-                        item {
-                            PrimaryGymButton(
-                                text = if (state.editingSetId == null) "Log set" else "Save set",
-                                onClick = viewModel::logSet,
+                            SecondaryLogOptions(
+                                warmup = state.draft.isWarmup,
+                                rpe = state.draft.rpe,
+                                onWarmup = viewModel::setWarmup,
+                                onRpe = viewModel::setRpe,
                             )
-                            if (state.editingSetId != null) {
-                                TextButton(onClick = viewModel::cancelEdit) { Text("Cancel edit") }
-                            }
                         }
-                        item {
-                            Text("Sets", style = MaterialTheme.typography.titleLarge)
-                        }
+                        item { SectionLabel("Sets") }
                         if (logged.isEmpty()) {
                             item {
-                                EmptyState(
-                                    title = "No sets yet",
-                                    body = "Set the weight and reps above, then tap Log set. Rest starts after working sets.",
+                                Text(
+                                    "No sets yet. Log the first one below.",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.bodyMedium,
                                 )
                             }
                         } else {
@@ -300,16 +257,15 @@ fun ActiveWorkoutScreen(
                         }
                     }
                     item {
-                        OutlinedTextField(
-                            value = state.notes,
-                            onValueChange = viewModel::setNotes,
-                            modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Session notes") },
+                        NotesBlock(
+                            notes = state.notes,
+                            expanded = notesOpen,
+                            onToggle = { notesOpen = !notesOpen },
+                            onChange = viewModel::setNotes,
                         )
                     }
                     item {
-                        PrimaryGymButton(
-                            text = "Finish workout",
+                        OutlinedButton(
                             onClick = {
                                 if (session.sets.isEmpty()) {
                                     viewModel.finishWorkout(onFinished)
@@ -318,14 +274,19 @@ fun ActiveWorkoutScreen(
                                 }
                             },
                             enabled = session.sets.isNotEmpty(),
-                        )
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                        ) {
+                            Text("Finish workout", style = MaterialTheme.typography.titleMedium)
+                        }
                         if (session.sets.isEmpty()) {
                             Text(
-                                "Log at least one set before finishing.",
+                                "Log a set to finish.",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(top = 8.dp),
                             )
                         }
-                        state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                     }
                 }
             }
@@ -344,54 +305,284 @@ fun ActiveWorkoutScreen(
     }
 
     if (confirmFinish) {
-        ConfirmActionDialog(
-            title = "Finish workout?",
-            body = "This saves the session to history. Leave without finishing if you still have sets to log.",
-            confirmLabel = "Finish",
-            dismissLabel = "Keep logging",
-            onConfirm = {
-                confirmFinish = false
-                viewModel.finishWorkout(onFinished)
+        AlertDialog(
+            onDismissRequest = { confirmFinish = false },
+            title = { Text("Finish workout?") },
+            text = { Text("Saves this session to history.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmFinish = false
+                        viewModel.finishWorkout(onFinished)
+                    },
+                ) { Text("Finish") }
             },
-            onDismiss = { confirmFinish = false },
+            dismissButton = {
+                TextButton(onClick = { confirmFinish = false }) { Text("Keep logging") }
+            },
         )
     }
 
-    if (confirmDiscard) {
-        ConfirmActionDialog(
-            title = "Leave workout?",
-            body = "Discard deletes this session. Keep and exit saves your draft and leaves the rest timer running.",
-            confirmLabel = "Discard",
-            dismissLabel = "Keep and exit",
-            onConfirm = {
-                confirmDiscard = false
-                viewModel.discardWorkout(onExit)
+    if (confirmLeave) {
+        AlertDialog(
+            onDismissRequest = { confirmLeave = false },
+            title = { Text("Leave workout?") },
+            text = { Text("Keep and exit saves your sets and rest. Discard deletes this session.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmLeave = false
+                        viewModel.persistDraftForExit()
+                        onExit()
+                    },
+                ) { Text("Keep and exit") }
             },
-            onDismiss = {
-                confirmDiscard = false
-                viewModel.persistDraftForExit()
-                onExit()
+            dismissButton = {
+                Row {
+                    TextButton(onClick = { confirmLeave = false }) { Text("Stay") }
+                    TextButton(
+                        onClick = {
+                            confirmLeave = false
+                            viewModel.discardWorkout(onExit)
+                        },
+                    ) {
+                        Text("Discard", color = MaterialTheme.colorScheme.error)
+                    }
+                }
             },
         )
     }
 
     pendingDeleteSetId?.let { setId ->
         val set = session?.sets?.firstOrNull { it.id == setId }
-        ConfirmActionDialog(
-            title = "Delete this set?",
-            body = if (set == null) {
-                "Remove this set from the session."
-            } else {
-                "Delete ${set.weightKg.toWeightLabel(unit)} × ${set.reps}${if (set.isWarmup) " warm-up" else ""}?"
+        AlertDialog(
+            onDismissRequest = { pendingDeleteSetId = null },
+            title = { Text("Delete this set?") },
+            text = {
+                Text(
+                    if (set == null) {
+                        "Remove it from this session."
+                    } else {
+                        "Delete ${set.weightKg.toWeightLabel(unit)} × ${set.reps}${if (set.isWarmup) " warm-up" else ""}?"
+                    },
+                )
             },
-            confirmLabel = "Delete",
-            onConfirm = {
-                viewModel.deleteSet(setId)
-                pendingDeleteSetId = null
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteSet(setId)
+                        pendingDeleteSetId = null
+                    },
+                ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
             },
-            onDismiss = { pendingDeleteSetId = null },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteSetId = null }) { Text("Keep") }
+            },
         )
     }
+}
+
+@Composable
+private fun LogBar(
+    editing: Boolean,
+    error: String?,
+    onLog: () -> Unit,
+    onCancelEdit: () -> Unit,
+) {
+    Surface(tonalElevation = 4.dp, shadowElevation = 8.dp) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            error?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+            }
+            if (editing) {
+                TextButton(onClick = onCancelEdit, modifier = Modifier.align(Alignment.End)) {
+                    Text("Cancel edit")
+                }
+            }
+            PrimaryGymButton(
+                text = if (editing) "Save set" else "Log set",
+                onClick = onLog,
+                height = 72.dp,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LiftSwitcher(
+    lifts: List<SessionExercise>,
+    selectedExerciseId: String?,
+    logged: List<SetLog>,
+    onSelect: (String) -> Unit,
+    onAdd: () -> Unit,
+) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(lifts, key = { it.id }) { item ->
+            val working = logged.count { it.exerciseId == item.exercise.id && !it.isWarmup }
+            FilterChip(
+                selected = item.exercise.id == selectedExerciseId,
+                onClick = { onSelect(item.exercise.id) },
+                label = {
+                    Text(
+                        if (item.targetSets > 0) {
+                            "${item.exercise.name}  $working/${item.targetSets}"
+                        } else {
+                            item.exercise.name
+                        },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontWeight = if (item.exercise.id == selectedExerciseId) FontWeight.Bold else FontWeight.Medium,
+                    )
+                },
+            )
+        }
+        item {
+            AssistChip(onClick = onAdd, label = { Text("Add lift") })
+        }
+    }
+}
+
+@Composable
+private fun CurrentLiftHeader(
+    lift: SessionExercise,
+    nextWorkingSet: Int,
+    unit: WeightUnit,
+) {
+    val targetSets = lift.targetSets.coerceAtLeast(1)
+    val targetReps = lift.targetReps.coerceAtLeast(1)
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            lift.exercise.name,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            "Set $nextWorkingSet of $targetSets",
+            style = GymNumericStyle.copy(fontSize = 28.sp, lineHeight = 32.sp),
+        )
+        val targetWeight = lift.targetWeightKg?.takeIf { it > 0.0 }?.toWeightLabel(unit)
+        Text(
+            buildString {
+                append("Target $targetSets × $targetReps")
+                if (targetWeight != null) append(" @ $targetWeight")
+            },
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.titleMedium,
+        )
+    }
+}
+
+@Composable
+private fun ProgressionStrip(
+    hint: ProgressionHint,
+    incrementLabel: String,
+    unit: WeightUnit,
+    onApply: () -> Unit,
+) {
+    val reason = when (hint.action) {
+        ProgressionAction.INCREASE -> "Hit target. Add $incrementLabel."
+        ProgressionAction.HOLD -> "Close. Keep ${hint.lastWeightKg.toWeightLabel(unit)}."
+        ProgressionAction.DECREASE -> "Missed target. Drop $incrementLabel."
+    }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    "${hint.lastWeightKg.toWeightLabel(unit)} × ${hint.lastReps}  →  ${hint.suggestedWeightKg.toWeightLabel(unit)}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(reason, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+            }
+            TextButton(onClick = onApply) { Text("Use") }
+        }
+    }
+}
+
+@Composable
+private fun SecondaryLogOptions(
+    warmup: Boolean,
+    rpe: Int?,
+    onWarmup: (Boolean) -> Unit,
+    onRpe: (Int?) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FilterChip(
+            selected = warmup,
+            onClick = { onWarmup(!warmup) },
+            label = { Text("Warm-up") },
+        )
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            item {
+                Text(
+                    "RPE",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.padding(end = 4.dp),
+                )
+            }
+            items((6..10).toList()) { value ->
+                FilterChip(
+                    selected = rpe == value,
+                    onClick = { onRpe(if (rpe == value) null else value) },
+                    label = { Text(value.toString()) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NotesBlock(
+    notes: String,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    onChange: (String) -> Unit,
+) {
+    Column {
+        TextButton(onClick = onToggle) {
+            Icon(
+                if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                contentDescription = null,
+            )
+            Text(if (expanded) "Hide notes" else if (notes.isBlank()) "Session notes" else "Session notes · saved")
+        }
+        if (expanded) {
+            OutlinedTextField(
+                value = notes,
+                onValueChange = onChange,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Notes") },
+                minLines = 2,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SectionLabel(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @Composable
@@ -402,32 +593,36 @@ private fun SetRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val unit = LocalWeightUnit.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = if (isLatest) {
             CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         } else {
-            CardDefaults.cardColors()
+            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         },
+        shape = RoundedCornerShape(16.dp),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Set ${set.setNumber} · ${set.weightKg.toWeightLabel(LocalWeightUnit.current)} × ${set.reps}")
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    "${set.weightKg.toWeightLabel(unit)}  ×  ${set.reps}",
+                    style = GymNumericStyle.copy(fontSize = 20.sp, lineHeight = 24.sp),
+                )
                 val extras = buildList {
+                    add("Set ${set.setNumber}")
                     if (set.isWarmup) add("Warm-up")
                     set.rpe?.let { add("RPE $it") }
                     if (isLatest) add("Latest")
                     if (isEditing) add("Editing")
                 }.joinToString(" · ")
-                if (extras.isNotEmpty()) {
-                    Text(extras, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+                Text(extras, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
             }
             if (isLatest) {
                 TextButton(onClick = onEdit) { Text("Edit") }

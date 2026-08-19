@@ -1,5 +1,11 @@
 package com.sinura.personaltrainer.ui.components
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -33,14 +39,24 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
-import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import kotlinx.coroutines.delay
+
+val GymNumericStyle = TextStyle(
+    fontFamily = FontFamily.Monospace,
+    fontWeight = FontWeight.Bold,
+    fontFeatureSettings = "tnum",
+)
 
 @Composable
 fun EmptyState(
@@ -122,12 +138,21 @@ fun WeightStepper(
             modifier = Modifier.weight(1f),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("WEIGHT", style = MaterialTheme.typography.labelLarge)
+            Text(
+                "WEIGHT",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Text(
                 displayNumber,
-                style = MaterialTheme.typography.headlineLarge.copy(fontSize = 56.sp, fontWeight = FontWeight.Bold),
+                style = GymNumericStyle.copy(fontSize = 52.sp, lineHeight = 56.sp),
             )
-            Text(valueKg.toWeightLabel(unit), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                unit.suffix,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         StepperButton(
             label = "+${unit.stepLabel}",
@@ -152,10 +177,15 @@ fun RepsStepper(
             modifier = Modifier.weight(1f),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("REPS", style = MaterialTheme.typography.labelLarge)
+            Text(
+                "REPS",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Text(
                 value.toString(),
-                style = MaterialTheme.typography.headlineLarge.copy(fontSize = 56.sp, fontWeight = FontWeight.Bold),
+                style = GymNumericStyle.copy(fontSize = 52.sp, lineHeight = 56.sp),
             )
         }
         StepperButton(label = "+1", onClick = { onAdjust(1) })
@@ -199,40 +229,65 @@ fun RestTimerBar(
         }
         wasRunning = running
     }
+    LaunchedEffect(justFinished) {
+        if (justFinished) {
+            delay(3_500)
+            justFinished = false
+        }
+    }
+    val safeRemaining = remainingSeconds.coerceAtLeast(0)
     val progress = if (!running || totalSeconds <= 0) {
         0f
     } else {
-        remainingSeconds.toFloat() / totalSeconds.toFloat()
+        (safeRemaining.toFloat() / totalSeconds.toFloat()).coerceIn(0f, 1f)
     }
+    val infinite = rememberInfiniteTransition(label = "rest-pulse")
+    val pulse by infinite.animateFloat(
+        initialValue = 0.72f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(900),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "rest-pulse-alpha",
+    )
+    val pulseAlpha = if (running) pulse else 1f
     val colors = when {
         running -> CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
         justFinished -> CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
         else -> CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     }
-    Card(modifier = modifier.fillMaxWidth(), colors = colors) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .animateContentSize(),
+        colors = colors,
+        shape = RoundedCornerShape(20.dp),
+    ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = if (running || justFinished) 16.dp else 12.dp),
+            verticalArrangement = Arrangement.spacedBy(if (running || justFinished) 12.dp else 8.dp),
         ) {
-            Text(
-                when {
-                    running -> "REST"
-                    justFinished -> "REST DONE"
-                    else -> "REST TIMER"
-                },
-                style = MaterialTheme.typography.labelLarge,
-            )
-            Text(
-                if (running) RestTimer.formatClock(remainingSeconds) else RestTimer.formatClock(totalSeconds),
-                style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Bold),
-            )
             if (running) {
+                Text(
+                    "REST",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+                Text(
+                    RestTimer.formatClock(safeRemaining),
+                    style = GymNumericStyle.copy(fontSize = 56.sp, lineHeight = 60.sp),
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
                 LinearProgressIndicator(
                     progress = { progress },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(14.dp),
+                        .height(12.dp)
+                        .alpha(pulseAlpha),
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -257,9 +312,45 @@ fun RestTimerBar(
                             .height(56.dp),
                     ) { Text("+15s") }
                 }
-            } else {
+            } else if (justFinished) {
                 Text(
-                    if (justFinished) "Back to the bar." else "Starts after a working set. Or tap a preset.",
+                    "REST DONE",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+                Text(
+                    RestTimer.formatClock(0),
+                    style = GymNumericStyle.copy(fontSize = 48.sp, lineHeight = 52.sp),
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+                Text(
+                    "Back to the bar.",
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "REST",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        RestTimer.formatClock(totalSeconds.coerceAtLeast(0)),
+                        style = GymNumericStyle.copy(fontSize = 22.sp, lineHeight = 26.sp),
+                    )
+                }
+                Text(
+                    "Starts after a working set.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -379,15 +470,16 @@ fun PrimaryGymButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    height: Dp = 64.dp,
 ) {
     Button(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
-            .height(64.dp),
+            .height(height),
         shape = RoundedCornerShape(16.dp),
     ) {
-        Text(text, style = MaterialTheme.typography.titleLarge)
+        Text(text, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
     }
 }
