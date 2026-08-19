@@ -23,18 +23,62 @@ import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.WeightUnit
 import kotlinx.coroutines.flow.first
+import java.io.File
 
+/**
+ * Turns the database into a backup document and back again.
+ *
+ * @param onBeforeRestore runs immediately before the wipe, at the single choke point every
+ * restore passes through, so no caller can forget to tear down state that points at rows
+ * about to be deleted (the rest timer and the in-memory workout draft).
+ * @param safetySnapshotDir where a copy of the current data is written before it is
+ * overwritten. Restoring the wrong file is otherwise unrecoverable.
+ */
 class LocalBackupRepository(
     private val database: TrainerDatabase,
     private val preferencesRepository: PreferencesRepository,
+    private val onBeforeRestore: suspend () -> Unit = {},
+    private val safetySnapshotDir: File? = null,
 ) {
+    /**
+     * A consistent point-in-time export.
+     *
+     * The six table reads run inside one transaction: read outside one and a write landing
+     * between them can produce a file whose child rows reference a parent that is not in it.
+     * Restore enforces foreign keys, so such a file fails wholesale — and it fails at the one
+     * moment it is the last copy.
+     *
+     * Unfinished sessions are deliberately EXCLUDED, along with their exercises and sets. A
+     * backup taken mid-workout would otherwise restore as a phantom "workout in progress"
+     * pointing at a session the user finished on another day, and Home would offer to resume
+     * it. The cost is that the in-flight session is not backed up; it is still on the phone,
+     * and it will be included by the next backup once finished.
+     *
+     * Preference reads stay outside the transaction on purpose — they are DataStore, not
+     * Room, and suspending on unrelated I/O inside a Room transaction is a deadlock risk.
+     */
     suspend fun createSnapshot(): BackupDocument {
-        val exercises = database.exerciseDao().getAll()
-        val routines = database.routineDao().getAllRoutines()
-        val routineExercises = database.routineDao().getAllRoutineExercises()
-        val sessions = database.workoutDao().getAllSessions()
-        val sessionExercises = database.workoutDao().getAllSessionExercises()
-        val sets = database.workoutDao().getAllSets()
+        val snapshot = database.withTransaction {
+            val allSessions = database.workoutDao().getAllSessions()
+            val finishedSessions = allSessions.filter { it.finishedAt != null }
+            val finishedIds = finishedSessions.mapTo(HashSet()) { it.id }
+            TableSnapshot(
+                exercises = database.exerciseDao().getAll(),
+                routines = database.routineDao().getAllRoutines(),
+                routineExercises = database.routineDao().getAllRoutineExercises(),
+                sessions = finishedSessions,
+                sessionExercises = database.workoutDao().getAllSessionExercises()
+                    .filter { it.sessionId in finishedIds },
+                sets = database.workoutDao().getAllSets()
+                    .filter { it.sessionId in finishedIds },
+            )
+        }
+        val exercises = snapshot.exercises
+        val routines = snapshot.routines
+        val routineExercises = snapshot.routineExercises
+        val sessions = snapshot.sessions
+        val sessionExercises = snapshot.sessionExercises
+        val sets = snapshot.sets
         val unit = preferencesRepository.weightUnit.first()
         val schedule = preferencesRepository.schedulePreferences.first()
         val rest = preferencesRepository.restTimerPreferences.first()
@@ -109,10 +153,32 @@ class LocalBackupRepository(
         )
     }
 
-    suspend fun replaceWith(document: BackupDocument) {
+    /** True when the phone holds anything worth protecting from an empty restore. */
+    suspend fun hasLocalData(): Boolean = database.withTransaction {
+        database.exerciseDao().getAll().any { it.isCustom } ||
+            database.routineDao().getAllRoutines().isNotEmpty() ||
+            database.workoutDao().getAllSessions().isNotEmpty()
+    }
+
+    suspend fun inProgressSessionId(): String? =
+        database.workoutDao().getInProgressSession()?.id
+
+    /**
+     * Overwrites everything. The only irreversible operation in the app.
+     *
+     * Callers MUST have run [BackupValidator] on the document first: foreign keys are
+     * enforced inside the transaction, so a bad file rolls back rather than half-writing, but
+     * an empty or nonsense document that satisfies the schema would still wipe the phone.
+     *
+     * @return whether preferences were restored alongside the data.
+     */
+    suspend fun replaceWith(document: BackupDocument): RestoreOutcome {
         if (document.version > BackupJson.CURRENT_VERSION) {
             throw BackupException("This backup was made with a newer app version and can’t be opened here.")
         }
+        val safetySnapshotPath = writeSafetySnapshot()
+        // Stop anything holding a session id that is about to stop existing.
+        onBeforeRestore()
         database.withTransaction {
             database.workoutDao().deleteAllSets()
             database.workoutDao().deleteAllSessionExercises()
@@ -201,20 +267,69 @@ class LocalBackupRepository(
                 )
             }
         }
-        preferencesRepository.setWeightUnit(WeightUnit.fromStorage(document.preferences.weightUnit))
-        preferencesRepository.setSchedulePreferences(
-            SchedulePreferences(
-                trainingDaysPerWeek = document.preferences.trainingDaysPerWeek,
-                splitStyle = SplitStyle.fromStorage(document.preferences.splitStyle),
-                weekStart = SchedulePreferences.weekStartFromStorage(document.preferences.weekStart),
-            ),
-        )
-        preferencesRepository.setRestTimerPreferences(
-            RestTimerPreferences(
-                soundEnabled = document.preferences.restSoundEnabled,
-                vibrationEnabled = document.preferences.restVibrationEnabled,
-                defaultRestSeconds = document.preferences.defaultRestSeconds,
-            ),
+        // The data is safe at this point. Preferences are a single atomic write, and a
+        // failure here is reported as a warning rather than failing the whole restore —
+        // losing a kg/lbs setting is not worth discarding a recovered training history.
+        val preferencesRestored = try {
+            preferencesRepository.setRestoredPreferences(
+                unit = WeightUnit.fromStorage(document.preferences.weightUnit),
+                schedule = SchedulePreferences(
+                    trainingDaysPerWeek = document.preferences.trainingDaysPerWeek,
+                    splitStyle = SplitStyle.fromStorage(document.preferences.splitStyle),
+                    weekStart = SchedulePreferences.weekStartFromStorage(document.preferences.weekStart),
+                ),
+                rest = RestTimerPreferences(
+                    soundEnabled = document.preferences.restSoundEnabled,
+                    vibrationEnabled = document.preferences.restVibrationEnabled,
+                    defaultRestSeconds = document.preferences.defaultRestSeconds,
+                ),
+            )
+            true
+        } catch (_: Exception) {
+            false
+        }
+        return RestoreOutcome(
+            preferencesRestored = preferencesRestored,
+            safetySnapshotPath = safetySnapshotPath,
         )
     }
+
+    /**
+     * Writes the current data to app-private storage before it is destroyed, keeping the most
+     * recent few. Best-effort: a restore is never blocked because this failed.
+     */
+    private suspend fun writeSafetySnapshot(): String? {
+        val dir = safetySnapshotDir ?: return null
+        return try {
+            if (!dir.exists() && !dir.mkdirs()) return null
+            val json = BackupJson.encode(createSnapshot())
+            val file = File(dir, "pre-restore-${System.currentTimeMillis()}.json")
+            file.writeText(json)
+            dir.listFiles { f -> f.isFile && f.name.startsWith("pre-restore-") }
+                ?.sortedByDescending { it.lastModified() }
+                ?.drop(SAFETY_SNAPSHOT_KEEP)
+                ?.forEach { it.delete() }
+            file.absolutePath
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private data class TableSnapshot(
+        val exercises: List<ExerciseEntity>,
+        val routines: List<RoutineEntity>,
+        val routineExercises: List<RoutineExerciseEntity>,
+        val sessions: List<WorkoutSessionEntity>,
+        val sessionExercises: List<SessionExerciseEntity>,
+        val sets: List<SetLogEntity>,
+    )
+
+    private companion object {
+        const val SAFETY_SNAPSHOT_KEEP = 3
+    }
 }
+
+data class RestoreOutcome(
+    val preferencesRestored: Boolean,
+    val safetySnapshotPath: String?,
+)

@@ -3,10 +3,13 @@ package com.sinura.personaltrainer.ui.settings
 import android.app.Activity
 import android.app.Application
 import android.content.IntentSender
+import android.net.Uri
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.data.backup.BackupException
+import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
+import com.sinura.personaltrainer.data.repository.RestoreResult
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
@@ -20,18 +23,23 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class BackupUiState(
     val accountEmail: String? = null,
     val lastBackupAt: Long? = null,
     val lastBackupName: String? = null,
+    val lastRestoreAt: Long? = null,
+    val lastRestoreName: String? = null,
     val backups: List<DriveBackupFile> = emptyList(),
     val isBusy: Boolean = false,
     val busyLabel: String? = null,
     val status: String? = null,
     val error: String? = null,
     val pendingRestore: DriveBackupFile? = null,
+    val pendingFileRestore: Uri? = null,
 )
 
 class SettingsViewModel(application: Application) : AppViewModel(application) {
@@ -64,6 +72,7 @@ class SettingsViewModel(application: Application) : AppViewModel(application) {
     private val error = MutableStateFlow<String?>(null)
     private val backups = MutableStateFlow<List<DriveBackupFile>>(emptyList())
     private val pendingRestore = MutableStateFlow<DriveBackupFile?>(null)
+    private val pendingFileRestore = MutableStateFlow<Uri?>(null)
     private var resolutionWaiter: CompletableDeferred<Boolean>? = null
 
     val resolutionRequest = MutableSharedFlow<IntentSender>(extraBufferCapacity = 1)
@@ -73,24 +82,30 @@ class SettingsViewModel(application: Application) : AppViewModel(application) {
             container.preferencesRepository.driveAccountEmail,
             container.preferencesRepository.lastBackupAt,
             container.preferencesRepository.lastBackupName,
-            backups,
-        ) { email, lastAt, lastName, files ->
-            BackupMeta(email, lastAt, lastName, files)
+            container.preferencesRepository.lastRestoreAt,
+            container.preferencesRepository.lastRestoreName,
+        ) { email, lastAt, lastName, restoreAt, restoreName ->
+            BackupMeta(email, lastAt, lastName, restoreAt, restoreName)
         },
         combine(isBusy, busyLabel, status, error, pendingRestore) { busy, label, note, err, restore ->
             BackupFlags(busy, label, note, err, restore)
         },
-    ) { meta, flags ->
+        pendingFileRestore,
+        backups,
+    ) { meta, flags, fileRestore, files ->
         BackupUiState(
             accountEmail = meta.email,
             lastBackupAt = meta.lastAt,
             lastBackupName = meta.lastName,
-            backups = meta.files,
+            lastRestoreAt = meta.restoreAt,
+            lastRestoreName = meta.restoreName,
+            backups = files,
             isBusy = flags.busy,
             busyLabel = flags.label,
             status = flags.status,
             error = flags.error,
             pendingRestore = flags.pendingRestore,
+            pendingFileRestore = fileRestore,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -165,7 +180,7 @@ class SettingsViewModel(application: Application) : AppViewModel(application) {
         runBackupAction("Uploading backup…") {
             val file = container.backupRepository.createBackup(activity, ::awaitResolution)
             backups.value = listOf(file) + backups.value.filterNot { it.id == file.id }
-            status.value = "Backup saved as ${file.name}."
+            status.value = "Backup saved as ${file.name}." + unfinishedWorkoutNote()
         }
     }
 
@@ -193,10 +208,84 @@ class SettingsViewModel(application: Application) : AppViewModel(application) {
         val file = pendingRestore.value ?: return
         pendingRestore.value = null
         runBackupAction("Restoring backup…") {
-            container.backupRepository.restoreBackup(activity, file, ::awaitResolution)
-            status.value = "Restored ${file.name}. Home, routines, and history now match that backup."
+            val result = container.backupRepository.restoreBackup(activity, file, ::awaitResolution)
+            status.value = describeRestore(result)
         }
     }
+
+    // ---- Local file export / import (no Google account required) ----
+
+    /** Suggested filename for the system file picker. */
+    fun exportFileName(): String = BackupJson.fileName()
+
+    fun exportToFile(uri: Uri) {
+        runBackupAction("Saving backup file…") {
+            val json = container.backupRepository.exportJson()
+            withContext(Dispatchers.IO) {
+                val resolver = getApplication<Application>().contentResolver
+                resolver.openOutputStream(uri, "wt")?.use { stream ->
+                    stream.write(json.toByteArray(Charsets.UTF_8))
+                    stream.flush()
+                } ?: throw BackupException("Couldn't write to that location. Pick another folder.")
+            }
+            container.preferencesRepository.setLastBackup(
+                displayName(uri),
+                System.currentTimeMillis(),
+            )
+            status.value = "Backup saved to your chosen file. It restores without signing in." +
+                unfinishedWorkoutNote()
+        }
+    }
+
+    /** Importing replaces everything, so it gets the same explicit confirm as a Drive restore. */
+    fun requestFileRestore(uri: Uri) {
+        pendingFileRestore.value = uri
+        error.value = null
+    }
+
+    fun cancelFileRestore() {
+        pendingFileRestore.value = null
+    }
+
+    fun confirmFileRestore(uri: Uri) {
+        pendingFileRestore.value = null
+        importFromFile(uri)
+    }
+
+    private fun importFromFile(uri: Uri) {
+        runBackupAction("Reading backup file…") {
+            val json = withContext(Dispatchers.IO) {
+                val resolver = getApplication<Application>().contentResolver
+                resolver.openInputStream(uri)?.use { stream ->
+                    stream.readBytes().toString(Charsets.UTF_8)
+                } ?: throw BackupException("Couldn't read that file. Pick another one.")
+            }
+            val name = displayName(uri)
+            val result = container.backupRepository.restoreFromJson(json, sourceName = name)
+            container.preferencesRepository.setLastRestore(name, System.currentTimeMillis())
+            status.value = describeRestore(result)
+        }
+    }
+
+    /** Backups exclude the live session on purpose; say so instead of letting the user assume. */
+    private suspend fun unfinishedWorkoutNote(): String =
+        if (container.backupRepository.hasUnfinishedWorkout()) {
+            " Your in-progress workout was left out — back up again once you finish it."
+        } else {
+            ""
+        }
+
+    private fun describeRestore(result: RestoreResult): String {
+        val base = "Restored ${result.sourceName} — ${result.summary.describe()}."
+        return if (result.preferencesRestored) {
+            base
+        } else {
+            "$base Your training data is in; settings couldn't be applied, so check units and rest defaults."
+        }
+    }
+
+    private fun displayName(uri: Uri): String =
+        uri.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() } ?: "backup file"
 
     fun onResolutionFinished(ok: Boolean) {
         resolutionWaiter?.complete(ok)
@@ -235,7 +324,8 @@ class SettingsViewModel(application: Application) : AppViewModel(application) {
         val email: String?,
         val lastAt: Long?,
         val lastName: String?,
-        val files: List<DriveBackupFile>,
+        val restoreAt: Long?,
+        val restoreName: String?,
     )
 
     private data class BackupFlags(

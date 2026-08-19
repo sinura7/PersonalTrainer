@@ -2,7 +2,12 @@ package com.sinura.personaltrainer.data.repository
 
 import android.app.Activity
 import android.content.IntentSender
+import com.sinura.personaltrainer.data.backup.BackupDocument
+import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.BackupJson
+import com.sinura.personaltrainer.data.backup.BackupSummary
+import com.sinura.personaltrainer.data.backup.BackupValidation
+import com.sinura.personaltrainer.data.backup.BackupValidator
 import com.sinura.personaltrainer.data.backup.DriveAuthClient
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
 import com.sinura.personaltrainer.data.backup.DriveRestClient
@@ -77,12 +82,77 @@ class BackupRepository(
         activity: Activity,
         file: DriveBackupFile,
         launchResolution: suspend (IntentSender) -> Boolean,
-    ) = withContext(Dispatchers.IO) {
+    ): RestoreResult = withContext(Dispatchers.IO) {
         networkChecker.requireOnline()
         val session = driveAuthClient.authorize(activity, launchResolution)
         val json = driveRestClient.downloadBackup(session.accessToken, file.id)
+        val result = restoreFromJson(json, sourceName = file.name)
+        preferencesRepository.setLastRestore(
+            file.name,
+            file.modifiedAtMillis.takeIf { it > 0 } ?: System.currentTimeMillis(),
+        )
+        result
+    }
+
+    /** Serialises the current database for a local file export. */
+    suspend fun exportJson(): String = withContext(Dispatchers.IO) {
+        BackupJson.encode(localBackupRepository.createSnapshot())
+    }
+
+    /**
+     * True when a workout is in progress. Snapshots deliberately exclude unfinished sessions,
+     * so the UI can say so rather than letting the user assume today's session is in the file.
+     */
+    suspend fun hasUnfinishedWorkout(): Boolean =
+        localBackupRepository.inProgressSessionId() != null
+
+    /**
+     * The single validated restore path. Drive downloads and local file imports both land
+     * here, so neither can skip a check the other performs.
+     *
+     * Order matters: refuse while a workout is live, decode, validate, and only then wipe.
+     */
+    suspend fun restoreFromJson(
+        json: String,
+        sourceName: String,
+        allowEmptyDestructiveRestore: Boolean = false,
+    ): RestoreResult = withContext(Dispatchers.IO) {
+        if (localBackupRepository.inProgressSessionId() != null) {
+            throw BackupException(
+                "You have a workout in progress. Finish or discard it before restoring, " +
+                    "so a restore can't delete the session you're standing in.",
+            )
+        }
         val document = BackupJson.decode(json)
-        localBackupRepository.replaceWith(document)
-        preferencesRepository.setLastBackup(file.name, file.modifiedAtMillis.takeIf { it > 0 } ?: System.currentTimeMillis())
+        val validated = validateOrThrow(document, allowEmptyDestructiveRestore)
+        val outcome = localBackupRepository.replaceWith(document)
+        RestoreResult(
+            sourceName = sourceName,
+            summary = validated,
+            preferencesRestored = outcome.preferencesRestored,
+            safetySnapshotPath = outcome.safetySnapshotPath,
+        )
+    }
+
+    private suspend fun validateOrThrow(
+        document: BackupDocument,
+        allowEmptyDestructiveRestore: Boolean,
+    ): BackupSummary {
+        val validation = BackupValidator.validate(
+            document = document,
+            localHasData = localBackupRepository.hasLocalData(),
+            allowEmptyDestructiveRestore = allowEmptyDestructiveRestore,
+        )
+        return when (validation) {
+            is BackupValidation.Valid -> validation.summary
+            is BackupValidation.Invalid -> throw BackupException(validation.reason)
+        }
     }
 }
+
+data class RestoreResult(
+    val sourceName: String,
+    val summary: BackupSummary,
+    val preferencesRestored: Boolean,
+    val safetySnapshotPath: String?,
+)

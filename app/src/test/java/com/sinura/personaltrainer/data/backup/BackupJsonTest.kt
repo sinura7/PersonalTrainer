@@ -19,23 +19,106 @@ class BackupJsonTest {
 
     @Test
     fun roundTripsACompleteBackup() {
+        // Whole-document equality on purpose. The old assertions checked every collection
+        // EXCEPT sessionExercises — the join table whose loss would restore every workout
+        // with no exercises in it — and only one of seven preference fields.
         val original = sampleDocument()
         val parsed = BackupJson.decode(BackupJson.encode(original))
-        assertEquals(original.version, parsed.version)
-        assertEquals(original.preferences.weightUnit, parsed.preferences.weightUnit)
-        assertEquals(original.exercises, parsed.exercises)
-        assertEquals(original.routines, parsed.routines)
-        assertEquals(original.routineExercises, parsed.routineExercises)
-        assertEquals(original.sessions, parsed.sessions)
-        assertEquals(original.setLogs, parsed.setLogs)
+        // encode() sorts every collection by id for deterministic files, so compare against
+        // the same normalisation rather than the order the caller happened to build.
+        assertEquals(sortedForComparison(original), sortedForComparison(parsed))
+        assertEquals(original.sessionExercises, parsed.sessionExercises)
+        assertEquals(original.preferences, parsed.preferences)
+        assertEquals(original.exportedAt, parsed.exportedAt)
+    }
+
+    @Test
+    fun corruptInputFailsFriendlyAndNeverLeaksParserText() {
+        val corrupt = listOf(
+            "" to "not a",
+            "   " to "not a",
+            "not json at all" to "not a",
+            "\"a bare string\"" to "not a",
+            "12345" to "not a",
+            "[]" to "not a",
+            "{" to "not a",
+            // Truncated mid-download: valid prefix, no closing brace.
+            "{\"version\": 1, \"app\": \"personal-trainer\", \"exercises\": [{\"id\": \"e" to "not a",
+            // An HTML error page where JSON was expected.
+            "<!DOCTYPE html><html><body>502 Bad Gateway</body></html>" to "not a",
+            // Well-formed JSON, no version.
+            "{\"app\": \"personal-trainer\"}" to "not a",
+            // Wrong app entirely.
+            "{\"version\": 1, \"app\": \"some-other-app\"}" to "not a",
+        )
+        corrupt.forEach { (json, fragment) ->
+            try {
+                BackupJson.decode(json)
+                throw AssertionError("expected BackupException for: $json")
+            } catch (error: BackupException) {
+                val message = error.message.orEmpty()
+                assertTrue("message was: $message", message.contains(fragment, ignoreCase = true))
+                assertNoParserLeakage(message)
+            }
+        }
+    }
+
+    @Test
+    fun wrongFieldTypesFailFriendlyRatherThanCrashing() {
+        // "exercises" as an object, not an array; a numeric field holding a string.
+        val json = """{"version": 1, "app": "personal-trainer", "exercises": {"id": "x"},
+            "setLogs": [{"id": "s", "sessionId": "a", "exerciseId": "b", "setNumber": "many",
+            "weightKg": 1.0, "reps": 1, "isWarmup": false, "completedAt": 1}]}"""
+        try {
+            BackupJson.decode(json)
+            throw AssertionError("expected BackupException")
+        } catch (error: BackupException) {
+            assertNoParserLeakage(error.message.orEmpty())
+        }
+    }
+
+    @Test
+    fun aVersionOnlyDocumentDecodesToEmptyListsSoValidationMustCatchIt() {
+        // Documents this thin are exactly why decoding is not enough on its own.
+        val parsed = BackupJson.decode("""{"version": 1}""")
+        assertTrue(parsed.exercises.isEmpty())
+        assertTrue(parsed.sessions.isEmpty())
+        assertTrue(parsed.setLogs.isEmpty())
+        assertTrue(parsed.sessionExercises.isEmpty())
+    }
+
+    private fun assertNoParserLeakage(message: String) {
+        listOf("Exception", "com.google.gson", "java.lang", "BEGIN_OBJECT", "at line", "$").forEach {
+            assertTrue("leaked parser text ($it): $message", !message.contains(it))
+        }
     }
 
     @Test
     fun sortsRecordsForDeterministicOutput() {
-        val first = BackupJson.encode(sampleDocument(exerciseId = "ex-b", otherExerciseId = "ex-a"))
-        val second = BackupJson.encode(sampleDocument(exerciseId = "ex-a", otherExerciseId = "ex-b"))
-        assertEquals(first.substringAfter("\"exercises\""), second.substringAfter("\"exercises\""))
+        // Same records, different input order, byte-identical output — that is what the
+        // sorting in encode() is for. (The previous version of this test swapped ids between
+        // two differently named exercises and asserted the output matched, which it never
+        // could; it had been failing unnoticed because nothing runs the suite automatically.)
+        val document = sampleDocument()
+        val shuffled = document.copy(
+            exercises = document.exercises.reversed(),
+            routines = document.routines.reversed(),
+            routineExercises = document.routineExercises.reversed(),
+            sessions = document.sessions.reversed(),
+            sessionExercises = document.sessionExercises.reversed(),
+            setLogs = document.setLogs.reversed(),
+        )
+        assertEquals(BackupJson.encode(document), BackupJson.encode(shuffled))
     }
+
+    private fun sortedForComparison(document: BackupDocument) = document.copy(
+        exercises = document.exercises.sortedBy { it.id },
+        routines = document.routines.sortedBy { it.id },
+        routineExercises = document.routineExercises.sortedBy { it.id },
+        sessions = document.sessions.sortedBy { it.id },
+        sessionExercises = document.sessionExercises.sortedBy { it.id },
+        setLogs = document.setLogs.sortedBy { it.id },
+    )
 
     @Test
     fun missingSchedulePreferencesUseDefaults() {
@@ -94,6 +177,7 @@ class BackupJsonTest {
             ),
             setLogs = listOf(
                 BackupSetLog("set1", "s1", exerciseId, 1, 80.0, 5, 8, false, 15L),
+                BackupSetLog("set2", "s1", exerciseId, 2, 82.5, 4, 9, false, 16L),
             ),
         )
     }

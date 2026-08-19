@@ -27,7 +27,12 @@ private val Context.userSettingsDataStore: DataStore<Preferences> by preferences
 class PreferencesRepository(context: Context) {
     private val dataStore = context.applicationContext.userSettingsDataStore
 
-    val weightUnit: Flow<WeightUnit> = dataStore.data
+    /**
+     * The preferences stream with the one guard every reader needs: a corrupted or unreadable
+     * settings file degrades to defaults instead of throwing into a collector. Read through
+     * this rather than [dataStore].data directly.
+     */
+    private val safePreferences: Flow<Preferences> = dataStore.data
         .catch { error ->
             if (error is IOException) {
                 emit(androidx.datastore.preferences.core.emptyPreferences())
@@ -35,6 +40,8 @@ class PreferencesRepository(context: Context) {
                 throw error
             }
         }
+
+    val weightUnit: Flow<WeightUnit> = safePreferences
         .map { prefs -> WeightUnit.fromStorage(prefs[WEIGHT_UNIT]) }
 
     suspend fun setWeightUnit(unit: WeightUnit) {
@@ -43,14 +50,7 @@ class PreferencesRepository(context: Context) {
         }
     }
 
-    val schedulePreferences: Flow<SchedulePreferences> = dataStore.data
-        .catch { error ->
-            if (error is IOException) {
-                emit(androidx.datastore.preferences.core.emptyPreferences())
-            } else {
-                throw error
-            }
-        }
+    val schedulePreferences: Flow<SchedulePreferences> = safePreferences
         .map { prefs ->
             SchedulePreferences(
                 trainingDaysPerWeek = prefs[TRAINING_DAYS] ?: SchedulePreferences.DEFAULT_DAYS,
@@ -77,14 +77,7 @@ class PreferencesRepository(context: Context) {
         }
     }
 
-    val restTimerPreferences: Flow<RestTimerPreferences> = dataStore.data
-        .catch { error ->
-            if (error is IOException) {
-                emit(androidx.datastore.preferences.core.emptyPreferences())
-            } else {
-                throw error
-            }
-        }
+    val restTimerPreferences: Flow<RestTimerPreferences> = safePreferences
         .map { prefs ->
             RestTimerPreferences(
                 soundEnabled = prefs[REST_SOUND] ?: true,
@@ -137,34 +130,13 @@ class PreferencesRepository(context: Context) {
         }
     }
 
-    val driveAccountEmail: Flow<String?> = dataStore.data
-        .catch { error ->
-            if (error is IOException) {
-                emit(androidx.datastore.preferences.core.emptyPreferences())
-            } else {
-                throw error
-            }
-        }
+    val driveAccountEmail: Flow<String?> = safePreferences
         .map { prefs -> prefs[DRIVE_ACCOUNT] }
 
-    val lastBackupAt: Flow<Long?> = dataStore.data
-        .catch { error ->
-            if (error is IOException) {
-                emit(androidx.datastore.preferences.core.emptyPreferences())
-            } else {
-                throw error
-            }
-        }
+    val lastBackupAt: Flow<Long?> = safePreferences
         .map { prefs -> prefs[LAST_BACKUP_AT] }
 
-    val lastBackupName: Flow<String?> = dataStore.data
-        .catch { error ->
-            if (error is IOException) {
-                emit(androidx.datastore.preferences.core.emptyPreferences())
-            } else {
-                throw error
-            }
-        }
+    val lastBackupName: Flow<String?> = safePreferences
         .map { prefs -> prefs[LAST_BACKUP_NAME] }
 
     suspend fun setDriveAccountEmail(email: String?) {
@@ -177,7 +149,7 @@ class PreferencesRepository(context: Context) {
         }
     }
 
-    suspend fun driveFolderId(): String? = dataStore.data.first()[DRIVE_FOLDER_ID]
+    suspend fun driveFolderId(): String? = safePreferences.first()[DRIVE_FOLDER_ID]
 
     suspend fun setDriveFolderId(folderId: String?) {
         dataStore.edit { prefs ->
@@ -186,6 +158,44 @@ class PreferencesRepository(context: Context) {
             } else {
                 prefs[DRIVE_FOLDER_ID] = folderId
             }
+        }
+    }
+
+    /**
+     * One atomic write for everything a restore carries, so a crash mid-way cannot leave the
+     * restored data paired with half the old preferences.
+     */
+    suspend fun setRestoredPreferences(
+        unit: WeightUnit,
+        schedule: SchedulePreferences,
+        rest: RestTimerPreferences,
+    ) {
+        val cleanSchedule = schedule.sanitized()
+        val cleanRest = rest.sanitized()
+        dataStore.edit { prefs ->
+            prefs[WEIGHT_UNIT] = unit.storageKey
+            prefs[TRAINING_DAYS] = cleanSchedule.trainingDaysPerWeek
+            prefs[SPLIT_STYLE] = cleanSchedule.splitStyle.storageKey
+            prefs[WEEK_START] = cleanSchedule.weekStart.name
+            prefs[REST_SOUND] = cleanRest.soundEnabled
+            prefs[REST_VIBRATE] = cleanRest.vibrationEnabled
+            prefs[REST_DEFAULT] = cleanRest.defaultRestSeconds
+        }
+    }
+
+    val lastRestoreAt: Flow<Long?> = safePreferences.map { prefs -> prefs[LAST_RESTORE_AT] }
+
+    val lastRestoreName: Flow<String?> = safePreferences.map { prefs -> prefs[LAST_RESTORE_NAME] }
+
+    /**
+     * Tracked separately from [setLastBackup]. Restoring used to overwrite the last-backup
+     * stamp, so Settings claimed a backup existed as of the restored file's date — the one
+     * signal whose whole job is to nag the user into backing up.
+     */
+    suspend fun setLastRestore(fileName: String, atMillis: Long) {
+        dataStore.edit { prefs ->
+            prefs[LAST_RESTORE_NAME] = fileName
+            prefs[LAST_RESTORE_AT] = atMillis
         }
     }
 
@@ -216,5 +226,7 @@ class PreferencesRepository(context: Context) {
         val DRIVE_FOLDER_ID = stringPreferencesKey("drive_folder_id")
         val LAST_BACKUP_AT = longPreferencesKey("last_backup_at")
         val LAST_BACKUP_NAME = stringPreferencesKey("last_backup_name")
+        val LAST_RESTORE_AT = longPreferencesKey("last_restore_at")
+        val LAST_RESTORE_NAME = stringPreferencesKey("last_restore_name")
     }
 }

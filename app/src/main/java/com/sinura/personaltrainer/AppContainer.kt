@@ -37,7 +37,17 @@ class AppContainer(context: Context) {
         RestTimerController(context, restTimerStore, restTimerStatePersistence)
     val workoutDraftCache: WorkoutDraftCache = WorkoutDraftCache()
     val backupRepository: BackupRepository = BackupRepository(
-        localBackupRepository = LocalBackupRepository(database, preferencesRepository),
+        localBackupRepository = LocalBackupRepository(
+            database = database,
+            preferencesRepository = preferencesRepository,
+            // Runs at the wipe choke point: both of these hold a session id that is about to
+            // stop existing, and a running rest timer would keep counting for a dead workout.
+            onBeforeRestore = {
+                restTimerController.stop()
+                workoutDraftCache.clearAll()
+            },
+            safetySnapshotDir = java.io.File(context.filesDir, "safety-snapshots"),
+        ),
         preferencesRepository = preferencesRepository,
         driveAuthClient = DriveAuthClient(),
         driveRestClient = DriveRestClient(),

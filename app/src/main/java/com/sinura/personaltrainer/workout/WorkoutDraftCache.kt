@@ -26,4 +26,12 @@ class WorkoutDraftCache {
             draft = null
         }
     }
+
+    /**
+     * Drops the draft whatever session it belongs to. Used by restore, which deletes every
+     * session row — a draft left behind would point at a workout that no longer exists.
+     */
+    fun clearAll() {
+        draft = null
+    }
 }

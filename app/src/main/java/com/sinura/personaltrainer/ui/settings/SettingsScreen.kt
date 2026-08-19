@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.BuildConfig
+import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
@@ -78,6 +79,16 @@ fun SettingsScreen(
     ) { result ->
         viewModel.onResolutionFinished(result.resultCode == Activity.RESULT_OK)
     }
+
+    // Local file export/import. Deliberately independent of Google: if the OAuth client or
+    // the signing key is ever lost, this is still a complete way in and out of the data.
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument(BackupJson.MIME_TYPE),
+    ) { uri -> uri?.let(viewModel::exportToFile) }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri -> uri?.let { viewModel.requestFileRestore(it) } }
 
     LaunchedEffect(viewModel) {
         viewModel.resolutionRequest.collect { sender ->
@@ -131,6 +142,11 @@ fun SettingsScreen(
                 onCreateBackup = { viewModel.createBackup(activity) },
                 onRefresh = { viewModel.refreshBackups(activity) },
                 onRestore = viewModel::requestRestore,
+                onExportFile = { exportLauncher.launch(viewModel.exportFileName()) },
+                onImportFile = {
+                    // Some file managers hand back JSON as octet-stream or text/plain.
+                    importLauncher.launch(arrayOf(BackupJson.MIME_TYPE, "text/plain", "*/*"))
+                },
             )
             AboutSection()
         }
@@ -139,11 +155,25 @@ fun SettingsScreen(
     backup.pendingRestore?.let { file ->
         ConfirmActionDialog(
             title = "Replace all training data?",
-            body = "Restoring ${file.name} replaces every exercise, routine, and workout on this phone. This cannot be undone.",
+            body = "Restoring ${file.name} replaces every exercise, routine, and workout on this phone. " +
+                "A copy of your current data is saved on this phone first, but this cannot be undone from here.",
             confirmLabel = "Restore backup",
             destructive = true,
             onConfirm = { viewModel.confirmRestore(activity) },
             onDismiss = viewModel::cancelRestore,
+        )
+    }
+
+    backup.pendingFileRestore?.let { uri ->
+        ConfirmActionDialog(
+            title = "Replace all training data?",
+            body = "Importing this file replaces every exercise, routine, and workout on this phone. " +
+                "The file is checked before anything is written, and a copy of your current data is " +
+                "saved on this phone first.",
+            confirmLabel = "Import and replace",
+            destructive = true,
+            onConfirm = { viewModel.confirmFileRestore(uri) },
+            onDismiss = viewModel::cancelFileRestore,
         )
     }
 }
@@ -273,20 +303,15 @@ private fun BackupRestoreSection(
     onCreateBackup: () -> Unit,
     onRefresh: () -> Unit,
     onRestore: (DriveBackupFile) -> Unit,
+    onExportFile: () -> Unit,
+    onImportFile: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Backup & restore", style = MaterialTheme.typography.headlineSmall)
         Text(
-            "Save everything to your own Google Drive. Training still works offline — Drive is only used when you back up or restore.",
+            "Save everything to a file on this phone, or to your own Google Drive. Training " +
+                "always works offline — a backup is only read when you ask for one.",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            if (state.accountEmail != null) {
-                "Signed in as ${state.accountEmail}"
-            } else {
-                "Not signed in"
-            },
-            style = MaterialTheme.typography.titleMedium,
         )
         if (state.lastBackupAt != null) {
             Text(
@@ -297,6 +322,15 @@ private fun BackupRestoreSection(
         } else {
             Text(
                 "No backup has been made from this phone yet.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        // Restores are tracked separately: a restore is not a backup, and saying so here used
+        // to mute the only nag that gets the user to actually make one.
+        if (state.lastRestoreAt != null) {
+            Text(
+                "Last restore: ${dateTimeFormat.format(Date(state.lastRestoreAt))}" +
+                    (state.lastRestoreName?.let { " · $it" }.orEmpty()),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -311,12 +345,45 @@ private fun BackupRestoreSection(
         }
         state.status?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+
+        Text("Backup file", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Works with no Google account. Save the file to Drive, a PC, or anywhere you keep " +
+                "things safe — this is the path that still works if Google sign-in ever breaks.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        PrimaryGymButton(
+            text = "Export to file",
+            onClick = onExportFile,
+            enabled = !state.isBusy,
+        )
+        OutlinedButton(
+            onClick = onImportFile,
+            enabled = !state.isBusy,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Import from file")
+        }
+
+        Text("Google Drive", style = MaterialTheme.typography.titleMedium)
+        Text(
+            if (state.accountEmail != null) {
+                "Signed in as ${state.accountEmail}"
+            } else {
+                "Not signed in"
+            },
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium,
+        )
         if (state.accountEmail == null) {
-            PrimaryGymButton(
-                text = "Sign in with Google",
+            OutlinedButton(
                 onClick = onSignIn,
                 enabled = !state.isBusy,
-            )
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Sign in with Google")
+            }
         } else {
             PrimaryGymButton(
                 text = "Create backup now",
