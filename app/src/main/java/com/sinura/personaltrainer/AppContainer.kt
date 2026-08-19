@@ -12,7 +12,9 @@ import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.timer.RestTimerController
+import com.sinura.personaltrainer.timer.RestTimerStatePersistence
 import com.sinura.personaltrainer.timer.RestTimerStore
+import com.sinura.personaltrainer.timer.SharedPrefsRestTimerStatePersistence
 import com.sinura.personaltrainer.workout.WorkoutDraftCache
 
 class AppContainer(context: Context) {
@@ -26,7 +28,13 @@ class AppContainer(context: Context) {
     val routineRepository: RoutineRepository = RoutineRepository(database.routineDao())
     val workoutRepository: WorkoutRepository = WorkoutRepository(database, database.workoutDao())
     val preferencesRepository: PreferencesRepository = PreferencesRepository(context)
-    val restTimerController: RestTimerController = RestTimerController(context, RestTimerStore())
+    // Exposed so the alarm receiver can read timer state after a process death, before any
+    // ViewModel exists.
+    val restTimerStatePersistence: RestTimerStatePersistence =
+        SharedPrefsRestTimerStatePersistence(context)
+    val restTimerStore: RestTimerStore = RestTimerStore(restTimerStatePersistence)
+    val restTimerController: RestTimerController =
+        RestTimerController(context, restTimerStore, restTimerStatePersistence)
     val workoutDraftCache: WorkoutDraftCache = WorkoutDraftCache()
     val backupRepository: BackupRepository = BackupRepository(
         localBackupRepository = LocalBackupRepository(database, preferencesRepository),

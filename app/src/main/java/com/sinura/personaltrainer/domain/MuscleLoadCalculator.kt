@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.domain
 
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
@@ -20,8 +21,9 @@ object MuscleLoadCalculator {
         nowMs: Long,
         zone: ZoneId = ZoneId.systemDefault(),
         exerciseCatalog: Map<String, Exercise> = emptyMap(),
+        weekStart: DayOfWeek = DayOfWeek.MONDAY,
     ): BodyHeatSnapshot {
-        val windowStart = window.startMs(nowMs, zone)
+        val windowStart = window.startMs(nowMs, zone, weekStart)
         val finished = sessions.filter { it.isFinished }
         val acc = CanonicalMuscle.entries.associateWith { MuscleAccumulator() }.toMutableMap()
         var anyWorkingSets = false

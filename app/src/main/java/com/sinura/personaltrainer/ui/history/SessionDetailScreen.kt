@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.toVolumeLabel
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GymCard
@@ -88,7 +89,7 @@ fun SessionDetailScreen(
                             Text(
                                 sessionLogMeta(
                                     workingSets = workingSets,
-                                    volumeLabel = session.workingVolumeKg().toWeightLabel(unit),
+                                    volumeLabel = session.workingVolumeKg().toVolumeLabel(unit),
                                     durationMinutes = session.durationMinutes,
                                 ),
                                 style = MaterialTheme.typography.bodyMedium,
@@ -114,7 +115,7 @@ fun SessionDetailScreen(
                         GymCard {
                             Text(exerciseName, style = MaterialTheme.typography.titleMedium)
                             Text(
-                                volume.toWeightLabel(unit),
+                                volume.toVolumeLabel(unit),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 style = MaterialTheme.typography.bodyMedium,
                             )

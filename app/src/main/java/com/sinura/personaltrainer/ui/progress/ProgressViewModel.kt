@@ -12,6 +12,7 @@ import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
+import java.time.DayOfWeek
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -41,6 +42,9 @@ class ProgressViewModel(application: Application) : AppViewModel(application) {
         container.preferencesRepository.weightUnit,
     ) { history, exercises, routines, selectedWindow, unit ->
         ProgressInputs(history, exercises.associateBy { it.id }, routines, selectedWindow, unit)
+    }.combine(container.preferencesRepository.schedulePreferences) { inputs, schedule ->
+        // "This week" must start on the same day the weekly planner starts it.
+        inputs.copy(weekStart = schedule.weekStart)
     }.mapLatest { inputs ->
         val snapshot = try {
             MuscleLoadCalculator.snapshot(
@@ -49,6 +53,7 @@ class ProgressViewModel(application: Application) : AppViewModel(application) {
                 nowMs = System.currentTimeMillis(),
                 zone = ZoneId.systemDefault(),
                 exerciseCatalog = inputs.exercises,
+                weekStart = inputs.weekStart,
             )
         } catch (_: Exception) {
             null
@@ -91,5 +96,6 @@ class ProgressViewModel(application: Application) : AppViewModel(application) {
         val routines: List<Routine>,
         val window: HeatWindow,
         val unit: WeightUnit,
+        val weekStart: DayOfWeek = DayOfWeek.MONDAY,
     )
 }

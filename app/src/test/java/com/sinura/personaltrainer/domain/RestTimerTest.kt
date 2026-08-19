@@ -6,12 +6,36 @@ import org.junit.Test
 
 class RestTimerTest {
     @Test
-    fun remainingUsesElapsedRealtimeFloor() {
+    fun remainingUsesElapsedRealtimeCeiling() {
         assertEquals(0, RestTimer.remainingSeconds(0, 1_000))
         assertEquals(90, RestTimer.remainingSeconds(90_000, 0))
-        assertEquals(1, RestTimer.remainingSeconds(2_400, 1_000))
+        // 1.4s left rounds UP to 2, so the clock never shows less time than remains.
+        assertEquals(2, RestTimer.remainingSeconds(2_400, 1_000))
         assertEquals(0, RestTimer.remainingSeconds(1_000, 1_000))
         assertEquals(0, RestTimer.remainingSeconds(900, 1_000))
+    }
+
+    @Test
+    fun remainingCeilsPartialSeconds() {
+        assertEquals(1, RestTimer.remainingSeconds(10_000, 9_001))
+        assertEquals(1, RestTimer.remainingSeconds(10_000, 9_999))
+        assertEquals(9, RestTimer.remainingSeconds(10_000, 1_000))
+    }
+
+    @Test
+    fun completionBoundaryIsExactlyZeroMillis() {
+        // The service completes on `remaining <= 0`; under ceiling that is true only once
+        // the end instant has actually arrived, never up to a second early.
+        val end = 60_000L
+        assertEquals(1, RestTimer.remainingSeconds(end, end - 1))
+        assertEquals(0, RestTimer.remainingSeconds(end, end))
+        assertEquals(0, RestTimer.remainingSeconds(end, end + 500))
+    }
+
+    @Test
+    fun remainingNeverGoesNegative() {
+        assertEquals(0, RestTimer.remainingSeconds(1_000, 60_000))
+        assertEquals(0, RestTimer.remainingSeconds(1_000, Long.MAX_VALUE / 2))
     }
 
     @Test

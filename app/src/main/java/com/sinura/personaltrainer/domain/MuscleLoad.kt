@@ -14,13 +14,18 @@ enum class HeatWindow(
     CURRENT_WEEK("This week", "Week"),
     ;
 
-    fun startMs(nowMs: Long, zone: ZoneId): Long {
+    /**
+     * @param weekStart first day of the training week, from SchedulePreferences. Only
+     * [CURRENT_WEEK] uses it, but it must be the same value the weekly planner uses or
+     * "this week" means two different things in two places.
+     */
+    fun startMs(nowMs: Long, zone: ZoneId, weekStart: DayOfWeek = DayOfWeek.MONDAY): Long {
         val now = Instant.ofEpochMilli(nowMs).atZone(zone)
         return when (this) {
             LAST_7_DAYS -> now.minusDays(7).toInstant().toEpochMilli()
             LAST_14_DAYS -> now.minusDays(14).toInstant().toEpochMilli()
             CURRENT_WEEK -> now.toLocalDate()
-                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                .with(TemporalAdjusters.previousOrSame(weekStart))
                 .atStartOfDay(zone)
                 .toInstant()
                 .toEpochMilli()

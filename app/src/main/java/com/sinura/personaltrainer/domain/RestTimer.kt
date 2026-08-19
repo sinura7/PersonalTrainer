@@ -34,11 +34,19 @@ data class RestTimerSnapshot(
 object RestTimer {
     val PRESETS_SECONDS: List<Int> = listOf(60, 90, 120)
 
+    /**
+     * Whole seconds left, rounded UP, never negative.
+     *
+     * Ceiling (not floor) matters twice: a 90s rest displays "1:30" for a full second
+     * instead of flicking to "1:29" immediately, and — because ceiling makes
+     * `remaining <= 0` true exactly when `leftMs <= 0` — every completion check in the
+     * service fires at the wall instead of up to a second early.
+     */
     fun remainingSeconds(endsAtElapsedRealtime: Long, nowElapsedRealtime: Long): Int {
         if (endsAtElapsedRealtime <= 0L) return 0
         val leftMs = endsAtElapsedRealtime - nowElapsedRealtime
         if (leftMs <= 0L) return 0
-        return (leftMs / 1000L).toInt()
+        return ((leftMs + 999L) / 1000L).toInt()
     }
 
     fun formatClock(totalSeconds: Int): String {

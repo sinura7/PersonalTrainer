@@ -31,6 +31,7 @@ import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.MuscleLoadSummary
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.toVolumeLabel
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GymCard
@@ -149,7 +150,7 @@ fun ProgressScreen(
                             load = load,
                             selected = selected == load.muscle,
                             onClick = { selectedName = load.muscle.name },
-                            volumeLabel = load.volumeKg.toWeightLabel(unit),
+                            volumeLabel = load.volumeKg.toVolumeLabel(unit),
                         )
                     }
                     snapshot.load(CanonicalMuscle.OTHER).takeIf { it.workingSets > 0 }?.let { other ->
@@ -158,7 +159,7 @@ fun ProgressScreen(
                                 load = other,
                                 selected = selected == CanonicalMuscle.OTHER,
                                 onClick = { selectedName = CanonicalMuscle.OTHER.name },
-                                volumeLabel = other.volumeKg.toWeightLabel(unit),
+                                volumeLabel = other.volumeKg.toVolumeLabel(unit),
                             )
                         }
                     }
@@ -237,7 +238,7 @@ private fun MuscleDetailSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.titleMedium,
             )
-            DetailLine("Volume", "${load.volumeKg.toWeightLabel(unit)}  ·  $windowLabel")
+            DetailLine("Volume", "${load.volumeKg.toVolumeLabel(unit)}  ·  $windowLabel")
             DetailLine("Working sets", "${load.workingSets}")
             DetailLine("Last trained", recencyLabel(load))
             DetailLine("Sessions", "${load.sessionCount}")
@@ -252,7 +253,7 @@ private fun MuscleDetailSheet(
                     GymCard {
                         Text(exercise.exerciseName, style = MaterialTheme.typography.titleMedium)
                         Text(
-                            "${exercise.volumeKg.toWeightLabel(unit)} · ${exercise.workingSets} working sets",
+                            "${exercise.volumeKg.toVolumeLabel(unit)} · ${exercise.workingSets} working sets",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodyMedium,
                         )

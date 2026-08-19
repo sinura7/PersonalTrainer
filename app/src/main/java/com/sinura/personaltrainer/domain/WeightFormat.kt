@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.domain
 
+import java.text.NumberFormat
+import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.round
 
@@ -67,6 +69,26 @@ object WeightConverter {
         }
     }
 
+    /**
+     * Session/muscle volume runs to five digits. Grouped, whole-number output ("12,450 kg")
+     * reads at a glance where "12450.0 kg" does not.
+     *
+     * Kept separate from [formatDisplayNumber] on purpose: that function feeds
+     * [parseDisplayToKg]'s round-trip check, and a grouping separator there would break
+     * parsing of the user's own entry.
+     */
+    fun formatVolumeLabel(
+        kg: Double,
+        unit: WeightUnit,
+        locale: Locale = Locale.getDefault(),
+    ): String = "${formatGroupedNumber(toDisplayValue(kg, unit), locale)} ${unit.suffix}"
+
+    fun formatGroupedNumber(value: Double, locale: Locale = Locale.getDefault()): String {
+        if (value.isNaN() || value.isInfinite()) return "0"
+        val whole = round(value).toLong()
+        return NumberFormat.getIntegerInstance(locale).format(whole)
+    }
+
     fun parseDisplayToKg(input: String, unit: WeightUnit, originalKg: Double?): Double? {
         val trimmed = input.trim()
         if (trimmed.isEmpty()) return null
@@ -85,6 +107,9 @@ object WeightConverter {
 }
 
 fun Double.toWeightLabel(unit: WeightUnit): String = WeightConverter.formatLabel(this, unit)
+
+/** Grouped, whole-number label for volume-scale numbers. See [WeightConverter.formatVolumeLabel]. */
+fun Double.toVolumeLabel(unit: WeightUnit): String = WeightConverter.formatVolumeLabel(this, unit)
 
 fun Double.toKgLabel(): String = toWeightLabel(WeightUnit.KG)
 

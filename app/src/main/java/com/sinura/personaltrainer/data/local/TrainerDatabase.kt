@@ -24,7 +24,7 @@ import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
         SetLogEntity::class,
     ],
     version = 1,
-    exportSchema = false,
+    exportSchema = true,
 )
 abstract class TrainerDatabase : RoomDatabase() {
     abstract fun exerciseDao(): ExerciseDao

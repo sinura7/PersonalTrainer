@@ -40,6 +40,7 @@ import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.toVolumeLabel
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GymCard
@@ -187,7 +188,7 @@ fun HomeScreen(
                     title = session.routineName ?: "Workout",
                     dateLabel = dateFormat.format(Date(session.date)),
                     workingSets = session.sets.count { !it.isWarmup },
-                    volumeLabel = session.workingVolumeKg().toWeightLabel(unit),
+                    volumeLabel = session.workingVolumeKg().toVolumeLabel(unit),
                     durationMinutes = session.durationMinutes,
                     onClick = { onOpenSession(session.id) },
                 )

@@ -1,8 +1,10 @@
 package com.sinura.personaltrainer.ui.workout
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -42,6 +44,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -52,7 +55,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.ProgressionAction
@@ -82,10 +89,11 @@ fun ActiveWorkoutScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val rest by viewModel.restTimerState.collectAsStateWithLifecycle()
     var confirmLeave by rememberSaveable { mutableStateOf(false) }
+    var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     var confirmFinish by rememberSaveable { mutableStateOf(false) }
     var pendingDeleteSetId by rememberSaveable { mutableStateOf<String?>(null) }
     var notesOpen by rememberSaveable { mutableStateOf(false) }
-    RequestRestNotificationPermission()
+    val restNotificationsEnabled = rememberRestNotificationsEnabled()
     val session = state.session
     val selected = session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId }
     val unit = LocalWeightUnit.current
@@ -144,6 +152,9 @@ fun ActiveWorkoutScreen(
                     contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 28.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
+                    if (!restNotificationsEnabled) {
+                        item { RestNotificationsDisabledBanner() }
+                    }
                     item {
                         RestTimerBar(
                             remainingSeconds = rest.remainingSeconds,
@@ -327,7 +338,23 @@ fun ActiveWorkoutScreen(
         AlertDialog(
             onDismissRequest = { confirmLeave = false },
             title = { Text("Leave workout?") },
-            text = { Text("Keep and exit saves your sets and rest. Discard deletes this session.") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Your sets and rest timer keep running. Pick this session back up from Home.")
+                    // Discarding is destructive and deliberately NOT a dialog button: it sits
+                    // apart from the two safe actions and routes through its own named confirm,
+                    // so it can never be hit by mis-tapping next to "Keep and exit".
+                    TextButton(
+                        onClick = {
+                            confirmLeave = false
+                            confirmDiscard = true
+                        },
+                        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
+                    ) {
+                        Text("Discard this workout instead", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -338,17 +365,36 @@ fun ActiveWorkoutScreen(
                 ) { Text("Keep and exit") }
             },
             dismissButton = {
-                Row {
-                    TextButton(onClick = { confirmLeave = false }) { Text("Stay") }
-                    TextButton(
-                        onClick = {
-                            confirmLeave = false
-                            viewModel.discardWorkout(onExit)
-                        },
-                    ) {
-                        Text("Discard", color = MaterialTheme.colorScheme.error)
-                    }
-                }
+                TextButton(onClick = { confirmLeave = false }) { Text("Stay") }
+            },
+        )
+    }
+
+    if (confirmDiscard) {
+        val loggedSets = session?.sets?.size ?: 0
+        AlertDialog(
+            onDismissRequest = { confirmDiscard = false },
+            title = { Text("Discard this workout?") },
+            text = {
+                Text(
+                    if (loggedSets > 0) {
+                        "This deletes the session and its $loggedSets logged " +
+                            (if (loggedSets == 1) "set" else "sets") + ". This cannot be undone."
+                    } else {
+                        "This deletes the session. This cannot be undone."
+                    },
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmDiscard = false
+                        viewModel.discardWorkout(onExit)
+                    },
+                ) { Text("Discard", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDiscard = false }) { Text("Cancel") }
             },
         )
     }
@@ -632,12 +678,29 @@ private fun SetRow(
     }
 }
 
+/**
+ * Asks for POST_NOTIFICATIONS once, then reports whether rest notifications can actually
+ * be shown.
+ *
+ * The result used to be discarded. On Android 13+ a denial silently removes BOTH off-screen
+ * rest surfaces — the countdown and the "Rest done" alert — so a pocketed phone shows nothing
+ * at all, with no way back: after two denials the system dialog stops appearing entirely.
+ * The returned flag drives an in-workout banner with a deep link to app notification
+ * settings, and re-checks on every resume so it disappears the moment the user grants.
+ */
 @Composable
-private fun RequestRestNotificationPermission() {
+private fun rememberRestNotificationsEnabled(): Boolean {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var enabled by remember {
+        mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
+    }
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
-    ) { }
+    ) {
+        enabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
+    }
+
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= 33) {
             val granted = ContextCompat.checkSelfPermission(
@@ -646,6 +709,66 @@ private fun RequestRestNotificationPermission() {
             ) == PackageManager.PERMISSION_GRANTED
             if (!granted) {
                 launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
+    // Returning from system settings is a resume, not a recomposition — re-read there.
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                enabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    return enabled
+}
+
+/** Tells the lifter their rest clock is invisible off-screen, and offers the one fix. */
+@Composable
+private fun RestNotificationsDisabledBanner(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.errorContainer,
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                "Rest alerts are off",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
+            Text(
+                "Notifications are blocked, so you won't see the countdown or hear " +
+                    "\"Rest done\" with the phone in your pocket.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
+            TextButton(
+                onClick = {
+                    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                        .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    try {
+                        context.startActivity(intent)
+                    } catch (_: Exception) {
+                        context.startActivity(
+                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                                .setData(android.net.Uri.fromParts("package", context.packageName, null))
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        )
+                    }
+                },
+                contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
+            ) {
+                Text("Turn on notifications", color = MaterialTheme.colorScheme.onErrorContainer)
             }
         }
     }

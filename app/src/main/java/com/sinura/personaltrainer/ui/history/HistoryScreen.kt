@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.toVolumeLabel
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GymMetrics
@@ -65,7 +66,7 @@ fun HistoryScreen(
                             title = session.routineName ?: "Workout",
                             dateLabel = dateFormat.format(Date(session.date)),
                             workingSets = session.sets.count { !it.isWarmup },
-                            volumeLabel = session.workingVolumeKg().toWeightLabel(unit),
+                            volumeLabel = session.workingVolumeKg().toVolumeLabel(unit),
                             durationMinutes = session.durationMinutes,
                             onClick = { onOpenSession(session.id) },
                         )
