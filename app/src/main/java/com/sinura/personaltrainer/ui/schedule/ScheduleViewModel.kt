@@ -16,6 +16,7 @@ import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -121,7 +122,23 @@ class ScheduleViewModel(application: Application) : AppViewModel(application) {
         error.value = null
     }
 
-    fun startDay(day: SuggestedTrainingDay, onStarted: (String) -> Unit) {
+    /**
+     * The session to open, held as state rather than passed as a callback.
+     *
+     * A navigation lambda captured into a viewModelScope coroutine closes over the
+     * composition's NavController; if the Activity is recreated between the tap and the
+     * database write completing, that controller is dead and the navigation is simply lost —
+     * the workout starts but the screen never moves. A StateFlow survives recreation and is
+     * re-read by the new composition.
+     */
+    private val _navigateToSession = MutableStateFlow<String?>(null)
+    val navigateToSession: StateFlow<String?> = _navigateToSession.asStateFlow()
+
+    fun onSessionNavigationHandled() {
+        _navigateToSession.value = null
+    }
+
+    fun startDay(day: SuggestedTrainingDay) {
         if (day.isRest) return
         viewModelScope.launch {
             val current = try {
@@ -132,7 +149,7 @@ class ScheduleViewModel(application: Application) : AppViewModel(application) {
             }
             if (current != null) {
                 error.value = null
-                onStarted(current.id)
+                _navigateToSession.value = current.id
                 return@launch
             }
             try {
@@ -147,7 +164,7 @@ class ScheduleViewModel(application: Application) : AppViewModel(application) {
                     container.workoutRepository.startFreeWorkout(day.focusTitle)
                 }
                 error.value = null
-                onStarted(session.id)
+                _navigateToSession.value = session.id
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "startDay failed", thrown)
                 error.value = "Could not start that day. Try again."

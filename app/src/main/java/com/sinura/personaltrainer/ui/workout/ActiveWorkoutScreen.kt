@@ -94,6 +94,7 @@ fun ActiveWorkoutScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val rest by viewModel.restTimerState.collectAsStateWithLifecycle()
+    val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
     var confirmLeave by rememberSaveable { mutableStateOf(false) }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     var confirmFinish by rememberSaveable { mutableStateOf(false) }
@@ -109,6 +110,20 @@ fun ActiveWorkoutScreen(
     DisposableEffect(Unit) {
         view.keepScreenOn = true
         onDispose { view.keepScreenOn = false }
+    }
+
+    // Exit is state, not a callback captured into a coroutine: finishing writes to the database
+    // first, and if the Activity is recreated in that window the captured NavController is dead
+    // and the user is left staring at a workout that no longer exists. Acks BEFORE navigating —
+    // for a pop, a duplicate would eat an extra screen, which is worse than the narrow window
+    // where a recomposition between ack and pop drops the request.
+    LaunchedEffect(exitRequested) {
+        val reason = exitRequested ?: return@LaunchedEffect
+        viewModel.onExitHandled()
+        when (reason) {
+            WorkoutExit.FINISHED -> onFinished()
+            WorkoutExit.DISCARDED -> onExit()
+        }
     }
 
     // One leave path: system back behaves exactly like the top-bar X. Previously back popped
@@ -311,7 +326,7 @@ fun ActiveWorkoutScreen(
                         OutlinedButton(
                             onClick = {
                                 if (session.sets.isEmpty()) {
-                                    viewModel.finishWorkout(onFinished)
+                                    viewModel.finishWorkout()
                                 } else {
                                     confirmFinish = true
                                 }
@@ -356,7 +371,7 @@ fun ActiveWorkoutScreen(
                 TextButton(
                     onClick = {
                         confirmFinish = false
-                        viewModel.finishWorkout(onFinished)
+                        viewModel.finishWorkout()
                     },
                 ) { Text("Finish") }
             },
@@ -421,7 +436,7 @@ fun ActiveWorkoutScreen(
                 TextButton(
                     onClick = {
                         confirmDiscard = false
-                        viewModel.discardWorkout(onExit)
+                        viewModel.discardWorkout()
                     },
                 ) { Text("Discard", color = MaterialTheme.colorScheme.error) }
             },

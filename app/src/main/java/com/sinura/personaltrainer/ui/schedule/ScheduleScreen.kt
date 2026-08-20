@@ -56,6 +56,12 @@ fun ScheduleScreen(
     viewModel: ScheduleViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val startedSessionId by viewModel.navigateToSession.collectAsStateWithLifecycle()
+    LaunchedEffect(startedSessionId) {
+        val id = startedSessionId ?: return@LaunchedEffect
+        onWorkoutStarted(id)
+        viewModel.onSessionNavigationHandled()
+    }
     val today = LocalDate.now(ZoneId.systemDefault()).toEpochDay()
 
     Scaffold(
@@ -135,7 +141,7 @@ fun ScheduleScreen(
                             isToday = day.epochDay == today,
                             logged = day.epochDay in state.loggedEpochDays,
                             showStart = state.inProgress == null && !day.isRest,
-                            onStart = { viewModel.startDay(day, onWorkoutStarted) },
+                            onStart = { viewModel.startDay(day) },
                             onOpenRoutine = day.routineId?.let { id -> { onOpenRoutine(id) } },
                         )
                     }

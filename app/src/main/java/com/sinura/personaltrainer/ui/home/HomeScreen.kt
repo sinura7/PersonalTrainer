@@ -74,6 +74,12 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val startedSessionId by viewModel.navigateToSession.collectAsStateWithLifecycle()
+    LaunchedEffect(startedSessionId) {
+        val id = startedSessionId ?: return@LaunchedEffect
+        onResumeWorkout(id)
+        viewModel.onSessionNavigationHandled()
+    }
     val restRemaining by viewModel.restRemainingSeconds.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
     val dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM)
@@ -132,7 +138,7 @@ fun HomeScreen(
                 onStart = {
                     val target = todayDay?.takeUnless { it.isRest } ?: plan?.nextTrainingOnOrAfter(today)
                     if (target != null && !target.isRest) {
-                        viewModel.startSuggestedDay(target, onResumeWorkout)
+                        viewModel.startSuggestedDay(target)
                     } else {
                         onOpenSchedule()
                     }

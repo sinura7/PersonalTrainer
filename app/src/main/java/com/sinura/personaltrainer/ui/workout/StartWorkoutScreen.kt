@@ -38,6 +38,14 @@ fun StartWorkoutScreen(
     viewModel: StartWorkoutViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // Forward navigation: navigate, then ack. Every target uses launchSingleTop, so a
+    // re-fired effect is absorbed rather than stacking a duplicate screen.
+    val startedSessionId by viewModel.navigateToSession.collectAsStateWithLifecycle()
+    LaunchedEffect(startedSessionId) {
+        val id = startedSessionId ?: return@LaunchedEffect
+        onWorkoutStarted(id)
+        viewModel.onSessionNavigationHandled()
+    }
 
     Scaffold(
         topBar = {
@@ -87,7 +95,7 @@ fun StartWorkoutScreen(
                 item {
                     PrimaryGymButton(
                         text = "Free workout",
-                        onClick = { viewModel.startFree(onWorkoutStarted) },
+                        onClick = viewModel::startFree,
                     )
                 }
                 item {
@@ -109,7 +117,7 @@ fun StartWorkoutScreen(
                     val empty = routine.exercises.isEmpty()
                     Card(
                         onClick = {
-                            if (!empty) viewModel.startRoutine(routine.id, onWorkoutStarted)
+                            if (!empty) viewModel.startRoutine(routine.id)
                         },
                         modifier = Modifier.fillMaxWidth(),
                     ) {

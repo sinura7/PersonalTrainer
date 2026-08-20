@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -56,15 +57,25 @@ fun RoutineEditorScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var pendingTargets by rememberSaveable { mutableStateOf(TargetDraft()) }
     var pendingRemoveId by rememberSaveable { mutableStateOf<String?>(null) }
+    val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
 
-    BackHandler { viewModel.leave(onBack) }
+    // Back is state, not a callback: leaving first deletes the empty stub routine, and if the
+    // Activity is recreated in that window the captured NavController is already gone. Acks
+    // BEFORE popping — a duplicate pop would eat an extra screen.
+    LaunchedEffect(exitRequested) {
+        if (!exitRequested) return@LaunchedEffect
+        viewModel.onExitHandled()
+        onBack()
+    }
+
+    BackHandler { viewModel.leave() }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Edit routine") },
                 navigationIcon = {
-                    IconButton(onClick = { viewModel.leave(onBack) }) {
+                    IconButton(onClick = { viewModel.leave() }) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -80,7 +91,7 @@ fun RoutineEditorScreen(
                 title = "Routine missing",
                 body = "This routine was deleted. Create a new one from the list.",
                 actionLabel = "Back to routines",
-                onAction = { viewModel.leave(onBack) },
+                onAction = { viewModel.leave() },
                 modifier = Modifier.padding(padding),
             )
             return@Scaffold

@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineEditorPolicy
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -173,10 +174,25 @@ class RoutineEditorViewModel(
         }
     }
 
-    fun leave(onLeave: () -> Unit) {
+    /**
+     * Set when this screen should be popped. Held as state for the same reason as forward
+     * navigation: a callback captured into a coroutine is bound to a NavController that may
+     * no longer exist by the time the database work finishes.
+     *
+     * Pops ack BEFORE navigating (forward navigations ack after) — a duplicate pop would eat
+     * an extra screen, which is worse than the vanishingly narrow window it guards against.
+     */
+    private val _exitRequested = MutableStateFlow(false)
+    val exitRequested: StateFlow<Boolean> = _exitRequested.asStateFlow()
+
+    fun onExitHandled() {
+        _exitRequested.value = false
+    }
+
+    fun leave() {
         viewModelScope.launch {
             discardEmptyStub()
-            onLeave()
+            _exitRequested.value = true
         }
     }
 

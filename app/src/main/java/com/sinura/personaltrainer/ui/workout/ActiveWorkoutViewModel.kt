@@ -15,6 +15,7 @@ import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
 import com.sinura.personaltrainer.workout.WorkoutDraft
 import com.sinura.personaltrainer.workout.WorkoutDraftRecovery
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -49,6 +50,19 @@ enum class SessionLoadState {
      * the UI must offer a way out instead of spinning forever.
      */
     MISSING,
+}
+
+/**
+ * Why this screen asked to be popped. The two exits land in different places — finishing
+ * returns all the way to Home, leaving after a discard pops one step — so the signal has to
+ * carry which one it was rather than being a bare boolean.
+ */
+enum class WorkoutExit {
+    /** Session was written to history. */
+    FINISHED,
+
+    /** Session row was deleted. */
+    DISCARDED,
 }
 
 data class ActiveWorkoutUiState(
@@ -486,7 +500,22 @@ class ActiveWorkoutViewModel(
         draft.value = draft.value.copy(weightKg = suggested)
     }
 
-    fun finishWorkout(onFinished: () -> Unit) {
+    /**
+     * Set when this screen should be popped. Held as state for the same reason as forward
+     * navigation: a callback captured into a coroutine is bound to a NavController that may
+     * no longer exist by the time the database work finishes.
+     *
+     * Pops ack BEFORE navigating (forward navigations ack after) — a duplicate pop would eat
+     * an extra screen, which is worse than the vanishingly narrow window it guards against.
+     */
+    private val _exitRequested = MutableStateFlow<WorkoutExit?>(null)
+    val exitRequested: StateFlow<WorkoutExit?> = _exitRequested.asStateFlow()
+
+    fun onExitHandled() {
+        _exitRequested.value = null
+    }
+
+    fun finishWorkout() {
         viewModelScope.launch {
             val current = uiState.value.session
             if (current == null || current.sets.isEmpty()) {
@@ -498,7 +527,7 @@ class ActiveWorkoutViewModel(
                 container.workoutRepository.finishSession(sessionId, notes.value)
                 clearDraft()
                 finished.value = true
-                onFinished()
+                _exitRequested.value = WorkoutExit.FINISHED
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "finishWorkout failed", thrown)
                 error.value = "Could not finish this workout. Try again."
@@ -506,13 +535,13 @@ class ActiveWorkoutViewModel(
         }
     }
 
-    fun discardWorkout(onDiscarded: () -> Unit) {
+    fun discardWorkout() {
         viewModelScope.launch {
             restTimer.stop()
             try {
                 container.workoutRepository.discardSession(sessionId)
                 clearDraft()
-                onDiscarded()
+                _exitRequested.value = WorkoutExit.DISCARDED
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "discardWorkout failed", thrown)
                 error.value = "Could not discard this workout. Try again."
