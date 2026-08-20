@@ -158,7 +158,7 @@ private fun StartWorkoutHeader(onBack: () -> Unit) {
         Text(
             "Start workout",
             modifier = Modifier.weight(1f),
-            style = InstrumentType.display,
+            style = InstrumentType.title,
             color = TextPrimary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

@@ -163,7 +163,10 @@ fun PersonalTrainerNav(
     )
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
-    val showBottomBar = tabs.any { tab ->
+    // Before the back-stack flow emits, currentDestination is null. The start destination
+    // is a tab, so treat that first frame as one — otherwise the bar slides up from nothing
+    // on every cold start.
+    val showBottomBar = navBackStackEntry == null || tabs.any { tab ->
         currentDestination?.hierarchy?.any { isTabRoute(it.route, tab.route.path) } == true
     }
 

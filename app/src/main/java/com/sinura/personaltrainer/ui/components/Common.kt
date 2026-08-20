@@ -55,8 +55,6 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
@@ -76,7 +74,7 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.Radius
-import com.sinura.personaltrainer.ui.theme.SpaceGrotesk
+import com.sinura.personaltrainer.ui.theme.RestCyan
 import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.SurfacePressed
@@ -88,24 +86,6 @@ import com.sinura.personaltrainer.ui.theme.Warn
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.delay
-
-/**
- * Transitional base style for numerals, now drawn in the bundled display face.
- *
- * It used to be `FontFamily.Monospace` — the system monospace, logcat's typeface, carrying
- * the largest numbers in the product — and its `tnum` setting did nothing, because every
- * glyph in a monospaced face is already fixed-width. Re-pointing it here changes every
- * numeral in the app without touching a call site.
- *
- * Call sites still append their own `fontSize`, which is the second half of the problem;
- * they move to the [InstrumentType] numeral ramp as each screen is rebuilt, and this goes
- * away with the last of them.
- */
-val GymNumericStyle = TextStyle(
-    fontFamily = SpaceGrotesk,
-    fontWeight = FontWeight.Medium,
-    fontFeatureSettings = "tnum",
-)
 
 @Composable
 fun EmptyState(
@@ -158,7 +138,7 @@ fun ScreenLoading(modifier: Modifier = Modifier) {
     }
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         if (visible) {
-            CircularProgressIndicator(color = Volt, strokeWidth = 3.dp)
+            CircularProgressIndicator(color = Volt, strokeWidth = SPINNER_STROKE)
         }
     }
 }
@@ -612,10 +592,11 @@ fun RestDock(
 
     if (!running && !justFinished) return
 
-    // No gold here. Gold means a record broke, and it is used nowhere else — a rest ending
-    // is not an achievement, and the finished state already reads from the full ring, the
-    // changed copy and the controls disappearing.
-    val accent = if (urgent) Warn else Volt
+    // Cyan, which the palette defines as "recovery and rest-day identity". Not gold — that
+    // means a record broke and nothing else — and not volt, because Home's rest strip already
+    // labels a running timer in cyan and one timer should not change colour with the screen
+    // you happen to be looking at.
+    val accent = if (urgent) Warn else RestCyan
 
     Column(
         modifier = modifier
@@ -1030,6 +1011,7 @@ fun SecondaryGymButton(
     }
 }
 
+private val SPINNER_STROKE = 3.dp
 private const val SPINNER_DELAY_MS = 250L
 private const val HOLD_BEFORE_REPEAT_MS = 400L
 private const val REPEAT_MS = 150L

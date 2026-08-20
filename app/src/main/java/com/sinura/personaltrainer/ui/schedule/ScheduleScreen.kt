@@ -386,10 +386,13 @@ private fun ScheduleDayRow(
                     },
                     onClick = onStart,
                 )
-                if (onOpenRoutine != null) {
-                    TextButton(onClick = onOpenRoutine, contentPadding = PaddingValues(0.dp)) {
-                        Text("Open routine", style = InstrumentType.bodyStrong, color = TextSecondary)
-                    }
+            }
+            // Outside the lead-day guard: this opens the day's routine, which every planned
+            // day has, and nesting it under the single Start button made six of the seven
+            // days unable to reach their own routine at all.
+            if (onOpenRoutine != null && day.routineName != null) {
+                TextButton(onClick = onOpenRoutine, contentPadding = PaddingValues(0.dp)) {
+                    Text("Open routine", style = InstrumentType.bodyStrong, color = TextSecondary)
                 }
             }
         }

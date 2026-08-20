@@ -45,6 +45,9 @@ object Metrics {
 
     val hairline: Dp = 1.dp
 
+    /** A border that has to read as a state, not just an edge: selected, or being edited. */
+    val emphasisBorder: Dp = 2.dp
+
     /** Absolute minimum touch target. */
     val touchMin: Dp = 48.dp
 

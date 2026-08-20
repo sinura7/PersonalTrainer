@@ -158,7 +158,6 @@ fun WorkoutSummaryScreen(
                         GymSectionHeader(
                             title = "Lifts",
                             modifier = Modifier.padding(top = Metrics.space2),
-                            compact = true,
                         )
                     }
                     item(key = "lifts") { LiftBreakdown(summary = summary, unit = unit) }

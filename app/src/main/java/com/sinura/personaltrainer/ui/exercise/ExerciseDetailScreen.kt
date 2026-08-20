@@ -270,7 +270,7 @@ private fun ExerciseDetailHeader(name: String, onBack: () -> Unit) {
         Text(
             name,
             modifier = Modifier.weight(1f),
-            style = InstrumentType.display,
+            style = InstrumentType.title,
             color = TextPrimary,
             // Two lines because this title is user data: "Incline Dumbbell Press" does not fit
             // one line at display size, and truncating a lift's own name on its own screen is

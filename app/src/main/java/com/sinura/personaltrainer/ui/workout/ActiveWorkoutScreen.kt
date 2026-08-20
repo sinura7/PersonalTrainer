@@ -916,7 +916,7 @@ private fun SetRow(
             .clip(shape)
             .background(if (isLatest) Surface2 else Surface1)
             .border(
-                width = if (isEditing) 2.dp else Metrics.hairline,
+                width = if (isEditing) Metrics.emphasisBorder else Metrics.hairline,
                 color = if (isEditing) Volt else Hairline,
                 shape = shape,
             )

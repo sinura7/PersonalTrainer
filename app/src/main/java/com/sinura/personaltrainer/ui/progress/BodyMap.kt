@@ -150,7 +150,7 @@ fun BodyMapCard(
                                 .clip(shape)
                                 .background(fill)
                                 .border(
-                                    width = if (isSelected) SELECTED_BORDER else Metrics.hairline,
+                                    width = if (isSelected) Metrics.emphasisBorder else Metrics.hairline,
                                     color = if (isSelected) Volt else HairlineStrong,
                                     shape = shape,
                                 )
@@ -421,7 +421,6 @@ private val BACK_HOTSPOTS = listOf(
 private val VERTEBRAE = listOf(0.250f, 0.310f, 0.370f, 0.440f, 0.500f)
 
 private val PANEL_HEIGHT = 440.dp
-private val SELECTED_BORDER = 2.dp
 private val LEGEND_DOT = 10.dp
 private val HEAT_SWATCH_WIDTH = 10.dp
 private val HEAT_SWATCH_HEIGHT = 32.dp

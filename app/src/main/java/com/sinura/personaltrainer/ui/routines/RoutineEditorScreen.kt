@@ -412,7 +412,7 @@ private fun RoutineExerciseCard(
                         rest.toIntOrNull() ?: item.restSeconds,
                     )
                 },
-            ) { Text("Update targets", style = InstrumentType.bodyStrong, color = Volt) }
+            ) { Text("Update targets", style = InstrumentType.bodyStrong, color = TextPrimary) }
         }
     }
 }

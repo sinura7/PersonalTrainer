@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -86,7 +86,12 @@ fun TrainingCalendarCard(
                 )
             }
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                Kicker(monthFormatter.format(month.month), color = TextPrimary)
+                Text(
+                    monthFormatter.format(month.month),
+                    style = InstrumentType.title,
+                    color = TextPrimary,
+                    maxLines = 1,
+                )
             }
             // Nothing is ever logged in the future, so there is no forward month to look at.
             val canGoForward = month.month < java.time.YearMonth.from(today)
@@ -184,7 +189,9 @@ private fun DayCell(
     }
     Box(
         modifier = modifier
-            .aspectRatio(1f)
+            // Not a square: the cell's width comes from weight(1f) and its content grew a
+            // heat dot, so a width-derived height can squeeze the numeral off centre.
+            .heightIn(min = CELL_MIN)
             .clip(shape)
             // A trained day is a panel, not a wash of accent: the fill says "something
             // happened here" and the dot below says how much.
@@ -240,3 +247,5 @@ private fun trainedHeat(intensity: Float): Float =
 private const val MIN_TRAINED_HEAT = 0.22f
 private const val HEAT_RANGE = 0.78f
 private val HEAT_DOT = 6.dp
+
+private val CELL_MIN = 40.dp

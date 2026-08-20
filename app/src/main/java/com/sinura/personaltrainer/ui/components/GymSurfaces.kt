@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,7 +19,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -40,27 +38,10 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.theme.Surface2
+import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
-
-/**
- * Transitional alias for [Metrics] and [Radius].
- *
- * These five names are referenced across the screen layer, so they keep their shape while
- * the migration runs and simply re-point at the real scale — which re-spaces every screen
- * that already uses them without touching a single call site. Screens move to [Metrics]
- * as they are rebuilt, and this goes away with the last of them.
- */
-object GymMetrics {
-    val screenPadding: Dp = Metrics.gutter
-    val sectionGap: Dp = Metrics.sectionGap
-    val listGap: Dp = Metrics.cardGap
-    val cardPadding: Dp = Metrics.cardPadding
-    val cardRadius: Dp = Radius.md
-
-    val screenContentPadding = PaddingValues(screenPadding)
-}
 
 /**
  * The instrument label voice: REST, LAST 7 DAYS, VOLUME.
@@ -221,7 +202,7 @@ fun MetricCluster(
     modifier: Modifier = Modifier,
     unit: String? = null,
     valueStyle: TextStyle = InstrumentType.numeralSm,
-    valueColor: Color = MaterialTheme.colorScheme.onSurface,
+    valueColor: Color = TextPrimary,
     horizontalAlignment: Alignment.Horizontal = Alignment.End,
 ) {
     Column(modifier = modifier, horizontalAlignment = horizontalAlignment) {
@@ -256,7 +237,7 @@ fun StatTile(
     value: String,
     modifier: Modifier = Modifier,
     unit: String? = null,
-    valueColor: Color = MaterialTheme.colorScheme.onSurface,
+    valueColor: Color = TextPrimary,
     onClick: (() -> Unit)? = null,
 ) {
     GymCard(modifier = modifier, onClick = onClick) {
@@ -313,7 +294,7 @@ fun InstrumentRow(
             Text(
                 title,
                 style = InstrumentType.title,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -377,19 +358,6 @@ fun SessionLogRow(
             modifier = Modifier.width(COUNT_COLUMN),
         )
     }
-}
-
-/**
- * The same three numbers as prose, for the places that genuinely need one line of text —
- * a content description, or a summary under a heading.
- */
-fun sessionLogMeta(
-    workingSets: Int,
-    volumeLabel: String,
-    durationMinutes: Int,
-): String {
-    val setLabel = if (workingSets == 1) "working set" else "working sets"
-    return "$workingSets $setLabel · $volumeLabel · $durationMinutes min"
 }
 
 /** Column widths for [SessionLogRow], so its three metrics line up down a list. */

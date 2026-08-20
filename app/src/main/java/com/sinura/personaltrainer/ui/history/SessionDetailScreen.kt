@@ -70,7 +70,7 @@ fun SessionDetailScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(end = Metrics.gutter),
+                .padding(end = Metrics.gutter, bottom = Metrics.space2),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onBack) {

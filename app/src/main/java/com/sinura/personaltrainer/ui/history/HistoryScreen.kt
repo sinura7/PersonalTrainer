@@ -103,7 +103,6 @@ fun HistoryScreen(
                         GymSectionHeader(
                             "All sessions",
                             modifier = Modifier.padding(bottom = Metrics.kickerGap),
-                            compact = true,
                         )
                     }
                     itemsIndexed(state.sessions, key = { _, session -> session.id }) { index, session ->
