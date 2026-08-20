@@ -86,15 +86,22 @@ fun ScheduleScreen(
                 ScreenLoading(modifier = Modifier.padding(padding))
             }
             state.plan == null -> {
-                EmptyState(
-                    title = "No week plan yet",
-                    body = "Generate a week, or log a workout so suggestions can follow your training.",
-                    actionLabel = "Generate week",
-                    onAction = viewModel::regenerate,
+                // The error banner belongs here too, not only in the branch that has a plan:
+                // a planner failure lands in exactly this branch, and used to render nowhere.
+                Column(
                     modifier = Modifier
                         .padding(padding)
                         .padding(GymMetrics.screenPadding),
-                )
+                    verticalArrangement = Arrangement.spacedBy(GymMetrics.listGap),
+                ) {
+                    state.error?.let { err -> GymErrorBanner(err) }
+                    EmptyState(
+                        title = "No week plan yet",
+                        body = "Generate a week, or log a workout so suggestions can follow your training.",
+                        actionLabel = "Generate week",
+                        onAction = viewModel::regenerate,
+                    )
+                }
             }
             else -> {
                 val plan = state.plan!!

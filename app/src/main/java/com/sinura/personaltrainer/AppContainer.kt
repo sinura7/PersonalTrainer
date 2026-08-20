@@ -11,10 +11,12 @@ import com.sinura.personaltrainer.data.repository.LocalBackupRepository
 import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
+import com.sinura.personaltrainer.insights.TrainingInsightsSource
 import com.sinura.personaltrainer.timer.RestTimerController
 import com.sinura.personaltrainer.timer.RestTimerStatePersistence
 import com.sinura.personaltrainer.timer.RestTimerStore
 import com.sinura.personaltrainer.timer.SharedPrefsRestTimerStatePersistence
+import com.sinura.personaltrainer.workout.StartTrainingDay
 import com.sinura.personaltrainer.workout.WorkoutDraftCache
 
 class AppContainer(context: Context) {
@@ -36,6 +38,18 @@ class AppContainer(context: Context) {
     val restTimerController: RestTimerController =
         RestTimerController(context, restTimerStore, restTimerStatePersistence)
     val workoutDraftCache: WorkoutDraftCache = WorkoutDraftCache()
+
+    /** One analytics pipeline behind Home, Schedule and Progress. */
+    val trainingInsights: TrainingInsightsSource = TrainingInsightsSource(
+        workoutRepository = workoutRepository,
+        routineRepository = routineRepository,
+        exerciseRepository = exerciseRepository,
+        preferencesRepository = preferencesRepository,
+    )
+    val startTrainingDay: StartTrainingDay = StartTrainingDay(
+        workoutRepository = workoutRepository,
+        routineRepository = routineRepository,
+    )
     val backupRepository: BackupRepository = BackupRepository(
         localBackupRepository = LocalBackupRepository(
             database = database,

@@ -1,0 +1,155 @@
+package com.sinura.personaltrainer.domain
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.time.DayOfWeek
+import java.time.Instant
+import java.time.ZoneOffset
+
+/**
+ * Home, Schedule and Progress each ran their own copy of this pipeline and the copies had
+ * drifted. These tests pin the two places they disagreed — the exercise catalog and the
+ * week-start preference — plus the failure semantics that let a screen say which part broke.
+ */
+class TrainingInsightsCalculatorTest {
+    private val zone = ZoneOffset.UTC
+
+    // A Wednesday, so a Monday week-start and a Sunday week-start bracket different days.
+    private val now = Instant.parse("2026-08-19T12:00:00Z").toEpochMilli()
+
+    private fun input(
+        history: List<WorkoutSession> = emptyList(),
+        routines: List<Routine> = emptyList(),
+        catalog: Map<String, Exercise> = emptyMap(),
+        hints: List<ProgressionHint>? = emptyList(),
+        preferences: SchedulePreferences = SchedulePreferences.DEFAULT,
+        window: HeatWindow = HeatWindow.LAST_7_DAYS,
+        includeWeekPlan: Boolean = true,
+    ) = TrainingInsightsInput(
+        history = history,
+        routines = routines,
+        exerciseCatalog = catalog,
+        hints = hints,
+        preferences = preferences,
+        unit = WeightUnit.KG,
+        window = window,
+        nowMs = now,
+        zone = zone,
+        includeWeekPlan = includeWeekPlan,
+    )
+
+    /** A set whose exercise is no longer attached to its session — the only case the catalog covers. */
+    private fun detachedSet(at: Long) = session(
+        id = "s1",
+        finishedAt = at,
+        sets = listOf(set("a", "s1", "ex-squat", "Squat", 100.0, 5, at = at)),
+        exercises = emptyList(),
+    )
+
+    @Test
+    fun detachedSetIsAttributedThroughTheExerciseCatalog() {
+        val insights = TrainingInsightsCalculator.compute(
+            input(
+                history = listOf(detachedSet(now - 1L * 24 * 60 * 60 * 1000)),
+                catalog = mapOf("ex-squat" to Exercise("ex-squat", "Squat", "Quads", "", false)),
+            ),
+        )
+        val quads = insights.snapshot!!.load(CanonicalMuscle.QUADRICEPS)
+        assertEquals(500.0, quads.volumeKg, 0.001)
+    }
+
+    @Test
+    fun detachedSetIsLostWithoutTheCatalog() {
+        // Home and Schedule used to pass no catalog at all, so this was their real behaviour:
+        // volume that Progress counted toward quads went nowhere on the other two screens.
+        val insights = TrainingInsightsCalculator.compute(
+            input(history = listOf(detachedSet(now - 1L * 24 * 60 * 60 * 1000))),
+        )
+        assertEquals(0.0, insights.snapshot!!.load(CanonicalMuscle.QUADRICEPS).volumeKg, 0.001)
+    }
+
+    @Test
+    fun currentWeekWindowHonoursTheWeekStartPreference() {
+        val monday = TrainingInsightsCalculator.compute(
+            input(
+                window = HeatWindow.CURRENT_WEEK,
+                preferences = SchedulePreferences.DEFAULT.copy(weekStart = DayOfWeek.MONDAY),
+            ),
+        ).snapshot!!.windowStartMs
+        val sunday = TrainingInsightsCalculator.compute(
+            input(
+                window = HeatWindow.CURRENT_WEEK,
+                preferences = SchedulePreferences.DEFAULT.copy(weekStart = DayOfWeek.SUNDAY),
+            ),
+        ).snapshot!!.windowStartMs
+
+        assertEquals(
+            Instant.parse("2026-08-17T00:00:00Z").toEpochMilli(),
+            monday,
+        )
+        assertEquals(
+            Instant.parse("2026-08-16T00:00:00Z").toEpochMilli(),
+            sunday,
+        )
+    }
+
+    @Test
+    fun nullHintsReportAFailureRatherThanLookingLikeNothingIsReady() {
+        val failed = TrainingInsightsCalculator.compute(input(hints = null))
+        assertTrue(failed.failed(InsightFailure.PROGRESSION))
+        assertTrue(failed.hints.isEmpty())
+
+        val empty = TrainingInsightsCalculator.compute(input(hints = emptyList()))
+        assertFalse(empty.failed(InsightFailure.PROGRESSION))
+        assertTrue(empty.hints.isEmpty())
+    }
+
+    @Test
+    fun skippingTheWeekPlanIsNotAFailure() {
+        val insights = TrainingInsightsCalculator.compute(input(includeWeekPlan = false))
+        assertNull(insights.weekPlan)
+        assertFalse(insights.failed(InsightFailure.PLAN))
+        assertTrue(insights.failures.isEmpty())
+    }
+
+    @Test
+    fun weekPlanIsBuiltWhenRequested() {
+        val insights = TrainingInsightsCalculator.compute(input(includeWeekPlan = true))
+        assertNotNull(insights.weekPlan)
+        assertTrue(insights.failures.isEmpty())
+    }
+
+    @Test
+    fun inputsAreEchoedBackSoCallersNeedNotReadThemTwice() {
+        val history = listOf(detachedSet(now - 1L * 24 * 60 * 60 * 1000))
+        val routines = listOf(
+            Routine(
+                id = "r1",
+                name = "Push",
+                notes = "",
+                createdAt = now,
+                updatedAt = now,
+                exercises = emptyList(),
+            ),
+        )
+        val insights = TrainingInsightsCalculator.compute(
+            input(history = history, routines = routines),
+        )
+        assertSame(history, insights.history)
+        assertSame(routines, insights.routines)
+    }
+
+    @Test
+    fun everyStageIsReportedIndependently() {
+        val insights = TrainingInsights(failures = setOf(InsightFailure.PLAN))
+        assertTrue(insights.failed(InsightFailure.PLAN))
+        assertFalse(insights.failed(InsightFailure.HEAT))
+        assertFalse(insights.failed(InsightFailure.PROGRESSION))
+        assertFalse(insights.failed(InsightFailure.RECOMMENDATIONS))
+    }
+}

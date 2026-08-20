@@ -36,6 +36,7 @@ import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymMetrics
+import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
@@ -107,6 +108,9 @@ fun ProgressScreen(
                 ) {
                     item {
                         WindowPicker(selected = state.window, onSelect = viewModel::setWindow)
+                    }
+                    state.notice?.let { message ->
+                        item { GymErrorBanner(message) }
                     }
                     if (!snapshot.hasWindowWorkingSets) {
                         item {

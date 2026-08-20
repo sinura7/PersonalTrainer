@@ -2,32 +2,24 @@ package com.sinura.personaltrainer.ui.schedule
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
-import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.AppViewModel
-import com.sinura.personaltrainer.domain.HeatWindow
-import com.sinura.personaltrainer.domain.MuscleLoadCalculator
-import com.sinura.personaltrainer.domain.RecommendationEngine
-import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.InsightFailure
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.WeeklySchedulePlan
-import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
-import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.asStateFlow
+import com.sinura.personaltrainer.workout.StartDayOutcome
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.ZoneId
-
-private const val TAG = "PT/ScheduleVM"
 
 data class ScheduleUiState(
     val isLoading: Boolean = true,
@@ -38,66 +30,37 @@ data class ScheduleUiState(
     val error: String? = null,
 )
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class ScheduleViewModel(application: Application) : AppViewModel(application) {
+    /** "Regenerate" re-runs the planner against the current clock; nothing else changes. */
     private val refreshAt = MutableStateFlow(0L)
-    private val error = MutableStateFlow<String?>(null)
+    private val actionError = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<ScheduleUiState> = combine(
-        combine(
-            container.workoutRepository.observeHistory(),
-            container.routineRepository.observeAll(),
-            container.preferencesRepository.schedulePreferences,
-            container.workoutRepository.observeInProgress(),
-            refreshAt,
-        ) { history, routines, prefs, inProgress, tick ->
-            ScheduleInputs(history, routines, prefs, inProgress, tick)
-        },
-        container.preferencesRepository.weightUnit,
-        error,
-    ) { inputs, unit, _ ->
-        inputs.copy(unit = unit)
-    }.mapLatest { inputs ->
+        container.trainingInsights.observe(refresh = refreshAt),
+        container.workoutRepository.observeInProgress(),
+        container.preferencesRepository.schedulePreferences,
+        actionError,
+    ) { insights, inProgress, preferences, error ->
         val zone = ZoneId.systemDefault()
-        val now = System.currentTimeMillis()
-        val snapshot = try {
-            MuscleLoadCalculator.snapshot(inputs.history, HeatWindow.LAST_7_DAYS, now, zone)
-        } catch (thrown: Exception) {
-            AppLog.w(TAG, "Computing the muscle heat snapshot failed", thrown)
-            MuscleLoadCalculator.snapshot(emptyList(), HeatWindow.LAST_7_DAYS, now, zone)
-        }
-        val hints = try {
-            container.workoutRepository.readyForProgression(inputs.routines)
-        } catch (thrown: Exception) {
-            AppLog.w(TAG, "Computing the progression hints failed", thrown)
-            emptyList()
-        }
-        val recs = RecommendationEngine.recommend(snapshot, hints, inputs.unit)
-        val plan = try {
-            WeeklySchedulePlanner.plan(
-                preferences = inputs.prefs,
-                snapshot = snapshot,
-                recommendations = recs,
-                routines = inputs.routines,
-                recentSessions = inputs.history,
-                nowMs = now,
-                zone = zone,
-            )
-        } catch (thrown: Exception) {
-            AppLog.w(TAG, "Computing the weekly schedule plan failed", thrown)
-            null
-        }
-        val logged = inputs.history
+        val logged = insights.history
             .filter { it.isFinished }
-            .map { java.time.Instant.ofEpochMilli(it.date).atZone(zone).toLocalDate().toEpochDay() }
+            .map { Instant.ofEpochMilli(it.date).atZone(zone).toLocalDate().toEpochDay() }
             .toSet()
         ScheduleUiState(
             isLoading = false,
-            preferences = inputs.prefs,
-            plan = plan,
-            inProgress = inputs.inProgress,
+            preferences = preferences,
+            plan = insights.weekPlan,
+            inProgress = inProgress,
             loggedEpochDays = logged,
-            error = error.value,
+            // A planner fault used to leave this screen showing "No week plan yet" with the
+            // Generate button that had just failed, and no hint that anything went wrong.
+            error = error ?: when {
+                insights.failed(InsightFailure.PLAN) ->
+                    "Couldn’t build this week’s plan. Try regenerating."
+                insights.failed(InsightFailure.HEAT) ->
+                    "Couldn’t read your recent training, so the week isn’t balanced to it."
+                else -> null
+            },
         )
     }.stateIn(
         scope = viewModelScope,
@@ -119,7 +82,7 @@ class ScheduleViewModel(application: Application) : AppViewModel(application) {
 
     fun regenerate() {
         refreshAt.value = System.currentTimeMillis()
-        error.value = null
+        actionError.value = null
     }
 
     /**
@@ -139,45 +102,15 @@ class ScheduleViewModel(application: Application) : AppViewModel(application) {
     }
 
     fun startDay(day: SuggestedTrainingDay) {
-        if (day.isRest) return
         viewModelScope.launch {
-            val current = try {
-                container.workoutRepository.getInProgress()
-            } catch (thrown: Exception) {
-                AppLog.w(TAG, "startDay failed", thrown)
-                null
-            }
-            if (current != null) {
-                error.value = null
-                _navigateToSession.value = current.id
-                return@launch
-            }
-            try {
-                val session = if (day.routineId != null) {
-                    val routine = container.routineRepository.getById(day.routineId)
-                    if (routine == null || routine.exercises.isEmpty()) {
-                        container.workoutRepository.startFreeWorkout(day.focusTitle)
-                    } else {
-                        container.workoutRepository.startRoutine(routine)
-                    }
-                } else {
-                    container.workoutRepository.startFreeWorkout(day.focusTitle)
+            when (val outcome = container.startTrainingDay(day)) {
+                is StartDayOutcome.Open -> {
+                    actionError.value = null
+                    _navigateToSession.value = outcome.sessionId
                 }
-                error.value = null
-                _navigateToSession.value = session.id
-            } catch (thrown: Exception) {
-                AppLog.w(TAG, "startDay failed", thrown)
-                error.value = "Could not start that day. Try again."
+                is StartDayOutcome.Failed -> actionError.value = outcome.message
+                StartDayOutcome.Ignored -> Unit
             }
         }
     }
-
-    private data class ScheduleInputs(
-        val history: List<WorkoutSession>,
-        val routines: List<Routine>,
-        val prefs: SchedulePreferences,
-        val inProgress: WorkoutSession?,
-        val tick: Long,
-        val unit: WeightUnit = WeightUnit.KG,
-    )
 }
