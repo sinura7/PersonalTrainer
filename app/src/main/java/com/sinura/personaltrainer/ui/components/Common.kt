@@ -37,6 +37,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
+import com.sinura.personaltrainer.domain.NumericEntry
+import androidx.compose.runtime.withFrameNanos
+import com.sinura.personaltrainer.util.runCatchingCancellable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -139,6 +152,9 @@ fun WeightStepper(
     unit: WeightUnit = LocalWeightUnit.current,
 ) {
     val displayNumber = WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(valueKg, unit))
+    // Steppers are for nudging a number, not setting one: 20 kg to 140 kg is 48 taps at the
+    // 2.5 kg step. Typing is the escape hatch, and the number itself is the obvious target.
+    var typing by rememberSaveable { mutableStateOf(false) }
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -149,7 +165,13 @@ fun WeightStepper(
             onClick = { onWeightKgChange(WeightConverter.incrementKg(valueKg, unit, -1)) },
         )
         Column(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .clip(RoundedCornerShape(16.dp))
+                .clickable(
+                    onClick = { typing = true },
+                    onClickLabel = "Type a weight",
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -173,6 +195,19 @@ fun WeightStepper(
             onClick = { onWeightKgChange(WeightConverter.incrementKg(valueKg, unit, 1)) },
         )
     }
+
+    if (typing) {
+        NumberEntryDialog(
+            title = "Weight",
+            unitLabel = unit.suffix,
+            initial = displayNumber,
+            decimal = true,
+            helper = "A number, up to two decimals.",
+            parse = { NumericEntry.parseWeightKg(it, unit) },
+            onConfirm = { onWeightKgChange(it) },
+            onDismiss = { typing = false },
+        )
+    }
 }
 
 @Composable
@@ -181,6 +216,7 @@ fun RepsStepper(
     onAdjust: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var typing by rememberSaveable { mutableStateOf(false) }
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -188,7 +224,13 @@ fun RepsStepper(
     ) {
         StepperButton(label = "−1", onClick = { onAdjust(-1) })
         Column(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .clip(RoundedCornerShape(16.dp))
+                .clickable(
+                    onClick = { typing = true },
+                    onClickLabel = "Type a rep count",
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -204,6 +246,105 @@ fun RepsStepper(
         }
         StepperButton(label = "+1", onClick = { onAdjust(1) })
     }
+
+    if (typing) {
+        NumberEntryDialog(
+            title = "Reps",
+            unitLabel = null,
+            initial = value.toString(),
+            decimal = false,
+            helper = "A whole number, 1 to ${NumericEntry.MAX_REPS}.",
+            parse = { NumericEntry.parseReps(it) },
+            // The caller only knows how to nudge, so a typed target becomes the delta that
+            // reaches it. Keeping one write path means the draft-persist and validation that
+            // hang off onAdjust cannot be bypassed by typing.
+            onConfirm = { onAdjust(it - value) },
+            onDismiss = { typing = false },
+        )
+    }
+}
+
+/**
+ * One typed number, confirmed explicitly.
+ *
+ * Confirm stays disabled until the text parses, so there is no path where a fumbled entry
+ * silently commits the old value or a wrong one — the button simply will not fire. The field
+ * opens fully selected, because the first thing anyone does here is replace the number.
+ */
+@Composable
+private fun <T> NumberEntryDialog(
+    title: String,
+    unitLabel: String?,
+    initial: String,
+    decimal: Boolean,
+    helper: String,
+    parse: (String) -> T?,
+    onConfirm: (T) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var text by rememberSaveable(stateSaver = TextFieldValue.Saver) {
+        mutableStateOf(
+            TextFieldValue(initial, selection = TextRange(0, initial.length)),
+        )
+    }
+    val parsed = parse(text.text)
+    val suffixSlot: (@Composable () -> Unit)? = unitLabel?.let { label -> { Text(label) } }
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        // The dialog's window attaches a frame after this composes, and requesting focus
+        // before the node exists throws. Wait one frame, and treat it as best effort even
+        // then: the keyboard opening by itself is a convenience, and losing that race must
+        // not take the app down mid-set.
+        withFrameNanos { }
+        runCatchingCancellable { focus.requestFocus() }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                singleLine = true,
+                isError = text.text.isNotBlank() && parsed == null,
+                // Says why "Set" is greyed out. A disabled button with no reason beside it is
+                // just a dead end.
+                supportingText = { Text(helper) },
+                suffix = suffixSlot,
+                textStyle = GymNumericStyle.copy(fontSize = 32.sp),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = if (decimal) KeyboardType.Decimal else KeyboardType.Number,
+                    imeAction = ImeAction.Done,
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        parsed?.let {
+                            onConfirm(it)
+                            onDismiss()
+                        }
+                    },
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focus),
+            )
+        },
+        confirmButton = {
+            TextButton(
+                enabled = parsed != null,
+                onClick = {
+                    parsed?.let {
+                        onConfirm(it)
+                        onDismiss()
+                    }
+                },
+            ) { Text("Set") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }
 
 @Composable

@@ -1,6 +1,6 @@
 # tools
 
-Two small static checks that answer questions the Kotlin compiler answers better — but only
+Three small static checks that answer questions the Kotlin compiler answers better — but only
 when you have an Android SDK to hand. They exist because most of this codebase cannot be
 compiled outside Android Studio or CI, and a broken build discovered on the phone at the gym
 is worse than one discovered in five seconds at a terminal.
@@ -20,6 +20,21 @@ python3 tools/check-named-args.py app/src/test/java
 ```
 
 Exits quietly with `0 mismatch(es)` when clean. Nothing to install.
+
+## `check-when-exhaustive.py`
+
+Finds `when` blocks over the project's own enum and sealed types that miss a case. That is a
+compile *error* in Kotlin, not a warning, and it is the error a refactor leaves behind: add a
+variant and every `when` without an `else` breaks at once.
+
+```bash
+python3 tools/check-when-exhaustive.py app/src/main/java
+```
+
+The subject's type is inferred from the branch labels rather than by type analysis, so it
+needs no symbol table. Blocks whose type cannot be pinned down are skipped and counted, never
+guessed at — the summary line reports how many, so a quiet run is not mistaken for a thorough
+one.
 
 ## `syntax-check.sh`
 

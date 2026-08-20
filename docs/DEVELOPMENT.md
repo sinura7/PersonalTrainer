@@ -56,12 +56,14 @@ Two static checks in `tools/` cover the gap when you cannot build — they are a
 not a substitute for `./gradlew assembleDebug`:
 
 ```bash
-python3 tools/check-named-args.py app/src/main/java   # named args vs. declarations
-tools/syntax-check.sh app/src/main/java               # parse-level diagnostics only
+python3 tools/check-named-args.py app/src/main/java       # named args vs. declarations
+python3 tools/check-when-exhaustive.py app/src/main/java  # sealed/enum when coverage
+tools/syntax-check.sh app/src/main/java                   # parse-level diagnostics only
 ```
 
-`check-named-args.py` catches the error that a rename leaves behind — a call site still
-passing a parameter name the function no longer has. See [tools/README.md](../tools/README.md).
+Both Python checks target errors a refactor leaves behind: a call site still passing a
+parameter name the function no longer has, and a `when` that lost its exhaustiveness when a
+variant was added. See [tools/README.md](../tools/README.md).
 
 There are no instrumented (`androidTest`) tests yet. Room DAOs, repositories, ViewModels and
 Compose screens are therefore **unverified by automation** — see [ROADMAP.md](ROADMAP.md).
