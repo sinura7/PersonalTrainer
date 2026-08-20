@@ -8,11 +8,15 @@ import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.EditorPhase
+import com.sinura.personaltrainer.domain.RoutineEditorLoad
 import com.sinura.personaltrainer.domain.RoutineEditorPolicy
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
@@ -44,12 +48,10 @@ class RoutineEditorViewModel(
         savedStateHandle.get<String>("routineId"),
     )
     private var createdThisSession: Boolean = incomingId == null
-    private var loadedExisting: Boolean = false
-    private var sawLiveRoutine: Boolean = false
 
     private val routineId = MutableStateFlow(incomingId)
-    private val hydrated = MutableStateFlow(incomingId == null)
-    private val missing = MutableStateFlow(false)
+    private val load = MutableStateFlow(RoutineEditorLoad(opensExisting = incomingId != null))
+    private val missing: Boolean get() = load.value.phase == EditorPhase.MISSING
     private val name = MutableStateFlow("")
     private val notes = MutableStateFlow("")
     private val searchQuery = MutableStateFlow("")
@@ -57,9 +59,11 @@ class RoutineEditorViewModel(
     private val error = MutableStateFlow<String?>(null)
     private val saved = MutableStateFlow(false)
 
-    private val routineFlow = routineId.flatMapLatest { id ->
+    // Shared, not two independent collections: the missing-routine detector below and the
+    // uiState chain each used to open their own Room query for the same row.
+    private val routineFlow: SharedFlow<Routine?> = routineId.flatMapLatest { id ->
         if (id == null) flowOf(null) else container.routineRepository.observeById(id)
-    }
+    }.shareIn(viewModelScope, SharingStarted.Eagerly, replay = 1)
 
     private val resultsFlow = searchQuery.flatMapLatest { query ->
         container.exerciseRepository.search(query)
@@ -71,34 +75,32 @@ class RoutineEditorViewModel(
             // here would kill the collector and leave the editor frozen with no clue why.
             runCatchingCancellable {
                 val id = incomingId
-                if (id != null) {
-                    val existing = container.routineRepository.getById(id)
-                    if (existing != null) {
-                        loadedExisting = true
-                        name.value = existing.name
-                        notes.value = existing.notes
-                    } else {
-                        missing.value = true
-                        error.value = "This routine is no longer available."
-                        routineId.value = null
-                    }
+                val existing = id?.let { container.routineRepository.getById(it) }
+                if (existing != null) {
+                    name.value = existing.name
+                    notes.value = existing.notes
                 }
-                hydrated.value = true
+                applyLoad { it.onInitialRead(found = existing != null) }
                 routineFlow.collect { routine ->
-                    if (routine != null) {
-                        sawLiveRoutine = true
-                    } else if (
-                        loadedExisting &&
-                        sawLiveRoutine &&
-                        routineId.value != null &&
-                        !missing.value
-                    ) {
-                        missing.value = true
-                        error.value = "This routine is no longer available."
-                        routineId.value = null
-                    }
+                    applyLoad { it.onRoutineEmission(present = routine != null) }
                 }
             }.onFailure { AppLog.e(TAG, "Loading the routine editor failed", it) }
+        }
+    }
+
+    /**
+     * The single writer of [load]. Reaching MISSING has two side effects that must happen
+     * together — telling the user, and dropping the dead id so the flow stops re-querying it —
+     * and they were previously duplicated at each of the three places that set the flag.
+     */
+    private fun applyLoad(transform: (RoutineEditorLoad) -> RoutineEditorLoad) {
+        val before = load.value
+        val after = transform(before)
+        if (after == before) return
+        load.value = after
+        if (after.phase == EditorPhase.MISSING && before.phase != EditorPhase.MISSING) {
+            error.value = "This routine is no longer available."
+            routineId.value = null
         }
     }
 
@@ -106,13 +108,13 @@ class RoutineEditorViewModel(
         combine(routineFlow, name, notes, searchQuery, resultsFlow) { routine, currentName, currentNotes, query, results ->
             EditorCore(routine, currentName, currentNotes, query, results)
         },
-        combine(showPicker, error, saved, hydrated, missing) { picker, err, didSave, ready, gone ->
-            EditorFlags(picker, err, didSave, ready, gone)
+        combine(showPicker, error, saved, load) { picker, err, didSave, loadState ->
+            EditorFlags(picker, err, didSave, loadState.phase)
         },
     ) { core, extras ->
         RoutineEditorUiState(
-            isLoading = !extras.hydrated,
-            missing = extras.missing,
+            isLoading = extras.phase == EditorPhase.LOADING,
+            missing = extras.phase == EditorPhase.MISSING,
             routine = core.routine,
             name = core.name,
             notes = core.notes,
@@ -139,7 +141,7 @@ class RoutineEditorViewModel(
     }
 
     fun saveDetails() {
-        if (missing.value) {
+        if (missing) {
             error.value = "This routine is no longer available."
             return
         }
@@ -197,7 +199,7 @@ class RoutineEditorViewModel(
     }
 
     fun setPickerVisible(visible: Boolean) {
-        if (missing.value) return
+        if (missing) return
         showPicker.value = visible
         if (!visible) searchQuery.value = ""
     }
@@ -213,7 +215,7 @@ class RoutineEditorViewModel(
         targetWeightKg: Double?,
         restSeconds: Int,
     ) {
-        if (missing.value) {
+        if (missing) {
             error.value = "This routine is no longer available."
             return
         }
@@ -323,7 +325,7 @@ class RoutineEditorViewModel(
     }
 
     private suspend fun ensureRoutineId(): String? {
-        if (missing.value) {
+        if (missing) {
             error.value = "This routine is no longer available."
             return null
         }
@@ -332,9 +334,7 @@ class RoutineEditorViewModel(
             val row = container.routineRepository.getById(current)
             if (row != null) return current
             if (!createdThisSession) {
-                missing.value = true
-                error.value = "This routine is no longer available."
-                routineId.value = null
+                applyLoad { it.markMissing() }
                 return null
             }
             routineId.value = null
@@ -385,7 +385,6 @@ class RoutineEditorViewModel(
         val showPicker: Boolean,
         val error: String?,
         val saved: Boolean,
-        val hydrated: Boolean,
-        val missing: Boolean,
+        val phase: EditorPhase,
     )
 }

@@ -15,10 +15,14 @@ import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
 import com.sinura.personaltrainer.workout.WorkoutDraft
 import com.sinura.personaltrainer.workout.WorkoutDraftRecovery
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -28,6 +32,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 private const val TAG = "PT/ActiveWorkoutVM"
+
+/** A typing pause, not a keystroke, is what commits notes to the database. */
+private const val NOTES_WRITE_DEBOUNCE_MS = 400L
 
 data class ActiveExerciseDraft(
     val weightKg: Double = 0.0,
@@ -108,6 +115,9 @@ class ActiveWorkoutViewModel(
     private val finished = MutableStateFlow(false)
     private val editingSetId = MutableStateFlow<String?>(null)
     private var lastPrefillExerciseId: String? = null
+
+    /** What the database already holds, so a re-seed or a no-op edit does not re-write it. */
+    private var lastPersistedNotes: String? = null
     private var pendingResumeDraft: WorkoutDraft? = null
     private val restTimer = container.restTimerController
 
@@ -162,12 +172,46 @@ class ActiveWorkoutViewModel(
                         }
                         pendingResumeDraft = null
                     }
+                    lastPersistedNotes = session.notes
                     if (notes.value.isEmpty() && session.notes.isNotEmpty()) {
                         notes.value = session.notes
                     }
                     persistDraft()
                 }
             }.onFailure { AppLog.e(TAG, "Observing the active session failed", it) }
+        }
+        // Notes used to launch an independent write per keystroke. Room's writes are not
+        // ordered against each other, so a shorter earlier string could land after a longer
+        // later one and the user's last characters would silently disappear on the next read
+        // — while a paragraph of notes cost a database write per character.
+        //
+        // collectLatest cancels the pending delay on every keystroke, so only a typing pause
+        // writes; and because it awaits the previous block's cancellation before starting the
+        // next, the writes it does perform are strictly ordered. NonCancellable means a write
+        // that has already begun finishes rather than being torn in half by the next keystroke.
+        viewModelScope.launch {
+            notes.collectLatest { value ->
+                delay(NOTES_WRITE_DEBOUNCE_MS)
+                writeNotes(value)
+            }
+        }
+    }
+
+    private suspend fun writeNotes(value: String) {
+        if (sessionId.isBlank()) return
+        // Null means the session row has not been read yet, so what is on disk is unknown.
+        // Writing here would push the empty initial value over real notes whenever the first
+        // query took longer than the debounce — exactly the case on a cold start.
+        val known = lastPersistedNotes ?: return
+        if (value == known) return
+        withContext(NonCancellable) {
+            runCatchingCancellable {
+                container.workoutRepository.updateSessionNotes(sessionId, value)
+                lastPersistedNotes = value
+            }.onFailure { thrown ->
+                AppLog.w(TAG, "Writing the session notes failed", thrown)
+                // Notes stay in the draft cache, and the next keystroke retries.
+            }
         }
     }
 
@@ -312,15 +356,7 @@ class ActiveWorkoutViewModel(
     fun setNotes(value: String) {
         notes.value = value
         persistDraft()
-        if (sessionId.isBlank()) return
-        viewModelScope.launch {
-            try {
-                container.workoutRepository.updateSessionNotes(sessionId, value)
-            } catch (thrown: Exception) {
-                AppLog.w(TAG, "setNotes failed", thrown)
-                // Notes stay in the draft cache if the write fails.
-            }
-        }
+        // The database write is not launched here. See the debounce collector in init.
     }
 
     fun setPickerVisible(visible: Boolean) {
@@ -562,17 +598,10 @@ class ActiveWorkoutViewModel(
         }
     }
 
+    /** Flushes the debounce tail: leaving must not drop the words typed in the last 400 ms. */
     fun persistDraftForExit() {
         persistDraft()
-        if (sessionId.isBlank()) return
-        viewModelScope.launch {
-            try {
-                container.workoutRepository.updateSessionNotes(sessionId, notes.value)
-            } catch (thrown: Exception) {
-                AppLog.w(TAG, "persistDraftForExit failed", thrown)
-                // Draft cache still holds the notes.
-            }
-        }
+        viewModelScope.launch { writeNotes(notes.value) }
     }
 
     private fun persistDraft() {
