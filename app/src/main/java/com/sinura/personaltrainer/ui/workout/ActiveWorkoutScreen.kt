@@ -83,7 +83,7 @@ import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.GymNumericStyle
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.RepsStepper
-import com.sinura.personaltrainer.ui.components.RestTimerBar
+import com.sinura.personaltrainer.ui.components.RestTimerRing
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.WeightStepper
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
@@ -218,7 +218,7 @@ fun ActiveWorkoutScreen(
                         }
                     }
                     item {
-                        RestTimerBar(
+                        RestTimerRing(
                             remainingSeconds = rest.remainingSeconds,
                             totalSeconds = rest.totalSeconds,
                             running = rest.running,
