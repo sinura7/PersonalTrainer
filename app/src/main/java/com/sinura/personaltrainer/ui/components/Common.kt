@@ -394,10 +394,14 @@ fun StepperButton(
     val view = LocalView.current
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
+    // A press that turned into a hold has already delivered its steps. Compose calls
+    // onClick on release, which would otherwise add one more on top of the repeat run.
+    var repeatedThisPress by remember { mutableStateOf(false) }
 
     LaunchedEffect(pressed) {
         if (!pressed) return@LaunchedEffect
         delay(HOLD_BEFORE_REPEAT_MS)
+        repeatedThisPress = true
         var repeats = 0
         while (true) {
             onClick()
@@ -423,8 +427,12 @@ fun StepperButton(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = {
-                    onClick()
-                    Haptics.tick(view)
+                    if (repeatedThisPress) {
+                        repeatedThisPress = false
+                    } else {
+                        onClick()
+                        Haptics.tick(view)
+                    }
                 },
             ),
         contentAlignment = Alignment.Center,

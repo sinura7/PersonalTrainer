@@ -92,11 +92,31 @@ Everything here is a read over the existing schema, so none of it waited on the 
 catalog seeding, UNIQUE constraints, transaction sweep. One reviewed migration, delivered
 with its `MigrationTestHelper` suite. Unblocks bodyweight lifts, machines and imagery.
 
-## Phase 5 — The physical product *later*
+## Phase 5 — The physical product · **done, pending device verification**
 
-Type scale and colour tokens, exercise imagery, haptics and motion on the logging loop,
-rest-as-instrument sound design, tap-to-type weight entry, plate calculator, Home rebuild,
-accessibility pass at font scale 2.0.
+The visual redesign. Full critique and the reasoning behind every decision are in
+`docs/UI_REDESIGN.md`; the design language itself is `docs/ui-redesign/DIRECTION_B_INSTRUMENT.md`.
+
+- **One dark theme, mapped completely.** The half-mapped scheme let Material's baseline
+  neutrals through into the nav bar, every dialog, every sheet and every default card —
+  invisible in review, unmissable on screen. `surfaceTint` is now transparent, so the
+  elevation overlay can never tint a surface with the accent again.
+- **Two bundled faces with real tabular figures**, replacing the system monospace that was
+  carrying the largest numerals in the product. `tools/build-fonts.py` instances and subsets
+  them and asserts the tabular widths rather than trusting them.
+- **Token layer** — colour, type, shape, spacing, motion and haptics — enforced by
+  `tools/check-design-tokens.py` so it cannot fragment again.
+- **The workout screen staged around resting and lifting**: the rest clock pinned outside
+  the scroll, live session telemetry in the header, entry compacted to one panel, state
+  drawn rather than narrated.
+- **Haptics on the logging loop**, including press-and-hold repeat with a detent per step.
+- **One intensity ramp**, colourblind-safe, shared by the body map, the calendar and Home.
+- **Charts split by kind** — bars for additive volume, a focused-domain line for levels, so
+  an estimated 1RM can finally show a few percent of progress.
+
+Not done here: **exercise imagery** and the equipment field it needs, which belong with the
+Phase 4 schema change; **rest-as-instrument sound design**; the **plate calculator**; and a
+full **accessibility pass at font scale 2.0**.
 
 ## Phase 6 — Platform *later*
 
@@ -119,5 +139,7 @@ Carried forward deliberately, with the phase that will address them:
 | RPE is stored and backed up but read by nothing | 4 |
 | Planner assigns focus to days already in the past | 4 |
 | `arrangeKinds` can still produce back-to-back same-family days | 4 |
-| Toolchain ~20 months stale; release unminified | 5 |
+| Toolchain ~20 months stale; release unminified | 6 |
+| Exercise imagery and the equipment field it needs | 4 |
+| Rest-timer sound design; plate calculator; font-scale-2.0 pass | 6 |
 | No scheduled auto-backup (manual + prompted only) | 6 |
