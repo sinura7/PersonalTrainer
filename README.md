@@ -30,6 +30,7 @@ need no configuration.
 | [docs/RECOVERY.md](docs/RECOVERY.md) | **new phone, dead laptop, lost keystore — read before you need it** |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | what is built, what is next |
 | [docs/AUDIT.md](docs/AUDIT.md) | the code review this roadmap came from |
+| [docs/HIERARCHY_PLAN.md](docs/HIERARCHY_PLAN.md) | audit of the five-tab hierarchy proposal and the recommended plan |
 | [docs/DESIGN_AUDIT.md](docs/DESIGN_AUDIT.md) | the product/design bar, screen by screen |
 
 ## What it does
