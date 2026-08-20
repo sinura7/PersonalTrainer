@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.MuscleLoadCalculator
 import com.sinura.personaltrainer.domain.toVolumeLabel
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
@@ -36,6 +37,7 @@ import java.util.Date
 @Composable
 fun SessionDetailScreen(
     onBack: () -> Unit,
+    onOpenExercise: (String) -> Unit,
     viewModel: SessionDetailViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -111,8 +113,12 @@ fun SessionDetailScreen(
                     }
                     items(exerciseCards) { (exerciseId, exerciseName) ->
                         val sets = session.setsFor(exerciseId)
-                        val volume = sets.filterNot { it.isWarmup }.sumOf { it.weightKg * it.reps }
-                        GymCard {
+                        // Same per-set rule as the session headline above and the body map; a
+                        // plain weight x reps here scored bodyweight sets at zero.
+                        val volume = sets
+                            .filterNot { it.isWarmup }
+                            .sumOf { MuscleLoadCalculator.setVolumeKg(it.weightKg, it.reps) }
+                        GymCard(onClick = { onOpenExercise(exerciseId) }) {
                             Text(exerciseName, style = MaterialTheme.typography.titleMedium)
                             Text(
                                 volume.toVolumeLabel(unit),

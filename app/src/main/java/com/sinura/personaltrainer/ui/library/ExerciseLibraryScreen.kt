@@ -52,6 +52,7 @@ import com.sinura.personaltrainer.ui.components.ScreenLoading
 @Composable
 fun ExerciseLibraryScreen(
     onCreateRoutine: () -> Unit,
+    onOpenExercise: (String) -> Unit,
     initialMuscle: String? = null,
     viewModel: ExerciseLibraryViewModel = viewModel(),
 ) {
@@ -145,6 +146,7 @@ fun ExerciseLibraryScreen(
                         items(state.visibleExercises, key = { it.id }) { exercise ->
                             ExerciseLibraryCard(
                                 exercise = exercise,
+                                onOpen = { onOpenExercise(exercise.id) },
                                 onAddToRoutine = { viewModel.openAddToRoutine(exercise) },
                                 onEdit = { viewModel.openEdit(exercise) },
                                 onDelete = { viewModel.requestDelete(exercise) },
@@ -208,11 +210,12 @@ fun ExerciseLibraryScreen(
 @Composable
 private fun ExerciseLibraryCard(
     exercise: Exercise,
+    onOpen: () -> Unit,
     onAddToRoutine: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    GymCard {
+    GymCard(onClick = onOpen) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,

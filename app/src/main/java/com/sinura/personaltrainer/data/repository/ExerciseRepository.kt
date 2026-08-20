@@ -40,6 +40,10 @@ class ExerciseRepository(
 
     suspend fun getById(id: String): Exercise? = exerciseDao.getById(id)?.toDomain()
 
+    fun observeById(id: String): Flow<Exercise?> = exerciseDao.observeById(id)
+        .map { it?.toDomain() }
+        .orLogAndFallback("this exercise", null)
+
     suspend fun seedDefaultsIfEmpty() {
         if (exerciseDao.count() == 0) {
             exerciseDao.insertAll(DefaultExercises.catalog().map { it.toEntity() })

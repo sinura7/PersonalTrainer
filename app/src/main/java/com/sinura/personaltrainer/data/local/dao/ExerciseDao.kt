@@ -29,6 +29,10 @@ interface ExerciseDao {
     @Query("SELECT * FROM exercises WHERE id = :id")
     suspend fun getById(id: String): ExerciseEntity?
 
+    /** For the detail screen, which must notice a rename or a deletion while it is open. */
+    @Query("SELECT * FROM exercises WHERE id = :id")
+    fun observeById(id: String): Flow<ExerciseEntity?>
+
     @Query("SELECT COUNT(*) FROM exercises")
     suspend fun count(): Int
 

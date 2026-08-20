@@ -35,6 +35,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.sinura.personaltrainer.ui.history.HistoryScreen
+import com.sinura.personaltrainer.ui.exercise.ExerciseDetailScreen
 import com.sinura.personaltrainer.ui.history.SessionDetailScreen
 import com.sinura.personaltrainer.ui.home.HomeScreen
 import com.sinura.personaltrainer.ui.library.ExerciseLibraryScreen
@@ -58,6 +59,9 @@ sealed class Route(val path: String) {
     }
     data object ActiveWorkout : Route("session/{sessionId}") {
         fun create(sessionId: String): String = "session/$sessionId"
+    }
+    data object ExerciseDetail : Route("exercise/{exerciseId}") {
+        fun create(exerciseId: String) = "exercise/$exerciseId"
     }
     data object SessionDetail : Route("history/{sessionId}") {
         fun create(sessionId: String): String = "history/$sessionId"
@@ -198,6 +202,7 @@ fun PersonalTrainerNav(
             ) { entry ->
                 ExerciseLibraryScreen(
                     onCreateRoutine = { navController.navigate(Route.RoutineEditor.create("new")) },
+                    onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
                     initialMuscle = entry.arguments?.getString("muscle"),
                 )
             }
@@ -264,7 +269,25 @@ fun PersonalTrainerNav(
                 route = Route.SessionDetail.path,
                 arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
             ) {
-                SessionDetailScreen(onBack = { navController.popBackStack() })
+                SessionDetailScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
+                )
+            }
+            composable(
+                route = Route.ExerciseDetail.path,
+                arguments = listOf(navArgument("exerciseId") { type = NavType.StringType }),
+            ) {
+                ExerciseDetailScreen(
+                    onBack = { navController.popBackStack() },
+                    // launchSingleTop so bouncing between a session and one of its lifts does
+                    // not stack a new copy of the same screen on every hop.
+                    onOpenSession = { sessionId ->
+                        navController.navigate(Route.SessionDetail.create(sessionId)) {
+                            launchSingleTop = true
+                        }
+                    },
+                )
             }
         }
         }
