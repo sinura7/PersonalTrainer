@@ -1,44 +1,79 @@
 package com.sinura.personaltrainer.ui.summary
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.EmojiEvents
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.PersonalRecordKind
-import com.sinura.personaltrainer.domain.SessionHighlight
+import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSummary
-import com.sinura.personaltrainer.domain.toVolumeLabel
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
+import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
-import com.sinura.personaltrainer.ui.components.GymMetrics
-import com.sinura.personaltrainer.ui.components.GymNumericStyle
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
+import com.sinura.personaltrainer.ui.components.HairlineDivider
+import com.sinura.personaltrainer.ui.components.InstrumentRow
+import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
+import com.sinura.personaltrainer.ui.components.StatTile
+import com.sinura.personaltrainer.ui.theme.GoldContainer
+import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.Motion
+import com.sinura.personaltrainer.ui.theme.Pit
+import com.sinura.personaltrainer.ui.theme.PrGold
+import com.sinura.personaltrainer.ui.theme.Radius
+import com.sinura.personaltrainer.ui.theme.TextPrimary
+import com.sinura.personaltrainer.ui.theme.TextSecondary
+import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import kotlinx.coroutines.delay
 import java.text.DateFormat
 import java.util.Date
+import kotlin.math.roundToInt
 
 /**
  * What the workout amounted to, shown once, immediately after finishing.
@@ -46,8 +81,12 @@ import java.util.Date
  * Finishing used to pop silently back to Home. The app knew a session had just set two
  * personal bests and said nothing about it — spending the one moment it has the lifter's full
  * attention on a screen transition.
+ *
+ * It then spent that moment on a titled page of interchangeable cards whose headline numbers
+ * were set *smaller* than the stepper numerals from the workout it was summarising. There is
+ * no top bar here at all: the session's one number leads, the two supporting ones flank it,
+ * and records are the only thing on the screen allowed to look like an event.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkoutSummaryScreen(
     onDone: () -> Unit,
@@ -62,11 +101,13 @@ fun WorkoutSummaryScreen(
     // there is nowhere else back could sensibly lead.
     BackHandler(enabled = !state.isLoading) { onDone() }
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Workout complete") }) },
-    ) { padding ->
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Pit),
+    ) {
         when {
-            state.isLoading -> ScreenLoading(modifier = Modifier.padding(padding))
+            state.isLoading -> ScreenLoading()
 
             state.missing || !summary.hasWork -> {
                 EmptyState(
@@ -74,138 +115,276 @@ fun WorkoutSummaryScreen(
                     body = "It is in your history. Nothing to summarise from this one.",
                     actionLabel = "Done",
                     onAction = onDone,
-                    modifier = Modifier
-                        .padding(padding)
-                        .padding(GymMetrics.screenPadding),
+                    modifier = Modifier.padding(Metrics.gutter),
                 )
             }
 
             else -> {
                 LazyColumn(
-                    modifier = Modifier.padding(padding),
-                    contentPadding = GymMetrics.screenContentPadding,
-                    verticalArrangement = Arrangement.spacedBy(GymMetrics.listGap),
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(
+                        start = Metrics.gutter,
+                        end = Metrics.gutter,
+                        top = Metrics.space4,
+                        bottom = Metrics.space6,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space4),
                 ) {
-                    item { HeadlineCard(summary = summary, unit = unit) }
+                    item(key = "hero") { SummaryHero(summary = summary, unit = unit) }
 
-                    if (summary.recordCount > 0) {
-                        item {
-                            GymCard(
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                ),
-                            ) {
-                                Text(
-                                    if (summary.recordCount == 1) "1 personal record" else "${summary.recordCount} personal records",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                                summary.highlights
-                                    .filter { it.records.isNotEmpty() }
-                                    .forEach { highlight ->
-                                        Text(
-                                            "${highlight.exerciseName} · ${highlight.records.joinToString(", ") { it.label }}",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                        )
-                                    }
-                            }
-                        }
-                    }
-
-                    item { GymSectionHeader("Lifts", compact = true) }
-                    items(summary.highlights, key = { it.exerciseId }) { highlight ->
-                        HighlightCard(highlight = highlight, unit = unit)
-                    }
-
-                    if (summary.notes.isNotBlank()) {
-                        item {
-                            GymCard {
-                                Text(
-                                    "Notes",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Text(summary.notes, style = MaterialTheme.typography.bodyMedium)
-                            }
-                        }
-                    }
-
-                    item {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            PrimaryGymButton(text = "Done", onClick = onDone)
-                            SecondaryGymButton(
-                                text = "See full session",
-                                onClick = { onOpenSession(summary.sessionId) },
+                    item(key = "tiles") {
+                        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.cardGap)) {
+                            StatTile(
+                                label = "Working sets",
+                                value = summary.workingSets.toString(),
+                                modifier = Modifier.weight(1f),
+                                valueColor = TextPrimary,
+                            )
+                            StatTile(
+                                label = "Duration",
+                                value = summary.durationMinutes.toString(),
+                                modifier = Modifier.weight(1f),
+                                unit = "min",
+                                valueColor = TextPrimary,
                             )
                         }
                     }
+
+                    if (summary.recordCount > 0) {
+                        item(key = "records") { PersonalRecordPanel(summary = summary) }
+                    }
+
+                    item(key = "lifts-label") {
+                        GymSectionHeader(
+                            title = "Lifts",
+                            modifier = Modifier.padding(top = Metrics.space2),
+                            compact = true,
+                        )
+                    }
+                    item(key = "lifts") { LiftBreakdown(summary = summary, unit = unit) }
+
+                    if (summary.notes.isNotBlank()) {
+                        item(key = "notes") {
+                            GymCard {
+                                Kicker("Notes")
+                                Text(summary.notes, style = InstrumentType.body, color = TextSecondary)
+                            }
+                        }
+                    }
+                }
+
+                HairlineDivider(startIndent = 0.dp)
+                SummaryActions(
+                    onDone = onDone,
+                    onOpenSession = { onOpenSession(summary.sessionId) },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The session as one number.
+ *
+ * The count-up is deliberately gated on a saveable flag rather than played whenever this
+ * composes: a rotation, a theme change or a process-death restore would otherwise replay the
+ * celebration, which turns a reward into a glitch. Tabular figures do the rest — the digits
+ * settle in place instead of jittering the layout on every frame.
+ */
+@Composable
+private fun SummaryHero(summary: WorkoutSummary, unit: WeightUnit) {
+    val dateLabel = remember(summary.performedAtMs) {
+        DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(summary.performedAtMs))
+    }
+    val target = remember(summary.volumeKg, unit) {
+        WeightConverter.toDisplayValue(summary.volumeKg, unit).roundToInt()
+    }
+
+    var played by rememberSaveable { mutableStateOf(false) }
+    var counting by remember { mutableStateOf(played) }
+    LaunchedEffect(Unit) {
+        counting = true
+        played = true
+    }
+    val shown by animateIntAsState(
+        targetValue = if (counting) target else 0,
+        animationSpec = tween(durationMillis = Motion.DRAW, easing = Motion.Standard),
+        label = "summary-volume",
+    )
+
+    val finalLabel = remember(target) { WeightConverter.formatGroupedNumber(target.toDouble()) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+        Kicker("Workout complete", color = Volt)
+        Text(
+            summary.title,
+            style = InstrumentType.title,
+            color = TextPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(dateLabel, style = InstrumentType.caption, color = TextTertiary)
+        Column(
+            modifier = Modifier
+                .padding(top = Metrics.space5)
+                // One node for the whole readout, holding the settled value: a screen reader
+                // must never be handed a number that is still counting.
+                .semantics(mergeDescendants = true) {
+                    contentDescription = "Total volume $finalLabel ${unit.suffix}"
+                },
+            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+        ) {
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    WeightConverter.formatGroupedNumber(shown.toDouble()),
+                    modifier = Modifier.alignByBaseline(),
+                    style = InstrumentType.numeralXl,
+                    color = TextPrimary,
+                    maxLines = 1,
+                )
+                Text(
+                    unit.suffix,
+                    modifier = Modifier
+                        .alignByBaseline()
+                        .padding(start = Metrics.space2),
+                    style = InstrumentType.unit,
+                    color = TextSecondary,
+                )
+            }
+            Kicker("Total volume", color = TextTertiary)
+        }
+    }
+}
+
+/**
+ * The records, in gold, as their own object.
+ *
+ * These used to be a `primaryContainer` card — the same anatomy, radius and container colour
+ * as every other card on the screen and as the error banner elsewhere in the product, so the
+ * app's best news and its failures were drawn identically. Gold belongs to records and to
+ * nothing else, and the entrance is staggered because three records landing at once read as
+ * one paragraph while three landing in sequence read as three events.
+ */
+@Composable
+private fun PersonalRecordPanel(summary: WorkoutSummary, modifier: Modifier = Modifier) {
+    val lines = remember(summary) {
+        summary.highlights
+            .filter { it.records.isNotEmpty() }
+            .map { it.exerciseName to it.records.joinToString(" · ") { kind -> kind.label } }
+    }
+    var revealed by rememberSaveable { mutableStateOf(0) }
+    LaunchedEffect(lines.size) {
+        while (revealed < lines.size) {
+            delay(RECORD_STAGGER_MS)
+            revealed += 1
+        }
+    }
+
+    val shape = RoundedCornerShape(Radius.md)
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(GoldContainer, shape)
+            .border(Metrics.hairline, PrGold.copy(alpha = RECORD_BORDER_ALPHA), shape)
+            .padding(Metrics.cardPadding),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Outlined.EmojiEvents, contentDescription = null, tint = PrGold)
+            Text(
+                if (summary.recordCount == 1) {
+                    "1 personal record"
+                } else {
+                    "${summary.recordCount} personal records"
+                },
+                style = InstrumentType.title,
+                color = PrGold,
+            )
+        }
+        lines.forEachIndexed { index, (name, detail) ->
+            AnimatedVisibility(
+                visible = index < revealed,
+                enter = scaleIn(initialScale = 0.92f, animationSpec = Motion.celebrate()) +
+                    fadeIn(tween(Motion.FAST)),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+                    Text(name, style = InstrumentType.bodyStrong, color = TextPrimary)
+                    Text(detail, style = InstrumentType.caption, color = PrGold)
                 }
             }
         }
     }
 }
 
+/**
+ * Every lift of the session, as one instrument panel.
+ *
+ * One card per lift made six lifts look like six unrelated objects and set their numbers as
+ * prose — "3 sets · 1,240 kg" in body text, where nothing lines up between rows. Here the two
+ * numbers a lifter compares between lifts sit in fixed columns.
+ */
 @Composable
-private fun HeadlineCard(summary: WorkoutSummary, unit: WeightUnit) {
-    val dateLabel = remember(summary.performedAtMs) {
-        DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(summary.performedAtMs))
-    }
-    GymCard {
-        Text(summary.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text(
-            dateLabel,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Stat(summary.workingSets.toString(), "working sets")
-            Stat(summary.volumeKg.toVolumeLabel(unit), "volume")
-            Stat("${summary.durationMinutes} min", "duration")
+private fun LiftBreakdown(summary: WorkoutSummary, unit: WeightUnit) {
+    GroupedList {
+        summary.highlights.forEachIndexed { index, highlight ->
+            if (index > 0) HairlineDivider()
+            InstrumentRow(
+                title = highlight.exerciseName,
+                subtitle = highlight.topSet?.let { top ->
+                    "Top set ${top.weightKg.toWeightLabel(unit)} × ${top.reps}"
+                },
+                leading = { RecordMark(record = highlight.records.isNotEmpty()) },
+            ) {
+                MetricCluster(value = highlight.workingSets.toString(), label = "sets")
+                MetricCluster(
+                    value = WeightConverter.formatGroupedNumber(
+                        WeightConverter.toDisplayValue(highlight.volumeKg, unit),
+                    ),
+                    label = unit.suffix,
+                )
+            }
         }
     }
 }
 
+/**
+ * Which rows in the breakdown broke something.
+ *
+ * Transparent rather than absent when there is no record, so the lift names stay in one
+ * column down the list instead of stepping in and out by the width of the dot.
+ */
 @Composable
-private fun Stat(value: String, label: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(value, style = GymNumericStyle.copy(fontSize = MaterialTheme.typography.titleLarge.fontSize))
-        Text(
-            label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
+private fun RecordMark(record: Boolean) {
+    Box(
+        modifier = Modifier
+            .size(Metrics.space2)
+            .clip(CircleShape)
+            .background(if (record) PrGold else Color.Transparent)
+            .then(
+                if (record) {
+                    Modifier.semantics { contentDescription = "Personal record" }
+                } else {
+                    Modifier
+                },
+            ),
+    )
 }
 
+/** Pinned, so leaving the reward screen never requires scrolling past the reward. */
 @Composable
-private fun HighlightCard(highlight: SessionHighlight, unit: WeightUnit) {
-    GymCard {
-        Text(highlight.exerciseName, style = MaterialTheme.typography.titleMedium)
-        highlight.topSet?.let { top ->
-            Text(
-                "Top set ${top.weightKg.toWeightLabel(unit)} × ${top.reps}",
-                style = MaterialTheme.typography.bodyLarge,
-            )
-        }
-        Text(
-            "${highlight.workingSets} ${if (highlight.workingSets == 1) "set" else "sets"} · " +
-                highlight.volumeKg.toVolumeLabel(unit),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        if (highlight.records.isNotEmpty()) {
-            Text(
-                highlight.records.joinToString(" · ") { it.label },
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
+private fun SummaryActions(onDone: () -> Unit, onOpenSession: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Pit)
+            .padding(horizontal = Metrics.gutter, vertical = Metrics.space3),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
+        PrimaryGymButton(text = "Done", onClick = onDone)
+        SecondaryGymButton(text = "See full session", onClick = onOpenSession)
     }
 }
 
@@ -215,3 +394,6 @@ private val PersonalRecordKind.label: String
         PersonalRecordKind.REPS_AT_WEIGHT -> "Most reps at that weight"
         PersonalRecordKind.ESTIMATED_ONE_REP_MAX -> "Best estimated 1RM"
     }
+
+private const val RECORD_STAGGER_MS = 140L
+private const val RECORD_BORDER_ALPHA = 0.35f

@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,54 +10,66 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.CanonicalMuscle
-import com.sinura.personaltrainer.domain.ProgressionCalculator
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RestTimer
+import com.sinura.personaltrainer.domain.SessionFocusKind
+import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.TrainingRecommendation
+import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
+import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
-import com.sinura.personaltrainer.ui.components.GymMetrics
-import com.sinura.personaltrainer.ui.components.GymNumericStyle
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
-import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.components.HairlineDivider
+import com.sinura.personaltrainer.ui.components.InstrumentRow
+import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SessionLogRow
+import com.sinura.personaltrainer.ui.components.StatTile
 import com.sinura.personaltrainer.ui.progress.dispatchRecommendation
 import com.sinura.personaltrainer.ui.schedule.ThisWeekHomeCard
 import com.sinura.personaltrainer.ui.schedule.todayEpochDay
+import com.sinura.personaltrainer.ui.theme.Hairline
+import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.Radius
+import com.sinura.personaltrainer.ui.theme.RestCyan
+import com.sinura.personaltrainer.ui.theme.Surface2
+import com.sinura.personaltrainer.ui.theme.TextPrimary
+import com.sinura.personaltrainer.ui.theme.TextSecondary
+import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.heatColor
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import java.text.DateFormat
-import java.util.Calendar
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.Date
 
 @Composable
@@ -89,16 +102,33 @@ fun HomeScreen(
         return
     }
 
+    val today = todayEpochDay()
+    val plan = state.weekPlan
+    val todayDay = plan?.dayOn(today)
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(GymMetrics.screenPadding),
-        verticalArrangement = Arrangement.spacedBy(GymMetrics.sectionGap),
+        contentPadding = PaddingValues(
+            start = Metrics.gutter,
+            end = Metrics.gutter,
+            top = Metrics.space4,
+            bottom = Metrics.space8,
+        ),
+        verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
     ) {
         item {
-            HomeHeader(
-                unit = unit,
-                onOpenSettings = onOpenSettings,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
+                HomeMasthead(
+                    epochDay = today,
+                    headline = todayHeadline(day = todayDay, inProgress = inProgress != null),
+                    onOpenSettings = onOpenSettings,
+                )
+                HomeStatRow(
+                    lastSession = state.recentSessions.firstOrNull(),
+                    todayEpoch = today,
+                    unit = unit,
+                )
+            }
         }
         state.error?.let { message ->
             item {
@@ -114,17 +144,9 @@ fun HomeScreen(
             }
         }
         item {
-            PrimaryGymButton(
-                text = if (inProgress != null) "Resume workout" else "Start workout",
-                onClick = {
-                    if (inProgress != null) onResumeWorkout(inProgress.id) else onStartWorkout()
-                },
-            )
-        }
-        item {
-            val plan = state.weekPlan
-            val today = todayEpochDay()
-            val todayDay = plan?.dayOn(today)
+            // The hero carries Home's only filled button. The standalone Start/Resume that
+            // used to sit above it competed with this card, the rest strip and its own
+            // secondary Start — four ways to begin one session.
             ThisWeekHomeCard(
                 day = todayDay,
                 nextDay = plan?.nextTrainingOnOrAfter(today),
@@ -134,12 +156,12 @@ fun HomeScreen(
                 },
                 inProgress = inProgress != null,
                 onOpenSchedule = onOpenSchedule,
-                onStart = {
-                    val target = todayDay?.takeUnless { it.isRest } ?: plan?.nextTrainingOnOrAfter(today)
-                    if (target != null && !target.isRest) {
-                        viewModel.startSuggestedDay(target)
-                    } else {
-                        onOpenSchedule()
+                onPrimary = {
+                    val target = todayDay?.takeUnless { it.isRest }
+                    when {
+                        inProgress != null -> onResumeWorkout(inProgress.id)
+                        target != null -> viewModel.startSuggestedDay(target)
+                        else -> onStartWorkout()
                     }
                 },
             )
@@ -163,132 +185,202 @@ fun HomeScreen(
         }
         if (state.readyToProgress.isNotEmpty()) {
             item {
-                GymSectionHeader("Ready to progress")
-            }
-            items(state.readyToProgress, key = { it.exerciseId }) { hint ->
-                ProgressCard(
-                    hint = hint,
+                ReadyToProgressSection(
+                    hints = state.readyToProgress,
                     unit = unit,
-                    onClick = onStartWorkout,
+                    onStartWorkout = onStartWorkout,
                 )
             }
         }
         item {
-            GymSectionHeader(
-                title = "Recent",
-                actionLabel = if (state.recentSessions.isNotEmpty()) "History" else null,
-                onAction = if (state.recentSessions.isNotEmpty()) onOpenHistory else null,
+            RecentSection(
+                sessions = state.recentSessions,
+                dateFormat = dateFormat,
+                onOpenHistory = onOpenHistory,
+                onOpenSession = onOpenSession,
             )
-        }
-        if (state.recentSessions.isEmpty()) {
-            item {
-                EmptyState(
-                    title = "No sessions yet",
-                    body = "Finish a workout and it lands here.",
-                    compact = true,
-                )
-            }
-        } else {
-            items(state.recentSessions, key = { it.id }) { session ->
-                SessionLogRow(
-                    title = session.routineName ?: "Workout",
-                    dateLabel = dateFormat.format(Date(session.date)),
-                    workingSets = session.sets.count { !it.isWarmup },
-                    volumeKg = session.workingVolumeKg(),
-                    durationMinutes = session.durationMinutes,
-                    onClick = { onOpenSession(session.id) },
-                )
-            }
         }
     }
 }
 
+/**
+ * The date, then the one thing the user opened the app to find out.
+ *
+ * What this replaces led with the app's own name under a greeting, with the unit preference
+ * as a third line and a settings entry built as an [IconButton] nested inside a clickable
+ * column with its own caption — two overlapping targets around one 24dp glyph. A product's
+ * face states today's answer; its name is on the launcher icon.
+ */
+@Composable
+private fun HomeMasthead(
+    epochDay: Long,
+    headline: String,
+    onOpenSettings: () -> Unit,
+) {
+    val dateLine = remember(epochDay) {
+        DateTimeFormatter.ofPattern(DATE_LINE_PATTERN).format(LocalDate.ofEpochDay(epochDay))
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
+            Kicker(dateLine)
+            Text(
+                headline,
+                style = InstrumentType.display,
+                color = TextPrimary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        IconButton(onClick = onOpenSettings) {
+            Icon(Icons.Outlined.Settings, contentDescription = "Settings", tint = TextSecondary)
+        }
+    }
+}
+
+/**
+ * Two numerals above the fold.
+ *
+ * Home had none: a fitness tracker whose first screen was a menu of links, where the largest
+ * type on the page was the app's own name. These are the last session's working volume and
+ * how long ago it was — both exact from the state Home already holds, unlike a rolling
+ * weekly total, which would have to be estimated from the three sessions it receives.
+ */
+@Composable
+private fun HomeStatRow(
+    lastSession: WorkoutSession?,
+    todayEpoch: Long,
+    unit: WeightUnit,
+) {
+    val volume = lastSession?.let { session ->
+        WeightConverter.formatGroupedNumber(
+            WeightConverter.toDisplayValue(session.workingVolumeKg(), unit),
+        )
+    }
+    val daysSince = lastSession?.let { session ->
+        (todayEpoch - todayEpochDay(session.date)).coerceAtLeast(0L).toString()
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Metrics.cardGap),
+    ) {
+        StatTile(
+            label = "Last session",
+            value = volume ?: NO_VALUE,
+            unit = if (volume != null) unit.suffix else null,
+            valueColor = if (volume != null) TextPrimary else TextTertiary,
+            modifier = Modifier.weight(1f),
+        )
+        StatTile(
+            label = "Days since",
+            value = daysSince ?: NO_VALUE,
+            valueColor = if (daysSince != null) TextPrimary else TextTertiary,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+/** A rest clock still running in a workout that was left behind. Tapping goes back to it. */
 @Composable
 private fun RestRemainingStrip(
     remainingSeconds: Int,
     onResume: () -> Unit,
 ) {
-    GymCard(
-        onClick = onResume,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                "REST",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onTertiaryContainer,
-            )
-            Text(
-                RestTimer.formatClock(remainingSeconds),
-                style = GymNumericStyle.copy(fontSize = 28.sp, lineHeight = 32.sp),
-                color = MaterialTheme.colorScheme.onTertiaryContainer,
-            )
-        }
-    }
-}
-
-@Composable
-private fun HomeHeader(
-    unit: WeightUnit,
-    onOpenSettings: () -> Unit,
-) {
+    val shape = RoundedCornerShape(Radius.md)
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Surface2)
+            .border(Metrics.hairline, Hairline, shape)
+            .clickable(onClick = onResume, onClickLabel = "Back to the workout")
+            .padding(horizontal = Metrics.space4, vertical = Metrics.space3),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                dayGreeting(),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text("Personal Trainer", style = MaterialTheme.typography.headlineMedium)
-            Text(
-                "Weights in ${unit.suffix}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+            Kicker("Rest", color = RestCyan)
+            Text("Back to the workout", style = InstrumentType.caption, color = TextSecondary)
         }
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.clickable(onClick = onOpenSettings),
-        ) {
-            IconButton(onClick = onOpenSettings) {
-                Icon(Icons.Outlined.Settings, contentDescription = "Settings")
+        Text(
+            RestTimer.formatClock(remainingSeconds),
+            style = InstrumentType.numeralMd,
+            color = TextPrimary,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun ReadyToProgressSection(
+    hints: List<ProgressionHint>,
+    unit: WeightUnit,
+    onStartWorkout: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
+        GymSectionHeader("Ready to progress")
+        GroupedList {
+            hints.forEachIndexed { index, hint ->
+                if (index > 0) HairlineDivider()
+                InstrumentRow(
+                    title = hint.exerciseName,
+                    subtitle = "Top set ${hint.lastWeightKg.toWeightLabel(unit)} × ${hint.lastReps}",
+                    onClick = onStartWorkout,
+                ) {
+                    MetricCluster(
+                        value = WeightConverter.formatDisplayNumber(
+                            WeightConverter.toDisplayValue(hint.suggestedWeightKg, unit),
+                        ),
+                        label = "target",
+                        unit = unit.suffix,
+                    )
+                }
             }
-            Text(
-                "Settings",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }
 
 @Composable
-private fun ProgressCard(
-    hint: ProgressionHint,
-    unit: WeightUnit,
-    onClick: () -> Unit,
+private fun RecentSection(
+    sessions: List<WorkoutSession>,
+    dateFormat: DateFormat,
+    onOpenHistory: () -> Unit,
+    onOpenSession: (String) -> Unit,
 ) {
-    GymCard(onClick = onClick) {
-        Text(hint.exerciseName, style = MaterialTheme.typography.titleMedium)
-        Text(
-            hint.suggestedWeightKg.toWeightLabel(unit),
-            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.primary,
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
+        GymSectionHeader(
+            title = "Recent",
+            // Kept, unlike the other section actions: the rows below open one session each,
+            // the action opens the whole history — two destinations, not one twice.
+            actionLabel = if (sessions.isNotEmpty()) "History" else null,
+            onAction = if (sessions.isNotEmpty()) onOpenHistory else null,
         )
-        Text(
-            "Top set ${hint.lastWeightKg.toWeightLabel(unit)} × ${hint.lastReps}  ·  +${ProgressionCalculator.INCREMENT_KG.toWeightLabel(unit)}",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.bodyMedium,
-        )
+        if (sessions.isEmpty()) {
+            EmptyState(
+                title = "No sessions yet",
+                body = "Finish a workout and it lands here.",
+                compact = true,
+            )
+        } else {
+            GroupedList {
+                sessions.forEachIndexed { index, session ->
+                    if (index > 0) HairlineDivider()
+                    SessionLogRow(
+                        title = session.routineName ?: "Workout",
+                        dateLabel = dateFormat.format(Date(session.date)),
+                        workingSets = session.sets.count { !it.isWarmup },
+                        volumeKg = session.workingVolumeKg(),
+                        durationMinutes = session.durationMinutes,
+                        onClick = { onOpenSession(session.id) },
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -308,50 +400,31 @@ private fun TrainingBalanceCard(
         CanonicalMuscle.HAMSTRINGS,
         CanonicalMuscle.CORE,
     )
-    Column(verticalArrangement = Arrangement.spacedBy(GymMetrics.listGap)) {
-        GymSectionHeader(
-            title = "Training",
-            actionLabel = "Body",
-            onAction = onOpenProgress,
-        )
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
+        // No header action: the card underneath already navigates to the body map, and a
+        // section header that repeats its own card's tap is one affordance drawn twice.
+        GymSectionHeader("Training")
         GymCard(onClick = onOpenProgress) {
             if (!hasWork) {
                 Text(
                     "Finish a few sessions to see which muscles are loaded.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = InstrumentType.body,
+                    color = TextSecondary,
                 )
             } else {
-                Text(
-                    "Last 7 days",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Kicker(snapshotHighlights?.window?.label ?: "Last 7 days")
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
                 ) {
                     highlights.forEach { muscle ->
                         val load = snapshotHighlights?.load(muscle)
-                        Column(
+                        MuscleHeatTile(
+                            label = muscle.shortLabel,
+                            workingSets = load?.workingSets ?: 0,
+                            heat = load?.heat ?: 0.0,
                             modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(16.dp)
-                                    .clip(CircleShape)
-                                    .background(heatColor(load?.heat ?: 0.0)),
-                            )
-                            Text(
-                                muscle.shortLabel,
-                                style = MaterialTheme.typography.labelLarge,
-                                textAlign = TextAlign.Center,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
+                        )
                     }
                 }
             }
@@ -360,7 +433,15 @@ private fun TrainingBalanceCard(
             GymCard(onClick = { onRecommendation(rec) }) {
                 Text(
                     rec.title,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = InstrumentType.title,
+                    color = TextPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    rec.reason,
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -369,12 +450,52 @@ private fun TrainingBalanceCard(
     }
 }
 
-private fun dayGreeting(): String {
-    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-    return when (hour) {
-        in 5..11 -> "Good morning"
-        in 12..16 -> "Good afternoon"
-        in 17..21 -> "Good evening"
-        else -> "Train when you’re ready"
+/**
+ * One muscle's share of the last window: a heat bar, its working-set count, its name.
+ *
+ * These were six 16dp dots with nothing but a label — the app's only instrument moment,
+ * drawn at the size of a chart legend and carrying no number at all. The fill comes from
+ * [heatColor], the same ramp as the body map and the calendar.
+ */
+@Composable
+private fun MuscleHeatTile(
+    label: String,
+    workingSets: Int,
+    heat: Double,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(HEAT_TILE_HEIGHT)
+                .clip(RoundedCornerShape(Radius.xs))
+                .background(heatColor(heat)),
+        )
+        Text(
+            workingSets.toString(),
+            style = InstrumentType.numeralSm,
+            color = if (workingSets > 0) TextPrimary else TextTertiary,
+            maxLines = 1,
+        )
+        Kicker(label, color = TextTertiary)
     }
 }
+
+/** Today's answer, in the fewest words that still name the session. */
+private fun todayHeadline(day: SuggestedTrainingDay?, inProgress: Boolean): String = when {
+    inProgress -> "Workout in progress"
+    day == null -> "Ready to train"
+    day.isRest -> "Rest day"
+    day.focusKind == SessionFocusKind.RECOVERY -> "Recovery day"
+    else -> "${day.focusKind.label.lowercase().replaceFirstChar { it.titlecase() }} day"
+}
+
+// The separator is quoted: everything outside quotes in a pattern is a format field.
+private const val DATE_LINE_PATTERN = "EEEE '·' d MMM"
+private const val NO_VALUE = "—"
+private val HEAT_TILE_HEIGHT = 28.dp
