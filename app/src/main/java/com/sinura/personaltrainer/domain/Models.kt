@@ -66,9 +66,17 @@ data class WorkoutSession(
 ) {
     val isFinished: Boolean get() = finishedAt != null
 
+    /**
+     * Working volume, using the same per-set rule as the heat map and the exercise history.
+     *
+     * This used to be a plain `weightKg * reps`, which scored every bodyweight set at zero
+     * while [MuscleLoadCalculator] credited the same set at its bodyweight equivalent. A pull-up
+     * session therefore read "0 kg" on History and lit up the body map — one app, two answers
+     * to "how much did I lift".
+     */
     fun workingVolumeKg(): Double = sets
         .filterNot { it.isWarmup }
-        .sumOf { it.weightKg * it.reps }
+        .sumOf { MuscleLoadCalculator.setVolumeKg(it.weightKg, it.reps) }
 
     fun setsFor(exerciseId: String): List<SetLog> =
         sets.filter { it.exerciseId == exerciseId }.sortedBy { it.setNumber }
