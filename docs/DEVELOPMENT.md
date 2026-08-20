@@ -59,12 +59,39 @@ not a substitute for `./gradlew assembleDebug`:
 python3 tools/check-named-args.py app/src/main/java        # named args vs. declarations
 python3 tools/check-when-exhaustive.py app/src/main/java   # sealed/enum when coverage
 python3 tools/check-unused-imports.py app/src/main/java    # dead imports
+python3 tools/check-internal-imports.py app/src/main/java  # in-project names actually exist
+python3 tools/check-design-tokens.py app/src/main/java     # no raw colours/radii/elevation
+python3 tools/check-screen-wiring.py app/src/main/java     # every callback is actually called
 tools/syntax-check.sh app/src/main/java                    # parse-level diagnostics only
 ```
 
-Both Python checks target errors a refactor leaves behind: a call site still passing a
-parameter name the function no longer has, and a `when` that lost its exhaustiveness when a
-variant was added. See [tools/README.md](../tools/README.md).
+Each targets an error class that survives a parse-only check and still breaks the build or
+the product: a call site passing a parameter the function no longer has, a `when` that lost
+its exhaustiveness, a name that was never declared, a colour that escaped the token layer,
+and a screen that quietly stopped calling one of its callbacks. See
+[tools/README.md](../tools/README.md).
+
+On a machine with no Android SDK, `tools/run-domain-tests.sh` runs the domain suite on a
+plain JVM, which is possible only because `domain/` is pure Kotlin. Point it at a directory
+holding the Kotlin compiler, stdlib, coroutines, JUnit and hamcrest jars:
+
+```bash
+PT_JARS=build/test-jars tools/run-domain-tests.sh
+```
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs the unit tests, lint and `assembleDebug` on every push to
+`main` and to `claude/**` and `cursor/**` branches, and uploads the test reports, the
+generated Room schemas and a debug APK.
+
+**It has never successfully run.** Every attempt so far — across two branches — fails about
+three seconds in, with `runner_id: 0`, zero billable milliseconds and no logs at all, which
+means GitHub never assigned a runner rather than the build failing. The action versions the
+workflow pins were checked against their real tags and all exist, so this is an account-level
+block on a private repository: check **Settings → Billing → Actions minutes** and
+**Settings → Actions → General**. Until it is resolved, nothing in CI verifies anything, and
+Android Studio is the only thing that has ever compiled this app.
 
 There are no instrumented (`androidTest`) tests yet. Room DAOs, repositories, ViewModels and
 Compose screens are therefore **unverified by automation** — see [ROADMAP.md](ROADMAP.md).

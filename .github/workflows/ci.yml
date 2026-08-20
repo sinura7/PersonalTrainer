@@ -6,7 +6,11 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # Feature branches are included on purpose. Work is pushed here from environments
+    # that have no Android SDK and cannot reach Google's Maven, so the branch build is
+    # the only thing that ever compiles that code — verifying it only once it reaches
+    # main would mean reviewing it blind right up to the merge.
+    branches: [main, 'claude/**', 'cursor/**']
   pull_request:
   workflow_dispatch:
 
@@ -70,6 +74,19 @@ jobs:
             app/build/reports/lint-results-debug.html
           retention-days: 14
           if-no-files-found: ignore
+
+      # Room writes the schema JSON during KSP, and app/schemas holds no baseline yet —
+      # it cannot be hand-authored, because Room derives an identityHash the compiler has
+      # to agree with. Publishing it here is how the v1 baseline gets off a machine with
+      # the SDK and into the repo, which every future migration is gated on.
+      - name: Upload generated Room schemas
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: room-schemas
+          path: app/schemas/
+          retention-days: 14
+          if-no-files-found: warn
 
       # Lets you sideload a build from any machine without opening Android Studio.
       - name: Upload debug APK
