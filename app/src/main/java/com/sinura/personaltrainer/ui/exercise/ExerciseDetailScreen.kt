@@ -48,6 +48,7 @@ import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.LabelledTrend
 import com.sinura.personaltrainer.ui.components.MetricCluster
+import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.StatTile
 import com.sinura.personaltrainer.ui.theme.GoldContainer
