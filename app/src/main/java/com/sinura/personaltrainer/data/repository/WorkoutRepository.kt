@@ -10,6 +10,13 @@ import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toSummary
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ProgressionAction
+import com.sinura.personaltrainer.data.local.dao.ExerciseSetRow
+import com.sinura.personaltrainer.domain.ExerciseHistoryBuilder
+import com.sinura.personaltrainer.domain.ExerciseSessionSummary
+import com.sinura.personaltrainer.domain.ExerciseSetEntry
+import com.sinura.personaltrainer.domain.ExerciseSetRecord
+import com.sinura.personaltrainer.domain.PersonalRecordKind
+import com.sinura.personaltrainer.domain.PersonalRecords
 import com.sinura.personaltrainer.domain.ProgressionBasis
 import com.sinura.personaltrainer.domain.ProgressionCalculator
 import com.sinura.personaltrainer.domain.ProgressionHint
@@ -139,7 +146,7 @@ class WorkoutRepository(
         reps: Int,
         rpe: Int?,
         isWarmup: Boolean,
-    ) {
+    ): LoggedSet {
         val current = workoutDao.getSession(sessionId)
             ?: error("This workout is no longer available.")
         if (current.session.finishedAt != null) {
@@ -150,18 +157,29 @@ class WorkoutRepository(
         if (violation != null) error(violation)
         val nextNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
         val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else 0.0
-        workoutDao.insertSet(
-            SetLogEntity(
-                id = UUID.randomUUID().toString(),
-                sessionId = sessionId,
-                exerciseId = exerciseId,
-                setNumber = nextNumber,
-                weightKg = safeWeight,
-                reps = reps.coerceAtLeast(1),
-                rpe = rpe,
-                isWarmup = isWarmup,
-                completedAt = System.currentTimeMillis(),
-            ),
+        val safeReps = reps.coerceAtLeast(1)
+        val completedAt = System.currentTimeMillis()
+        val entity = SetLogEntity(
+            id = UUID.randomUUID().toString(),
+            sessionId = sessionId,
+            exerciseId = exerciseId,
+            setNumber = nextNumber,
+            weightKg = safeWeight,
+            reps = safeReps,
+            rpe = rpe,
+            isWarmup = isWarmup,
+            completedAt = completedAt,
+        )
+        workoutDao.insertSet(entity)
+        return LoggedSet(
+            setId = entity.id,
+            records = if (isWarmup) {
+                // A warm-up is preparation, not work. It is excluded from volume, from the
+                // heat map and from records, and announcing one as a PR would be a lie.
+                emptySet()
+            } else {
+                recordsBrokenBy(exerciseId, sessionId, safeWeight, safeReps, completedAt)
+            },
         )
     }
 
@@ -254,6 +272,106 @@ class WorkoutRepository(
             targetReps = resolvedTarget,
         )
     }
+
+    /**
+     * Every finished working set of one exercise, as the history builder wants it.
+     *
+     * Degrades to an empty history rather than throwing into the collector, the same way the
+     * other observed reads do.
+     */
+    fun observeExerciseSets(exerciseId: String): Flow<List<ExerciseSetEntry>> =
+        workoutDao.observeFinishedWorkingSets(exerciseId)
+            .map { rows -> rows.map { it.toEntry() } }
+            .orLogAndFallback("the history for this exercise", emptyList())
+
+    /**
+     * What this lift looked like the last time it was trained, for the values shown beside the
+     * inputs while logging. Excludes the session being logged right now.
+     */
+    suspend fun lastPerformance(
+        exerciseId: String,
+        excludeSessionId: String = "",
+    ): ExerciseSessionSummary? {
+        val sessionId = workoutDao.lastFinishedSessionIdWithExercise(exerciseId, excludeSessionId)
+            ?: return null
+        val row = workoutDao.getSessionRow(sessionId) ?: return null
+        // Reads one session, not the lift's whole history: this runs on every lift switch.
+        val entries = workoutDao.workingSetsForExerciseInSession(sessionId, exerciseId)
+            .map { set ->
+                ExerciseSetEntry(
+                    record = ExerciseSetRecord(
+                        setId = set.id,
+                        sessionId = set.sessionId,
+                        weightKg = set.weightKg,
+                        reps = set.reps,
+                        completedAt = set.completedAt,
+                    ),
+                    sessionName = row.routineName,
+                    sessionPerformedAtMs = row.date,
+                )
+            }
+        if (entries.isEmpty()) return null
+        return ExerciseHistoryBuilder.fromEntries(exerciseId, entries).sessions.firstOrNull()
+    }
+
+    /**
+     * Which records a set breaks, judged against everything logged before it.
+     *
+     * "Before" is by completion time, not by id, so a set can never be its own prior history.
+     *
+     * The current session's own earlier sets count. They are not in the finished-history query
+     * — that session has not finished — but a lifter who works up 100, then 105, then repeats
+     * 102.5 has not just set a weight record, and saying so would be obviously wrong to the
+     * person holding the phone.
+     */
+    suspend fun recordsBrokenBy(
+        exerciseId: String,
+        sessionId: String,
+        weightKg: Double,
+        reps: Int,
+        completedAt: Long,
+    ): Set<PersonalRecordKind> {
+        val finished = workoutDao.finishedWorkingSets(exerciseId).map { it.toEntry().record }
+        val thisSession = workoutDao.workingSetsForExerciseInSession(sessionId, exerciseId)
+            .map { set ->
+                ExerciseSetRecord(
+                    setId = set.id,
+                    sessionId = set.sessionId,
+                    weightKg = set.weightKg,
+                    reps = set.reps,
+                    completedAt = set.completedAt,
+                )
+            }
+        val prior = (finished + thisSession).filter { it.completedAt < completedAt }
+        return PersonalRecords.detect(
+            candidate = ExerciseSetRecord(
+                setId = "",
+                sessionId = "",
+                weightKg = weightKg,
+                reps = reps,
+                completedAt = completedAt,
+            ),
+            priorHistory = prior,
+        )
+    }
+
+    /** The outcome of logging one set: what was written, and what it beat. */
+    data class LoggedSet(
+        val setId: String,
+        val records: Set<PersonalRecordKind>,
+    )
+
+    private fun ExerciseSetRow.toEntry(): ExerciseSetEntry = ExerciseSetEntry(
+        record = ExerciseSetRecord(
+            setId = setId,
+            sessionId = sessionId,
+            weightKg = weightKg,
+            reps = reps,
+            completedAt = completedAt,
+        ),
+        sessionName = sessionName,
+        sessionPerformedAtMs = sessionDate,
+    )
 
     suspend fun readyForProgression(routines: List<Routine>): List<ProgressionHint> {
         val seen = linkedSetOf<String>()

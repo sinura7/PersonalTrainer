@@ -29,6 +29,10 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout_sessions WHERE finishedAt IS NULL ORDER BY startedAt DESC LIMIT 1")
     suspend fun getInProgressSession(): WorkoutSessionEntity?
 
+    /** The session row alone. [getSession] pulls its whole exercise and set graph with it. */
+    @Query("SELECT * FROM workout_sessions WHERE id = :id")
+    suspend fun getSessionRow(id: String): WorkoutSessionEntity?
+
     @Query("SELECT * FROM workout_sessions WHERE finishedAt IS NULL ORDER BY startedAt DESC LIMIT 1")
     fun observeInProgressSession(): Flow<WorkoutSessionEntity?>
 
@@ -103,6 +107,53 @@ interface WorkoutDao {
         exerciseId: String,
         excludeSessionId: String,
     ): String?
+
+    /**
+     * Every finished working set of one exercise, oldest first, with just enough of its
+     * session attached to summarise it.
+     *
+     * A narrow projection on purpose. The exercise detail screen is about one lift, and
+     * subscribing to the full-history deep graph to find it would map every set of every
+     * session the user has ever logged to answer a question about one of them.
+     */
+    @Query(
+        """
+        SELECT sl.id AS setId,
+               sl.sessionId AS sessionId,
+               ws.routineName AS sessionName,
+               ws.date AS sessionDate,
+               sl.weightKg AS weightKg,
+               sl.reps AS reps,
+               sl.completedAt AS completedAt
+        FROM set_logs sl
+        JOIN workout_sessions ws ON ws.id = sl.sessionId
+        WHERE sl.exerciseId = :exerciseId
+          AND sl.isWarmup = 0
+          AND ws.finishedAt IS NOT NULL
+        ORDER BY sl.completedAt ASC
+        """,
+    )
+    fun observeFinishedWorkingSets(exerciseId: String): Flow<List<ExerciseSetRow>>
+
+    /** The same rows, read once — for the personal-record check at the moment a set is logged. */
+    @Query(
+        """
+        SELECT sl.id AS setId,
+               sl.sessionId AS sessionId,
+               ws.routineName AS sessionName,
+               ws.date AS sessionDate,
+               sl.weightKg AS weightKg,
+               sl.reps AS reps,
+               sl.completedAt AS completedAt
+        FROM set_logs sl
+        JOIN workout_sessions ws ON ws.id = sl.sessionId
+        WHERE sl.exerciseId = :exerciseId
+          AND sl.isWarmup = 0
+          AND ws.finishedAt IS NOT NULL
+        ORDER BY sl.completedAt ASC
+        """,
+    )
+    suspend fun finishedWorkingSets(exerciseId: String): List<ExerciseSetRow>
 
     /** Every non-warmup set of one exercise in one session, for top-set selection. */
     @Query(

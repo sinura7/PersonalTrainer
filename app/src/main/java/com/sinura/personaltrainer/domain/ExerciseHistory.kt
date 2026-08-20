@@ -45,6 +45,19 @@ data class ExerciseHistory(
 }
 
 /**
+ * One working set with just enough of its session attached to summarise it.
+ *
+ * The narrow shape exists so the detail screen can read a single indexed query for one
+ * exercise instead of subscribing to the full-history deep graph — four screens already do
+ * that, and the point of this one is a single lift.
+ */
+data class ExerciseSetEntry(
+    val record: ExerciseSetRecord,
+    val sessionName: String?,
+    val sessionPerformedAtMs: Long,
+)
+
+/**
  * Everything the exercise detail screen shows, derived from finished sessions.
  *
  * Warm-ups are excluded throughout, for the same reason they are excluded from the heat map:
@@ -56,13 +69,31 @@ object ExerciseHistoryBuilder {
         sessions: List<WorkoutSession>,
         zone: ZoneId = ZoneId.systemDefault(),
         weekStart: DayOfWeek = DayOfWeek.MONDAY,
+    ): ExerciseHistory = fromEntries(
+        exerciseId = exerciseId,
+        entries = sessions.filter { it.isFinished }.flatMap { session ->
+            session.workingSetRecords(exerciseId).map { record ->
+                ExerciseSetEntry(
+                    record = record,
+                    sessionName = session.routineName,
+                    sessionPerformedAtMs = session.performedAtMs(),
+                )
+            }.toList()
+        },
+        zone = zone,
+        weekStart = weekStart,
+    )
+
+    fun fromEntries(
+        exerciseId: String,
+        entries: List<ExerciseSetEntry>,
+        zone: ZoneId = ZoneId.systemDefault(),
+        weekStart: DayOfWeek = DayOfWeek.MONDAY,
     ): ExerciseHistory {
-        val summaries = sessions
-            .asSequence()
-            .filter { it.isFinished }
-            .mapNotNull { session -> session.summarise(exerciseId) }
+        val summaries = entries
+            .groupBy { it.record.sessionId }
+            .map { (sessionId, group) -> summarise(sessionId, group) }
             .sortedByDescending { it.performedAtMs }
-            .toList()
 
         val allSets = summaries.flatMap { it.sets }
         val weekly = allSets
@@ -109,9 +140,11 @@ object ExerciseHistoryBuilder {
         .sortedBy { it.completedAt }
         .toList()
 
-    private fun WorkoutSession.summarise(exerciseId: String): ExerciseSessionSummary? {
-        val records = workingSetRecords(exerciseId).toList()
-        if (records.isEmpty()) return null
+    private fun summarise(
+        sessionId: String,
+        group: List<ExerciseSetEntry>,
+    ): ExerciseSessionSummary {
+        val records = group.map { it.record }.sortedBy { it.completedAt }
         val top = ProgressionBasis.topWorkingSet(
             records.map { WorkingSetCandidate(it.weightKg, it.reps, it.completedAt) },
         )
@@ -123,10 +156,9 @@ object ExerciseHistoryBuilder {
             }
         }
         return ExerciseSessionSummary(
-            sessionId = id,
-            sessionName = routineName,
-            // date is the ordering key history uses everywhere; fall back for older rows.
-            performedAtMs = listOf(date, finishedAt ?: 0L, startedAt).firstOrNull { it > 0L } ?: 0L,
+            sessionId = sessionId,
+            sessionName = group.first().sessionName,
+            performedAtMs = group.first().sessionPerformedAtMs,
             topSet = topRecord,
             workingSets = records.size,
             volumeKg = records.sumOf { MuscleLoadCalculator.setVolumeKg(it.weightKg, it.reps) },
@@ -136,6 +168,10 @@ object ExerciseHistoryBuilder {
             sets = records,
         )
     }
+
+    /** date is the ordering key history uses everywhere; fall back for older rows. */
+    private fun WorkoutSession.performedAtMs(): Long =
+        listOf(date, finishedAt ?: 0L, startedAt).firstOrNull { it > 0L } ?: 0L
 
     private fun WorkoutSession.workingSetRecords(exerciseId: String): Sequence<ExerciseSetRecord> =
         sets.asSequence()

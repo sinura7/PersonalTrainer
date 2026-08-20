@@ -7,6 +7,8 @@ import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.ExerciseSessionSummary
+import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.RestTimer
@@ -82,6 +84,8 @@ data class ActiveWorkoutUiState(
     val selectedExerciseId: String? = null,
     val draft: ActiveExerciseDraft = ActiveExerciseDraft(),
     val hint: ProgressionHint? = null,
+    /** What this lift looked like last time, shown beside the inputs. Null on its first ever session. */
+    val lastPerformance: ExerciseSessionSummary? = null,
     val searchQuery: String = "",
     val searchResults: List<Exercise> = emptyList(),
     val showExercisePicker: Boolean = false,
@@ -92,6 +96,14 @@ data class ActiveWorkoutUiState(
 ) {
     val isLoading: Boolean get() = loadState == SessionLoadState.LOADING
 }
+
+/** A record broken by the set just logged, for the in-workout moment. */
+data class PersonalRecordMoment(
+    val exerciseName: String,
+    val kinds: Set<PersonalRecordKind>,
+    val weightKg: Double,
+    val reps: Int,
+)
 
 data class RestTimerUiState(
     val remainingSeconds: Int = 0,
@@ -111,6 +123,7 @@ class ActiveWorkoutViewModel(
     private val selectedExerciseId = MutableStateFlow<String?>(null)
     private val draft = MutableStateFlow(ActiveExerciseDraft())
     private val hint = MutableStateFlow<ProgressionHint?>(null)
+    private val lastPerformance = MutableStateFlow<ExerciseSessionSummary?>(null)
     private val restTotal = MutableStateFlow(90)
     private val searchQuery = MutableStateFlow("")
     private val showPicker = MutableStateFlow(false)
@@ -273,6 +286,8 @@ class ActiveWorkoutViewModel(
         hint,
     ) { current, selected, currentDraft, currentHint ->
         WorkoutCore(current, selected, currentDraft, currentHint)
+    }.combine(lastPerformance) { core, last ->
+        core.copy(lastPerformance = last)
     }.combine(
         combine(
             combine(restTotal, searchQuery, showPicker) { total, query, picker ->
@@ -300,6 +315,7 @@ class ActiveWorkoutViewModel(
             selectedExerciseId = core.session?.resolveSelectedExerciseId(core.selected) ?: core.selected,
             draft = core.draft,
             hint = core.hint,
+            lastPerformance = core.lastPerformance,
             searchQuery = extras.query,
             searchResults = emptyList(),
             showExercisePicker = extras.showPicker,
@@ -334,6 +350,10 @@ class ActiveWorkoutViewModel(
             if (resume.exerciseId == null || resume.exerciseId == exerciseId) return
         }
         if (editingSetId.value != null) return
+        // Cleared before the query so the previous lift's numbers never sit under the new
+        // lift's name; a stale "last time" is worse than none.
+        lastPerformance.value = null
+        hint.value = null
         // Wait for the row rather than giving up: a selection restored from a saved draft can
         // arrive before the query answers, and bailing there left that lift with no suggestion
         // at all. sessionResolved bounds the wait — once the query has answered, null is final.
@@ -352,6 +372,7 @@ class ActiveWorkoutViewModel(
             excludeSessionId = sessionId,
         )
         hint.value = progression
+        lastPerformance.value = container.workoutRepository.lastPerformance(exerciseId, sessionId)
         val lastWeight = progression?.suggestedWeightKg
             ?: planned?.targetWeightKg
             ?: 0.0
@@ -460,6 +481,20 @@ class ActiveWorkoutViewModel(
         }
     }
 
+    /**
+     * A record just broken, held until the screen has shown it.
+     *
+     * One-shot state rather than a callback, for the same reason navigation is: the set is
+     * written before the answer is known, and a lambda captured into that coroutine belongs to
+     * a composition that may not exist by the time the query returns.
+     */
+    private val _personalRecord = MutableStateFlow<PersonalRecordMoment?>(null)
+    val personalRecord: StateFlow<PersonalRecordMoment?> = _personalRecord.asStateFlow()
+
+    fun onPersonalRecordShown() {
+        _personalRecord.value = null
+    }
+
     fun logSet() {
         val exerciseId = selectedExerciseId.value
         if (exerciseId == null) {
@@ -489,7 +524,7 @@ class ActiveWorkoutViewModel(
                     )
                     editingSetId.value = null
                 } else {
-                    container.workoutRepository.logSet(
+                    val logged = container.workoutRepository.logSet(
                         sessionId = sessionId,
                         exerciseId = exerciseId,
                         weightKg = current.weightKg,
@@ -497,6 +532,19 @@ class ActiveWorkoutViewModel(
                         rpe = current.rpe,
                         isWarmup = current.isWarmup,
                     )
+                    if (logged.records.isNotEmpty()) {
+                        _personalRecord.value = PersonalRecordMoment(
+                            exerciseName = session.value
+                                ?.exercises
+                                ?.firstOrNull { it.exercise.id == exerciseId }
+                                ?.exercise
+                                ?.name
+                                .orEmpty(),
+                            kinds = logged.records,
+                            weightKg = current.weightKg,
+                            reps = current.reps,
+                        )
+                    }
                     if (!current.isWarmup) {
                         startRestAfterSet()
                     }
@@ -675,6 +723,7 @@ class ActiveWorkoutViewModel(
         val selected: String?,
         val draft: ActiveExerciseDraft,
         val hint: ProgressionHint?,
+        val lastPerformance: ExerciseSessionSummary? = null,
     )
 
     private data class WorkoutExtras(

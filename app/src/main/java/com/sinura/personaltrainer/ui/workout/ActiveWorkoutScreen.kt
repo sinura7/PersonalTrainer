@@ -64,8 +64,13 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import java.text.DateFormat
+import java.util.Date
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.domain.DayLabel
+import com.sinura.personaltrainer.domain.ExerciseSessionSummary
+import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.ProgressionAction
 import com.sinura.personaltrainer.domain.ProgressionCalculator
 import com.sinura.personaltrainer.domain.ProgressionHint
@@ -95,6 +100,7 @@ fun ActiveWorkoutScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val rest by viewModel.restTimerState.collectAsStateWithLifecycle()
     val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
+    val personalRecord by viewModel.personalRecord.collectAsStateWithLifecycle()
     var confirmLeave by rememberSaveable { mutableStateOf(false) }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     var confirmFinish by rememberSaveable { mutableStateOf(false) }
@@ -202,6 +208,15 @@ fun ActiveWorkoutScreen(
                     if (!restNotificationsEnabled) {
                         item { RestNotificationsDisabledBanner() }
                     }
+                    personalRecord?.let { moment ->
+                        item(key = "pr-moment") {
+                            PersonalRecordBanner(
+                                moment = moment,
+                                unit = unit,
+                                onDismiss = viewModel::onPersonalRecordShown,
+                            )
+                        }
+                    }
                     item {
                         RestTimerBar(
                             remainingSeconds = rest.remainingSeconds,
@@ -262,6 +277,9 @@ fun ActiveWorkoutScreen(
                                 nextWorkingSet = workingLogged + 1,
                                 unit = unit,
                             )
+                        }
+                        state.lastPerformance?.let { last ->
+                            item { LastTimeStrip(summary = last, unit = unit) }
                         }
                         state.hint?.let { hint ->
                             item {
@@ -568,6 +586,89 @@ private fun CurrentLiftHeader(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.titleMedium,
         )
+    }
+}
+
+/**
+ * What this lift looked like last time, in full.
+ *
+ * Complementary to [ProgressionStrip], not a duplicate of it: the strip states the decision
+ * ("top set 100 kg x 5, add 2.5"), this states the evidence — every working set of the last
+ * session, so a lifter can see that the top set came after two easy ones or at the end of a
+ * grind, which is the difference between adding weight and repeating it.
+ */
+@Composable
+private fun LastTimeStrip(
+    summary: ExerciseSessionSummary,
+    unit: WeightUnit,
+) {
+    val relative = remember(summary.performedAtMs) {
+        DayLabel.relative(summary.performedAtMs, System.currentTimeMillis())
+    }
+    val absolute = remember(summary.performedAtMs) {
+        DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(summary.performedAtMs))
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            "Last time · ${relative ?: absolute}",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.labelLarge,
+        )
+        Text(
+            summary.sets.joinToString("   ") { "${it.weightKg.toWeightLabel(unit)} × ${it.reps}" },
+            style = MaterialTheme.typography.bodyLarge,
+        )
+    }
+}
+
+/**
+ * The moment a record breaks.
+ *
+ * Deliberately not a dialog: this fires mid-set with the phone on the floor and a rest timer
+ * running, and anything that has to be dismissed before the next set can be logged would be a
+ * punishment rather than a reward. It sits above the timer, where the eye already is.
+ */
+@Composable
+private fun PersonalRecordBanner(
+    moment: PersonalRecordMoment,
+    unit: WeightUnit,
+    onDismiss: () -> Unit,
+) {
+    val headline = when {
+        PersonalRecordKind.WEIGHT in moment.kinds -> "Heaviest ever"
+        PersonalRecordKind.ESTIMATED_ONE_REP_MAX in moment.kinds -> "Strongest set ever"
+        else -> "Most reps at this weight"
+    }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ),
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    "$headline · ${moment.exerciseName.ifBlank { "This lift" }}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    "${moment.weightKg.toWeightLabel(unit)} × ${moment.reps}",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+            IconButton(onClick = onDismiss) {
+                Icon(Icons.Outlined.Close, contentDescription = "Dismiss record")
+            }
+        }
     }
 }
 
