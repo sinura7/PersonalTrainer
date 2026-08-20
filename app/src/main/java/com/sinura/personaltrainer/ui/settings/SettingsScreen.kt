@@ -6,35 +6,33 @@ import android.content.ContextWrapper
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material3.Card
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -47,21 +45,37 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.BuildConfig
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
+import com.sinura.personaltrainer.domain.DayLabel
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.WeightUnit
-import com.sinura.personaltrainer.ui.components.GymErrorBanner
-import com.sinura.personaltrainer.ui.components.CustomRestDialog
-import com.sinura.personaltrainer.ui.components.RestPresetChips
-import java.time.DayOfWeek
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
-import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.components.CustomRestDialog
+import com.sinura.personaltrainer.ui.components.GroupedList
+import com.sinura.personaltrainer.ui.components.GymCard
+import com.sinura.personaltrainer.ui.components.GymErrorBanner
+import com.sinura.personaltrainer.ui.components.GymSectionHeader
+import com.sinura.personaltrainer.ui.components.GymStatusBanner
+import com.sinura.personaltrainer.ui.components.HairlineDivider
+import com.sinura.personaltrainer.ui.components.InstrumentRow
+import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.components.RestPresetChips
+import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.schedule.PreferenceBlock
+import com.sinura.personaltrainer.ui.theme.Danger
+import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.Pit
+import com.sinura.personaltrainer.ui.theme.TextPrimary
+import com.sinura.personaltrainer.ui.theme.TextSecondary
+import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.ui.theme.Volt
+import com.sinura.personaltrainer.ui.theme.Warn
 import java.text.DateFormat
+import java.time.DayOfWeek
 import java.util.Date
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
@@ -100,25 +114,20 @@ fun SettingsScreen(
         viewModel.onResolutionLaunched()
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Settings") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
-                    }
-                },
-            )
-        },
-    ) { padding ->
+    Column(modifier = Modifier.fillMaxSize()) {
+        SettingsHeader(onBack = onBack)
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
+                .weight(1f)
+                .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+                .padding(
+                    start = Metrics.gutter,
+                    end = Metrics.gutter,
+                    top = Metrics.space2,
+                    bottom = Metrics.space8,
+                ),
+            verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
         ) {
             WeightUnitsSection(
                 selectedUnit = selectedUnit,
@@ -183,40 +192,84 @@ fun SettingsScreen(
 }
 
 @Composable
+private fun SettingsHeader(onBack: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Pit)
+            .padding(start = Metrics.space2, end = Metrics.space4, bottom = Metrics.space2),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back", tint = TextSecondary)
+        }
+        Text("Settings", style = InstrumentType.title, color = TextPrimary, maxLines = 1)
+    }
+}
+
+/**
+ * One preference group: a label, its controls, and one line of explanation.
+ *
+ * Every section here used to be a naked column of paragraphs on the window colour, separated
+ * from the next by the same gap that separated two lines of its own prose — so the boundary
+ * between "weight units" and "weekly schedule" existed only for someone reading the words.
+ * The kicker labels the group, the container draws it, and the explanations collapse to a
+ * single caption underneath: the settings that used to be described are now shown.
+ */
+@Composable
+private fun SettingsGroup(
+    title: String,
+    caption: String,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap),
+    ) {
+        Kicker(title)
+        content()
+        Text(caption, style = InstrumentType.caption, color = TextTertiary)
+    }
+}
+
+/** The trailing verb of a row that destroys or replaces data. */
+@Composable
+private fun DangerAction(label: String, enabled: Boolean) {
+    Text(
+        label,
+        style = InstrumentType.bodyStrong,
+        color = if (enabled) Danger else TextTertiary,
+        maxLines = 1,
+    )
+}
+
+@Composable
 private fun WeightUnitsSection(
     selectedUnit: WeightUnit,
     onSelect: (WeightUnit) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Weight units", style = MaterialTheme.typography.headlineSmall)
-        Text(
-            "Currently showing ${selectedUnit.displayName}. Numbers on Home, workouts, and history all use this unit.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            "Workouts stay stored in kilograms. This only changes how weights appear and how you enter them.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Column(modifier = Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            WeightUnit.entries.forEach { unit ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .selectable(
-                            selected = selectedUnit == unit,
-                            onClick = { onSelect(unit) },
-                            role = Role.RadioButton,
-                        )
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    RadioButton(
-                        selected = selectedUnit == unit,
-                        onClick = null,
-                    )
-                    Text(unit.displayName, style = MaterialTheme.typography.titleMedium)
-                }
+    SettingsGroup(
+        title = "Weight",
+        caption = "Everything is stored in kilograms whichever you pick. This changes only how " +
+            "weights are shown and entered — on Home, in workouts, and in history.",
+    ) {
+        GroupedList(modifier = Modifier.selectableGroup()) {
+            WeightUnit.entries.forEachIndexed { index, unit ->
+                if (index > 0) HairlineDivider()
+                val selected = selectedUnit == unit
+                InstrumentRow(
+                    title = unit.displayName,
+                    modifier = Modifier.selectable(
+                        selected = selected,
+                        onClick = { onSelect(unit) },
+                        role = Role.RadioButton,
+                    ),
+                    trailing = {
+                        if (selected) {
+                            Icon(Icons.Outlined.Check, contentDescription = null, tint = Volt)
+                        }
+                    },
+                )
             }
         }
     }
@@ -230,19 +283,32 @@ private fun SchedulePrefsSection(
     onWeekStart: (DayOfWeek) -> Unit,
     onOpenSchedule: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Weekly schedule", style = MaterialTheme.typography.headlineSmall)
-        Text(
-            "How many days you want to train, and the split the planner should use. The week itself is built from your heat map and routines.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        PreferenceBlock(
-            preferences = preferences,
-            onDays = onDays,
-            onSplit = onSplit,
-            onWeekStart = onWeekStart,
-        )
-        TextButton(onClick = onOpenSchedule) { Text("Open this week’s plan") }
+    SettingsGroup(
+        title = "Schedule",
+        caption = "The planner builds the week itself from your heat map and routines.",
+    ) {
+        GymCard {
+            PreferenceBlock(
+                preferences = preferences,
+                onDays = onDays,
+                onSplit = onSplit,
+                onWeekStart = onWeekStart,
+            )
+        }
+        GroupedList {
+            InstrumentRow(
+                title = "This week's plan",
+                subtitle = "Seven days, and what to train on each",
+                onClick = onOpenSchedule,
+                trailing = {
+                    Icon(
+                        Icons.Outlined.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = TextTertiary,
+                    )
+                },
+            )
+        }
     }
 }
 
@@ -255,34 +321,39 @@ private fun RestTimerPrefsSection(
     onCustomDefault: (String) -> Boolean,
 ) {
     var showCustom by rememberSaveable { mutableStateOf(false) }
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Rest timer", style = MaterialTheme.typography.headlineSmall)
-        Text(
-            "Plays when rest ends. Default rest is used after a working set if the lift has none and you haven’t picked a preset.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text("Sound", style = MaterialTheme.typography.titleMedium)
-            Switch(checked = preferences.soundEnabled, onCheckedChange = onSound)
+    SettingsGroup(
+        title = "Rest timer",
+        caption = "The cue plays when rest ends. Default rest is used after a working set if the " +
+            "lift has none and you haven't picked a preset.",
+    ) {
+        GroupedList {
+            InstrumentRow(
+                title = "Sound",
+                trailing = { Switch(checked = preferences.soundEnabled, onCheckedChange = onSound) },
+            )
+            HairlineDivider()
+            InstrumentRow(
+                title = "Vibration",
+                trailing = { Switch(checked = preferences.vibrationEnabled, onCheckedChange = onVibrate) },
+            )
+            HairlineDivider()
+            Column(
+                modifier = Modifier.padding(
+                    start = Metrics.space4,
+                    end = Metrics.space4,
+                    top = Metrics.space3,
+                    bottom = Metrics.space4,
+                ),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+            ) {
+                Kicker("Default rest")
+                RestPresetChips(
+                    selectedSeconds = preferences.defaultRestSeconds,
+                    onSelect = onDefaultRest,
+                    onCustom = { showCustom = true },
+                )
+            }
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text("Vibration", style = MaterialTheme.typography.titleMedium)
-            Switch(checked = preferences.vibrationEnabled, onCheckedChange = onVibrate)
-        }
-        Text("Default rest", style = MaterialTheme.typography.titleMedium)
-        RestPresetChips(
-            selectedSeconds = preferences.defaultRestSeconds,
-            onSelect = onDefaultRest,
-            onCustom = { showCustom = true },
-        )
     }
     if (showCustom) {
         CustomRestDialog(
@@ -298,6 +369,15 @@ private fun RestTimerPrefsSection(
     }
 }
 
+/**
+ * Backup, with the hierarchy the right way round.
+ *
+ * Exporting a file used to be a 64dp filled hero button while restoring a backup — which
+ * replaces every byte of training data on the phone — was a bare text button, visually
+ * identical to the link that opened the week's plan. The loud control belongs to the workout
+ * flow, so everything safe here is a secondary button, and everything that replaces data is
+ * a row whose verb is in [Danger].
+ */
 @Composable
 private fun BackupRestoreSection(
     state: BackupUiState,
@@ -310,141 +390,170 @@ private fun BackupRestoreSection(
     onExportFile: () -> Unit,
     onImportFile: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Backup & restore", style = MaterialTheme.typography.headlineSmall)
-        Text(
-            "Save everything to a file on this phone, or to your own Google Drive. Training " +
-                "always works offline — a backup is only read when you ask for one.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        if (state.lastBackupAt != null) {
-            Text(
-                "Last backup: ${dateTimeFormat.format(Date(state.lastBackupAt))}" +
-                    (state.lastBackupName?.let { " · $it" }.orEmpty()),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+    var dismissedStatus by rememberSaveable { mutableStateOf<String?>(null) }
+    SettingsGroup(
+        title = "Backup",
+        caption = "Training always works offline — a backup is only read when you ask for one. " +
+            "The file path needs no Google account, and still works if sign-in ever breaks.",
+    ) {
+        GroupedList {
+            BackupStampRow(
+                title = "Last backup",
+                atMillis = state.lastBackupAt,
+                name = state.lastBackupName,
+                dateTimeFormat = dateTimeFormat,
             )
-        } else {
-            Text(
-                "No backup has been made from this phone yet.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            // Restores are tracked separately: a restore is not a backup, and saying so here used
+            // to mute the only nag that gets the user to actually make one.
+            if (state.lastRestoreAt != null) {
+                HairlineDivider()
+                BackupStampRow(
+                    title = "Last restore",
+                    atMillis = state.lastRestoreAt,
+                    name = state.lastRestoreName,
+                    dateTimeFormat = dateTimeFormat,
+                )
+            }
         }
-        // Restores are tracked separately: a restore is not a backup, and saying so here used
-        // to mute the only nag that gets the user to actually make one.
-        if (state.lastRestoreAt != null) {
-            Text(
-                "Last restore: ${dateTimeFormat.format(Date(state.lastRestoreAt))}" +
-                    (state.lastRestoreName?.let { " · $it" }.orEmpty()),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+
         if (state.isBusy) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
             ) {
-                CircularProgressIndicator()
-                Text(state.busyLabel ?: "Working…")
+                CircularProgressIndicator(
+                    modifier = Modifier.size(SPINNER_SIZE),
+                    color = Volt,
+                    strokeWidth = SPINNER_STROKE,
+                )
+                Text(state.busyLabel ?: "Working…", style = InstrumentType.body, color = TextSecondary)
             }
         }
-        state.status?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
+        // While an action runs its label is already under the spinner; the banner is for the
+        // outcome, which is the only status worth interrupting the layout for. Nothing clears
+        // status in the ViewModel, so the last dismissed message is remembered here — otherwise
+        // returning to this screen re-announces a backup made an hour ago.
+        val status = state.status?.takeIf { !state.isBusy && it != dismissedStatus }
+        if (status != null) {
+            GymStatusBanner(status, onDismissed = { dismissedStatus = status })
+        }
         state.error?.let { GymErrorBanner(it) }
 
-        Text("Backup file", style = MaterialTheme.typography.titleMedium)
-        Text(
-            "Works with no Google account. Save the file to Drive, a PC, or anywhere you keep " +
-                "things safe — this is the path that still works if Google sign-in ever breaks.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        PrimaryGymButton(
+        GymSectionHeader("Backup file", compact = true)
+        SecondaryGymButton(
             text = "Export to file",
             onClick = onExportFile,
             enabled = !state.isBusy,
         )
-        OutlinedButton(
-            onClick = onImportFile,
-            enabled = !state.isBusy,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text("Import from file")
+        GroupedList {
+            InstrumentRow(
+                title = "Import from file",
+                subtitle = "Replaces everything on this phone",
+                onClick = if (state.isBusy) null else onImportFile,
+                trailing = { DangerAction("Replace", enabled = !state.isBusy) },
+            )
         }
 
-        Text("Google Drive", style = MaterialTheme.typography.titleMedium)
-        Text(
-            if (state.accountEmail != null) {
-                "Signed in as ${state.accountEmail}"
-            } else {
-                "Not signed in"
-            },
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.bodyMedium,
-        )
+        GymSectionHeader("Google Drive", compact = true)
         if (state.accountEmail == null) {
-            OutlinedButton(
+            SecondaryGymButton(
+                text = "Sign in with Google",
                 onClick = onSignIn,
                 enabled = !state.isBusy,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Sign in with Google")
-            }
+            )
         } else {
-            PrimaryGymButton(
+            GroupedList {
+                InstrumentRow(
+                    title = "Signed in",
+                    subtitle = state.accountEmail,
+                    onClick = if (state.isBusy) null else onSignOut,
+                    trailing = { DangerAction("Sign out", enabled = !state.isBusy) },
+                )
+            }
+            SecondaryGymButton(
                 text = "Create backup now",
                 onClick = onCreateBackup,
                 enabled = !state.isBusy,
             )
-            OutlinedButton(
+            SecondaryGymButton(
+                text = "View existing backups",
                 onClick = onRefresh,
                 enabled = !state.isBusy,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("View existing backups")
-            }
-            TextButton(onClick = onSignOut, enabled = !state.isBusy) {
-                Text("Sign out of Google")
-            }
+            )
         }
+
         if (state.backups.isNotEmpty()) {
-            Text("Drive backups", style = MaterialTheme.typography.titleLarge)
-            state.backups.forEach { file ->
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Text(file.name, style = MaterialTheme.typography.titleMedium)
-                        if (file.modifiedAtMillis > 0) {
-                            Text(
-                                dateTimeFormat.format(Date(file.modifiedAtMillis)),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        TextButton(
-                            onClick = { onRestore(file) },
-                            enabled = !state.isBusy,
-                        ) {
-                            Text("Restore this backup")
-                        }
-                    }
+            GymSectionHeader("Drive backups", compact = true)
+            GroupedList {
+                state.backups.forEachIndexed { index, file ->
+                    if (index > 0) HairlineDivider()
+                    InstrumentRow(
+                        title = file.name,
+                        subtitle = file.modifiedAtMillis
+                            .takeIf { it > 0 }
+                            ?.let { dateTimeFormat.format(Date(it)) },
+                        onClick = if (state.isBusy) null else ({ onRestore(file) }),
+                        trailing = { DangerAction("Restore", enabled = !state.isBusy) },
+                    )
                 }
             }
         }
     }
 }
 
+/**
+ * When a backup or a restore last happened, as a readout rather than a sentence.
+ *
+ * Recency is what the question actually is, so the last week reads as "Yesterday" and only
+ * older stamps fall back to a date. Never having backed up is the one state worth a colour:
+ * it wears [Warn], because it is the only thing on this screen that can lose data.
+ */
+@Composable
+private fun BackupStampRow(
+    title: String,
+    atMillis: Long?,
+    name: String?,
+    dateTimeFormat: DateFormat,
+) {
+    val stamp = remember(atMillis) {
+        atMillis?.let { at ->
+            DayLabel.relative(at, System.currentTimeMillis()) ?: dateTimeFormat.format(Date(at))
+        }
+    }
+    InstrumentRow(
+        title = title,
+        subtitle = name,
+        trailing = {
+            Text(
+                stamp ?: "Never",
+                style = InstrumentType.numeralSm,
+                color = if (stamp == null) Warn else TextPrimary,
+                maxLines = 1,
+            )
+        },
+    )
+}
+
 @Composable
 private fun AboutSection() {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("About", style = MaterialTheme.typography.headlineSmall)
-        Text(
-            "Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
-            style = MaterialTheme.typography.titleMedium,
-        )
-        Text(
-            "Install or update the APK yourself, or let Obtainium watch GitHub Releases. The Play Store is not required.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    SettingsGroup(
+        title = "About",
+        caption = "Install or update the APK yourself, or let Obtainium watch GitHub Releases. " +
+            "The Play Store is not required.",
+    ) {
+        GroupedList {
+            InstrumentRow(
+                title = "Version",
+                trailing = {
+                    Text(
+                        "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                        style = InstrumentType.numeralSm,
+                        color = TextPrimary,
+                        maxLines = 1,
+                    )
+                },
+            )
+        }
     }
 }
 
@@ -456,3 +565,6 @@ private fun Context.findActivity(): Activity {
     }
     error("Settings must run in an Activity")
 }
+
+private val SPINNER_SIZE = 20.dp
+private val SPINNER_STROKE = 2.dp

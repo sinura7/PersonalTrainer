@@ -2,23 +2,39 @@ package com.sinura.personaltrainer.ui.library
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.MuscleGroups
+import com.sinura.personaltrainer.ui.components.InstrumentChip
+import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.theme.Danger
+import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.TextPrimary
 
+/**
+ * One way to classify a lift, not two.
+ *
+ * The chip row and a free-text "Or type a muscle group" field used to be mounted at the
+ * same time, permanently — a form that could not decide which of its own inputs was the
+ * real one, and left the answer to whichever the user touched last. The chips are the
+ * answer; "Other" is the escape hatch, and it opens the field it stands for.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExerciseEditorSheet(
@@ -30,17 +46,27 @@ fun ExerciseEditorSheet(
     onDismiss: () -> Unit,
 ) {
     val groups = muscleOptions.ifEmpty { MuscleGroups.catalog }
+    val chips = groups.filterNot { it.equals(OTHER_GROUP, ignoreCase = true) }
+    val chosen = chips.firstOrNull { it.equals(draft.muscleGroup, ignoreCase = true) }
+    var typingGroup by rememberSaveable { mutableStateOf(false) }
+    // A group no chip can express — imported, or typed before the catalog knew it — has to
+    // show its own value, or editing that lift would silently reclassify it.
+    val showGroupField = typingGroup ||
+        (chosen == null && draft.muscleGroup.isNotBlank() && !draft.muscleGroup.equals(OTHER_GROUP, ignoreCase = true))
+
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Metrics.gutter)
+                .padding(bottom = Metrics.space7),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space4),
         ) {
             Text(
                 if (draft.id == null) "New exercise" else "Edit exercise",
-                style = MaterialTheme.typography.headlineSmall,
+                style = InstrumentType.title,
+                color = TextPrimary,
             )
             OutlinedTextField(
                 value = draft.name,
@@ -50,26 +76,44 @@ fun ExerciseEditorSheet(
                 singleLine = true,
                 isError = error?.contains("name", ignoreCase = true) == true,
             )
-            Text("Muscle group", style = MaterialTheme.typography.titleMedium)
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(end = 8.dp),
-            ) {
-                items(groups) { group ->
-                    FilterChip(
-                        selected = draft.muscleGroup.equals(group, ignoreCase = true),
-                        onClick = { onDraftChange(draft.copy(muscleGroup = group)) },
-                        label = { Text(group) },
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                Kicker("Muscle group")
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                    items(chips, key = { it }) { group ->
+                        InstrumentChip(
+                            label = group,
+                            selected = group.equals(draft.muscleGroup, ignoreCase = true),
+                            onClick = {
+                                typingGroup = false
+                                onDraftChange(draft.copy(muscleGroup = group))
+                            },
+                        )
+                    }
+                    item(key = "other") {
+                        InstrumentChip(
+                            label = OTHER_GROUP,
+                            selected = chosen == null,
+                            onClick = {
+                                typingGroup = true
+                                // "Other" means none of these, so a value that came from a chip —
+                                // or the default the draft opens with — gives way to an empty field.
+                                if (chosen != null || draft.muscleGroup.equals(OTHER_GROUP, ignoreCase = true)) {
+                                    onDraftChange(draft.copy(muscleGroup = ""))
+                                }
+                            },
+                        )
+                    }
+                }
+                if (showGroupField) {
+                    OutlinedTextField(
+                        value = draft.muscleGroup,
+                        onValueChange = { onDraftChange(draft.copy(muscleGroup = it)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Muscle group") },
+                        singleLine = true,
                     )
                 }
             }
-            OutlinedTextField(
-                value = draft.muscleGroup,
-                onValueChange = { onDraftChange(draft.copy(muscleGroup = it)) },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Or type a muscle group") },
-                singleLine = true,
-            )
             OutlinedTextField(
                 value = draft.notes,
                 onValueChange = { onDraftChange(draft.copy(notes = it)) },
@@ -77,7 +121,7 @@ fun ExerciseEditorSheet(
                 label = { Text("Notes (optional)") },
                 minLines = 2,
             )
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            error?.let { Text(it, style = InstrumentType.body, color = Danger) }
             PrimaryGymButton(
                 text = if (draft.id == null) "Create exercise" else "Save changes",
                 onClick = onSave,
@@ -85,3 +129,5 @@ fun ExerciseEditorSheet(
         }
     }
 }
+
+private const val OTHER_GROUP = "Other"

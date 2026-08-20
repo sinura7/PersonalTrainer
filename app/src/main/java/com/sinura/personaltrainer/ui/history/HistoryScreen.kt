@@ -1,32 +1,40 @@
 package com.sinura.personaltrainer.ui.history
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.ui.components.EmptyState
-import com.sinura.personaltrainer.ui.components.GymMetrics
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
+import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SessionLogRow
+import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.Pit
+import com.sinura.personaltrainer.ui.theme.Radius
+import com.sinura.personaltrainer.ui.theme.Surface1
+import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import java.text.DateFormat
 import java.time.LocalDate
 import java.util.Date
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(
     onOpenSession: (String) -> Unit,
@@ -38,12 +46,23 @@ fun HistoryScreen(
     val dateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
     val today = remember { LocalDate.now() }
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("History") }) },
-    ) { padding ->
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Pit),
+    ) {
+        Text(
+            "History",
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Metrics.gutter, vertical = Metrics.space3),
+            style = InstrumentType.display,
+            color = TextPrimary,
+        )
+
         when {
             state.isLoading -> {
-                ScreenLoading(modifier = Modifier.padding(padding))
+                ScreenLoading()
             }
             state.sessions.isEmpty() -> {
                 EmptyState(
@@ -53,15 +72,18 @@ fun HistoryScreen(
                     onAction = onStartWorkout,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(padding)
-                        .padding(GymMetrics.screenPadding),
+                        .padding(Metrics.gutter),
                 )
             }
             else -> {
                 LazyColumn(
-                    modifier = Modifier.padding(padding),
-                    contentPadding = PaddingValues(GymMetrics.screenPadding),
-                    verticalArrangement = Arrangement.spacedBy(GymMetrics.listGap),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = Metrics.gutter,
+                        end = Metrics.gutter,
+                        top = Metrics.space2,
+                        bottom = Metrics.space7,
+                    ),
                 ) {
                     item(key = "calendar") {
                         TrainingCalendarCard(
@@ -74,21 +96,51 @@ fun HistoryScreen(
                             // default and the list below reaches the rest.
                             onOpenDay = { day -> day.sessionIds.firstOrNull()?.let(onOpenSession) },
                             unit = unit,
+                            modifier = Modifier.padding(bottom = Metrics.sectionGap),
                         )
                     }
-                    item(key = "sessions-header") { GymSectionHeader("All sessions", compact = true) }
-                    items(state.sessions, key = { it.id }) { session ->
-                        SessionLogRow(
-                            title = session.routineName ?: "Workout",
-                            dateLabel = dateFormat.format(Date(session.date)),
-                            workingSets = session.sets.count { !it.isWarmup },
-                            volumeKg = session.workingVolumeKg(),
-                            durationMinutes = session.durationMinutes,
-                            onClick = { onOpenSession(session.id) },
+                    item(key = "sessions-header") {
+                        GymSectionHeader(
+                            "All sessions",
+                            modifier = Modifier.padding(bottom = Metrics.kickerGap),
+                            compact = true,
                         )
+                    }
+                    itemsIndexed(state.sessions, key = { _, session -> session.id }) { index, session ->
+                        Column(
+                            modifier = Modifier
+                                .animateItem()
+                                .clip(groupedRowShape(index, state.sessions.size))
+                                .background(Surface1),
+                        ) {
+                            if (index > 0) HairlineDivider()
+                            SessionLogRow(
+                                title = session.routineName ?: "Workout",
+                                dateLabel = dateFormat.format(Date(session.date)),
+                                workingSets = session.sets.count { !it.isWarmup },
+                                volumeKg = session.workingVolumeKg(),
+                                durationMinutes = session.durationMinutes,
+                                onClick = { onOpenSession(session.id) },
+                            )
+                        }
                     }
                 }
             }
         }
     }
+}
+
+/**
+ * The sessions read as one grouped panel, but stay individual lazy items.
+ *
+ * A history is unbounded — every finished session ever, in one query — so pouring the rows
+ * into a single `GroupedList` would compose all of them the moment the tab opens. The
+ * container is assembled from the rows instead: rounded ends, square middles, a hairline
+ * between.
+ */
+private fun groupedRowShape(index: Int, count: Int): Shape = when {
+    count == 1 -> RoundedCornerShape(Radius.sm)
+    index == 0 -> RoundedCornerShape(topStart = Radius.sm, topEnd = Radius.sm)
+    index == count - 1 -> RoundedCornerShape(bottomStart = Radius.sm, bottomEnd = Radius.sm)
+    else -> RectangleShape
 }

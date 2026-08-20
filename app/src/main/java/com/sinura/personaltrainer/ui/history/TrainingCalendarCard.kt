@@ -5,17 +5,18 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowLeft
 import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,15 +25,26 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.CalendarDay
 import com.sinura.personaltrainer.domain.TrainingCalendarBuilder
 import com.sinura.personaltrainer.domain.TrainingMonth
+import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.toVolumeLabel
 import com.sinura.personaltrainer.ui.components.GymCard
+import com.sinura.personaltrainer.ui.components.HairlineDivider
+import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.components.MetricCluster
+import com.sinura.personaltrainer.ui.theme.HairlineStrong
+import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.Radius
+import com.sinura.personaltrainer.ui.theme.Surface2
+import com.sinura.personaltrainer.ui.theme.TextPrimary
+import com.sinura.personaltrainer.ui.theme.TextSecondary
+import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.ui.theme.heatColor
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -46,7 +58,9 @@ private val monthFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM
  *
  * Days are shaded by how hard they were relative to the hardest day of the *same* month, so
  * the pattern of a month reads on its own terms rather than being flattened by one outlier
- * session from a year ago.
+ * session from a year ago. That intensity is now drawn as a heat dot from the app's single
+ * ramp — the one the body map and the Home dots read from — instead of this file's own
+ * alpha scale, so "how hard I trained" is one concept across the product.
  */
 @Composable
 fun TrainingCalendarCard(
@@ -65,62 +79,93 @@ fun TrainingCalendarCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onPreviousMonth) {
-                Icon(Icons.Outlined.KeyboardArrowLeft, contentDescription = "Previous month")
+                Icon(
+                    Icons.Outlined.KeyboardArrowLeft,
+                    contentDescription = "Previous month",
+                    tint = TextSecondary,
+                )
             }
-            Text(
-                monthFormatter.format(month.month),
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.titleMedium,
-            )
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                Kicker(monthFormatter.format(month.month), color = TextPrimary)
+            }
             // Nothing is ever logged in the future, so there is no forward month to look at.
             val canGoForward = month.month < java.time.YearMonth.from(today)
             IconButton(onClick = onNextMonth, enabled = canGoForward) {
-                Icon(Icons.Outlined.KeyboardArrowRight, contentDescription = "Next month")
-            }
-        }
-
-        Row(modifier = Modifier.fillMaxWidth()) {
-            TrainingCalendarBuilder.weekdayOrder(weekStart).forEach { day ->
-                Text(
-                    day.getDisplayName(TextStyle.NARROW, Locale.getDefault()),
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                Icon(
+                    Icons.Outlined.KeyboardArrowRight,
+                    contentDescription = "Next month",
+                    tint = if (canGoForward) TextSecondary else TextTertiary,
                 )
             }
         }
 
-        month.weeks.forEach { week ->
+        // The grid owns its own rhythm: one gap value in both axes, or the columns and the
+        // weeks disagree about how far apart a day is.
+        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
             ) {
-                week.forEach { day ->
-                    DayCell(
-                        day = day,
-                        isToday = day.date == today,
-                        onClick = { onOpenDay(day) },
-                        unit = unit,
-                        modifier = Modifier.weight(1f),
-                    )
+                TrainingCalendarBuilder.weekdayOrder(weekStart).forEach { day ->
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        Kicker(
+                            day.getDisplayName(TextStyle.NARROW, Locale.getDefault()),
+                            color = TextTertiary,
+                        )
+                    }
+                }
+            }
+
+            month.weeks.forEach { week ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
+                ) {
+                    week.forEach { day ->
+                        DayCell(
+                            day = day,
+                            isToday = day.date == today,
+                            onClick = { onOpenDay(day) },
+                            unit = unit,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             }
         }
 
-        Text(
-            if (month.trainedDays == 0) {
-                "Nothing logged this month."
-            } else {
-                "${month.trainedDays} ${if (month.trainedDays == 1) "day" else "days"} · " +
-                    "${month.workingSets} working ${if (month.workingSets == 1) "set" else "sets"} · " +
-                    month.volumeKg.toVolumeLabel(unit)
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp),
-        )
+        HairlineDivider(startIndent = 0.dp)
+
+        if (month.trainedDays == 0) {
+            Text(
+                "Nothing logged this month.",
+                style = InstrumentType.body,
+                color = TextSecondary,
+            )
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space6),
+            ) {
+                MetricCluster(
+                    value = month.trainedDays.toString(),
+                    label = "days",
+                    horizontalAlignment = Alignment.Start,
+                )
+                MetricCluster(
+                    value = month.workingSets.toString(),
+                    label = "sets",
+                    horizontalAlignment = Alignment.Start,
+                )
+                MetricCluster(
+                    value = WeightConverter.formatGroupedNumber(
+                        WeightConverter.toDisplayValue(month.volumeKg, unit),
+                    ),
+                    label = unit.suffix,
+                    horizontalAlignment = Alignment.Start,
+                )
+            }
+        }
     }
 }
 
@@ -132,18 +177,7 @@ private fun DayCell(
     unit: WeightUnit,
     modifier: Modifier = Modifier,
 ) {
-    val scheme = MaterialTheme.colorScheme
-    // A trained day never fades to nothing: the floor keeps a light session visibly different
-    // from a rest day, which is the distinction the calendar exists to draw.
-    val fill = when {
-        !day.trained -> Color.Transparent
-        // Second clamp on purpose. TrainingCalendarBuilder already bounds intensity, but
-        // Color.copy throws on an alpha outside 0..1, and a crash here takes down the whole
-        // History tab — too high a price to pay for trusting a caller.
-        else -> scheme.primary.copy(
-            alpha = (MIN_TRAINED_ALPHA + day.intensity * ALPHA_RANGE).coerceIn(0f, 1f),
-        )
-    }
+    val shape = RoundedCornerShape(Radius.xs)
     val label = buildString {
         append(day.date.dayOfMonth)
         if (day.trained) append(", trained, ${day.volumeKg.toVolumeLabel(unit)}")
@@ -151,33 +185,58 @@ private fun DayCell(
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            .padding(2.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(fill)
+            .clip(shape)
+            // A trained day is a panel, not a wash of accent: the fill says "something
+            // happened here" and the dot below says how much.
+            .background(if (day.trained) Surface2 else Color.Transparent)
             .then(
-                if (isToday) {
-                    Modifier.border(1.5.dp, scheme.primary, RoundedCornerShape(10.dp))
-                } else {
-                    Modifier
-                },
+                // Today gets its own token so the marker survives on top of any fill. It used
+                // to be a ring in the accent, which vanished into a heavily trained day.
+                if (isToday) Modifier.border(Metrics.hairline, HairlineStrong, shape) else Modifier,
             )
             .then(if (day.trained) Modifier.clickable(onClick = onClick) else Modifier)
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            day.date.dayOfMonth.toString(),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = if (day.trained) FontWeight.Bold else FontWeight.Normal,
-            color = when {
-                day.trained -> scheme.onPrimary
-                day.inMonth -> scheme.onSurface
-                // Padding days are context, not content; they should not read as trainable.
-                else -> scheme.onSurfaceVariant.copy(alpha = 0.4f)
-            },
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+        ) {
+            Text(
+                day.date.dayOfMonth.toString(),
+                style = InstrumentType.numeralSm,
+                // Intensity is no longer carried by the numeral. It used to composite
+                // onPrimary over a 35%-alpha fill — about 2:1 on exactly the light days the
+                // alpha floor existed to keep visible.
+                color = if (day.inMonth) TextPrimary else TextTertiary,
+                maxLines = 1,
+            )
+            // Kept in the layout when there is nothing to show, so the numerals sit on one
+            // baseline across the whole grid rather than hopping wherever a day was trained.
+            Box(
+                modifier = Modifier
+                    .size(HEAT_DOT)
+                    .clip(CircleShape)
+                    .background(
+                        if (day.trained) heatColor(trainedHeat(day.intensity)) else Color.Transparent,
+                    ),
+            )
+        }
     }
 }
 
-private const val MIN_TRAINED_ALPHA = 0.35f
-private const val ALPHA_RANGE = 0.65f
+/**
+ * A trained day never fades to nothing: the floor keeps a light session on the ramp instead
+ * of at its empty stop, which is the distinction the calendar exists to draw.
+ *
+ * The clamp is deliberate belt-and-braces. TrainingCalendarBuilder bounds intensity already,
+ * but the grid's leading and trailing padding days keep their real volume from a neighbouring
+ * month, so an out-of-range fraction arriving here is a caller bug this screen absorbs rather
+ * than renders as a day off the end of the scale.
+ */
+private fun trainedHeat(intensity: Float): Float =
+    (MIN_TRAINED_HEAT + intensity * HEAT_RANGE).coerceIn(0f, 1f)
+
+private const val MIN_TRAINED_HEAT = 0.22f
+private const val HEAT_RANGE = 0.78f
+private val HEAT_DOT = 6.dp

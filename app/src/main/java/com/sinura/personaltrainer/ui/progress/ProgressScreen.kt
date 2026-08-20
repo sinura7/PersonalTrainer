@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.progress
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -9,39 +10,46 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.MuscleLoadSummary
+import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
-import com.sinura.personaltrainer.domain.toVolumeLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
-import com.sinura.personaltrainer.ui.components.GymCard
-import com.sinura.personaltrainer.ui.components.GymMetrics
+import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
+import com.sinura.personaltrainer.ui.components.HairlineDivider
+import com.sinura.personaltrainer.ui.components.InstrumentChip
+import com.sinura.personaltrainer.ui.components.InstrumentRow
+import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
+import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.Pit
+import com.sinura.personaltrainer.ui.theme.Surface3
+import com.sinura.personaltrainer.ui.theme.TextPrimary
+import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProgressScreen(
     onOpenLibrary: (String?) -> Unit,
@@ -56,71 +64,69 @@ fun ProgressScreen(
     val selected = selectedName?.let { runCatching { CanonicalMuscle.valueOf(it) }.getOrNull() }
     val snapshot = state.snapshot
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Body") }) },
-    ) { padding ->
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Pit),
+    ) {
+        // The window governs every number below it, so it belongs to the chrome rather than to
+        // the content: it used to be repeated inside all three branches and scrolled away with
+        // the map it labels.
+        ProgressHeader(window = state.window, onSelectWindow = viewModel::setWindow)
+
         when {
             state.isLoading -> {
-                ScreenLoading(modifier = Modifier.padding(padding))
+                ScreenLoading()
             }
+
             state.error != null -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        .padding(GymMetrics.screenPadding),
-                    verticalArrangement = Arrangement.spacedBy(GymMetrics.listGap),
-                ) {
-                    WindowPicker(selected = state.window, onSelect = viewModel::setWindow)
-                    EmptyState(
-                        title = "Couldn’t load the map",
-                        body = "Switch the 7 / 14 / week window and try again.",
-                        actionLabel = "Start workout",
-                        onAction = onStartWorkout,
-                    )
-                }
+                // A read failed; nothing was written and nothing needs starting. The remedy is
+                // to ask again, which is why this branch no longer offers "Start workout".
+                EmptyState(
+                    title = "Couldn’t load the map",
+                    body = "Every set you have logged is still in your history — only the map " +
+                        "failed to build.",
+                    actionLabel = "Try again",
+                    onAction = { viewModel.setWindow(state.window) },
+                    modifier = Modifier.padding(Metrics.gutter),
+                )
             }
+
             snapshot == null || !snapshot.hasAnyWorkingSets -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding)
-                        .padding(GymMetrics.screenPadding),
-                    verticalArrangement = Arrangement.spacedBy(GymMetrics.listGap),
-                ) {
-                    WindowPicker(selected = state.window, onSelect = viewModel::setWindow)
-                    EmptyState(
-                        title = "See what you trained",
-                        body = "Working-set volume lights the map for the window you pick.",
-                        actionLabel = "Start workout",
-                        onAction = onStartWorkout,
-                    )
-                }
+                EmptyState(
+                    title = "See what you trained",
+                    body = "Working-set volume lights the map for the window you pick.",
+                    actionLabel = "Start workout",
+                    onAction = onStartWorkout,
+                    modifier = Modifier.padding(Metrics.gutter),
+                )
             }
+
             else -> {
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentPadding = PaddingValues(GymMetrics.screenPadding),
-                    verticalArrangement = Arrangement.spacedBy(GymMetrics.listGap),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = Metrics.gutter,
+                        end = Metrics.gutter,
+                        top = Metrics.space2,
+                        bottom = Metrics.space7,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.cardGap),
                 ) {
-                    item {
-                        WindowPicker(selected = state.window, onSelect = viewModel::setWindow)
-                    }
                     state.notice?.let { message ->
-                        item { GymErrorBanner(message) }
+                        item(key = "notice") { GymErrorBanner(message) }
                     }
                     if (!snapshot.hasWindowWorkingSets) {
-                        item {
+                        item(key = "window-empty") {
                             Text(
-                                "No working sets in ${state.window.label.lowercase()}. Recency still shows below.",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.bodyMedium,
+                                "You haven’t logged a working set ${state.window.sentenceLabel()}. " +
+                                    "Each muscle below still shows how long ago it was last trained.",
+                                style = InstrumentType.body,
+                                color = TextSecondary,
                             )
                         }
                     }
-                    item {
+                    item(key = "map") {
                         BodyMapCard(
                             snapshot = snapshot,
                             view = bodyView,
@@ -130,11 +136,12 @@ fun ProgressScreen(
                         )
                     }
                     if (state.recommendations.isNotEmpty()) {
-                        item { GymSectionHeader("Recommended") }
-                        itemsIndexed(state.recommendations, key = { _, rec -> rec.id }) { index, rec ->
+                        item(key = "recommended-header") {
+                            GymSectionHeader("Recommended", modifier = Modifier.padding(top = Metrics.space5))
+                        }
+                        items(state.recommendations, key = { it.id }) { rec ->
                             RecommendationCard(
                                 recommendation = rec,
-                                rank = index + 1,
                                 onClick = {
                                     dispatchRecommendation(
                                         recommendation = rec,
@@ -144,26 +151,24 @@ fun ProgressScreen(
                                         onOpenProgress = { selectedName = rec.actionMuscle?.name },
                                     )
                                 },
+                                modifier = Modifier.animateItem(),
                             )
                         }
                     }
-                    item { GymSectionHeader("Muscles") }
-                    items(snapshot.mapLoads, key = { it.muscle.name }) { load ->
-                        MuscleHeatRow(
-                            load = load,
-                            selected = selected == load.muscle,
-                            onClick = { selectedName = load.muscle.name },
-                            volumeLabel = load.volumeKg.toVolumeLabel(unit),
-                        )
+                    item(key = "muscles-header") {
+                        GymSectionHeader("Muscles", modifier = Modifier.padding(top = Metrics.space5))
                     }
-                    snapshot.load(CanonicalMuscle.OTHER).takeIf { it.workingSets > 0 }?.let { other ->
-                        item {
-                            MuscleHeatRow(
-                                load = other,
-                                selected = selected == CanonicalMuscle.OTHER,
-                                onClick = { selectedName = CanonicalMuscle.OTHER.name },
-                                volumeLabel = other.volumeKg.toVolumeLabel(unit),
-                            )
+                    item(key = "muscles") {
+                        GroupedList {
+                            muscleRows(snapshot).forEachIndexed { index, load ->
+                                if (index > 0) HairlineDivider()
+                                MuscleHeatRow(
+                                    load = load,
+                                    selected = selected == load.muscle,
+                                    onClick = { selectedName = load.muscle.name },
+                                    unit = unit,
+                                )
+                            }
                         }
                     }
                 }
@@ -188,29 +193,30 @@ fun ProgressScreen(
 }
 
 @Composable
-private fun WindowPicker(
-    selected: HeatWindow,
-    onSelect: (HeatWindow) -> Unit,
+private fun ProgressHeader(
+    window: HeatWindow,
+    onSelectWindow: (HeatWindow) -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                start = Metrics.gutter,
+                end = Metrics.gutter,
+                top = Metrics.space2,
+                bottom = Metrics.space3,
+            ),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space3),
     ) {
-        HeatWindow.entries.forEach { window ->
-            FilterChip(
-                selected = selected == window,
-                onClick = { onSelect(window) },
-                modifier = Modifier.weight(1f),
-                label = {
-                    Text(
-                        when (window) {
-                            HeatWindow.LAST_7_DAYS -> "7"
-                            HeatWindow.LAST_14_DAYS -> "14"
-                            HeatWindow.CURRENT_WEEK -> "Week"
-                        },
-                    )
-                },
-            )
+        Text("Body", style = InstrumentType.display, color = TextPrimary)
+        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+            HeatWindow.entries.forEach { entry ->
+                InstrumentChip(
+                    label = entry.pickerLabel,
+                    selected = window == entry,
+                    onClick = { onSelectWindow(entry) },
+                )
+            }
         }
     }
 }
@@ -227,54 +233,103 @@ private fun MuscleDetailSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = Surface3,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = GymMetrics.screenPadding)
-                .padding(bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                // A muscle with a dozen contributing lifts overflows a fully expanded sheet,
+                // and the overflow is silently unreachable without this.
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Metrics.gutter)
+                .padding(bottom = Metrics.sectionGap),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space4),
         ) {
-            Text(load.muscle.displayName, style = MaterialTheme.typography.headlineSmall)
-            Text(
-                "${load.band.legendLabel} load",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.titleMedium,
-            )
-            DetailLine("Volume", "${load.volumeKg.toVolumeLabel(unit)}  ·  $windowLabel")
-            DetailLine("Working sets", "${load.workingSets}")
-            DetailLine("Last trained", recencyLabel(load))
-            DetailLine("Sessions", "${load.sessionCount}")
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+                Kicker("$windowLabel · ${load.band.legendLabel} load")
+                Text(load.muscle.displayName, style = InstrumentType.display, color = TextPrimary)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space6)) {
+                MetricCluster(
+                    value = WeightConverter.formatGroupedNumber(
+                        WeightConverter.toDisplayValue(load.volumeKg, unit),
+                    ),
+                    label = unit.suffix,
+                    valueStyle = InstrumentType.numeralLg,
+                    horizontalAlignment = Alignment.Start,
+                )
+                MetricCluster(
+                    value = load.workingSets.toString(),
+                    label = "sets",
+                    valueStyle = InstrumentType.numeralLg,
+                    horizontalAlignment = Alignment.Start,
+                )
+                MetricCluster(
+                    value = load.sessionCount.toString(),
+                    label = "sessions",
+                    valueStyle = InstrumentType.numeralLg,
+                    horizontalAlignment = Alignment.Start,
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Kicker("Last trained")
+                Text(recencyLabel(load), style = InstrumentType.bodyStrong, color = TextPrimary)
+            }
             if (load.exercises.isEmpty()) {
                 Text(
-                    "No working sets mapped here in this window.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    "Nothing in this window maps to ${load.muscle.displayName.lowercase()}.",
+                    style = InstrumentType.body,
+                    color = TextSecondary,
                 )
             } else {
-                Text("Contributors", style = MaterialTheme.typography.titleLarge)
-                load.exercises.forEach { exercise ->
-                    GymCard {
-                        Text(exercise.exerciseName, style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            "${exercise.volumeKg.toVolumeLabel(unit)} · ${exercise.workingSets} working sets",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
+                GymSectionHeader("Contributors")
+                GroupedList {
+                    load.exercises.forEachIndexed { index, exercise ->
+                        if (index > 0) HairlineDivider()
+                        InstrumentRow(title = exercise.exerciseName) {
+                            MetricCluster(value = exercise.workingSets.toString(), label = "sets")
+                            MetricCluster(
+                                value = WeightConverter.formatGroupedNumber(
+                                    WeightConverter.toDisplayValue(exercise.volumeKg, unit),
+                                ),
+                                label = unit.suffix,
+                            )
+                        }
                     }
                 }
             }
             SecondaryGymButton(
-                text = "Find ${load.muscle.displayName.lowercase()} lifts",
+                text = "Find ${load.muscle.catalogLabel.lowercase()} lifts",
                 onClick = onFindLifts,
             )
         }
     }
 }
 
-@Composable
-private fun DetailLine(label: String, value: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.titleMedium)
+/** The body map draws the ten mapped muscles; "Other" only earns a row when it has work in it. */
+private fun muscleRows(snapshot: BodyHeatSnapshot): List<MuscleLoadSummary> =
+    snapshot.mapLoads + listOfNotNull(
+        snapshot.load(CanonicalMuscle.OTHER).takeIf { it.workingSets > 0 },
+    )
+
+/**
+ * A bare "7" beside the word "Week" made the picker read as two different kinds of thing.
+ * Both units are spelled now, and the labels are the picker's own — no copy elsewhere has to
+ * quote them back at the reader.
+ */
+private val HeatWindow.pickerLabel: String
+    get() = when (this) {
+        HeatWindow.LAST_7_DAYS -> "7D"
+        HeatWindow.LAST_14_DAYS -> "14D"
+        HeatWindow.CURRENT_WEEK -> "THIS WEEK"
     }
+
+/** The window as it reads inside a sentence about training, preposition included. */
+private fun HeatWindow.sentenceLabel(): String = when (this) {
+    HeatWindow.LAST_7_DAYS, HeatWindow.LAST_14_DAYS -> "in the ${label.lowercase()}"
+    HeatWindow.CURRENT_WEEK -> "this week"
 }

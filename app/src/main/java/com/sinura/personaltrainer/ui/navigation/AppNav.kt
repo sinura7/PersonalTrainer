@@ -1,30 +1,57 @@
 package com.sinura.personaltrainer.ui.navigation
 
-import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
 import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessibilityNew
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.MenuBook
-import androidx.compose.material.icons.filled.Whatshot
+import androidx.compose.material.icons.outlined.AccessibilityNew
 import androidx.compose.material.icons.outlined.FitnessCenter
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.MenuBook
-import androidx.compose.material.icons.outlined.Whatshot
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -35,6 +62,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.sinura.personaltrainer.ui.components.HairlineDivider
+import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.history.HistoryScreen
 import com.sinura.personaltrainer.ui.exercise.ExerciseDetailScreen
 import com.sinura.personaltrainer.ui.history.SessionDetailScreen
@@ -47,6 +76,13 @@ import com.sinura.personaltrainer.ui.routines.RoutinesScreen
 import com.sinura.personaltrainer.ui.settings.SettingsScreen
 import com.sinura.personaltrainer.ui.summary.WorkoutSummaryScreen
 import com.sinura.personaltrainer.ui.settings.SettingsViewModel
+import com.sinura.personaltrainer.ui.theme.Haptics
+import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.Motion
+import com.sinura.personaltrainer.ui.theme.Pit
+import com.sinura.personaltrainer.ui.theme.SurfacePressed
+import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.workout.ActiveWorkoutScreen
 import com.sinura.personaltrainer.ui.workout.StartWorkoutScreen
@@ -88,6 +124,24 @@ private data class Tab(
     val selectedIcon: ImageVector,
 )
 
+/**
+ * One fade-through for every destination change.
+ *
+ * The host declared no transitions at all, so a lateral tab switch and a hierarchical
+ * drill-down were drawn identically — the default cross-fade in both cases — and motion
+ * carried no information about where you had just gone. The outgoing screen leaves quickly
+ * and the incoming one arrives after it has cleared, rising the last 2% of its scale, so the
+ * two never dissolve through each other into a grey frame.
+ */
+private val ScreenEnter: EnterTransition =
+    fadeIn(tween(Motion.BASE, delayMillis = Motion.TAP, easing = Motion.Standard)) +
+        scaleIn(
+            animationSpec = tween(Motion.BASE, delayMillis = Motion.TAP, easing = Motion.Standard),
+            initialScale = SCREEN_ENTER_SCALE,
+        )
+
+private val ScreenExit: ExitTransition = fadeOut(tween(Motion.TAP, easing = Motion.Exit))
+
 @Composable
 fun PersonalTrainerNav(
     openSessionId: String? = null,
@@ -96,11 +150,14 @@ fun PersonalTrainerNav(
 ) {
     val weightUnit by settingsViewModel.weightUnit.collectAsStateWithLifecycle()
     val navController = rememberNavController()
+    // Icon and destination have to agree: a flame reads as a streak or a calorie burn to
+    // every fitness user alive, and it was labelling a muscle heat map; a book reads as
+    // reading, and it was labelling a grid of exercises.
     val tabs = listOf(
         Tab(Route.Home, "Home", Icons.Outlined.Home, Icons.Filled.Home),
-        Tab(Route.Progress, "Body", Icons.Outlined.Whatshot, Icons.Filled.Whatshot),
+        Tab(Route.Progress, "Body", Icons.Outlined.AccessibilityNew, Icons.Filled.AccessibilityNew),
         Tab(Route.Routines, "Routines", Icons.Outlined.FitnessCenter, Icons.Filled.FitnessCenter),
-        Tab(Route.Library, "Library", Icons.Outlined.MenuBook, Icons.Filled.MenuBook),
+        Tab(Route.Library, "Library", Icons.Outlined.GridView, Icons.Filled.GridView),
         Tab(Route.History, "History", Icons.Outlined.History, Icons.Filled.History),
     )
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -129,199 +186,311 @@ fun PersonalTrainerNav(
 
     CompositionLocalProvider(LocalWeightUnit provides weightUnit) {
         Scaffold(
-        bottomBar = {
-            if (showBottomBar) {
-                NavigationBar {
-                    tabs.forEach { tab ->
-                        val selected = currentDestination?.hierarchy?.any { isTabRoute(it.route, tab.route.path) } == true
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = { goToTab(tab.route.path) },
-                            icon = {
-                                Icon(
-                                    if (selected) tab.selectedIcon else tab.icon,
-                                    contentDescription = tab.label,
-                                )
-                            },
-                            label = { Text(tab.label) },
-                        )
-                    }
+            bottomBar = {
+                // Slides rather than disappears: entering a workout used to delete the bar in
+                // one frame and let the content jolt down into the space it had been holding.
+                AnimatedVisibility(
+                    visible = showBottomBar,
+                    enter = slideInVertically(
+                        animationSpec = tween(Motion.BASE, easing = Motion.Standard),
+                    ) { it },
+                    exit = slideOutVertically(
+                        animationSpec = tween(Motion.BASE, easing = Motion.Exit),
+                    ) { it },
+                ) {
+                    InstrumentNavBar(
+                        tabs = tabs,
+                        isSelected = { tab ->
+                            currentDestination?.hierarchy?.any {
+                                isTabRoute(it.route, tab.route.path)
+                            } == true
+                        },
+                        onSelect = { tab -> goToTab(tab.route.path) },
+                    )
+                }
+            },
+        ) { padding ->
+            NavHost(
+                navController = navController,
+                startDestination = Route.Home.path,
+                // consumeWindowInsets is what stops the double inset: this Scaffold has no top
+                // bar, so its padding already contains the status-bar height, and without
+                // consuming it every screen that mounts its own Scaffold applied that height a
+                // second time — a dead strip above the title on every screen but Home.
+                modifier = Modifier
+                    .padding(padding)
+                    .consumeWindowInsets(padding),
+                enterTransition = { ScreenEnter },
+                exitTransition = { ScreenExit },
+                popEnterTransition = { ScreenEnter },
+                popExitTransition = { ScreenExit },
+            ) {
+                composable(Route.Home.path) {
+                    HomeScreen(
+                        onStartWorkout = { navController.navigate(Route.StartWorkout.path) },
+                        onResumeWorkout = { sessionId ->
+                            navController.navigate(Route.ActiveWorkout.create(sessionId)) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onOpenRoutines = { goToTab(Route.Routines.path) },
+                        onOpenHistory = { goToTab(Route.History.path) },
+                        onOpenProgress = { goToTab(Route.Progress.path) },
+                        onOpenSchedule = { navController.navigate(Route.Schedule.path) },
+                        onOpenLibraryMuscle = { muscle ->
+                            navController.navigate(Route.Library.create(muscle)) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = false
+                            }
+                        },
+                        onOpenSession = { navController.navigate(Route.SessionDetail.create(it)) },
+                        onOpenSettings = { navController.navigate(Route.Settings.path) },
+                    )
+                }
+                composable(Route.Progress.path) {
+                    ProgressScreen(
+                        onOpenLibrary = { muscle ->
+                            navController.navigate(Route.Library.create(muscle)) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = false
+                            }
+                        },
+                        onStartWorkout = { navController.navigate(Route.StartWorkout.path) },
+                        onOpenRoutines = { goToTab(Route.Routines.path) },
+                    )
+                }
+                composable(
+                    route = "library?muscle={muscle}",
+                    arguments = listOf(
+                        navArgument("muscle") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        },
+                    ),
+                ) { entry ->
+                    ExerciseLibraryScreen(
+                        onCreateRoutine = { navController.navigate(Route.RoutineEditor.create("new")) },
+                        onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
+                        initialMuscle = entry.arguments?.getString("muscle"),
+                    )
+                }
+                composable(Route.Schedule.path) {
+                    ScheduleScreen(
+                        onBack = { navController.popBackStack() },
+                        onWorkoutStarted = { sessionId ->
+                            navController.navigate(Route.ActiveWorkout.create(sessionId)) {
+                                launchSingleTop = true
+                                popUpTo(Route.Schedule.path) { inclusive = true }
+                            }
+                        },
+                        onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
+                    )
+                }
+                composable(Route.Settings.path) {
+                    SettingsScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenSchedule = { navController.navigate(Route.Schedule.path) },
+                        viewModel = settingsViewModel,
+                    )
+                }
+                composable(Route.Routines.path) {
+                    RoutinesScreen(
+                        onCreateRoutine = { navController.navigate(Route.RoutineEditor.create("new")) },
+                        onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
+                    )
+                }
+                composable(Route.History.path) {
+                    HistoryScreen(
+                        onOpenSession = { navController.navigate(Route.SessionDetail.create(it)) },
+                        onStartWorkout = { navController.navigate(Route.StartWorkout.path) },
+                    )
+                }
+                composable(Route.StartWorkout.path) {
+                    StartWorkoutScreen(
+                        onBack = { navController.popBackStack() },
+                        onWorkoutStarted = { sessionId ->
+                            navController.navigate(Route.ActiveWorkout.create(sessionId)) {
+                                launchSingleTop = true
+                                popUpTo(Route.StartWorkout.path) { inclusive = true }
+                            }
+                        },
+                    )
+                }
+                composable(
+                    route = Route.RoutineEditor.path,
+                    arguments = listOf(navArgument("routineId") { type = NavType.StringType }),
+                ) {
+                    RoutineEditorScreen(onBack = { navController.popBackStack() })
+                }
+                composable(
+                    route = Route.ActiveWorkout.path,
+                    arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
+                ) {
+                    ActiveWorkoutScreen(
+                        onExit = { navController.popBackStack() },
+                        onFinished = { sessionId ->
+                            // The finished workout leaves the stack: back from the summary goes
+                            // Home, never into a session that no longer accepts sets.
+                            navController.navigate(Route.WorkoutSummary.create(sessionId)) {
+                                popUpTo(Route.Home.path) { inclusive = false }
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
+                composable(
+                    route = Route.SessionDetail.path,
+                    arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
+                ) {
+                    SessionDetailScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
+                    )
+                }
+                composable(
+                    route = Route.WorkoutSummary.path,
+                    arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
+                ) {
+                    WorkoutSummaryScreen(
+                        onDone = {
+                            navController.popBackStack(Route.Home.path, inclusive = false)
+                        },
+                        onOpenSession = { sessionId ->
+                            navController.navigate(Route.SessionDetail.create(sessionId)) {
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
+                composable(
+                    route = Route.ExerciseDetail.path,
+                    arguments = listOf(navArgument("exerciseId") { type = NavType.StringType }),
+                ) {
+                    ExerciseDetailScreen(
+                        onBack = { navController.popBackStack() },
+                        // launchSingleTop so bouncing between a session and one of its lifts does
+                        // not stack a new copy of the same screen on every hop.
+                        onOpenSession = { sessionId ->
+                            navController.navigate(Route.SessionDetail.create(sessionId)) {
+                                launchSingleTop = true
+                            }
+                        },
+                    )
                 }
             }
-        },
-    ) { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = Route.Home.path,
-            // consumeWindowInsets is what stops the double inset: this Scaffold has no top
-            // bar, so its padding already contains the status-bar height, and without
-            // consuming it every screen that mounts its own Scaffold applied that height a
-            // second time — a dead strip above the title on every screen but Home.
+        }
+    }
+}
+
+/**
+ * The bottom bar, hand-rolled.
+ *
+ * Material's `NavigationBar` was the loudest stock-template signal left in the product: a
+ * lavender pill sliding under the active icon, on a container a step lighter than the window
+ * it sits on. Here the bar *is* the window colour, separated by one hairline, and the active
+ * destination is marked the way an instrument marks a live channel — a volt tick over the
+ * icon, with the icon and its label in the accent and every other tab in [TextTertiary].
+ *
+ * No ripple: a bloom spreading out of a 24dp icon is Material's own signature, and on a
+ * near-black field a pressed fill says the same thing without the animation.
+ */
+@Composable
+private fun InstrumentNavBar(
+    tabs: List<Tab>,
+    isSelected: (Tab) -> Boolean,
+    onSelect: (Tab) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Pit),
+    ) {
+        HairlineDivider(startIndent = 0.dp)
+        Row(
             modifier = Modifier
-                .padding(padding)
-                .consumeWindowInsets(padding),
+                .fillMaxWidth()
+                // The inset sits below the row rather than inside it, so the 64dp of touch
+                // target survives on a phone with gesture navigation.
+                .navigationBarsPadding()
+                .height(NAV_BAR_HEIGHT),
         ) {
-            composable(Route.Home.path) {
-                HomeScreen(
-                    onStartWorkout = { navController.navigate(Route.StartWorkout.path) },
-                    onResumeWorkout = { sessionId ->
-                        navController.navigate(Route.ActiveWorkout.create(sessionId)) {
-                            launchSingleTop = true
-                        }
-                    },
-                    onOpenRoutines = { goToTab(Route.Routines.path) },
-                    onOpenHistory = { goToTab(Route.History.path) },
-                    onOpenProgress = { goToTab(Route.Progress.path) },
-                    onOpenSchedule = { navController.navigate(Route.Schedule.path) },
-                    onOpenLibraryMuscle = { muscle ->
-                        navController.navigate(Route.Library.create(muscle)) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = false
-                        }
-                    },
-                    onOpenSession = { navController.navigate(Route.SessionDetail.create(it)) },
-                    onOpenSettings = { navController.navigate(Route.Settings.path) },
-                )
-            }
-            composable(Route.Progress.path) {
-                ProgressScreen(
-                    onOpenLibrary = { muscle ->
-                        navController.navigate(Route.Library.create(muscle)) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = false
-                        }
-                    },
-                    onStartWorkout = { navController.navigate(Route.StartWorkout.path) },
-                    onOpenRoutines = { goToTab(Route.Routines.path) },
-                )
-            }
-            composable(
-                route = "library?muscle={muscle}",
-                arguments = listOf(
-                    navArgument("muscle") {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    },
-                ),
-            ) { entry ->
-                ExerciseLibraryScreen(
-                    onCreateRoutine = { navController.navigate(Route.RoutineEditor.create("new")) },
-                    onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
-                    initialMuscle = entry.arguments?.getString("muscle"),
-                )
-            }
-            composable(Route.Schedule.path) {
-                ScheduleScreen(
-                    onBack = { navController.popBackStack() },
-                    onWorkoutStarted = { sessionId ->
-                        navController.navigate(Route.ActiveWorkout.create(sessionId)) {
-                            launchSingleTop = true
-                            popUpTo(Route.Schedule.path) { inclusive = true }
-                        }
-                    },
-                    onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
-                )
-            }
-            composable(Route.Settings.path) {
-                SettingsScreen(
-                    onBack = { navController.popBackStack() },
-                    onOpenSchedule = { navController.navigate(Route.Schedule.path) },
-                    viewModel = settingsViewModel,
-                )
-            }
-            composable(Route.Routines.path) {
-                RoutinesScreen(
-                    onCreateRoutine = { navController.navigate(Route.RoutineEditor.create("new")) },
-                    onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
-                )
-            }
-            composable(Route.History.path) {
-                HistoryScreen(
-                    onOpenSession = { navController.navigate(Route.SessionDetail.create(it)) },
-                    onStartWorkout = { navController.navigate(Route.StartWorkout.path) },
-                )
-            }
-            composable(Route.StartWorkout.path) {
-                StartWorkoutScreen(
-                    onBack = { navController.popBackStack() },
-                    onWorkoutStarted = { sessionId ->
-                        navController.navigate(Route.ActiveWorkout.create(sessionId)) {
-                            launchSingleTop = true
-                            popUpTo(Route.StartWorkout.path) { inclusive = true }
-                        }
-                    },
-                )
-            }
-            composable(
-                route = Route.RoutineEditor.path,
-                arguments = listOf(navArgument("routineId") { type = NavType.StringType }),
-            ) {
-                RoutineEditorScreen(onBack = { navController.popBackStack() })
-            }
-            composable(
-                route = Route.ActiveWorkout.path,
-                arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
-            ) {
-                ActiveWorkoutScreen(
-                    onExit = { navController.popBackStack() },
-                    onFinished = { sessionId ->
-                        // The finished workout leaves the stack: back from the summary goes
-                        // Home, never into a session that no longer accepts sets.
-                        navController.navigate(Route.WorkoutSummary.create(sessionId)) {
-                            popUpTo(Route.Home.path) { inclusive = false }
-                            launchSingleTop = true
-                        }
-                    },
-                )
-            }
-            composable(
-                route = Route.SessionDetail.path,
-                arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
-            ) {
-                SessionDetailScreen(
-                    onBack = { navController.popBackStack() },
-                    onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
-                )
-            }
-            composable(
-                route = Route.WorkoutSummary.path,
-                arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
-            ) {
-                WorkoutSummaryScreen(
-                    onDone = {
-                        navController.popBackStack(Route.Home.path, inclusive = false)
-                    },
-                    onOpenSession = { sessionId ->
-                        navController.navigate(Route.SessionDetail.create(sessionId)) {
-                            launchSingleTop = true
-                        }
-                    },
-                )
-            }
-            composable(
-                route = Route.ExerciseDetail.path,
-                arguments = listOf(navArgument("exerciseId") { type = NavType.StringType }),
-            ) {
-                ExerciseDetailScreen(
-                    onBack = { navController.popBackStack() },
-                    // launchSingleTop so bouncing between a session and one of its lifts does
-                    // not stack a new copy of the same screen on every hop.
-                    onOpenSession = { sessionId ->
-                        navController.navigate(Route.SessionDetail.create(sessionId)) {
-                            launchSingleTop = true
-                        }
-                    },
+            tabs.forEach { tab ->
+                NavTab(
+                    tab = tab,
+                    selected = isSelected(tab),
+                    onClick = { onSelect(tab) },
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
-        }
+    }
+}
+
+@Composable
+private fun NavTab(
+    tab: Tab,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val view = LocalView.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val content by animateColorAsState(
+        targetValue = if (selected) Volt else TextTertiary,
+        animationSpec = tween(Motion.FAST),
+        label = "nav-tab-content",
+    )
+    val tick by animateColorAsState(
+        targetValue = if (selected) Volt else Color.Transparent,
+        animationSpec = tween(Motion.FAST),
+        label = "nav-tab-tick",
+    )
+    val background by animateColorAsState(
+        targetValue = if (pressed) SurfacePressed else Pit,
+        animationSpec = tween(Motion.TAP),
+        label = "nav-tab-press",
+    )
+
+    Column(
+        modifier = modifier
+            .fillMaxHeight()
+            .background(background)
+            .selectable(
+                selected = selected,
+                interactionSource = interactionSource,
+                indication = null,
+                role = Role.Tab,
+                onClick = {
+                    Haptics.tick(view)
+                    onClick()
+                },
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Metrics.space1, Alignment.CenterVertically),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = NAV_TICK_WIDTH, height = NAV_TICK_HEIGHT)
+                .background(tick, CircleShape),
+        )
+        Icon(
+            if (selected) tab.selectedIcon else tab.icon,
+            // The label below is the accessible name; describing the icon too would announce
+            // every tab twice.
+            contentDescription = null,
+            tint = content,
+            modifier = Modifier.size(NAV_ICON_SIZE),
+        )
+        Kicker(tab.label, color = content)
     }
 }
 
@@ -330,3 +499,9 @@ private fun isTabRoute(destinationRoute: String?, tabPath: String): Boolean {
     if (destinationRoute == tabPath) return true
     return destinationRoute.substringBefore("?") == tabPath
 }
+
+private const val SCREEN_ENTER_SCALE = 0.98f
+private val NAV_BAR_HEIGHT = 64.dp
+private val NAV_ICON_SIZE = 24.dp
+private val NAV_TICK_WIDTH = 16.dp
+private val NAV_TICK_HEIGHT = 3.dp
