@@ -16,17 +16,21 @@ import com.sinura.personaltrainer.workout.WorkoutDraft
 import com.sinura.personaltrainer.workout.WorkoutDraftRecovery
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -114,11 +118,20 @@ class ActiveWorkoutViewModel(
     private val error = MutableStateFlow<String?>(null)
     private val finished = MutableStateFlow(false)
     private val editingSetId = MutableStateFlow<String?>(null)
-    private var lastPrefillExerciseId: String? = null
 
     /** What the database already holds, so a re-seed or a no-op edit does not re-write it. */
     private var lastPersistedNotes: String? = null
     private var pendingResumeDraft: WorkoutDraft? = null
+
+    /**
+     * Tapping the lift that is already selected must still refill the draft from the
+     * suggestion. [selectedExerciseId] cannot carry that: a StateFlow conflates a write of the
+     * value it already holds into no emission at all.
+     */
+    private val reselections = MutableSharedFlow<String>(
+        extraBufferCapacity = 4,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
     private val restTimer = container.restTimerController
 
     /**
@@ -128,8 +141,20 @@ class ActiveWorkoutViewModel(
      */
     private val sessionResolved = MutableStateFlow(false)
 
-    private val sessionFlow = container.workoutRepository.observeSession(sessionId)
-        .onEach { sessionResolved.value = true }
+    /**
+     * The session row, hot for this ViewModel's whole life.
+     *
+     * It used to be a cold flow collected twice — once by the init collector, once by the
+     * uiState chain — so the same row was queried twice. Actions also read the session out of
+     * `uiState.value`, which is a `WhileSubscribed(5_000)` projection: five seconds after the
+     * screen stops being collected it stops updating, so anything acting on it (a notification
+     * tap, a resumed screen before its first recomposition) was reading a stale snapshot of a
+     * rendered state rather than the data itself.
+     */
+    private val session: StateFlow<WorkoutSession?> =
+        container.workoutRepository.observeSession(sessionId)
+            .onEach { sessionResolved.value = true }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     init {
         if (sessionId.isBlank()) {
@@ -158,27 +183,37 @@ class ActiveWorkoutViewModel(
             // The flow is guarded at the repository, but the body below is not — a failure
             // here would otherwise kill the collector and freeze the screen silently.
             runCatchingCancellable {
-                sessionFlow.collect { session ->
-                    if (session == null) return@collect
-                    val resolved = session.resolveSelectedExerciseId(selectedExerciseId.value)
+                session.collect { current ->
+                    if (current == null) return@collect
+                    val resolved = current.resolveSelectedExerciseId(selectedExerciseId.value)
                     if (resolved != selectedExerciseId.value) {
                         selectedExerciseId.value = resolved
                     }
-                    val resume = pendingResumeDraft
-                    if (resume != null) {
-                        val cacheMatches = resume.exerciseId == null || resume.exerciseId == resolved
-                        if (cacheMatches) {
-                            lastPrefillExerciseId = resolved
-                        }
-                        pendingResumeDraft = null
-                    }
-                    lastPersistedNotes = session.notes
-                    if (notes.value.isEmpty() && session.notes.isNotEmpty()) {
-                        notes.value = session.notes
+                    lastPersistedNotes = current.notes
+                    if (notes.value.isEmpty() && current.notes.isNotEmpty()) {
+                        notes.value = current.notes
                     }
                     persistDraft()
                 }
             }.onFailure { AppLog.e(TAG, "Observing the active session failed", it) }
+        }
+        // Prefill used to hang off the end of the uiState chain, as `mapLatest { prefill(it) }`.
+        // That made it a side effect of rendering, and — worse — it wrote to `restTotal`,
+        // `hint` and `draft`, three of that same chain's own combine inputs. Its own write to
+        // `restTotal` re-triggered the chain, mapLatest cancelled the suspended progression
+        // query, and because the "already prefilled" marker had been set before suspending,
+        // the retry was skipped: switching to a lift with a different rest time could silently
+        // leave the weight at 0 instead of the suggestion.
+        //
+        // It is now driven by the selection alone, which is what it actually depends on.
+        viewModelScope.launch {
+            merge(
+                selectedExerciseId.filterNotNull().distinctUntilChanged(),
+                reselections,
+            ).collectLatest { exerciseId ->
+                runCatchingCancellable { prefill(exerciseId) }
+                    .onFailure { AppLog.w(TAG, "Prefilling the next set failed", it) }
+            }
         }
         // Notes used to launch an independent write per keystroke. Room's writes are not
         // ordered against each other, so a shorter earlier string could land after a longer
@@ -232,12 +267,12 @@ class ActiveWorkoutViewModel(
     )
 
     val uiState: StateFlow<ActiveWorkoutUiState> = combine(
-        sessionFlow,
+        session,
         selectedExerciseId,
         draft,
         hint,
-    ) { session, selected, currentDraft, currentHint ->
-        WorkoutCore(session, selected, currentDraft, currentHint)
+    ) { current, selected, currentDraft, currentHint ->
+        WorkoutCore(current, selected, currentDraft, currentHint)
     }.combine(
         combine(
             combine(restTotal, searchQuery, showPicker) { total, query, picker ->
@@ -283,21 +318,30 @@ class ActiveWorkoutViewModel(
         )
     }.combine(searchQuery.flatMapLatest { container.exerciseRepository.search(it) }) { state, results ->
         state.copy(searchResults = results)
-    }.mapLatest { state ->
-        prefillIfNeeded(state)
-        state
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = ActiveWorkoutUiState(),
     )
 
-    private suspend fun prefillIfNeeded(state: ActiveWorkoutUiState) {
-        val session = state.session ?: return
-        val exerciseId = state.selectedExerciseId ?: return
-        if (exerciseId == lastPrefillExerciseId) return
-        lastPrefillExerciseId = exerciseId
-        val planned = session.exercises.firstOrNull { it.exercise.id == exerciseId }
+    private suspend fun prefill(exerciseId: String) {
+        // Decided before the first suspension point, so a cancelled prefill cannot half-consume
+        // it: a recovered draft is the user's own unfinished entry and the suggestion must not
+        // overwrite it, but a draft recovered for some other lift is simply spent.
+        val resume = pendingResumeDraft
+        if (resume != null) {
+            pendingResumeDraft = null
+            if (resume.exerciseId == null || resume.exerciseId == exerciseId) return
+        }
+        if (editingSetId.value != null) return
+        // Wait for the row rather than giving up: a selection restored from a saved draft can
+        // arrive before the query answers, and bailing there left that lift with no suggestion
+        // at all. sessionResolved bounds the wait — once the query has answered, null is final.
+        val current = session.value ?: run {
+            sessionResolved.first { it }
+            session.value ?: return
+        }
+        val planned = current.exercises.firstOrNull { it.exercise.id == exerciseId }
         val targetReps = planned?.targetReps ?: 5
         val rest = planned?.restSeconds?.takeIf { it > 0 } ?: 90
         restTotal.value = rest
@@ -321,8 +365,11 @@ class ActiveWorkoutViewModel(
     }
 
     fun selectExercise(exerciseId: String) {
-        selectedExerciseId.value = exerciseId
-        lastPrefillExerciseId = null
+        if (selectedExerciseId.value == exerciseId) {
+            reselections.tryEmit(exerciseId)
+        } else {
+            selectedExerciseId.value = exerciseId
+        }
         persistDraft()
     }
 
@@ -395,21 +442,17 @@ class ActiveWorkoutViewModel(
             error.value = "This workout is no longer available."
             return
         }
-        val alreadyAdded = uiState.value.session?.exercises?.any { it.exercise.id == exercise.id } == true
+        val alreadyAdded = session.value?.exercises?.any { it.exercise.id == exercise.id } == true
         if (alreadyAdded) {
-            selectedExerciseId.value = exercise.id
-            lastPrefillExerciseId = null
+            selectExercise(exercise.id)
             showPicker.value = false
-            persistDraft()
             error.value = null
             return
         }
         try {
             container.workoutRepository.addExerciseToSession(sessionId, exercise)
-            selectedExerciseId.value = exercise.id
-            lastPrefillExerciseId = null
+            selectExercise(exercise.id)
             showPicker.value = false
-            persistDraft()
             error.value = null
         } catch (thrown: Exception) {
             AppLog.w(TAG, "addExerciseInternal failed", thrown)
@@ -470,8 +513,10 @@ class ActiveWorkoutViewModel(
     }
 
     fun editSet(setId: String) {
-        val set = uiState.value.session?.sets?.firstOrNull { it.id == setId } ?: return
-        lastPrefillExerciseId = set.exerciseId
+        val set = session.value?.sets?.firstOrNull { it.id == setId } ?: return
+        // editingSetId is set below and prefill refuses to run while it is, so selecting the
+        // set's lift here cannot overwrite the values being edited.
+        editingSetId.value = set.id
         selectedExerciseId.value = set.exerciseId
         draft.value = ActiveExerciseDraft(
             weightKg = set.weightKg,
@@ -479,7 +524,6 @@ class ActiveWorkoutViewModel(
             rpe = set.rpe,
             isWarmup = set.isWarmup,
         )
-        editingSetId.value = set.id
         persistDraft()
     }
 
@@ -489,10 +533,10 @@ class ActiveWorkoutViewModel(
 
     fun deleteSet(setId: String) {
         viewModelScope.launch {
-            val session = uiState.value.session
-            val deleted = session?.sets?.firstOrNull { it.id == setId }
+            val current = session.value
+            val deleted = current?.sets?.firstOrNull { it.id == setId }
             val wasLatest = deleted != null &&
-                session.sets.maxByOrNull { it.completedAt }?.id == setId
+                current.sets.maxByOrNull { it.completedAt }?.id == setId
             if (editingSetId.value == setId) {
                 editingSetId.value = null
             }
@@ -553,7 +597,7 @@ class ActiveWorkoutViewModel(
 
     fun finishWorkout() {
         viewModelScope.launch {
-            val current = uiState.value.session
+            val current = session.value
             if (current == null || current.sets.isEmpty()) {
                 error.value = "Log at least one set before finishing."
                 return@launch
@@ -588,7 +632,7 @@ class ActiveWorkoutViewModel(
     private fun startRestAfterSet() {
         viewModelScope.launch {
             val prefs = container.preferencesRepository.restTimerPreferences.first()
-            val planned = uiState.value.session
+            val planned = session.value
                 ?.exercises
                 ?.firstOrNull { it.exercise.id == selectedExerciseId.value }
                 ?.restSeconds

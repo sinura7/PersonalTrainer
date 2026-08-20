@@ -14,9 +14,7 @@ import com.sinura.personaltrainer.domain.RoutineEditorPolicy
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
@@ -61,9 +59,15 @@ class RoutineEditorViewModel(
 
     // Shared, not two independent collections: the missing-routine detector below and the
     // uiState chain each used to open their own Room query for the same row.
-    private val routineFlow: SharedFlow<Routine?> = routineId.flatMapLatest { id ->
+    // Hot and shared, for two reasons. The missing-routine detector below and the uiState chain
+    // each used to open their own Room query for this same row; and actions read the routine
+    // out of `uiState.value`, a WhileSubscribed(5_000) projection that stops updating five
+    // seconds after the screen stops being collected — a stale snapshot of rendered state
+    // rather than the data itself. The seeded null is safe: onRoutineEmission only treats null
+    // as a deletion once the routine has been seen present.
+    private val routineFlow: StateFlow<Routine?> = routineId.flatMapLatest { id ->
         if (id == null) flowOf(null) else container.routineRepository.observeById(id)
-    }.shareIn(viewModelScope, SharingStarted.Eagerly, replay = 1)
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val resultsFlow = searchQuery.flatMapLatest { query ->
         container.exerciseRepository.search(query)
@@ -221,7 +225,7 @@ class RoutineEditorViewModel(
         }
         viewModelScope.launch {
             val id = ensureRoutineId() ?: return@launch
-            val alreadyAdded = uiState.value.routine?.exercises?.any { it.exercise.id == exercise.id } == true
+            val alreadyAdded = routineFlow.value?.exercises?.any { it.exercise.id == exercise.id } == true
             if (alreadyAdded) {
                 error.value = "${exercise.name} is already in this routine."
                 showPicker.value = false
@@ -356,7 +360,7 @@ class RoutineEditorViewModel(
 
     private suspend fun currentExerciseCount(id: String): Int {
         return container.routineRepository.getById(id)?.exercises?.size
-            ?: uiState.value.routine?.exercises?.size
+            ?: routineFlow.value?.exercises?.size
             ?: 0
     }
 
