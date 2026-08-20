@@ -12,8 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.KeyboardArrowLeft
+import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -66,7 +66,7 @@ fun TrainingCalendarCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onPreviousMonth) {
-                Icon(Icons.AutoMirrored.Outlined.KeyboardArrowLeft, contentDescription = "Previous month")
+                Icon(Icons.Outlined.KeyboardArrowLeft, contentDescription = "Previous month")
             }
             Text(
                 monthFormatter.format(month.month),
@@ -77,7 +77,7 @@ fun TrainingCalendarCard(
             // Nothing is ever logged in the future, so there is no forward month to look at.
             val canGoForward = month.month < java.time.YearMonth.from(today)
             IconButton(onClick = onNextMonth, enabled = canGoForward) {
-                Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = "Next month")
+                Icon(Icons.Outlined.KeyboardArrowRight, contentDescription = "Next month")
             }
         }
 

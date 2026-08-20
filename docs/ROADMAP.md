@@ -42,20 +42,49 @@ Consume-once notification intent, explicit `SessionLoadState` so a missing sessi
 terminal rather than an infinite spinner, workout draft surviving process death via
 `SavedStateHandle`, system-back parity with the top-bar exit.
 
+Then the state-graph work the audit called for:
+
+- **A5/A7** — one analytics pipeline (`TrainingInsightsCalculator` +
+  `TrainingInsightsSource`) behind Home, Schedule and Progress, computed off the main
+  thread. The three copies had drifted: only Progress passed the exercise catalog and
+  honoured the week-start preference, so the same history produced a different body map on
+  Progress than the weekly plan was built from.
+- **A6** — navigation is one-shot state with an explicit ack, not a lambda captured into a
+  coroutine that outlives its `NavController`.
+- **A8** — session notes debounce to a typing pause and write in order. They were one
+  unordered write per keystroke, so a shorter earlier string could land after a longer
+  later one.
+- **A9** — the routine editor's four load flags became one tested `RoutineEditorLoad`.
+- **A3** — prefill left the `uiState` chain, which it was both an output of and an input
+  to; actions read hot `StateFlow`s instead of a `WhileSubscribed` projection.
+
+> **Outstanding: A1**, the DI seam. `AppViewModel` is still a service locator over a
+> concrete `AppContainer`, so ViewModels cannot be constructed in a test. Deferred
+> deliberately: the refactor touches every screen and its only payoff is testability that
+> cannot be exercised until there is an instrumented-test harness. Do it with Phase 4.
+
 ---
 
-## Phase 3 — The Mirror · **next**
+## Phase 3 — The Mirror · **done, pending device verification**
 
-The largest remaining gap between "well-built logger" and the premium bar. The app records
-years of sets and shows almost none of it back.
+The app recorded years of sets and showed almost none of it back.
 
-- Exercise detail screen: full set history, estimated 1RM trend, weekly tonnage
-- PR detection (weight, reps, e1RM) with an in-workout moment
-- Workout finish summary replacing the silent navigation pop
-- Previous-session ghost values beside the inputs
-- History calendar with trained-day heat, and editable finished sessions
+- **Exercise detail screen** — lifetime totals, standing records, weekly volume and
+  estimated-1RM trends, every session the lift appears in. Reached from the library or from
+  an exercise block in a past session.
+- **Personal records** — weight, reps-at-weight and estimated 1RM, computed from history
+  rather than stored. Announced in-workout as a dismissible banner, never a dialog.
+- **Workout finish summary** — replaces the silent pop back to Home.
+- **Previous-session values** — every working set of the last session for the current lift,
+  above the steppers.
+- **Training calendar** — the month at a glance, shaded by how hard each day was relative
+  to that month's own hardest day.
 
-**Depends on:** the v1 schema baseline being committed.
+Not built: **editable finished sessions**. Editing history means relaxing the guards that
+protect finished sessions from writes, and that deserves its own change rather than being
+folded in at the end of a feature phase.
+
+Everything here is a read over the existing schema, so none of it waited on the v1 baseline.
 
 ## Phase 4 — Schema v2 *later*
 
@@ -82,8 +111,9 @@ Carried forward deliberately, with the phase that will address them:
 
 | Item | Phase |
 |---|---|
-| No instrumented tests; repositories, DAOs, ViewModels, screens untested | 3–4 |
-| ViewModels untestable by construction (service-locator `AppViewModel`) | 4 |
+| No instrumented tests; repositories, DAOs, ViewModels, screens untested | 4 |
+| ViewModels untestable by construction (service-locator `AppViewModel`) — A1 | 4 |
+| Finished sessions cannot be edited | 4 |
 | Imbalance advice compares tonnage, not working-set counts | 4 |
 | Progression increment is a global 2.5 kg; LBS users see "+5.5 lbs" | 4 |
 | RPE is stored and backed up but read by nothing | 4 |
