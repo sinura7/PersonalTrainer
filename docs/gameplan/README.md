@@ -11,6 +11,12 @@ session with no memory of the planning can run a phase from its packet alone.
 [REVISED_STRUCTURE.md](REVISED_STRUCTURE.md) records what the critique changed and why;
 [PROTOCOL.md](PROTOCOL.md) is the binding execution protocol every phase follows.
 
+Interactive playbook:
+**https://claude.ai/code/artifact/b6f120ae-9185-46aa-84cf-69439cb42752**
+
+> Private to the repo owner's Claude account, like the audit's links. This directory is
+> the source of truth; the playbook is its overview.
+
 ## How to execute a phase
 
 Give a fresh Claude Opus session exactly two documents: `PROTOCOL.md` and the phase's
