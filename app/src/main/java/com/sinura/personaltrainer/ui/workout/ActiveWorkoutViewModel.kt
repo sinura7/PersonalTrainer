@@ -340,16 +340,27 @@ class ActiveWorkoutViewModel(
         initialValue = ActiveWorkoutUiState(),
     )
 
+    /**
+     * Loads everything shown about a lift, and — unless the user already has work in progress
+     * on it — fills the draft with the suggestion.
+     *
+     * The two halves are separate on purpose. The reference half (last session, progression
+     * hint, planned rest) is always safe to load and is exactly what someone resuming a
+     * workout or editing a logged set wants to see. The draft half overwrites what they typed,
+     * so it is skipped in both those cases.
+     */
     private suspend fun prefill(exerciseId: String) {
         // Decided before the first suspension point, so a cancelled prefill cannot half-consume
-        // it: a recovered draft is the user's own unfinished entry and the suggestion must not
-        // overwrite it, but a draft recovered for some other lift is simply spent.
+        // it: a recovered draft is the user's own unfinished entry, but a draft recovered for
+        // some other lift is simply spent.
         val resume = pendingResumeDraft
-        if (resume != null) {
+        val resumingThisLift = if (resume == null) {
+            false
+        } else {
             pendingResumeDraft = null
-            if (resume.exerciseId == null || resume.exerciseId == exerciseId) return
+            resume.exerciseId == null || resume.exerciseId == exerciseId
         }
-        if (editingSetId.value != null) return
+        val keepDraft = resumingThisLift || editingSetId.value != null
         // Cleared before the query so the previous lift's numbers never sit under the new
         // lift's name; a stale "last time" is worse than none.
         lastPerformance.value = null
@@ -373,6 +384,7 @@ class ActiveWorkoutViewModel(
         )
         hint.value = progression
         lastPerformance.value = container.workoutRepository.lastPerformance(exerciseId, sessionId)
+        if (keepDraft) return
         val lastWeight = progression?.suggestedWeightKg
             ?: planned?.targetWeightKg
             ?: 0.0

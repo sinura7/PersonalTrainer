@@ -12,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -19,10 +20,12 @@ import com.sinura.personaltrainer.domain.toVolumeLabel
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GymMetrics
+import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SessionLogRow
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import java.text.DateFormat
+import java.time.LocalDate
 import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,6 +38,7 @@ fun HistoryScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
     val dateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+    val today = remember { LocalDate.now() }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("History") }) },
@@ -61,6 +65,20 @@ fun HistoryScreen(
                     contentPadding = PaddingValues(GymMetrics.screenPadding),
                     verticalArrangement = Arrangement.spacedBy(GymMetrics.listGap),
                 ) {
+                    item(key = "calendar") {
+                        TrainingCalendarCard(
+                            month = state.calendar,
+                            weekStart = state.weekStart,
+                            today = today,
+                            onPreviousMonth = viewModel::showPreviousMonth,
+                            onNextMonth = viewModel::showNextMonth,
+                            // Two sessions in a day is rare; opening the first is the useful
+                            // default and the list below reaches the rest.
+                            onOpenDay = { day -> day.sessionIds.firstOrNull()?.let(onOpenSession) },
+                            unit = unit,
+                        )
+                    }
+                    item(key = "sessions-header") { GymSectionHeader("All sessions", compact = true) }
                     items(state.sessions, key = { it.id }) { session ->
                         SessionLogRow(
                             title = session.routineName ?: "Workout",
