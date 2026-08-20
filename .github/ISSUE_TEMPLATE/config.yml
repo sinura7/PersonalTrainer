@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Roadmap
+    url: https://github.com/sinura7/PersonalTrainer/blob/main/docs/ROADMAP.md
+    about: Planned work lives in the repo, not in issues. File issues for bugs you actually hit.

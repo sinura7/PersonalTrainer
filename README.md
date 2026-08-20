@@ -1,10 +1,14 @@
 # Personal Trainer
 
-Local-first strength tracker for Android. Workouts stay on the device (Room). Weights are stored in kilograms and can be shown as kg or lbs.
+[![CI](https://github.com/sinura7/PersonalTrainer/actions/workflows/ci.yml/badge.svg)](https://github.com/sinura7/PersonalTrainer/actions/workflows/ci.yml)
 
-The Play Store is not required. Install the signed APK yourself or let Obtainium watch GitHub Releases.
+Local-first strength tracker for Android, built for one person's training. Workouts stay on
+the device (Room). Weights are stored in kilograms and can be shown as kg or lbs.
 
-## Open in Android Studio
+The Play Store is not required: build and install from Android Studio, or sideload a signed
+APK and let Obtainium watch GitHub Releases.
+
+## Run it
 
 1. Clone the repo:
    ```bash
@@ -12,9 +16,21 @@ The Play Store is not required. Install the signed APK yourself or let Obtainium
    ```
 2. **File → Open** the folder that contains `settings.gradle.kts`.
 3. Trust the project and wait for Gradle sync.
-4. Run on an API 26+ emulator or phone.
+4. Plug in a phone (API 26+) or start an emulator, then press **Run ▶**.
 
-Debug builds use the default debug keystore. Release signing, OAuth, and updates are in [SETUP.md](SETUP.md).
+That is the whole day-to-day loop. Debug builds use Android Studio's debug keystore and
+need no configuration.
+
+## Documentation
+
+| | |
+|---|---|
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | project layout, running tests, what will bite you |
+| [SETUP.md](SETUP.md) | release keystore, Google Drive OAuth, building a signed APK |
+| [docs/RECOVERY.md](docs/RECOVERY.md) | **new phone, dead laptop, lost keystore — read before you need it** |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | what is built, what is next |
+| [docs/AUDIT.md](docs/AUDIT.md) | the code review this roadmap came from |
+| [docs/DESIGN_AUDIT.md](docs/DESIGN_AUDIT.md) | the product/design bar, screen by screen |
 
 ## What it does
 
@@ -25,41 +41,52 @@ Debug builds use the default debug keystore. Release signing, OAuth, and updates
 - **Library** — search the lift list, filter by muscle, add custom exercises
 - **Logging** — weight + reps, optional RPE and warm-up, suggested next weight
 - **Rest timer** — foreground service + notification so rest keeps running when the app is minimized; 1:00 / 1:30 / 2:00 / custom presets; sound and vibration when rest ends
-- **Progression** — last working set vs target reps:
+- **Progression** — the **top set** of your last session for that lift vs target reps:
   - hit target → suggest **+2.5 kg**
   - 1–2 reps short → keep the same weight
   - 3+ reps short → suggest **−2.5 kg**
-- **History** — finished sessions with sets grouped by exercise
-- **Settings** — kg/lbs display, rest sound/vibration and default rest, optional Google Drive backup/restore, current app version
 
-Training works offline. Drive is only used when you back up or restore.
+  Judging the heaviest set means a back-off set never lowers next session's suggestion.
+- **History** — finished sessions with sets grouped by exercise
+- **Settings** — kg/lbs display, rest sound/vibration and default rest, backup and restore, current app version
+- **Backup** — export/import a JSON file (no Google account needed) or sync with your own
+  Google Drive. Restores are validated before anything is written, and refuse to run while
+  a workout is in progress
+
+Training works offline. A backup is only read when you ask for one.
 
 ## Version and updates
 
-Bump `appVersionCode` and `appVersionName` at the top of `app/build.gradle.kts`, then follow [SETUP.md](SETUP.md):
+Bump `appVersionCode` and `appVersionName` at the top of `app/build.gradle.kts`, then either:
 
-1. Bump version
-2. Build the signed release APK (`PersonalTrainer-<version>.apk`)
-3. Create a GitHub Release and attach that APK
+**Locally** (see [SETUP.md](SETUP.md)) — build the signed APK, create a GitHub Release,
+attach `PersonalTrainer-<version>.apk`.
 
-Obtainium can install and update from those releases. One standard APK per release — no Play Store, no app bundle, no split APKs.
+**Or by tag** — push `vX.Y.Z` and the [release workflow](.github/workflows/release.yml)
+builds, signs, verifies and publishes it, provided the `KEYSTORE_*` secrets are configured.
+
+Obtainium installs and updates from those releases. One standard APK per release — no Play
+Store, no app bundle, no split APKs.
 
 ## Architecture
 
 ```
 data/local       Room entities, DAOs, TrainerDatabase
-data/repository
-data/backup      Drive JSON backup / restore
-domain           models, units, muscle heat, recommendations, weekly schedule, ProgressionCalculator
-timer            foreground rest service, notification, alerts
+data/repository  the only classes that touch DAOs
+data/backup      backup document, JSON codec, validator, Drive client
+domain           pure Kotlin — models, units, muscle heat, recommendations, planner, progression
+timer            rest timer store, controller, foreground service, wakeup alarm, notifications
+workout          in-progress workout draft (memory + saved state)
 ui/home, ui/progress, ui/schedule, ui/routines, ui/workout, ui/history, ui/library, ui/settings
 ```
 
-ViewModels talk to repositories. No Hilt — `PersonalTrainerApp` holds an `AppContainer`.
+ViewModels talk to repositories, never to DAOs. No Hilt — `PersonalTrainerApp` holds an
+`AppContainer`. `domain/` has no `android.*` imports, which is why most of the test suite
+runs on the JVM in seconds. More in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ## Requirements
 
 - Android Studio Ladybug or newer
 - JDK 17
 - Android SDK 35
-- minSdk 26
+- minSdk 26 (Android 8.0)

@@ -1,0 +1,96 @@
+# Development
+
+How to work on this app day to day. Android Studio is the primary tool; everything here
+assumes you are building and installing from it.
+
+## First run
+
+1. Clone, then **File → Open** the folder containing `settings.gradle.kts`.
+2. Trust the project, let Gradle sync finish.
+3. Plug in the phone (USB debugging on) or start an API 26+ emulator.
+4. Press **Run ▶**. That is the whole deployment path for day-to-day work — a debug build
+   signed with Android Studio's debug key, installed straight to the device.
+
+Debug and release are **separate installs with different signing keys**. A debug build will
+not overwrite your real, release-signed app, and vice versa — which is exactly what you
+want, because it means experimenting cannot touch your real training history. They keep
+separate databases only if the applicationId differs; it does not here, so installing one
+over the other requires an uninstall. Use the emulator for anything risky.
+
+## Project layout
+
+```
+app/src/main/java/com/sinura/personaltrainer/
+  data/local        Room entities, DAOs, TrainerDatabase
+  data/repository   repositories — the only things that touch DAOs
+  data/backup       backup document, JSON codec, validator, Drive client
+  domain            pure Kotlin: models, units, heat, recommendations, planner, progression
+  timer             rest timer: store, controller, foreground service, alarm, notifications
+  workout           in-progress workout draft (memory + saved state)
+  ui/<screen>       one package per screen: Screen.kt + ViewModel.kt
+app/src/test/       JVM unit tests
+app/schemas/        Room schema JSON, one per DB version — committed on purpose
+docs/               audit, roadmap, recovery runbook, design spec
+```
+
+Two rules keep this navigable:
+
+- **`domain/` stays pure Kotlin.** No `android.*` imports. That is what makes it testable
+  without a device, and most of the test suite lives there.
+- **ViewModels talk to repositories, never to DAOs.** Dependencies come from `AppContainer`
+  (manual DI, no Hilt) via `PersonalTrainerApp`.
+
+## Running tests
+
+In Android Studio: right-click `app/src/test` → **Run 'Tests'**. From the terminal:
+
+```bash
+./gradlew testDebugUnitTest          # the whole JVM suite
+./gradlew testDebugUnitTest --tests '*ProgressionBasisTest*'
+```
+
+These are plain JVM tests — no emulator, a few seconds. Run them before every commit; CI
+runs them again on push.
+
+There are no instrumented (`androidTest`) tests yet. Room DAOs, repositories, ViewModels and
+Compose screens are therefore **unverified by automation** — see [ROADMAP.md](ROADMAP.md).
+
+## Things that will bite you
+
+**Database schema changes.** The database is version 1 with schema export on. Changing any
+`@Entity` means: bump `version`, write a `Migration`, and commit the new
+`app/schemas/…/<n>.json`. Never add `fallbackToDestructiveMigration` — it silently erases
+the training history this app exists to accumulate.
+
+**The rest timer cannot be tested with the screen on.** Its whole job is firing while the
+phone sleeps. Verify with the screen off and the phone untouched; force Doze with
+`adb shell dumpsys deviceidle force-idle` to make it deterministic.
+
+**Backups are destructive on restore.** Restore replaces everything. The validator refuses
+malformed and empty documents, and a pre-restore snapshot is written to app-private storage
+first, but test restores on the emulator, not on the phone holding your real history.
+
+**Release builds are not what you run day to day.** `assembleRelease` needs
+`keystore.properties`; without it the APK is unsigned and cannot update your install. See
+[SETUP.md](../SETUP.md).
+
+## Useful adb
+
+```bash
+adb shell dumpsys deviceidle force-idle          # force Doze, to test the rest timer
+adb shell dumpsys deviceidle unforce             # back to normal
+adb shell am kill com.sinura.personaltrainer     # simulate process death (keeps saved state)
+adb shell am force-stop com.sinura.personaltrainer  # harsher: clears saved state too
+adb logcat --pid=$(adb shell pidof com.sinura.personaltrainer)
+```
+
+`am kill` is the honest test for "phone sat in my pocket and the OS reclaimed the app".
+`force-stop` is a user-initiated kill and legitimately discards saved state.
+
+## Committing
+
+Trunk-based: commit to `main`, push, let CI verify. Branch only when work spans several
+sessions or you want CI to vet it before it lands.
+
+Write commit messages that explain **why**, not what — the diff already says what. The
+existing history is the model to follow.
