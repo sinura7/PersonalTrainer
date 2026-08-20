@@ -23,16 +23,19 @@ SOURCES = {
     "inter": "inter/Inter%5Bopsz,wght%5D.ttf",
 }
 
-# Latin text, plus every non-ASCII mark the app actually renders:
+# Latin text, plus the typographic marks the app renders:
 #   ·  U+00B7 meta separators      ×  U+00D7 "100 kg × 5"
 #   −  U+2212 true minus (steppers)  –—  U+2013/2014 dashes
 #   ’“” U+2018-201D smart quotes   →  U+2192 progression arrows
-#   ▲▼ U+25B2/25BC trend deltas    ●○ U+25CF/25CB set dots
-#   ·  … U+2026 ellipsis           ✓  U+2713 check
+#   ▲▼ U+25B2/25BC trend deltas    …  U+2026 ellipsis
+# Coverage is not assumed: verify_source_glyphs below re-derives the set from the source
+# tree and fails the build if a character the app draws has no glyph in a subset face.
 UNICODES = (
     "U+0020-007E,U+00A0-00FF,U+2013,U+2014,U+2018-201D,U+2022,U+2026,"
-    "U+2192,U+2212,U+25B2,U+25BC,U+25CB,U+25CF,U+2713,U+00B7,U+00D7"
+    "U+2192,U+2212,U+25B2,U+25BC,U+00B7,U+00D7"
 )
+
+SOURCE_ROOTS = ("app/src/main/java",)
 
 TARGETS = [
     # (source, out name, wght, extra axis pins, usWeightClass)
@@ -109,6 +112,26 @@ for key, name, wght, pins, weight_class in TARGETS:
     tab = digit_widths(out, tabular=True)
     built.append((name, os.path.getsize(out_path), has_tnum, len(set(plain)) == 1, len(set(tab)) == 1))
 
+def source_characters():
+    """Every non-ASCII character anywhere in the Kotlin sources.
+
+    Deliberately a superset: it includes characters that only appear in comments, which
+    need no glyph. Being conservative here costs a few bytes per face and removes the need
+    to parse Kotlin to tell a string literal from a doc comment.
+    """
+    found = set()
+    for root in SOURCE_ROOTS:
+        for base, _, files in os.walk(root):
+            for name in files:
+                if not name.endswith(".kt"):
+                    continue
+                with open(os.path.join(base, name), encoding="utf-8") as handle:
+                    for ch in handle.read():
+                        if ord(ch) > 127:
+                            found.add(ch)
+    return found
+
+
 print()
 print(f"{'font':26s} {'KB':>6s}  {'tnum':>5s}  {'digits-uniform':>14s}  {'tnum-uniform':>12s}")
 ok = True
@@ -116,6 +139,20 @@ for name, size, has_tnum, plain_uniform, tab_uniform in built:
     print(f"{name:26s} {size/1024:6.1f}  {str(has_tnum):>5s}  {str(plain_uniform):>14s}  {str(tab_uniform):>12s}")
     if not tab_uniform:
         ok = False
+
+wanted = source_characters()
+if wanted:
+    print()
+    for name, _, _, _, _ in built:
+        cmap = TTFont(os.path.join(OUT, name + ".ttf")).getBestCmap()
+        missing = sorted(ch for ch in wanted if ord(ch) not in cmap)
+        if missing:
+            ok = False
+            detail = ", ".join(f"U+{ord(ch):04X} {ch!r}" for ch in missing)
+            print(f"{name}: MISSING {detail}")
+    if ok:
+        print(f"Source glyph coverage verified ({len(wanted)} non-ASCII characters)")
+
 print()
-print("TABULAR NUMERALS VERIFIED" if ok else "FAILED: tabular numerals are not uniform width")
+print("FONTS VERIFIED" if ok else "FAILED: see above")
 sys.exit(0 if ok else 1)
