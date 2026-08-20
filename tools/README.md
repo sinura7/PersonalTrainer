@@ -1,6 +1,6 @@
 # tools
 
-Four small static checks that answer questions the Kotlin compiler answers better — but only
+Small static checks that answer questions the Kotlin compiler answers better — but only
 when you have an Android SDK to hand. They exist because most of this codebase cannot be
 compiled outside Android Studio or CI, and a broken build discovered on the phone at the gym
 is worse than one discovered in five seconds at a terminal.
@@ -35,6 +35,33 @@ The subject's type is inferred from the branch labels rather than by type analys
 needs no symbol table. Blocks whose type cannot be pinned down are skipped and counted, never
 guessed at — the summary line reports how many, so a quiet run is not mistaken for a thorough
 one.
+
+## `check-missing-imports.py`
+
+The mirror of `check-internal-imports.py`, and the reason both exist. That one validates the
+imports a file *has*; a symbol used but never imported leaves no import line to validate, so
+it is structurally invisible there and still fails the build in Android Studio.
+
+```bash
+python3 tools/check-missing-imports.py            # both source roots
+```
+
+Two passes. **Project** names come from this codebase's own top-level declarations —
+`Surface1` shipped un-imported in `ExerciseDetailScreen` and this is what catches it.
+**External** names come from the project's own import lines used as a dictionary: there is no
+Android SDK here to enumerate the framework, but if twenty files import `LaunchedEffect` from
+`androidx.compose.runtime`, a twenty-first using the bare name is the same bug — which is
+exactly what shipped in `HomeScreen` and `ScheduleScreen`. That makes the second pass a
+convention check, not a compiler: a symbol the project has never imported anywhere is
+invisible to it.
+
+Quiet by construction, because a noisy check does not get run. Private top-level declarations
+are excluded (they are file-scoped, so no other file could have imported them); the test
+source set is indexed separately from main (main cannot see test, and a test helper named
+`session` would otherwise indict every `session` lambda parameter in the app); and names being
+*introduced* — declarations, value parameters, lambda parameters, named arguments — are never
+counted as references. Three names are suppressed outright in `ALWAYS_IN_SCOPE`, each because
+the project genuinely imports it somewhere and genuinely uses it un-imported elsewhere.
 
 ## `check-unused-imports.py`
 

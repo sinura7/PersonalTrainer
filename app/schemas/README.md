@@ -10,20 +10,20 @@ the substrate for two things the training history depends on:
 - hand-written `Migration` objects (never `fallbackToDestructiveMigration`), and
 - `MigrationTestHelper`, which replays a real v(N) database and validates it against v(N+1).
 
-## Generating the v1 baseline
+## The v1 baseline
 
-The baseline JSON is produced by a build on a machine with the Android SDK — it cannot
-be hand-authored, because Room derives an `identityHash` from the schema that must match
-what the compiler generates:
+Captured 20 August 2026 from a real build:
+`com.sinura.personaltrainer.data.local.TrainerDatabase/1.json`, six entities,
+`identityHash` `6d58ad40d5c03785ab29aaf61157f369`.
+
+It could not be hand-authored — Room derives that hash from the schema and the compiler has
+to agree with it. Every version bump from here leaves its own `<version>.json` beside it, as
+part of the same commit as its migration:
 
 ```bash
 ./gradlew :app:kspDebugKotlin
-git add app/schemas/com.sinura.personaltrainer.data.local.TrainerDatabase/1.json
-git commit -m "Commit Room v1 schema baseline"
+git add app/schemas/
 ```
-
-Run this once, before any entity change. From then on, every version bump leaves its
-own `<version>.json` here as part of the same commit as its migration.
 
 ## Rules
 
