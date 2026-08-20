@@ -8,7 +8,48 @@ object RoutineEditorPolicy {
 
     fun shouldDiscardStub(createdThisSession: Boolean, exerciseCount: Int): Boolean =
         createdThisSession && exerciseCount <= 0
+
+    /**
+     * What to write when the editor closes with edits the user never pressed Save on, or null
+     * when there is nothing worth a write.
+     *
+     * Every other edit in the routine editor — adding an exercise, removing one, reordering,
+     * changing targets — reaches Room the moment it happens. The name and the notes were the two
+     * exceptions: held in memory behind a Save button, and dropped on the floor by the exit path.
+     * Renaming a routine and swiping back discarded the rename with no warning and no undo.
+     *
+     * Three rules earn their place here rather than at the call site:
+     *
+     * 1. **Nothing is written before the editor has hydrated.** The typed fields start empty and
+     *    are seeded from Room by a suspending read. Backing out inside that window would compare
+     *    an empty box against real stored notes, call it an edit, and erase them — trading a lost
+     *    rename for lost notes, which is strictly worse than the bug this fixes.
+     * 2. **A blank name never overwrites a real one.** Clearing the field to retype and then
+     *    leaving must not replace "Push Day" with an empty string — the stored name is kept and
+     *    only the notes, if they changed, are written.
+     * 3. **Nothing is written when nothing changed.** Otherwise every visit to the screen would
+     *    touch the row, and anything observing routines would see a pointless emission. Both
+     *    fields are compared trimmed, because the repository trims before it stores — comparing
+     *    raw text against trimmed text would call a stray trailing space an edit forever.
+     */
+    fun detailsToPersistOnExit(
+        hydrated: Boolean,
+        typedName: String,
+        typedNotes: String,
+        storedName: String,
+        storedNotes: String,
+    ): PendingDetails? {
+        if (!hydrated) return null
+        val trimmedName = typedName.trim()
+        val name = if (trimmedName.isEmpty()) storedName else trimmedName
+        val notes = typedNotes.trim()
+        if (name == storedName && notes == storedNotes) return null
+        return PendingDetails(name = name, notes = notes)
+    }
 }
+
+/** The name and notes to write on the way out of the routine editor. */
+data class PendingDetails(val name: String, val notes: String)
 
 /** Where the routine editor is in its lifecycle. */
 enum class EditorPhase {

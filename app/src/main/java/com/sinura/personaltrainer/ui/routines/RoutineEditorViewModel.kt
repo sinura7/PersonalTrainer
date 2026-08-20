@@ -197,8 +197,49 @@ class RoutineEditorViewModel(
 
     fun leave() {
         viewModelScope.launch {
+            // Order matters. discardEmptyStub deletes an empty routine created this session and
+            // clears its id, so persistDetailsOnExit then correctly finds nothing to write to
+            // rather than resurrecting a name onto a row that is on its way out.
             discardEmptyStub()
+            persistDetailsOnExit()
             _exitRequested.value = true
+        }
+    }
+
+    /**
+     * Save the name and notes the user typed but never pressed Save on.
+     *
+     * This screen writes every other edit straight through to Room — adding an exercise,
+     * removing one, reordering, changing targets — so the Save button governed exactly two
+     * fields, and the exit path ignored it. Renaming a routine and swiping back silently threw
+     * the rename away.
+     *
+     * Autosave rather than a "discard changes?" dialog: a dialog would be the one thing on this
+     * screen asking permission to keep work the user had already done, and the flagship flow is
+     * already carrying more modals than it should.
+     *
+     * Deliberately looser than [saveDetails], which refuses to save a routine with no exercises.
+     * That rule exists to stop empty routines being *created*; it has no business blocking a
+     * rename of one that already exists.
+     */
+    private suspend fun persistDetailsOnExit() {
+        val id = routineId.value ?: return
+        val stored = container.routineRepository.getById(id) ?: return
+        val pending = RoutineEditorPolicy.detailsToPersistOnExit(
+            // LOADING means the seed from Room has not landed, so the typed fields are still
+            // empty defaults rather than the user's text; MISSING means there is no row left.
+            hydrated = load.value.phase == EditorPhase.EDITING,
+            typedName = name.value,
+            typedNotes = notes.value,
+            storedName = stored.name,
+            storedNotes = stored.notes,
+        ) ?: return
+        try {
+            container.routineRepository.updateDetails(id, pending.name, pending.notes)
+        } catch (thrown: Exception) {
+            // Keep leaving. The edit is lost either way if the write fails, and trapping the
+            // user on the screen to say so would turn one bad outcome into two.
+            AppLog.w(TAG, "persistDetailsOnExit failed", thrown)
         }
     }
 
