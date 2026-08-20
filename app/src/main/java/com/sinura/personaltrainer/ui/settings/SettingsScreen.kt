@@ -51,6 +51,7 @@ import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.CustomRestDialog
 import com.sinura.personaltrainer.ui.components.RestPresetChips
 import java.time.DayOfWeek
@@ -90,10 +91,13 @@ fun SettingsScreen(
         ActivityResultContracts.OpenDocument(),
     ) { uri -> uri?.let { viewModel.requestFileRestore(it) } }
 
-    LaunchedEffect(viewModel) {
-        viewModel.resolutionRequest.collect { sender ->
-            resolutionLauncher.launch(IntentSenderRequest.Builder(sender).build())
-        }
+    // State, not an event: a consent request raised while this screen was recomposing or
+    // rotating used to be dropped, leaving the backup UI stuck busy forever.
+    val pendingResolution by viewModel.pendingResolution.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingResolution) {
+        val sender = pendingResolution ?: return@LaunchedEffect
+        resolutionLauncher.launch(IntentSenderRequest.Builder(sender).build())
+        viewModel.onResolutionLaunched()
     }
 
     Scaffold(
@@ -344,7 +348,7 @@ private fun BackupRestoreSection(
             }
         }
         state.status?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
-        state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        state.error?.let { GymErrorBanner(it) }
 
         Text("Backup file", style = MaterialTheme.typography.titleMedium)
         Text(

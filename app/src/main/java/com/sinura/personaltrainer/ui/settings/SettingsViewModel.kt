@@ -17,15 +17,17 @@ import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.WeightUnit
 import java.time.DayOfWeek
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.minutes
 
 data class BackupUiState(
     val accountEmail: String? = null,
@@ -75,7 +77,22 @@ class SettingsViewModel(application: Application) : AppViewModel(application) {
     private val pendingFileRestore = MutableStateFlow<Uri?>(null)
     private var resolutionWaiter: CompletableDeferred<Boolean>? = null
 
-    val resolutionRequest = MutableSharedFlow<IntentSender>(extraBufferCapacity = 1)
+    /**
+     * The pending Google consent intent, as state rather than an event.
+     *
+     * It was a replay-0 SharedFlow collected from a LaunchedEffect, so an emission arriving
+     * while the screen was not composed — a rotation, or the screen briefly leaving
+     * composition — was dropped on the floor. awaitResolution then waited forever on a
+     * CompletableDeferred that nothing would ever complete, isBusy stayed true, and every
+     * backup button was disabled until the process died. A StateFlow survives recreation and
+     * is re-read by the new composition.
+     */
+    private val _pendingResolution = MutableStateFlow<IntentSender?>(null)
+    val pendingResolution: StateFlow<IntentSender?> = _pendingResolution.asStateFlow()
+
+    fun onResolutionLaunched() {
+        _pendingResolution.value = null
+    }
 
     val backupState: StateFlow<BackupUiState> = combine(
         combine(
@@ -290,13 +307,30 @@ class SettingsViewModel(application: Application) : AppViewModel(application) {
     fun onResolutionFinished(ok: Boolean) {
         resolutionWaiter?.complete(ok)
         resolutionWaiter = null
+        _pendingResolution.value = null
     }
 
     private suspend fun awaitResolution(sender: IntentSender): Boolean {
         val waiter = CompletableDeferred<Boolean>()
         resolutionWaiter = waiter
-        resolutionRequest.emit(sender)
-        return waiter.await()
+        _pendingResolution.value = sender
+        // Bounded: if the consent screen never returns a result — the user wandered off, or
+        // the sender was never launched — this resolves to "declined" instead of pinning the
+        // backup UI in a busy state forever. DriveAuthClient turns false into a normal
+        // "sign-in was cancelled" error, which runBackupAction surfaces and then clears.
+        return try {
+            withTimeoutOrNull(RESOLUTION_TIMEOUT) { waiter.await() } ?: false
+        } finally {
+            _pendingResolution.value = null
+            resolutionWaiter = null
+        }
+    }
+
+    override fun onCleared() {
+        // A waiter still parked when the ViewModel dies would keep its coroutine suspended.
+        resolutionWaiter?.complete(false)
+        resolutionWaiter = null
+        super.onCleared()
     }
 
     private fun runBackupAction(label: String, block: suspend () -> Unit) {
@@ -318,6 +352,11 @@ class SettingsViewModel(application: Application) : AppViewModel(application) {
                 busyLabel.value = null
             }
         }
+    }
+
+    private companion object {
+        /** Long enough for a real consent flow, short enough that a lost one still recovers. */
+        val RESOLUTION_TIMEOUT = 5.minutes
     }
 
     private data class BackupMeta(

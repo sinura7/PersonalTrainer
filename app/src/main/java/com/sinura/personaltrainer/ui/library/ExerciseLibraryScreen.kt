@@ -44,6 +44,7 @@ import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GymCard
+import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymMetrics
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 
@@ -123,7 +124,7 @@ fun ExerciseLibraryScreen(
                     }
                     state.error?.let { err ->
                         item {
-                            Text(err, color = MaterialTheme.colorScheme.error)
+                            GymErrorBanner(err)
                         }
                     }
                     if (state.visibleExercises.isEmpty()) {

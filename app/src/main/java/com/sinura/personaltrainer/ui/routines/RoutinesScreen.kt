@@ -35,6 +35,7 @@ import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GymCard
+import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymMetrics
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import java.text.DateFormat
@@ -101,7 +102,7 @@ fun RoutinesScreen(
                     verticalArrangement = Arrangement.spacedBy(GymMetrics.listGap),
                 ) {
                     state.error?.let { message ->
-                        item { Text(message, color = MaterialTheme.colorScheme.error) }
+                        item { GymErrorBanner(message) }
                     }
                     items(state.routines, key = { it.id }) { routine ->
                         RoutineRow(

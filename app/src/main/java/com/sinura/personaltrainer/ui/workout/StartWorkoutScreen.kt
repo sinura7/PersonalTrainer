@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.ui.components.EmptyState
+import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -94,7 +95,7 @@ fun StartWorkoutScreen(
                 }
             }
             state.error?.let { error ->
-                item { Text(error, color = MaterialTheme.colorScheme.error) }
+                item { GymErrorBanner(error) }
             }
             if (state.inProgress == null && state.routines.isEmpty()) {
                 item {

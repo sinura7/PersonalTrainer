@@ -41,6 +41,7 @@ import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
+import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymMetrics
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenLoading
@@ -122,7 +123,7 @@ fun RoutineEditorScreen(
                 }
                 state.error
                     ?.takeUnless { it.contains("name", ignoreCase = true) }
-                    ?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                    ?.let { GymErrorBanner(it) }
             }
             item {
                 PrimaryGymButton(

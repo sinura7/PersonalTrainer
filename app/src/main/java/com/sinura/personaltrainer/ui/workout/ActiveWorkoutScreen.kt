@@ -36,6 +36,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -115,7 +117,20 @@ fun ActiveWorkoutScreen(
     // back still works normally on the loading and missing states.
     BackHandler(enabled = state.session != null) { confirmLeave = true }
 
+    // Always composed, unlike the bottom bar. An error raised while no lift is selected —
+    // a failed create from the picker in an empty free workout — previously had no reader at
+    // all: it was written to state and rendered nowhere.
+    val snackbarHostState = remember { SnackbarHostState() }
+    val logBarVisible = session != null && selected != null
+    LaunchedEffect(state.error, logBarVisible) {
+        val message = state.error
+        if (message != null && !logBarVisible) {
+            snackbarHostState.showSnackbar(message)
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -133,7 +148,7 @@ fun ActiveWorkoutScreen(
             )
         },
         bottomBar = {
-            if (session != null && selected != null) {
+            if (logBarVisible) {
                 LogBar(
                     editing = state.editingSetId != null,
                     error = state.error,

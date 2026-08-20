@@ -44,6 +44,7 @@ import com.sinura.personaltrainer.domain.toVolumeLabel
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GymCard
+import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymMetrics
 import com.sinura.personaltrainer.ui.components.GymNumericStyle
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
@@ -96,7 +97,7 @@ fun HomeScreen(
         }
         state.error?.let { message ->
             item {
-                Text(message, color = MaterialTheme.colorScheme.error)
+                GymErrorBanner(message)
             }
         }
         if (restRemaining > 0 && inProgress != null) {

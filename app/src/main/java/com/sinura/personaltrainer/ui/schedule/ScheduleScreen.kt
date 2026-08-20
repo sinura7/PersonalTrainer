@@ -35,6 +35,7 @@ import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.shortLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GymCard
+import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymMetrics
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
@@ -126,7 +127,7 @@ fun ScheduleScreen(
                         )
                     }
                     state.error?.let { err ->
-                        item { Text(err, color = MaterialTheme.colorScheme.error) }
+                        item { GymErrorBanner(err) }
                     }
                     items(plan.days, key = { it.epochDay }) { day ->
                         ScheduleDayCard(
