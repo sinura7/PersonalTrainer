@@ -23,3 +23,7 @@ keystore.properties
 *.jks
 *.keystore
 /release/
+
+# Python bytecode from tools/
+__pycache__/
+*.pyc
