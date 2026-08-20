@@ -88,12 +88,19 @@ fun ExercisePickerSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        modifier = Modifier.fillMaxHeight(SHEET_HEIGHT_SHARE),
         // One height, held: the sheet no longer grows and shrinks under the thumb as the
         // result count changes with every keystroke.
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
+        // The height goes on the content, never on the sheet's own modifier: the caller's
+        // modifier is the first link in a chain that ends in the drag anchors, so fixing a
+        // height there positions the sheet by its top edge and lifts it off the bottom of
+        // the screen instead of making it tall.
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(SHEET_HEIGHT_SHARE),
+        ) {
             Column(
                 modifier = Modifier
                     .padding(horizontal = Metrics.gutter)

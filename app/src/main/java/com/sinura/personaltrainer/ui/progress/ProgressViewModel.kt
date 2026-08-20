@@ -31,8 +31,19 @@ data class ProgressUiState(
 class ProgressViewModel(application: Application) : AppViewModel(application) {
     private val window = MutableStateFlow(HeatWindow.LAST_7_DAYS)
 
+    /**
+     * Forces a recompute without changing the window.
+     *
+     * Retry cannot be expressed as `setWindow(currentWindow)`: a StateFlow conflates a write
+     * of the value it already holds, so nothing downstream ever re-runs. On the fatal-error
+     * branch the window shown *is* the current one by construction, which made the only
+     * action on that screen a button that could never succeed. Schedule's regenerate already
+     * uses this seam the same way.
+     */
+    private val refreshAt = MutableStateFlow(0L)
+
     val uiState: StateFlow<ProgressUiState> = container.trainingInsights
-        .observe(window = window, includeWeekPlan = false)
+        .observe(window = window, refresh = refreshAt, includeWeekPlan = false)
         .map { insights ->
             ProgressUiState(
                 isLoading = false,
@@ -60,5 +71,9 @@ class ProgressViewModel(application: Application) : AppViewModel(application) {
 
     fun setWindow(value: HeatWindow) {
         window.value = value
+    }
+
+    fun retry() {
+        refreshAt.value = System.currentTimeMillis()
     }
 }

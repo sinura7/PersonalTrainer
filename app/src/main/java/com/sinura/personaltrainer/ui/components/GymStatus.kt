@@ -31,12 +31,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.DangerContainer
 import com.sinura.personaltrainer.ui.theme.GoldContainer
-import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
@@ -174,8 +172,14 @@ fun GymStatusBanner(
  * colour as the error banner sitting directly above it in the same list, with no motion and
  * no haptic. The app could not tell its user apart from its failures.
  *
- * Gold is reserved for records and used nowhere else, the entrance springs in once, three
- * haptic beats fire with it, and it clears itself so a celebration never becomes a chore.
+ * Gold is reserved for records and used nowhere else, and the entrance springs in once.
+ *
+ * This composable is purely visual. The haptic beats and the self-clearing dwell live in the
+ * screen, not here, because this banner is mounted as an item in a scrolling list: logging
+ * the set that breaks a record also scrolls the list, so the item is disposed within a second
+ * or two. Owning the dwell here meant the acknowledgement never fired — the record stayed
+ * pending for the rest of the session — and scrolling back replayed the celebration from the
+ * top, haptics and all, every time.
  */
 @Composable
 fun PersonalRecordBanner(
@@ -184,14 +188,10 @@ fun PersonalRecordBanner(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val view = LocalView.current
     var visible by remember { mutableStateOf(false) }
 
     LaunchedEffect(headline, detail) {
         visible = true
-        Haptics.celebrate(view)
-        delay(PR_DWELL_MS)
-        onDismiss()
     }
 
     AnimatedVisibility(
@@ -235,4 +235,3 @@ fun GymNoticeBanner(
 }
 
 private const val STATUS_DWELL_MS = 2_600L
-private const val PR_DWELL_MS = 6_000L

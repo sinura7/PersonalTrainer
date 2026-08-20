@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessibilityNew
@@ -417,6 +418,9 @@ private fun InstrumentNavBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                // Material's NavigationBar applied this; without it the tabs are five
+                // unrelated controls to a screen reader rather than "tab 2 of 5".
+                .selectableGroup()
                 // The inset sits below the row rather than inside it, so the 64dp of touch
                 // target survives on a phone with gesture navigation.
                 .navigationBarsPadding()

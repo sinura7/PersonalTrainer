@@ -91,6 +91,7 @@ import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SetEntryPanel
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.Hairline
+import com.sinura.personaltrainer.ui.theme.HairlineStrong
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -164,6 +165,17 @@ fun ActiveWorkoutScreen(
         if (message != null && !logBarVisible) {
             snackbarHostState.showSnackbar(message)
         }
+    }
+
+    // The record's haptics and its acknowledgement live here rather than inside the banner:
+    // the banner is a list item, and logging the set that breaks a record also scrolls the
+    // list, so the item is disposed within a second. This screen is always composed, so the
+    // beats fire once and the record is always cleared.
+    LaunchedEffect(personalRecord) {
+        if (personalRecord == null) return@LaunchedEffect
+        Haptics.celebrate(view)
+        delay(PERSONAL_RECORD_DWELL_MS)
+        viewModel.onPersonalRecordShown()
     }
 
     val loggedForSelected = if (session != null && selected != null) {
@@ -591,7 +603,8 @@ private fun WorkoutHeader(
                 Text(
                     "Finish",
                     style = InstrumentType.bodyStrong,
-                    color = if (canFinish) Volt else TextTertiary,
+                    // Real, but secondary to logging: the accent belongs on the log button.
+                    color = if (canFinish) TextPrimary else TextTertiary,
                 )
             }
         }
@@ -725,7 +738,9 @@ private fun SetDots(completed: Int, target: Int) {
                 modifier = Modifier
                     .size(Metrics.space2)
                     .clip(CircleShape)
-                    .background(if (index < completed) Volt else Hairline),
+                    // Progress, not an action. Volt on this screen is reserved for the
+                    // things that are live or about to be tapped.
+                    .background(if (index < completed) TextSecondary else Hairline),
             )
         }
     }
@@ -911,7 +926,7 @@ private fun SetRow(
         Box(
             modifier = Modifier
                 .size(width = LATEST_RULE_WIDTH, height = LATEST_RULE_HEIGHT)
-                .background(if (isLatest) Volt else Color.Transparent),
+                .background(if (isLatest) HairlineStrong else Color.Transparent),
         )
         Column(
             modifier = Modifier
@@ -1022,3 +1037,5 @@ private fun RestNotificationsDisabledBanner(modifier: Modifier = Modifier) {
 
 private val LATEST_RULE_WIDTH = 3.dp
 private val LATEST_RULE_HEIGHT = 44.dp
+
+private const val PERSONAL_RECORD_DWELL_MS = 6_000L

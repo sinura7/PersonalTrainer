@@ -13,8 +13,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.KeyboardArrowLeft
-import androidx.compose.material.icons.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -80,7 +80,7 @@ fun TrainingCalendarCard(
         ) {
             IconButton(onClick = onPreviousMonth) {
                 Icon(
-                    Icons.Outlined.KeyboardArrowLeft,
+                    Icons.AutoMirrored.Outlined.KeyboardArrowLeft,
                     contentDescription = "Previous month",
                     tint = TextSecondary,
                 )
@@ -92,7 +92,7 @@ fun TrainingCalendarCard(
             val canGoForward = month.month < java.time.YearMonth.from(today)
             IconButton(onClick = onNextMonth, enabled = canGoForward) {
                 Icon(
-                    Icons.Outlined.KeyboardArrowRight,
+                    Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                     contentDescription = "Next month",
                     tint = if (canGoForward) TextSecondary else TextTertiary,
                 )

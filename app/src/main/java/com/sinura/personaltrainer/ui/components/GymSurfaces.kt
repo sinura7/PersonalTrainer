@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
@@ -30,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.theme.Hairline
@@ -355,12 +357,25 @@ fun SessionLogRow(
         subtitle = dateLabel,
         onClick = onClick,
     ) {
-        MetricCluster(value = workingSets.toString(), label = "sets")
+        // Fixed widths, or the columns are not columns. A metric cluster sizes to its own
+        // content, and volume swings from "980" to "12,480" — so without these the sets/kg/min
+        // boundaries drift row by row and the numbers cannot be compared down the list, which
+        // is the entire reason this row exists.
+        MetricCluster(
+            value = workingSets.toString(),
+            label = "sets",
+            modifier = Modifier.width(COUNT_COLUMN),
+        )
         MetricCluster(
             value = WeightConverter.formatGroupedNumber(WeightConverter.toDisplayValue(volumeKg, unit)),
             label = unit.suffix,
+            modifier = Modifier.width(VOLUME_COLUMN),
         )
-        MetricCluster(value = durationMinutes.toString(), label = "min")
+        MetricCluster(
+            value = durationMinutes.toString(),
+            label = "min",
+            modifier = Modifier.width(COUNT_COLUMN),
+        )
     }
 }
 
@@ -376,3 +391,7 @@ fun sessionLogMeta(
     val setLabel = if (workingSets == 1) "working set" else "working sets"
     return "$workingSets $setLabel · $volumeLabel · $durationMinutes min"
 }
+
+/** Column widths for [SessionLogRow], so its three metrics line up down a list. */
+private val COUNT_COLUMN = 48.dp
+private val VOLUME_COLUMN = 88.dp

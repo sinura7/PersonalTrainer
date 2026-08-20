@@ -391,6 +391,12 @@ private fun BackupRestoreSection(
     onImportFile: () -> Unit,
 ) {
     var dismissedStatus by rememberSaveable { mutableStateOf<String?>(null) }
+    // Cleared the moment an action starts, so the memo only ever suppresses a message left
+    // over from a previous visit. Comparing by value alone meant a second action whose
+    // outcome text was identical to the first — "Found 3 backups." twice — showed nothing.
+    LaunchedEffect(state.isBusy) {
+        if (state.isBusy) dismissedStatus = null
+    }
     SettingsGroup(
         title = "Backup",
         caption = "Training always works offline — a backup is only read when you ask for one. " +

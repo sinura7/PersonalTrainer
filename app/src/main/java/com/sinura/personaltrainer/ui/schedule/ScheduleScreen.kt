@@ -50,6 +50,7 @@ import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenLoading
+import com.sinura.personaltrainer.ui.theme.HairlineStrong
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
@@ -102,6 +103,20 @@ fun ScheduleScreen(
                     verticalArrangement = Arrangement.spacedBy(Metrics.space4),
                 ) {
                     state.error?.let { err -> GymErrorBanner(err) }
+                    // Also here, not only in the branch that has a plan: the Tune button sits
+                    // above this `when`, so without it tapping Tune with no plan flipped the
+                    // label to "Done" and revealed nothing — and setting the split is exactly
+                    // what you want before generating a first week.
+                    if (tuning) {
+                        GymCard {
+                            PreferenceBlock(
+                                preferences = state.preferences,
+                                onDays = viewModel::setTrainingDays,
+                                onSplit = viewModel::setSplit,
+                                onWeekStart = viewModel::setWeekStart,
+                            )
+                        }
+                    }
                     EmptyState(
                         title = "No week plan yet",
                         body = "Generate a week, or log a workout so suggestions can follow your training.",
@@ -328,7 +343,8 @@ private fun ScheduleDayRow(
             modifier = Modifier
                 .width(TODAY_RAIL_WIDTH)
                 .height(TODAY_RAIL_HEIGHT)
-                .background(if (isToday) Volt else Color.Transparent),
+                // The calendar marks today with a hairline ring, not the accent. One encoding.
+                    .background(if (isToday) HairlineStrong else Color.Transparent),
         )
         Column(
             modifier = Modifier.width(DATE_RAIL_WIDTH),

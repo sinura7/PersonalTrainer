@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -37,6 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -73,7 +75,6 @@ import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.Pit
-import com.sinura.personaltrainer.ui.theme.PrGold
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.SpaceGrotesk
 import com.sinura.personaltrainer.ui.theme.Surface1
@@ -82,6 +83,7 @@ import com.sinura.personaltrainer.ui.theme.SurfacePressed
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.Volt
+import com.sinura.personaltrainer.ui.theme.VoltDim
 import com.sinura.personaltrainer.ui.theme.Warn
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.util.runCatchingCancellable
@@ -354,7 +356,11 @@ private fun NumeralWell(
             Text(
                 value,
                 modifier = Modifier.alignByBaseline(),
-                style = InstrumentType.numeralXl,
+                // numeralLg, not numeralXl: at 56sp a three-digit weight with a half — 102.5,
+                // 107.5, every second plate above 100kg — is wider than half the screen once
+                // the unit and the well's padding are taken out, and a clipped weight in the
+                // entry panel is the worst possible place to lose a digit.
+                style = InstrumentType.numeralLg,
                 color = TextPrimary,
                 maxLines = 1,
             )
@@ -394,17 +400,28 @@ fun StepperButton(
     val view = LocalView.current
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
+    // The repeat loop must call the CURRENT lambda, not the one that existed when the press
+    // began. LaunchedEffect is remember(key) { ... }, so while `pressed` stays true the
+    // running coroutine keeps its original block — and the weight plate's lambda closes over
+    // the current weight to compute an absolute target. Captured, every repeat would
+    // recompute the same number from the pre-press value: the weight would move one step and
+    // then sit still while the haptics kept firing.
+    val currentOnClick by rememberUpdatedState(onClick)
     // A press that turned into a hold has already delivered its steps. Compose calls
     // onClick on release, which would otherwise add one more on top of the repeat run.
     var repeatedThisPress by remember { mutableStateOf(false) }
 
     LaunchedEffect(pressed) {
         if (!pressed) return@LaunchedEffect
+        // Cleared here rather than on release: a press that is cancelled instead of clicked
+        // — dragged off the plate, or stolen by a parent scroll — never reaches the click
+        // handler, and a flag left set would silently swallow the next genuine tap.
+        repeatedThisPress = false
         delay(HOLD_BEFORE_REPEAT_MS)
         repeatedThisPress = true
         var repeats = 0
         while (true) {
-            onClick()
+            currentOnClick()
             Haptics.tickLight(view)
             repeats++
             delay(if (repeats >= REPEATS_BEFORE_FAST) FAST_REPEAT_MS else REPEAT_MS)
@@ -595,11 +612,10 @@ fun RestDock(
 
     if (!running && !justFinished) return
 
-    val accent = when {
-        justFinished -> PrGold
-        urgent -> Warn
-        else -> Volt
-    }
+    // No gold here. Gold means a record broke, and it is used nowhere else — a rest ending
+    // is not an achievement, and the finished state already reads from the full ring, the
+    // changed copy and the controls disappearing.
+    val accent = if (urgent) Warn else Volt
 
     Column(
         modifier = modifier
@@ -845,8 +861,12 @@ fun InstrumentChip(
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
+    // VoltDim, not solid Volt: the palette declares this token as "selected chips, active
+    // tracks" and nothing was using it, while every selected chip in the app burned a full
+    // accent fill. A screen can hold a dozen chips; the accent is meant to appear once or
+    // twice.
     val background by animateColorAsState(
-        targetValue = if (selected) Volt else Surface2,
+        targetValue = if (selected) VoltDim else Surface2,
         animationSpec = tween(Motion.TAP),
         label = "chip-fill",
     )
@@ -855,20 +875,30 @@ fun InstrumentChip(
             .height(Metrics.touchMin)
             .clip(RoundedCornerShape(Radius.xs))
             .background(background)
-            .then(
-                if (selected) Modifier else Modifier.border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.xs)),
+            .border(
+                Metrics.hairline,
+                if (selected) Volt else Hairline,
+                RoundedCornerShape(Radius.xs),
             )
-            .clickable {
-                Haptics.tick(view)
-                onClick()
-            }
+            // selectable, not clickable: this replaced FilterChip everywhere in the app, and
+            // FilterChip published a Selected semantics property that a screen reader reads
+            // out. With a plain clickable the selected state exists only as a colour swap,
+            // which TalkBack cannot see at all.
+            .selectable(
+                selected = selected,
+                onClick = {
+                    Haptics.tick(view)
+                    onClick()
+                },
+            )
             .padding(horizontal = Metrics.space4),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             label,
             style = InstrumentType.bodyStrong,
-            color = if (selected) Pit else TextSecondary,
+            // Volt ink on the dim fill: Pit ink was only legible against a solid accent.
+            color = if (selected) Volt else TextSecondary,
             maxLines = 1,
         )
     }

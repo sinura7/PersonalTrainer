@@ -33,7 +33,7 @@ import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GroupedList
-import com.sinura.personaltrainer.ui.components.GymErrorBanner
+import com.sinura.personaltrainer.ui.components.GymNoticeBanner
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentChip
@@ -87,7 +87,7 @@ fun ProgressScreen(
                     body = "Every set you have logged is still in your history — only the map " +
                         "failed to build.",
                     actionLabel = "Try again",
-                    onAction = { viewModel.setWindow(state.window) },
+                    onAction = viewModel::retry,
                     modifier = Modifier.padding(Metrics.gutter),
                 )
             }
@@ -114,7 +114,18 @@ fun ProgressScreen(
                     verticalArrangement = Arrangement.spacedBy(Metrics.cardGap),
                 ) {
                     state.notice?.let { message ->
-                        item(key = "notice") { GymErrorBanner(message) }
+                        // A notice, not a failure. The ViewModel deliberately keeps `notice`
+                        // apart from `error` so a working body map is never blanked by a
+                        // failed side-query; rendering it in the error banner threw that
+                        // distinction away and told the user something had broken.
+                        item(key = "notice") {
+                            GymNoticeBanner(
+                                title = "Some insights are missing",
+                                body = message,
+                                actionLabel = "Try again",
+                                onAction = viewModel::retry,
+                            )
+                        }
                     }
                     if (!snapshot.hasWindowWorkingSets) {
                         item(key = "window-empty") {

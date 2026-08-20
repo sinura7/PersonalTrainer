@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -25,6 +26,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -38,7 +41,6 @@ import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
-import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.HairlineDivider
@@ -123,11 +125,13 @@ fun ExerciseDetailScreen(
             }
 
             !history.hasHistory -> {
+                // No action: EmptyState renders a non-compact one as the screen's single
+                // filled control, and spending that on "Back" duplicates the header arrow a
+                // few inches above it. This state is not terminal — the lift simply has no
+                // history yet.
                 EmptyState(
                     title = "Nothing logged yet",
                     body = "Records and trends appear here once you have finished a session with this lift.",
-                    actionLabel = "Back",
-                    onAction = onBack,
                     modifier = Modifier.padding(Metrics.gutter),
                 )
             }
@@ -217,16 +221,28 @@ fun ExerciseDetailScreen(
                     item(key = "sessions-label") {
                         GymSectionHeader("Every session", modifier = Modifier.padding(top = SECTION_LEAD))
                     }
-                    item(key = "sessions") {
-                        GroupedList {
-                            history.sessions.forEachIndexed { index, summary ->
-                                if (index > 0) HairlineDivider()
-                                SessionRow(
-                                    summary = summary,
-                                    unit = unit,
-                                    onClick = { onOpenSession(summary.sessionId) },
-                                )
-                            }
+                    // Real lazy items, not one GroupedList in a single item: this list is
+                    // every session the lift has ever appeared in and grows without bound, and
+                    // a lazy item is all-or-nothing — a lift trained twice a week for two
+                    // years would compose and measure hundreds of rows on the first frame.
+                    // The container is assembled from the rows instead, exactly as History
+                    // does it: rounded ends, square middles, a hairline between.
+                    itemsIndexed(
+                        history.sessions,
+                        key = { _, summary -> summary.sessionId },
+                    ) { index, summary ->
+                        Column(
+                            modifier = Modifier
+                                .animateItem()
+                                .clip(groupedRowShape(index, history.sessions.size))
+                                .background(Surface1),
+                        ) {
+                            if (index > 0) HairlineDivider()
+                            SessionRow(
+                                summary = summary,
+                                unit = unit,
+                                onClick = { onOpenSession(summary.sessionId) },
+                            )
                         }
                     }
                 }
@@ -515,3 +531,16 @@ private val SECTION_LEAD = Metrics.sectionGap - Metrics.cardGap
 
 private val GHOST_HEIGHT = 72.dp
 private val GHOST_FRACTIONS = listOf(0.34f, 0.5f, 0.42f, 0.66f, 0.55f, 0.8f)
+
+/**
+ * The rounding a row needs to look like part of one grouped container.
+ *
+ * Same reasoning as History's copy: the sessions list is unbounded, so it has to be real
+ * lazy items, which means no single parent can draw the container's corners.
+ */
+private fun groupedRowShape(index: Int, count: Int): Shape = when {
+    count == 1 -> RoundedCornerShape(Radius.sm)
+    index == 0 -> RoundedCornerShape(topStart = Radius.sm, topEnd = Radius.sm)
+    index == count - 1 -> RoundedCornerShape(bottomStart = Radius.sm, bottomEnd = Radius.sm)
+    else -> RectangleShape
+}
