@@ -171,6 +171,28 @@ Plus:
 
 ---
 
+## 9. What shipped, and how it was verified
+
+The redesign was implemented on this branch in the order set out in §7. Direction B was built as specified in §5.1, with the §5 amendments folded in.
+
+**Delivered:** the two §2 defects; a dark-only theme with every Material colour role mapped explicitly; bundled Space Grotesk and Inter with real tabular figures; token files for colour, type, shape, spacing, motion and haptics; a rebuilt component library (grouped lists, metric clusters, stat tiles, instrument chips, the three banner tones, the rest ring, the merged set-entry panel, both chart kinds); and every screen migrated onto it. Design-token violations went from 22 to zero.
+
+**Not delivered, and why.** Exercise imagery and the equipment field it needs belong with the Phase 4 schema change — the picker and library rows now reserve the leading slot for them, so they land without another layout pass. Mid-workout swap/remove, delete-set undo, and routine-editor autosave all need ViewModel or repository work that was deliberately out of scope for a design pass; the repository method for the first of them (`removeExerciseFromSession`) already exists with no caller. The three-tab IA consolidation in §6 and the persistent live-session bar are the largest remaining items: they change navigation structure rather than presentation, and the plumbing they touch is load-bearing enough to deserve their own change.
+
+**How it was verified.** This work was done in an environment with no Android SDK and no route to Google's Maven, so **no compiler ever saw this code and no screen was ever rendered.** That is the single most important caveat on everything above, and it was compensated for rather than ignored:
+
+- `tools/run-domain-tests.sh` runs the domain suite on a plain JVM — 179 tests, green — which is how the calendar fix was proved: it fails with `intensity 8.0` before the clamp.
+- `tools/syntax-check.sh` parses every file with the real Kotlin compiler.
+- `tools/check-named-args.py` matches every named argument against its declaration across the tree.
+- `tools/check-internal-imports.py` resolves every in-project import and every design-token member against a real declaration.
+- `tools/check-design-tokens.py` enforces §8.
+- `tools/build-fonts.py` asserts the tabular-figure widths and re-derives the required glyph set from the source rather than trusting a hand-written range.
+- An adversarial multi-agent audit read the whole diff against the exact pinned library versions, hunting for API mistakes, runtime hazards and dropped behaviour.
+
+None of that substitutes for `./gradlew assembleDebug` and a device. **The first thing to do with this branch is build it and look at it**, starting with the previews in `ui/theme/ThemeGallery.kt` — a colour role that slipped back to a Material baseline shows up there as an obvious violet chip.
+
+---
+
 ## Appendix A — full findings register
 
 Severities shown are post-verification (10 findings corrected, 0 rejected; "verifier catch" = defect the adversarial pass added). Line numbers refer to `de1ffac`.
