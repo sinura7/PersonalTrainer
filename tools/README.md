@@ -1,6 +1,6 @@
 # tools
 
-Three small static checks that answer questions the Kotlin compiler answers better — but only
+Four small static checks that answer questions the Kotlin compiler answers better — but only
 when you have an Android SDK to hand. They exist because most of this codebase cannot be
 compiled outside Android Studio or CI, and a broken build discovered on the phone at the gym
 is worse than one discovered in five seconds at a terminal.
@@ -36,6 +36,17 @@ needs no symbol table. Blocks whose type cannot be pinned down are skipped and c
 guessed at — the summary line reports how many, so a quiet run is not mistaken for a thorough
 one.
 
+## `check-unused-imports.py`
+
+Reports imports whose name appears nowhere else in the file.
+
+```bash
+python3 tools/check-unused-imports.py app/src/main/java
+```
+
+Deliberately conservative: under-reporting is the safe direction for output you act on by
+deleting lines, so a name that also exists as a member of an unrelated type counts as used.
+
 ## `syntax-check.sh`
 
 Runs the Kotlin front end over a source root and reports only parse-level diagnostics.
@@ -48,3 +59,11 @@ tools/syntax-check.sh app/src/main/java
 
 Needs a `kotlin-compiler-embeddable` jar in the Gradle cache, which any prior build leaves
 behind. If it cannot find one, skip it and let Android Studio do the work.
+
+## `kotlin_source.py`
+
+Shared by the Python checks. Blanks comments and string literal *text* while preserving
+offsets — and, importantly, while preserving `${...}` template interpolations, which hold real
+code. Both mistakes it now avoids were made first: treating a preceding dot as proof an import
+was unused (extensions are always called that way) reported 228 live imports as dead, and
+blanking whole string literals hid the only use of several others.

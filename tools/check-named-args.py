@@ -7,29 +7,11 @@ a call passing a parameter name the declaration does not have.
 """
 import os, re, sys, collections
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from kotlin_source import kotlin_files, strip_comments_and_strings  # noqa: E402
+
 ROOT = sys.argv[1] if len(sys.argv) > 1 else "app/src/main/java"
 
-def strip_comments_and_strings(src):
-    """Blank out comments and string literals, preserving offsets."""
-    out = list(src); i, n = 0, len(src)
-    def blank(a, b):
-        for k in range(a, min(b, n)):
-            if out[k] != "\n": out[k] = " "
-    while i < n:
-        if src.startswith("//", i):
-            j = src.find("\n", i); j = n if j < 0 else j; blank(i, j); i = j; continue
-        if src.startswith("/*", i):
-            j = src.find("*/", i + 2); j = n if j < 0 else j + 2; blank(i, j); i = j; continue
-        if src.startswith('"""', i):
-            j = src.find('"""', i + 3); j = n if j < 0 else j + 3; blank(i, j); i = j; continue
-        if src[i] == '"':
-            j = i + 1
-            while j < n and src[j] != '"':
-                if src[j] == "\\": j += 1
-                j += 1
-            blank(i, j + 1); i = j + 1; continue
-        i += 1
-    return "".join(out)
 
 PARAM_MODS = r"(?:@\w+(?:\([^)]*\))?\s+|vararg\s+|crossinline\s+|noinline\s+|private\s+|internal\s+|public\s+|protected\s+|override\s+|val\s+|var\s+)*"
 PARAM_RE = re.compile(rf"^{PARAM_MODS}([A-Za-z_]\w*)\s*:")
@@ -72,10 +54,7 @@ def top_level_split(text):
 def param_names(text):
     return [m.group(1) for m in (PARAM_RE.match(p.strip()) for p in top_level_split(text)) if m]
 
-files = []
-for dirpath, _, names in os.walk(ROOT):
-    for n in names:
-        if n.endswith(".kt"): files.append(os.path.join(dirpath, n))
+files = kotlin_files(ROOT)
 
 clean = {p: strip_comments_and_strings(open(p).read()) for p in files}
 decls = collections.defaultdict(list)

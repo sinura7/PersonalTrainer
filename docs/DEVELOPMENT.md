@@ -56,9 +56,10 @@ Two static checks in `tools/` cover the gap when you cannot build — they are a
 not a substitute for `./gradlew assembleDebug`:
 
 ```bash
-python3 tools/check-named-args.py app/src/main/java       # named args vs. declarations
-python3 tools/check-when-exhaustive.py app/src/main/java  # sealed/enum when coverage
-tools/syntax-check.sh app/src/main/java                   # parse-level diagnostics only
+python3 tools/check-named-args.py app/src/main/java        # named args vs. declarations
+python3 tools/check-when-exhaustive.py app/src/main/java   # sealed/enum when coverage
+python3 tools/check-unused-imports.py app/src/main/java    # dead imports
+tools/syntax-check.sh app/src/main/java                    # parse-level diagnostics only
 ```
 
 Both Python checks target errors a refactor leaves behind: a call site still passing a

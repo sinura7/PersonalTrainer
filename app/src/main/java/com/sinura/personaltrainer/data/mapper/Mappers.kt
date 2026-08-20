@@ -3,8 +3,6 @@ package com.sinura.personaltrainer.data.mapper
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
-import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
-import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
 import com.sinura.personaltrainer.data.local.relation.RoutineWithExercises
 import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
