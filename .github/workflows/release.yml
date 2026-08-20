@@ -1,19 +1,23 @@
 name: Release
 
-# OPTIONAL convenience, not the deployment path. Android Studio (Build → Generate
-# Signed App Bundle / APK, or the local assembleRelease in SETUP.md) stays the
-# primary way this app reaches the phone.
+# OPTIONAL convenience, not the deployment path. Android Studio (Build → Generate Signed
+# APK, or the local assembleRelease in SETUP.md) stays the primary way this app reaches
+# the phone.
 #
-# This exists so a versioned APK can be produced without a specific laptop being
-# alive, and so the release that lands on GitHub is provably signed and verified.
-# If the signing secrets are not configured it still runs and publishes an UNSIGNED
-# APK clearly marked as such, rather than failing every tag.
+# This exists so a versioned APK can be produced without a specific laptop being alive,
+# and so what lands on GitHub is provably signed. Every run uploads the APK as a workflow
+# artifact; a GitHub Release is published only when the run was triggered by a tag.
 #
-# Required repository secrets for a signed release (Settings → Secrets → Actions):
-#   KEYSTORE_BASE64       base64 of your .keystore file
-#   KEYSTORE_PASSWORD     store password
-#   KEY_ALIAS             key alias (e.g. personaltrainer)
-#   KEY_PASSWORD          key password
+# Without the signing secrets it still builds and still uploads — an UNSIGNED APK, clearly
+# marked. An unsigned APK cannot update an existing install, but it is better than a red
+# tag and a discarded build.
+#
+# Repository secrets for a signed release (Settings → Secrets and variables → Actions).
+# ALL FOUR are required; a partial set is treated as unconfigured:
+#   KEYSTORE_BASE64    base64 of your .keystore file
+#   KEYSTORE_PASSWORD  store password
+#   KEY_ALIAS          key alias (e.g. personaltrainer)
+#   KEY_PASSWORD       key password
 #
 # Produce KEYSTORE_BASE64 with:
 #   base64 -w0 release/personal-trainer-release.keystore     # Linux
@@ -36,83 +40,158 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
+      # All four, not just the keystore: a half-configured set otherwise enters the signing
+      # path with an empty alias and dies inside AGP looking like a corrupt keystore.
+      HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' && secrets.KEYSTORE_PASSWORD != '' && secrets.KEY_ALIAS != '' && secrets.KEY_PASSWORD != '' }}
 
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v5
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
+
+      # The version is hand-maintained in app/build.gradle.kts (SETUP.md §1). Tagging
+      # without bumping it publishes a green, correctly-signed release whose versionCode
+      # never increased — Obtainium ignores it and the phone refuses to install it. That
+      # failure is invisible in every log and only shows up on the device, so catch it here.
+      - name: Tag must match the built version
+        if: github.ref_type == 'tag'
+        run: |
+          tag_version="${GITHUB_REF_NAME#v}"
+          build_version="$(sed -n 's/^val appVersionName = "\(.*\)"/\1/p' app/build.gradle.kts)"
+          if [ -z "$build_version" ]; then
+            echo "Could not read appVersionName from app/build.gradle.kts" >&2
+            exit 1
+          fi
+          if [ "$tag_version" != "$build_version" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match appVersionName=$build_version." >&2
+            echo "Bump appVersionCode and appVersionName in app/build.gradle.kts, or retag." >&2
+            exit 1
+          fi
+          echo "version=$build_version" >> "$GITHUB_ENV"
 
       # A tag must never ship code whose tests fail.
       - name: Unit tests
         run: ./gradlew testDebugUnitTest --stacktrace
 
-      # Reconstructs exactly what SETUP.md describes doing locally: a keystore file
-      # plus keystore.properties, which app/build.gradle.kts already reads.
+      # Reconstructs exactly what SETUP.md describes doing locally: a keystore file plus
+      # keystore.properties, which app/build.gradle.kts already reads.
+      #
+      # Secrets go through env, never through ${{ }} inside run: an unquoted heredoc would
+      # let bash expand a password containing $, backticks or $(...) — silently writing the
+      # wrong password, or executing part of it. Backslashes are then escaped because
+      # java.util.Properties treats them as escapes too.
       - name: Restore signing config
         if: env.HAS_KEYSTORE == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           mkdir -p release
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > release/ci-release.keystore
-          cat > keystore.properties <<EOF
-          storeFile=release/ci-release.keystore
-          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
-          keyAlias=${{ secrets.KEY_ALIAS }}
-          keyPassword=${{ secrets.KEY_PASSWORD }}
-          EOF
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > release/ci-release.keystore
+          if [ ! -s release/ci-release.keystore ]; then
+            echo "KEYSTORE_BASE64 decoded to an empty file — re-copy the secret." >&2
+            exit 1
+          fi
+          esc() { printf '%s' "$1" | sed 's/\\/\\\\/g'; }
+          {
+            printf 'storeFile=release/ci-release.keystore\n'
+            printf 'storePassword=%s\n' "$(esc "$KEYSTORE_PASSWORD")"
+            printf 'keyAlias=%s\n' "$(esc "$KEY_ALIAS")"
+            printf 'keyPassword=%s\n' "$(esc "$KEY_PASSWORD")"
+          } > keystore.properties
 
       - name: Build release APK
         run: ./gradlew assembleRelease --stacktrace
 
+      # Three candidates in preference order. Unsigned MUST be last but MUST be reachable:
+      # with no keystore, AGP emits only PersonalTrainer-<version>-release-unsigned.apk and
+      # the build script's rename skips it, so excluding "unsigned" outright made the whole
+      # no-secrets path dead code. When signed, two APKs exist (AGP's -release.apk and the
+      # version-only copy); SETUP.md §5 says ship the version-only one, so pick it
+      # deterministically rather than whatever the filesystem lists first.
       - name: Locate APK
         id: apk
         run: |
-          apk=$(find app/build/outputs/apk/release -name '*.apk' ! -name '*unsigned*' | head -1)
+          dir=app/build/outputs/apk/release
+          apk=$(find "$dir" -maxdepth 1 -name 'PersonalTrainer-*.apk' \
+                  ! -name '*-release.apk' ! -name '*unsigned*' | sort | head -1)
+          [ -n "$apk" ] || apk=$(find "$dir" -maxdepth 1 -name '*.apk' ! -name '*unsigned*' | sort | head -1)
+          [ -n "$apk" ] || apk=$(find "$dir" -maxdepth 1 -name '*.apk' | sort | head -1)
           if [ -z "$apk" ]; then
             echo "No APK produced" >&2
             exit 1
           fi
+          echo "Selected $apk"
           echo "path=$apk" >> "$GITHUB_OUTPUT"
           echo "name=$(basename "$apk")" >> "$GITHUB_OUTPUT"
 
-      # Proves the artifact is actually signed by the expected key before anyone
-      # tries to install it over an existing app.
+      # Proves the artifact really is signed by the expected key before anything tries to
+      # install it over an existing app.
       - name: Verify signature
         if: env.HAS_KEYSTORE == 'true'
         run: |
-          apksigner="$(find "$ANDROID_HOME/build-tools" -name apksigner | sort | tail -1)"
+          apksigner="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)"
+          if [ -z "$apksigner" ]; then
+            echo "apksigner not found under $ANDROID_HOME/build-tools" >&2
+            exit 1
+          fi
           "$apksigner" verify --print-certs --verbose "${{ steps.apk.outputs.path }}"
 
+      # Always keep the build, even on workflow_dispatch where no Release is published —
+      # otherwise a manual run spends 15 minutes and throws the APK away.
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-apk
+          path: ${{ steps.apk.outputs.path }}
+          retention-days: 30
+
+      # Passwords also land in the project-local configuration cache, not just in the two
+      # files, because the serialized task graph includes the signing config.
       - name: Remove signing material
         if: always()
-        run: rm -f keystore.properties release/ci-release.keystore
+        run: rm -rf keystore.properties release/ci-release.keystore .gradle/configuration-cache
 
+      # Only a tag gets a Release. On workflow_dispatch GITHUB_REF_NAME is a branch, and
+      # `gh release create main` would fail after the whole build had already succeeded.
       - name: Publish GitHub Release
+        if: github.ref_type == 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
+          APK: ${{ steps.apk.outputs.path }}
         run: |
-          tag="${GITHUB_REF_NAME}"
+          tag="$GITHUB_REF_NAME"
           if [ "$HAS_KEYSTORE" = "true" ]; then
             notes="Signed release APK. Install directly, or let Obtainium pick it up."
           else
             notes="**UNSIGNED** — signing secrets are not configured, so this APK cannot update an existing install. Build locally per SETUP.md, or add the KEYSTORE_* secrets."
           fi
-          gh release create "$tag" "${{ steps.apk.outputs.path }}" \
-            --title "$tag" \
-            --notes "$notes" \
-            --verify-tag || \
-          gh release upload "$tag" "${{ steps.apk.outputs.path }}" --clobber
+          # A release may already exist because it was cut by hand (SETUP.md §5.3 documents
+          # exactly that). Never clobber a human-uploaded APK: attach alongside, and if the
+          # asset name already exists, leave it and say so.
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists — uploading without overwriting."
+            gh release upload "$tag" "$APK" || \
+              echo "Asset already present on $tag; leaving the existing one untouched."
+          else
+            gh release create "$tag" "$APK" \
+              --title "${tag#v}" \
+              --notes "$notes" \
+              --verify-tag
+          fi
