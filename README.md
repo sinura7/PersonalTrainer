@@ -31,6 +31,7 @@ need no configuration.
 | [docs/ROADMAP.md](docs/ROADMAP.md) | what is built, what is next |
 | [docs/AUDIT.md](docs/AUDIT.md) | the code review this roadmap came from |
 | [docs/HIERARCHY_PLAN.md](docs/HIERARCHY_PLAN.md) | audit of the five-tab hierarchy proposal and the recommended plan |
+| [docs/gameplan/](docs/gameplan/README.md) | the executable game plan: protocol + one verified spec packet per phase |
 | [docs/DESIGN_AUDIT.md](docs/DESIGN_AUDIT.md) | the product/design bar, screen by screen |
 
 ## What it does

@@ -139,6 +139,13 @@ the worst outcome is leaving the contradiction open and doing the nav work twice
 
 ## 4. The recommended plan
 
+> **Superseded 20 Aug 2026, same day.** This section was adversarially attacked from
+> five angles (62 findings, 8 fatal — including two schema designs below that could not
+> work as written) and rebuilt as the executable game plan in
+> [gameplan/](gameplan/README.md), which wins wherever they differ. The section is kept
+> as the audit's original recommendation; the phase-by-phase spec packets in
+> `docs/gameplan/` are what gets executed.
+
 Phases keep the roadmap's numbering and land in order, each behind a verifiable gate.
 
 **Phase 3.9 — Decisions (docs only, S).** Adjudicate the IA (§3) and record it. Add to
