@@ -54,7 +54,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -62,12 +61,25 @@ import androidx.compose.ui.unit.sp
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.ui.theme.SpaceGrotesk
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import kotlinx.coroutines.delay
 
+/**
+ * Transitional base style for numerals, now drawn in the bundled display face.
+ *
+ * It used to be `FontFamily.Monospace` — the system monospace, logcat's typeface, carrying
+ * the largest numbers in the product — and its `tnum` setting did nothing, because every
+ * glyph in a monospaced face is already fixed-width. Re-pointing it here changes every
+ * numeral in the app without touching a call site.
+ *
+ * Call sites still append their own `fontSize`, which is the second half of the problem;
+ * they move to the [InstrumentType] numeral ramp as each screen is rebuilt, and this goes
+ * away with the last of them.
+ */
 val GymNumericStyle = TextStyle(
-    fontFamily = FontFamily.Monospace,
-    fontWeight = FontWeight.Bold,
+    fontFamily = SpaceGrotesk,
+    fontWeight = FontWeight.Medium,
     fontFeatureSettings = "tnum",
 )
 

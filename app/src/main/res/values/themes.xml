@@ -1,10 +1,13 @@
 <resources>
     <!--
-      The platform theme only has to paint the window until Compose's first frame.
-      windowBackground resolves per night qualifier (values/ vs values-night/), so a
-      dark-mode cold start no longer flashes a light window before the app draws.
+      The platform theme only has to paint the window until Compose's first frame, and set
+      the colour of the system bars' *icons* before Compose can.
+
+      The parent is the dark variant because the app ships one dark theme; on the light
+      parent the status-bar icons were dark, so a cold start drew black icons on a
+      near-black window for a frame or two.
     -->
-    <style name="Theme.PersonalTrainer" parent="android:Theme.Material.Light.NoActionBar">
+    <style name="Theme.PersonalTrainer" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/window_background</item>
     </style>
 </resources>

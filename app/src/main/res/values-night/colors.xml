@@ -1,4 +1,7 @@
 <resources>
-    <!-- Must match Theme.kt DarkColors.background, or a dark-mode cold start flashes light. -->
-    <color name="window_background">#0B1A14</color>
+    <!-- The app ships one dark theme, so this matches values/colors.xml exactly. The night
+         qualifier is kept rather than deleted: without it, a device in night mode would
+         resolve a *framework* default for anything added here later, and the cold-start
+         window would flash a colour the app never draws. -->
+    <color name="window_background">#07090B</color>
 </resources>

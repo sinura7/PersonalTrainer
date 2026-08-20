@@ -1,8 +1,10 @@
 package com.sinura.personaltrainer
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
@@ -23,7 +25,14 @@ class MainActivity : ComponentActivity() {
         // force-navigate back into that workout for the rest of the Activity's life —
         // including after it had been finished or discarded.
         openSessionId = if (savedInstanceState == null) consumeSessionId(intent) else null
-        enableEdgeToEdge()
+        // Both bars transparent, both pinned to light icons. The default picks icon colour
+        // from the system's light/dark setting, which is the wrong signal for an app that
+        // draws one dark theme regardless: a phone in light mode got dark status icons on a
+        // near-black window.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+        )
         setContent {
             PersonalTrainerTheme {
                 PersonalTrainerNav(

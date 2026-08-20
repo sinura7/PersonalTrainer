@@ -5,7 +5,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -31,7 +30,6 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -41,6 +39,9 @@ import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.MuscleLoadSummary
+import com.sinura.personaltrainer.ui.theme.HairlineStrong
+import com.sinura.personaltrainer.ui.theme.OutlineSolid
+import com.sinura.personaltrainer.ui.theme.heatColor
 
 enum class BodyView(val label: String) {
     FRONT("Front"),
@@ -64,7 +65,6 @@ fun BodyMapCard(
     onSelect: (CanonicalMuscle) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val dark = isSystemInDarkTheme()
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             BodyView.entries.forEach { option ->
@@ -87,7 +87,7 @@ fun BodyMapCard(
             Canvas(Modifier.fillMaxSize()) {
                 val figureLeft = widthPx * 0.28f
                 val figureWidth = widthPx * 0.44f
-                val outline = if (dark) Color(0xFF2C4A3E) else Color(0xFFC5D5CB)
+                val outline = OutlineSolid
                 drawRoundRect(
                     color = outline.copy(alpha = 0.35f),
                     topLeft = Offset(figureLeft + figureWidth * 0.38f, heightPx * 0.015f),
@@ -106,11 +106,10 @@ fun BodyMapCard(
             hotspots.forEach { spot ->
                 val load = snapshot.load(spot.muscle)
                 val fill by animateColorAsState(
-                    targetValue = heatFill(load.heat, dark),
+                    targetValue = heatColor(load.heat),
                     label = "heat-${spot.muscle}-${spot.left}",
                 )
                 val selectedBorder = selected == spot.muscle
-                val outlineAlpha = if (dark) 0.22f else 0.08f
                 Box(
                     modifier = Modifier
                         .offset(
@@ -128,7 +127,7 @@ fun BodyMapCard(
                             if (selectedBorder) {
                                 MaterialTheme.colorScheme.onSurface
                             } else {
-                                Color.White.copy(alpha = outlineAlpha)
+                                HairlineStrong
                             },
                             RoundedCornerShape(40),
                         )
@@ -146,7 +145,6 @@ fun BodyMapCard(
 
 @Composable
 fun HeatLegend(modifier: Modifier = Modifier) {
-    val dark = isSystemInDarkTheme()
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -154,9 +152,10 @@ fun HeatLegend(modifier: Modifier = Modifier) {
     ) {
         Text("Load", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            LegendSwatch("Low", heatFill(0.22f, dark))
-            LegendSwatch("Moderate", heatFill(0.5f, dark))
-            LegendSwatch("High", heatFill(0.95f, dark))
+            LegendSwatch("Rest", heatColor(0f))
+            LegendSwatch("Low", heatColor(0.22f))
+            LegendSwatch("Moderate", heatColor(0.5f))
+            LegendSwatch("High", heatColor(0.95f))
         }
     }
 }
@@ -182,8 +181,7 @@ fun MuscleHeatRow(
     volumeLabel: String,
     modifier: Modifier = Modifier,
 ) {
-    val dark = isSystemInDarkTheme()
-    val fill by animateColorAsState(heatFill(load.heat, dark), label = "row-${load.muscle}")
+    val fill by animateColorAsState(heatColor(load.heat), label = "row-${load.muscle}")
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -225,21 +223,6 @@ fun recencyLabel(load: MuscleLoadSummary): String = when (val days = load.daysSi
     0 -> "Trained today"
     1 -> "1 day ago"
     else -> "$days days ago"
-}
-
-fun heatFill(heat: Double, dark: Boolean): Color = heatFill(heat.toFloat(), dark)
-
-fun heatFill(heat: Float, dark: Boolean): Color {
-    val empty = if (dark) Color(0xFF2A4A3C) else Color(0xFFD7E3DB)
-    val low = if (dark) Color(0xFF3D8A62) else Color(0xFF8FBF9A)
-    val mid = if (dark) Color(0xFFF0C14A) else Color(0xFFE0A317)
-    val high = if (dark) Color(0xFFFF8A50) else Color(0xFFD64B3A)
-    val t = heat.coerceIn(0f, 1f)
-    return when {
-        t <= 0.02f -> empty
-        t < 0.34f -> lerp(low, mid, t / 0.34f)
-        else -> lerp(mid, high, ((t - 0.34f) / 0.66f).coerceIn(0f, 1f))
-    }
 }
 
 private fun frontHotspots(): List<BodyHotspot> = listOf(

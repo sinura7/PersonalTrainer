@@ -1,7 +1,6 @@
 package com.sinura.personaltrainer.ui.home
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,9 +52,9 @@ import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SessionLogRow
 import com.sinura.personaltrainer.ui.progress.dispatchRecommendation
-import com.sinura.personaltrainer.ui.progress.heatFill
 import com.sinura.personaltrainer.ui.schedule.ThisWeekHomeCard
 import com.sinura.personaltrainer.ui.schedule.todayEpochDay
+import com.sinura.personaltrainer.ui.theme.heatColor
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import java.text.DateFormat
 import java.util.Calendar
@@ -302,7 +301,6 @@ private fun TrainingBalanceCard(
     onRecommendation: (TrainingRecommendation) -> Unit,
     snapshotHighlights: BodyHeatSnapshot?,
 ) {
-    val dark = isSystemInDarkTheme()
     val highlights = listOf(
         CanonicalMuscle.CHEST,
         CanonicalMuscle.BACK,
@@ -345,7 +343,7 @@ private fun TrainingBalanceCard(
                                 modifier = Modifier
                                     .size(16.dp)
                                     .clip(CircleShape)
-                                    .background(heatFill(load?.heat ?: 0.0, dark)),
+                                    .background(heatColor(load?.heat ?: 0.0)),
                             )
                             Text(
                                 muscle.shortLabel,

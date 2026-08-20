@@ -20,13 +20,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.Radius
 
+/**
+ * Transitional alias for [Metrics] and [Radius].
+ *
+ * These five names are referenced across the screen layer, so they keep their shape while
+ * the migration runs and simply re-point at the real scale — which re-spaces every screen
+ * that already uses them without touching a single call site. Screens move to [Metrics]
+ * as they are rebuilt, and this goes away with the last of them.
+ */
 object GymMetrics {
-    val screenPadding: Dp = 20.dp
-    val sectionGap: Dp = 20.dp
-    val listGap: Dp = 12.dp
-    val cardPadding: Dp = 16.dp
-    val cardRadius: Dp = 20.dp
+    val screenPadding: Dp = Metrics.gutter
+    val sectionGap: Dp = Metrics.sectionGap
+    val listGap: Dp = Metrics.cardGap
+    val cardPadding: Dp = Metrics.cardPadding
+    val cardRadius: Dp = Radius.md
 
     val screenContentPadding = PaddingValues(screenPadding)
 }
