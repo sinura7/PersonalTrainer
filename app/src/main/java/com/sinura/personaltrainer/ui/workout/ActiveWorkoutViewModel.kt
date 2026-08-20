@@ -1,0 +1,757 @@
+package com.sinura.personaltrainer.ui.workout
+
+import android.app.Application
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.viewModelScope
+import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.runCatchingCancellable
+import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.ExerciseSessionSummary
+import com.sinura.personaltrainer.domain.PersonalRecordKind
+import com.sinura.personaltrainer.domain.ProgressionHint
+import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.domain.RestTimer
+import com.sinura.personaltrainer.domain.SetLogRules
+import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
+import com.sinura.personaltrainer.workout.WorkoutDraft
+import com.sinura.personaltrainer.workout.WorkoutDraftRecovery
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+private const val TAG = "PT/ActiveWorkoutVM"
+
+/** A typing pause, not a keystroke, is what commits notes to the database. */
+private const val NOTES_WRITE_DEBOUNCE_MS = 400L
+
+data class ActiveExerciseDraft(
+    val weightKg: Double = 0.0,
+    val reps: Int = 5,
+    val rpe: Int? = null,
+    val isWarmup: Boolean = false,
+)
+
+/** Whether the session row behind this screen has been resolved yet. */
+enum class SessionLoadState {
+    /** The session Flow has not emitted anything yet. */
+    LOADING,
+
+    /** A session row exists and is in [ActiveWorkoutUiState.session]. */
+    FOUND,
+
+    /**
+     * The Flow emitted null for a real id: the workout was discarded, restored over, or the
+     * id came from a stale notification. Terminal — never resolves into FOUND on its own, so
+     * the UI must offer a way out instead of spinning forever.
+     */
+    MISSING,
+}
+
+/**
+ * Why this screen asked to be popped. The two exits land in different places — finishing goes
+ * on to the summary, discarding pops back — so the signal carries which one it was, and
+ * finishing carries the session the summary is about.
+ */
+sealed interface WorkoutExit {
+    /** Session was written to history. */
+    data class Finished(val sessionId: String) : WorkoutExit
+
+    /** Session row was deleted. */
+    data object Discarded : WorkoutExit
+}
+
+data class ActiveWorkoutUiState(
+    val loadState: SessionLoadState = SessionLoadState.LOADING,
+    val session: WorkoutSession? = null,
+    val selectedExerciseId: String? = null,
+    val draft: ActiveExerciseDraft = ActiveExerciseDraft(),
+    val hint: ProgressionHint? = null,
+    /** What this lift looked like last time, shown beside the inputs. Null on its first ever session. */
+    val lastPerformance: ExerciseSessionSummary? = null,
+    val searchQuery: String = "",
+    val searchResults: List<Exercise> = emptyList(),
+    val showExercisePicker: Boolean = false,
+    val notes: String = "",
+    val error: String? = null,
+    val finished: Boolean = false,
+    val editingSetId: String? = null,
+) {
+    val isLoading: Boolean get() = loadState == SessionLoadState.LOADING
+}
+
+/** A record broken by the set just logged, for the in-workout moment. */
+data class PersonalRecordMoment(
+    val exerciseName: String,
+    val kinds: Set<PersonalRecordKind>,
+    val weightKg: Double,
+    val reps: Int,
+)
+
+data class RestTimerUiState(
+    val remainingSeconds: Int = 0,
+    val totalSeconds: Int = 90,
+    val running: Boolean = false,
+)
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class ActiveWorkoutViewModel(
+    application: Application,
+    savedStateHandle: SavedStateHandle,
+) : AppViewModel(application) {
+    private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
+    private val draftCache = container.workoutDraftCache
+    private val savedDraft = SavedStateWorkoutDraft(savedStateHandle)
+
+    private val selectedExerciseId = MutableStateFlow<String?>(null)
+    private val draft = MutableStateFlow(ActiveExerciseDraft())
+    private val hint = MutableStateFlow<ProgressionHint?>(null)
+    private val lastPerformance = MutableStateFlow<ExerciseSessionSummary?>(null)
+    private val restTotal = MutableStateFlow(90)
+    private val searchQuery = MutableStateFlow("")
+    private val showPicker = MutableStateFlow(false)
+    private val notes = MutableStateFlow("")
+    private val error = MutableStateFlow<String?>(null)
+    private val finished = MutableStateFlow(false)
+    private val editingSetId = MutableStateFlow<String?>(null)
+
+    /** What the database already holds, so a re-seed or a no-op edit does not re-write it. */
+    private var lastPersistedNotes: String? = null
+    private var pendingResumeDraft: WorkoutDraft? = null
+
+    /**
+     * Tapping the lift that is already selected must still refill the draft from the
+     * suggestion. [selectedExerciseId] cannot carry that: a StateFlow conflates a write of the
+     * value it already holds into no emission at all.
+     */
+    private val reselections = MutableSharedFlow<String>(
+        extraBufferCapacity = 4,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+    private val restTimer = container.restTimerController
+
+    /**
+     * Flips true the first time the session query emits — including when it emits null.
+     * "Session is null" alone cannot distinguish "still loading" from "gone", which is how a
+     * discarded workout used to leave the screen on a spinner with no exit.
+     */
+    private val sessionResolved = MutableStateFlow(false)
+
+    /**
+     * The session row, hot for this ViewModel's whole life.
+     *
+     * It used to be a cold flow collected twice — once by the init collector, once by the
+     * uiState chain — so the same row was queried twice. Actions also read the session out of
+     * `uiState.value`, which is a `WhileSubscribed(5_000)` projection: five seconds after the
+     * screen stops being collected it stops updating, so anything acting on it (a notification
+     * tap, a resumed screen before its first recomposition) was reading a stale snapshot of a
+     * rendered state rather than the data itself.
+     */
+    private val session: StateFlow<WorkoutSession?> =
+        container.workoutRepository.observeSession(sessionId)
+            .onEach { sessionResolved.value = true }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    init {
+        if (sessionId.isBlank()) {
+            error.value = "This workout is no longer available."
+            // Nothing will ever emit for a blank id, so resolve immediately rather than spin.
+            sessionResolved.value = true
+        }
+        // Survives process death; the in-memory cache does not. See WorkoutDraftRecovery.
+        val recovered = WorkoutDraftRecovery.resolve(
+            sessionId = sessionId,
+            inMemory = draftCache.get(sessionId),
+            persisted = savedDraft.read(sessionId),
+        )
+        recovered?.let { cached ->
+            pendingResumeDraft = cached
+            selectedExerciseId.value = cached.exerciseId
+            draft.value = ActiveExerciseDraft(
+                weightKg = cached.weightKg,
+                reps = cached.reps.coerceAtLeast(1),
+                rpe = cached.rpe,
+                isWarmup = cached.isWarmup,
+            )
+            notes.value = cached.notes
+        }
+        viewModelScope.launch {
+            // The flow is guarded at the repository, but the body below is not — a failure
+            // here would otherwise kill the collector and freeze the screen silently.
+            runCatchingCancellable {
+                session.collect { current ->
+                    if (current == null) return@collect
+                    val resolved = current.resolveSelectedExerciseId(selectedExerciseId.value)
+                    if (resolved != selectedExerciseId.value) {
+                        selectedExerciseId.value = resolved
+                    }
+                    lastPersistedNotes = current.notes
+                    if (notes.value.isEmpty() && current.notes.isNotEmpty()) {
+                        notes.value = current.notes
+                    }
+                    persistDraft()
+                }
+            }.onFailure { AppLog.e(TAG, "Observing the active session failed", it) }
+        }
+        // Prefill used to hang off the end of the uiState chain, as `mapLatest { prefill(it) }`.
+        // That made it a side effect of rendering, and — worse — it wrote to `restTotal`,
+        // `hint` and `draft`, three of that same chain's own combine inputs. Its own write to
+        // `restTotal` re-triggered the chain, mapLatest cancelled the suspended progression
+        // query, and because the "already prefilled" marker had been set before suspending,
+        // the retry was skipped: switching to a lift with a different rest time could silently
+        // leave the weight at 0 instead of the suggestion.
+        //
+        // It is now driven by the selection alone, which is what it actually depends on.
+        viewModelScope.launch {
+            merge(
+                selectedExerciseId.filterNotNull().distinctUntilChanged(),
+                reselections,
+            ).collectLatest { exerciseId ->
+                runCatchingCancellable { prefill(exerciseId) }
+                    .onFailure { AppLog.w(TAG, "Prefilling the next set failed", it) }
+            }
+        }
+        // Notes used to launch an independent write per keystroke. Room's writes are not
+        // ordered against each other, so a shorter earlier string could land after a longer
+        // later one and the user's last characters would silently disappear on the next read
+        // — while a paragraph of notes cost a database write per character.
+        //
+        // collectLatest cancels the pending delay on every keystroke, so only a typing pause
+        // writes; and because it awaits the previous block's cancellation before starting the
+        // next, the writes it does perform are strictly ordered. NonCancellable means a write
+        // that has already begun finishes rather than being torn in half by the next keystroke.
+        viewModelScope.launch {
+            notes.collectLatest { value ->
+                delay(NOTES_WRITE_DEBOUNCE_MS)
+                writeNotes(value)
+            }
+        }
+    }
+
+    private suspend fun writeNotes(value: String) {
+        if (sessionId.isBlank()) return
+        // Null means the session row has not been read yet, so what is on disk is unknown.
+        // Writing here would push the empty initial value over real notes whenever the first
+        // query took longer than the debounce — exactly the case on a cold start.
+        val known = lastPersistedNotes ?: return
+        if (value == known) return
+        withContext(NonCancellable) {
+            runCatchingCancellable {
+                container.workoutRepository.updateSessionNotes(sessionId, value)
+                lastPersistedNotes = value
+            }.onFailure { thrown ->
+                AppLog.w(TAG, "Writing the session notes failed", thrown)
+                // Notes stay in the draft cache, and the next keystroke retries.
+            }
+        }
+    }
+
+    val restTimerState: StateFlow<RestTimerUiState> = combine(
+        restTimer.remainingSeconds,
+        restTimer.snapshot,
+        restTotal,
+    ) { remaining, snapshot, planned ->
+        RestTimerUiState(
+            remainingSeconds = remaining,
+            totalSeconds = if (snapshot.running) snapshot.totalSeconds else planned,
+            running = snapshot.running,
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = RestTimerUiState(),
+    )
+
+    val uiState: StateFlow<ActiveWorkoutUiState> = combine(
+        session,
+        selectedExerciseId,
+        draft,
+        hint,
+    ) { current, selected, currentDraft, currentHint ->
+        WorkoutCore(current, selected, currentDraft, currentHint)
+    }.combine(lastPerformance) { core, last ->
+        core.copy(lastPerformance = last)
+    }.combine(
+        combine(
+            combine(restTotal, searchQuery, showPicker) { total, query, picker ->
+                Triple(total, query, picker)
+            },
+            combine(notes, error, finished, editingSetId) { sessionNotes, err, done, editing ->
+                EditorMeta(sessionNotes, err, done, editing)
+            },
+        ) { first, second ->
+            WorkoutExtras(
+                restTotal = first.first,
+                query = first.second,
+                showPicker = first.third,
+                notes = second.notes,
+                error = second.error,
+                finished = second.finished,
+                editingSetId = second.editingSetId,
+            )
+        },
+    ) { core, extras ->
+        ActiveWorkoutUiState(
+            // Overwritten below once sessionResolved is known; see the combine on that flow.
+            loadState = SessionLoadState.LOADING,
+            session = core.session,
+            selectedExerciseId = core.session?.resolveSelectedExerciseId(core.selected) ?: core.selected,
+            draft = core.draft,
+            hint = core.hint,
+            lastPerformance = core.lastPerformance,
+            searchQuery = extras.query,
+            searchResults = emptyList(),
+            showExercisePicker = extras.showPicker,
+            notes = extras.notes,
+            error = extras.error,
+            finished = extras.finished,
+            editingSetId = extras.editingSetId,
+        )
+    }.combine(sessionResolved) { state, resolved ->
+        state.copy(
+            loadState = when {
+                !resolved && sessionId.isNotBlank() -> SessionLoadState.LOADING
+                state.session != null -> SessionLoadState.FOUND
+                else -> SessionLoadState.MISSING
+            },
+        )
+    }.combine(searchQuery.flatMapLatest { container.exerciseRepository.search(it) }) { state, results ->
+        state.copy(searchResults = results)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = ActiveWorkoutUiState(),
+    )
+
+    /**
+     * Loads everything shown about a lift, and — unless the user already has work in progress
+     * on it — fills the draft with the suggestion.
+     *
+     * The two halves are separate on purpose. The reference half (last session, progression
+     * hint, planned rest) is always safe to load and is exactly what someone resuming a
+     * workout or editing a logged set wants to see. The draft half overwrites what they typed,
+     * so it is skipped in both those cases.
+     */
+    private suspend fun prefill(exerciseId: String) {
+        // Decided before the first suspension point, so a cancelled prefill cannot half-consume
+        // it: a recovered draft is the user's own unfinished entry, but a draft recovered for
+        // some other lift is simply spent.
+        val resume = pendingResumeDraft
+        val resumingThisLift = if (resume == null) {
+            false
+        } else {
+            pendingResumeDraft = null
+            resume.exerciseId == null || resume.exerciseId == exerciseId
+        }
+        val keepDraft = resumingThisLift || editingSetId.value != null
+        // Cleared before the query so the previous lift's numbers never sit under the new
+        // lift's name; a stale "last time" is worse than none.
+        lastPerformance.value = null
+        hint.value = null
+        // Wait for the row rather than giving up: a selection restored from a saved draft can
+        // arrive before the query answers, and bailing there left that lift with no suggestion
+        // at all. sessionResolved bounds the wait — once the query has answered, null is final.
+        val current = session.value ?: run {
+            sessionResolved.first { it }
+            session.value ?: return
+        }
+        val planned = current.exercises.firstOrNull { it.exercise.id == exerciseId }
+        val targetReps = planned?.targetReps ?: 5
+        val rest = planned?.restSeconds?.takeIf { it > 0 } ?: 90
+        restTotal.value = rest
+        val progression = container.workoutRepository.progressionFor(
+            exerciseId = exerciseId,
+            exerciseName = planned?.exercise?.name ?: "",
+            targetReps = targetReps,
+            excludeSessionId = sessionId,
+        )
+        hint.value = progression
+        lastPerformance.value = container.workoutRepository.lastPerformance(exerciseId, sessionId)
+        if (keepDraft) return
+        val lastWeight = progression?.suggestedWeightKg
+            ?: planned?.targetWeightKg
+            ?: 0.0
+        draft.value = ActiveExerciseDraft(
+            weightKg = lastWeight,
+            reps = targetReps.coerceAtLeast(1),
+            rpe = null,
+            isWarmup = false,
+        )
+        persistDraft()
+    }
+
+    fun selectExercise(exerciseId: String) {
+        if (selectedExerciseId.value == exerciseId) {
+            reselections.tryEmit(exerciseId)
+        } else {
+            selectedExerciseId.value = exerciseId
+        }
+        persistDraft()
+    }
+
+    fun adjustWeight(deltaKg: Double) {
+        val next = if (deltaKg.isFinite()) draft.value.weightKg + deltaKg else draft.value.weightKg
+        draft.value = draft.value.copy(weightKg = next.coerceAtLeast(0.0))
+        persistDraft()
+    }
+
+    fun setWeight(weightKg: Double) {
+        if (!weightKg.isFinite()) return
+        draft.value = draft.value.copy(weightKg = weightKg.coerceAtLeast(0.0))
+        persistDraft()
+    }
+
+    fun adjustReps(delta: Int) {
+        draft.value = draft.value.copy(reps = (draft.value.reps + delta).coerceAtLeast(1))
+        persistDraft()
+    }
+
+    fun setRpe(rpe: Int?) {
+        draft.value = draft.value.copy(rpe = rpe)
+        persistDraft()
+    }
+
+    fun setWarmup(isWarmup: Boolean) {
+        draft.value = draft.value.copy(isWarmup = isWarmup)
+        persistDraft()
+    }
+
+    fun setNotes(value: String) {
+        notes.value = value
+        persistDraft()
+        // The database write is not launched here. See the debounce collector in init.
+    }
+
+    fun setPickerVisible(visible: Boolean) {
+        showPicker.value = visible
+        if (!visible) searchQuery.value = ""
+    }
+
+    fun onSearchQuery(value: String) {
+        searchQuery.value = value
+    }
+
+    fun addExercise(exercise: Exercise) {
+        viewModelScope.launch {
+            addExerciseInternal(exercise)
+        }
+    }
+
+    fun createAndAddExercise(name: String, muscleGroup: String) {
+        viewModelScope.launch {
+            if (name.isBlank()) {
+                error.value = "Give that lift a name."
+                return@launch
+            }
+            try {
+                val created = container.exerciseRepository.createCustom(name, muscleGroup)
+                addExerciseInternal(created)
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "createAndAddExercise failed", thrown)
+                error.value = "Could not create that exercise. Try again."
+            }
+        }
+    }
+
+    private suspend fun addExerciseInternal(exercise: Exercise) {
+        if (sessionId.isBlank()) {
+            error.value = "This workout is no longer available."
+            return
+        }
+        val alreadyAdded = session.value?.exercises?.any { it.exercise.id == exercise.id } == true
+        if (alreadyAdded) {
+            selectExercise(exercise.id)
+            showPicker.value = false
+            error.value = null
+            return
+        }
+        try {
+            container.workoutRepository.addExerciseToSession(sessionId, exercise)
+            selectExercise(exercise.id)
+            showPicker.value = false
+            error.value = null
+        } catch (thrown: Exception) {
+            AppLog.w(TAG, "addExerciseInternal failed", thrown)
+            error.value = "Could not add that lift. Try again."
+        }
+    }
+
+    /**
+     * A record just broken, held until the screen has shown it.
+     *
+     * One-shot state rather than a callback, for the same reason navigation is: the set is
+     * written before the answer is known, and a lambda captured into that coroutine belongs to
+     * a composition that may not exist by the time the query returns.
+     */
+    private val _personalRecord = MutableStateFlow<PersonalRecordMoment?>(null)
+    val personalRecord: StateFlow<PersonalRecordMoment?> = _personalRecord.asStateFlow()
+
+    fun onPersonalRecordShown() {
+        _personalRecord.value = null
+    }
+
+    fun logSet() {
+        val exerciseId = selectedExerciseId.value
+        if (exerciseId == null) {
+            error.value = "Add a lift before logging a set."
+            return
+        }
+        val current = draft.value
+        val invalid = SetLogRules.validate(
+            weightKg = current.weightKg,
+            reps = current.reps,
+            isWarmup = current.isWarmup,
+        )
+        if (invalid != null) {
+            error.value = invalid
+            return
+        }
+        viewModelScope.launch {
+            try {
+                val editingId = editingSetId.value
+                if (editingId != null) {
+                    container.workoutRepository.updateSet(
+                        setId = editingId,
+                        weightKg = current.weightKg,
+                        reps = current.reps,
+                        rpe = current.rpe,
+                        isWarmup = current.isWarmup,
+                    )
+                    editingSetId.value = null
+                } else {
+                    val logged = container.workoutRepository.logSet(
+                        sessionId = sessionId,
+                        exerciseId = exerciseId,
+                        weightKg = current.weightKg,
+                        reps = current.reps,
+                        rpe = current.rpe,
+                        isWarmup = current.isWarmup,
+                    )
+                    if (logged.records.isNotEmpty()) {
+                        _personalRecord.value = PersonalRecordMoment(
+                            exerciseName = session.value
+                                ?.exercises
+                                ?.firstOrNull { it.exercise.id == exerciseId }
+                                ?.exercise
+                                ?.name
+                                .orEmpty(),
+                            kinds = logged.records,
+                            weightKg = current.weightKg,
+                            reps = current.reps,
+                        )
+                    }
+                    if (!current.isWarmup) {
+                        startRestAfterSet()
+                    }
+                }
+                error.value = null
+                draft.value = current.copy(isWarmup = false, rpe = null)
+                persistDraft()
+            } catch (thrown: Exception) {
+                error.value = thrown.message?.takeIf { message ->
+                    SetLogRules.isUserMessage(message)
+                } ?: "Could not save that set. Try again."
+            }
+        }
+    }
+
+    fun editSet(setId: String) {
+        val set = session.value?.sets?.firstOrNull { it.id == setId } ?: return
+        // editingSetId is set below and prefill refuses to run while it is, so selecting the
+        // set's lift here cannot overwrite the values being edited.
+        editingSetId.value = set.id
+        selectedExerciseId.value = set.exerciseId
+        draft.value = ActiveExerciseDraft(
+            weightKg = set.weightKg,
+            reps = set.reps,
+            rpe = set.rpe,
+            isWarmup = set.isWarmup,
+        )
+        persistDraft()
+    }
+
+    fun cancelEdit() {
+        editingSetId.value = null
+    }
+
+    fun deleteSet(setId: String) {
+        viewModelScope.launch {
+            val current = session.value
+            val deleted = current?.sets?.firstOrNull { it.id == setId }
+            val wasLatest = deleted != null &&
+                current.sets.maxByOrNull { it.completedAt }?.id == setId
+            if (editingSetId.value == setId) {
+                editingSetId.value = null
+            }
+            try {
+                container.workoutRepository.deleteSet(setId)
+                if (wasLatest) {
+                    restTimer.stop()
+                }
+                error.value = null
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "deleteSet failed", thrown)
+                error.value = "Could not delete that set. Try again."
+            }
+        }
+    }
+
+    fun skipRest() {
+        restTimer.stop()
+    }
+
+    fun adjustRest(deltaSeconds: Int) {
+        restTimer.adjust(deltaSeconds)
+    }
+
+    fun startPreset(seconds: Int) {
+        viewModelScope.launch {
+            container.preferencesRepository.setLastRestPresetSeconds(seconds)
+            restTotal.value = seconds
+            restTimer.start(seconds, sessionId)
+        }
+    }
+
+    fun startCustom(input: String): Boolean {
+        val seconds = RestTimer.parseCustom(input) ?: return false
+        startPreset(seconds)
+        return true
+    }
+
+    fun applySuggestedWeight() {
+        val suggested = hint.value?.suggestedWeightKg ?: return
+        draft.value = draft.value.copy(weightKg = suggested)
+    }
+
+    /**
+     * Set when this screen should be popped. Held as state for the same reason as forward
+     * navigation: a callback captured into a coroutine is bound to a NavController that may
+     * no longer exist by the time the database work finishes.
+     *
+     * Pops ack BEFORE navigating (forward navigations ack after) — a duplicate pop would eat
+     * an extra screen, which is worse than the vanishingly narrow window it guards against.
+     */
+    private val _exitRequested = MutableStateFlow<WorkoutExit?>(null)
+    val exitRequested: StateFlow<WorkoutExit?> = _exitRequested.asStateFlow()
+
+    fun onExitHandled() {
+        _exitRequested.value = null
+    }
+
+    fun finishWorkout() {
+        viewModelScope.launch {
+            val current = session.value
+            if (current == null || current.sets.isEmpty()) {
+                error.value = "Log at least one set before finishing."
+                return@launch
+            }
+            try {
+                restTimer.stop()
+                container.workoutRepository.finishSession(sessionId, notes.value)
+                clearDraft()
+                finished.value = true
+                _exitRequested.value = WorkoutExit.Finished(sessionId)
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "finishWorkout failed", thrown)
+                error.value = "Could not finish this workout. Try again."
+            }
+        }
+    }
+
+    fun discardWorkout() {
+        viewModelScope.launch {
+            restTimer.stop()
+            try {
+                container.workoutRepository.discardSession(sessionId)
+                clearDraft()
+                _exitRequested.value = WorkoutExit.Discarded
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "discardWorkout failed", thrown)
+                error.value = "Could not discard this workout. Try again."
+            }
+        }
+    }
+
+    private fun startRestAfterSet() {
+        viewModelScope.launch {
+            val prefs = container.preferencesRepository.restTimerPreferences.first()
+            val planned = session.value
+                ?.exercises
+                ?.firstOrNull { it.exercise.id == selectedExerciseId.value }
+                ?.restSeconds
+            val seconds = RestTimer.secondsToStart(planned, prefs)
+            restTotal.value = seconds
+            restTimer.start(seconds, sessionId)
+        }
+    }
+
+    /** Flushes the debounce tail: leaving must not drop the words typed in the last 400 ms. */
+    fun persistDraftForExit() {
+        persistDraft()
+        viewModelScope.launch { writeNotes(notes.value) }
+    }
+
+    private fun persistDraft() {
+        if (sessionId.isBlank()) return
+        val current = WorkoutDraft(
+            sessionId = sessionId,
+            exerciseId = selectedExerciseId.value,
+            weightKg = draft.value.weightKg,
+            reps = draft.value.reps,
+            rpe = draft.value.rpe,
+            isWarmup = draft.value.isWarmup,
+            notes = notes.value,
+        )
+        draftCache.put(current)
+        // Written through to saved state so the numbers dialed in before a rest survive the
+        // process being killed while the phone sits in a pocket.
+        savedDraft.write(current)
+    }
+
+    private fun clearDraft() {
+        draftCache.clear(sessionId)
+        savedDraft.clear()
+    }
+
+    private data class WorkoutCore(
+        val session: WorkoutSession?,
+        val selected: String?,
+        val draft: ActiveExerciseDraft,
+        val hint: ProgressionHint?,
+        val lastPerformance: ExerciseSessionSummary? = null,
+    )
+
+    private data class WorkoutExtras(
+        val restTotal: Int,
+        val query: String,
+        val showPicker: Boolean,
+        val notes: String,
+        val error: String?,
+        val finished: Boolean,
+        val editingSetId: String?,
+    )
+
+    private data class EditorMeta(
+        val notes: String,
+        val error: String?,
+        val finished: Boolean,
+        val editingSetId: String?,
+    )
+}

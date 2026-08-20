@@ -1,0 +1,25 @@
+*.iml
+.gradle
+.kotlin
+/local.properties
+/.idea
+.DS_Store
+/build
+/app/build
+/captures
+.externalNativeBuild
+.cxx
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+.navigation
+/output.json
+google-services.json
+
+# Local release signing — never commit secrets or the keystore itself
+keystore.properties
+*.jks
+*.keystore
+/release/

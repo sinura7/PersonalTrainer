@@ -1,0 +1,4 @@
+<resources>
+    <!-- Must match Theme.kt DarkColors.background, or a dark-mode cold start flashes light. -->
+    <color name="window_background">#0B1A14</color>
+</resources>

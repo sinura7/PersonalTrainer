@@ -1,0 +1,64 @@
+package com.sinura.personaltrainer.ui.progress
+
+import android.app.Application
+import androidx.lifecycle.viewModelScope
+import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.domain.BodyHeatSnapshot
+import com.sinura.personaltrainer.domain.HeatWindow
+import com.sinura.personaltrainer.domain.InsightFailure
+import com.sinura.personaltrainer.domain.TrainingRecommendation
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+
+data class ProgressUiState(
+    val isLoading: Boolean = true,
+    val window: HeatWindow = HeatWindow.LAST_7_DAYS,
+    val snapshot: BodyHeatSnapshot? = null,
+    val recommendations: List<TrainingRecommendation> = emptyList(),
+    /** Fatal: there is no map to draw. The screen replaces its content with a way out. */
+    val error: String? = null,
+    /**
+     * Non-fatal: the map is real, something beside it is not. Kept separate because the screen's
+     * error branch is terminal — folding a failed progression query into [error] would blank a
+     * body map that had computed perfectly well.
+     */
+    val notice: String? = null,
+)
+
+class ProgressViewModel(application: Application) : AppViewModel(application) {
+    private val window = MutableStateFlow(HeatWindow.LAST_7_DAYS)
+
+    val uiState: StateFlow<ProgressUiState> = container.trainingInsights
+        .observe(window = window, includeWeekPlan = false)
+        .map { insights ->
+            ProgressUiState(
+                isLoading = false,
+                // Read back from the insights rather than from `window`: the body map and the
+                // chip that labels it must never describe different windows mid-switch.
+                window = insights.snapshot?.window ?: window.value,
+                snapshot = insights.snapshot,
+                recommendations = insights.recommendations,
+                error = "Couldn’t load the body map. Try switching the window."
+                    .takeIf { insights.failed(InsightFailure.HEAT) },
+                notice = when {
+                    insights.failed(InsightFailure.PROGRESSION) ->
+                        "Couldn’t check which lifts are ready to progress."
+                    insights.failed(InsightFailure.RECOMMENDATIONS) ->
+                        "Couldn’t work out this week’s suggestions."
+                    else -> null
+                },
+            )
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = ProgressUiState(),
+        )
+
+    fun setWindow(value: HeatWindow) {
+        window.value = value
+    }
+}
