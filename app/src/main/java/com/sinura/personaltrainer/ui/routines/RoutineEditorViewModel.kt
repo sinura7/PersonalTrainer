@@ -3,6 +3,8 @@ package com.sinura.personaltrainer.ui.routines
 import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.Routine
@@ -16,6 +18,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+private const val TAG = "PT/RoutineEditorVM"
 
 data class RoutineEditorUiState(
     val isLoading: Boolean = true,
@@ -62,34 +66,38 @@ class RoutineEditorViewModel(
 
     init {
         viewModelScope.launch {
-            val id = incomingId
-            if (id != null) {
-                val existing = container.routineRepository.getById(id)
-                if (existing != null) {
-                    loadedExisting = true
-                    name.value = existing.name
-                    notes.value = existing.notes
-                } else {
-                    missing.value = true
-                    error.value = "This routine is no longer available."
-                    routineId.value = null
+            // getById and the collector below both touch Room; an uncaught failure
+            // here would kill the collector and leave the editor frozen with no clue why.
+            runCatchingCancellable {
+                val id = incomingId
+                if (id != null) {
+                    val existing = container.routineRepository.getById(id)
+                    if (existing != null) {
+                        loadedExisting = true
+                        name.value = existing.name
+                        notes.value = existing.notes
+                    } else {
+                        missing.value = true
+                        error.value = "This routine is no longer available."
+                        routineId.value = null
+                    }
                 }
-            }
-            hydrated.value = true
-            routineFlow.collect { routine ->
-                if (routine != null) {
-                    sawLiveRoutine = true
-                } else if (
-                    loadedExisting &&
-                    sawLiveRoutine &&
-                    routineId.value != null &&
-                    !missing.value
-                ) {
-                    missing.value = true
-                    error.value = "This routine is no longer available."
-                    routineId.value = null
+                hydrated.value = true
+                routineFlow.collect { routine ->
+                    if (routine != null) {
+                        sawLiveRoutine = true
+                    } else if (
+                        loadedExisting &&
+                        sawLiveRoutine &&
+                        routineId.value != null &&
+                        !missing.value
+                    ) {
+                        missing.value = true
+                        error.value = "This routine is no longer available."
+                        routineId.value = null
+                    }
                 }
-            }
+            }.onFailure { AppLog.e(TAG, "Loading the routine editor failed", it) }
         }
     }
 
@@ -157,7 +165,8 @@ class RoutineEditorViewModel(
                 container.routineRepository.updateDetails(id, trimmedName, notes.value)
                 error.value = null
                 saved.value = true
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "saveDetails failed", thrown)
                 error.value = "Could not save this routine. Try again."
                 saved.value = false
             }
@@ -212,7 +221,8 @@ class RoutineEditorViewModel(
                 showPicker.value = false
                 searchQuery.value = ""
                 error.value = null
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "addExercise failed", thrown)
                 error.value = "Could not add that exercise. Try again."
             }
         }
@@ -234,7 +244,8 @@ class RoutineEditorViewModel(
             try {
                 val created = container.exerciseRepository.createCustom(customName, muscleGroup)
                 addExercise(created, targetSets, targetReps, targetWeightKg, restSeconds)
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "createAndAddExercise failed", thrown)
                 error.value = "Could not create that exercise. Try again."
             }
         }
@@ -263,7 +274,8 @@ class RoutineEditorViewModel(
                     restSeconds = restSeconds,
                 )
                 error.value = null
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "updateExercise failed", thrown)
                 error.value = "Could not update those targets. Try again."
             }
         }
@@ -275,7 +287,8 @@ class RoutineEditorViewModel(
             try {
                 container.routineRepository.removeExercise(itemId, id)
                 error.value = null
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "removeExercise failed", thrown)
                 error.value = "Could not remove that exercise. Try again."
             }
         }
@@ -286,7 +299,8 @@ class RoutineEditorViewModel(
             val id = ensureRoutineId() ?: return@launch
             try {
                 container.routineRepository.moveExercise(id, itemId, direction)
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "moveExercise failed", thrown)
                 error.value = "Could not reorder that exercise. Try again."
             }
         }
@@ -317,7 +331,8 @@ class RoutineEditorViewModel(
             createdThisSession = true
             routineId.value = created.id
             created.id
-        } catch (_: Exception) {
+        } catch (thrown: Exception) {
+            AppLog.w(TAG, "ensureRoutineId failed", thrown)
             error.value = "Could not create this routine. Try again."
             null
         }
@@ -335,7 +350,8 @@ class RoutineEditorViewModel(
         if (!RoutineEditorPolicy.shouldDiscardStub(createdThisSession, count)) return
         try {
             container.routineRepository.delete(id)
-        } catch (_: Exception) {
+        } catch (thrown: Exception) {
+            AppLog.w(TAG, "discardEmptyStub failed", thrown)
             // Keep navigating back; an empty stub can be deleted later.
         }
         routineId.value = null

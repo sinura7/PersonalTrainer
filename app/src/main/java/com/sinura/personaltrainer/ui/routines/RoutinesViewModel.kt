@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.routines
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
+import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.domain.Routine
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,6 +11,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+private const val TAG = "PT/RoutinesVM"
 
 data class RoutinesUiState(
     val isLoading: Boolean = true,
@@ -36,7 +39,8 @@ class RoutinesViewModel(application: Application) : AppViewModel(application) {
             try {
                 container.routineRepository.delete(routineId)
                 error.value = null
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "delete failed", thrown)
                 error.value = "Could not delete that routine. Try again."
             }
         }

@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.schedule
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
+import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.MuscleLoadCalculator
@@ -24,6 +25,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.ZoneId
+
+private const val TAG = "PT/ScheduleVM"
 
 data class ScheduleUiState(
     val isLoading: Boolean = true,
@@ -58,12 +61,14 @@ class ScheduleViewModel(application: Application) : AppViewModel(application) {
         val now = System.currentTimeMillis()
         val snapshot = try {
             MuscleLoadCalculator.snapshot(inputs.history, HeatWindow.LAST_7_DAYS, now, zone)
-        } catch (_: Exception) {
+        } catch (thrown: Exception) {
+            AppLog.w(TAG, "Computing the muscle heat snapshot failed", thrown)
             MuscleLoadCalculator.snapshot(emptyList(), HeatWindow.LAST_7_DAYS, now, zone)
         }
         val hints = try {
             container.workoutRepository.readyForProgression(inputs.routines)
-        } catch (_: Exception) {
+        } catch (thrown: Exception) {
+            AppLog.w(TAG, "Computing the progression hints failed", thrown)
             emptyList()
         }
         val recs = RecommendationEngine.recommend(snapshot, hints, inputs.unit)
@@ -77,7 +82,8 @@ class ScheduleViewModel(application: Application) : AppViewModel(application) {
                 nowMs = now,
                 zone = zone,
             )
-        } catch (_: Exception) {
+        } catch (thrown: Exception) {
+            AppLog.w(TAG, "Computing the weekly schedule plan failed", thrown)
             null
         }
         val logged = inputs.history
@@ -120,7 +126,8 @@ class ScheduleViewModel(application: Application) : AppViewModel(application) {
         viewModelScope.launch {
             val current = try {
                 container.workoutRepository.getInProgress()
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "startDay failed", thrown)
                 null
             }
             if (current != null) {
@@ -141,7 +148,8 @@ class ScheduleViewModel(application: Application) : AppViewModel(application) {
                 }
                 error.value = null
                 onStarted(session.id)
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "startDay failed", thrown)
                 error.value = "Could not start that day. Try again."
             }
         }

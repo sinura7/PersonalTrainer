@@ -26,7 +26,7 @@ class ExerciseRepository(
 ) {
     fun observeAll(): Flow<List<Exercise>> = exerciseDao.observeAll().map { list ->
         list.map { it.toDomain() }
-    }
+    }.orLogAndFallback("the exercise catalog", emptyList())
 
     fun search(query: String): Flow<List<Exercise>> {
         val trimmed = query.trim()
@@ -34,6 +34,7 @@ class ExerciseRepository(
             observeAll()
         } else {
             exerciseDao.search(trimmed).map { list -> list.map { it.toDomain() } }
+                .orLogAndFallback("exercise search", emptyList())
         }
     }
 

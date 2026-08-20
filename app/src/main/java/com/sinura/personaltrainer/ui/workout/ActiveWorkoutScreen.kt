@@ -63,6 +63,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.domain.ProgressionAction
 import com.sinura.personaltrainer.domain.ProgressionCalculator
 import com.sinura.personaltrainer.domain.ProgressionHint
@@ -79,6 +80,8 @@ import com.sinura.personaltrainer.ui.components.RestTimerBar
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.WeightStepper
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+
+private const val TAG = "PT/ActiveWorkoutScreen"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -774,7 +777,9 @@ private fun RestNotificationsDisabledBanner(modifier: Modifier = Modifier) {
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     try {
                         context.startActivity(intent)
-                    } catch (_: Exception) {
+                    } catch (thrown: Exception) {
+                        // Some OEM builds do not expose the per-app notification screen.
+                        AppLog.w(TAG, "App notification settings unavailable; falling back", thrown)
                         context.startActivity(
                             Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
                                 .setData(android.net.Uri.fromParts("package", context.packageName, null))

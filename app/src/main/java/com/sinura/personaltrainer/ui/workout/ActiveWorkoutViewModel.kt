@@ -3,6 +3,8 @@ package com.sinura.personaltrainer.ui.workout
 import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ProgressionHint
@@ -23,6 +25,8 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+private const val TAG = "PT/ActiveWorkoutVM"
 
 data class ActiveExerciseDraft(
     val weightKg: Double = 0.0,
@@ -127,25 +131,29 @@ class ActiveWorkoutViewModel(
             notes.value = cached.notes
         }
         viewModelScope.launch {
-            sessionFlow.collect { session ->
-                if (session == null) return@collect
-                val resolved = session.resolveSelectedExerciseId(selectedExerciseId.value)
-                if (resolved != selectedExerciseId.value) {
-                    selectedExerciseId.value = resolved
-                }
-                val resume = pendingResumeDraft
-                if (resume != null) {
-                    val cacheMatches = resume.exerciseId == null || resume.exerciseId == resolved
-                    if (cacheMatches) {
-                        lastPrefillExerciseId = resolved
+            // The flow is guarded at the repository, but the body below is not — a failure
+            // here would otherwise kill the collector and freeze the screen silently.
+            runCatchingCancellable {
+                sessionFlow.collect { session ->
+                    if (session == null) return@collect
+                    val resolved = session.resolveSelectedExerciseId(selectedExerciseId.value)
+                    if (resolved != selectedExerciseId.value) {
+                        selectedExerciseId.value = resolved
                     }
-                    pendingResumeDraft = null
+                    val resume = pendingResumeDraft
+                    if (resume != null) {
+                        val cacheMatches = resume.exerciseId == null || resume.exerciseId == resolved
+                        if (cacheMatches) {
+                            lastPrefillExerciseId = resolved
+                        }
+                        pendingResumeDraft = null
+                    }
+                    if (notes.value.isEmpty() && session.notes.isNotEmpty()) {
+                        notes.value = session.notes
+                    }
+                    persistDraft()
                 }
-                if (notes.value.isEmpty() && session.notes.isNotEmpty()) {
-                    notes.value = session.notes
-                }
-                persistDraft()
-            }
+            }.onFailure { AppLog.e(TAG, "Observing the active session failed", it) }
         }
     }
 
@@ -294,7 +302,8 @@ class ActiveWorkoutViewModel(
         viewModelScope.launch {
             try {
                 container.workoutRepository.updateSessionNotes(sessionId, value)
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "setNotes failed", thrown)
                 // Notes stay in the draft cache if the write fails.
             }
         }
@@ -324,7 +333,8 @@ class ActiveWorkoutViewModel(
             try {
                 val created = container.exerciseRepository.createCustom(name, muscleGroup)
                 addExerciseInternal(created)
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "createAndAddExercise failed", thrown)
                 error.value = "Could not create that exercise. Try again."
             }
         }
@@ -351,7 +361,8 @@ class ActiveWorkoutViewModel(
             showPicker.value = false
             persistDraft()
             error.value = null
-        } catch (_: Exception) {
+        } catch (thrown: Exception) {
+            AppLog.w(TAG, "addExerciseInternal failed", thrown)
             error.value = "Could not add that lift. Try again."
         }
     }
@@ -441,7 +452,8 @@ class ActiveWorkoutViewModel(
                     restTimer.stop()
                 }
                 error.value = null
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "deleteSet failed", thrown)
                 error.value = "Could not delete that set. Try again."
             }
         }
@@ -487,7 +499,8 @@ class ActiveWorkoutViewModel(
                 clearDraft()
                 finished.value = true
                 onFinished()
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "finishWorkout failed", thrown)
                 error.value = "Could not finish this workout. Try again."
             }
         }
@@ -500,7 +513,8 @@ class ActiveWorkoutViewModel(
                 container.workoutRepository.discardSession(sessionId)
                 clearDraft()
                 onDiscarded()
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "discardWorkout failed", thrown)
                 error.value = "Could not discard this workout. Try again."
             }
         }
@@ -525,7 +539,8 @@ class ActiveWorkoutViewModel(
         viewModelScope.launch {
             try {
                 container.workoutRepository.updateSessionNotes(sessionId, notes.value)
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "persistDraftForExit failed", thrown)
                 // Draft cache still holds the notes.
             }
         }

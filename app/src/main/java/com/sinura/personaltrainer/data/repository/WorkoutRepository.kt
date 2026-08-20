@@ -28,12 +28,15 @@ class WorkoutRepository(
 ) {
     fun observeHistory(): Flow<List<WorkoutSession>> =
         workoutDao.observeFinishedSessions().map { list -> list.map { it.toDomain() } }
+            .orLogAndFallback("workout history", emptyList())
 
     fun observeSession(id: String): Flow<WorkoutSession?> =
         workoutDao.observeSession(id).map { it?.toDomain() }
+            .orLogAndFallback("the active session", null)
 
     fun observeInProgress(): Flow<WorkoutSession?> =
         workoutDao.observeInProgressSession().map { it?.toSummary() }
+            .orLogAndFallback("the in-progress session", null)
 
     suspend fun getInProgress(): WorkoutSession? =
         workoutDao.getInProgressSession()?.toSummary()

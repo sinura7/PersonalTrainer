@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.home
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
+import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.HeatWindow
@@ -25,6 +26,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import java.time.ZoneId
+
+private const val TAG = "PT/HomeVM"
 
 data class HomeUiState(
     val isLoading: Boolean = true,
@@ -60,7 +63,8 @@ class HomeViewModel(application: Application) : AppViewModel(application) {
     }.mapLatest { inputs ->
         val hints = try {
             container.workoutRepository.readyForProgression(inputs.routines)
-        } catch (_: Exception) {
+        } catch (thrown: Exception) {
+            AppLog.w(TAG, "Computing the progression hints failed", thrown)
             emptyList()
         }
         val now = System.currentTimeMillis()
@@ -72,7 +76,8 @@ class HomeViewModel(application: Application) : AppViewModel(application) {
                 nowMs = now,
                 zone = zone,
             )
-        } catch (_: Exception) {
+        } catch (thrown: Exception) {
+            AppLog.w(TAG, "Computing the muscle heat snapshot failed", thrown)
             null
         }
         val recommendations = if (snapshot != null) {
@@ -91,7 +96,8 @@ class HomeViewModel(application: Application) : AppViewModel(application) {
                     nowMs = now,
                     zone = zone,
                 )
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "Computing the weekly schedule plan failed", thrown)
                 null
             }
         } else {
@@ -123,7 +129,8 @@ class HomeViewModel(application: Application) : AppViewModel(application) {
         viewModelScope.launch {
             val current = try {
                 container.workoutRepository.getInProgress()
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "startSuggestedDay failed", thrown)
                 null
             }
             if (current != null) {
@@ -144,7 +151,8 @@ class HomeViewModel(application: Application) : AppViewModel(application) {
                 }
                 actionError.value = null
                 onStarted(session.id)
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "startSuggestedDay failed", thrown)
                 actionError.value = "Could not start that session. Try again."
             }
         }

@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.workout
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
+import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.WorkoutSession
@@ -11,6 +12,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+private const val TAG = "PT/StartWorkoutVM"
 
 data class StartWorkoutUiState(
     val isLoading: Boolean = true,
@@ -54,7 +57,8 @@ class StartWorkoutViewModel(application: Application) : AppViewModel(application
                 val session = container.workoutRepository.startRoutine(routine)
                 error.value = null
                 onStarted(session.id)
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "startRoutine failed", thrown)
                 error.value = "Could not start that routine. Try again."
             }
         }
@@ -66,7 +70,8 @@ class StartWorkoutViewModel(application: Application) : AppViewModel(application
                 val session = container.workoutRepository.startFreeWorkout()
                 error.value = null
                 onStarted(session.id)
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "startFree failed", thrown)
                 error.value = "Could not start a free workout. Try again."
             }
         }

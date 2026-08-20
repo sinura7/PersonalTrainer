@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.library
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
+import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.data.repository.DeleteExerciseResult
 import com.sinura.personaltrainer.domain.Exercise
@@ -15,6 +16,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+private const val TAG = "PT/LibraryVM"
 
 data class ExerciseEditorDraft(
     val id: String? = null,
@@ -150,7 +153,8 @@ class ExerciseLibraryViewModel(application: Application) : AppViewModel(applicat
                 }
                 editor.value = null
                 error.value = null
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "saveEditor failed", thrown)
                 error.value = "Could not save that exercise. Try again."
             }
         }
@@ -170,7 +174,8 @@ class ExerciseLibraryViewModel(application: Application) : AppViewModel(applicat
                     pendingDelete.value = exercise
                 }
                 error.value = null
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "requestDelete failed", thrown)
                 error.value = "Could not check where this exercise is used."
             }
         }
@@ -241,7 +246,8 @@ class ExerciseLibraryViewModel(application: Application) : AppViewModel(applicat
                 message.value = "Added ${exercise.name} to ${routine.name}."
                 addToRoutine.value = null
                 error.value = null
-            } catch (_: Exception) {
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "addToRoutine failed", thrown)
                 error.value = "Could not add that lift to the routine."
             }
         }

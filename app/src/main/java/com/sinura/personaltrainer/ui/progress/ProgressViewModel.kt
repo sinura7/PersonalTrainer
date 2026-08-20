@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.progress
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
+import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.Exercise
@@ -21,6 +22,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import java.time.ZoneId
+
+private const val TAG = "PT/ProgressVM"
 
 data class ProgressUiState(
     val isLoading: Boolean = true,
@@ -55,12 +58,14 @@ class ProgressViewModel(application: Application) : AppViewModel(application) {
                 exerciseCatalog = inputs.exercises,
                 weekStart = inputs.weekStart,
             )
-        } catch (_: Exception) {
+        } catch (thrown: Exception) {
+            AppLog.w(TAG, "Computing the muscle heat snapshot failed", thrown)
             null
         }
         val hints = try {
             container.workoutRepository.readyForProgression(inputs.routines)
-        } catch (_: Exception) {
+        } catch (thrown: Exception) {
+            AppLog.w(TAG, "Computing the progression hints failed", thrown)
             emptyList()
         }
         val recs = if (snapshot != null) {
