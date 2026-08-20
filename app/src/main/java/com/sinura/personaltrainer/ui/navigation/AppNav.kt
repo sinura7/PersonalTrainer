@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.navigation
 
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import android.net.Uri
@@ -152,7 +153,13 @@ fun PersonalTrainerNav(
         NavHost(
             navController = navController,
             startDestination = Route.Home.path,
-            modifier = Modifier.padding(padding),
+            // consumeWindowInsets is what stops the double inset: this Scaffold has no top
+            // bar, so its padding already contains the status-bar height, and without
+            // consuming it every screen that mounts its own Scaffold applied that height a
+            // second time — a dead strip above the title on every screen but Home.
+            modifier = Modifier
+                .padding(padding)
+                .consumeWindowInsets(padding),
         ) {
             composable(Route.Home.path) {
                 HomeScreen(

@@ -524,8 +524,6 @@ private fun <T> NumberEntryDialog(
 // Rest timer
 // ---------------------------------------------------------------------------
 
-private enum class RestPhase { IDLE, RUNNING, FINISHED }
-
 /**
  * The rest clock, as a ring.
  *
@@ -541,26 +539,33 @@ private enum class RestPhase { IDLE, RUNNING, FINISHED }
  * a colour change and a tick in the last ten seconds, and while the clock is running the
  * only controls on screen are the three that make sense then: less, skip, more.
  */
+/**
+ * The rest clock, pinned.
+ *
+ * This is the single most important structural change on the workout screen. The clock used
+ * to be an ordinary item in the scrolling list, so the moment a lifter scrolled down to
+ * check the sets they had just logged — which is exactly what people do while resting — the
+ * number they were waiting on left the screen. Here it sits outside the scroll entirely and
+ * cannot be lost.
+ *
+ * Composes to nothing while idle, so the same call site covers all three states: the
+ * finished flash still plays because the component stays mounted after the clock stops.
+ */
 @Composable
-fun RestTimerRing(
+fun RestDock(
     remainingSeconds: Int,
     totalSeconds: Int,
     running: Boolean,
     onSkip: () -> Unit,
     onAdjust: (Int) -> Unit,
-    onPreset: (Int) -> Unit,
-    onCustom: (String) -> Boolean,
     modifier: Modifier = Modifier,
 ) {
-    var showCustom by rememberSaveable { mutableStateOf(false) }
     var justFinished by remember { mutableStateOf(false) }
     var wasRunning by remember { mutableStateOf(running) }
     val view = LocalView.current
 
     LaunchedEffect(running, remainingSeconds) {
-        if (wasRunning && !running && remainingSeconds <= 0) {
-            justFinished = true
-        }
+        if (wasRunning && !running && remainingSeconds <= 0) justFinished = true
         if (running) justFinished = false
         wasRunning = running
     }
@@ -572,80 +577,99 @@ fun RestTimerRing(
     }
 
     val safeRemaining = remainingSeconds.coerceAtLeast(0)
-    val phase = when {
-        running -> RestPhase.RUNNING
-        justFinished -> RestPhase.FINISHED
-        else -> RestPhase.IDLE
-    }
     val urgent = running && safeRemaining <= URGENT_SECONDS
 
-    // One tick per second through the final stretch, so the last of the rest can be felt
-    // with the phone face-down on a bench.
+    // One tick per second through the final stretch, so the end of the rest can be felt with
+    // the phone face-down on a bench.
     LaunchedEffect(urgent, safeRemaining) {
         if (urgent && safeRemaining > 0) Haptics.tick(view)
     }
 
+    if (!running && !justFinished) return
+
+    val accent = when {
+        justFinished -> PrGold
+        urgent -> Warn
+        else -> Volt
+    }
+
     Column(
-        modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Surface1)
+            .padding(horizontal = Metrics.space4, vertical = Metrics.space3),
         verticalArrangement = Arrangement.spacedBy(Metrics.space3),
     ) {
-        when (phase) {
-            RestPhase.RUNNING -> {
-                RestRing(
-                    remainingSeconds = safeRemaining,
-                    totalSeconds = totalSeconds,
-                    accent = if (urgent) Warn else Volt,
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-                ) {
-                    RestControl("−15s", onClick = { onAdjust(-15) }, modifier = Modifier.weight(1f))
-                    RestControl(
-                        "Skip",
-                        onClick = onSkip,
-                        modifier = Modifier.weight(1f),
-                        emphasised = true,
-                    )
-                    RestControl("+15s", onClick = { onAdjust(15) }, modifier = Modifier.weight(1f))
-                }
-            }
-
-            RestPhase.FINISHED -> {
-                RestRing(
-                    remainingSeconds = 0,
-                    totalSeconds = totalSeconds,
-                    accent = PrGold,
-                )
-                Kicker("Back to the bar", color = PrGold)
-            }
-
-            RestPhase.IDLE -> {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(Radius.md))
-                        .background(Surface2)
-                        .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.md))
-                        .padding(horizontal = Metrics.space4, vertical = Metrics.space3),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Kicker("Rest")
-                    Text(
-                        RestTimer.formatClock(totalSeconds.coerceAtLeast(0)),
-                        style = InstrumentType.numeralMd,
-                        color = TextPrimary,
-                    )
-                }
-                RestPresetChips(
-                    selectedSeconds = totalSeconds,
-                    onSelect = onPreset,
-                    onCustom = { showCustom = true },
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            RestRing(
+                remainingSeconds = if (justFinished) 0 else safeRemaining,
+                totalSeconds = totalSeconds,
+                accent = accent,
+                showClock = false,
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+                Kicker(if (justFinished) "Back to the bar" else "Rest", color = accent)
+                Text(
+                    RestTimer.formatClock(if (justFinished) 0 else safeRemaining),
+                    style = InstrumentType.numeralXl,
+                    color = TextPrimary,
+                    maxLines = 1,
                 )
             }
         }
+        if (running) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            ) {
+                RestControl("−15s", onClick = { onAdjust(-15) }, modifier = Modifier.weight(1f))
+                RestControl("Skip", onClick = onSkip, modifier = Modifier.weight(1f), emphasised = true)
+                RestControl("+15s", onClick = { onAdjust(15) }, modifier = Modifier.weight(1f))
+            }
+        }
+    }
+    HairlineDivider(startIndent = 0.dp)
+}
+
+/**
+ * Choosing how long the next rest will be — an idle-state job, and only an idle-state job.
+ *
+ * These chips used to stay mounted underneath the running clock, so a countdown was shown
+ * with two competing rows of controls beneath it and a mistap silently restarted the timer.
+ */
+@Composable
+fun RestIdleRow(
+    totalSeconds: Int,
+    onPreset: (Int) -> Unit,
+    onCustom: (String) -> Boolean,
+    modifier: Modifier = Modifier,
+) {
+    var showCustom by rememberSaveable { mutableStateOf(false) }
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Kicker("Rest")
+            Text(
+                RestTimer.formatClock(totalSeconds.coerceAtLeast(0)),
+                style = InstrumentType.numeralMd,
+                color = TextSecondary,
+            )
+        }
+        RestPresetChips(
+            selectedSeconds = totalSeconds,
+            onSelect = onPreset,
+            onCustom = { showCustom = true },
+        )
     }
 
     if (showCustom) {
@@ -667,6 +691,7 @@ private fun RestRing(
     remainingSeconds: Int,
     totalSeconds: Int,
     accent: Color,
+    showClock: Boolean = true,
 ) {
     val target = if (totalSeconds > 0) {
         (remainingSeconds.toFloat() / totalSeconds.toFloat()).coerceIn(0f, 1f)
@@ -689,7 +714,7 @@ private fun RestRing(
 
     Box(
         modifier = Modifier
-            .size(RING_SIZE)
+            .size(if (showClock) RING_SIZE else RING_SIZE_COMPACT)
             .semantics { contentDescription = "Rest, $clock remaining" },
         contentAlignment = Alignment.Center,
     ) {
@@ -728,9 +753,11 @@ private fun RestRing(
                 style = Stroke(width = stroke, cap = StrokeCap.Round),
             )
         }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Kicker("Rest")
-            Text(clock, style = InstrumentType.numeralXl, color = TextPrimary, maxLines = 1)
+        if (showClock) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Kicker("Rest")
+                Text(clock, style = InstrumentType.numeralXl, color = TextPrimary, maxLines = 1)
+            }
         }
     }
 }
@@ -973,4 +1000,5 @@ private const val REPEATS_BEFORE_FAST = 8
 private const val FINISHED_DWELL_MS = 3_500L
 private const val URGENT_SECONDS = 10
 private val RING_SIZE = 200.dp
+private val RING_SIZE_COMPACT = 88.dp
 private val RING_STROKE = 10.dp
