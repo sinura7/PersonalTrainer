@@ -137,7 +137,12 @@ private fun DayCell(
     // from a rest day, which is the distinction the calendar exists to draw.
     val fill = when {
         !day.trained -> Color.Transparent
-        else -> scheme.primary.copy(alpha = MIN_TRAINED_ALPHA + day.intensity * ALPHA_RANGE)
+        // Second clamp on purpose. TrainingCalendarBuilder already bounds intensity, but
+        // Color.copy throws on an alpha outside 0..1, and a crash here takes down the whole
+        // History tab — too high a price to pay for trusting a caller.
+        else -> scheme.primary.copy(
+            alpha = (MIN_TRAINED_ALPHA + day.intensity * ALPHA_RANGE).coerceIn(0f, 1f),
+        )
     }
     val label = buildString {
         append(day.date.dayOfMonth)

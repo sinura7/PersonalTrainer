@@ -134,6 +134,27 @@ class TrainingCalendarBuilderTest {
     }
 
     @Test
+    fun aHeavyPaddingDayCannotPushIntensityAboveOne() {
+        // 27 July is a padding day of the August grid, so its volume never enters
+        // `busiest` — but it keeps its own. Unclamped this produced intensity 6.0,
+        // which the calendar turned into an out-of-range colour alpha and threw.
+        val grid = TrainingCalendarBuilder.build(
+            august,
+            listOf(
+                workout("july", "2026-07-27T10:00:00Z", 200.0, 10),
+                workout("august", "2026-08-05T10:00:00Z", 50.0, 5),
+            ),
+            zone,
+            DayOfWeek.MONDAY,
+        )
+
+        val padding = grid.day(LocalDate.of(2026, 7, 27))
+        assertTrue(padding.volumeKg > grid.day(LocalDate.of(2026, 8, 5)).volumeKg)
+        assertEquals(1f, padding.intensity, 0.0001f)
+        assertTrue(grid.weeks.flatten().all { it.intensity in 0f..1f })
+    }
+
+    @Test
     fun weekdayHeadingsFollowTheWeekStart() {
         assertEquals(
             listOf(

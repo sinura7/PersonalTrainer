@@ -74,7 +74,16 @@ object TrainingCalendarBuilder {
                     inMonth = YearMonth.from(date) == month,
                     sessionIds = daySessions.map { it.id },
                     volumeKg = volume,
-                    intensity = if (busiest > 0.0) (volume / busiest).toFloat() else 0f,
+                    // Clamped because `busiest` only considers in-month days, while the
+                    // leading and trailing padding days of the grid keep their real volume:
+                    // a heavy end-of-previous-month session divided by a light current
+                    // month yields a ratio above 1, which downstream becomes an out-of-range
+                    // colour alpha and throws.
+                    intensity = if (busiest > 0.0) {
+                        (volume / busiest).toFloat().coerceIn(0f, 1f)
+                    } else {
+                        0f
+                    },
                 )
             }
             cursor = cursor.plusDays(DAYS_IN_WEEK.toLong())
