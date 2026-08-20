@@ -13,7 +13,9 @@ from fontTools.varLib import instancer
 from fontTools import subset
 
 OUT = sys.argv[1]
-CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fontcache")
+# Downloaded upstream variable fonts and intermediate instances. Under build/ so the
+# repo never carries them.
+CACHE = os.path.join("build", "fontcache")
 os.makedirs(OUT, exist_ok=True)
 os.makedirs(CACHE, exist_ok=True)
 
@@ -101,6 +103,12 @@ for key, name, wght, pins, weight_class in TARGETS:
 
     out = TTFont(out_path)
     out["OS/2"].usWeightClass = weight_class
+    # fontTools stamps head.modified with the current time. Pinning both timestamps keeps
+    # the *contents* of every table stable across rebuilds; the sfnt packing order still
+    # varies with Python's hash seed, so two runs can differ byte for byte while being
+    # table-for-table identical. Rebuild only when the inputs actually change.
+    out["head"].created = 0
+    out["head"].modified = 0
     out.save(out_path)
 
     out = TTFont(out_path)
