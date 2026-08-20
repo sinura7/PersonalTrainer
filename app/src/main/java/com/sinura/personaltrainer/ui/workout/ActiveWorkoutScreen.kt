@@ -94,7 +94,7 @@ private const val TAG = "PT/ActiveWorkoutScreen"
 @Composable
 fun ActiveWorkoutScreen(
     onExit: () -> Unit,
-    onFinished: () -> Unit,
+    onFinished: (String) -> Unit,
     viewModel: ActiveWorkoutViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -127,8 +127,8 @@ fun ActiveWorkoutScreen(
         val reason = exitRequested ?: return@LaunchedEffect
         viewModel.onExitHandled()
         when (reason) {
-            WorkoutExit.FINISHED -> onFinished()
-            WorkoutExit.DISCARDED -> onExit()
+            is WorkoutExit.Finished -> onFinished(reason.sessionId)
+            WorkoutExit.Discarded -> onExit()
         }
     }
 

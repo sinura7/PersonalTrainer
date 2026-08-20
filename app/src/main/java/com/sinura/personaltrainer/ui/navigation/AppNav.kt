@@ -44,6 +44,7 @@ import com.sinura.personaltrainer.ui.routines.RoutineEditorScreen
 import com.sinura.personaltrainer.ui.schedule.ScheduleScreen
 import com.sinura.personaltrainer.ui.routines.RoutinesScreen
 import com.sinura.personaltrainer.ui.settings.SettingsScreen
+import com.sinura.personaltrainer.ui.summary.WorkoutSummaryScreen
 import com.sinura.personaltrainer.ui.settings.SettingsViewModel
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.workout.ActiveWorkoutScreen
@@ -59,6 +60,9 @@ sealed class Route(val path: String) {
     }
     data object ActiveWorkout : Route("session/{sessionId}") {
         fun create(sessionId: String): String = "session/$sessionId"
+    }
+    data object WorkoutSummary : Route("summary/{sessionId}") {
+        fun create(sessionId: String) = "summary/$sessionId"
     }
     data object ExerciseDetail : Route("exercise/{exerciseId}") {
         fun create(exerciseId: String) = "exercise/$exerciseId"
@@ -260,8 +264,13 @@ fun PersonalTrainerNav(
             ) {
                 ActiveWorkoutScreen(
                     onExit = { navController.popBackStack() },
-                    onFinished = {
-                        navController.popBackStack(Route.Home.path, inclusive = false)
+                    onFinished = { sessionId ->
+                        // The finished workout leaves the stack: back from the summary goes
+                        // Home, never into a session that no longer accepts sets.
+                        navController.navigate(Route.WorkoutSummary.create(sessionId)) {
+                            popUpTo(Route.Home.path) { inclusive = false }
+                            launchSingleTop = true
+                        }
                     },
                 )
             }
@@ -272,6 +281,21 @@ fun PersonalTrainerNav(
                 SessionDetailScreen(
                     onBack = { navController.popBackStack() },
                     onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
+                )
+            }
+            composable(
+                route = Route.WorkoutSummary.path,
+                arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
+            ) {
+                WorkoutSummaryScreen(
+                    onDone = {
+                        navController.popBackStack(Route.Home.path, inclusive = false)
+                    },
+                    onOpenSession = { sessionId ->
+                        navController.navigate(Route.SessionDetail.create(sessionId)) {
+                            launchSingleTop = true
+                        }
+                    },
                 )
             }
             composable(

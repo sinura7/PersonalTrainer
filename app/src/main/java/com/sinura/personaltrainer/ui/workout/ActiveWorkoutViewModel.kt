@@ -66,16 +66,16 @@ enum class SessionLoadState {
 }
 
 /**
- * Why this screen asked to be popped. The two exits land in different places — finishing
- * returns all the way to Home, leaving after a discard pops one step — so the signal has to
- * carry which one it was rather than being a bare boolean.
+ * Why this screen asked to be popped. The two exits land in different places — finishing goes
+ * on to the summary, discarding pops back — so the signal carries which one it was, and
+ * finishing carries the session the summary is about.
  */
-enum class WorkoutExit {
+sealed interface WorkoutExit {
     /** Session was written to history. */
-    FINISHED,
+    data class Finished(val sessionId: String) : WorkoutExit
 
     /** Session row was deleted. */
-    DISCARDED,
+    data object Discarded : WorkoutExit
 }
 
 data class ActiveWorkoutUiState(
@@ -655,7 +655,7 @@ class ActiveWorkoutViewModel(
                 container.workoutRepository.finishSession(sessionId, notes.value)
                 clearDraft()
                 finished.value = true
-                _exitRequested.value = WorkoutExit.FINISHED
+                _exitRequested.value = WorkoutExit.Finished(sessionId)
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "finishWorkout failed", thrown)
                 error.value = "Could not finish this workout. Try again."
@@ -669,7 +669,7 @@ class ActiveWorkoutViewModel(
             try {
                 container.workoutRepository.discardSession(sessionId)
                 clearDraft()
-                _exitRequested.value = WorkoutExit.DISCARDED
+                _exitRequested.value = WorkoutExit.Discarded
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "discardWorkout failed", thrown)
                 error.value = "Could not discard this workout. Try again."

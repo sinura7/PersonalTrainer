@@ -48,6 +48,8 @@ class WorkoutRepository(
     suspend fun getInProgress(): WorkoutSession? =
         workoutDao.getInProgressSession()?.toSummary()
 
+    suspend fun getSession(id: String): WorkoutSession? = workoutDao.getSession(id)?.toDomain()
+
     suspend fun startRoutine(routine: Routine): WorkoutSession {
         val now = System.currentTimeMillis()
         val session = WorkoutSessionEntity(
@@ -354,6 +356,22 @@ class WorkoutRepository(
             priorHistory = prior,
         )
     }
+
+    /**
+     * Every working set of each exercise in [sessionId], logged in any *other* session.
+     *
+     * Excluded by session id rather than by timestamp: the session is finished by the time
+     * this runs, so its own sets are in the finished-history query, and a set cannot be part
+     * of the history it is judged against.
+     */
+    suspend fun historyBefore(sessionId: String, exerciseIds: Collection<String>): Map<String, List<ExerciseSetRecord>> =
+        exerciseIds.distinct().associateWith { exerciseId ->
+            workoutDao.finishedWorkingSets(exerciseId)
+                .asSequence()
+                .filter { it.sessionId != sessionId }
+                .map { it.toEntry().record }
+                .toList()
+        }
 
     /** The outcome of logging one set: what was written, and what it beat. */
     data class LoggedSet(
