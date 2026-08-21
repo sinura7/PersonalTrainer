@@ -31,6 +31,7 @@ import com.sinura.personaltrainer.domain.MuscleNormalizer
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
+import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.WeightUnit
 import kotlinx.coroutines.flow.first
@@ -100,6 +101,7 @@ class LocalBackupRepository(
         val bodyweightKg = preferencesRepository.bodyweightKg.first()
         val onboardingComplete = preferencesRepository.onboardingComplete.first()
         val dismissedCollisions = preferencesRepository.dismissedCollisionIds.first()
+        val block = preferencesRepository.trainingBlock.first()
         return BackupDocument(
             version = BackupJson.CURRENT_VERSION,
             app = BackupJson.APP_ID,
@@ -120,6 +122,8 @@ class LocalBackupRepository(
                 // Sorted so two exports of the same state produce byte-identical documents,
                 // which is what makes a backup diffable and a round-trip test meaningful.
                 dismissedCollisionIds = dismissedCollisions.sorted(),
+                blockStartEpochDay = block?.startEpochDay,
+                blockWeeks = block?.weeks ?: TrainingBlock.DEFAULT_WEEKS,
             ),
             exercises = exercises.map {
                 BackupExercise(
@@ -397,6 +401,9 @@ class LocalBackupRepository(
                 bodyweightKg = document.preferences.bodyweightKg,
                 onboardingComplete = document.hasBeenSetUp(),
                 dismissedCollisionIds = document.preferences.dismissedCollisionIds.toSet(),
+                block = document.preferences.blockStartEpochDay?.let { start ->
+                    TrainingBlock(startEpochDay = start, weeks = document.preferences.blockWeeks)
+                },
             )
             true
         } catch (_: Exception) {

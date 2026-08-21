@@ -14,6 +14,7 @@ import com.sinura.personaltrainer.data.repository.LocalBackupRepository
 import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.domain.DefaultExercises
 import com.sinura.personaltrainer.domain.HeatWindow
+import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.WeightUnit
 import kotlinx.coroutines.flow.first
@@ -22,6 +23,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -155,6 +157,36 @@ class BackupV2RoundTripTest {
         assertEquals(82.5, preferences.bodyweightKg.first()!!, 0.001)
         assertTrue(preferences.onboardingComplete.first())
         assertEquals(setOf("ex-custom-1"), preferences.dismissedCollisionIds.first())
+    }
+
+    @Test
+    fun aRestoreKeepsYouWhereYouWereInYourBlock() {
+        // A block is a horizon and a review date. Losing it on a restore would put a lifter
+        // back at week one of nothing with eleven weeks of the work already behind them.
+        maintenance.seedCatalog()
+        seedUserData()
+        preferences.setTrainingBlock(TrainingBlock(startEpochDay = 20_318L, weeks = 12))
+
+        val json = BackupJson.encode(local.createSnapshot())
+        preferences.setTrainingBlock(TrainingBlock(startEpochDay = 20_500L, weeks = 8))
+
+        restore(json)
+
+        val restored = preferences.trainingBlock.first()!!
+        assertEquals(20_318L, restored.startEpochDay)
+        assertEquals(12, restored.weeks)
+    }
+
+    @Test
+    fun restoringABackupWithNoBlockLeavesYouInNone() {
+        // Null is a real answer: someone who built their routines by hand never started a
+        // block, and an implied one would invent a milestone they never set.
+        preferences.setTrainingBlock(TrainingBlock(startEpochDay = 20_500L, weeks = 8))
+        maintenance.seedCatalog()
+
+        restore(V1_FIXTURE)
+
+        assertNull(preferences.trainingBlock.first())
     }
 
     @Test

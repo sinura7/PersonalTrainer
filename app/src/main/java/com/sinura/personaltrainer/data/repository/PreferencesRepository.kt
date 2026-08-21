@@ -17,6 +17,7 @@ import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
+import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.WeightUnit
 import java.time.DayOfWeek
@@ -234,6 +235,7 @@ class PreferencesRepository(context: Context) {
         bodyweightKg: Double?,
         onboardingComplete: Boolean,
         dismissedCollisionIds: Set<String>,
+        block: TrainingBlock?,
     ) {
         val cleanSchedule = schedule.sanitized()
         val cleanRest = rest.sanitized()
@@ -263,6 +265,13 @@ class PreferencesRepository(context: Context) {
             }
             prefs[ONBOARDING_COMPLETE] = onboardingComplete
             prefs[DISMISSED_COLLISIONS] = dismissedCollisionIds
+            if (block == null) {
+                prefs.remove(BLOCK_START)
+                prefs.remove(BLOCK_WEEKS)
+            } else {
+                prefs[BLOCK_START] = block.startEpochDay
+                prefs[BLOCK_WEEKS] = block.weeks
+            }
         }
     }
 
@@ -320,6 +329,34 @@ class PreferencesRepository(context: Context) {
         }
     }
 
+    /**
+     * The block the lifter is in, or null when they are not in one.
+     *
+     * Null is a real state and stays one. Someone who built their routines by hand never
+     * started a block, and putting them in an implied one — dated from whenever the app first
+     * saw them — would invent a milestone they never set.
+     */
+    val trainingBlock: Flow<TrainingBlock?> = safePreferences
+        .map { prefs ->
+            val start = prefs[BLOCK_START] ?: return@map null
+            TrainingBlock(
+                startEpochDay = start,
+                weeks = prefs[BLOCK_WEEKS] ?: TrainingBlock.DEFAULT_WEEKS,
+            )
+        }
+
+    suspend fun setTrainingBlock(block: TrainingBlock?) {
+        dataStore.edit { prefs ->
+            if (block == null) {
+                prefs.remove(BLOCK_START)
+                prefs.remove(BLOCK_WEEKS)
+            } else {
+                prefs[BLOCK_START] = block.startEpochDay
+                prefs[BLOCK_WEEKS] = block.weeks
+            }
+        }
+    }
+
     val lastRestoreAt: Flow<Long?> = safePreferences.map { prefs -> prefs[LAST_RESTORE_AT] }
 
     val lastRestoreName: Flow<String?> = safePreferences.map { prefs -> prefs[LAST_RESTORE_NAME] }
@@ -357,6 +394,8 @@ class PreferencesRepository(context: Context) {
         val DISMISSED_COLLISIONS = stringSetPreferencesKey("library_collision_dismissed_ids")
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val BODYWEIGHT_KG = doublePreferencesKey("bodyweight_kg")
+        val BLOCK_START = longPreferencesKey("block_start_epoch_day")
+        val BLOCK_WEEKS = intPreferencesKey("block_weeks")
         val HEAT_WINDOW = stringPreferencesKey("heat_window")
         val TRAINING_DAYS = intPreferencesKey("training_days_per_week")
         val SPLIT_STYLE = stringPreferencesKey("split_style")

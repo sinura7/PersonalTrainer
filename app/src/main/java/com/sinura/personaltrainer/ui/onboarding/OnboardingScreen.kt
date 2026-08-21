@@ -28,6 +28,7 @@ import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.PlanBlueprint
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.TrainingAge
+import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightConverter
@@ -345,10 +346,11 @@ private fun PreviewStep(
     ) {
         item {
             QuestionTitle(
-                "Here's your week",
+                "Here's your block",
                 plan?.let {
-                    "${it.splitStyle.displayName} · ${it.trainingDayCount} days · ${it.liftCount} lifts. " +
-                        "Change anything you like once it's in."
+                    "${TrainingBlock.DEFAULT_WEEKS} weeks of ${it.splitStyle.displayName} · " +
+                        "${it.trainingDayCount} days a week · ${it.liftCount} lifts. " +
+                        "This is week one; change anything you like once it's in."
                 } ?: "Building it…",
             )
         }
@@ -373,7 +375,7 @@ private fun PreviewStep(
         item {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
                 PrimaryGymButton(
-                    text = if (state.applying) "Building…" else "Use this plan",
+                    text = if (state.applying) "Building…" else "Start this block",
                     onClick = onApply,
                     enabled = plan != null && !state.applying,
                 )

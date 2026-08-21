@@ -75,6 +75,16 @@ data class BackupPreferences(
      * asked again about a decision already made is the same failure as the setup one above.
      */
     val dismissedCollisionIds: List<String> = emptyList(),
+    /**
+     * The training block, when there is one. Null means "not in a block", which is a real
+     * answer — someone who built their routines by hand never started one.
+     *
+     * It travels for the same reason the setup flag does: a block is a horizon and a review
+     * date, and a restore that dropped it would put a lifter back at week one of nothing with
+     * eleven weeks of the work already behind them.
+     */
+    val blockStartEpochDay: Long? = null,
+    val blockWeeks: Int = 12,
 )
 
 /**

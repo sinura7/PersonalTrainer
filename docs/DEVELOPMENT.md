@@ -89,7 +89,19 @@ check nobody knows works. `check-missing-imports.py` came from `Surface1` shippi
 in `ExerciseDetailScreen`, and before it `LaunchedEffect` in `HomeScreen` and `ScheduleScreen`.
 It takes both source roots at once, so it needs no argument.
 
-`check-import-hygiene.py` is the newest, and both halves of it come from build breaks a
+`check-required-args.py` grew a second half while the block frame was being built.
+`OnboardingApplier.apply` gained two required parameters and its test called it positionally
+with the old three; the tool watched that go past in silence, because until then it only judged
+calls where *every* argument was named. An all-positional call with no trailing lambda is
+decidable too — arguments fill parameters left to right, so a count is enough. The first draft
+of that reported 245 findings and every one was wrong: `data class Foo(` matches the call
+pattern and its parameters are not named arguments, and `: AppViewModel(application) {` is a
+supertype call followed by a class body rather than a call with a block. Both are excluded now,
+and so is over-supply, which needs the split to be exactly right to mean anything. It still
+cannot see `applier.apply(...)`: a lowercase call needs its receiver's type resolved, so only
+Gradle finds a method that grew a parameter.
+
+`check-import-hygiene.py` came from build breaks a
 compile audit found in code eleven phases deep that no compiler had ever seen.
 `WorkoutRepository.kt` carried the same import line five times, which reads as harmless
 copy-paste and is a hard K2 failure — `conflicting import: imported name is ambiguous`, once per

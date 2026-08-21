@@ -15,6 +15,7 @@ import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import java.time.DayOfWeek
+import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -218,6 +219,7 @@ class OnboardingViewModel(application: Application) : AppViewModel(application) 
                 blueprint = blueprint,
                 catalog = catalog.value,
                 weekStart = weekStart.value,
+                today = LocalDate.now(),
             )
             applying.value = false
             when (result) {

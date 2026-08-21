@@ -6,7 +6,9 @@ import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.PlanBlueprint
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
+import com.sinura.personaltrainer.domain.TrainingBlock
 import java.time.DayOfWeek
+import java.time.LocalDate
 
 private const val TAG = "PT/Onboarding"
 
@@ -42,12 +44,15 @@ class OnboardingApplier(
      * their week derivation, their heat window and every weekly chart. The questionnaire has no
      * question about week start, so setup has no answer to write; this value is read from
      * preferences by the caller, used to lay the week out, and written back by nobody.
+     * @param today passed in rather than read from the clock here, so the block's start date is
+     * testable and so it agrees with the date the rest of the flow is working from.
      */
     suspend fun apply(
         answers: OnboardingAnswers,
         blueprint: PlanBlueprint,
         catalog: List<Exercise>,
         weekStart: DayOfWeek,
+        today: LocalDate,
     ): ApplyPlanResult {
         val clean = answers.sanitized()
         return runCatchingCancellable {
@@ -65,6 +70,11 @@ class OnboardingApplier(
             preferencesRepository.setTrainingGoal(coach.goal)
             preferencesRepository.setAvailableEquipment(coach.availableEquipment)
             preferencesRepository.setBodyweightKg(clean.bodyweightKg)
+            // The block starts the moment a plan is accepted, not the moment the app was
+            // installed: what is being counted is twelve weeks of *this* programme.
+            preferencesRepository.setTrainingBlock(
+                TrainingBlock.startingIn(today = today, weekStart = weekStart),
+            )
 
             val byId = catalog.associateBy { it.id }
             val createdIds = LinkedHashMap<String, String>()

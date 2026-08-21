@@ -185,7 +185,20 @@ fun HomeScreen(
                 // The card body no longer navigates. A whole-card tap that went to the plan,
                 // with a filled Start inside it, was a mis-tap trap on the most-pressed
                 // control in the app.
-                LinkRow(label = "This week", onClick = onOpenPlan)
+                //
+                // The block reads as part of that link rather than as its own row: "Week 3 of
+                // 12" is where this week sits, and where it sits is what the link goes to see.
+                LinkRow(
+                    label = "This week",
+                    trailing = state.block?.let { block ->
+                        if (block.isCompleteOn(today)) {
+                            "Block complete"
+                        } else {
+                            "Week ${block.displayWeekOn(today)} of ${block.weeks}"
+                        }
+                    },
+                    onClick = onOpenPlan,
+                )
             }
         }
         if (plan != null) {
@@ -234,9 +247,16 @@ fun HomeScreen(
  * competes with the hero for the eye.
  */
 @Composable
-private fun LinkRow(label: String, onClick: () -> Unit) {
+private fun LinkRow(label: String, onClick: () -> Unit, trailing: String? = null) {
     TextButton(onClick = onClick, contentPadding = PaddingValues(0.dp)) {
         Text("$label  \u203a", style = InstrumentType.bodyStrong, color = TextSecondary)
+        if (trailing != null) {
+            Text(
+                "  ·  $trailing",
+                style = InstrumentType.caption,
+                color = TextTertiary,
+            )
+        }
     }
 }
 

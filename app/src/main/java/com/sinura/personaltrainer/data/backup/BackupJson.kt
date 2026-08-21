@@ -214,6 +214,8 @@ object BackupJson {
             bodyweightKg = prefs.positiveDoubleOrNull("bodyweightKg"),
             onboardingComplete = prefs.bool("onboardingComplete", false),
             dismissedCollisionIds = prefs.stringList("dismissedCollisionIds"),
+            blockStartEpochDay = prefs.longOrNull("blockStartEpochDay"),
+            blockWeeks = prefs.int("blockWeeks", 12),
         )
     }
 
@@ -246,6 +248,13 @@ object BackupJson {
             primitive(key)?.asBoolean ?: fallback
         } catch (_: Exception) {
             fallback
+        }
+
+    private fun JsonObject?.longOrNull(key: String): Long? =
+        try {
+            primitive(key)?.asLong
+        } catch (_: Exception) {
+            null
         }
 
     private fun JsonObject?.positiveDoubleOrNull(key: String): Double? =

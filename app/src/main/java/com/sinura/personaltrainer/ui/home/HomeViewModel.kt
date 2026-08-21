@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
+import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.domain.WeeklySchedulePlan
 import com.sinura.personaltrainer.domain.WorkoutSession
@@ -38,6 +39,8 @@ data class HomeUiState(
      * in the current week looking untrained.
      */
     val loggedEpochDays: Set<Long> = emptySet(),
+    /** The block this week belongs to, or null when the lifter is not in one. */
+    val block: TrainingBlock? = null,
     val error: String? = null,
 )
 
@@ -48,7 +51,8 @@ class HomeViewModel(application: Application) : AppViewModel(application) {
         container.trainingInsights.observe(),
         container.workoutRepository.observeInProgress(),
         actionError,
-    ) { insights, inProgress, error ->
+        container.preferencesRepository.trainingBlock,
+    ) { insights, inProgress, error, block ->
         HomeUiState(
             isLoading = false,
             inProgress = inProgress,
@@ -66,6 +70,7 @@ class HomeViewModel(application: Application) : AppViewModel(application) {
                 .filter { it.isFinished }
                 .map { todayEpochDay(it.date) }
                 .toSet(),
+            block = block,
             error = error,
         )
     }.stateIn(

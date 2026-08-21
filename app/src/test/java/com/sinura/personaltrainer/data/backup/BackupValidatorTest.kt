@@ -240,6 +240,8 @@ class BackupValidatorTest {
                 bodyweightKg = 82.5,
                 onboardingComplete = true,
                 dismissedCollisionIds = listOf("ex-a", "ex-b"),
+                blockStartEpochDay = 20_318L,
+                blockWeeks = 12,
             ),
         )
         assertEquals(
@@ -263,6 +265,35 @@ class BackupValidatorTest {
         assertEquals(emptyList<String>(), decoded.preferences.dismissedCollisionIds)
         assertNull(decoded.preferences.bodyweightKg)
         assertFalse(decoded.preferences.onboardingComplete)
+        // No block in an older document, and none is invented: a lifter who never started one
+        // must not be shown week one of something they did not begin.
+        assertNull(decoded.preferences.blockStartEpochDay)
+    }
+
+    @Test
+    fun aBlockSurvivesTheCodec() {
+        val original = sample().copy(
+            preferences = BackupPreferences(
+                weightUnit = "kg",
+                blockStartEpochDay = 20_318L,
+                blockWeeks = 12,
+            ),
+        )
+        val decoded = BackupJson.decode(BackupJson.encode(original)).preferences
+        assertEquals(20_318L, decoded.blockStartEpochDay)
+        assertEquals(12, decoded.blockWeeks)
+    }
+
+    @Test
+    fun aJunkBlockStartCostsTheBlockAndNothingElse() {
+        val decoded = BackupJson.decode(
+            """{"version": 2, "app": "personal-trainer",
+                "preferences": {"weightUnit": "kg", "blockStartEpochDay": "someday",
+                                "blockWeeks": 8, "onboardingComplete": true}}""",
+        )
+        assertNull(decoded.preferences.blockStartEpochDay)
+        assertEquals(8, decoded.preferences.blockWeeks)
+        assertTrue(decoded.preferences.onboardingComplete)
     }
 
     @Test

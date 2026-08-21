@@ -9,6 +9,7 @@ import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
+import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.domain.WeeklySchedulePlan
 import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
@@ -43,8 +44,20 @@ data class PlanUiState(
     val loggedEpochDays: Set<Long> = emptySet(),
     /** A previewed week. Nothing here is stored until it is accepted. */
     val proposals: List<SuggestedTrainingDay> = emptyList(),
+    /** The block this week belongs to, or null when the lifter is not in one. */
+    val block: TrainingBlock? = null,
     val error: String? = null,
-)
+) {
+    /**
+     * Which week of the block today is, and whether the block is done.
+     *
+     * Null when there is no block. Computed here rather than stored, because "today" moves and
+     * a stored week number would be right on the morning it was written and wrong by Tuesday.
+     */
+    fun blockWeek(today: Long): Int? = block?.displayWeekOn(today)
+
+    fun blockComplete(today: Long): Boolean = block?.isCompleteOn(today) == true
+}
 
 /**
  * The Plan tab: the week you decided on, and the routines it is built from.
@@ -70,23 +83,27 @@ class PlanViewModel(application: Application) : AppViewModel(application) {
     val uiState: StateFlow<PlanUiState> = combine(
         insights,
         container.workoutRepository.observeInProgress(),
-        container.preferencesRepository.schedulePreferences,
+        combine(
+            container.preferencesRepository.schedulePreferences,
+            container.preferencesRepository.trainingBlock,
+        ) { preferences, block -> SettingsAndBlock(preferences, block) },
         proposals,
         actionError,
-    ) { current, inProgress, preferences, previewed, error ->
+    ) { current, inProgress, settings, previewed, error ->
         if (current == null) return@combine PlanUiState()
         val zone = ZoneId.systemDefault()
         PlanUiState(
             isLoading = false,
             week = current.weekPlan,
             routines = current.routines,
-            preferences = preferences,
+            preferences = settings.preferences,
             inProgress = inProgress,
             loggedEpochDays = current.history
                 .filter { it.isFinished }
                 .map { Instant.ofEpochMilli(it.date).atZone(zone).toLocalDate().toEpochDay() }
                 .toSet(),
             proposals = previewed,
+            block = settings.block,
             error = error ?: when {
                 current.failed(InsightFailure.PLAN) ->
                     "Couldn’t read this week’s plan. Your pins are safe — try again."
@@ -293,6 +310,27 @@ class PlanViewModel(application: Application) : AppViewModel(application) {
 
     private fun dayOfWeekFor(epochDay: Long): DayOfWeek = LocalDate.ofEpochDay(epochDay).dayOfWeek
 
+    /**
+     * Begin the next twelve weeks from the top of this week.
+     *
+     * Nothing is deleted and nothing is regenerated: the routines, the pinned week and every
+     * logged session stay exactly as they are. A block is a horizon, not a container, so
+     * starting a new one moves the marker and leaves the training alone.
+     */
+    fun startNextBlock() {
+        write("Couldn't start a new block. Try again.") {
+            val weekStart = container.preferencesRepository.schedulePreferences.first().weekStart
+            container.preferencesRepository.setTrainingBlock(
+                TrainingBlock.startingIn(today = LocalDate.now(), weekStart = weekStart),
+            )
+        }
+    }
+
     /** The day whose Start was refused, held so the screen can ask instead of the app deciding. */
     data class BlockedStart(val day: SuggestedTrainingDay, val sessionId: String)
+
+    private data class SettingsAndBlock(
+        val preferences: SchedulePreferences,
+        val block: TrainingBlock?,
+    )
 }

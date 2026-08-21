@@ -15,6 +15,7 @@ import com.sinura.personaltrainer.domain.RoutineGenerator
 import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingPlace
 import java.time.DayOfWeek
+import java.time.LocalDate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -98,7 +99,7 @@ class OnboardingApplierTest {
     fun everyPinnedDayPointsAtARoutineThatHasLifts() = runBlocking {
         val input = answers(days = 4)
         val blueprint = RoutineGenerator.generate(input, catalog)
-        val result = applier.apply(input, blueprint, catalog)
+        val result = applier.apply(input, blueprint, catalog, WEEK_START, TODAY)
         assertTrue(result is ApplyPlanResult.Applied)
 
         val slots = schedule.slots()
@@ -116,7 +117,7 @@ class OnboardingApplierTest {
     fun theRoutinesCarryTheTargetsTheBlueprintPromised() = runBlocking {
         val input = answers(days = 4)
         val blueprint = RoutineGenerator.generate(input, catalog)
-        applier.apply(input, blueprint, catalog)
+        applier.apply(input, blueprint, catalog, WEEK_START, TODAY)
 
         blueprint.routines.forEach { planned ->
             val built = routines.observeAll().first().first { it.name == planned.name }
@@ -134,7 +135,7 @@ class OnboardingApplierTest {
     @Test
     fun theAnswersLandInPreferences() = runBlocking {
         val input = answers(days = 5, place = TrainingPlace.HOME_DUMBBELLS, bodyweight = 82.0)
-        applier.apply(input, RoutineGenerator.generate(input, catalog), catalog)
+        applier.apply(input, RoutineGenerator.generate(input, catalog), catalog, WEEK_START, TODAY)
 
         assertEquals(5, preferences.schedulePreferences.first().trainingDaysPerWeek)
         assertEquals(82.0, preferences.bodyweightKg.first()!!, 0.001)
@@ -149,7 +150,7 @@ class OnboardingApplierTest {
     @Test
     fun aFullGymFiltersNothing() = runBlocking {
         val input = answers(place = TrainingPlace.FULL_GYM)
-        applier.apply(input, RoutineGenerator.generate(input, catalog), catalog)
+        applier.apply(input, RoutineGenerator.generate(input, catalog), catalog, WEEK_START, TODAY)
         assertEquals(emptySet<String>(), preferences.coachPreferences.first().availableEquipment)
     }
 
@@ -157,7 +158,7 @@ class OnboardingApplierTest {
     fun theDaysTheLifterPickedAreTheDaysThatGetPinned() = runBlocking {
         val picked = setOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY, DayOfWeek.SUNDAY)
         val input = answers(days = 3, preferred = picked)
-        applier.apply(input, RoutineGenerator.generate(input, catalog), catalog)
+        applier.apply(input, RoutineGenerator.generate(input, catalog), catalog, WEEK_START, TODAY)
         assertEquals(picked, schedule.slots().mapNotNull { it.anchorDay }.toSet())
     }
 
@@ -167,10 +168,10 @@ class OnboardingApplierTest {
         // they answered the questions again.
         val mine = routines.create(name = "My Own Thing")
         val input = answers(days = 3)
-        applier.apply(input, RoutineGenerator.generate(input, catalog), catalog)
+        applier.apply(input, RoutineGenerator.generate(input, catalog), catalog, WEEK_START, TODAY)
         val firstCount = routines.count()
 
-        applier.apply(input, RoutineGenerator.generate(input, catalog), catalog)
+        applier.apply(input, RoutineGenerator.generate(input, catalog), catalog, WEEK_START, TODAY)
         assertTrue("the second run must add, not replace", routines.count() > firstCount)
         assertTrue("the lifter's own routine survived", routines.getById(mine.id) != null)
     }
@@ -179,7 +180,7 @@ class OnboardingApplierTest {
     fun anExistingProgramIsDetectedSoTheScreenCanWarn() = runBlocking {
         assertEquals(false, applier.hasExistingProgram())
         val input = answers(days = 2)
-        applier.apply(input, RoutineGenerator.generate(input, catalog), catalog)
+        applier.apply(input, RoutineGenerator.generate(input, catalog), catalog, WEEK_START, TODAY)
         assertEquals(true, applier.hasExistingProgram())
     }
 
@@ -187,7 +188,7 @@ class OnboardingApplierTest {
     fun aBodyweightOnlySetupStillProducesATrainableWeek() = runBlocking {
         val input = answers(days = 4, age = TrainingAge.NEW, place = TrainingPlace.BODYWEIGHT_ONLY)
         val blueprint = RoutineGenerator.generate(input, catalog)
-        applier.apply(input, blueprint, catalog)
+        applier.apply(input, blueprint, catalog, WEEK_START, TODAY)
 
         schedule.slots().forEach { slot ->
             val routine = routines.getById(slot.routineId!!)!!
@@ -199,5 +200,12 @@ class OnboardingApplierTest {
                 )
             }
         }
+    }
+
+    private companion object {
+        // Fixed rather than read from the clock: the block's start date is derived from this,
+        // and a test whose expectations move at midnight is a test that fails in CI at 00:00.
+        val WEEK_START: DayOfWeek = DayOfWeek.MONDAY
+        val TODAY: LocalDate = LocalDate.of(2026, 8, 19)
     }
 }

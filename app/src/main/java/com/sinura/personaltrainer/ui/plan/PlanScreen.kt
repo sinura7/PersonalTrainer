@@ -2,6 +2,8 @@ package com.sinura.personaltrainer.ui.plan
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -27,6 +30,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextOverflow
@@ -39,6 +45,7 @@ import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
+import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
@@ -52,9 +59,75 @@ import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.domain.TrainingBlock
+import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Volt
 import java.text.DateFormat
 import java.util.Date
+
+/**
+ * Where you are in the block, and — at the end of it — what to do about that.
+ *
+ * A line and a rule, not a card. The block is context for the week below it, and a card would
+ * put a box around the context and leave the actual plan looking like the second thing on the
+ * screen. It says nothing about load: the app decides progression from what was logged, and a
+ * calendar with its own opinion would be a second voice contradicting the first in the weeks
+ * they disagreed.
+ *
+ * The completed state is the one worth having. Twelve weeks with no end is just a week
+ * repeating; twelve weeks with an end is a thing you finished, and a moment to decide what the
+ * next twelve are for. Nothing is deleted when the next one starts — a block is a horizon, not
+ * a container.
+ */
+@Composable
+private fun BlockLine(
+    block: TrainingBlock,
+    today: Long,
+    onStartNext: () -> Unit,
+) {
+    val complete = block.isCompleteOn(today)
+    val week = block.displayWeekOn(today)
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Kicker(
+                if (complete) "Block complete" else "Week $week of ${block.weeks}",
+                color = if (complete) Volt else TextSecondary,
+            )
+            if (complete) {
+                TextButton(onClick = onStartNext, contentPadding = PaddingValues(0.dp)) {
+                    Text("Start the next twelve", style = InstrumentType.bodyStrong, color = Volt)
+                }
+            }
+        }
+        // A rule rather than a progress bar: this is a position in a plan, not a download.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(BLOCK_RULE_HEIGHT)
+                .clip(RoundedCornerShape(Radius.xs))
+                .background(Hairline),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(block.progressOn(today).coerceIn(0f, 1f))
+                    .fillMaxHeight()
+                    .background(if (complete) Volt else TextTertiary),
+            )
+        }
+        if (complete) {
+            Text(
+                "Twelve weeks done. Your routines, your week and every session stay exactly as " +
+                    "they are — starting the next block only moves the marker.",
+                style = InstrumentType.caption,
+                color = TextTertiary,
+            )
+        }
+    }
+}
 
 /**
  * The week, and the routines it is made of, on one tab.
@@ -130,6 +203,16 @@ fun PlanScreen(
         ) {
             state.error?.let { message ->
                 item(key = "error") { GymErrorBanner(message) }
+            }
+
+            state.block?.let { block ->
+                item(key = "block") {
+                    BlockLine(
+                        block = block,
+                        today = today,
+                        onStartNext = viewModel::startNextBlock,
+                    )
+                }
             }
 
             if (week != null) {
@@ -393,3 +476,6 @@ private fun routineUpdatedLabel(routine: Routine, dateFormat: DateFormat): Strin
 }
 
 private const val PREVIEW_LIFTS = 3
+
+/** Thicker than a hairline so the filled portion reads as a position, thin enough not to be a bar. */
+private val BLOCK_RULE_HEIGHT = 3.dp
