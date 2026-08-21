@@ -17,6 +17,7 @@ import com.sinura.personaltrainer.domain.ExerciseSetEntry
 import com.sinura.personaltrainer.domain.ExerciseSetRecord
 import com.sinura.personaltrainer.domain.FinishedSessionEdits
 import com.sinura.personaltrainer.domain.IncrementTable
+import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.PersonalRecords
@@ -516,6 +517,17 @@ class WorkoutRepository(
             ?.firstOrNull { it.item.exerciseId == exerciseId }
             ?.let { LoadType.fromStorage(it.exercise.loadType) }
 
+    /**
+     * How a lift is measured, read from the library.
+     *
+     * Needed by everything that summarises a lift's history: reps for a push-up, kilograms for
+     * a bench. A missing row falls back to loaded, the safer wrong answer — see [LoadClass.of].
+     */
+    private suspend fun loadClassOf(exerciseId: String): LoadClass =
+        LoadClass.of(
+            database.exerciseDao().getById(exerciseId)?.loadType?.let(LoadType::fromStorage),
+        )
+
     suspend fun discardSession(sessionId: String) {
         workoutDao.deleteSession(sessionId)
     }
@@ -618,7 +630,10 @@ class WorkoutRepository(
                 )
             }
         if (entries.isEmpty()) return null
-        return ExerciseHistoryBuilder.fromEntries(exerciseId, entries).sessions.firstOrNull()
+        return ExerciseHistoryBuilder
+            .fromEntries(exerciseId, entries, loadClassOf(exerciseId))
+            .sessions
+            .firstOrNull()
     }
 
     /**
@@ -659,6 +674,7 @@ class WorkoutRepository(
                 completedAt = completedAt,
             ),
             priorHistory = prior,
+            loadClass = loadClassOf(exerciseId),
         )
     }
 

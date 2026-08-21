@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseHistory
 import com.sinura.personaltrainer.domain.ExerciseHistoryBuilder
+import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
@@ -125,6 +126,9 @@ class ExerciseDetailViewModel(
             history = ExerciseHistoryBuilder.fromEntries(
                 exerciseId = exerciseId,
                 entries = entries,
+                // From the library row, which this screen already has: a push-up's history is
+                // counted in reps and a bench press's in kilograms.
+                loadClass = LoadClass.of(exercise?.loadType),
                 zone = ZoneId.systemDefault(),
                 // The tonnage weeks have to start where the planner's weeks start, or "this
                 // week's volume" means two different spans in two places in the same app.
