@@ -15,6 +15,10 @@ Lineage, so nothing here floats free of evidence:
    62 findings, 8 fatal → [REVISED_STRUCTURE.md](REVISED_STRUCTURE.md).
 3. **The packets** (nine writer + nine verifier agents) rebuilt it as executable specs,
    every file:line claim re-verified against commit `2212628`.
+4. **The second pass** (six independent auditors, ~1.1 M tokens, verified against HEAD and
+   against Room/Robolectric/AOSP primary sources) overturned two decisions and fixed the
+   defects → [SECOND_PASS.md](SECOND_PASS.md); its seven global decisions D-A…D-G are
+   restated in §3 and appended to REVISED_STRUCTURE.md.
 
 Interactive version:
 **https://claude.ai/code/artifact/0dbf304d-4761-4516-865e-af569f008099**
@@ -58,17 +62,20 @@ The end state, phrased against the owner's original asks:
   one next-session module, a calendar jump — while a persistent **LiveSessionBar** owns
   the active workout on every screen so a session can never be lost or duplicated.
 - **Body** is the single record of what training has done: the silhouette on honest
-  absolute volume bands (weighted weekly sets, not relative heat), the training calendar,
-  the month-grouped session log, PRs, and the coach's explanation cards — one scrolling
-  surface.
+  absolute volume bands (weighted weekly sets, not relative heat), PRs, and the coach's
+  explanation cards — one scrolling surface. Under D1's recommended four tabs the training
+  calendar and the month-grouped session log stay in **History**, one tap away and gaining
+  the same month grouping, day sheet and PR row in place; under the three-tab option they
+  move into Body and the two scroll anchors carry you to them.
 - **Plan** (Routines, renamed) is where the week is owned: pin routines to days, rotation
   that shifts instead of skips when life eats a Monday, planner proposals you explicitly
   accept, and the routine list beneath.
 - **Library** grows to 98 curated movements with equipment variations as first-class
   rows grouped into movement families, equipment filters, alias search, per-class
   defaults, and Compose-drawn thumbnails on every row.
-- **History** lives inside Body, and the log becomes correctable: edit sets, delete
-  sessions, repeat last session, undo set deletion.
+- **History** keeps its tab (four tabs) or lives inside Body (three tabs), and either way
+  the log becomes correctable: edit sets and session notes, delete sessions, repeat last
+  session, undo set deletion.
 - **The coach** stays a deterministic, offline rule engine — made honest (absolute bands,
   fixed 14-day basis), specific (names lifts you own), symmetric (can say "rest" and
   "deload"), and personal (goal + available equipment inputs) — surfaced where action
@@ -77,14 +84,28 @@ The end state, phrased against the owner's original asks:
 ## 3. The decision ledger
 
 Settled across Phases 0–8. Phase 0 records D1–D5 in ROADMAP.md for the owner's
-signature; the rest are fixed in the packets. **None may be reopened by an executor.**
+signature; the rest are fixed in the packets. D-A through D-G are the second-pass global
+decisions (21 Aug 2026) — the full record is [SECOND_PASS.md](SECOND_PASS.md), the compact
+list is REVISED_STRUCTURE.md's amendments section. **None may be reopened by an
+executor.**
 
-**D1 — Information architecture.** Recommended: three tabs — **Home · Body · Plan** —
-plus the LiveSessionBar. Body absorbs History's calendar and log; Library becomes a
-pushed screen fed from Plan, recommendation cards, and the muscle sheet. Fallback
-(owner's call): four tabs keeping History; every affected packet carries the fallback
-branch. Keep-five is not offered — leaving the contradiction open means doing the nav
-work twice.
+**D1 — Information architecture.** Recommended: **four tabs — Home · Body · Plan ·
+History** — plus the LiveSessionBar. Body absorbs the silhouette, the coach cards and the
+PR row; History keeps its tab and gains the month grouping, the multi-session-day sheet
+and the PR summary in place; Library becomes a pushed screen fed from Plan,
+recommendation cards, and the muscle sheet. **The recommendation flipped from three tabs
+to four on second-pass evidence (D-C):** post-6a the session log would sit below five
+sections on the merged Body while Phase 6b deletes Home's Recent list in *both* branches,
+so "what did I do last session" goes from one tap today to a tab change plus a long
+scroll. Four tabs keeps every real win (month grouping, day sheet, PR row, Library
+demotion, `isTabRoute`/`restoreState` shim deletion) and drops only the size-L merge.
+**Three tabs — Home · Body · Plan — remains a legitimate option the owner may sign**;
+both branches are specced to equal depth. If three tabs is signed, two mitigations are
+MANDATORY and land in the same phases, not deferred: (i) a `section=sessions` scroll
+anchor alongside `section=calendar` (Phase 6a), and (ii) a single **"Last session"** link
+row on Home (Phase 6b) — a link row, not a recommendation surface, so the D3 surface map
+is untouched. Keep-five is not offered — leaving the contradiction open means doing the
+nav work twice.
 
 **D2 — Schedule semantics.** The week is an ordered cycle of `schedule_slots`
 (position, routineId?/focusKind?, optional weekday anchor). The *effective* week is a
@@ -111,6 +132,49 @@ A1-as-a-phase (opportunistic 2-day timebox, gates nothing); the rest overlay bub
 `claude/app-hierarchy-navigation-cjzigo`. Phase 0 merges it to `main` (recommended) or
 records branch-as-trunk; thereafter branch-per-phase, PR-per-phase, owner merges.
 
+**Second-pass decisions** (21 Aug 2026; evidence per entry in
+[SECOND_PASS.md](SECOND_PASS.md)):
+
+**D-A — Execution order changes; phase numbers do not.** Phase numbers are identifiers,
+not sequence. The order is **0 → 2 → 1 → 3 → 4 → 5 → 6a → 6b → 7 → 8** (§4). Phase 2
+ships `tools/preflight.sh` and the Robolectric lane, so running it first keeps its own
+verified gate literals true, gives Phase 1's gates a working domain-test lane instead of a
+command that exits 2 on a cold clone, and gives Phase 1b's repository writes a lane they
+otherwise lack. Cost: session hygiene reaches the owner ~1–2 executor-days later.
+
+**D-B — Phases 1a and 1b are one phase.** "Phase 1 — Session hygiene": one branch
+`claude/phase-1-session-hygiene`, one PR, one combined owner evening. Both packets go to
+the same executor session, executed in order — 1A in full with its gate green, then 1B on
+top. 1B's gate greps re-assert 1A's invariants, so the sequence self-verifies. Saves one
+owner evening; no safety lost.
+
+**D-D — `movementKey` unifies on the family vocabulary** (Phase 7's). Phase 3's batch-1
+catalog ships **family** keys from the start — `bench-press`, `row`, `squat`,
+`romanian-deadlift` … — and nothing is re-keyed later. The 37-row batch-1 mapping is
+normative in PHASE_3_SCHEMA_V2 (S6). Under the old pattern-key reading, Phase 7's own
+`LibraryGroupingTest` ("the `bench-press` family has 8 members" — 4 batch-1 + 4 batch-2)
+could never pass.
+
+**D-E — `muscleKey` is `CanonicalMuscle.name.lowercase()` everywhere**: `chest, back,
+shoulders, biceps, triceps, quadriceps, hamstrings, glutes, calves, core`. Phase 7's
+`quads` spelling is corrected to `quadriceps` — `quads` is an alias that normalizes to
+QUADRICEPS and would slip past a normalization-only check while being wrong in the column.
+The shared invariant test is strengthened from "normalizes to a non-OTHER CanonicalMuscle"
+to "`muscleKey == CanonicalMuscle.name.lowercase()` for some CanonicalMuscle", so drift is
+a build failure.
+
+**D-F — No phase gate may depend on a CI run.** CI has never executed (account billing
+block), so "CI green on the PR" can never be satisfied. Every such gate line is
+owner-machine output pasted into the PR; CI green survives only as an **additional** check
+once the owner's standing, non-gating billing errand lands.
+
+**D-G — Mandatory phase-start re-baseline.** Every count, line number and repo-state
+assertion in a packet is a baseline as of audit commit `2212628`, not an oracle. The
+executor's FIRST commit on a phase branch is a re-baseline report: current trunk tip,
+actual domain-test count and test-class count, and every drifted packet literal with its
+verified current value. Drift fully explained by merged prior phases or by the game plan's
+own commits is EXPECTED and is not grounds to stop; stop only on unexplained mismatches.
+
 **Engineering decisions fixed by the critique** (details in REVISED_STRUCTURE.md):
 
 - **One-live-affordance rule**: while a session is in progress, the LiveSessionBar is
@@ -118,7 +182,7 @@ records branch-as-trunk; thereafter branch-per-phase, PR-per-phase, owner merges
   says Resume; the rest strip dies.
 - **Finish-side invariant**: every finish/discard routes through the shared
   `FinishWorkout`/`DiscardWorkout` use cases (zero-set guard, rest-timer stop, draft
-  clear, one-shot navigation) — after Phase 1a the repository methods have exactly one
+  clear, one-shot navigation) — after Phase 1's 1A slice the repository methods have one
   caller each, grep-enforced.
 - **Nothing exists outside the exported Room schema JSON**: every table is an `@Entity`,
   every index declared — a raw-SQL index would crash-loop Room's open-time validation on
@@ -146,30 +210,51 @@ records branch-as-trunk; thereafter branch-per-phase, PR-per-phase, owner merges
 
 ## 4. The build sequence and why
 
-Value-first, with the risky substrate in the middle and content last. If the plan stops
-halfway, the owner has session hygiene and a pinned week — not substrate and a picture
-book.
+Value-first, with the test lane bought first, the risky substrate in the middle, and
+content last. If the plan stops halfway, the owner has session hygiene and a pinned
+week — not substrate and a picture book.
+
+**Phase numbers are identifiers, not sequence (D-A).** The execution order is:
 
 ```
-0 Decisions ──► 1a Lifecycle ──► 1b Log repair ──► 2 Test substrate ──► 3 Schema v2
-   (signs D1/D2)   (schema-free)     (schema-free)      (harness)          (the migration)
-                                                                              │
+0 Decisions ──► 2 Test substrate ──► 1 Session hygiene ──► 3 Schema v2
+   (signs D1/D2)   (preflight + lanes)   (1a + 1b, one PR)     (the migration)
+                                                                     │
    8 Imagery ◄── 7 Catalog ◄── 6b Home ◄── 6a Tabs+Body ◄── 5 Heat/Coach ◄── 4 Plan tab
-   (presentation)  (content)     (rework)     (IA landing)     (honesty)       (pinned week)
+   (OPTIONAL)     (content)     (rework)     (IA landing)     (honesty)       (pinned week)
 ```
 
-The dependencies that force this order: 1a/1b are schema-free daily-pain fixes and need
-nothing — they go first. Phase 3's migration gate is a MigrationTestHelper suite, which
-needs Phase 2's Robolectric lane to exist. Phase 4 needs `schedule_slots` (3) and the
-signed semantics (0). Phase 5 needs junction weights (3). Phase 6a builds the merged Body
-on honest windows (5) and a Plan tab that exists (4); 6b reworks Home around the
-persisted week (4), the coach module (5), and the merged Body anchor (6a). Phase 7's
-catalog rides the versioned seeder (3) and the navigation end-state (6); Phase 8 draws on
-equipment + junction data (3, 7) and is pure presentation.
+**Why Phase 2 runs before any code phase (D-A).** Phase 2 is the phase that *creates*
+`tools/preflight.sh` and the Robolectric lane — the mechanical half of every later
+phase's definition of done. Running it first (a) keeps its own verified gate literals
+(188 tests / 24 classes / 23 files, confirmed accurate at HEAD) true instead of stale,
+since any code phase landing first moves them; (b) gives Phase 1's gates a working
+domain-test lane instead of `tools/run-domain-tests.sh`, which exits 2 on a cold clone
+(`:20-24` needs a jar directory only Phase 2's bootstrap creates); and (c) gives Phase 1b's
+repository writes — `restoreSet`, `repeatSession`, `deleteFinishedSession` — a Robolectric
+lane they otherwise do not have. The cost is that session hygiene reaches the owner ~1–2
+executor-days later; the buy is that the plan's largest unverified assumption (does this
+toolchain run Robolectric at all?) is retired on the first evening, in the cheapest phase.
 
-**Totals** (from the packets): **~30–43 executor-days**, **~7–12 owner-days** — the
-owner-days are real evenings: two signatures, per-phase PR reviews, and one device
-checklist per landing. The A1 DI refactor is deliberately not on this path.
+The remaining dependencies that force this order: Phase 1 (1a+1b) is schema-free
+daily-pain work and needs only the test lane. Phase 3's migration gate is a
+MigrationTestHelper suite, which needs Phase 2's Robolectric lane to exist. Phase 4 needs
+`schedule_slots` (3) and the signed semantics (0). Phase 5 needs junction weights (3).
+Phase 6a builds the IA landing on honest windows (5) and a Plan tab that exists (4); 6b
+reworks Home around the persisted week (4), the coach module (5), and 6a's anchors and
+tab bar. Phase 7's catalog rides the versioned seeder (3) and the navigation end-state
+(6); Phase 8 draws on equipment + junction data (3, 7), is pure presentation, and is
+**explicitly optional** — nothing depends on it.
+
+**Totals** (from the packets' §9 blocks, with 1a+1b merged per D-B and Phase 6a costed on
+its four-tab default per D-C): **ten PRs** — 0, 2, 1, 3, 4, 5, 6a, 6b, 7, 8 — at
+**~26–37 executor-days and ~6–10 owner-days for the nine required phases (0 through 7)**;
+the optional Phase 8 adds ~2–4 executor-days and ~0.5–1 owner-days, taking the full plan
+to **~28–41 executor-days and ~6–11 owner-days**. (Under the three-tab option Phase 6a
+roughly doubles, +2–2.5 executor-days and +0.5 owner-days.) The owner-days are real
+evenings: two signatures, per-phase PR reviews, and one device checklist per landing —
+the merge of 1a and 1b saves exactly one of them. The A1 DI refactor is deliberately not
+on this path.
 
 ## 5. Phase-by-phase action plan
 
@@ -185,18 +270,24 @@ Full literal specs — signatures, SQL, string tables, test names — live in th
 and D2 carry the owner's initials.
 
 Work breakdown:
-1. Commit `docs/gameplan/` (PROTOCOL.md + packets) to the repo.
+1. **Nothing to commit.** `docs/gameplan/` — PROTOCOL.md, the eleven packets,
+   ACTION_PLAN.md, SECOND_PASS.md — is *already* committed on the working branch. The
+   old "commit the game plan" work item is closed; Phase 0's diff is confined to
+   `docs/ROADMAP.md`, `docs/DESIGN_AUDIT.md`, `docs/DEVELOPMENT.md` and the new
+   `docs/SCHEDULE_SEMANTICS.md`.
 2. **ROADMAP.md restructure**: mark historical Phase 4 superseded (split value-first
    across the game plan); insert the game-plan phase table; re-point every
    known-open-items row to its owning game-plan phase; append the **Decisions** section
    skeleton (D1–D5 with Signed lines).
 3. **DESIGN_AUDIT.md repairs**: close NAV-01 with the recorded IA decision; supersede
    the §7 per-routine equipment-override row; resolve the rest-overlay contradiction in
-   ROADMAP's favor across all five places it appears (R-05, T-07, N-03, §10.2 banner,
-   §17 acceptance line); append three §15 non-goals (LLM coach, head-level granularity,
+   ROADMAP's favor across all **six** places it appears (R-05, T-07, N-03, §10.2 banner,
+   §16 build order at line 711, §17 acceptance line — the second pass found the sixth); append three §15 non-goals (LLM coach, head-level granularity,
    day/year windows).
-4. **D1 text**: the three-tab recommendation and four-tab fallback written so the owner
-   circles one and signs.
+4. **D1 text**: the **four-tab recommendation** (Home · Body · Plan · History) and the
+   three-tab option written so the owner circles one and signs (D-C). The three-tab
+   option's text names its two mandatory mitigations — the `section=sessions` anchor and
+   Home's "Last session" link row — so the owner signs the whole package, not half of it.
 5. **D2 spec**: `SCHEDULE_SEMANTICS.md` — the slot model, eight derivation rules, and
    five worked examples over a named week (missed anchored day, missed unanchored day,
    week rollover, regeneration, routine deletion). One deliberate open question for the
@@ -205,20 +296,91 @@ Work breakdown:
    trunk-based claim; resolve branch ground truth (merge to `main` recommended).
 
 Verification: docs-only diff (`git diff --stat -- app/ tools/` empty); a battery of
-literal greps (Decisions section present, ≥3 Signed lines, supersession banners in all
-three files). No code, no tests — stated in the PR rather than faked.
+literal greps (Decisions section present, ≥3 Signed lines, supersession banners asserted
+in **ROADMAP.md and DESIGN_AUDIT.md** — HIERARCHY_PLAN's banner already exists and is not
+re-asserted). No code, no tests — stated in the PR rather than faked. The gate no longer
+asserts that `docs/gameplan/` is absent; it is committed (see D-G's repo-state
+correction), and the "has Phase 0 merged?" test is `grep -c "Signed:" docs/ROADMAP.md`
+returning `0`.
 
 Owner: read D1 and circle an option; read the five worked examples and sign D2 (decide
-rule 6); skim D3/D4; choose D5; merge. **This is the plan's only blocking day.**
+rule 6); skim D3/D4; choose D5; merge. **This is the plan's only blocking day.** One
+non-blocking extra is requested here: the **CI billing errand** (~30 min, any screen —
+add a payment method / raise the $0 limit, make the repo public, or attach a self-hosted
+runner). It gates nothing (D-F), but it removes the plan's single biggest bottleneck and
+specifically saves a round-trip in Phase 3, whose `2.json` otherwise has to be fetched
+off the owner's machine by hand.
 
 Risk: signing D2 casually. The schedule DDL is derived from it and frozen into the
 migration — Phase 0 is where changing your mind is free.
 
 ---
 
-### Phase 1a — Session lifecycle · [packet](PHASE_1A_SESSION_LIFECYCLE.md) · 3–4 exec-days, 0.5–1 owner-days
+### Phase 2 — Test substrate · [packet](PHASE_2_TEST_SUBSTRATE.md) · 1–2 exec-days, 0.5 owner-days
 
-**Kill session limbo. Schema-free** (new `@Query` only — hard constraint).
+**Runs FIRST among the code-touching phases (D-A).** Build the lanes Phase 3's migration
+suite will run in, and the `preflight.sh` every later phase's gate calls. **Zero
+`app/src/main` changes.** Running it here keeps its own gate literals (188 tests / 24
+classes / 23 files) true rather than stale, gives Phase 1 a working domain-test lane, and
+retires the plan's largest unverified assumption on the first evening.
+
+Work breakdown:
+1. **Gradle wiring**: version-catalog entries (Robolectric 4.14.1, androidx.test,
+   room-testing riding Room 2.6.1); `testInstrumentationRunner`; test source set gets
+   the schema assets + `isIncludeAndroidResources`.
+2. **Robolectric JVM lane** (primary): `SchemaV1BaselineTest` — MigrationTestHelper
+   opens the committed v1 schema JSON and asserts all six tables. Lives OUTSIDE
+   `domain/` so the jar-based domain lane never sees Android imports. The honesty
+   statement ships in its KDoc: Robolectric's SQLite is not the phone's — green here is
+   necessary, never sufficient.
+3. **androidTest scaffold** (truth lane): `InstrumentationSmokeTest` +
+   `SchemaV1BaselineDeviceTest`; a verbatim runbook in DEVELOPMENT.md —
+   `connectedDebugAndroidTest` against an **emulator, never the phone** (the debug test
+   APK shares the release applicationId; uninstalling the real app would delete the
+   owner's history).
+4. **`tools/preflight.sh`** — the mechanical half of every later phase's definition of
+   done: jar bootstrap (Gradle module cache → wrapper dists → distribution lib/, Kotlin
+   jars pinned to 2.x), all eight static checks with per-check pass criteria (four judged
+   by exit code, three by summary line, syntax-check by its output), then the domain
+   tests, honest Gradle fallback, loud failure when no lane exists. The exact script was
+   executed in an SDK-less clone before being committed to the packet.
+5. **ci.yml**: one non-blocking `instrumented-smoke` emulator job, written blind by
+   design (CI still can't run — the billing fix is a standing owner errand that gates
+   nothing); YAML validity is the in-phase gate.
+
+6. **Host-OS constraint, recorded (second-pass finding).** The JVM/Robolectric lane
+   **requires a macOS or Linux host.** Robolectric 4.14.1 uses NATIVE SQLite everywhere
+   except Windows, where `SQLiteModeConfigurer.defaultValue()` hard-falls back to LEGACY
+   (SQLite 3.7.10); LEGACY's `PRAGMA table_info` cannot express a composite primary key —
+   exactly the shape of Phase 3's `exercise_muscles(exerciseId, muscleKey)` — so Room's
+   open-time validation fails there for reasons unrelated to the migration under test. On
+   a Windows host the emulator `connectedDebugAndroidTest` lane is the ONLY valid
+   migration lane, and Phase 3's gate must be met there. Settle this before Phase 3 is
+   planned, not inside it.
+
+Owner: one evening — Gradle sync, `testDebugUnitTest` (first run downloads Robolectric's
+android-all jar), an emulator `connectedDebugAndroidTest` (2 tests), `preflight.sh`,
+paste outputs. **This first `testDebugUnitTest` is the single most important pre-start
+verification in the plan**: it settles Robolectric compatibility, the host-OS question and
+the toolchain assumptions at once — which is exactly why this phase now runs first.
+
+---
+
+### Phase 1 — Session hygiene · packets [1A](PHASE_1A_SESSION_LIFECYCLE.md) + [1B](PHASE_1B_LOG_REPAIR.md) · 5–7 exec-days, 0.5–1 owner-days
+
+**Kill session limbo and make the log correctable and reusable. Schema-free throughout**
+(new `@Query` only — hard constraint).
+
+**One phase, two packets (D-B).** One branch `claude/phase-1-session-hygiene`, one PR,
+one combined owner evening. Both packets go to the **same** executor session and run
+strictly in order: 1A's work items in full with **its acceptance gate green first**, then
+1B's on top of the same branch — no separate 1B branch, no separate 1B PR, no wait for a
+1A merge. 1B's gate greps re-assert 1A's invariants, so the sequence self-verifies. The
+phase starts only after the **Phase 2** PR merges (D-A), which is what gives 1B's
+repository writes — `restoreSet`, `repeatSession`, `deleteFinishedSession` — a Robolectric
+lane to be tested in at all.
+
+#### 1A — session lifecycle
 
 Work breakdown:
 1. **`FinishWorkout` / `DiscardWorkout` use cases** (land first, before any UI): extract
@@ -258,23 +420,25 @@ Risk: a bar action bypassing the use cases would leave a live rest-timer notific
 for a deleted session — the exact bug class this phase exists to kill; the grep gate is
 the fence.
 
----
+#### 1B — log repair
 
-### Phase 1b — Log repair · [packet](PHASE_1B_LOG_REPAIR.md) · 2–3 exec-days, 0.5–1 owner-days
-
-**Make the log correctable and reusable. Schema-free.** Honors ROADMAP's own decision
-that editing history "deserves its own change."
+Honors ROADMAP's own decision that editing history "deserves its own change." Post-finish
+**notes editing** rides along here (work item 1b-6): `updateSessionNotes`'s finished-guard
+is relaxed on the same reasoning as `updateSet`'s — notes carry no timestamp, PR or heat
+semantics, the method writes `notes` and nothing else, and the string already round-trips
+through backup.
 
 Work breakdown:
 1. **Editable finished sessions** — guard-by-guard disposition in `WorkoutRepository`
    (each line named in the packet): `updateSet`'s finished-guard **relaxed** (it already
-   preserves `completedAt` and `setNumber`); `logSet`/notes/exercise-add guards **kept**;
+   preserves `completedAt` and `setNumber`); `updateSessionNotes`'s finished-guard
+   **relaxed** too (work item 1b-6, above); `logSet`/exercise-add guards **kept**;
    post-finish adds go through a new `addSetToFinishedSession` that timestamps inside
    `[startedAt, finishedAt]` via pure `FinishedSessionEdits` (monotone, total on
    degenerate windows) — no PR detection, no rest timer. Editable per set: weight, reps,
-   RPE, warm-up flag, add/delete. Never editable: dates, timestamps, `durationMinutes`
-   (its only computed writer stays `finishSession`, grep-enforced), notes, the exercise
-   list. **Domain tests pin the two subtle invariants**: an added set heats the original
+   RPE, warm-up flag, add/delete; per session: `notes`. Never editable: dates,
+   timestamps, `durationMinutes` (its only computed writer stays `finishSession`,
+   grep-enforced), an existing set's `completedAt`, the exercise list. **Domain tests pin the two subtle invariants**: an added set heats the original
    training day, not today; an edited old set that becomes a PR carries the old date.
 2. **Session delete** — new `deleteFinishedSession` (checked: finished only; FK CASCADE
    clears children), deliberately NOT `discardSession` (the 1a invariant grep still
@@ -296,45 +460,23 @@ Work breakdown:
 Verification: full check suite + three new domain test classes
 (`FinishedSessionEditsTest`, `EditedSessionAttributionTest`, `RepeatSessionPlanTest`);
 four invariant greps (durationMinutes writers, discard separation, dialog gone,
-completedAt write sites).
+completedAt write sites). **The repository writes this phase adds — `restoreSet`,
+`repeatSession`, `deleteFinishedSession` — get Robolectric coverage in the lane Phase 2
+built; before D-A's reorder they had no test lane at all.**
 
 Owner: 10-step pass — edit an old set and watch this week's heat NOT light up; PR
 chronology stays on the old date; repeat copies structure but zero sets; backup
 round-trips edited history.
 
----
+**Recorded NON-GOAL — backdated / manual session entry.** "I trained yesterday and forgot
+to log it" is not solved here and is not smuggled in: `date`, `startedAt` and `finishedAt`
+stay non-editable. Real backdating needs an editable session date plus its own decisions
+about heat attribution and PR chronology.
 
-### Phase 2 — Test substrate · [packet](PHASE_2_TEST_SUBSTRATE.md) · 1–2 exec-days, 0.5 owner-days
-
-**Build the lanes Phase 3's migration suite will run in. Zero `app/src/main` changes.**
-
-Work breakdown:
-1. **Gradle wiring**: version-catalog entries (Robolectric 4.14.1, androidx.test,
-   room-testing riding Room 2.6.1); `testInstrumentationRunner`; test source set gets
-   the schema assets + `isIncludeAndroidResources`.
-2. **Robolectric JVM lane** (primary): `SchemaV1BaselineTest` — MigrationTestHelper
-   opens the committed v1 schema JSON and asserts all six tables. Lives OUTSIDE
-   `domain/` so the jar-based domain lane never sees Android imports. The honesty
-   statement ships in its KDoc: Robolectric's SQLite is not the phone's — green here is
-   necessary, never sufficient.
-3. **androidTest scaffold** (truth lane): `InstrumentationSmokeTest` +
-   `SchemaV1BaselineDeviceTest`; a verbatim runbook in DEVELOPMENT.md —
-   `connectedDebugAndroidTest` against an **emulator, never the phone** (the debug test
-   APK shares the release applicationId; uninstalling the real app would delete the
-   owner's history).
-4. **`tools/preflight.sh`** — the mechanical half of every later phase's definition of
-   done: jar bootstrap (Gradle module cache → wrapper dists → distribution lib/, Kotlin
-   jars pinned to 2.x), all eight static checks with per-check pass criteria (four judged
-   by exit code, three by summary line, syntax-check by its output), then the domain
-   tests, honest Gradle fallback, loud failure when no lane exists. The exact script was
-   executed in an SDK-less clone before being committed to the packet.
-5. **ci.yml**: one non-blocking `instrumented-smoke` emulator job, written blind by
-   design (CI still can't run — the billing fix is a standing owner errand that gates
-   nothing); YAML validity is the in-phase gate.
-
-Owner: one evening — Gradle sync, `testDebugUnitTest` (first run downloads Robolectric's
-android-all jar), an emulator `connectedDebugAndroidTest` (2 tests), `preflight.sh`,
-paste outputs.
+Combined verification and owner pass: the two packets' gates run back-to-back on the one
+branch (1A's first and green, then 1B's, whose greps re-assert 1A's invariants); the owner
+runs both device checklists in one sitting and signs once. All gate output is
+owner-machine output pasted into the PR — no gate depends on a CI run (D-F).
 
 ---
 
@@ -348,7 +490,8 @@ Work breakdown:
    `loadType`, `movementKey`, `imageKey`, `nameKey` + plain declared index; annotation
    defaults and migration SQL must agree byte-for-byte with the generated `2.json`, the
    packet's S1 rule); three new `@Entity` tables — `exercise_muscles(exerciseId,
-   muscleKey, weight)` PK-composite FK-CASCADE, `seed_meta(catalogVersion,
+   muscleKey, weight)` PK-composite FK-CASCADE (`muscleKey` is
+   `CanonicalMuscle.name.lowercase()` and nothing else — D-E), `seed_meta(catalogVersion,
    pendingCollisions)`, `schedule_slots` with the D2-signed DDL. The migration performs
    **no data transform** beyond the `nameKey` backfill — junction rows, catalog upgrades
    and collision detection run in Kotlin at first startup, behind the mutex, where a
@@ -364,9 +507,16 @@ Work breakdown:
    collisions inserted-and-flagged into `seed_meta.pendingCollisions` (UI is Phase 7);
    all of seed/restore/reconcile behind one mutex with the version check inside the
    lock. `createCustom`/`updateCustom` gain the duplicate-name check surfaced through
-   existing error channels.
-4. **Batch-1 catalog: the 37, upgraded in place** — the packet carries the complete
-   normative data table (id, equipment, loadType, movementKey, primary at 1.0, weighted
+   existing error channels. **`normalizeKey` must be exposed, not re-implemented**: the
+   `nameKey` rule is "the same function as `MuscleNormalizer.normalizeKey`", which is
+   `private` at `CanonicalMuscle.kt:161` — this phase makes it public (or adds a public
+   `nameKeyOf`). Skipping that grows a second normalizer and enforces uniqueness against
+   the wrong string.
+4. **Batch-1 catalog: the 37, upgraded in place** — `movementKey` ships **family** keys
+   from the start (D-D: `bench-press`, `row`, `squat`, `romanian-deadlift` …, 23 families
+   across these 37 rows), the same vocabulary Phase 7 groups by, so nothing is ever
+   re-keyed later. The packet carries the complete normative data table (id, equipment,
+   loadType, movementKey, primary at 1.0, weighted
    secondaries — e.g. deadlift: glutes 1.0 / hamstrings 0.5 / back 0.5; bench: chest
    1.0 / triceps 0.5 / shoulders 0.25) to be transcribed, not invented. A generated
    family-grouped **review artifact** diffs v2 against v1 for the owner's sign-off;
@@ -393,8 +543,17 @@ Work breakdown:
    sideload over the existing install, re-verify, one full real workout before the PR
    closes.
 
-Verification: preflight + `testDebugUnitTest` green; `2.json` committed and identical to
-CI's artifact; ~45 named tests across migration/safety-net/seed/backup/heat; the
+**Mid-phase owner round-trip (blocking; budget for it).** The executor environment has no
+Android SDK and CI cannot be relied on (D-F), so after the v2 entities compile by
+inspection and *before* the migration SQL can be finished, the executor stops and hands
+the owner a request: pull the branch, run `./gradlew :app:assembleDebug`, and return
+`app/schemas/…TrainerDatabase/2.json` plus the CREATE/INDEX statements it contains. The
+executor then diffs those against the hand-written `MIGRATION_1_2` (rule S1:
+byte-for-byte). ~15 minutes of owner time, but a calendar gap — raise it early, not at
+the end.
+
+Verification: preflight + `testDebugUnitTest` green on the owner's machine, pasted into
+the PR (never a CI run — D-F); `2.json` committed and identical to the generated artifact; ~45 named tests across migration/safety-net/seed/backup/heat; the
 owner-side gate (rehearsal + catalog review + heat-diff judgment + real-phone upgrade).
 
 Risks: this PR is the one where rubber-stamping can cost history — the owner reviews the
@@ -426,7 +585,7 @@ Work breakdown:
 3. **`StartTrainingDay` contract** — pure `decideStart` decision core: a pinned day whose
    routine is deleted/emptied returns an explicit `Failed` with named copy (never a
    silent free workout); an in-progress session returns `Blocked` (never a silent resume)
-   — callers show a shared resume-or-discard dialog routed through the Phase-1a use
+   — callers show a shared resume-or-discard dialog routed through Phase 1's use
    cases. The `when`-exhaustiveness checker proves no caller misses the new outcome.
 4. **The Plan tab, inside the five-tab bar** — Routines renamed Plan (route string
    deliberately unchanged); layout: header (Plan · Tune · New · Settings gear — the
@@ -436,7 +595,11 @@ Work breakdown:
    day sheet (tap a cell): Start / Swap routine / Unpin on pinned days; Pin-a-routine /
    Pin-a-focus on open days; past days informational.
 5. **Demolition, once** — pushed ScheduleScreen deleted; `ThisWeekHomeCard` extracted to
-   `ui/home/ThisWeekCard.kt` (gains the empty-week state); Home's hero-card body tap →
+   `ui/home/ThisWeekCard.kt` (gains the empty-week state: headline "No plan yet", with
+   **"Suggest a week" as its primary action** and "Start a workout" demoted beneath it —
+   this phase deliberately deletes the auto-generated ghost week, so the empty state is
+   what the owner sees on the first launch after the update and recovery from it must be
+   one tap from Home, not a tab hunt followed by a button hunt); Home's hero-card body tap →
    Plan tab; Settings' "This week's plan" row removed; every AppNav change enumerated;
    five proof greps must return nothing.
 
@@ -491,24 +654,33 @@ Work breakdown:
 Verification: preflight; ~14 new/rewritten domain test classes; three literal greps
 (deleted windows, deleted constants, swap-remove now called).
 
+Recorded follow-up (owner decision, not built here): **the Deload rule has no
+affordance.** The coach can now say "schedule a lighter week", but the app offers no way
+to *act* on it beyond training less — named on the PR for the owner rather than quietly
+built.
+
 Owner: 13-step pass — two chips only; untrained muscles dark early in the week; advice
 invariant under chip flips; the band-truthfulness judgment call ("does Productive match
 how I train?") which may trigger one threshold-tuning round.
 
 ---
 
-### Phase 6a — Tab consolidation + Body absorbs History · [packet](PHASE_6A_TAB_CONSOLIDATION.md) · 4–5 exec-days, 1–1.5 owner-days
+### Phase 6a — Tab consolidation + Body absorbs History · [packet](PHASE_6A_TAB_CONSOLIDATION.md) · 2–2.5 exec-days (four tabs) / 4–5 (three tabs), 0.5–1.5 owner-days
 
-**The IA landing. Size L, honestly.** Safe now because the bar owns resume (1a), Plan
-owns the week (4), honest heat owns the windows (5).
+**The IA landing.** Safe now because the bar owns resume (Phase 1), Plan owns the week
+(4), honest heat owns the windows (5). **Two branches, specced to equal depth; the
+executor runs the one D1 signed and never blends them** — Branch A (four tabs, D1's
+recommended default per D-C) or Branch B (three tabs). Branch A is roughly half the
+executor time because it drops the size-L merge while keeping the identical feature set.
 
 Work breakdown:
-1. **The tab bar** — PRIMARY: Home · Body · Plan; `Route.History` deleted; tab matching
-   becomes plain pattern equality (the `isTabRoute` query-param shim and the
-   `restoreState=false` Library hacks die). FALLBACK (if D1 chose four tabs): History
-   keeps its tab; the merge work is dropped but month grouping, the multi-session-day
-   sheet, and the PR row land on History in place — the packet forbids blending
-   branches.
+1. **The tab bar** — **Branch A (four tabs, the default)**: Home · Body · Plan ·
+   History; `Route.History`, `HistoryScreen` and `HistoryViewModel` all survive, the
+   merge work is dropped, and month grouping, the multi-session-day sheet and the PR row
+   land on History **in place**. **Branch B (three tabs)**: Home · Body · Plan;
+   `Route.History` deleted. In **both** branches tab matching becomes plain pattern
+   equality — the `isTabRoute` query-param shim and the `restoreState=false` Library
+   hacks die either way.
 2. **The merged Body screen** — ONE LazyColumn, never nested scrolling: window picker →
    silhouette → per-muscle rows → month calendar (moved file) → coach cards →
    month-grouped session list with sticky month headers → PR summary. Grouping and the
@@ -516,6 +688,10 @@ Work breakdown:
    with weight fallback, one row per exercise, recency-ordered). The content list is
    1:1 with items so 6b's calendar anchor is a true scroll index (comment records it).
    Multi-session days open a chooser sheet instead of silently taking the first session.
+   **Branch B ships TWO scroll anchors, not one** (D-C mitigation (i)): `section=calendar`
+   *and* `section=sessions`, the latter resolving to the first month header so "show me my
+   log" lands on the log rather than five sections above it. Leaving `sessions` unwired is
+   an incomplete Branch B; Branch A needs no anchors at all.
 3. **Library becomes pushed-only** — back-arrow header; three remaining entry points
    (Plan header action, recommendation cards, muscle sheet).
 4. **The nine-site retarget table** — every cross-tab navigation site enumerated with
@@ -536,6 +712,10 @@ multi-session sheet, deep-link consume-once retest, don't-keep-activities restor
 ### Phase 6b — Home "Today" rework · [packet](PHASE_6B_HOME_TODAY.md) · 2–3 exec-days, 0.5–1 owner-days
 
 **Home answers "what do I do right now."** Separate landing, separate device pass.
+**Inherits 6a's branch; never re-opens it.** Exactly three things here are
+branch-dependent — the calendar-jump mechanism, the "Last session" row, and the device
+steps that name a screen. Everything else — masthead, week strip, next-session module,
+StartOptionsSheet, interstitial demolition, hero, demolitions — is identical in both.
 
 Work breakdown:
 1. **The masthead string table — all seven states, literal**: "Workout in progress" is
@@ -548,19 +728,32 @@ Work breakdown:
 3. **ONE next-session module** — focus + up to three named lifts + one reason line
    (engine's top recommendation when it names this session, else the day's reason);
    replaces every other recommendation slot on Home.
-4. **Calendar jump** — `Route.Progress` gains an optional `?section=` pattern; the chip
-   navigates with `section=calendar` and Body one-shot-scrolls to the calendar index;
-   plain tab taps never scroll. (Four-tab fallback: the chip is a plain History tab
-   jump; no pattern change.)
+4. **Calendar jump** — **Branch B**: `Route.Progress` gains an optional `?section=`
+   pattern; the chip navigates with `section=calendar` and Body one-shot-scrolls to the
+   calendar index; plain tab taps never scroll. **Branch A (default)**: the chip is a
+   plain History tab jump; no pattern change — one chip and one callback.
+   **Branch B additionally builds the mandatory "Last session" link row on Home** (D-C
+   mitigation (ii)): one tertiary row, no card, reading the most recent finished session's
+   title and date from state already on screen, tapping through to SessionDetail (and to
+   `section=sessions` when the log is empty). It is a **link row, not a recommendation
+   surface** — no reason line, no ranking, no engine input — so the D3 surface map is
+   untouched. Branch A does not build it: History is one tap away and its session list is
+   the second thing on that screen.
 5. **StartWorkout interstitial dies** — its logic becomes `StartOptionsSheet` hosted by
    Home and Body: today's slot pinned with a TODAY kicker → the Phase-5 suggestion row
    (moves in) → routines → free workout; in-progress state shows Go-to-session + guarded
    Discard through the 1a use cases. Every former call site enumerated and retargeted;
    `Route.StartWorkout` deleted.
-6. **Hero final form + demolitions** — the whole card is one action (start today via
+6. **`LIVE_BAR_HIDDEN_ROUTES` amendment (both branches)** — this phase deletes
+   `Route.StartWorkout`, which Phase 1 put in that list; removing it from the list is an
+   explicit work item here, in both branches. (Second-pass finding: no packet owned it.)
+7. **Hero final form + demolitions** — the whole card is one action (start today via
    `StartTrainingDay`; rest/no-slot days open the sheet); a separate "This week ›" row
-   goes to Plan (the mis-tap trap dies); the duplicate heat card and Recent list are
-   deleted (Body owns them); Ready-to-progress rows deep-link the named lift.
+   goes to Plan (the mis-tap trap dies); the duplicate heat card and the Recent
+   list are deleted in **both** branches (Body owns the heat card; the session log is
+   owned by History under Branch A and by Body under Branch B, where the "Last session"
+   row above is the one link that survives); Ready-to-progress rows deep-link the named
+   lift.
 
 Verification: preflight; `MastheadCopyTest` + `NextSessionReasonTest`; three
 zero-output greps (`Route.StartWorkout`, the demolished composables, "Workout in
@@ -590,8 +783,13 @@ Work breakdown:
    (`LikeEscaper`) and alias-aware ("ohp" finds Overhead Press, "rdl" both RDLs).
    `sortRank`/`searchTerms` are code-side catalog metadata — **no schema change in this
    phase, hard rule**.
-3. **The muscle-filter contract flip, end-to-end** — the Library route param becomes the
-   canonical muscle enum name; filtering is junction-based (secondary credits match
+3. **The muscle-filter contract flip, end-to-end** — `muscleKey` is exactly
+   `CanonicalMuscle.name.lowercase()` (D-E), so this phase's tail rows use
+   **`quadriceps`**, never `quads` (an alias that normalizes correctly and is still wrong
+   in the column; the invariant test asserts exact equality, so writing it fails the
+   build). Family grouping reads the same `movementKey` vocabulary Phase 3 already
+   shipped (D-D) — a mismatch is reported to the owner, never silently re-keyed on either
+   side. The Library route param becomes the canonical muscle enum name; filtering is junction-based (secondary credits match
    too); the free-text `catalogLabel` hop in recommendation dispatch is deleted; every
    `Library.create` call site retargeted.
 4. **Skip-and-surface collisions** — a derived "NEEDS ATTENTION" Library section for
@@ -609,15 +807,29 @@ Work breakdown:
 Verification: preflight; ~15 named test classes; grep proofs (`catalogLabel` out of
 dispatch, `INCREMENT_KG` gone); both review artifacts committed.
 
+Recorded follow-up (owner decision, ships either way): **bodyweight is never stored.**
+This phase adds 20+ `BODYWEIGHT`/`BODYWEIGHT_PLUS` rows and the rep-progression copy that
+goes with them, but the app holds the owner's bodyweight nowhere — so a bodyweight-only
+set logs 0 kg of volume and a weighted dip computes from the added load alone. Two
+dispositions go on the PR to sign: **A (recommended)** an owned follow-up — a device-local
+`bodyweight_kg` preference read by the volume/e1RM math, a small phase of its own because
+it changes computed history; **B** an explicit non-goal — bodyweight lifts are sets and
+reps forever, volume and e1RM blank rather than zero. What is not acceptable is shipping
+the rows and the copy with the arithmetic unexplained.
+
 Owner: staged — skim two review artifacts at batch scrutiny, then an 11-step device
 pass (family expansion, "ohp"/"rdl"/"100%" searches, chip AND-filtering,
 secondary-credit filtering, class defaults, "+5 lbs", swap flows, collision row).
 
 ---
 
-### Phase 8 — Imagery · [packet](PHASE_8_IMAGERY.md) · 2–4 exec-days, 0.5–1 owner-days
+### Phase 8 — Imagery · [packet](PHASE_8_IMAGERY.md) · 2–4 exec-days, 0.5–1 owner-days · **OPTIONAL**
 
-**Every exercise gets an image, at zero asset cost.** Pure presentation; last.
+**Every exercise gets an image, at zero asset cost.** Pure presentation; last; and
+**explicitly optional** — nothing in the plan depends on it. `imageKey == null` means
+"compose the thumb", which is a complete shipping state, so deferring this phase
+indefinitely costs the owner nothing. Being optional changes nothing about how it is run
+if it does run.
 
 Work breakdown:
 1. **`ExerciseThumb`** — Compose DrawScope composition only (VectorDrawable XML
@@ -655,13 +867,13 @@ These hold in every phase; the packets restate them locally.
 
 1. **Schema discipline**: Room's exported schema JSON is the arbiter — nothing exists
    outside it; no `fallbackToDestructiveMigration`, ever; schema changes only in
-   Phase 3; phases 1a/1b/7 carry explicit no-schema hard constraints.
+   Phase 3; phases 1 and 7 carry explicit no-schema hard constraints.
 2. **Backup discipline**: any phase that adds persisted user state must carry it in the
    backup document, validate it, and round-trip-test it (Phase 3 does this for
    everything the plan adds; Phase 7's dismissal preference is the one recorded
    device-local exception).
 3. **State-graph discipline**: every start routes through `StartTrainingDay`; every
-   finish/discard through the Phase-1a use cases; navigation events are one-shot
+   finish/discard through Phase 1's `FinishWorkout`/`DiscardWorkout` use cases; navigation events are one-shot
    StateFlows, never captured callbacks; consume-once deep links stay consume-once
    (re-proven on device at every nav-touching phase).
 4. **Design-system discipline**: tokens only (mechanically policed); the volt accent
@@ -675,12 +887,25 @@ These hold in every phase; the packets restate them locally.
    closes only on owner sign-off.
 6. **Estimates discipline**: executor-days and owner-days, always split; S/M/L labels
    are banned.
+7. **Re-baseline discipline (D-G)**: every count, line number and repo-state assertion in
+   a packet is a baseline as of audit commit `2212628`, not an oracle. The executor's
+   FIRST commit on a phase branch is a re-baseline report — current trunk tip, actual
+   domain-test and test-class counts, and every drifted literal with its verified current
+   value. Drift fully explained by merged prior phases or by the game plan's own commits
+   is EXPECTED and is not grounds to stop; stop only on unexplained mismatches.
+8. **No-CI-gates discipline (D-F)**: CI has never executed in this repo, so no phase gate
+   may depend on a CI run. Every gate is a command the owner runs on their own machine
+   with the output pasted into the PR; CI green is an **additional** check to re-run once
+   the owner's standing, non-gating billing errand lands.
 
 ## 7. Running it with Opus
 
-One fresh session per phase, two documents per session, phases strictly in order:
+One fresh session per phase, two documents per session, phases strictly in **execution**
+order — `0 → 2 → 1 → 3 → 4 → 5 → 6a → 6b → 7 → 8` (D-A; phase numbers are identifiers, not
+sequence). Phase 1 is the one exception to "two documents": it is one phase built from two
+packets (D-B), so its session receives three — the protocol plus 1A and 1B.
 
-> Read docs/gameplan/PROTOCOL.md and docs/gameplan/PHASE_1A_SESSION_LIFECYCLE.md in
+> Read docs/gameplan/PROTOCOL.md and docs/gameplan/PHASE_2_TEST_SUBSTRATE.md in
 > full, then execute the phase exactly per the protocol: verify the Phase 0 signatures
 > exist in ROADMAP.md first, create the phase branch, implement the work items in order
 > with preflight green on every commit, and finish with the packet's hand-back report.
@@ -704,28 +929,49 @@ what the next phase is.
 3. **Design regression by enthusiasm** (Phases 4/6): the token checker catches raw
    values but not accent-budget or one-spine violations — those are named review items
    in every UI phase's gate.
-4. **State-graph regressions** (Phases 1a/4/6): the hardening from the app's Phase 2
+4. **State-graph regressions** (Phases 1/4/6): the hardening from the app's Phase 2
    history must survive verbatim; the invariant greps and the device passes
    (process death, deep links, notification resume) are the fence.
 5. **Pin/planner reconciliation subtleties** (Phase 4): the reason the derivation is
    pure, the semantics are owner-signed with worked examples, and the examples are the
    tests.
 6. **Verification stays manual until the owner's standing errand lands** (CI billing):
-   every gate is therefore expressed as commands + named tests + device checklists that
-   work without CI; the day CI turns on, both jobs run with zero further changes.
-7. **Estimate risk**: phases 4 and 6a are the likely overruns (six-flow combine and the
-   `when` ripple; the merged-screen construction). Both packets flag their overrun
-   points and both are split-committed so partial progress is reviewable.
+   no gate may depend on a CI run (D-F), so every gate is expressed as commands + named
+   tests + device checklists that work without CI; the day CI turns on, both jobs run
+   with zero further changes.
+7. **The CI errand is the plan's most under-priced lever.** ~30 minutes of owner time
+   (payment method / public repo / self-hosted runner) against a plan whose scarce
+   resource is owner evenings — it would remove the single biggest bottleneck and
+   specifically kill Phase 3's hand-fetch of `schemas/2.json`. It is *requested* at
+   Phase 0 and still gates nothing; the risk is that it stays undone for the whole plan
+   and every phase pays the manual-verification tax.
+8. **Host OS for the JVM migration lane** (Phases 2/3, new in the second pass):
+   Robolectric 4.14.1 falls back to LEGACY SQLite (3.7.10) on **Windows**, whose
+   `PRAGMA table_info` cannot express a composite primary key — exactly
+   `exercise_muscles(exerciseId, muscleKey)` — so Room's open-time validation fails there
+   for reasons unrelated to the migration. Mitigation: run the JVM lane on macOS or
+   Linux; on a Windows host the emulator `connectedDebugAndroidTest` lane is the only
+   valid migration lane, and Phase 3's gate must be met there. Settle it in Phase 2, not
+   inside Phase 3.
+9. **Estimate risk**: phases 4 and 6a are the likely overruns (six-flow combine and the
+   `when` ripple; the merged-screen construction — the latter only under the three-tab
+   branch). Both packets flag their overrun points and both are split-committed so
+   partial progress is reviewable.
+10. **Packet literals keep drifting** as phases merge and as the game plan's own doc
+   commits land. Mitigated, not eliminated, by the mandatory phase-start re-baseline
+   (D-G): expected drift is reported and execution continues; only unexplained drift
+   stops a phase.
 
 ## 9. What "done" looks like
 
-Three tabs and a bar. You open the app: the masthead says `PUSH DAY · 4 LIFTS`, the hero
-starts it in one tap, the strip shows the week you pinned. Mid-rest, the bar carries the
-clock on every screen; finishing lands on the summary and the session files itself. Body
-shows honest bands over the silhouette, your calendar, your whole log grouped by month,
-your records — and a coach that names the lift you actually own, holds you at RPE 9,
-and tells you to rest when everything is productive. Plan holds your week and heals when
-you delete a routine. The Library is ~98 movements in families with images drawn from
+Four tabs and a bar — three, if that is the option you signed. You open the app: the
+masthead says `PUSH DAY · 4 LIFTS`, the hero starts it in one tap, the strip shows the
+week you pinned. Mid-rest, the bar carries the clock on every screen; finishing lands on
+the summary and the session files itself. Body shows honest bands over the silhouette,
+your records — and a coach that names the lift you actually own, holds you at RPE 9, and
+tells you to rest when everything is productive; your calendar and your whole log,
+grouped by month, are one tap away in History (or in Body itself under three tabs). Plan
+holds your week and heals when you delete a routine. The Library is ~98 movements in families with images drawn from
 the app's own design system, your customs intact beside them. A typo in an old session
 takes four taps to fix and cannot move your PRs off their real dates. And underneath:
 two test lanes, a versioned seeder, a co-evolved backup format, one migration that was
@@ -739,7 +985,8 @@ was taken before Room opened the database.
 | [ACTION_PLAN.md](ACTION_PLAN.md) | this file — the reading layer |
 | [PROTOCOL.md](PROTOCOL.md) | binding execution protocol (branches, PRs, gates, preflight) |
 | [README.md](README.md) | index + the critique-reversal summary |
-| [REVISED_STRUCTURE.md](REVISED_STRUCTURE.md) | the binding brief: what the critique changed and why |
+| [REVISED_STRUCTURE.md](REVISED_STRUCTURE.md) | the binding brief: what the critique changed and why (+ the second-pass amendments D-A…D-G, appended) |
+| [SECOND_PASS.md](SECOND_PASS.md) | the second-pass due-diligence record: verdict, decisions changed, defects fixed, what held, new risk |
 | [PHASE_0_DECISIONS.md](PHASE_0_DECISIONS.md) … [PHASE_8_IMAGERY.md](PHASE_8_IMAGERY.md) | the eleven executor packets |
 | [../HIERARCHY_PLAN.md](../HIERARCHY_PLAN.md) | the audit of record (§4 superseded by this directory) |
 | [../ROADMAP.md](../ROADMAP.md) | source of truth; Phase 0 records the Decisions section there |

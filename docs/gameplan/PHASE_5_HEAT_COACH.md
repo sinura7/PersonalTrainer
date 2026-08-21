@@ -4,9 +4,28 @@
 > only instructions. Execute on branch `claude/phase-5-heat-coach` cut from trunk after the
 > Phase 4 PR merges. Do not start before it merges.
 >
+> **Execution order (phase numbers are identifiers, not sequence).** The order is
+> 0 → 2 → 1 → 3 → 4 → **5** → 6a → 6b → 7 → 8. Five phases are merged before you start:
+> **Phase 0** (decisions), **Phase 2** (test substrate: `tools/preflight.sh`, the Robolectric
+> JVM lane), **Phase 1** (session hygiene — ONE PR from branch `claude/phase-1-session-hygiene`
+> covering both the 1A and 1B packets), **Phase 3** (schema v2), **Phase 4** (Plan tab).
+> Verify Phase 0 with `grep -c "Signed:" docs/ROADMAP.md` returning greater than 0 —
+> `docs/gameplan/PROTOCOL.md` is committed on every branch, so its presence proves NOTHING.
+>
 > All `file:line` citations below were verified at commit `2212628` on
-> `claude/app-hierarchy-navigation-cjzigo` — before Phases 1a–4 landed. Line numbers will
+> `claude/app-hierarchy-navigation-cjzigo` — before Phases 0/2/1/3/4 landed. Line numbers will
 > have drifted; symbols will not. Re-locate every cite by symbol before editing.
+>
+> **Mandatory first commit: the re-baseline report (D-G, PROTOCOL.md §6).** Every count, line
+> number, and repo-state assertion in this packet is a baseline as of audit commit `2212628`,
+> not an oracle — five phases have landed since. Your FIRST commit on
+> `claude/phase-5-heat-coach` is a docs/PR-body re-baseline report, before any work item: the
+> current trunk tip (`git log --oneline -1`) and which phases merged since `2212628`; the
+> actual domain-test count and test-class count from a real run, not from this packet; and
+> every packet literal that has drifted, with its verified current value (at minimum the §2
+> line cites, the source-combine arity — Phase 4 made it six — and the §7 grep expectations).
+> Drift fully explained by Phases 0/2/1/3/4 or by the game plan's own commits is EXPECTED:
+> record it, adopt the new value, proceed. Stop only on a mismatch with no such explanation.
 
 ## 1. Mission
 
@@ -463,3 +482,28 @@ The completion report to the owner must contain:
    picker row, Body deep-link) and of swap/remove guards, each with its calling file:line.
 7. Anything deferred or discovered (e.g. Phase 3's junction accessor differing from
    assumption), flagged for the Phase 6a/6b packet authors.
+8. **Recorded follow-up, owner decision required — the Deload rule has no affordance.**
+   D12's Deload copy ends `"Schedule a lighter week."` (§4, D12 rule table), but the app has
+   no deload concept anywhere: Phase 4's Plan tab pins routines and focus kinds, nothing
+   scales load, and this phase adds no scheduling. The advice is therefore an instruction the
+   owner cannot follow inside the app, and "how do I schedule a deload?" is the first thing
+   they will ask. Ship the phase with the D12 copy exactly as specced, and put this gap on the
+   PR with the two dispositions named, for the owner to sign:
+   - **A — small follow-up phase (the recommended default).** A post-Phase-8 mini-phase,
+     ~1 executor day, no schema change: a "Lighter week" marker for the current week, set
+     from Plan's Tune section and stored as one DataStore key holding the marked week's
+     week-start epoch day. It shows on the week strip and makes the in-workout progression
+     strip suggest holding load instead of adding it. Nothing else changes.
+   - **B — accepted non-goal.** The advice stays purely informational and the copy is
+     reworded to something the app can back, e.g. `"Weekly volume rose {pct}% over three
+     weeks while top-lift e1RMs did not move. Take an easier week: same lifts, fewer sets."`
+     — an action the owner executes by logging less, with no affordance to build, ever.
+   If the owner signs B before merge, apply the reword in this phase (a one-line copy change)
+   and record it in the as-built voice table, item 2. If they sign A or do not answer, ship
+   D12's copy unchanged and hand the item forward as a named open follow-up — never as a
+   silent gap.
+9. The next phase, named: **Phase 6a — tab consolidation & Body**
+   (`docs/gameplan/PHASE_6A_TAB_CONSOLIDATION.md`). Execution order is
+   0 → 2 → 1 → 3 → 4 → **5** → 6a → 6b → 7 → 8 (phase numbers are identifiers, not sequence).
+   Hand 6a the shipped band semantics, the two-window `HeatWindow`, the fixed 14-day coach
+   basis, and this phase's re-baseline report — 6a builds Body on these numbers.

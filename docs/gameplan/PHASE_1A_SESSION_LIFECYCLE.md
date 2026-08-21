@@ -2,11 +2,11 @@
 
 ## 1. Mission
 
-Kill session limbo. Extract finish/discard into shared use cases so no surface can ever again finish or discard a workout while leaving a live rest-timer notification or a stale draft behind; then build the LiveSessionBar — the one persistent live-session surface — on top of them, delete the two competing resume affordances (Home's RestRemainingStrip and the hero's Resume relabel), and add the in-app stale-session nudge. This ships first because it is schema-free, fixes daily pain, and is the surface every later limbo policy needs. Execution follows docs/gameplan/PROTOCOL.md: branch `claude/phase-1a-session-lifecycle`, one PR, phase closes only on owner sign-off.
+Kill session limbo. Extract finish/discard into shared use cases so no surface can ever again finish or discard a workout while leaving a live rest-timer notification or a stale draft behind; then build the LiveSessionBar — the one persistent live-session surface — on top of them, delete the two competing resume affordances (Home's RestRemainingStrip and the hero's Resume relabel), and add the in-app stale-session nudge. This ships early because it is schema-free, fixes daily pain, and is the surface every later limbo policy needs. Execution follows docs/gameplan/PROTOCOL.md §3. **Phase 1 is ONE phase built from TWO packets:** this packet and `PHASE_1B_LOG_REPAIR.md` share a single branch `claude/phase-1-session-hygiene`, a single PR, and a single combined owner evening. Both packets go to the SAME executor session and are executed strictly in order: this packet's work items in full, **its §7 acceptance gate green**, and only then 1B's work items on top of the same branch. 1B's gate greps re-assert this packet's invariants, so the sequence self-verifies. There is no separate 1A PR. Phase 1 starts only after the **Phase 2** (test substrate) PR merges — Phase 2 runs ahead of Phase 1 in the execution order (0 → 2 → 1 → 3 → 4 → 5 → 6a → 6b → 7 → 8; **phase numbers are identifiers, not sequence**). The phase closes only on owner sign-off of BOTH packets' owner checklists.
 
 ## 2. Read first
 
-1. `docs/gameplan/PROTOCOL.md` — branch/PR/gate protocol; this packet does not repeat it. (This file is delivered by the protocol packet before this phase starts — `docs/gameplan/` does not exist on the branch today. If it is missing when you start, the protocol facts stated in this packet — branch name, one PR, owner sign-off closes the phase — are sufficient and binding.)
+1. `docs/gameplan/PROTOCOL.md` — branch/PR/gate protocol; this packet does not repeat it. It is committed and readable at that path. Note especially §6's **mandatory phase-start re-baseline** (D-G): your FIRST commit on `claude/phase-1-session-hygiene` is the re-baseline report — current trunk tip, measured domain-test and test-class totals, and every literal in this packet (line numbers, counts, expected grep output) that has drifted, with its verified current value. Drift explained by a merged prior phase or by the game plan's own commits is EXPECTED: record it, adopt the new value, continue. Stop only on a mismatch nothing in the merge history accounts for.
 2. `app/src/main/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutViewModel.kt` — `finishWorkout` (:658-676), `discardWorkout` (:678-690), `clearDraft` (:728-731), `WorkoutExit` (:73-79): the exact invariants being extracted.
 3. `app/src/main/java/com/sinura/personaltrainer/data/repository/WorkoutRepository.kt` — `finishSession` (:232-247), `discardSession` (:249-251), `observeInProgress` (:44-46), `insertSessionIfIdle` (:100-112).
 4. `app/src/main/java/com/sinura/personaltrainer/ui/navigation/AppNav.kt` — routes (:91-119), `showBottomBar` (:169-171), deep-link effect (:173-179), Scaffold bottomBar (:192-215), `InstrumentNavBar` insets (:429), ActiveWorkout finish nav (:342-349).
@@ -23,7 +23,7 @@ Kill session limbo. Extract finish/discard into shared use cases so no surface c
 
 ## 3. Binding doctrine
 
-Note on sources: `REVISED_STRUCTURE.md` and `attacks.md` are planning-phase documents that are NOT in this repository — you cannot and need not read them. Every constraint they impose is restated inline below; this packet's text is authoritative.
+Note on sources: `docs/gameplan/PROTOCOL.md` and `docs/gameplan/REVISED_STRUCTURE.md` **are committed and readable** at those paths — read them for context. `attacks.md` is a planning-phase document that is NOT in this repository; you cannot and need not read it. Every constraint any of these imposes is restated inline below, and this packet's text remains authoritative on detail.
 
 - **DESIGN_AUDIT.md** H-01, H-02 (:258-259 — three ways to resume is the defect this phase deletes); NAV-05 (:453 — the notification deep link survives and must keep working); W-14/W-15 (:307-308 — discard is a named destructive text action behind its own confirm).
 - **UI_REDESIGN.md** §6 LiveSessionBar bullet (:146-149) — bar above the nav bar, lift/set-count/rest, tap = return, discard in overflow with its existing confirm; §8 guardrails (:164-172) — accent budget, tokens only; appendix IA-V1 (:319) — stale session locks every start surface; §5.1 (:121-135) — type/color/spacing tokens.
@@ -93,12 +93,12 @@ Do not reopen any of these.
 - **Create** `app/src/main/java/com/sinura/personaltrainer/workout/FinishWorkout.kt`, `app/src/main/java/com/sinura/personaltrainer/workout/DiscardWorkout.kt` per settled decision 9. KDoc each with the invariant list (zero-set guard / timer stop / draft clear / idempotence) and the finish-side invariant (decision 10). Use `runCatchingCancellable` + `AppLog` like StartTrainingDay.kt:37-55.
 - **Modify** `app/src/main/java/com/sinura/personaltrainer/AppContainer.kt`: register `val finishWorkout: FinishWorkout` and `val discardWorkout: DiscardWorkout` after `workoutDraftCache` (:40).
 - **Modify** `app/src/main/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutViewModel.kt`: `finishWorkout()` (:658-676) and `discardWorkout()` (:678-690) become thin dispatchers over `container.finishWorkout(sessionId, notes.value)` / `container.discardWorkout(sessionId)`. Preserve exactly: error strings ("Log at least one set before finishing.", "Could not finish this workout. Try again.", "Could not discard this workout. Try again."), `finished.value = true`, the one-shot `_exitRequested` values (`WorkoutExit.Finished(sessionId)` / `WorkoutExit.Discarded`), and add `savedDraft.clear()` on success (decision 11). Outcome mapping, so the dispatch is deterministic: `NothingLogged` → error "Log at least one set before finishing."; `SessionMissing` and `Failed` → error "Could not finish this workout. Try again."; `Finished` (including the idempotent already-finished case) → clear error, `savedDraft.clear()`, `finished.value = true`, `_exitRequested = WorkoutExit.Finished(sessionId)`. `Discarded` → clear error, `savedDraft.clear()`, `_exitRequested = WorkoutExit.Discarded`; `DiscardOutcome.Failed` → error "Could not discard this workout. Try again.". Delete the now-unused private `clearDraft()` (:728-731) or reduce it to the savedDraft half.
-- **Tests:** behavior is pinned by the gate greps plus existing compile-level checks; the pure pieces are covered by 1a-4's domain tests. No Robolectric/instrumented tests in this phase (the test substrate is Phase 2).
+- **Tests:** behavior is pinned by the gate greps plus existing compile-level checks; the pure pieces are covered by 1a-4's domain tests. The JVM **Robolectric lane EXISTS** — Phase 2 shipped it, at `app/src/test/java/com/sinura/personaltrainer/data/local/`, running only under `./gradlew testDebugUnitTest` (it is deliberately outside `domain/` so `tools/run-domain-tests.sh` never sees it). Use it where it adds real value — repository/DAO behaviour, per the `scheduleSlotCascadeOnRoutineDelete` precedent. Do NOT invent ViewModel tests for this extraction: the DI seam that would make ViewModels constructible under test is explicitly not built in this plan, so the use-case extraction itself stays **gate-grep-and-review verified**.
 
 ### 1a-2 · SessionActivity observed query
 
 - **Create** `app/src/main/java/com/sinura/personaltrainer/data/local/dao/SessionActivityRow.kt`; **modify** `WorkoutDao.kt` and `WorkoutRepository.kt` per settled decision 12; add `SessionActivity` to `domain/Models.kt`.
-- **Tests:** none runnable in-lane for DAO SQL (no instrumented lane yet — Phase 2); the SQL is reviewed in PR. Keep the query trivially simple as written.
+- **Tests:** the Phase-2 Robolectric lane can host this one cheaply — optional but welcome: `app/src/test/java/com/sinura/personaltrainer/data/local/SessionActivityQueryTest.kt` inserting a session with warm-up and working sets and asserting `totalSets` / `workingSets` / `MAX(completedAt)` (naming and placement per the `scheduleSlotCascadeOnRoutineDelete` precedent; runs only under `./gradlew testDebugUnitTest`). Otherwise the SQL is reviewed in PR. Keep the query trivially simple as written.
 
 ### 1a-3 · LiveSessionBar + ViewModel + AppNav hosting
 
@@ -151,12 +151,26 @@ Do not reopen any of these.
 - StartWorkout-interstitial deletion / start-options sheet — Phase 6b.
 - `finishSession` duration capping at last-set time — not in this plan; duration semantics unchanged (WorkoutRepository.kt:236-239).
 - Background scheduling (WorkManager/alarms) or notifications for staleness — the nudge is in-app only, forever in this phase.
-- Editable/deletable finished sessions, repeat, delete-set undo — Phase 1b.
-- Tab-bar changes, route additions/removals, A1 DI refactor, `tools/preflight.sh` (Phase 2).
+- Editable/deletable finished sessions, post-finish notes editing, repeat, delete-set undo — the `PHASE_1B_LOG_REPAIR.md` packet. Out of scope for THIS packet's work items and gate; it lands next on the SAME branch, in the same PR, by the same executor session (D-B). Do not start it until this packet's §7 gate is green.
+- Tab-bar changes, route additions/removals, the A1 DI refactor. Test-substrate work — `tools/preflight.sh`, the Robolectric lane, the androidTest scaffold — belongs to Phase 2, which merged BEFORE this phase: this phase **consumes** that substrate and must not modify it.
 
 ## 7. Acceptance gate
 
 Run from the repo root; every command must exit 0 with no findings:
+
+```bash
+tools/preflight.sh    # PRIMARY GATE: the eight static checks + the domain-test lane, one command
+```
+
+Expected: each check section reports no findings, the domain lane runs (all previous tests
+plus `LiveSessionRulesTest` green), and the final line is `preflight: OK`, exit 0.
+`tools/preflight.sh` **exists** — Phase 2 shipped it (WI-4) and merged before this phase; it
+also bootstraps the jars `tools/run-domain-tests.sh` needs on a cold clone. Judge on that
+final line, not on exit code alone (four of the eight checks always exit 0 and report on
+stdout).
+
+Fallback only if `tools/preflight.sh` is genuinely unavailable — which would itself be a
+stop-worthy re-baseline mismatch — run the same checks individually:
 
 ```bash
 python3 tools/check-named-args.py app/src/main/java
@@ -169,8 +183,6 @@ python3 tools/check-screen-wiring.py app/src/main/java
 tools/syntax-check.sh app/src/main/java
 PT_JARS=build/test-jars tools/run-domain-tests.sh   # all previous tests + LiveSessionRulesTest green
 ```
-
-(`tools/preflight.sh` does not exist yet — Phase 2 delivers it; run the checks individually.)
 
 Invariant greps (expected output stated literally):
 
@@ -190,11 +202,13 @@ grep -rn "restRemainingSeconds" app/src/main/java/com/sinura/personaltrainer/ui/
 
 Domain tests by name: `LiveSessionRulesTest` (all methods in 1a-4), plus the whole existing suite unchanged and green.
 
-On the owner's machine (executor cannot build): `./gradlew testDebugUnitTest assembleDebug` green. One-live-affordance gate, verbatim: **"exactly one live-session affordance visible anywhere, counting docked chrome"** — verified by owner checklist steps 4 and 11.
+On the owner's machine (executor cannot build): `./gradlew testDebugUnitTest assembleDebug` green — the owner pastes that output into the PR. **No gate in this phase depends on a CI run** (D-F): CI has never executed in this repo, so the owner-machine output IS the gate; CI green is an ADDITIONAL check to be re-run once the owner's standing, non-gating billing errand is done. One-live-affordance gate, verbatim: **"exactly one live-session affordance visible anywhere, counting docked chrome"** — verified by owner checklist steps 4 and 11.
 
 ## 8. Owner device checklist
 
-1. Install the phase build (`./gradlew installDebug`, or sideload the CI debug APK per docs/DEVELOPMENT.md).
+Run in ONE sitting with `PHASE_1B_LOG_REPAIR.md` §8 — one branch, one PR, one owner evening (D-B). Do this checklist first, then 1B's.
+
+1. Install the phase build (`./gradlew installDebug` from Android Studio's terminal — CI has never run in this repo, so there is no CI APK to sideload).
 2. From Home, start today's session via the hero; log one set; tap ✕ → "Keep and exit". **Observe:** a bar docked above the tab bar: volt "In progress", session name, elapsed clock ticking every second, "1 sets".
 3. Visit all five tabs, then open Schedule (via the hero card body) and Settings (gear). **Observe:** the bar is on every one of these screens; on Schedule/Settings (no tab bar) it sits fully above the gesture-nav area, not under it.
 4. On Home: **observe** there is NO rest strip, the hero button does NOT say "Resume workout" (it shows a Start label), and counting everything on screen — including docked chrome — exactly ONE control anywhere resumes/finishes/discards the live session: the bar.
@@ -213,4 +227,4 @@ On the owner's machine (executor cannot build): `./gradlew testDebugUnitTest ass
 
 ## 10. Hand-back
 
-The completion report (PR description + closing comment) must contain: (1) the PR link on `claude/phase-1a-session-lifecycle`; (2) pasted output of every gate command and all four invariant greps; (3) the domain-test count before/after (was 179-class-equivalent lane; name the added test class); (4) a file-by-file change list with one line each; (5) any deviation from a settled decision, flagged loudly with why (target: zero); (6) the owner checklist verbatim with an empty result column for the owner to fill; (7) the statement that the phase stays open until the owner posts checklist results and merges.
+The completion report (PR description + closing comment) must contain: (1) the PR link on `claude/phase-1-session-hygiene` — the ONE Phase 1 PR carrying both packets — plus the re-baseline report commit required by PROTOCOL §6 (D-G), which is the FIRST commit on the branch, before any work item; (2) pasted output of `tools/preflight.sh` (or the fallback commands) and all four invariant greps; (3) the domain-test count and test-class count before/after, measured — baseline at the audit commit was **188 tests across 24 test classes in 23 files**, so re-measure at phase start per D-G and name the added test class; (4) a file-by-file change list with one line each; (5) any deviation from a settled decision, flagged loudly with why (target: zero); (6) the owner checklist verbatim with an empty result column for the owner to fill; (7) the statement that the phase stays open until the owner posts checklist results and merges.

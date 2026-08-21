@@ -238,3 +238,73 @@ surface may show a live-session affordance.
 - Mechanical proof per phase: tools/preflight.sh green (all eight static checks +
   domain tests) before every push; check-when-exhaustive and check-screen-wiring cited
   wherever enums/callbacks change.
+
+## Amendments — second pass, 21 Aug 2026
+
+Everything above this heading is preserved **verbatim**, including line breaks and line
+numbers: several packets cite this brief by line number (e.g. "lines 219-224", "lines
+132-142"), so the body is append-only and must never be reflowed. Where an amendment
+below contradicts the body, the amendment wins.
+
+These are the seven global decisions of the second-pass due-diligence round (six
+independent auditors, ~1.1M tokens, evidence-verified against HEAD and against Room /
+Robolectric / AOSP primary sources). The full record — verdict, defects fixed, what
+held, new risks, scope additions — is [SECOND_PASS.md](SECOND_PASS.md).
+
+- **D-A — EXECUTION ORDER CHANGES; PHASE NUMBERS DO NOT.** Phase numbers are
+  identifiers, not sequence. The order is **0 → 2 → 1 → 3 → 4 → 5 → 6a → 6b → 7 → 8**.
+  Rationale: Phase 2 ships `tools/preflight.sh` and the Robolectric lane, so running it
+  first (a) keeps Phase 2's verified gate literals (188 tests / 24 classes / 23 files)
+  true instead of stale, (b) gives Phase 1's gates a working domain-test lane instead of
+  a command that exits 2 on a cold clone (`tools/run-domain-tests.sh:20-24` needs a jar
+  dir that Phase 2's bootstrap creates), and (c) gives Phase 1b's repository writes
+  (`restoreSet`, `repeatSession`, `deleteFinishedSession`) a Robolectric lane they
+  currently lack. Cost: session hygiene reaches the owner ~1-2 executor-days later.
+- **D-B — PHASES 1A AND 1B MERGE INTO ONE PHASE ("Phase 1 — Session hygiene").** One
+  branch `claude/phase-1-session-hygiene`, one PR, one combined owner evening. Both
+  packets go to the same executor session, executed IN ORDER (1A in full, its gate
+  green, then 1B on top). Rationale: 1B's gate greps re-assert 1A's invariants, so the
+  sequence self-verifies — saves one owner evening with no safety lost.
+- **D-C — D1's RECOMMENDED DEFAULT FLIPS TO FOUR TABS** (Home · Body · Plan · History).
+  Rationale: post-6a the session log sits below FIVE sections on the merged Body while
+  6b deletes Home's `RecentSection` in both branches and builds only a `section=calendar`
+  anchor — "what did I do last session" goes from one tap to a tab change plus a long
+  scroll. Four tabs keeps every real win (month grouping, multi-session-day sheet, PR
+  row, Library demotion, `isTabRoute`/`restoreState` shim deletion) and drops only the
+  size-L merge. **Three tabs remains a legitimate signable option**; if the owner signs
+  it, two mitigations are MANDATORY and in-phase: (i) a `section=sessions` scroll anchor
+  alongside `section=calendar` (Phase 6a), and (ii) a single **"Last session"** link row
+  on Home (Phase 6b) — a link, not a recommendation surface, so the D3 surface map above
+  is untouched. Both branches are specced to equal depth.
+- **D-D — MOVEMENTKEY VOCABULARY UNIFIES ON THE FAMILY SET** (Phase 7's). Phase 3's
+  batch-1 catalog ships **family** keys from the start; nothing is re-keyed later.
+  Rationale: the two vocabularies were incompatible, and the pattern-key reading made
+  Phase 7's own `LibraryGroupingTest` ("the `bench-press` family has 8 members" — 4
+  batch-1 + 4 batch-2 bench rows) unpassable. The complete 37-row batch-1 mapping is
+  normative in PHASE_3_SCHEMA_V2 (S6).
+- **D-E — MUSCLEKEY VOCABULARY IS `CanonicalMuscle.name.lowercase()` EVERYWHERE**:
+  `chest, back, shoulders, biceps, triceps, quadriceps, hamstrings, glutes, calves,
+  core`. Phase 7's `quads` spelling is corrected to `quadriceps`. Rationale: `quads` is
+  an alias that normalizes to QUADRICEPS, so a normalization-only invariant would let it
+  through while it is wrong in the column; the shared invariant test is strengthened
+  from "normalizes to a non-OTHER CanonicalMuscle" to "`muscleKey ==
+  CanonicalMuscle.name.lowercase()` for some CanonicalMuscle", making drift a build
+  failure.
+- **D-F — NO PHASE GATE MAY DEPEND ON A CI RUN.** CI has never executed (account billing
+  block), so "CI green on the PR" can never be satisfied. Every such gate line becomes
+  **owner-machine output pasted into the PR**, with CI green kept as an ADDITIONAL check
+  once the owner's standing (non-gating) billing errand lands.
+- **D-G — MANDATORY PHASE-START RE-BASELINE.** Every count, line number and repo-state
+  assertion in a packet is a baseline as of audit commit `2212628`, not an oracle. The
+  executor's FIRST commit on a phase branch is a re-baseline report: current trunk tip,
+  actual domain-test count and test-class count, and every packet literal that has
+  drifted with its verified current value. A mismatch fully explained by merged prior
+  phases or by the game plan's own commits is EXPECTED and is NOT grounds to stop; stop
+  only on mismatches with no such explanation.
+
+**Repo-state corrections that supersede anything above.** `docs/gameplan/` exists and is
+committed (15 files at HEAD, including PROTOCOL.md and this brief). `main` still holds
+only the initial commit `1b7eb6a`; the working branch is well ahead of it, and no tip SHA
+or commit count is recorded anywhere as a gate (it rots — re-measure at phase start per
+D-G). The correct test for "has Phase 0 merged?" is `grep -c "Signed:" docs/ROADMAP.md`
+returning `0` — **not** the presence of PROTOCOL.md, which is already committed.

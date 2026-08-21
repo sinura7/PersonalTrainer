@@ -21,7 +21,7 @@ executes without it.
    (the superseded phase plan, line 140 onward); source of the decision text.
 4. `docs/DESIGN_AUDIT.md` — the rows being amended: NAV-01 (line 449), §7 (line 478),
    R-05 (line 59), T-07 (line 342), N-03 (line 440), §10.2 (line 565), §15 (line 670),
-   §17 (lines 735–739).
+   §16 build order (line 711, Wave 2 item 13), §17 (lines 735–739).
 5. `docs/UI_REDESIGN.md` — §5 decision record (lines 99–136), §6 target IA (lines
    139–152: three tabs + LiveSessionBar), §9 (lines 174–193: what shipped, the
    no-compiler caveat).
@@ -64,10 +64,14 @@ executes without it.
 
 Stated as settled. Do not reopen any of them.
 
-- **The recommended IA is three tabs — Home · Body · Plan — plus the LiveSessionBar.**
-  The fallback is four tabs (Home · Body · Plan · History). Keep-five is not offered.
-  The owner circles one; either outcome closes NAV-01.
-- **The LiveSessionBar contract** (implemented in Phase 1a, recorded now): visible on
+- **The recommended IA is four tabs — Home · Body · Plan · History — plus the
+  LiveSessionBar** (recommendation flipped 21 Aug 2026 on second-pass evidence; see
+  WI-4). The alternative on offer is three tabs (Home · Body · Plan, Body absorbing
+  History), which remains a legitimate choice but carries two mandatory mitigations if
+  signed. Keep-five is not offered. The owner circles one; either outcome closes
+  NAV-01.
+- **The LiveSessionBar contract** (implemented in Phase 1 — session hygiene — recorded
+  now): visible on
   all tab routes and pushed routes EXCEPT ActiveWorkout, WorkoutSummary, StartWorkout;
   carries its own `navigationBarsPadding` when the tab bar is absent; shows elapsed
   time, working-set count, rest countdown; tap resumes; overflow = Finish (≥1 set) /
@@ -101,14 +105,40 @@ Stated as settled. Do not reopen any of them.
 ## 5. Work items
 
 All edits land on branch `claude/phase-0-decisions`, branched from
-`claude/app-hierarchy-navigation-cjzigo`. Every work item is a doc edit; per-item tests
-are the grep checks in §7.
+`claude/app-hierarchy-navigation-cjzigo`. WI-1 is a verification step; every other work
+item is a doc edit. Per-item tests are the grep checks in §7.
 
-### WI-1 — Commit the gameplan documents
+### WI-1 — Verify the gameplan directory (do not re-create it)
 
-Create `docs/gameplan/` and commit `PROTOCOL.md` (the document accompanying this packet,
-verbatim) and this packet as `docs/gameplan/PHASE_0_DECISIONS.md`. Later phase packets
-will be committed to the same directory as they are authored.
+**`docs/gameplan/` already exists and is committed.** The reconciliation of 21 Aug 2026
+landed it (commits `6be86fa`..`4028c93`): fifteen files at HEAD — `PROTOCOL.md`,
+`README.md`, `ACTION_PLAN.md`, `REVISED_STRUCTURE.md`, and all eleven phase packets
+including this one. Do **not** create the directory, and do **not** re-commit
+`PROTOCOL.md` or `PHASE_0_DECISIONS.md`; they are already tracked and their committed
+wording is authoritative.
+
+This work item is a verification step. Run it as the phase's first act, folded into the
+mandatory phase-start re-baseline commit:
+
+```bash
+git rev-parse --short HEAD                       # record the actual trunk tip
+ls docs/gameplan/                                # expect the full committed set (16 .md files; 17 after WI-5)
+test -f docs/gameplan/PROTOCOL.md && echo PROTOCOL-OK
+ls docs/gameplan/PHASE_*.md | wc -l              # expect: 11
+grep -c "Signed:" docs/ROADMAP.md                # expect: 0 — the "has Phase 0 merged?" test
+```
+
+The last grep is the authoritative "has Phase 0 already merged?" test: `0` means the
+Decisions section has no signatures yet and this phase has work to do. (The presence of
+`PROTOCOL.md` is **not** that test — it exists at HEAD regardless.)
+
+**The only new file this phase creates is `docs/gameplan/SCHEDULE_SEMANTICS.md` (WI-5).**
+Every other work item edits a file that already exists.
+
+Counts and line numbers throughout this packet are a baseline as of audit commit
+`2212628`, not an oracle. Report every literal that has drifted, with its verified
+current value, in the re-baseline commit. Drift fully explained by merged prior phases or
+by the game plan's own commits is expected and is not grounds to stop.
 
 ### WI-2 — ROADMAP.md restructure
 
@@ -118,7 +148,8 @@ replace its body (lines 91–97) with:
 > Superseded 20 Aug 2026. The monolithic Phase 4 bundled the migration with behaviour
 > changes this roadmap itself said deserved their own change (see line 83–85 on editable
 > sessions). It is split and re-ordered value-first across the game plan below: the
-> migration core is game-plan Phase 3; session hygiene ships first (Phases 1a/1b); the
+> migration core is game-plan Phase 3; the test substrate and session hygiene ship first
+> (Phases 2 then 1); the
 > catalog and imagery ship last (Phases 7/8). Execution rules: `docs/gameplan/PROTOCOL.md`.
 
 **(b)** After the Phase 6 section (line 134, before the `---` at line 136), insert a new
@@ -144,7 +175,7 @@ numbers refer to the game plan." Then re-point the rows:
 |---|---|
 | No instrumented tests (144) | 2 |
 | A1 ViewModels untestable (145) | opportunistic — not a phase |
-| Finished sessions cannot be edited (146) | 1b |
+| Finished sessions cannot be edited (146) | 1 |
 | Imbalance advice compares tonnage (148) | 5 |
 | Progression increment "+5.5 lbs" (149) | 7 |
 | RPE read by nothing (150) | 5 |
@@ -167,18 +198,18 @@ numbers refer to the game plan." Then re-point the rows:
 > ### D3 — Recommendation surfaces  *(text: WI-6)*
 > ### D4 — Cut list  *(text: WI-7)*
 > ### D5 — Branch ground truth  *(text: WI-8)*
+> ### D6 — Second-pass amendments  *(text: WI-9)*
 
-The italic pointers are placeholders for this packet's flow only: WI-4 through WI-8
+The italic pointers are placeholders for this packet's flow only: WI-4 through WI-9
 insert the actual decision text under these headings, and each pointer is deleted when
 its text lands. The committed ROADMAP contains the headings and the decision text, not
 the "(text: WI-n)" annotations (D2's pointer is replaced by the spec-reference line WI-5
 specifies).
 
-**(e)** Add at the top of `docs/HIERARCHY_PLAN.md` §4 ("The recommended plan", heading at
-line 140 — insert directly under the heading):
-
-> **Superseded 20 Aug 2026** by the game plan in `docs/ROADMAP.md` and the packets in
-> `docs/gameplan/`. §1–§3 remain the audit of record; nothing in §4 is executable.
+**(e) — already landed; no edit.** The `docs/HIERARCHY_PLAN.md` §4 supersession banner
+went in with commit `6be86fa` (it sits directly under the §4 heading) and **its committed
+wording is authoritative** — do not add a second banner and do not reword the existing
+one. This phase does not touch `docs/HIERARCHY_PLAN.md`.
 
 **Test:** `grep -n "game plan" docs/ROADMAP.md` hits the new section; `grep -n "Phase 4" docs/ROADMAP.md` shows the superseded body; no row of the known-items table still says a bare "4".
 
@@ -199,7 +230,7 @@ different card)." with:
 > grouped by `movementKey`; no per-routine override column will exist.
 
 **(c) Rest-overlay resolution — ROADMAP wins.** ROADMAP Phase 6 (line 134) records the
-overlay bubble as not-to-build; this document still mandates it in five places. Amend:
+overlay bubble as not-to-build; this document still mandates it in six places. Amend:
 
 - **R-05** (line 59): append to the Current state cell: "**Superseded — see §10.2
   banner; the notification + last-5s ticks are the home-screen presence.**"
@@ -216,6 +247,12 @@ overlay bubble as not-to-build; this document still mandates it in five places. 
 - **§17** (line 739): replace "**see the clock on the launcher** (overlay or at least a
   non-negative notification)" with "**see the clock in the notification shade**
   (non-negative, always)".
+- **§16 build order** (line 711, Wave 2 item 13): the line reads "Optional overlay
+  bubble + permission row (R-05)". Same strike-through-and-annotate treatment as the
+  rows above — replace it with:
+
+  > 13. ~~Optional overlay bubble + permission row (R-05)~~ **Cut 20 Aug 2026 (D4); see
+  >     §10.2 banner. Nothing replaces it in this wave.**
 
 **(d) §15 non-goals additions.** Extend the §15 bullet list — it ends at line 683 with
 "Gym-level machine brand models"; append the three new bullets there, before the closing
@@ -240,23 +277,45 @@ Insert under ROADMAP § Decisions D1, verbatim:
 > Phase 5 deferred. This decision closes the contradiction. **Circle one option and
 > sign.**
 >
-> **Option A (recommended): three tabs — Home · Body · Plan — plus the LiveSessionBar.**
-> This is the recorded target IA of UI_REDESIGN §6 with one change in your favour: the
-> reflection tab keeps the name **Body** and leads with the silhouette. History does not
-> disappear — its calendar and session log move *under* the body map, making Body the
-> single "what has my training done" surface instead of two thin ones. Library stops
-> being a tab; it lives on as a pushed screen entered from Plan, from recommendation
-> cards, and from the muscle detail sheet. Every pushed route survives. The
-> LiveSessionBar (a docked strip whenever a session is live — elapsed, sets, rest
-> countdown, tap to resume) is chrome, not a tab, and becomes the **only** live-session
-> affordance anywhere.
+> **What both options give you, whichever you circle.** Library stops being a tab and
+> lives on as a pushed screen — entered from Plan, from recommendation cards, and from
+> the muscle detail sheet; every pushed route survives. Routines folds into the new
+> **Plan** tab, so the week and the routines that fill it are one place instead of a tab
+> plus an orphaned screen in Settings. The **LiveSessionBar** (a docked strip whenever a
+> session is live — elapsed, sets, rest countdown, tap to resume) lands as chrome, not a
+> tab, and becomes the **only** live-session affordance anywhere. And the history work
+> lands either way: sessions grouped by month, a sheet when a day holds more than one
+> session, and a personal-records row.
 >
-> **Option B (fallback): four tabs — Home · Body · Plan · History.** Library is still
-> demoted exactly as above and the LiveSessionBar still lands. History keeps its tab:
-> the calendar and session list stay where they are, Body stays silhouette-first, and
-> Phase 6a shrinks to the tab-bar rewrite plus the nav retargets — Body does not absorb
-> History. Choose this if you want the training log one tap away as its own place, at
-> the cost of keeping two thin reflection surfaces.
+> **Option A (recommended): four tabs — Home · Body · Plan · History.** History keeps
+> its tab. The calendar and the session log stay exactly one tap away, Body stays
+> silhouette-first, and Phase 6a is the tab-bar rewrite plus the nav retargets — Body
+> does not absorb History. What it costs you: a fourth tab in the bar, and "what has my
+> training done" is answered in two related places rather than one.
+>
+> **Option B: three tabs — Home · Body · Plan — plus the LiveSessionBar.** This is the
+> recorded target IA of UI_REDESIGN §6: the reflection tab keeps the name **Body**,
+> leads with the silhouette, and *absorbs* History — the calendar and session log move
+> under the body map, making Body the single "what has my training done" surface instead
+> of two thin ones. What it costs you: the largest single piece of nav work in the plan,
+> and the reach described below.
+>
+> **Why the recommendation flipped to four tabs (new evidence, 21 Aug 2026).** When the
+> merged Body screen was specced in full, the session log came out **five sections deep**
+> — window picker, silhouette, muscle rows, calendar, coach cards, and only then the
+> session list, with personal records under it. At the same time the Home rebuild deletes
+> Home's "Recent" list in **both** branches, and the only scroll anchor built into the
+> merged screen targets the **calendar**, not the session list. Net effect if you circle
+> B: "what did I do last session" goes from one tap today to a tab change plus a long
+> scroll. Four tabs keeps every win listed above and drops only the large merge — and it
+> is closer to what you originally asked for.
+>
+> **Three tabs is still a legitimate choice.** If you circle B, two mitigations become
+> mandatory and are built in the same phases, not deferred: (i) a `section=sessions`
+> scroll anchor on Body alongside the `section=calendar` one, so anything that means
+> "show me my log" lands on the log; and (ii) a single **"Last session"** link row on
+> Home. That row is a link, not a recommendation surface, so the D3 surface map is
+> untouched by it.
 >
 > Either choice closes NAV-01. There is no keep-five option: leaving the contradiction
 > open means doing the nav work twice.
@@ -378,8 +437,10 @@ Insert under ROADMAP § Decisions D4, verbatim:
 
 Insert under ROADMAP § Decisions D5:
 
-> `main` holds only the initial commit; all 53 commits of the app live on
-> `claude/app-hierarchy-navigation-cjzigo`. Resolution (owner chooses at the
+> `main` holds only the initial commit; the entire app history lives on
+> `claude/app-hierarchy-navigation-cjzigo`, which is many dozens of commits ahead and
+> still growing (the executor states the exact count from `git rev-list --count` in the
+> PR body rather than freezing a number in this doc). Resolution (owner chooses at the
 > checkpoint): **(recommended)** merge that branch into `main` via this phase's PR, or
 > record branch-as-trunk here. Thereafter: branch-per-phase `claude/phase-<n>-<slug>`,
 > one PR per phase, owner merges, no phase starts before the previous PR lands
@@ -394,13 +455,42 @@ lands." sentence, which contradicts branch-per-phase) with:
 > merged by the owner — see `docs/gameplan/PROTOCOL.md`. (`main` was empty of app code
 > until 20 Aug 2026; do not trust older claims of trunk-based flow.)
 
+### WI-9 — D6: the second-pass amendments (informational)
+
+Insert under ROADMAP § Decisions D6, verbatim:
+
+> Recorded 21 Aug 2026, after the second-pass adversarial audit (six independent
+> auditors, every finding evidence-verified against the repo). These amend **how** the
+> game plan executes; they do not change what it builds, and nothing here reopens D1–D5.
+>
+> - **Execution order changes; phase numbers do not.** Phase numbers are identifiers,
+>   not sequence. The order is **0 (Decisions) → 2 (Test substrate) → 1 (Session
+>   hygiene) → 3 (Schema v2) → 4 (Plan tab) → 5 (Heat & coach) → 6a (Tabs + Body) →
+>   6b (Home) → 7 (Catalog) → 8 (Imagery, optional)**. Phase 2 is the phase that ships
+>   `tools/preflight.sh` and the Robolectric lane, so running it first (a) keeps Phase
+>   2's verified gate literals true rather than stale, (b) gives Phase 1's gates a
+>   working domain-test lane instead of a command that exits non-zero on a cold clone,
+>   and (c) gives Phase 1's repository writes — restore-set, repeat-session,
+>   delete-finished-session — a Robolectric lane they otherwise lack. The cost is that
+>   session hygiene reaches your phone roughly one to two executor-days later.
+> - **Phases 1a and 1b merge into one phase: "Phase 1 — Session hygiene."** One branch
+>   `claude/phase-1-session-hygiene`, one PR, one combined owner evening. Both packets
+>   go to the same executor session and are executed in order — 1a in full with its gate
+>   green, then 1b on top. 1b's gate greps re-assert 1a's invariants, so the sequence
+>   self-verifies. Saves one owner evening; no safety is lost.
+> - **The full second-pass findings and the rest of this reconciliation:**
+>   `docs/gameplan/SECOND_PASS.md`.
+>
+> **No signature required; recorded for the record.**
+
 ## 6. Out of scope
 
 - **Any Kotlin, Gradle, schema, or resource change.** This phase touches `docs/` only.
-- Implementing the LiveSessionBar, the Plan tab, or any tab change (Phases 1a/4/6a).
+- Implementing the LiveSessionBar, the Plan tab, or any tab change (Phases 1/4/6a).
 - Writing `tools/preflight.sh` (Phase 2 owns it; PROTOCOL §6 specifies it).
 - Deriving or writing any `schedule_slots` DDL (Phase 3, from signed D2).
-- Rewriting `docs/HIERARCHY_PLAN.md` beyond the one supersession banner (WI-2e).
+- Touching `docs/HIERARCHY_PLAN.md` at all — its §4 supersession banner already landed
+  with commit `6be86fa` and its committed wording is authoritative (WI-2e is a no-op).
 - Authoring later phase packets, fixing the GitHub Actions billing block, or touching
   `docs/UI_REDESIGN.md` (its §6 remains the recorded target; D1 adjudicates it without
   editing it).
@@ -413,14 +503,20 @@ Run from the repo root on `claude/phase-0-decisions`; expected results in commen
 git diff --stat claude/app-hierarchy-navigation-cjzigo...HEAD -- app/ tools/ .github/
 # expect: empty output (docs-only phase)
 
-ls docs/gameplan/
-# expect: PHASE_0_DECISIONS.md  PROTOCOL.md  SCHEDULE_SEMANTICS.md
+ls docs/gameplan/SCHEDULE_SEMANTICS.md
+# expect: the path echoed back — this is the ONLY new file this phase creates.
+# (`ls docs/gameplan/` itself lists the full committed set — 16 .md files at HEAD,
+# 16 with SCHEDULE_SEMANTICS.md. Do not assert a three-file directory; it never was one.)
 
 grep -n "## Decisions" docs/ROADMAP.md            # expect: exactly one hit
 grep -c "Signed:" docs/ROADMAP.md                  # expect: >= 3 (D1, D2/D5 signature lines)
 grep -n "game plan" docs/ROADMAP.md | head -1      # expect: the new section heading
-grep -n "Superseded 20 Aug 2026" docs/ROADMAP.md docs/DESIGN_AUDIT.md docs/HIERARCHY_PLAN.md
-# expect: hits in all three files
+grep -c "Superseded 20 Aug 2026" docs/ROADMAP.md      # expect: >= 1 (WI-2a)
+grep -c "Superseded 20 Aug 2026" docs/DESIGN_AUDIT.md  # expect: >= 3 (WI-3a/3b/3c)
+# These two files are the ones this phase actually edits; both read 0 before the phase,
+# so the gate can detect a skipped edit. docs/HIERARCHY_PLAN.md already carries its §4
+# banner from commit 6be86fa (1 hit pre-phase) — it is NOT part of this gate, because a
+# grep that passes before the work is done proves nothing.
 grep -n "clock in the notification shade" docs/DESIGN_AUDIT.md   # expect: one hit in §17
 grep -n "Worked examples" docs/gameplan/SCHEDULE_SEMANTICS.md    # expect: one hit
 grep -rn "overlay bubble" docs/ROADMAP.md
@@ -440,14 +536,19 @@ and D5 carry the owner's initials and the PR is merged per D5's chosen ground tr
 ## 8. Owner device checklist
 
 You are signing the two decisions everything else builds on. Steps 1–2 are on the
-phone; the rest is reading the PR (GitHub on any screen).
+phone; steps 3–6 and 8 are reading the PR (GitHub on any screen); step 7 is a standing
+errand you can do any time — it gates nothing.
 
 1. Open the app. Look at the bottom bar: five tabs — Home, Body, Routines, Library,
    History. This is what D1 changes. Note which tabs you actually touch in a week.
 2. Tap Home's weekly card, then find the same week via Settings → schedule. That
    orphaned screen is what the Plan tab replaces.
 3. In the PR, read **D1** in ROADMAP.md. Circle Option A or B, add initials + date on
-   the Signed line. (A is recommended; B keeps History as its own tab.)
+   the Signed line. (**A — four tabs, Home · Body · Plan · History — is the
+   recommendation**, and it is what you originally asked for; B is the three-tab merge,
+   which is still a legitimate choice but puts the session log five sections down a
+   single Body screen. Read D1's "why the recommendation flipped" paragraph before you
+   circle.)
 4. Read **`docs/gameplan/SCHEDULE_SEMANTICS.md`** — especially the five worked
    examples. For each, ask: "is this what I'd expect my week to do?" Pay attention to
    example 3 (a missed Legs day does *not* carry into next week — strike rule 6 and
@@ -457,7 +558,16 @@ phone; the rest is reading the PR (GitHub on any screen).
    cheaper to change today than mid-phase.
 6. Decide **D5**: merging the working branch into `main` is recommended. Record the
    choice, sign, and merge the PR.
-7. Observe after merge: `docs/ROADMAP.md` on the trunk shows the game-plan table and
+7. **The CI billing errand — requested, but explicitly NOT a gate.** About 30 minutes,
+   at your convenience, on any screen: GitHub Actions has never run for this repo
+   because of an account billing block, so *no* phase gate depends on CI (gates are
+   owner-machine output pasted into the PR; CI green is an additional check once this is
+   done). Any one of these clears it — add a payment method / raise the $0 spending
+   limit, make the repo public, or attach a self-hosted runner; see `docs/DEVELOPMENT.md`
+   § "Continuous integration". Doing it removes the plan's single biggest bottleneck,
+   and it specifically saves you a round-trip in Phase 3, whose schema `2.json` otherwise
+   has to be fetched off your machine by hand. Not doing it blocks nothing.
+8. Observe after merge: `docs/ROADMAP.md` on the trunk shows the game-plan table and
    your signatures. Later phases will refuse to start without them.
 
 ## 9. Estimates
@@ -481,5 +591,13 @@ The completion report to the owner must contain:
 5. Confirmation that the acceptance-gate greps all passed, quoted verbatim.
 6. Anything the owner flagged on D3/D4 during review, and whether it changed the
    recorded text (if it did, the revised text in full).
-7. The reminder that the next phase is **1a — Session lifecycle** on branch
-   `claude/phase-1a-session-lifecycle`, and that its packet may now be executed.
+7. The reminder that the next phase is **2 — Test substrate** on branch
+   `claude/phase-2-test-substrate`, and that its packet may now be executed. (Phase 2
+   runs before Phase 1 under D6; phase numbers are identifiers, not sequence. Phase 1 —
+   Session hygiene, the merged 1a+1b packets on the single branch
+   `claude/phase-1-session-hygiene` — follows it.)
+8. D1 restated as chosen, in one line, at the top of the report: **four tabs** or
+   **three tabs**. If three tabs was chosen, say explicitly that PHASE_6A's and
+   PHASE_6B's three-tab mitigations are now **mandatory, not optional** — the
+   `section=sessions` scroll anchor alongside `section=calendar`, and the "Last session"
+   link row on Home — and that both are in scope for their phases' gates.

@@ -4,9 +4,39 @@
 > protocol — read it first, follow it exactly). Branch: `claude/phase-8-imagery`, one PR,
 > owner merges. Do not start until the Phase 7 PR is merged.
 >
+> **THIS PHASE IS EXPLICITLY OPTIONAL.** It is last, and nothing in the game plan depends on
+> it: the `imageKey` hook ships in Phase 3 regardless, `null` means "compose the thumb", and
+> the initial-letter placeholder that ships today is a complete, coherent state. Deferring
+> Phase 8 indefinitely — or never running it — costs the owner nothing and blocks no other
+> work. It is executed only when the owner wants the pictures. Everything below is written to
+> be executable verbatim on that day; being optional changes nothing about how it is run.
+>
+> **Execution order (phase numbers are identifiers, not sequence).** The order is
+> 0 → 2 → 1 → 3 → 4 → 5 → 6a → 6b → 7 → **8**. Every other phase is merged before this one:
+> **Phase 0** (decisions), **Phase 2** (test substrate), **Phase 1** (session hygiene — ONE PR
+> from `claude/phase-1-session-hygiene`, both the 1A and 1B packets), **Phase 3** (schema v2),
+> **Phase 4** (Plan tab), **Phase 5** (heat & coach), **Phase 6a/6b** (tabs, Body, Home),
+> **Phase 7** (catalog + Library UX). Verify Phase 0 with `grep -c "Signed:" docs/ROADMAP.md`
+> returning greater than 0 — `docs/gameplan/PROTOCOL.md` is committed on every branch, so its
+> presence proves NOTHING.
+>
+> **Mandatory first commit: the re-baseline report (D-G, PROTOCOL.md §6).** Every count, line
+> number, file path, and repo-state assertion in this packet is a baseline as of audit commit
+> `2212628`, not an oracle — nine phase merges have landed since, and Phase 7 in particular
+> reworked `ExercisePickerSheet.kt` and `ExerciseLibraryScreen.kt`. Your FIRST commit on
+> `claude/phase-8-imagery` is a docs/PR-body re-baseline report, before any work item: the
+> current trunk tip (`git log --oneline -1`) and which phases merged since `2212628`; the
+> actual domain-test count and test-class count from a real run, not from this packet; and
+> every packet literal that has drifted, with its verified current value — at minimum the §2
+> line cites, the `ExerciseRow` / `ExerciseThumb` / `THUMB_SIZE` anchors, the shipped
+> `Equipment` and `CanonicalMuscle` member lists your two `when`s must cover, and the
+> release-APK baseline byte count used by WI-4. Drift fully explained by a merged prior phase
+> or by the game plan's own commits is EXPECTED — record it, adopt the new value, proceed.
+> Stop only on a mismatch with no such explanation.
+>
 > **Line-number caveat.** Every `file:line` below was verified on
-> `claude/app-hierarchy-navigation-cjzigo` *before* Phases 1–7 landed. Phases 1–7 touch some
-> of these files (notably the picker and library rows, in Phase 7). The named symbols are the
+> `claude/app-hierarchy-navigation-cjzigo` *before* Phases 0/2/1/3/4/5/6a/6b/7 landed. Those
+> phases touch some of these files (notably the picker and library rows, in Phase 7). The named symbols are the
 > anchors; re-verify each line with grep before editing. If a cited symbol has moved or been
 > renamed, follow the symbol, not the number.
 
@@ -21,6 +51,12 @@ from the Heat ramp, plus an equipment glyph badge — so it costs zero assets, z
 beyond dex, and lives inside the token system the eight static checks police. This is the
 last phase of the game plan: pure presentation, everything it consumes (equipment, loadType,
 imageKey, the muscle junction) shipped in Phases 3 and 7.
+
+**Optional by design.** This is the one phase the plan can drop without losing anything: the
+40dp slot is already filled with a coherent initial-letter placeholder, `imageKey` already
+exists and already means "compose", and no later work waits on pictures. Run it when the
+owner wants the app to look finished; leave it un-run for as long as they don't. What it must
+never become is a half-executed phase — if it runs, it runs to the §8 sign-off.
 
 ## 2. Read first
 
@@ -233,6 +269,8 @@ The completion report to the owner must contain:
 5. The glyph verdict table from checklist step 9 — per glyph: accepted / tuned / flagged, with what changed.
 6. Explicit statements: Body tab unchanged (checklist step 8 observed); no catalog data, schema, or seed change shipped; `imageKey` remains null everywhere and renders composed.
 7. Any surfaces the owner asked to add imagery to (recorded as follow-ups, not built).
+8. The re-baseline report from your first commit (D-G) — the record of what had drifted by the
+   time the plan's last, optional phase actually ran.
 
 ---
 

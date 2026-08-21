@@ -2,11 +2,25 @@
 
 > Executor packet. Standalone by design: assume no memory of any prior session. Execution
 > protocol (branch, PR, sign-off): docs/gameplan/PROTOCOL.md — referenced, not duplicated.
-> That file is a Phase 0 deliverable and does NOT exist on the pre-Phase-0 branch; if it is
-> absent from your base, the precondition below is unmet — stop and report, do not improvise
-> a protocol. Ground truth: all code lives on `claude/app-hierarchy-navigation-cjzigo`; work
-> on branch `claude/phase-2-test-substrate` (the `claude/**` prefix matches ci.yml:13's
-> triggers). Do not start before the Phase 1b PR is merged.
+> That file is committed under `docs/gameplan/` and IS present on your base — its presence
+> proves nothing. The has-Phase-0-merged test is the one PROTOCOL §4 prescribes:
+> `grep -c "Signed:" docs/ROADMAP.md` must return greater than 0. If it returns 0, the Phase 0
+> PR has not merged — stop and report, do not improvise a protocol. Ground truth: all code
+> lives on `claude/app-hierarchy-navigation-cjzigo` (main still holds only the initial commit
+> until Phase 0 merges); work on branch `claude/phase-2-test-substrate` (the `claude/**` prefix
+> matches ci.yml:13's triggers).
+>
+> **Execution slot: Phase 2 is the FIRST code phase.** Phase numbers are identifiers, not
+> sequence. The order is 0 → **2** → 1 → 3 → 4 → 5 → 6a → 6b → 7 → 8. Start as soon as the
+> Phase 0 PR merges; do NOT wait for Phase 1 (session hygiene), which now runs after this
+> phase and depends on it.
+>
+> **Mandatory first commit: the re-baseline report.** Every count, line number, and repo-state
+> assertion in this packet is a baseline as of audit commit 2212628 / branch tip 4028c93, not
+> an oracle. Your first commit on the phase branch records: current trunk tip, the actual
+> domain-test count and class count, and every packet literal that has drifted with its
+> verified current value. Drift fully explained by merged prior phases or by the game plan's
+> own commits is EXPECTED — proceed. Stop only on a mismatch with no such explanation.
 
 ## 1. Mission
 
@@ -45,6 +59,21 @@ It ships zero changes to `app/src/main`.
 
 Stated as settled. Do not reopen.
 
+- **This phase runs before Phase 1, and that is deliberate.** Phase 2 ships `tools/preflight.sh`
+  and the Robolectric lane, so running it first (a) keeps this packet's verified gate literals
+  (188 tests / 24 classes / 23 files) true at execution time instead of stale, (b) gives Phase 1's
+  gates a working domain-test lane instead of a command that exits 2 on a cold clone
+  (`tools/run-domain-tests.sh:20-24` needs a jar dir that this phase's bootstrap creates), and
+  (c) gives Phase 1's repository writes (restoreSet, repeatSession, deleteFinishedSession) a
+  Robolectric lane they otherwise lack. Accepted cost: session hygiene reaches the owner ~1-2
+  executor-days later.
+- **Host-OS constraint: the JVM/Robolectric lane requires macOS or Linux.** Robolectric 4.14.1
+  defaults to NATIVE SQLite everywhere EXCEPT Windows, where `SQLiteModeConfigurer.defaultValue()`
+  hard-falls back to LEGACY mode (SQLite 3.7.10). LEGACY's `PRAGMA table_info` cannot express
+  composite primary keys, so Room schema validation fails FALSELY for entities with compound PKs —
+  exactly what Phase 3's `exercise_muscles` (`PRIMARY KEY(exerciseId, muscleKey)`) uses. On a
+  Windows host the `connectedDebugAndroidTest` emulator lane is therefore the ONLY valid migration
+  lane. This is written into the test KDoc (WI-2) and into the DEVELOPMENT.md runbook (WI-3).
 - **Two lanes, one truth statement.** Robolectric runs Room against Robolectric's own bundled SQLite on the JVM — it is NOT the SQLite build on the owner's phone. The JVM lane is the fast, always-available check; `connectedDebugAndroidTest` on an emulator is the truth check. Phase 3's migration suite must pass in **both**. This limitation is written into the test's KDoc and into DEVELOPMENT.md (work item 3).
 - **Device lane runs on an emulator, never the owner's phone.** Debug and release share `applicationId com.sinura.personaltrainer` with different signing keys, so the debug test APK cannot install alongside the release app (DEVELOPMENT.md:15-18). The runbook targets an API 26+ emulator; uninstalling the release app to force it is forbidden.
 - **Version-catalog entries** (literal):
@@ -55,8 +84,8 @@ Stated as settled. Do not reopen.
 - **Test names (the gate objects)**: `SchemaV1BaselineTest` (JVM/Robolectric), `InstrumentationSmokeTest` and `SchemaV1BaselineDeviceTest` (androidTest).
 - **Schema assets for the JVM lane**: `sourceSets.getByName("test").assets.srcDir("$projectDir/schemas")` plus `testOptions { unitTests { isIncludeAndroidResources = true } }` — mirroring the androidTest wiring that already exists at app/build.gradle.kts:39-42.
 - **preflight.sh semantics** (all verified by execution in an SDK-less environment): four checks are judged by exit code because they `sys.exit(count)` — check-internal-imports.py:128, check-missing-imports.py:201, check-design-tokens.py:77, check-screen-wiring.py:69. Three always exit 0 and are judged on their summary line — check-named-args ("0 mismatch(es)"), check-when-exhaustive ("0 non-exhaustive"), check-unused-imports ("0 unused import(s)"). syntax-check.sh always exits 0 (syntax-check.sh:30-33) and is judged on "NO SYNTAX ERRORS", with a warn-and-continue on its no-jar skip message.
-- **Jar bootstrap** for `run-domain-tests.sh` (jar list from its header, lines 13-16: kotlin-compiler-embeddable, kotlin-stdlib, kotlinx-coroutines-core-jvm, junit, hamcrest-core, trove4j, annotations). Search order: (1) the Gradle module cache `~/.gradle/caches/modules-2` — on any machine that has built this app, KSP has already fetched kotlin-compiler-embeddable 2.0.21 there (this is the same source tools/syntax-check.sh:13 already trusts); (2) `~/.gradle/wrapper/dists`; (3) a Gradle distribution's `lib/` directory (`/opt/gradle-*/lib`, or `$(dirname $(command -v gradle))/../lib`). Verified: a gradle-8.14.3 distribution's `lib/` contains all seven jars, and the domain suite passes against them (24 classes, 188 tests, OK). The kotlin jars are pattern-pinned to `2*` because the repo's own wrapper is gradle-8.9 (gradle/wrapper/gradle-wrapper.properties), whose distribution carries a 1.9.x compiler that must not be picked up. **Honest fallback**: when no jars can be found anywhere, preflight runs `./gradlew testDebugUnitTest`; when Gradle cannot run either, preflight fails loudly — it never silently skips tests.
-- **ci.yml**: one new job, `instrumented-smoke`, `continue-on-error: true` at job level, `verify` untouched. Because CI has never run (billing), this job is **unverifiable in-phase**; the in-phase gate on it is YAML validity only. The billing fix (card / public repo / self-hosted runner, DEVELOPMENT.md:102-105) is an owner errand recorded in the hand-back — **it gates nothing**.
+- **Jar bootstrap** for `run-domain-tests.sh` (jar list from its header, lines 13-16: kotlin-compiler-embeddable, kotlin-stdlib, kotlinx-coroutines-core-jvm, junit, hamcrest-core, trove4j, annotations). Search order: (1) the Gradle module cache `~/.gradle/caches/modules-2` — on any machine that has built this app, KSP has already fetched kotlin-compiler-embeddable 2.0.21 there (this is the same source tools/syntax-check.sh:13 already trusts); (2) `~/.gradle/wrapper/dists`; (3) a Gradle distribution's `lib/` directory (`/opt/gradle-*/lib`, or `$(dirname $(command -v gradle))/../lib`). Verified: a gradle-8.14.3 distribution's `lib/` contains all seven jars, and the domain suite passes against them (24 classes, 188 tests, OK). **Re-baseline caveat (applies to every 188/24/23 literal in this packet — §7 and §8 included):** those numbers are a verified baseline as of branch tip 4028c93, and because this phase runs first they are expected to hold at execution time. Recount them in your re-baseline commit anyway; drift explained by merged prior phases or by the game plan's own commits is expected — record the current value and proceed. The kotlin jars are pattern-pinned to `2*` because the repo's own wrapper is gradle-8.9 (gradle/wrapper/gradle-wrapper.properties), whose distribution carries a 1.9.x compiler that must not be picked up. **Honest fallback**: when no jars can be found anywhere, preflight runs `./gradlew testDebugUnitTest`; when Gradle cannot run either, preflight fails loudly — it never silently skips tests.
+- **ci.yml**: one new job, `instrumented-smoke`, `continue-on-error: true` at job level, `verify` untouched. Because CI has never run (billing), this job is **unverifiable in-phase**; the in-phase gate on it is YAML validity only. The billing fix (card / public repo / self-hosted runner, DEVELOPMENT.md:102-105) is an owner errand recorded in the hand-back — **it gates nothing**. It is now a REQUESTED (still non-gating) item on Phase 0's owner checklist, so this job may start running sooner than this packet assumes; that changes nothing about the gates. **No gate in this or any phase may depend on a CI run** — every gate line is owner-machine output pasted in the PR, with CI green as an ADDITIONAL check once the billing errand is done.
 - **Zero `app/src/main` changes.** The diff touches: `gradle/libs.versions.toml`, `app/build.gradle.kts`, two test source files, one androidTest source dir (two files), `tools/preflight.sh`, `tools/README.md`, `docs/DEVELOPMENT.md`, `.github/workflows/ci.yml`. Nothing else.
 
 ## 5. Work items
@@ -120,6 +149,12 @@ import org.robolectric.RobolectricTestRunner
  * Known limitation, on purpose: Robolectric bundles its own SQLite — it is NOT the
  * SQLite on the owner's phone. Green here is necessary, never sufficient; the
  * device-truth lane is connectedDebugAndroidTest (SchemaV1BaselineDeviceTest).
+ *
+ * Host OS matters: Robolectric 4.14.1 uses NATIVE SQLite everywhere except Windows,
+ * where SQLiteModeConfigurer.defaultValue() falls back to LEGACY (SQLite 3.7.10).
+ * LEGACY's PRAGMA table_info cannot express composite primary keys, so Room schema
+ * validation fails falsely for entities with compound PKs (Phase 3's exercise_muscles).
+ * Run this lane on macOS or Linux; on Windows the emulator lane is the only valid one.
  */
 @RunWith(RobolectricTestRunner::class)
 class SchemaV1BaselineTest {
@@ -195,7 +230,11 @@ Two lanes exist for anything Room touches:
 - **JVM lane (primary)**: Robolectric tests under `app/src/test` (e.g.
   `SchemaV1BaselineTest`) run inside `./gradlew testDebugUnitTest` — no device.
   Robolectric bundles its own SQLite, which is not the phone's; green here is
-  necessary, never sufficient.
+  necessary, never sufficient. **This lane requires a macOS or Linux host.** On
+  Windows, Robolectric falls back to LEGACY SQLite (3.7.10), whose
+  `PRAGMA table_info` cannot express composite primary keys, so Room schema
+  validation fails falsely for any table with a compound primary key. On a Windows
+  machine, use the device lane below as the only migration lane.
 - **Device lane (truth)**: `app/src/androidTest`, run with
 
   ```bash
@@ -397,7 +436,7 @@ Append one job to `.github/workflows/ci.yml` after `verify` (do not modify `veri
           if-no-files-found: ignore
 ```
 
-**Tests**: `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml')); print('yaml ok')"` prints `yaml ok`. That is the whole in-phase gate for this item — the job cannot execute until the owner errand resolves, and the packet says so instead of pretending.
+**Tests**: `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yml')); print('yaml ok')"` prints `yaml ok`. That is the whole in-phase gate for this item — the job cannot execute until the owner errand resolves, and the packet says so instead of pretending. Keep the job non-blocking (`continue-on-error: true`) even after the errand lands: no phase gate may depend on a CI run. The errand is a REQUESTED (non-gating) item on Phase 0's checklist, so if it has already resolved you may see this job execute — a red result on it never blocks the PR.
 
 ## 6. Out of scope
 
@@ -471,3 +510,9 @@ The completion report to the owner must contain:
 3. The three gate objects by name and path (`SchemaV1BaselineTest`, `InstrumentationSmokeTest`, `SchemaV1BaselineDeviceTest`) and the plain statement of the lane contract: Robolectric SQLite is not device SQLite; JVM lane is fast proof, emulator lane is truth; Phase 3 must run its migration tests in both.
 4. The standing owner errand, restated verbatim: CI has never executed (account billing block, docs/DEVELOPMENT.md:95-105); fix = payment method / public repo / self-hosted runner; nothing in this or any phase gates on it; the new `instrumented-smoke` CI job is written but unexecuted and is non-blocking by construction.
 5. What §8 asked the owner to verify and their pasted outputs, confirming the phase closed on sign-off, not on static evidence.
+6. The next phase, named: **Phase 1 — Session hygiene**. Its two packets
+   (`docs/gameplan/PHASE_1A_SESSION_LIFECYCLE.md` then `docs/gameplan/PHASE_1B_LOG_REPAIR.md`) are
+   handed to ONE executor session and run in order — 1A fully, its gate green, then 1B on top — on
+   ONE branch `claude/phase-1-session-hygiene`, as ONE PR, closing on ONE combined owner evening.
+   Note for that executor what this phase just handed them: `tools/preflight.sh` with a cold-clone
+   jar bootstrap, and a Robolectric lane their repository writes can finally be tested in.

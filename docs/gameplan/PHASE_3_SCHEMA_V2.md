@@ -9,13 +9,33 @@
 > if Phase 0's merge already happened — check `git log main` first; `main` originally held
 > only the initial commit). Work on branch `claude/phase-3-schema-v2` (matches ci.yml's
 > `claude/**` trigger, `.github/workflows/ci.yml:13`). One PR. Phase closes only on owner
-> sign-off. Phases 0–2 are merged before you start: the schedule-slot semantics are signed,
-> session hygiene is shipped, and the test substrate (Robolectric JVM lane hosting
-> MigrationTestHelper, `tools/preflight.sh`, the connectedDebugAndroidTest runbook) exists.
-> **Verify those prerequisites before writing any code**: if `docs/gameplan/PROTOCOL.md`,
-> `tools/preflight.sh`, or the Phase-2 migration-test scaffold is absent from your checkout,
-> phases 0–2 have NOT merged — STOP and report to the owner; do not improvise substitutes
-> for any of them.
+> sign-off.
+>
+> **Execution order (phase numbers are identifiers, not sequence).** The order is
+> 0 → 2 → 1 → **3** → 4 → 5 → 6a → 6b → 7 → 8. Three phases are merged before you start:
+> **Phase 0** (schedule-slot semantics signed), **Phase 2** (test substrate: the Robolectric
+> JVM lane hosting MigrationTestHelper, `tools/preflight.sh`, the connectedDebugAndroidTest
+> runbook), and **Phase 1** (session hygiene, shipped as one PR from branch
+> `claude/phase-1-session-hygiene` covering both the 1A and 1B packets).
+>
+> **Verify those prerequisites before writing any code**, using these tests — and note that
+> `docs/gameplan/PROTOCOL.md` is committed on every branch, so its presence proves NOTHING:
+> - Phase 0 merged ⇔ `grep -c "Signed:" docs/ROADMAP.md` returns greater than 0 (the test
+>   PROTOCOL §4 prescribes). A 0 means Phase 0 has not merged.
+> - Phase 2 merged ⇔ `tools/preflight.sh` exists and
+>   `app/src/test/java/com/sinura/personaltrainer/data/local/SchemaV1BaselineTest.kt` exists.
+> - Phase 1 merged ⇔ the `claude/phase-1-session-hygiene` merge is in your trunk's `git log`.
+>
+> If any test fails, STOP and report to the owner; do not improvise substitutes for any of them.
+>
+> **Mandatory first commit: the re-baseline report.** Every count, line number, and repo-state
+> assertion in this packet is a baseline as of audit commit 2212628, not an oracle — and three
+> phases have landed since. Your first commit on the phase branch records the current trunk tip,
+> the actual domain-test count and class count, and every packet literal (line references into
+> `PersonalTrainerApp.kt`, `AppContainer.kt`, `BackupJson.kt`, `LocalBackupRepository.kt`,
+> `CanonicalMuscle.kt`, the DAOs) that has drifted, with its verified current value. Drift fully
+> explained by Phases 0/2/1 or by the game plan's own commits is EXPECTED — proceed. Stop only on
+> a mismatch with no such explanation.
 
 ## 1. Mission
 
@@ -79,9 +99,13 @@ In order, before writing any code:
     (661-662), `docs/DEVELOPMENT.md` "Database schema changes" (112-115) and "Backups are
     destructive on restore" (121-123).
 15. `app/build.gradle.kts:39-42` — androidTest assets already point at `app/schemas/`.
-16. `.github/workflows/ci.yml` — CI uploads `app/schemas/` as the `room-schemas` artifact
-    (the documented way to obtain the generated `2.json` from an SDK-less environment) and
-    the debug APK.
+16. `.github/workflows/ci.yml` — CI uploads `app/schemas/` as the `room-schemas` artifact and
+    the debug APK. **This is NOT a route you can count on**: CI on this repo has never
+    executed (account billing block, docs/DEVELOPMENT.md:95-105), and the owner's billing
+    errand is non-gating. The reliable way to obtain the generated `2.json` from an SDK-less
+    environment is the owner round-trip in §9 (owner runs `./gradlew :app:assembleDebug` and
+    ships back `2.json` plus the generated CREATE statements). Use the `room-schemas`
+    artifact only if CI is demonstrably alive.
 
 ## 3. Binding doctrine
 
@@ -142,7 +166,9 @@ quoting.
 
 `nameKey` normalization (one function, used everywhere): `name.trim().lowercase()` with
 internal whitespace runs collapsed to a single space — exactly `MuscleNormalizer.normalizeKey`
-semantics (CanonicalMuscle.kt:161-162); punctuation is kept ("Push-Up" → `push-up`). The
+semantics (CanonicalMuscle.kt:161-162); punctuation is kept ("Push-Up" → `push-up`). That
+function is `private` today; WI-3 exposes it (public `normalizeKey`, or a public `nameKeyOf`
+delegating to it) and every nameKey writer calls that one function — nobody re-implements it. The
 migration backfills `UPDATE exercises SET nameKey = LOWER(TRIM(name))` (ASCII-safe for this
 catalog); the first reconciliation pass rewrites every row with the Kotlin normalizer.
 
@@ -216,12 +242,25 @@ index cannot place falls back to the exercise's `muscleGroup` primary; any futur
 sub-muscle key (e.g. `front_delt`) MUST be covered by its parent's aliases in the same
 change — the invariant test makes an unmapped batch-1 key a build failure. `OTHER` is never
 a resolution target for a recognizable key; `exercises.muscleGroup` survives untouched as
-denormalized display text (planner, filters, and v1 backups still consume it).
+denormalized display text (planner, filters, and v1 backups still consume it). **Spelling is
+part of the contract**: a `muscleKey` is exactly `CanonicalMuscle.name.lowercase()` — the
+invariant test asserts that as an exact match, and Phase 7's tail batches must use the same
+spellings (`"quadriceps"`, never `"quads"`).
 
-**S6 — movementKey vocabulary** (closed set for batch 1; Phase 7 may extend):
-`squat`, `hinge`, `lunge`, `press-horizontal`, `press-vertical`, `pull-horizontal`,
-`pull-vertical`, `fly`, `raise`, `curl`, `extension`, `leg-extension`, `leg-curl`,
-`hip-thrust`, `calf`, `core`.
+**S6 — movementKey vocabulary: FAMILY keys, not movement patterns** (closed set for batch 1;
+Phase 7 extends it with the tail families, never re-keys these):
+`squat`, `lunge`, `leg-press`, `leg-extension`, `deadlift`, `romanian-deadlift`, `hip-thrust`,
+`leg-curl`, `calf-raise`, `bench-press`, `push-up`, `chest-fly`, `overhead-press`,
+`lateral-raise`, `rear-delt`, `row`, `pulldown`, `pull-up`, `curl`, `triceps-extension`,
+`plank`, `leg-raise`, `crunch` (23 families).
+
+A `movementKey` names the **lift family** — the set of exercises that are siblings of each other
+(Barbell Bench Press, Incline Bench Press, Dumbbell Bench Press and Close-Grip Bench Press are all
+`bench-press`) — not the biomechanical pattern. Why this and not pattern keys (`hinge`,
+`press-horizontal`, …): there is ONE movementKey vocabulary in this app from day one, and it is the
+one Phase 7's Library grouping and sibling-swap ride on. Shipping pattern keys here would force an
+unauthorized re-keying of already-migrated user data in Phase 7 and would make Phase 7's own named
+tests (e.g. "the `bench-press` family has 8 members" — 4 from batch 1, 4 from batch 2) unpassable.
 
 **S7 — Versioned seeding.** `DefaultExercises.CATALOG_VERSION = 2`. Upsert-by-id: UPDATE
 built-ins in place (name, muscleGroup, equipment, loadType, movementKey, nameKey — preserve
@@ -336,13 +375,27 @@ data class ScheduleSlotEntity(
   pendingCollisions) VALUES (1, 0, '[]')` (catalogVersion 0 forces the first seed pass to
   treat the migrated DB as un-upgraded). Register via `.addMigrations(MIGRATION_1_2)` in
   `TrainerDatabase.create`. Nothing else — no data transforms (S12).
-- Build once (`./gradlew :app:assembleDebug` locally, or take the `room-schemas` CI
-  artifact) and **commit** `app/schemas/com.sinura.personaltrainer.data.local.TrainerDatabase/2.json`.
-  Then diff every CREATE/INDEX statement in 2.json against your migration SQL — they must
-  be equivalent per S1.
+- Build once and **commit** `app/schemas/com.sinura.personaltrainer.data.local.TrainerDatabase/2.json`.
+  Provenance, in order of preference: (1) `./gradlew :app:assembleDebug` on a machine with the
+  Android SDK — normally the owner's, via the §9 mid-phase round-trip, since the executor
+  environment cannot build; (2) the `room-schemas` CI artifact ONLY if CI is demonstrably alive
+  (it has never run — billing). Then diff every CREATE/INDEX statement in 2.json against your
+  migration SQL — they must be equivalent per S1. **You cannot finish the migration SQL without
+  this file**; see §9 for how the round-trip is sequenced.
 
 **Tests** (Robolectric JVM lane, same source set/package as the Phase-2 smoke migration
 test; file `Migration1To2Test.kt`):
+
+> **Host-OS constraint — read before debugging a schema-validation failure.** Robolectric 4.14.1
+> defaults to NATIVE SQLite on every host EXCEPT Windows, where `SQLiteModeConfigurer.defaultValue()`
+> hard-falls back to LEGACY mode (SQLite 3.7.10). LEGACY's `PRAGMA table_info` cannot express
+> composite primary keys, so Room's schema validation fails FALSELY for any entity with a compound
+> PK — which is exactly `exercise_muscles` (`PRIMARY KEY(exerciseId, muscleKey)`, S4). Run
+> `Migration1To2Test` on macOS or Linux. On a Windows host the JVM lane is not a valid migration
+> lane at all and `connectedDebugAndroidTest` (the Phase-2 device lane) is the only one. A
+> `validateMigrations` failure that names `exercise_muscles` primary keys on a Windows machine is
+> the harness, not your migration — re-run it on a supported host before changing any SQL.
+
 - `migratesEmptyV1Database` — MigrationTestHelper creates v1 from 1.json, runs
   MIGRATION_1_2 with `validateMigrations`, asserts seed_meta row (1, 0, '[]').
 - `migratesPopulatedV1DatabaseWithHistory` — inserts into the v1 DB: 2 built-in-shaped
@@ -409,6 +462,18 @@ failure).
   strings.
 - New `domain/ExerciseTraits.kt` (S3 enums + `data class MuscleCredit(val muscleKey:
   String, val weight: Double)`).
+- **Expose the name normalizer — required, do not skip.** `normalizeKey` is declared
+  `private fun normalizeKey` at `domain/CanonicalMuscle.kt:161`, but S2's "one function, used
+  everywhere" rule needs it OUTSIDE `MuscleNormalizer`: `ExerciseRepository`'s duplicate check
+  (S8), `Mappers.toEntity` (WI-5), `LocalBackupRepository`'s insert path (WI-4), and
+  `DbMaintenance`'s reconciliation pass (this WI) all compute a `nameKey`. Either make
+  `normalizeKey` public, or add a public `fun nameKeyOf(name: String): String` on
+  `MuscleNormalizer` that delegates to it — one or the other, your choice, then say which in
+  the PR. **Every nameKey writer calls that ONE function.** No caller may re-implement
+  `trim`/`lowercase`/whitespace-collapse locally; a second implementation is exactly how the
+  `nameKey` index and the duplicate check drift apart. (The migration's SQL backfill
+  `LOWER(TRIM(name))` is the one deliberate exception — it runs before any Kotlin can, and the
+  first reconciliation pass rewrites every row through the real function, per S2.)
 - Add `MuscleNormalizer.deriveCredits(muscleGroup: String): List<MuscleCredit>` in
   `domain/CanonicalMuscle.kt`: primary from `normalize(muscleGroup).primary` at 1.0,
   each secondary at `MuscleLoadCalculator.SECONDARY_VOLUME_WEIGHT` (0.4); primary OTHER →
@@ -458,7 +523,10 @@ class DbMaintenance(private val database: TrainerDatabase) {
   re-running. Commit the rendered file.
 
 **Batch-1 catalog (normative data — transcribe verbatim).** `nameKey` = the Name lowercased
-(S2 rule). Primary always weight 1.0. muscleGroup column = current v1 value, unchanged.
+(S2 rule). Primary always weight 1.0. muscleGroup column = current v1 value, unchanged. The
+`movementKey` column holds S6 **family** keys (23 distinct families across these 37 rows) —
+these are the keys Phase 7 groups and sibling-swaps on; they are shipped correct here and are
+never re-keyed later.
 
 | # | id | Name | v1 muscleGroup | Equipment | LoadType | movementKey | Primary | Secondaries (key weight) |
 |---|---|---|---|---|---|---|---|---|
@@ -467,38 +535,38 @@ class DbMaintenance(private val database: TrainerDatabase) {
 | 3 | ex-goblet-squat | Goblet Squat | Quads | DUMBBELL | EXTERNAL | squat | quadriceps | glutes 0.50, core 0.25 |
 | 4 | ex-bulgarian-split-squat | Bulgarian Split Squat | Quads | DUMBBELL | EXTERNAL | lunge | quadriceps | glutes 0.50, hamstrings 0.25 |
 | 5 | ex-walking-lunge | Walking Lunge | Quads | DUMBBELL | EXTERNAL | lunge | quadriceps | glutes 0.50, hamstrings 0.25 |
-| 6 | ex-leg-press | Leg Press | Quads | MACHINE | EXTERNAL | squat | quadriceps | glutes 0.50 |
+| 6 | ex-leg-press | Leg Press | Quads | MACHINE | EXTERNAL | leg-press | quadriceps | glutes 0.50 |
 | 7 | ex-leg-extension | Leg Extension | Quads | MACHINE | STACK | leg-extension | quadriceps | — |
-| 8 | ex-conventional-deadlift | Conventional Deadlift | Posterior chain | BARBELL | EXTERNAL | hinge | glutes | hamstrings 0.50, back 0.50 |
-| 9 | ex-romanian-deadlift | Romanian Deadlift | Hamstrings | BARBELL | EXTERNAL | hinge | hamstrings | glutes 0.50, back 0.25 |
-| 10 | ex-trap-bar-deadlift | Trap Bar Deadlift | Posterior chain | BARBELL | EXTERNAL | hinge | glutes | hamstrings 0.50, quadriceps 0.25, back 0.25 |
+| 8 | ex-conventional-deadlift | Conventional Deadlift | Posterior chain | BARBELL | EXTERNAL | deadlift | glutes | hamstrings 0.50, back 0.50 |
+| 9 | ex-romanian-deadlift | Romanian Deadlift | Hamstrings | BARBELL | EXTERNAL | romanian-deadlift | hamstrings | glutes 0.50, back 0.25 |
+| 10 | ex-trap-bar-deadlift | Trap Bar Deadlift | Posterior chain | BARBELL | EXTERNAL | deadlift | glutes | hamstrings 0.50, quadriceps 0.25, back 0.25 |
 | 11 | ex-hip-thrust | Hip Thrust | Glutes | BARBELL | EXTERNAL | hip-thrust | glutes | hamstrings 0.25 |
 | 12 | ex-leg-curl | Leg Curl | Hamstrings | MACHINE | STACK | leg-curl | hamstrings | — |
-| 13 | ex-standing-calf-raise | Standing Calf Raise | Calves | MACHINE | STACK | calf | calves | — |
-| 14 | ex-barbell-bench-press | Barbell Bench Press | Chest | BARBELL | EXTERNAL | press-horizontal | chest | triceps 0.50, shoulders 0.25 |
-| 15 | ex-incline-bench-press | Incline Bench Press | Chest | BARBELL | EXTERNAL | press-horizontal | chest | shoulders 0.50, triceps 0.25 |
-| 16 | ex-dumbbell-bench-press | Dumbbell Bench Press | Chest | DUMBBELL | EXTERNAL | press-horizontal | chest | triceps 0.50, shoulders 0.25 |
-| 17 | ex-push-up | Push-Up | Chest | BODYWEIGHT | BODYWEIGHT | press-horizontal | chest | triceps 0.50, shoulders 0.25, core 0.25 |
-| 18 | ex-chest-fly | Chest Fly | Chest | DUMBBELL | EXTERNAL | fly | chest | shoulders 0.25 |
-| 19 | ex-overhead-press | Overhead Press | Shoulders | BARBELL | EXTERNAL | press-vertical | shoulders | triceps 0.50, core 0.25 |
-| 20 | ex-seated-dumbbell-press | Seated Dumbbell Press | Shoulders | DUMBBELL | EXTERNAL | press-vertical | shoulders | triceps 0.50 |
-| 21 | ex-lateral-raise | Lateral Raise | Shoulders | DUMBBELL | EXTERNAL | raise | shoulders | — |
-| 22 | ex-face-pull | Face Pull | Rear delts | CABLE | STACK | pull-horizontal | shoulders | back 0.50 |
-| 23 | ex-barbell-row | Barbell Row | Back | BARBELL | EXTERNAL | pull-horizontal | back | biceps 0.50, shoulders 0.25 |
-| 24 | ex-pendlay-row | Pendlay Row | Back | BARBELL | EXTERNAL | pull-horizontal | back | biceps 0.50 |
-| 25 | ex-one-arm-dumbbell-row | One-Arm Dumbbell Row | Back | DUMBBELL | EXTERNAL | pull-horizontal | back | biceps 0.50 |
-| 26 | ex-lat-pulldown | Lat Pulldown | Back | CABLE | STACK | pull-vertical | back | biceps 0.50 |
-| 27 | ex-pull-up | Pull-Up | Back | BODYWEIGHT | BODYWEIGHT_PLUS | pull-vertical | back | biceps 0.50, core 0.25 |
-| 28 | ex-chin-up | Chin-Up | Back | BODYWEIGHT | BODYWEIGHT_PLUS | pull-vertical | back | biceps 0.50, core 0.25 |
-| 29 | ex-seated-cable-row | Seated Cable Row | Back | CABLE | STACK | pull-horizontal | back | biceps 0.50 |
+| 13 | ex-standing-calf-raise | Standing Calf Raise | Calves | MACHINE | STACK | calf-raise | calves | — |
+| 14 | ex-barbell-bench-press | Barbell Bench Press | Chest | BARBELL | EXTERNAL | bench-press | chest | triceps 0.50, shoulders 0.25 |
+| 15 | ex-incline-bench-press | Incline Bench Press | Chest | BARBELL | EXTERNAL | bench-press | chest | shoulders 0.50, triceps 0.25 |
+| 16 | ex-dumbbell-bench-press | Dumbbell Bench Press | Chest | DUMBBELL | EXTERNAL | bench-press | chest | triceps 0.50, shoulders 0.25 |
+| 17 | ex-push-up | Push-Up | Chest | BODYWEIGHT | BODYWEIGHT | push-up | chest | triceps 0.50, shoulders 0.25, core 0.25 |
+| 18 | ex-chest-fly | Chest Fly | Chest | DUMBBELL | EXTERNAL | chest-fly | chest | shoulders 0.25 |
+| 19 | ex-overhead-press | Overhead Press | Shoulders | BARBELL | EXTERNAL | overhead-press | shoulders | triceps 0.50, core 0.25 |
+| 20 | ex-seated-dumbbell-press | Seated Dumbbell Press | Shoulders | DUMBBELL | EXTERNAL | overhead-press | shoulders | triceps 0.50 |
+| 21 | ex-lateral-raise | Lateral Raise | Shoulders | DUMBBELL | EXTERNAL | lateral-raise | shoulders | — |
+| 22 | ex-face-pull | Face Pull | Rear delts | CABLE | STACK | rear-delt | shoulders | back 0.50 |
+| 23 | ex-barbell-row | Barbell Row | Back | BARBELL | EXTERNAL | row | back | biceps 0.50, shoulders 0.25 |
+| 24 | ex-pendlay-row | Pendlay Row | Back | BARBELL | EXTERNAL | row | back | biceps 0.50 |
+| 25 | ex-one-arm-dumbbell-row | One-Arm Dumbbell Row | Back | DUMBBELL | EXTERNAL | row | back | biceps 0.50 |
+| 26 | ex-lat-pulldown | Lat Pulldown | Back | CABLE | STACK | pulldown | back | biceps 0.50 |
+| 27 | ex-pull-up | Pull-Up | Back | BODYWEIGHT | BODYWEIGHT_PLUS | pull-up | back | biceps 0.50, core 0.25 |
+| 28 | ex-chin-up | Chin-Up | Back | BODYWEIGHT | BODYWEIGHT_PLUS | pull-up | back | biceps 0.50, core 0.25 |
+| 29 | ex-seated-cable-row | Seated Cable Row | Back | CABLE | STACK | row | back | biceps 0.50 |
 | 30 | ex-barbell-curl | Barbell Curl | Biceps | BARBELL | EXTERNAL | curl | biceps | — |
 | 31 | ex-dumbbell-curl | Dumbbell Curl | Biceps | DUMBBELL | EXTERNAL | curl | biceps | — |
-| 32 | ex-tricep-pushdown | Tricep Pushdown | Triceps | CABLE | STACK | extension | triceps | — |
-| 33 | ex-skull-crusher | Skull Crusher | Triceps | BARBELL | EXTERNAL | extension | triceps | — |
-| 34 | ex-close-grip-bench-press | Close-Grip Bench Press | Triceps | BARBELL | EXTERNAL | press-horizontal | triceps | chest 0.50, shoulders 0.25 |
-| 35 | ex-plank | Plank | Core | BODYWEIGHT | BODYWEIGHT | core | core | — |
-| 36 | ex-hanging-leg-raise | Hanging Leg Raise | Core | BODYWEIGHT | BODYWEIGHT | core | core | — |
-| 37 | ex-cable-crunch | Cable Crunch | Core | CABLE | STACK | core | core | — |
+| 32 | ex-tricep-pushdown | Tricep Pushdown | Triceps | CABLE | STACK | triceps-extension | triceps | — |
+| 33 | ex-skull-crusher | Skull Crusher | Triceps | BARBELL | EXTERNAL | triceps-extension | triceps | — |
+| 34 | ex-close-grip-bench-press | Close-Grip Bench Press | Triceps | BARBELL | EXTERNAL | bench-press | triceps | chest 0.50, shoulders 0.25 |
+| 35 | ex-plank | Plank | Core | BODYWEIGHT | BODYWEIGHT | plank | core | — |
+| 36 | ex-hanging-leg-raise | Hanging Leg Raise | Core | BODYWEIGHT | BODYWEIGHT | leg-raise | core | — |
+| 37 | ex-cable-crunch | Cable Crunch | Core | CABLE | STACK | crunch | core | — |
 
 **Tests** (pure JVM domain lane, new `DefaultExercisesTest.kt` + Robolectric for the seeder):
 - `catalogHasExactly37EntriesAtVersion2`
@@ -506,8 +574,14 @@ class DbMaintenance(private val database: TrainerDatabase) {
 - `secondaryWeightsAreInHalfOpenRangeAndSumAtMostOne` (each in (0, 0.5], per-exercise sum ≤ 1.0)
 - `nameKeysAreUniqueAmongBuiltIns`
 - `idsMatchFrozenV1Slugs` (compare against the literal 37-id list — never re-slugged)
-- `allMuscleKeysNormalizeToCanonicalNonOther`
-- `movementKeysComeFromTheClosedVocabulary`
+- `allMuscleKeysNormalizeToCanonicalNonOther` — asserts BOTH that every `muscleKey` in the
+  catalog normalizes to a non-`OTHER` `CanonicalMuscle` AND, exact-match, that
+  `muscleKey == CanonicalMuscle.<X>.name.lowercase()` for some `X` (S5). The exact-match half
+  is what makes spelling drift a build failure rather than a silently-aliased key: `"quads"`
+  normalizes fine and would slip past the weaker assertion, but is not a legal `muscleKey`.
+- `movementKeysComeFromTheClosedVocabulary` — asserts every catalog `movementKey` is a member
+  of S6's 23-family set, held as a literal set in the test. Phase 7 extends that literal with
+  its tail families; it never re-keys a batch-1 row.
 - `CatalogReviewArtifactTest.artifactMatchesCatalog` (golden-file: renderer output equals
   the committed `docs/gameplan/artifacts/catalog-v2-review.md`; test resolves the path
   relative to the `app/` working dir as `../docs/...`)
@@ -695,9 +769,18 @@ tools/preflight.sh                      # all eight static checks + domain tests
 ./gradlew testDebugUnitTest             # JVM + Robolectric lanes — BUILD SUCCESSFUL, 0 failures
 ```
 
-CI green on `claude/phase-3-schema-v2` (the `verify` job: unit tests, lint, assembleDebug),
-and `app/schemas/.../2.json` committed and identical to what the CI `room-schemas` artifact
-produces.
+**No gate line here depends on a CI run.** CI on this repo has never executed (account billing
+block, docs/DEVELOPMENT.md:95-105) and the owner's billing errand is non-gating, so the primary
+gate is owner-machine output pasted into the PR:
+
+```
+./gradlew testDebugUnitTest assembleDebug   # owner's machine — BUILD SUCCESSFUL, 0 failures
+```
+
+and `app/schemas/.../2.json` committed, with its provenance stated in the PR: the owner-machine
+build that generated it (the `room-schemas` CI artifact counts only if CI is alive and actually
+ran). If CI IS alive, a green `verify` run on `claude/phase-3-schema-v2` is an ADDITIONAL check —
+welcome, never required.
 
 Named tests that must exist and pass (grep-audit the PR against this list):
 
@@ -760,8 +843,17 @@ migration lane.
 - **Executor:** 3–5 days. WI-1 ~1d; WI-2 ~0.5d; WI-3 ~1–1.5d (the data table is
   transcription, the seeder + tests are the work); WI-4 ~1d; WI-5 ~0.5–1d; runbook/doc
   ~0.25d. The long pole is making `2.json`, the entity annotations, and the migration SQL
-  agree byte-for-byte — budget a full round-trip through CI's `room-schemas` artifact if
-  Gradle cannot run locally.
+  agree byte-for-byte.
+- **Mid-phase checkpoint — the 2.json owner round-trip (blocking, plan for it).** The executor
+  environment has no Android SDK and cannot build, and CI cannot be relied on (never executed,
+  billing). So after WI-1's entities compile-by-inspection and BEFORE the migration SQL can be
+  finished, the executor stops and hands the owner a round-trip request: pull the branch, run
+  `./gradlew :app:assembleDebug`, and ship back (or commit directly to the branch)
+  `app/schemas/com.sinura.personaltrainer.data.local.TrainerDatabase/2.json` plus the generated
+  CREATE/INDEX statements it contains. The executor then diffs those statements against the
+  hand-written `MIGRATION_1_2` SQL (S1: byte-for-byte equivalent) and finishes the phase. Budget
+  the owner's turnaround (~15 minutes of their time, but a calendar gap) inside the 3–5 day
+  estimate, and raise the request early rather than at the end.
 - **Owner:** 1–2 days total: catalog review artifact ~2–3 h; emulator rehearsal ~half a
   day; heat-diff judgment ~1 h; real-phone upgrade + one live workout ~1 h + a gym session;
   PR review of the migration/backup diff ~2 h (review the migration and `replaceWith`
@@ -771,8 +863,10 @@ migration lane.
 
 The completion report (PR description + closing comment) must contain:
 
-1. Links: the PR, the green CI run, and the committed
-   `app/schemas/.../2.json` (with its identityHash quoted).
+1. Links: the PR and the committed `app/schemas/.../2.json` (with its identityHash quoted),
+   plus the pasted owner-machine `./gradlew testDebugUnitTest assembleDebug` output that is the
+   phase's primary gate. A CI run link only if CI is alive — it is an additional check, never
+   the gate (§7).
 2. The full named-test list from §7 with the actual run output (count passed) from
    `./gradlew testDebugUnitTest` and `tools/preflight.sh`.
 3. The committed review artifact `docs/gameplan/artifacts/catalog-v2-review.md` and a note
@@ -789,5 +883,11 @@ The completion report (PR description + closing comment) must contain:
    at files/pre-migration/v1/ on the phone, plus the JSON export taken before upgrade, are
    the only rollback artifacts. v1 builds refuse v2 JSON; Room refuses downgrades. The raw
    copy dies with an uninstall."
-8. Anything deferred with its landing phase (collision UI → 7; schedule writes → 4; bands
+8. The `2.json` round-trip record: who ran the build, on what machine, on which commit, and
+   confirmation that every CREATE/INDEX statement in `2.json` was diffed against `MIGRATION_1_2`
+   (S1) — not assumed equivalent.
+9. Anything deferred with its landing phase (collision UI → 7; schedule writes → 4; bands
    → 5; filter contract flip → 7), so the next packet author inherits no silent gaps.
+10. The next phase, named: **Phase 4 — Plan tab** (`docs/gameplan/PHASE_4_PLAN_TAB.md`), which is
+    the first writer of `schedule_slots` — hand it the empty table, its DAO, and the signed slot
+    semantics from S4.

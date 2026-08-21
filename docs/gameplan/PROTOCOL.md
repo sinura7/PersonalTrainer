@@ -25,7 +25,7 @@ the packet's owner checklist — never to the executor.
 
 ## 2. Branch ground truth
 
-Verified against the repo on 20 Aug 2026:
+Verified against the repo on 20 Aug 2026 and re-verified 21 Aug 2026:
 
 - `main` holds **only** the initial commit (`1b7eb6a`). Nothing else has ever landed there.
 - All real work — the entire app, plus `docs/gameplan/` itself — lives on the working
@@ -49,7 +49,7 @@ Decisions section is the ground truth every later phase branches from.
 ## 3. Branch-per-phase, PR-per-phase
 
 - One branch per phase, named **`claude/phase-<n>-<slug>`** (e.g.
-  `claude/phase-1a-session-lifecycle`). The `claude/` prefix is mandatory: CI triggers
+  `claude/phase-3-schema-v2`). The `claude/` prefix is mandatory: CI triggers
   only on `main`, `claude/**`, `cursor/**` (`.github/workflows/ci.yml:13`); any other
   name gets zero verification.
 - One PR per phase, into the trunk recorded by Phase 0. The owner reviews and merges.
@@ -189,22 +189,35 @@ and continues without asking anyone.
 
 ## 7. The phases, in execution order
 
-Value-first: if the plan stops halfway, the owner has session hygiene and the pinned
-week — not substrate and a picture book.
+**Phase numbers are identifiers, not sequence.** The execution order is **0, 2, 1, 3, 4,
+5, 6a, 6b, 7, 8** — ten PRs — and the table below is in that order (D-A). A phase's number
+never changes, so "Phase 2" means the test-substrate packet wherever it appears in the
+sequence.
 
-| Phase | One line | Executor-days | Owner-days |
-|---|---|---|---|
-| **0 — Decisions & doctrine** | Docs only: ROADMAP/DESIGN_AUDIT restructure, IA adjudication, schedule-semantics sign-off, surface map, cut list, branch ground truth. **BLOCKING checkpoint.** | 0.5–1 | 0.5–1 |
-| **1a — Session lifecycle** | FinishWorkout/DiscardWorkout use cases, LiveSessionBar, zero-set discard-only policy, 4-hour stale nudge (in-app), RestRemainingStrip deleted, one-live-affordance gate. | 3–4 | 0.5–1 |
-| **1b — Log repair** | Editable finished sessions (completedAt preserved), guarded session delete, repeat-last-session, delete-set undo. | 2–3 | 0.5 |
-| **2 — Test substrate** | androidTest scaffold + deps, Robolectric JVM lane hosting MigrationTestHelper, smoke migration test vs `schemas/1.json`, `tools/preflight.sh`, connectedAndroidTest runbook. | 1–2 | 0.5 |
-| **3 — Schema v2 migration** | ONE additive migration (equipment/loadType/movementKey/imageKey/nameKey, exercise_muscles, seed_meta, schedule_slots from D2), versioned seeding behind the maintenance mutex, batch-1 catalog (the 37) + review artifact, Backup v2 + round trip, pre-open raw DB copy, rehearsal runbook, junction-first heat. | 3–5 | 1–2 |
-| **4 — Plan tab & the pinned week** | Reconciliation rules as pure Kotlin first (from D2), ScheduleRepository owns the persisted week (sixth insights source), planner demoted to proposing fills, `insights.weekPlan` rewired, Plan tab built inside the five-tab bar, pushed ScheduleScreen deleted, ThisWeekHomeCard extracted, planner fixes. | 4–6 | 1 |
-| **5 — Honest heat & coach** | Absolute weekly-set bands, windows → THIS_WEEK + LAST_30_DAYS, coach on trailing 14 days, RPE, imbalance by weighted sets, per surface map. | 3–5 | 1 |
-| **6a — Tab consolidation + Body absorbs History** | Tab bar per D1, Body gains calendar + month-grouped sessions + PRs, nine-site nav retarget checklist, `isTabRoute` shim deleted. Size L, honestly. | 3–5 | 1 |
-| **6b — Home "Today" rework** | Masthead string table, week strip on the persisted week, ONE next-session module, start-options sheet replaces StartWorkout interstitial. Separate device pass from 6a. | 2–3 | 0.5–1 |
-| **7 — Catalog to ~98 + Library UX** | Staged seed bumps, family grouping, equipment chips, canonical-key muscle filter end-to-end, skip-and-surface collisions, increment table. | 3–5 | staged review |
-| **8 — Imagery** | Compose-drawn composed thumbnails (DrawScope + Heat tokens, no VectorDrawable XML), ≤2 MB APK delta. Line-art commission: non-committal appendix only. | 2–4 | 0.5 |
+Value-first, with one substrate exception: Phase 2 is pulled ahead of Phase 1 so that
+every later phase has a working proof lane. If the plan stops after Phase 1, the owner has
+session hygiene; the pinned week follows.
+
+| Order | Phase | One line | Executor-days | Owner-days |
+|---|---|---|---|---|
+| 1st | **0 — Decisions & doctrine** | Docs only: ROADMAP/DESIGN_AUDIT restructure, IA adjudication, schedule-semantics sign-off, surface map, cut list, branch ground truth. **BLOCKING checkpoint.** | 0.5–1 | 0.5–1 |
+| 2nd | **2 — Test substrate** | androidTest scaffold + deps, Robolectric JVM lane hosting MigrationTestHelper, smoke migration test vs `schemas/1.json`, `tools/preflight.sh`, connectedAndroidTest runbook. | 1–2 | 0.5 |
+| 3rd | **1 — Session hygiene (packets 1A + 1B)** | One branch `claude/phase-1-session-hygiene`, one PR, one owner evening. **1A:** FinishWorkout/DiscardWorkout use cases, LiveSessionBar, zero-set discard-only policy, 4-hour stale nudge (in-app), RestRemainingStrip deleted, one-live-affordance gate. **1B (on top of a green 1A gate):** editable finished sessions (completedAt preserved), guarded session delete, repeat-last-session, delete-set undo. | 5–7 | 1–1.5 |
+| 4th | **3 — Schema v2 migration** | ONE additive migration (equipment/loadType/movementKey/imageKey/nameKey, exercise_muscles, seed_meta, schedule_slots from D2), versioned seeding behind the maintenance mutex, batch-1 catalog (the 37, keyed on the Phase 7 family vocabulary from the start) + review artifact, Backup v2 + round trip, pre-open raw DB copy, rehearsal runbook, junction-first heat. | 3–5 | 1–2 |
+| 5th | **4 — Plan tab & the pinned week** | Reconciliation rules as pure Kotlin first (from D2), ScheduleRepository owns the persisted week (sixth insights source), planner demoted to proposing fills, `insights.weekPlan` rewired, Plan tab built inside whichever tab bar D1 settles on, pushed ScheduleScreen deleted, ThisWeekHomeCard extracted, planner fixes. | 4–6 | 0.5–1 |
+| 6th | **5 — Honest heat & coach** | Absolute weekly-set bands, windows → THIS_WEEK + LAST_30_DAYS, coach on trailing 14 days, RPE, imbalance by weighted sets, per surface map. | 4–5 | 0.5–1 |
+| 7th | **6a — Tab consolidation + Body absorbs History** | Tab bar per D1, Body gains calendar + month-grouped sessions + PRs, nine-site nav retarget checklist, `isTabRoute` shim deleted. Size L, honestly. | 4–5 | 1–1.5 |
+| 8th | **6b — Home "Today" rework** | Masthead string table, week strip on the persisted week, ONE next-session module, start-options sheet replaces StartWorkout interstitial. Separate device pass from 6a. | 2–3 | 0.5–1 |
+| 9th | **7 — Catalog to ~98 + Library UX** | Staged seed bumps, family grouping on the movementKey vocabulary, equipment chips, canonical-key muscle filter end-to-end, skip-and-surface collisions, increment table. | 4–5 | staged review |
+| 10th | **8 — Imagery** *(optional — deferrable indefinitely; nothing depends on it)* | Compose-drawn composed thumbnails (DrawScope + Heat tokens, no VectorDrawable XML), ≤2 MB APK delta. Line-art commission: non-committal appendix only. | 2–4 | 0.5–1 |
+
+**Why 2 precedes 1:** Phase 2 ships `tools/preflight.sh` and the Robolectric lane, so
+running it first keeps its own gate literals true rather than stale, gives Phase 1's gates
+a domain-test lane that actually runs on a cold clone (`tools/run-domain-tests.sh:20-24`
+exits 2 without the jar directory Phase 2's bootstrap creates), and gives Phase 1's
+repository writes (`restoreSet`, `repeatSession`, `deleteFinishedSession`) a Robolectric
+lane they otherwise lack. The cost is that session hygiene reaches the owner roughly one
+to two executor-days later.
 
 **A1 (DI seam) is NOT a phase.** It is an opportunistic refactor with a hard 2-day
 timebox, done only if instrumented ViewModel tests are ever actually scheduled. No phase
