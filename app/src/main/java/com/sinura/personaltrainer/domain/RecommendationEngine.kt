@@ -35,7 +35,31 @@ data class TrainingRecommendation(
     val actionExerciseId: String? = null,
     val actionExerciseName: String? = null,
     val rankScore: Int,
-)
+) {
+    /**
+     * Whether tapping this card can actually take the user somewhere.
+     *
+     * Not every piece of advice has a destination, and two of them never did: "every muscle is
+     * at productive volume" and "take an easier week" are complete as sentences and carry no
+     * action and no muscle. Both still rendered a Volt "Show on the map →", and the tap
+     * resolved to `selectedName = actionMuscle?.name` — null — so the one thing the card did
+     * was *clear* the map selection the user had made. A promise, and then the opposite of it.
+     *
+     * The card reads this to decide whether to draw a call to action at all. Advice with
+     * nowhere to go is still worth showing; it is the arrow that has to go.
+     */
+    val hasDestination: Boolean
+        get() = when (action) {
+            RecommendationAction.OPEN_LIBRARY_MUSCLE,
+            RecommendationAction.START_WORKOUT,
+            RecommendationAction.OPEN_ROUTINES,
+            -> true
+            // Falls back to the body map when the lift is unresolved, so either is enough.
+            RecommendationAction.OPEN_EXERCISE -> actionExerciseId != null || actionMuscle != null
+            // The body map is only a destination if there is something on it to select.
+            RecommendationAction.OPEN_BODY_MAP, null -> actionMuscle != null
+        }
+}
 
 /**
  * Everything the coach reasons from.

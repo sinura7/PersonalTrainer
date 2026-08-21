@@ -46,10 +46,69 @@ object RoutineEditorPolicy {
         if (name == storedName && notes == storedNotes) return null
         return PendingDetails(name = name, notes = notes)
     }
+
+    /**
+     * What to write for one lift's targets, or null when there is nothing worth a write.
+     *
+     * The routine editor used to make the owner press "Update targets" on each card, and the
+     * screen's other, much more prominent Save button did not touch them — it wrote the name
+     * and notes and then said "Routine saved". Typing 4×8 into three lifts, pressing the button
+     * that claims to save the routine, and leaving discarded all three. This function is what
+     * lets those fields write themselves through the way every other edit on the screen already
+     * does, so that neither button needs to exist.
+     *
+     * The rules are the same shape as [detailsToPersistOnExit], for the same reasons:
+     *
+     * 1. **An empty box means "leave this one alone", not "zero".** A field is empty for a whole
+     *    keystroke every time someone clears it to retype, and that instant must not be read as
+     *    a request to store no sets. A *typed* zero is a different thing and is passed through
+     *    to be rejected by the caller — the owner said something wrong and should be told.
+     * 2. **A blank weight is a real answer.** Unlike sets and reps, clearing the target weight
+     *    means "no target", which is why [typedWeightKg] is taken at face value: the caller has
+     *    already parsed it, and null there is the parse of an empty box.
+     * 3. **Nothing changed, nothing written.** Committing on every focus change would otherwise
+     *    touch the row each time a finger passed through a field, and everything observing
+     *    routines would redraw for no reason.
+     */
+    fun targetsToPersist(
+        typedSets: Int?,
+        typedReps: Int?,
+        typedWeightKg: Double?,
+        typedRestSeconds: Int?,
+        storedSets: Int,
+        storedReps: Int,
+        storedWeightKg: Double?,
+        storedRestSeconds: Int,
+    ): PendingTargets? {
+        val sets = typedSets ?: storedSets
+        val reps = typedReps ?: storedReps
+        val rest = typedRestSeconds ?: storedRestSeconds
+        if (sets == storedSets &&
+            reps == storedReps &&
+            rest == storedRestSeconds &&
+            typedWeightKg == storedWeightKg
+        ) {
+            return null
+        }
+        return PendingTargets(
+            targetSets = sets,
+            targetReps = reps,
+            targetWeightKg = typedWeightKg,
+            restSeconds = rest,
+        )
+    }
 }
 
 /** The name and notes to write on the way out of the routine editor. */
 data class PendingDetails(val name: String, val notes: String)
+
+/** One lift’s targets, resolved against what is stored and ready to write. */
+data class PendingTargets(
+    val targetSets: Int,
+    val targetReps: Int,
+    val targetWeightKg: Double?,
+    val restSeconds: Int,
+)
 
 /** Where the routine editor is in its lifecycle. */
 enum class EditorPhase {

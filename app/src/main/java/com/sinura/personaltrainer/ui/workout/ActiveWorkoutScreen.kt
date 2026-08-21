@@ -77,6 +77,7 @@ import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.WorkoutCopy
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
@@ -778,13 +779,13 @@ private fun CurrentLiftHeader(
         // at 28sp, competing with the weight it sits above for the eye's attention while
         // saying much less.
         SetDots(completed = workingLogged, target = targetSets)
-        val targetWeight = lift.targetWeightKg?.takeIf { it > 0.0 }?.toWeightLabel(unit)
         Text(
-            buildString {
-                append("Set ${workingLogged + 1} of $targetSets")
-                append(" · target $targetSets × $targetReps")
-                if (targetWeight != null) append(" @ $targetWeight")
-            },
+            WorkoutCopy.setProgress(
+                workingLogged = workingLogged,
+                targetSets = targetSets,
+                targetReps = targetReps,
+                targetWeightLabel = lift.targetWeightKg?.takeIf { it > 0.0 }?.toWeightLabel(unit),
+            ),
             style = InstrumentType.caption,
             color = TextSecondary,
         )

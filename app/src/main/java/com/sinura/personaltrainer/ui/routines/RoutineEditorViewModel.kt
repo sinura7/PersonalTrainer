@@ -41,7 +41,6 @@ data class RoutineEditorUiState(
     /** Non-null while a swap sheet is open, naming the routine row being replaced. */
     val swapItemId: String? = null,
     val error: String? = null,
-    val saved: Boolean = false,
 ) {
     /**
      * The other lifts in this one's family, minus what the routine already holds.
@@ -78,7 +77,6 @@ class RoutineEditorViewModel(
     private val searchQuery = MutableStateFlow("")
     private val showPicker = MutableStateFlow(false)
     private val error = MutableStateFlow<String?>(null)
-    private val saved = MutableStateFlow(false)
     private val swapItemId = MutableStateFlow<String?>(null)
 
     // Shared, not two independent collections: the missing-routine detector below and the
@@ -136,8 +134,8 @@ class RoutineEditorViewModel(
         combine(routineFlow, name, notes, searchQuery, resultsFlow) { routine, currentName, currentNotes, query, results ->
             EditorCore(routine, currentName, currentNotes, query, results)
         },
-        combine(showPicker, error, saved, load) { picker, err, didSave, loadState ->
-            EditorFlags(picker, err, didSave, loadState.phase)
+        combine(showPicker, error, load) { picker, err, loadState ->
+            EditorFlags(picker, err, loadState.phase)
         },
         combine(container.exerciseRepository.observeAll(), swapItemId) { catalog, swapTarget ->
             catalog to swapTarget
@@ -155,7 +153,6 @@ class RoutineEditorViewModel(
             catalog = catalog,
             swapItemId = swapTarget,
             error = extras.error,
-            saved = extras.saved,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -193,48 +190,91 @@ class RoutineEditorViewModel(
 
     fun onNameChange(value: String) {
         name.value = value
-        saved.value = false
     }
 
     fun onNotesChange(value: String) {
         notes.value = value
-        saved.value = false
     }
 
-    fun saveDetails() {
-        if (missing) {
-            error.value = "This routine is no longer available."
+    /**
+     * The targets typed into one lift's card but not yet written.
+     *
+     * A plain map, not a StateFlow: nothing renders from it. The card renders its own text
+     * fields and the stored prescription above them, and this exists only so that the values
+     * survive the trip from a field the finger has left to the write that follows. Every
+     * mutation runs on the main thread from a Compose callback, so it needs no synchronisation.
+     */
+    private val stagedTargets = mutableMapOf<String, StagedTargets>()
+
+    /**
+     * Record what is currently in a card's four fields, without touching the database.
+     *
+     * Called on every keystroke. It has to be, because the commit points — a field losing
+     * focus, and leaving the screen — both happen after the last keystroke has already been
+     * forgotten by anything that is not holding it.
+     */
+    fun stageTargets(
+        itemId: String,
+        targetSets: Int?,
+        targetReps: Int?,
+        targetWeightKg: Double?,
+        restSeconds: Int?,
+    ) {
+        stagedTargets[itemId] = StagedTargets(
+            targetSets = targetSets,
+            targetReps = targetReps,
+            targetWeightKg = targetWeightKg,
+            restSeconds = restSeconds,
+        )
+    }
+
+    /** Write one card's staged targets if they differ from what is stored. */
+    fun commitTargets(itemId: String) {
+        viewModelScope.launch { commitTargetsNow(itemId) }
+    }
+
+    private suspend fun commitTargetsNow(itemId: String) {
+        val staged = stagedTargets[itemId] ?: return
+        val stored = routineFlow.value?.exercises?.firstOrNull { it.id == itemId } ?: return
+        val pending = RoutineEditorPolicy.targetsToPersist(
+            typedSets = staged.targetSets,
+            typedReps = staged.targetReps,
+            typedWeightKg = staged.targetWeightKg,
+            typedRestSeconds = staged.restSeconds,
+            storedSets = stored.targetSets,
+            storedReps = stored.targetReps,
+            storedWeightKg = stored.targetWeightKg,
+            storedRestSeconds = stored.restSeconds,
+        )
+        if (pending == null) {
+            // Identical to what is stored, so there is nothing to write and nothing to keep.
+            stagedTargets.remove(itemId)
             return
         }
-        viewModelScope.launch {
-            val trimmedName = name.value.trim()
-            if (trimmedName.isEmpty()) {
-                error.value = "Give this routine a name."
-                saved.value = false
-                return@launch
-            }
-            val existingId = routineId.value
-            val exercises = if (existingId != null) {
-                currentExerciseCount(existingId)
-            } else {
-                0
-            }
-            if (exercises == 0) {
-                error.value = "Add at least one exercise before saving."
-                saved.value = false
-                return@launch
-            }
-            val id = ensureRoutineId() ?: return@launch
-            try {
-                container.routineRepository.updateDetails(id, trimmedName, notes.value)
-                error.value = null
-                saved.value = true
-            } catch (thrown: Exception) {
-                AppLog.w(TAG, "saveDetails failed", thrown)
-                error.value = "Could not save this routine. Try again."
-                saved.value = false
-            }
-        }
+        val settled = writeTargets(
+            itemId = itemId,
+            targetSets = pending.targetSets,
+            targetReps = pending.targetReps,
+            targetWeightKg = pending.targetWeightKg,
+            restSeconds = pending.restSeconds,
+        )
+        // Kept on a failed write, so that leaving the screen is one more chance to save it —
+        // dropping it here is how a typed target disappears quietly, which is the whole reason
+        // this path exists. Dropped when the write lands, and dropped when the value was
+        // rejected: a rejected value that stayed staged would raise the same complaint on every
+        // focus change and again on the way out, and the owner has to retype it either way.
+        if (settled) stagedTargets.remove(itemId)
+    }
+
+    /**
+     * Write every card that still has something staged.
+     *
+     * The exit path, not the cards, because a card that is being disposed cannot be trusted to
+     * finish a database write: its coroutine would be racing the view model's own teardown. By
+     * the time this runs the screen is still alive and [leave] is still suspended on it.
+     */
+    private suspend fun flushStagedTargets() {
+        stagedTargets.keys.toList().forEach { commitTargetsNow(it) }
     }
 
     /**
@@ -254,9 +294,11 @@ class RoutineEditorViewModel(
 
     fun leave() {
         viewModelScope.launch {
-            // Order matters. discardEmptyStub deletes an empty routine created this session and
-            // clears its id, so persistDetailsOnExit then correctly finds nothing to write to
-            // rather than resurrecting a name onto a row that is on its way out.
+            // Order matters twice over. Targets go first, while the routine and its rows are
+            // certainly still there. Then discardEmptyStub, which deletes an empty routine
+            // created this session and clears its id, so persistDetailsOnExit finds nothing to
+            // write to rather than resurrecting a name onto a row on its way out.
+            flushStagedTargets()
             discardEmptyStub()
             persistDetailsOnExit()
             _exitRequested.value = true
@@ -266,18 +308,18 @@ class RoutineEditorViewModel(
     /**
      * Save the name and notes the user typed but never pressed Save on.
      *
-     * This screen writes every other edit straight through to Room — adding an exercise,
-     * removing one, reordering, changing targets — so the Save button governed exactly two
-     * fields, and the exit path ignored it. Renaming a routine and swiping back silently threw
-     * the rename away.
+     * This screen writes every edit straight through to Room — adding an exercise, removing
+     * one, reordering, changing targets. The name and the notes are the last two that cannot
+     * be, because there is no moment during typing at which a half-typed name should be stored,
+     * so they are written here instead.
      *
      * Autosave rather than a "discard changes?" dialog: a dialog would be the one thing on this
      * screen asking permission to keep work the user had already done, and the flagship flow is
      * already carrying more modals than it should.
      *
-     * Deliberately looser than [saveDetails], which refuses to save a routine with no exercises.
-     * That rule exists to stop empty routines being *created*; it has no business blocking a
-     * rename of one that already exists.
+     * Deliberately looser than creation: a routine with no exercises is discarded by
+     * [discardEmptyStub], which is what stops empty routines existing. That rule has no
+     * business blocking a rename of one that already does.
      */
     private suspend fun persistDetailsOnExit() {
         val id = routineId.value ?: return
@@ -374,33 +416,37 @@ class RoutineEditorViewModel(
         }
     }
 
-    fun updateExercise(
+    /**
+     * @return true when this value is finished with — stored, or rejected and needing retyping.
+     * False means the write itself failed and the value is worth one more attempt.
+     */
+    private suspend fun writeTargets(
         itemId: String,
         targetSets: Int,
         targetReps: Int,
         targetWeightKg: Double?,
         restSeconds: Int,
-    ) {
-        viewModelScope.launch {
-            val id = ensureRoutineId() ?: return@launch
-            if (targetSets < 1 || targetReps < 1) {
-                error.value = "Sets and reps must be at least 1."
-                return@launch
-            }
-            try {
-                container.routineRepository.updateExercise(
-                    itemId = itemId,
-                    routineId = id,
-                    targetSets = targetSets,
-                    targetReps = targetReps,
-                    targetWeightKg = targetWeightKg,
-                    restSeconds = restSeconds,
-                )
-                error.value = null
-            } catch (thrown: Exception) {
-                AppLog.w(TAG, "updateExercise failed", thrown)
-                error.value = "Could not update those targets. Try again."
-            }
+    ): Boolean {
+        if (targetSets < 1 || targetReps < 1) {
+            error.value = "Sets and reps must be at least 1."
+            return true
+        }
+        val id = ensureRoutineId() ?: return false
+        return try {
+            container.routineRepository.updateExercise(
+                itemId = itemId,
+                routineId = id,
+                targetSets = targetSets,
+                targetReps = targetReps,
+                targetWeightKg = targetWeightKg,
+                restSeconds = restSeconds,
+            )
+            error.value = null
+            true
+        } catch (thrown: Exception) {
+            AppLog.w(TAG, "writeTargets failed", thrown)
+            error.value = "Could not update those targets. Try again."
+            false
         }
     }
 
@@ -478,6 +524,14 @@ class RoutineEditorViewModel(
         routineId.value = null
     }
 
+    /** Nulls are empty boxes; [RoutineEditorPolicy.targetsToPersist] decides what they mean. */
+    private data class StagedTargets(
+        val targetSets: Int?,
+        val targetReps: Int?,
+        val targetWeightKg: Double?,
+        val restSeconds: Int?,
+    )
+
     private data class EditorCore(
         val routine: Routine?,
         val name: String,
@@ -489,7 +543,6 @@ class RoutineEditorViewModel(
     private data class EditorFlags(
         val showPicker: Boolean,
         val error: String?,
-        val saved: Boolean,
         val phase: EditorPhase,
     )
 }

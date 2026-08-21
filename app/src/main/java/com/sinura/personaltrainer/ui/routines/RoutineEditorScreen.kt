@@ -33,10 +33,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -56,7 +58,6 @@ import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.ExerciseRow
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
-import com.sinura.personaltrainer.ui.components.GymStatusBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.ScreenLoading
@@ -94,11 +95,7 @@ fun RoutineEditorScreen(
 
     Scaffold(
         topBar = {
-            RoutineEditorHeader(
-                saved = state.saved,
-                onBack = { viewModel.leave() },
-                onSave = viewModel::saveDetails,
-            )
+            RoutineEditorHeader(onBack = { viewModel.leave() })
         },
     ) { padding ->
         if (state.isLoading) {
@@ -140,9 +137,6 @@ fun RoutineEditorScreen(
                     error = state.error?.takeIf { it.contains("name", ignoreCase = true) },
                 )
             }
-            if (state.saved) {
-                item(key = "saved") { GymStatusBanner("Routine saved") }
-            }
             state.error
                 ?.takeUnless { it.contains("name", ignoreCase = true) }
                 ?.let { message -> item(key = "error") { GymErrorBanner(message) } }
@@ -178,9 +172,10 @@ fun RoutineEditorScreen(
                         } else {
                             null
                         },
-                        onSaveTargets = { sets, reps, weight, rest ->
-                            viewModel.updateExercise(item.id, sets, reps, weight, rest)
+                        onStageTargets = { sets, reps, weight, rest ->
+                            viewModel.stageTargets(item.id, sets, reps, weight, rest)
                         },
+                        onCommitTargets = { viewModel.commitTargets(item.id) },
                         modifier = Modifier.animateItem(),
                     )
                 }
@@ -269,19 +264,17 @@ fun RoutineEditorScreen(
 }
 
 /**
- * Back, and the only save this screen has.
+ * Back and a label, and nothing else.
  *
- * Save used to be a 64dp hero button sitting above the program it saves, competing with a
- * second identical hero that added lifts. It is the same call — there is no autosave here —
- * but as a header action it stops outranking the training itself. It goes quiet once the
- * details are committed, so the button also reports whether there is anything to save.
+ * There used to be a Save here. It wrote the name and the notes, announced "Routine saved",
+ * and touched none of the four target fields on the cards below — which had a second Save of
+ * their own, one per card. Two buttons named after the same verb, with different scopes, and
+ * the prominent one claiming the broader result: typing new targets and pressing it lost them.
+ * Both are gone. Every edit on this screen writes itself through, and each card's prescription
+ * line reads back what was stored, which is a truer confirmation than a banner.
  */
 @Composable
-private fun RoutineEditorHeader(
-    saved: Boolean,
-    onBack: () -> Unit,
-    onSave: () -> Unit,
-) {
+private fun RoutineEditorHeader(onBack: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -297,13 +290,6 @@ private fun RoutineEditorHeader(
             )
         }
         Kicker("Routine", modifier = Modifier.weight(1f))
-        TextButton(onClick = onSave, enabled = !saved) {
-            Text(
-                "Save",
-                style = InstrumentType.bodyStrong,
-                color = if (saved) TextTertiary else Volt,
-            )
-        }
     }
 }
 
@@ -367,7 +353,10 @@ private fun RoutineExerciseCard(
     onRemove: () -> Unit,
     /** Null when this lift has no variants, so the button is absent rather than disabled. */
     onSwap: (() -> Unit)?,
-    onSaveTargets: (Int, Int, Double?, Int) -> Unit,
+    /** Called on every keystroke. Nulls are empty boxes, not zeroes. */
+    onStageTargets: (Int?, Int?, Double?, Int?) -> Unit,
+    /** Called when a field loses focus: write whatever was staged. */
+    onCommitTargets: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val unit = LocalWeightUnit.current
@@ -422,17 +411,38 @@ private fun RoutineExerciseCard(
             style = InstrumentType.numeralSm,
             color = TextPrimary,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-            SmallNumberField("Sets", sets, Modifier.weight(1f)) { sets = it.filter(Char::isDigit) }
-            SmallNumberField("Reps", reps, Modifier.weight(1f)) { reps = it.filter(Char::isDigit) }
+        // Staged on every keystroke, written when a field is left. The parse lives here rather
+        // than in the view model because only this composable knows which unit the number was
+        // typed in; everything downstream deals in kilograms.
+        val stage = {
+            onStageTargets(
+                sets.toIntOrNull(),
+                reps.toIntOrNull(),
+                WeightConverter.parseDisplayToKg(weight, unit, item.targetWeightKg),
+                rest.toIntOrNull(),
+            )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-            SmallNumberField("Target ${unit.suffix}", weight, Modifier.weight(1f)) { value ->
-                weight = value.filter { it.isDigit() || it == '.' }
+            SmallNumberField("Sets", sets, Modifier.weight(1f), onCommitTargets) {
+                sets = it.filter(Char::isDigit)
+                stage()
             }
-            SmallNumberField("Rest (s)", rest, Modifier.weight(1f)) { rest = it.filter(Char::isDigit) }
+            SmallNumberField("Reps", reps, Modifier.weight(1f), onCommitTargets) {
+                reps = it.filter(Char::isDigit)
+                stage()
+            }
         }
-        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+            SmallNumberField("Target ${unit.suffix}", weight, Modifier.weight(1f), onCommitTargets) { value ->
+                weight = value.filter { it.isDigit() || it == '.' }
+                stage()
+            }
+            SmallNumberField("Rest (s)", rest, Modifier.weight(1f), onCommitTargets) {
+                rest = it.filter(Char::isDigit)
+                stage()
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2), modifier = Modifier.fillMaxWidth()) {
             TextButton(onClick = onRemove) {
                 Text("Remove", style = InstrumentType.bodyStrong, color = Danger)
             }
@@ -441,16 +451,6 @@ private fun RoutineExerciseCard(
                     Text("Swap", style = InstrumentType.bodyStrong, color = TextSecondary)
                 }
             }
-            TextButton(
-                onClick = {
-                    onSaveTargets(
-                        sets.toIntOrNull() ?: item.targetSets,
-                        reps.toIntOrNull() ?: item.targetReps,
-                        WeightConverter.parseDisplayToKg(weight, unit, item.targetWeightKg),
-                        rest.toIntOrNull() ?: item.restSeconds,
-                    )
-                },
-            ) { Text("Update targets", style = InstrumentType.bodyStrong, color = TextPrimary) }
         }
     }
 }
@@ -500,13 +500,23 @@ private fun SmallNumberField(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
+    /**
+     * Fired when the field loses focus, which is this screen's commit point for a typed number.
+     * Only on the falling edge: `onFocusChanged` also reports gaining focus, and treating that
+     * as a commit would write the field the moment it was tapped.
+     */
+    onFocusLost: () -> Unit,
     onValueChange: (String) -> Unit,
 ) {
+    var hadFocus by remember { mutableStateOf(false) }
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label, style = InstrumentType.caption) },
-        modifier = modifier,
+        modifier = modifier.onFocusChanged { focus ->
+            if (hadFocus && !focus.isFocused) onFocusLost()
+            hadFocus = focus.isFocused
+        },
         singleLine = true,
         textStyle = InstrumentType.numeralSm,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),

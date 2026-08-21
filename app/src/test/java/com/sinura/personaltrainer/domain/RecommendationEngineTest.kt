@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.domain
 
 import java.time.ZoneOffset
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -199,4 +200,67 @@ class RecommendationEngineTest {
     }
 
     private fun days(count: Long): Long = count * 24L * 60L * 60L * 1000L
+
+    // ---- call-to-action ----
+
+    private fun rec(
+        action: RecommendationAction? = null,
+        actionMuscle: CanonicalMuscle? = null,
+        actionExerciseId: String? = null,
+    ) = TrainingRecommendation(
+        id = "r",
+        kicker = "BALANCE",
+        title = "t",
+        reason = "r",
+        priority = RecommendationPriority.INFO,
+        action = action,
+        actionMuscle = actionMuscle,
+        actionExerciseId = actionExerciseId,
+        rankScore = 1,
+    )
+
+    @Test
+    fun adviceWithNowhereToGoOffersNoCallToAction() {
+        // Both of these are complete sentences with no destination. They used to render a Volt
+        // "Show on the map →" whose tap cleared the map selection, because the only thing it
+        // could dispatch to was a muscle that was never set.
+        val everything = CanonicalMuscle.bodyMapOrder.flatMap { muscle ->
+            liftSets("ex-${muscle.name}", muscle.displayName, muscle.catalogLabel, 24, 60.0)
+        }
+        val rest = RecommendationEngine.restSignal(inputs(everything))
+        assertNotNull(rest)
+        assertFalse(rest!!.hasDestination)
+    }
+
+    @Test
+    fun aBodyMapCardNeedsAMuscleToBeADestination() {
+        assertFalse(rec(action = RecommendationAction.OPEN_BODY_MAP).hasDestination)
+        assertTrue(
+            rec(
+                action = RecommendationAction.OPEN_BODY_MAP,
+                actionMuscle = CanonicalMuscle.QUADRICEPS,
+            ).hasDestination,
+        )
+    }
+
+    @Test
+    fun aNamedLiftIsADestinationAndSoIsItsFallback() {
+        // OPEN_EXERCISE falls back to the body map when the lift id did not resolve, so either
+        // the id or the muscle is enough — but not neither.
+        assertTrue(rec(action = RecommendationAction.OPEN_EXERCISE, actionExerciseId = "ex-1").hasDestination)
+        assertTrue(
+            rec(
+                action = RecommendationAction.OPEN_EXERCISE,
+                actionMuscle = CanonicalMuscle.QUADRICEPS,
+            ).hasDestination,
+        )
+        assertFalse(rec(action = RecommendationAction.OPEN_EXERCISE).hasDestination)
+    }
+
+    @Test
+    fun theActionsThatAlwaysGoSomewhereAlwaysDo() {
+        assertTrue(rec(action = RecommendationAction.OPEN_LIBRARY_MUSCLE).hasDestination)
+        assertTrue(rec(action = RecommendationAction.START_WORKOUT).hasDestination)
+        assertTrue(rec(action = RecommendationAction.OPEN_ROUTINES).hasDestination)
+    }
 }

@@ -151,4 +151,79 @@ class RoutineEditorPolicyTest {
             ),
         )
     }
+
+    // ---- targets ----
+
+    private fun targets(
+        typedSets: Int? = 4,
+        typedReps: Int? = 8,
+        typedWeightKg: Double? = 60.0,
+        typedRestSeconds: Int? = 90,
+        storedSets: Int = 4,
+        storedReps: Int = 8,
+        storedWeightKg: Double? = 60.0,
+        storedRestSeconds: Int = 90,
+    ) = RoutineEditorPolicy.targetsToPersist(
+        typedSets = typedSets,
+        typedReps = typedReps,
+        typedWeightKg = typedWeightKg,
+        typedRestSeconds = typedRestSeconds,
+        storedSets = storedSets,
+        storedReps = storedReps,
+        storedWeightKg = storedWeightKg,
+        storedRestSeconds = storedRestSeconds,
+    )
+
+    @Test
+    fun targetsIdenticalToStorageAreNotWritten() {
+        assertNull(targets())
+    }
+
+    @Test
+    fun aChangedFieldIsWrittenAndTheOthersAreCarried() {
+        val pending = targets(typedReps = 12)
+        assertEquals(PendingTargets(targetSets = 4, targetReps = 12, targetWeightKg = 60.0, restSeconds = 90), pending)
+    }
+
+    @Test
+    fun anEmptySetsBoxMeansLeaveItAloneNotZero() {
+        // Clearing the field to retype it passes through null for a whole keystroke. Storing a
+        // zero there would turn "I am about to type 5" into a routine with no sets.
+        assertNull(targets(typedSets = null))
+        assertEquals(4, targets(typedSets = null, typedReps = 12)!!.targetSets)
+    }
+
+    @Test
+    fun aTypedZeroIsPassedOnToBeRejected() {
+        // Different from an empty box: the owner typed something, and something wrong. It has
+        // to reach the caller so the caller can say so, rather than being silently absorbed.
+        assertEquals(0, targets(typedSets = 0)!!.targetSets)
+    }
+
+    @Test
+    fun clearingTheTargetWeightIsARealChange() {
+        // Unlike sets and reps, an empty weight box means "no target" — the parse of an empty
+        // string is null, and that null has to survive the round trip to the database.
+        val pending = targets(typedWeightKg = null)
+        assertEquals(PendingTargets(targetSets = 4, targetReps = 8, targetWeightKg = null, restSeconds = 90), pending)
+    }
+
+    @Test
+    fun aWeightThatWasAlreadyAbsentStaysAbsentWithoutAWrite() {
+        assertNull(targets(typedWeightKg = null, storedWeightKg = null))
+    }
+
+    @Test
+    fun everyFieldCanChangeAtOnce() {
+        assertEquals(
+            PendingTargets(targetSets = 5, targetReps = 5, targetWeightKg = 100.0, restSeconds = 180),
+            targets(typedSets = 5, typedReps = 5, typedWeightKg = 100.0, typedRestSeconds = 180),
+        )
+    }
+
+    @Test
+    fun anEmptyRestBoxKeepsTheStoredRest() {
+        assertNull(targets(typedRestSeconds = null))
+        assertEquals(90, targets(typedRestSeconds = null, typedSets = 5)!!.restSeconds)
+    }
 }

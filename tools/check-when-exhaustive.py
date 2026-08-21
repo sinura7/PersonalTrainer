@@ -98,8 +98,27 @@ for path, src in clean.items():
                 depth -= 1
             elif ch == "\n" and depth == 0:
                 line_start = i + 1
-        for lm in re.finditer(r"(^|\n)([^\n]*?)->", body):
-            label = lm.group(2).strip()
+        lines = body.split("\n")
+        # A branch may list its labels over several lines with the arrow on its own:
+        #
+        #     Action.A,
+        #     Action.B,
+        #     -> true
+        #
+        # Reading only the arrow's line finds no labels there at all, and the block then looks
+        # as though it never handled A or B — a FAIL naming cases the code plainly covers.
+        # Continuation lines are taken only when they are a bare (optionally qualified) name
+        # followed by a comma, which a branch *body* essentially never is.
+        continuation = re.compile(r"^(?:is\s+)?(?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*\s*,$")
+        for index, line in enumerate(lines):
+            arrow = line.find("->")
+            if arrow < 0:
+                continue
+            label = line[:arrow].strip()
+            back = index - 1
+            while back >= 0 and continuation.match(lines[back].strip()):
+                label = lines[back].strip() + " " + label
+                back -= 1
             if label.startswith("else"):
                 has_else = True
                 continue

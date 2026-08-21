@@ -31,21 +31,25 @@ fun RecommendationCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    GymCard(onClick = onClick, modifier = modifier) {
+    // Not tappable when there is nowhere to go — see TrainingRecommendation.hasDestination.
+    // A card that lights up under the finger and then does nothing is worse than a flat one.
+    GymCard(onClick = onClick.takeIf { recommendation.hasDestination }, modifier = modifier) {
         // The category first, as a word. A stack of cards is skimmable by kind before any of
         // them is read, and the kind is never carried by colour alone.
         Kicker(recommendation.kicker)
         Text(recommendation.title, style = InstrumentType.title, color = TextPrimary)
         Text(recommendation.reason, style = InstrumentType.body, color = TextSecondary)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End,
-        ) {
-            Text(
-                "${actionLabel(recommendation)}  →",
-                style = InstrumentType.bodyStrong,
-                color = Volt,
-            )
+        if (recommendation.hasDestination) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                Text(
+                    "${actionLabel(recommendation)}  →",
+                    style = InstrumentType.bodyStrong,
+                    color = Volt,
+                )
+            }
         }
     }
 }
@@ -80,6 +84,10 @@ fun dispatchRecommendation(
     onOpenRoutines: () -> Unit,
     onOpenProgress: () -> Unit,
 ) {
+    // Belt and braces with the card, which does not make a destination-less recommendation
+    // clickable in the first place. Without this the fall-through below would reach
+    // onOpenProgress with no muscle to select, which reads as "clear the selection".
+    if (!recommendation.hasDestination) return
     when (recommendation.action) {
         // The muscle itself, not its label. Display text used to be the wire format here, so a
         // copy edit could break the filter with nothing failing — the Library would just open
