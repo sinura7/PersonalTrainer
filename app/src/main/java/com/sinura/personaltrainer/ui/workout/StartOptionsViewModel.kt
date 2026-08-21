@@ -46,7 +46,7 @@ class StartOptionsViewModel(application: Application) : AppViewModel(application
     private val error = MutableStateFlow<String?>(null)
 
     private val suggestedLift: Flow<Pair<Exercise, String>?> =
-        container.trainingInsights.observe(includeWeekPlan = false)
+        container.trainingInsights.observeShared(includeWeekPlan = false)
             .map { insights ->
                 val card = insights.recommendations.firstOrNull { it.actionExerciseId != null }
                     ?: return@map null

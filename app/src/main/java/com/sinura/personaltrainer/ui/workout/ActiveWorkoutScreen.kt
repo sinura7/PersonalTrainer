@@ -134,6 +134,9 @@ fun ActiveWorkoutScreen(
     val restNotificationsEnabled = rememberRestNotificationsEnabled()
     val session = state.session
     val selected = session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId }
+    // Keyed on the session, not recomputed per frame: the header below it redraws every second
+    // as the elapsed clock ticks, and this walks every set of the workout.
+    val sessionWork = remember(session) { session?.work() ?: SetWork.NONE }
     val unit = LocalWeightUnit.current
     val view = LocalView.current
     val listState = rememberLazyListState()
@@ -235,7 +238,7 @@ fun ActiveWorkoutScreen(
                 routineName = session?.routineName ?: "Workout",
                 startedAt = session?.startedAt,
                 workingSets = session?.sets?.count { !it.isWarmup } ?: 0,
-                work = session?.work() ?: SetWork.NONE,
+                work = sessionWork,
                 unit = unit,
                 canFinish = session != null && session.sets.isNotEmpty(),
                 onExit = { confirmLeave = true },

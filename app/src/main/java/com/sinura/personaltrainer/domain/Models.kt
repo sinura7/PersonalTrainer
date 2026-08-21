@@ -98,10 +98,25 @@ data class WorkoutSession(
      * so a set of ten push-ups reported four hundred kilograms lifted. The number agreed with
      * the body map, which is why it survived — both were quoting the same invention.
      */
-    fun work(): SetWork = SetWork.sum(
-        sets.filterNot { it.isWarmup }
-            .map { SetWork.of(it.weightKg, it.reps, loadClassOf(it.exerciseId)) },
-    )
+    fun work(): SetWork {
+        // The class map is built once, not looked up per set. `loadClassOf` scans the exercise
+        // list, so calling it inside the loop made this O(sets × lifts) — and it is called from
+        // the active workout header, which recomposes every second as the elapsed timer ticks.
+        val classes = exercises.associate { it.exercise.id to LoadClass.of(it.exercise.loadType) }
+        var volumeKg = 0.0
+        var bodyweightReps = 0
+        sets.forEach { set ->
+            if (set.isWarmup) return@forEach
+            val work = SetWork.of(
+                weightKg = set.weightKg,
+                reps = set.reps,
+                loadClass = classes[set.exerciseId] ?: LoadClass.LOADED,
+            )
+            volumeKg += work.volumeKg
+            bodyweightReps += work.bodyweightReps
+        }
+        return SetWork(volumeKg = volumeKg, bodyweightReps = bodyweightReps)
+    }
 
     /** Just the kilograms — the bar and the vest, never the body. */
     fun workingVolumeKg(): Double = work().volumeKg

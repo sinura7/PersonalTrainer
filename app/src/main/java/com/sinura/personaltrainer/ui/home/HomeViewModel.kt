@@ -48,7 +48,7 @@ class HomeViewModel(application: Application) : AppViewModel(application) {
     private val actionError = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<HomeUiState> = combine(
-        container.trainingInsights.observe(),
+        container.trainingInsights.observeShared(),
         container.workoutRepository.observeInProgress(),
         actionError,
         container.preferencesRepository.trainingBlock,

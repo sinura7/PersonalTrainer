@@ -20,13 +20,17 @@ import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import java.time.ZoneId
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.shareIn
 
 private const val TAG = "PT/InsightsSource"
 
@@ -50,6 +54,43 @@ class TrainingInsightsSource(
     private val nowMs: () -> Long = System::currentTimeMillis,
     private val zone: () -> ZoneId = ZoneId::systemDefault,
 ) {
+    /**
+     * One computation for every screen that wants the default view of it.
+     *
+     * [observe] returns a cold flow, so each collector used to run the whole pipeline for
+     * itself: the full history query, a heat snapshot over every session ever logged, the
+     * coach, and the planner. Four screens collect it — Home, Plan, the active workout and the
+     * start sheet — and two or three of them are alive at once routinely, each recomputing the
+     * same answer from the same rows on every emission.
+     *
+     * Shared by [includeWeekPlan] because that is the only parameter these four vary, and the
+     * plan is genuinely extra work the workout screens have no use for. Progress keeps a cold
+     * flow of its own: it drives the heat window from a chip the user taps, so its input is not
+     * the same input.
+     *
+     * `WhileSubscribed` rather than `Eagerly`: with nothing on screen there is nothing to
+     * compute, and the five-second grace covers a rotation or a tab switch without a recompute.
+     * The replayed value also means a screen opening beside an existing one renders immediately
+     * with the same numbers, instead of waiting on a pipeline to tell it something the screen
+     * next to it already knew.
+     */
+    fun observeShared(includeWeekPlan: Boolean = true): Flow<TrainingInsights> =
+        if (includeWeekPlan) sharedWithPlan else sharedWithoutPlan
+
+    private val sharedScope = CoroutineScope(SupervisorJob() + computeDispatcher)
+
+    private val sharedWithPlan: Flow<TrainingInsights> by lazy { share(includeWeekPlan = true) }
+
+    private val sharedWithoutPlan: Flow<TrainingInsights> by lazy { share(includeWeekPlan = false) }
+
+    private fun share(includeWeekPlan: Boolean): Flow<TrainingInsights> =
+        observe(includeWeekPlan = includeWeekPlan)
+            .shareIn(
+                scope = sharedScope,
+                started = SharingStarted.WhileSubscribed(SHARE_GRACE_MS),
+                replay = 1,
+            )
+
     /**
      * @param window which heat window to summarise; Progress lets the user change it.
      * @param refresh any extra signal that should force a recompute. Nothing regenerates a
@@ -106,6 +147,11 @@ class TrainingInsightsSource(
             ),
         )
     }.flowOn(computeDispatcher)
+
+    private companion object {
+        /** Long enough to survive a rotation or a tab switch, short enough not to hold work. */
+        const val SHARE_GRACE_MS = 5_000L
+    }
 
     private data class Sources(
         val history: List<WorkoutSession>,

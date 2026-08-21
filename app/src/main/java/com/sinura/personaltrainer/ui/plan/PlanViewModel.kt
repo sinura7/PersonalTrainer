@@ -73,7 +73,7 @@ class PlanViewModel(application: Application) : AppViewModel(application) {
     private val actionError = MutableStateFlow<String?>(null)
     private val proposals = MutableStateFlow<List<SuggestedTrainingDay>>(emptyList())
 
-    private val insights: StateFlow<TrainingInsights?> = container.trainingInsights.observe()
+    private val insights: StateFlow<TrainingInsights?> = container.trainingInsights.observeShared()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),

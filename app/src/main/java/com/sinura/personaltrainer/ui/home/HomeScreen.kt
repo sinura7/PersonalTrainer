@@ -314,7 +314,9 @@ private fun HomeStatRow(
     todayEpoch: Long,
     unit: WeightUnit,
 ) {
-    val column = lastSession?.let { session -> SetCopy.workColumn(session.work(), unit) }
+    val column = remember(lastSession, unit) {
+        lastSession?.let { session -> SetCopy.workColumn(session.work(), unit) }
+    }
     val daysSince = lastSession?.let { session ->
         (todayEpoch - todayEpochDay(session.date)).coerceAtLeast(0L).toString()
     }

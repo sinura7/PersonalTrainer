@@ -328,7 +328,7 @@ class ActiveWorkoutViewModel(
      * lambda would have made the forward reference legal; being an argument to one does not.
      */
     private val suggestedLift: Flow<Pair<Exercise, String>?> =
-        container.trainingInsights.observe(includeWeekPlan = false)
+        container.trainingInsights.observeShared(includeWeekPlan = false)
             .map { insights ->
                 val card = insights.recommendations.firstOrNull { it.actionExerciseId != null }
                     ?: return@map null
