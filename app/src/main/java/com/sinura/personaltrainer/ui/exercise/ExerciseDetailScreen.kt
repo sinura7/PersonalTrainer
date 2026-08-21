@@ -13,16 +13,23 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,14 +50,17 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
+import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
+import com.sinura.personaltrainer.ui.components.GymStatusBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.LabelledTrend
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.ScreenLoading
+import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.components.StatTile
 import com.sinura.personaltrainer.ui.components.ThumbSize
 import com.sinura.personaltrainer.ui.theme.GoldContainer
@@ -61,6 +71,7 @@ import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.PrGold
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Surface1
+import com.sinura.personaltrainer.ui.theme.Surface3
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
@@ -90,6 +101,7 @@ fun ExerciseDetailScreen(
     viewModel: ExerciseDetailViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var routinePickerOpen by rememberSaveable { mutableStateOf(false) }
     val unit = LocalWeightUnit.current
     val history = state.history
 
@@ -119,6 +131,16 @@ fun ExerciseDetailScreen(
             onBack = onBack,
         )
 
+        // Outside the branches: adding to a routine is offered from the empty state as well as
+        // from the full one, and the confirmation has to land wherever it was pressed.
+        state.notice?.let { message ->
+            GymStatusBanner(
+                message,
+                modifier = Modifier.padding(horizontal = Metrics.gutter),
+                onDismissed = viewModel::dismissNotice,
+            )
+        }
+
         when {
             state.isLoading -> ScreenLoading()
 
@@ -133,13 +155,17 @@ fun ExerciseDetailScreen(
             }
 
             !history.hasHistory -> {
-                // No action: EmptyState renders a non-compact one as the screen's single
-                // filled control, and spending that on "Back" duplicates the header arrow a
-                // few inches above it. This state is not terminal — the lift simply has no
-                // history yet.
+                // Reachable only past the isLoading and missing branches above, so the lift is
+                // resolved and present here — no null guard needed on the action.
+                // The action used to be omitted on the grounds that spending this screen's one
+                // filled control on "Back" duplicates the header arrow. That was right about
+                // Back and wrong about there being nothing else: the way to get history for a
+                // lift is to put it in a routine, which is exactly what this state is missing.
                 EmptyState(
                     title = "Nothing logged yet",
                     body = "Records and trends appear here once you have finished a session with this lift.",
+                    actionLabel = "Add to a routine",
+                    onAction = { routinePickerOpen = true },
                     modifier = Modifier.padding(Metrics.gutter),
                 )
             }
@@ -253,11 +279,99 @@ fun ExerciseDetailScreen(
                             )
                         }
                     }
+                    // After the history, not before it: this screen exists to answer "how is
+                    // this lift going", and the answer is what makes the action worth taking.
+                    // Without it the screen ended — several hundred lines of records and
+                    // trends whose only exits were Back and a session row.
+                    item(key = "add-to-routine") {
+                        SecondaryGymButton(
+                            text = "Add to a routine",
+                            onClick = { routinePickerOpen = true },
+                            modifier = Modifier.padding(top = SECTION_LEAD),
+                            height = Metrics.touchMin,
+                        )
+                    }
                 }
             }
         }
     }
+
+    if (routinePickerOpen) {
+        RoutinePickerSheet(
+            exerciseName = state.exercise?.name.orEmpty(),
+            routines = state.routines,
+            onDismiss = { routinePickerOpen = false },
+            onPick = { routineId ->
+                routinePickerOpen = false
+                viewModel.addToRoutine(routineId)
+            },
+        )
+    }
 }
+
+/**
+ * Which routine to put this lift in.
+ *
+ * Routines that already hold it are shown, not hidden, and are not pressable. Hiding them
+ * would answer a question the user did not ask — "why is my push day missing from this list?"
+ * — and the repository's add is a silent no-op on a duplicate, so a pressable row would take
+ * the tap and do nothing at all.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RoutinePickerSheet(
+    exerciseName: String,
+    routines: List<RoutineMembership>,
+    onDismiss: () -> Unit,
+    onPick: (String) -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Surface3) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Metrics.gutter)
+                .padding(bottom = Metrics.space7),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space4),
+        ) {
+            Text("Add $exerciseName to", style = InstrumentType.title, color = TextPrimary)
+            if (routines.isEmpty()) {
+                Text(
+                    "You have no routines yet. Build one in Plan and this lift can go straight into it.",
+                    style = InstrumentType.body,
+                    color = TextSecondary,
+                )
+                return@Column
+            }
+            GroupedList {
+                routines.forEachIndexed { index, membership ->
+                    if (index > 0) HairlineDivider()
+                    InstrumentRow(
+                        title = membership.routine.name,
+                        subtitle = if (membership.alreadyHolds) {
+                            "Already in this routine"
+                        } else {
+                            liftCountLabel(membership.routine.exercises.size)
+                        },
+                        onClick = if (membership.alreadyHolds) {
+                            null
+                        } else {
+                            { onPick(membership.routine.id) }
+                        },
+                    )
+                }
+            }
+            Text(
+                "Sets, reps and rest start from this lift's defaults. Change them in the routine.",
+                style = InstrumentType.caption,
+                color = TextTertiary,
+            )
+        }
+    }
+}
+
+private fun liftCountLabel(count: Int): String =
+    if (count == 1) "1 lift" else "$count lifts"
 
 @Composable
 private fun ExerciseDetailHeader(
