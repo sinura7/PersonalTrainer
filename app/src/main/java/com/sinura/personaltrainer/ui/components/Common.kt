@@ -26,10 +26,14 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -1008,6 +1012,50 @@ fun SecondaryGymButton(
             style = InstrumentType.title,
             color = if (enabled) TextPrimary else TextSecondary,
         )
+    }
+}
+
+/**
+ * How the session went, in words, folded away until it is wanted.
+ *
+ * Collapsed by default because a text field mounted permanently is a text field the thumb
+ * finds by accident mid-set; the toggle's own label carries whether anything is written, so
+ * nothing has to be opened to check.
+ *
+ * Shared by the live workout and by session detail rather than duplicated, so a note written
+ * during a session and a note added to it a week later are the same affordance with the same
+ * words. The write behind [onChange] is debounced by each caller's ViewModel.
+ */
+@Composable
+fun NotesBlock(
+    notes: String,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    onChange: (String) -> Unit,
+) {
+    Column {
+        TextButton(onClick = onToggle, contentPadding = PaddingValues(0.dp)) {
+            Icon(
+                if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                contentDescription = null,
+                tint = TextSecondary,
+            )
+            Text(
+                if (expanded) "Hide notes" else if (notes.isBlank()) "Session notes" else "Session notes · saved",
+                style = InstrumentType.bodyStrong,
+                color = TextSecondary,
+                modifier = Modifier.padding(start = Metrics.space2),
+            )
+        }
+        if (expanded) {
+            OutlinedTextField(
+                value = notes,
+                onValueChange = onChange,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Notes") },
+                minLines = 2,
+            )
+        }
     }
 }
 

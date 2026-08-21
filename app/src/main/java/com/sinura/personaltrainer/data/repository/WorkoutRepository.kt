@@ -21,7 +21,9 @@ import com.sinura.personaltrainer.domain.ProgressionBasis
 import com.sinura.personaltrainer.domain.ProgressionCalculator
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.FinishedSessionEdits
 import com.sinura.personaltrainer.domain.SessionActivity
+import com.sinura.personaltrainer.domain.RepeatSessionPlan
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.WorkingSetCandidate
 import com.sinura.personaltrainer.domain.WorkoutSession
@@ -29,6 +31,16 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+
+sealed interface RepeatOutcome {
+    data class Started(val sessionId: String) : RepeatOutcome
+
+    /** A session is already running; the caller offers to resume or discard it explicitly. */
+    data class Blocked(val inProgressSessionId: String, val inProgressName: String?) :
+        RepeatOutcome
+
+    data class Failed(val message: String) : RepeatOutcome
+}
 
 class WorkoutRepository(
     private val database: TrainerDatabase,
@@ -103,6 +115,59 @@ class WorkoutRepository(
         return workoutDao.getSession(sessionId)?.toDomain()
             ?: error("Could not start that workout.")
     }
+
+    /**
+     * Starts a new session shaped like a finished one.
+     *
+     * Routed through the same single-in-progress transaction as every other start, and it
+     * reports [RepeatOutcome.Blocked] rather than quietly handing back the session that is
+     * already running — silently resuming a different workout than the one tapped is the
+     * behaviour this app is trying to get rid of.
+     */
+    suspend fun repeatSession(sourceSessionId: String): RepeatOutcome {
+        val source = workoutDao.getSession(sourceSessionId)?.toDomain()
+            ?: return RepeatOutcome.Failed("That session is no longer available.")
+        if (!source.isFinished) {
+            return RepeatOutcome.Failed("That session is still in progress.")
+        }
+
+        val now = System.currentTimeMillis()
+        val newId = UUID.randomUUID().toString()
+        val session = WorkoutSessionEntity(
+            id = newId,
+            // Never carry a dangling foreign key: the routine may have been deleted since.
+            routineId = source.routineId?.takeIf { routineExists(it) },
+            routineName = source.routineName,
+            date = now,
+            notes = "",
+            durationMinutes = 0,
+            startedAt = now,
+            finishedAt = null,
+        )
+        val exercises = RepeatSessionPlan.from(source).mapIndexed { index, item ->
+            SessionExerciseEntity(
+                id = UUID.randomUUID().toString(),
+                sessionId = newId,
+                exerciseId = item.exerciseId,
+                sortOrder = index,
+                targetSets = item.targetSets,
+                targetReps = item.targetReps,
+                // The progression hint owns weight; a copied one would only contradict it.
+                targetWeightKg = null,
+                restSeconds = item.restSeconds,
+            )
+        }
+
+        val startedId = insertSessionIfIdle(session, exercises)
+        if (startedId != newId) {
+            val running = workoutDao.getSessionRow(startedId)
+            return RepeatOutcome.Blocked(startedId, running?.routineName)
+        }
+        return RepeatOutcome.Started(newId)
+    }
+
+    private suspend fun routineExists(routineId: String): Boolean =
+        database.routineDao().getById(routineId) != null
 
     private suspend fun insertSessionIfIdle(
         session: WorkoutSessionEntity,
@@ -200,10 +265,10 @@ class WorkoutRepository(
         isWarmup: Boolean,
     ) {
         val current = workoutDao.getSet(setId) ?: error("That set is no longer available.")
-        val session = workoutDao.getSession(current.sessionId)
-        if (session?.session?.finishedAt != null) {
-            error("This workout is already finished.")
-        }
+        // Deliberately no finished-guard: correcting a mistyped weight in last week's
+        // session is the point. The copy below touches neither completedAt nor setNumber,
+        // so the set keeps the day it happened on and its place in the exercise — which is
+        // what stops an edit from re-dating a personal record or heating the wrong week.
         if (reps < 1) error("Reps must be at least 1.")
         val violation = SetLogRules.validate(weightKg, reps, isWarmup)
         if (violation != null) error(violation)
@@ -218,10 +283,56 @@ class WorkoutRepository(
         )
     }
 
-    suspend fun deleteSet(setId: String) {
-        val deleted = workoutDao.getSet(setId) ?: return
+    /**
+     * Deletes a set and renumbers the ones after it, returning what was removed so the
+     * caller can offer an undo. Deleting is now immediate rather than dialog-guarded: a
+     * confirm on every delete taxes the common case to prevent the rare one, and an undo
+     * costs nothing until it is needed.
+     */
+    suspend fun deleteSet(setId: String): DeletedSet? {
+        val deleted = workoutDao.getSet(setId) ?: return null
         workoutDao.deleteSet(setId)
-        workoutDao.setsForExercise(deleted.sessionId, deleted.exerciseId)
+        renumber(deleted.sessionId, deleted.exerciseId)
+        return DeletedSet(
+            setId = deleted.id,
+            sessionId = deleted.sessionId,
+            exerciseId = deleted.exerciseId,
+            setNumber = deleted.setNumber,
+            weightKg = deleted.weightKg,
+            reps = deleted.reps,
+            rpe = deleted.rpe,
+            isWarmup = deleted.isWarmup,
+            completedAt = deleted.completedAt,
+        )
+    }
+
+    /**
+     * Puts a deleted set back with its original id and timestamp, then renumbers.
+     *
+     * Restoring the original `completedAt` is what makes undo a true reversal: a set
+     * re-inserted with a fresh timestamp would land on today's body map and could re-date a
+     * record. No-ops if the session has since gone.
+     */
+    suspend fun restoreSet(set: DeletedSet) {
+        if (workoutDao.getSessionRow(set.sessionId) == null) return
+        workoutDao.insertSet(
+            SetLogEntity(
+                id = set.setId,
+                sessionId = set.sessionId,
+                exerciseId = set.exerciseId,
+                setNumber = set.setNumber,
+                weightKg = set.weightKg,
+                reps = set.reps,
+                rpe = set.rpe,
+                isWarmup = set.isWarmup,
+                completedAt = set.completedAt,
+            ),
+        )
+        renumber(set.sessionId, set.exerciseId)
+    }
+
+    private suspend fun renumber(sessionId: String, exerciseId: String) {
+        workoutDao.setsForExercise(sessionId, exerciseId)
             .forEachIndexed { index, set ->
                 val nextNumber = index + 1
                 if (set.setNumber != nextNumber) {
@@ -230,9 +341,73 @@ class WorkoutRepository(
             }
     }
 
+    /**
+     * Adds a set to a session that is already finished.
+     *
+     * Deliberately not [logSet]: the live-logging path detects personal records and drives
+     * the rest timer, neither of which belongs to an edit made days later. The timestamp
+     * comes from [FinishedSessionEdits] so the set lands inside the session's own lifetime.
+     */
+    suspend fun addSetToFinishedSession(
+        sessionId: String,
+        exerciseId: String,
+        weightKg: Double,
+        reps: Int,
+        rpe: Int?,
+        isWarmup: Boolean,
+    ) {
+        val current = workoutDao.getSession(sessionId)
+            ?: error("This workout is no longer available.")
+        val session = current.session
+        val finishedAt = session.finishedAt ?: error("This workout is still in progress.")
+        if (reps < 1) error("Reps must be at least 1.")
+        val violation = SetLogRules.validate(weightKg, reps, isWarmup)
+        if (violation != null) error(violation)
+        val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else 0.0
+        val nextNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
+        workoutDao.insertSet(
+            SetLogEntity(
+                id = UUID.randomUUID().toString(),
+                sessionId = sessionId,
+                exerciseId = exerciseId,
+                setNumber = nextNumber,
+                weightKg = safeWeight,
+                reps = reps.coerceAtLeast(1),
+                rpe = rpe,
+                isWarmup = isWarmup,
+                completedAt = FinishedSessionEdits.timestampForAddedSet(
+                    startedAt = session.startedAt,
+                    finishedAt = finishedAt,
+                    lastCompletedAt = current.sets.maxOfOrNull { it.set.completedAt },
+                ),
+            ),
+        )
+    }
+
+    /**
+     * Deletes a finished session and everything under it.
+     *
+     * Separate from [discardSession] on purpose: discard belongs to the live-workout use
+     * case and is guarded by the single-caller rule, while this is a deliberate act on
+     * history. The check keeps the two from overlapping.
+     */
+    suspend fun deleteFinishedSession(sessionId: String) {
+        val current = workoutDao.getSessionRow(sessionId) ?: return
+        check(current.finishedAt != null) {
+            "Only finished sessions can be deleted; discard owns in-progress."
+        }
+        workoutDao.deleteSession(sessionId)
+    }
+
+    /**
+     * Writes `notes` and nothing else, on finished and in-progress sessions alike.
+     *
+     * Notes carry no timestamp, record or heat semantics, so unlike the set fields there is
+     * nothing downstream for a late edit to disturb — and a typo in what you wrote about a
+     * session is the same class of permanent annoyance the set edits exist to fix.
+     */
     suspend fun updateSessionNotes(sessionId: String, notes: String) {
         val current = workoutDao.getSession(sessionId)?.session ?: return
-        if (current.finishedAt != null) return
         workoutDao.updateSession(current.copy(notes = notes.trim()))
     }
 
@@ -384,6 +559,19 @@ class WorkoutRepository(
     data class LoggedSet(
         val setId: String,
         val records: Set<PersonalRecordKind>,
+    )
+
+    /** Everything needed to put a deleted set back exactly as it was. */
+    data class DeletedSet(
+        val setId: String,
+        val sessionId: String,
+        val exerciseId: String,
+        val setNumber: Int,
+        val weightKg: Double,
+        val reps: Int,
+        val rpe: Int?,
+        val isWarmup: Boolean,
+        val completedAt: Long,
     )
 
     private fun ExerciseSetRow.toEntry(): ExerciseSetEntry = ExerciseSetEntry(

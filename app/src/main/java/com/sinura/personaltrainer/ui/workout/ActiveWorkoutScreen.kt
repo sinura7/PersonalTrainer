@@ -27,15 +27,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.ExpandLess
-import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -83,6 +82,7 @@ import com.sinura.personaltrainer.ui.components.GymNoticeBanner
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
+import com.sinura.personaltrainer.ui.components.NotesBlock
 import com.sinura.personaltrainer.ui.components.PersonalRecordBanner
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.RestDock
@@ -118,9 +118,9 @@ fun ActiveWorkoutScreen(
     val rest by viewModel.restTimerState.collectAsStateWithLifecycle()
     val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
     val personalRecord by viewModel.personalRecord.collectAsStateWithLifecycle()
+    val deletedSet by viewModel.deletedSet.collectAsStateWithLifecycle()
     var confirmLeave by rememberSaveable { mutableStateOf(false) }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
-    var pendingDeleteSetId by rememberSaveable { mutableStateOf<String?>(null) }
     var notesOpen by rememberSaveable { mutableStateOf(false) }
     val restNotificationsEnabled = rememberRestNotificationsEnabled()
     val session = state.session
@@ -164,6 +164,23 @@ fun ActiveWorkoutScreen(
         val message = state.error
         if (message != null && !logBarVisible) {
             snackbarHostState.showSnackbar(message)
+        }
+    }
+
+    // Deleting a set is immediate now, so the reversal has to be: the snackbar IS the confirm,
+    // moved to after the act instead of in front of every one of them. It carries the set's own
+    // numbers because "Set deleted" alone cannot tell you which set you just lost.
+    LaunchedEffect(deletedSet) {
+        val removed = deletedSet ?: return@LaunchedEffect
+        val outcome = snackbarHostState.showSnackbar(
+            message = "Set deleted · ${removed.weightKg.toWeightLabel(unit)} × ${removed.reps}",
+            actionLabel = "Undo",
+            duration = SnackbarDuration.Short,
+        )
+        if (outcome == SnackbarResult.ActionPerformed) {
+            viewModel.undoDeleteSet()
+        } else {
+            viewModel.onUndoOfferHandled()
         }
     }
 
@@ -330,7 +347,7 @@ fun ActiveWorkoutScreen(
                                         isLatest = set.id == session.sets.maxByOrNull { it.completedAt }?.id,
                                         isEditing = state.editingSetId == set.id,
                                         onEdit = { viewModel.editSet(set.id) },
-                                        onDelete = { pendingDeleteSetId = set.id },
+                                        onDelete = { viewModel.deleteSet(set.id) },
                                         modifier = Modifier.animateItem(),
                                     )
                                 }
@@ -392,7 +409,7 @@ fun ActiveWorkoutScreen(
                                     isLatest = set.id == latestSetId,
                                     isEditing = state.editingSetId == set.id,
                                     onEdit = { viewModel.editSet(set.id) },
-                                    onDelete = { pendingDeleteSetId = set.id },
+                                    onDelete = { viewModel.deleteSet(set.id) },
                                     modifier = Modifier.animateItem(),
                                 )
                             }
@@ -497,38 +514,6 @@ fun ActiveWorkoutScreen(
             dismissButton = {
                 TextButton(onClick = { confirmDiscard = false }) {
                     Text("Cancel", style = InstrumentType.bodyStrong, color = TextSecondary)
-                }
-            },
-        )
-    }
-
-    pendingDeleteSetId?.let { setId ->
-        val set = session?.sets?.firstOrNull { it.id == setId }
-        AlertDialog(
-            onDismissRequest = { pendingDeleteSetId = null },
-            title = { Text("Delete this set?", style = InstrumentType.title) },
-            text = {
-                Text(
-                    if (set == null) {
-                        "Remove it from this session."
-                    } else {
-                        "Delete ${set.weightKg.toWeightLabel(unit)} × ${set.reps}${if (set.isWarmup) " warm-up" else ""}?"
-                    },
-                    style = InstrumentType.body,
-                    color = TextSecondary,
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.deleteSet(setId)
-                        pendingDeleteSetId = null
-                    },
-                ) { Text("Delete", style = InstrumentType.bodyStrong, color = Danger) }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingDeleteSetId = null }) {
-                    Text("Keep", style = InstrumentType.bodyStrong, color = TextSecondary)
                 }
             },
         )
@@ -851,39 +836,6 @@ private fun SecondaryLogOptions(
                 label = value.toString(),
                 selected = rpe == value,
                 onClick = { onRpe(if (rpe == value) null else value) },
-            )
-        }
-    }
-}
-
-@Composable
-private fun NotesBlock(
-    notes: String,
-    expanded: Boolean,
-    onToggle: () -> Unit,
-    onChange: (String) -> Unit,
-) {
-    Column {
-        TextButton(onClick = onToggle, contentPadding = PaddingValues(0.dp)) {
-            Icon(
-                if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-                contentDescription = null,
-                tint = TextSecondary,
-            )
-            Text(
-                if (expanded) "Hide notes" else if (notes.isBlank()) "Session notes" else "Session notes · saved",
-                style = InstrumentType.bodyStrong,
-                color = TextSecondary,
-                modifier = Modifier.padding(start = Metrics.space2),
-            )
-        }
-        if (expanded) {
-            OutlinedTextField(
-                value = notes,
-                onValueChange = onChange,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Notes") },
-                minLines = 2,
             )
         }
     }

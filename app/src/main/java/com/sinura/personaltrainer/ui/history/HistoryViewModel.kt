@@ -3,16 +3,21 @@ package com.sinura.personaltrainer.ui.history
 import android.app.Application
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.data.repository.RepeatOutcome
 import com.sinura.personaltrainer.domain.TrainingCalendarBuilder
 import com.sinura.personaltrainer.domain.TrainingMonth
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.YearMonth
 import java.time.ZoneId
@@ -30,6 +35,20 @@ class HistoryViewModel(application: Application) : AppViewModel(application) {
      * paging back through a year survives rotation and process death.
      */
     private val visibleMonth = MutableStateFlow(YearMonth.now())
+
+    /**
+     * One-shot navigation held as state rather than a captured callback: the repeat writes a
+     * session row before the destination is known, and a lambda captured into that coroutine
+     * belongs to a composition that may already be gone.
+     */
+    private val _navigateToSession = MutableStateFlow<String?>(null)
+    val navigateToSession: StateFlow<String?> = _navigateToSession.asStateFlow()
+
+    private val _blockedRepeat = MutableStateFlow<RepeatOutcome.Blocked?>(null)
+    val blockedRepeat: StateFlow<RepeatOutcome.Blocked?> = _blockedRepeat.asStateFlow()
+
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error.asStateFlow()
 
     val uiState: StateFlow<HistoryUiState> = combine(
         container.workoutRepository.observeHistory(),
@@ -66,4 +85,48 @@ class HistoryViewModel(application: Application) : AppViewModel(application) {
         val next = visibleMonth.value.plusMonths(1)
         if (next <= YearMonth.now()) visibleMonth.value = next
     }
+
+    /**
+     * Starts a fresh session shaped like an old one.
+     *
+     * The outcome is three-way on purpose. A repeat that quietly resumed whatever session
+     * happened to be open would be the worst of the three: the lifter taps "Repeat Push Day"
+     * and lands in Tuesday's half-finished Legs, with no signal that anything went wrong.
+     */
+    fun repeatSession(sessionId: String) {
+        viewModelScope.launch {
+            runCatchingCancellable { container.workoutRepository.repeatSession(sessionId) }
+                .onSuccess { outcome ->
+                    when (outcome) {
+                        is RepeatOutcome.Started -> _navigateToSession.value = outcome.sessionId
+                        is RepeatOutcome.Blocked -> _blockedRepeat.value = outcome
+                        is RepeatOutcome.Failed -> _error.value = outcome.message
+                    }
+                }
+                .onFailure { thrown ->
+                    AppLog.w(TAG, "repeatSession failed", thrown)
+                    _error.value = "Could not repeat that workout. Try again."
+                }
+        }
+    }
+
+    fun resumeBlockedSession() {
+        val blocked = _blockedRepeat.value ?: return
+        _blockedRepeat.value = null
+        _navigateToSession.value = blocked.inProgressSessionId
+    }
+
+    fun dismissBlockedRepeat() {
+        _blockedRepeat.value = null
+    }
+
+    fun onNavigationHandled() {
+        _navigateToSession.value = null
+    }
+
+    fun onErrorShown() {
+        _error.value = null
+    }
 }
+
+private const val TAG = "PT/HistoryViewModel"

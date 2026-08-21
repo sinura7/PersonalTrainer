@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
 import com.sinura.personaltrainer.domain.PersonalRecordKind
@@ -133,6 +134,13 @@ class ActiveWorkoutViewModel(
     private val error = MutableStateFlow<String?>(null)
     private val finished = MutableStateFlow(false)
     private val editingSetId = MutableStateFlow<String?>(null)
+
+    /**
+     * The last deleted set, held only long enough for the snackbar to offer it back. One-shot
+     * state rather than a captured callback, so an Activity recreation mid-offer cannot leave
+     * an Undo button wired to a dead composition.
+     */
+    private val undoableDelete = MutableStateFlow<WorkoutRepository.DeletedSet?>(null)
 
     /** What the database already holds, so a re-seed or a no-op edit does not re-write it. */
     private var lastPersistedNotes: String? = null
@@ -505,6 +513,9 @@ class ActiveWorkoutViewModel(
     private val _personalRecord = MutableStateFlow<PersonalRecordMoment?>(null)
     val personalRecord: StateFlow<PersonalRecordMoment?> = _personalRecord.asStateFlow()
 
+    /** What the Undo snackbar is offering, or null when there is nothing to put back. */
+    val deletedSet: StateFlow<WorkoutRepository.DeletedSet?> = undoableDelete.asStateFlow()
+
     fun onPersonalRecordShown() {
         _personalRecord.value = null
     }
@@ -593,6 +604,14 @@ class ActiveWorkoutViewModel(
         editingSetId.value = null
     }
 
+    /**
+     * Deletes immediately and offers the reversal, instead of asking first.
+     *
+     * The confirm dialog this replaces charged a tap to every delete — including the common
+     * one, a set logged against the wrong lift ten seconds ago — to protect against a delete
+     * nobody makes by accident on a row that only the latest set even exposes. The undo
+     * charges nothing until you were actually wrong.
+     */
     fun deleteSet(setId: String) {
         viewModelScope.launch {
             val current = session.value
@@ -603,16 +622,41 @@ class ActiveWorkoutViewModel(
                 editingSetId.value = null
             }
             try {
-                container.workoutRepository.deleteSet(setId)
+                val removed = container.workoutRepository.deleteSet(setId)
                 if (wasLatest) {
                     restTimer.stop()
                 }
+                undoableDelete.value = removed
                 error.value = null
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "deleteSet failed", thrown)
                 error.value = "Could not delete that set. Try again."
             }
         }
+    }
+
+    /**
+     * Puts the set back exactly as it was, and deliberately does NOT restart the rest timer:
+     * the rest that followed that set has already been taken, and re-arming a countdown
+     * minutes later would be the app inventing a state the lifter is not in.
+     */
+    fun undoDeleteSet() {
+        val pending = undoableDelete.value ?: return
+        undoableDelete.value = null
+        viewModelScope.launch {
+            try {
+                container.workoutRepository.restoreSet(pending)
+                error.value = null
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "restoreSet failed", thrown)
+                error.value = "Could not restore that set. Try again."
+            }
+        }
+    }
+
+    /** The snackbar was dismissed or timed out; the offer expires with it. */
+    fun onUndoOfferHandled() {
+        undoableDelete.value = null
     }
 
     fun skipRest() {

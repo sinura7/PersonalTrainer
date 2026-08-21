@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.ui.history
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -16,11 +17,24 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,8 +44,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.MuscleLoadCalculator
 import com.sinura.personaltrainer.domain.SetLog
+import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
@@ -39,6 +55,7 @@ import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
+import com.sinura.personaltrainer.ui.components.NotesBlock
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -51,110 +68,294 @@ import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import java.text.DateFormat
 import java.util.Date
 
+/**
+ * A finished session, and — as of this phase — a correctable one.
+ *
+ * The screen was a receipt: everything it showed was true and none of it could be fixed. A
+ * mistyped weight from three weeks ago stayed wrong forever, silently skewing the heat map,
+ * the volume trend and the records built on top of it, and the only remedy the app offered
+ * was to delete the whole session.
+ *
+ * What edits here do NOT touch is the point of the design. Set edits keep `completedAt` and
+ * `setNumber`; added sets are stamped inside the session's own window; the duration is never
+ * recomputed. A repair fixes what was recorded, never when it happened.
+ */
 @Composable
 fun SessionDetailScreen(
     onBack: () -> Unit,
     onOpenExercise: (String) -> Unit,
+    onOpenActiveSession: (String) -> Unit,
     viewModel: SessionDetailViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
+    val deleted by viewModel.deleted.collectAsStateWithLifecycle()
+    val deletedSet by viewModel.deletedSet.collectAsStateWithLifecycle()
+    val navigateToSession by viewModel.navigateToSession.collectAsStateWithLifecycle()
+    val blockedRepeat by viewModel.blockedRepeat.collectAsStateWithLifecycle()
     val session = state.session
     val unit = LocalWeightUnit.current
     val dateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Pit),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(end = Metrics.gutter, bottom = Metrics.space2),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    Icons.AutoMirrored.Outlined.ArrowBack,
-                    contentDescription = "Back",
-                    tint = TextSecondary,
-                )
-            }
-            Text(
-                session?.routineName ?: "Session",
-                modifier = Modifier.weight(1f),
-                style = InstrumentType.title,
-                color = TextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+    var menuOpen by rememberSaveable { mutableStateOf(false) }
+    var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    var notesOpen by rememberSaveable { mutableStateOf(false) }
+    var editingSetId by rememberSaveable { mutableStateOf<String?>(null) }
+    var addingToExerciseId by rememberSaveable { mutableStateOf<String?>(null) }
+
+    // Navigation is state, not a captured callback: the repeat writes a session row first, and
+    // an Activity recreated in that window would leave the lambda pointing at a dead
+    // NavController. Ack after navigating, matching the forward navigations elsewhere.
+    LaunchedEffect(deleted) {
+        if (deleted) onBack()
+    }
+    LaunchedEffect(navigateToSession) {
+        val target = navigateToSession ?: return@LaunchedEffect
+        onOpenActiveSession(target)
+        viewModel.onNavigationHandled()
+    }
+    LaunchedEffect(error) {
+        val message = error ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(message)
+        viewModel.onErrorShown()
+    }
+    LaunchedEffect(deletedSet) {
+        val removed = deletedSet ?: return@LaunchedEffect
+        val outcome = snackbarHostState.showSnackbar(
+            message = "Set deleted · ${removed.weightKg.toWeightLabel(unit)} × ${removed.reps}",
+            actionLabel = "Undo",
+            duration = SnackbarDuration.Short,
+        )
+        if (outcome == SnackbarResult.ActionPerformed) {
+            viewModel.undoDeleteSet()
+        } else {
+            viewModel.onUndoOfferHandled()
         }
+    }
 
-        when {
-            state.isLoading -> {
-                ScreenLoading()
-            }
-            session == null -> {
-                EmptyState(
-                    title = "Session not found",
-                    body = "This workout is no longer on this phone.",
-                    modifier = Modifier.padding(Metrics.gutter),
-                )
-            }
-            else -> {
-                val exerciseCards = if (session.exercises.isNotEmpty()) {
-                    session.exercises.map { it.exercise.id to it.exercise.name }
-                } else {
-                    session.sets.map { it.exerciseId to it.exerciseName }.distinctBy { it.first }
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Pit),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(end = Metrics.space2, bottom = Metrics.space2),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        Icons.AutoMirrored.Outlined.ArrowBack,
+                        contentDescription = "Back",
+                        tint = TextSecondary,
+                    )
                 }
-                val workingSets = session.sets.count { !it.isWarmup }
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        start = Metrics.gutter,
-                        end = Metrics.gutter,
-                        top = Metrics.space2,
-                        bottom = Metrics.space7,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
-                ) {
-                    item {
-                        SessionReceipt(
-                            dateLabel = dateFormat.format(Date(session.date)),
-                            volumeKg = session.workingVolumeKg(),
-                            workingSets = workingSets,
-                            durationMinutes = session.durationMinutes,
-                            notes = session.notes,
-                            unit = unit,
-                        )
-                    }
-                    if (exerciseCards.isEmpty() && session.sets.isEmpty()) {
-                        item {
-                            EmptyState(
-                                title = "No sets logged",
-                                body = "Nothing was recorded for this workout.",
-                                compact = true,
+                Text(
+                    session?.routineName ?: "Session",
+                    modifier = Modifier.weight(1f),
+                    style = InstrumentType.title,
+                    color = TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (session != null) {
+                    // Two whole-session verbs, one of them destructive: an overflow rather than
+                    // two more controls competing with the session's own numbers.
+                    Box {
+                        IconButton(onClick = { menuOpen = true }) {
+                            Icon(
+                                Icons.Outlined.MoreVert,
+                                contentDescription = "Session options",
+                                tint = TextSecondary,
+                            )
+                        }
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        "Repeat workout",
+                                        style = InstrumentType.bodyStrong,
+                                        color = TextPrimary,
+                                    )
+                                },
+                                onClick = {
+                                    menuOpen = false
+                                    viewModel.repeatSession()
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        "Delete session…",
+                                        style = InstrumentType.bodyStrong,
+                                        color = TextSecondary,
+                                    )
+                                },
+                                onClick = {
+                                    menuOpen = false
+                                    confirmDelete = true
+                                },
                             )
                         }
                     }
-                    items(exerciseCards) { (exerciseId, exerciseName) ->
-                        val sets = session.setsFor(exerciseId)
-                        // Same per-set rule as the session headline above and the body map; a
-                        // plain weight x reps here scored bodyweight sets at zero.
-                        val volume = sets
-                            .filterNot { it.isWarmup }
-                            .sumOf { MuscleLoadCalculator.setVolumeKg(it.weightKg, it.reps) }
-                        ExerciseBlock(
-                            name = exerciseName,
-                            sets = sets,
-                            volumeKg = volume,
-                            unit = unit,
-                            onOpen = { onOpenExercise(exerciseId) },
-                        )
+                }
+            }
+
+            when {
+                state.isLoading -> {
+                    ScreenLoading()
+                }
+                session == null -> {
+                    EmptyState(
+                        title = "Session not found",
+                        body = "This workout is no longer on this phone.",
+                        modifier = Modifier.padding(Metrics.gutter),
+                    )
+                }
+                else -> {
+                    val exerciseCards = if (session.exercises.isNotEmpty()) {
+                        session.exercises.map { it.exercise.id to it.exercise.name }
+                    } else {
+                        session.sets.map { it.exerciseId to it.exerciseName }.distinctBy { it.first }
+                    }
+                    val workingSets = session.sets.count { !it.isWarmup }
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            start = Metrics.gutter,
+                            end = Metrics.gutter,
+                            top = Metrics.space2,
+                            bottom = Metrics.space7,
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
+                    ) {
+                        item {
+                            SessionReceipt(
+                                dateLabel = dateFormat.format(Date(session.date)),
+                                volumeKg = session.workingVolumeKg(),
+                                workingSets = workingSets,
+                                durationMinutes = session.durationMinutes,
+                                notes = state.notes,
+                                notesExpanded = notesOpen,
+                                onToggleNotes = { notesOpen = !notesOpen },
+                                onNotesChange = viewModel::setNotes,
+                                unit = unit,
+                            )
+                        }
+                        if (exerciseCards.isEmpty() && session.sets.isEmpty()) {
+                            item {
+                                EmptyState(
+                                    title = "No sets logged",
+                                    body = "Nothing was recorded for this workout.",
+                                    compact = true,
+                                )
+                            }
+                        }
+                        items(exerciseCards) { (exerciseId, exerciseName) ->
+                            val sets = session.setsFor(exerciseId)
+                            // Same per-set rule as the session headline above and the body map; a
+                            // plain weight x reps here scored bodyweight sets at zero.
+                            val volume = sets
+                                .filterNot { it.isWarmup }
+                                .sumOf { MuscleLoadCalculator.setVolumeKg(it.weightKg, it.reps) }
+                            ExerciseBlock(
+                                name = exerciseName,
+                                sets = sets,
+                                volumeKg = volume,
+                                unit = unit,
+                                onOpen = { onOpenExercise(exerciseId) },
+                                onEditSet = { editingSetId = it.id },
+                                onAddSet = { addingToExerciseId = exerciseId },
+                            )
+                        }
                     }
                 }
             }
         }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
+    }
+
+    val editing = editingSetId?.let { id -> session?.sets?.firstOrNull { it.id == id } }
+    if (editing != null) {
+        SetEditSheet(
+            exerciseName = editing.exerciseName,
+            initial = editing,
+            onSave = { weightKg, reps, rpe, isWarmup ->
+                editingSetId = null
+                viewModel.updateSet(
+                    setId = editing.id,
+                    weightKg = weightKg,
+                    reps = reps,
+                    rpe = rpe,
+                    isWarmup = isWarmup,
+                )
+            },
+            onDelete = {
+                editingSetId = null
+                viewModel.deleteSet(editing.id)
+            },
+            onDismiss = { editingSetId = null },
+        )
+    }
+
+    val adding = addingToExerciseId
+    if (adding != null && session != null) {
+        // A new set almost always continues the last one, so it opens on those numbers rather
+        // than on zero — the same courtesy the live logger extends.
+        val previous = session.setsFor(adding).lastOrNull()
+        val name = session.exercises.firstOrNull { it.exercise.id == adding }?.exercise?.name
+            ?: session.sets.firstOrNull { it.exerciseId == adding }?.exerciseName
+            ?: "Exercise"
+        SetEditSheet(
+            exerciseName = name,
+            initial = null,
+            onSave = { weightKg, reps, rpe, isWarmup ->
+                addingToExerciseId = null
+                viewModel.addSet(
+                    exerciseId = adding,
+                    weightKg = weightKg,
+                    reps = reps,
+                    rpe = rpe,
+                    isWarmup = isWarmup,
+                )
+            },
+            onDelete = null,
+            onDismiss = { addingToExerciseId = null },
+            prefillWeightKg = previous?.weightKg ?: 0.0,
+            prefillReps = previous?.reps ?: DEFAULT_ADD_REPS,
+        )
+    }
+
+    if (confirmDelete && session != null) {
+        val total = session.sets.size
+        ConfirmActionDialog(
+            title = "Delete this session?",
+            body = "This deletes the session and its $total logged " +
+                (if (total == 1) "set" else "sets") + " from history. This cannot be undone.",
+            confirmLabel = "Delete",
+            onConfirm = {
+                confirmDelete = false
+                viewModel.deleteSession()
+            },
+            onDismiss = { confirmDelete = false },
+            destructive = true,
+        )
+    }
+
+    if (blockedRepeat != null) {
+        ConfirmActionDialog(
+            title = "Session in progress",
+            body = "Finish or discard the current session before starting another.",
+            confirmLabel = "Resume workout",
+            onConfirm = viewModel::resumeBlockedSession,
+            onDismiss = viewModel::dismissBlockedRepeat,
+        )
     }
 }
 
@@ -164,6 +365,9 @@ fun SessionDetailScreen(
  *
  * The three numbers used to be one sentence in body text, where the word "working" carried
  * the same weight as the tonnage beside it and nothing lined up between two sessions.
+ *
+ * The notes tail is now writable. A session you finished last week saying nothing about how
+ * it went, with no way to add that, was the same defect as an uncorrectable set.
  */
 @Composable
 private fun SessionReceipt(
@@ -172,6 +376,9 @@ private fun SessionReceipt(
     workingSets: Int,
     durationMinutes: Int,
     notes: String,
+    notesExpanded: Boolean,
+    onToggleNotes: () -> Unit,
+    onNotesChange: (String) -> Unit,
     unit: WeightUnit,
 ) {
     GymCard {
@@ -210,10 +417,13 @@ private fun SessionReceipt(
                 horizontalAlignment = Alignment.Start,
             )
         }
-        if (notes.isNotBlank()) {
-            HairlineDivider(startIndent = 0.dp)
-            Text(notes, style = InstrumentType.body, color = TextSecondary)
-        }
+        HairlineDivider(startIndent = 0.dp)
+        NotesBlock(
+            notes = notes,
+            expanded = notesExpanded,
+            onToggle = onToggleNotes,
+            onChange = onNotesChange,
+        )
     }
 }
 
@@ -231,6 +441,8 @@ private fun ExerciseBlock(
     volumeKg: Double,
     unit: WeightUnit,
     onOpen: () -> Unit,
+    onEditSet: (SetLog) -> Unit,
+    onAddSet: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
         Row(
@@ -269,15 +481,23 @@ private fun ExerciseBlock(
             GroupedList {
                 sets.forEachIndexed { index, set ->
                     if (index > 0) HairlineDivider()
-                    SetRow(set = set, unit = unit)
+                    SetRow(set = set, unit = unit, onEdit = { onEditSet(set) })
                 }
             }
+        }
+        // Tertiary by weight, not by placement: it belongs under the sets it appends to, but a
+        // lift you forgot to log is rarer than a lift you want to read.
+        TextButton(
+            onClick = onAddSet,
+            modifier = Modifier.padding(start = Metrics.space2),
+        ) {
+            Text("Add set", style = InstrumentType.bodyStrong, color = TextSecondary)
         }
     }
 }
 
 @Composable
-private fun SetRow(set: SetLog, unit: WeightUnit) {
+private fun SetRow(set: SetLog, unit: WeightUnit, onEdit: () -> Unit) {
     val tags = buildList {
         if (set.isWarmup) add("Warm-up")
         set.rpe?.let { add("RPE $it") }
@@ -300,8 +520,12 @@ private fun SetRow(set: SetLog, unit: WeightUnit) {
             label = "reps",
             modifier = Modifier.width(REPS_COLUMN),
         )
+        TextButton(onClick = onEdit) {
+            Text("Edit", style = InstrumentType.bodyStrong, color = TextSecondary)
+        }
     }
 }
 
+private const val DEFAULT_ADD_REPS = 5
 private val WEIGHT_COLUMN = 88.dp
 private val REPS_COLUMN = 48.dp

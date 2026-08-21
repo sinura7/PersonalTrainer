@@ -169,7 +169,7 @@ Carried forward deliberately, with the phase that will address them.
 |---|---|
 | No instrumented tests; repositories, DAOs, ViewModels, screens untested | 2 |
 | ViewModels untestable by construction (service-locator `AppViewModel`) — A1 | opportunistic — not a phase |
-| Finished sessions cannot be edited | 1 |
+| Finished sessions cannot be edited | ~~1~~ fixed 21 Aug — sets, notes, session delete, repeat |
 | Routine editor loses an unsaved rename on back | ~~4~~ fixed 20 Aug |
 | Imbalance advice compares tonnage, not working-set counts | 5 |
 | Progression increment is a global 2.5 kg; LBS users see "+5.5 lbs" | 7 |
