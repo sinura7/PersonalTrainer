@@ -18,8 +18,38 @@ data class BackupDocument(
      */
     val exerciseMuscles: List<BackupExerciseMuscle> = emptyList(),
     val scheduleSlots: List<BackupScheduleSlot> = emptyList(),
-)
+) {
+    /**
+     * Whether the owner of this backup has plainly already been through the guided setup.
+     *
+     * [BackupPreferences.onboardingComplete] is the direct answer, but it only exists in
+     * documents written after the guided setup shipped. An older file decodes that field to
+     * `false`, and restoring it verbatim would drop a lifter with a year of history into a
+     * questionnaire — the exact failure the field was added to prevent, arriving through the
+     * other door. So a document that carries any routine or any session counts as set up
+     * regardless of the flag: nobody accumulates either without having made the choice.
+     *
+     * The remaining `false` case is the honest one — an empty document from a phone that
+     * genuinely never finished setup — and that one should still go to setup.
+     */
+    fun hasBeenSetUp(): Boolean =
+        preferences.onboardingComplete || routines.isNotEmpty() || sessions.isNotEmpty()
+}
 
+/**
+ * The settings a restore should bring with it.
+ *
+ * Not every preference belongs here, but every one that is a statement about the LIFTER rather
+ * than about this handset does. The five fields below the rest timer were added after the guided
+ * setup shipped and a restore was found to drop them: a new phone came up not knowing the
+ * owner's goal, their equipment, their bodyweight — and, worst of the five, not knowing they had
+ * already been through setup, so it asked them the six questions again on a phone that already
+ * had their whole training history on it.
+ *
+ * Nothing here is version-gated. [BackupJson.parsePreferences] reads every field individually
+ * with an explicit default, so a v1 or v2 document missing all five decodes cleanly and simply
+ * keeps the defaults.
+ */
 data class BackupPreferences(
     val weightUnit: String,
     val trainingDaysPerWeek: Int = 4,
@@ -28,6 +58,23 @@ data class BackupPreferences(
     val restSoundEnabled: Boolean = true,
     val restVibrationEnabled: Boolean = true,
     val defaultRestSeconds: Int = 90,
+    val trainingGoal: String = "GENERAL",
+    val availableEquipment: List<String> = emptyList(),
+    val heatWindow: String = "CURRENT_WEEK",
+    /** Null is a real value: it means "never told us", not "weighs nothing". */
+    val bodyweightKg: Double? = null,
+    /**
+     * Restoring onto a new phone must not re-run the guided setup. The owner has a full history
+     * in front of them; being asked how many days a week they can train is the app failing to
+     * notice that.
+     */
+    val onboardingComplete: Boolean = false,
+    /**
+     * Name collisions already waved through. Phase 7 recorded these as device-local because the
+     * backup did not carry preferences it could hang them on; it does, so they travel. Being
+     * asked again about a decision already made is the same failure as the setup one above.
+     */
+    val dismissedCollisionIds: List<String> = emptyList(),
 )
 
 /**

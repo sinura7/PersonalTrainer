@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.data.backup
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -96,15 +97,17 @@ class BackupValidatorTest {
     fun rejectsNullNameInjectedByGson() {
         // The real mechanism, not a simulated one: Gson constructs these data classes through
         // Unsafe, so a JSON object with no "name" yields null inside a non-null Kotlin String.
-        // Decoding succeeds; the validator has to survive reading that field and reject it.
+        //
+        // Two things have to hold, and only together. decode() must survive the null — it
+        // collapses it to blank, because touching it through any generated member would throw
+        // and cost the specific diagnosis below. And the validator must still refuse the
+        // document, so that surviving the null never means accepting it.
         val decoded = BackupJson.decode(
             """{"version": 1, "app": "personal-trainer",
                 "exercises": [{"id": "ex-1", "muscleGroup": "Quads", "isCustom": false}]}""",
         )
         assertEquals(1, decoded.exercises.size)
-        @Suppress("SENSELESS_COMPARISON")
-        val nameIsActuallyNull = decoded.exercises.first().name == null
-        assertTrue("Gson no longer injects null; revisit this guard", nameIsActuallyNull)
+        assertEquals("", decoded.exercises.first().name)
         assertInvalid(decoded, "missing its name or id")
     }
 
@@ -112,8 +115,8 @@ class BackupValidatorTest {
     fun rejectsDuplicateExerciseIds() {
         val doc = sample().copy(
             exercises = listOf(
-                BackupExercise("dup", "Squat", "Quads", "", false),
-                BackupExercise("dup", "Bench", "Chest", "", false),
+                exercise("dup", "Squat", "Quads"),
+                exercise("dup", "Bench", "Chest"),
             ),
             routineExercises = emptyList(),
             sessionExercises = emptyList(),
@@ -206,6 +209,96 @@ class BackupValidatorTest {
         assertTrue(BackupValidator.validate(parsed, localHasData = true) is BackupValidation.Valid)
     }
 
+    @Test
+    fun aSecondRoundTripChangesNothing() {
+        // Encode/decode is idempotent from the first decode onward. Stated as its own test
+        // because the one above can only prove it for a document that was already v2-shaped:
+        // this one would fail if decode() ever normalised a value differently on the way back
+        // in than it did on the way out, which is how a preference drifts a little on every
+        // backup until it is unrecognisable.
+        val once = BackupJson.decode(BackupJson.encode(sample()))
+        val twice = BackupJson.decode(BackupJson.encode(once))
+        assertEquals(once, twice)
+    }
+
+    @Test
+    fun carriesEveryPreferenceThroughTheCodec() {
+        // The guided setup writes bodyweight, goal, equipment and the "already set up" flag.
+        // A restore that drops them puts a lifter with a full history back at question one.
+        val original = sample().copy(
+            preferences = BackupPreferences(
+                weightUnit = "lbs",
+                trainingDaysPerWeek = 5,
+                splitStyle = "push_pull_legs",
+                weekStart = "SUNDAY",
+                restSoundEnabled = false,
+                restVibrationEnabled = false,
+                defaultRestSeconds = 150,
+                trainingGoal = "STRENGTH",
+                availableEquipment = listOf("BARBELL", "DUMBBELL"),
+                heatWindow = "LAST_30_DAYS",
+                bodyweightKg = 82.5,
+                onboardingComplete = true,
+                dismissedCollisionIds = listOf("ex-a", "ex-b"),
+            ),
+        )
+        assertEquals(
+            original.preferences,
+            BackupJson.decode(BackupJson.encode(original)).preferences,
+        )
+    }
+
+    @Test
+    fun readsAPreferencesBlockThatPredatesTheGuidedSetup() {
+        // A backup taken before Phase 9 has none of the five newer keys. It must decode to the
+        // same defaults a fresh install uses, not fail and not invent values.
+        val decoded = BackupJson.decode(
+            """{"version": 2, "app": "personal-trainer",
+                "preferences": {"weightUnit": "kg", "defaultRestSeconds": 120}}""",
+        )
+        assertEquals(120, decoded.preferences.defaultRestSeconds)
+        assertEquals("GENERAL", decoded.preferences.trainingGoal)
+        assertEquals("CURRENT_WEEK", decoded.preferences.heatWindow)
+        assertEquals(emptyList<String>(), decoded.preferences.availableEquipment)
+        assertEquals(emptyList<String>(), decoded.preferences.dismissedCollisionIds)
+        assertNull(decoded.preferences.bodyweightKg)
+        assertFalse(decoded.preferences.onboardingComplete)
+    }
+
+    @Test
+    fun oneJunkPreferenceDoesNotCostTheOthers() {
+        // Preferences are cosmetic next to training data. A value of the wrong type used to
+        // throw out of the codec and take the whole restore — every session, every set — with
+        // it. Each field now falls back on its own.
+        val decoded = BackupJson.decode(
+            """{"version": 2, "app": "personal-trainer",
+                "preferences": {"weightUnit": "lbs", "defaultRestSeconds": "ninety",
+                                "bodyweightKg": {"kg": 80}, "availableEquipment": "BARBELL",
+                                "onboardingComplete": true}}""",
+        )
+        assertEquals("lbs", decoded.preferences.weightUnit)
+        assertEquals(90, decoded.preferences.defaultRestSeconds)
+        assertNull(decoded.preferences.bodyweightKg)
+        assertEquals(emptyList<String>(), decoded.preferences.availableEquipment)
+        assertTrue(decoded.preferences.onboardingComplete)
+    }
+
+    @Test
+    fun aDocumentWithHistoryCountsAsSetUpEvenWithoutTheFlag() {
+        // hasBeenSetUp() is what the restore writes to the onboarding flag. Any document with
+        // routines or sessions came from someone who had plainly finished setup, whether or
+        // not the file is old enough to say so.
+        assertTrue(sample().hasBeenSetUp())
+        assertTrue(sample().copy(routines = emptyList()).hasBeenSetUp())
+        assertTrue(sample().copy(sessions = emptyList()).hasBeenSetUp())
+        assertFalse(empty().hasBeenSetUp())
+        assertTrue(
+            empty().copy(
+                preferences = BackupPreferences(weightUnit = "kg", onboardingComplete = true),
+            ).hasBeenSetUp(),
+        )
+    }
+
     // ---- helpers ----
 
     private fun assertInvalid(document: BackupDocument, expectedFragment: String) {
@@ -232,15 +325,40 @@ class BackupValidatorTest {
     private fun sample() = BackupDocument(
         exportedAt = "2026-08-19T10:00:00Z",
         preferences = BackupPreferences(weightUnit = "kg"),
-        exercises = listOf(
-            BackupExercise("ex-squat", "Barbell Back Squat", "Quads", "", false),
-            BackupExercise("ex-bench", "Bench Press", "Chest", "paused", true),
-        ),
+        exercises = listOf(exercise("ex-squat", "Barbell Back Squat", "Quads"),
+            exercise("ex-bench", "Bench Press", "Chest", notes = "paused", isCustom = true)),
         routines = listOf(BackupRoutine("r1", "Push", "", t0, t0)),
         routineExercises = listOf(routineExercise()),
         sessions = listOf(session()),
         sessionExercises = listOf(sessionExercise()),
         setLogs = listOf(setLog("set1"), setLog("set2", setNumber = 2)),
+    )
+
+    /**
+     * A v2-shaped exercise.
+     *
+     * equipment and loadType are not decoration here. The validator refuses a null in either,
+     * deliberately — decode() fills them for every document it accepts, so a null reaching the
+     * validator means the document never went through decode(), and defaulting it there would
+     * be the validator inventing data about a file it was asked to be suspicious of. Fixtures
+     * built by hand have to say what decode() would have said.
+     */
+    private fun exercise(
+        id: String,
+        name: String,
+        muscleGroup: String,
+        notes: String = "",
+        isCustom: Boolean = false,
+        equipment: String = "BARBELL",
+        loadType: String = "EXTERNAL",
+    ) = BackupExercise(
+        id = id,
+        name = name,
+        muscleGroup = muscleGroup,
+        notes = notes,
+        isCustom = isCustom,
+        equipment = equipment,
+        loadType = loadType,
     )
 
     private fun routineExercise(

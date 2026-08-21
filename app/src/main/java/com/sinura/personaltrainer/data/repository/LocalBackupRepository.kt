@@ -23,12 +23,15 @@ import com.sinura.personaltrainer.data.local.entity.SeedMetaEntity
 import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
+import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.MuscleNormalizer
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
+import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.WeightUnit
 import kotlinx.coroutines.flow.first
 import java.io.File
@@ -92,6 +95,11 @@ class LocalBackupRepository(
         val unit = preferencesRepository.weightUnit.first()
         val schedule = preferencesRepository.schedulePreferences.first()
         val rest = preferencesRepository.restTimerPreferences.first()
+        val coach = preferencesRepository.coachPreferences.first()
+        val heatWindow = preferencesRepository.heatWindow.first()
+        val bodyweightKg = preferencesRepository.bodyweightKg.first()
+        val onboardingComplete = preferencesRepository.onboardingComplete.first()
+        val dismissedCollisions = preferencesRepository.dismissedCollisionIds.first()
         return BackupDocument(
             version = BackupJson.CURRENT_VERSION,
             app = BackupJson.APP_ID,
@@ -104,6 +112,14 @@ class LocalBackupRepository(
                 restSoundEnabled = rest.soundEnabled,
                 restVibrationEnabled = rest.vibrationEnabled,
                 defaultRestSeconds = rest.defaultRestSeconds,
+                trainingGoal = coach.goal.name,
+                availableEquipment = coach.availableEquipment.sorted(),
+                heatWindow = heatWindow.name,
+                bodyweightKg = bodyweightKg,
+                onboardingComplete = onboardingComplete,
+                // Sorted so two exports of the same state produce byte-identical documents,
+                // which is what makes a backup diffable and a round-trip test meaningful.
+                dismissedCollisionIds = dismissedCollisions.sorted(),
             ),
             exercises = exercises.map {
                 BackupExercise(
@@ -373,6 +389,14 @@ class LocalBackupRepository(
                     vibrationEnabled = document.preferences.restVibrationEnabled,
                     defaultRestSeconds = document.preferences.defaultRestSeconds,
                 ),
+                coach = CoachPreferences(
+                    goal = TrainingGoal.fromStorage(document.preferences.trainingGoal),
+                    availableEquipment = document.preferences.availableEquipment.toSet(),
+                ),
+                heatWindow = HeatWindow.fromStorage(document.preferences.heatWindow),
+                bodyweightKg = document.preferences.bodyweightKg,
+                onboardingComplete = document.hasBeenSetUp(),
+                dismissedCollisionIds = document.preferences.dismissedCollisionIds.toSet(),
             )
             true
         } catch (_: Exception) {

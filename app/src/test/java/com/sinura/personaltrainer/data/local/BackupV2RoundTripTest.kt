@@ -13,6 +13,10 @@ import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.data.repository.LocalBackupRepository
 import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.domain.DefaultExercises
+import com.sinura.personaltrainer.domain.HeatWindow
+import com.sinura.personaltrainer.domain.TrainingGoal
+import com.sinura.personaltrainer.domain.WeightUnit
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -40,6 +44,7 @@ import org.robolectric.RobolectricTestRunner
 class BackupV2RoundTripTest {
 
     private lateinit var database: TrainerDatabase
+    private lateinit var preferences: PreferencesRepository
     private lateinit var local: LocalBackupRepository
     private lateinit var maintenance: DbMaintenance
 
@@ -50,9 +55,10 @@ class BackupV2RoundTripTest {
             .allowMainThreadQueries()
             .build()
         maintenance = DbMaintenance(database)
+        preferences = PreferencesRepository(context)
         local = LocalBackupRepository(
             database = database,
-            preferencesRepository = PreferencesRepository(context),
+            preferencesRepository = preferences,
         )
     }
 
@@ -110,6 +116,58 @@ class BackupV2RoundTripTest {
         )
         // Collision detection re-ran on the restored rows; nothing here collides.
         assertEquals("[]", database.catalogDao().getSeedMeta()!!.pendingCollisions)
+    }
+
+    @Test
+    fun aRestoreBringsTheGuidedSetupAnswersWithIt() = runBlocking {
+        // The failure this exists to catch is silent and one-way: you set the app up, back it
+        // up, restore onto a new phone, and it asks you the six setup questions again with your
+        // whole training history already on screen. Every value below is deliberately
+        // non-default at export and overwritten with a different non-default before the
+        // restore, so neither "the export wrote nothing" nor "the restore wrote nothing" can
+        // pass — and so the test does not care what ran before it.
+        maintenance.seedCatalog()
+        seedUserData()
+        preferences.setWeightUnit(WeightUnit.LBS)
+        preferences.setTrainingGoal(TrainingGoal.STRENGTH)
+        preferences.setAvailableEquipment(setOf("BARBELL", "DUMBBELL"))
+        preferences.setHeatWindow(HeatWindow.LAST_30_DAYS)
+        preferences.setBodyweightKg(82.5)
+        preferences.setOnboardingComplete(true)
+        preferences.dismissCollision("ex-custom-1")
+
+        val json = BackupJson.encode(local.createSnapshot())
+
+        preferences.setWeightUnit(WeightUnit.KG)
+        preferences.setTrainingGoal(TrainingGoal.HYPERTROPHY)
+        preferences.setAvailableEquipment(setOf("CABLE"))
+        preferences.setHeatWindow(HeatWindow.CURRENT_WEEK)
+        preferences.setBodyweightKg(60.0)
+        preferences.setOnboardingComplete(false)
+
+        restore(json)
+
+        assertEquals(WeightUnit.LBS, preferences.weightUnit.first())
+        val coach = preferences.coachPreferences.first()
+        assertEquals(TrainingGoal.STRENGTH, coach.goal)
+        assertEquals(setOf("BARBELL", "DUMBBELL"), coach.availableEquipment)
+        assertEquals(HeatWindow.LAST_30_DAYS, preferences.heatWindow.first())
+        assertEquals(82.5, preferences.bodyweightKg.first()!!, 0.001)
+        assertTrue(preferences.onboardingComplete.first())
+        assertEquals(setOf("ex-custom-1"), preferences.dismissedCollisionIds.first())
+    }
+
+    @Test
+    fun restoringAnOldBackupDoesNotReopenTheGuidedSetup() = runBlocking {
+        // A v1 file predates the flag entirely, so it decodes to false. Writing that through
+        // would drop someone with a year of history back at question one. Any document that
+        // carries routines or sessions counts as set up regardless of what the flag says.
+        preferences.setOnboardingComplete(false)
+        maintenance.seedCatalog()
+
+        restore(V1_FIXTURE)
+
+        assertTrue(preferences.onboardingComplete.first())
     }
 
     @Test

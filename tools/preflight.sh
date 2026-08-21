@@ -1,16 +1,17 @@
 #!/bin/sh
 # tools/preflight.sh — the mechanical half of every phase's definition of done.
 #
-# Runs the eight static checks, then the domain tests, and exits nonzero on the
+# Runs the eleven static checks, then the JVM tests, and exits nonzero on the
 # first failure. Run it before every push. It is a pre-flight, not a substitute
 # for `./gradlew testDebugUnitTest` + `assembleDebug` — the Robolectric and
 # instrumented tests only run under Gradle (see docs/DEVELOPMENT.md).
 #
-# Domain tests need a directory of seven jars (see tools/run-domain-tests.sh
-# header). If $PT_JARS / build/test-jars is absent, this script assembles it by
-# symlinking jars found in the Gradle module cache or a Gradle distribution's
-# lib/ directory. If no jars can be found anywhere, it falls back to
-# `./gradlew testDebugUnitTest`, and fails if Gradle cannot run either.
+# The tests need a directory of seven jars, plus Gson to enable the backup lane
+# (see tools/run-domain-tests.sh header). If $PT_JARS / build/test-jars is
+# absent, this script assembles it by symlinking jars found in the Gradle module
+# cache or a Gradle distribution's lib/ directory. If no jars can be found
+# anywhere, it falls back to `./gradlew testDebugUnitTest`, and fails if Gradle
+# cannot run either.
 set -u
 cd "$(dirname "$0")/.." || exit 2
 
@@ -52,7 +53,21 @@ bootstrap_jars() {
         fi
         ln -sf "$jar" "$dest/"
     done
-    echo "preflight: assembled domain-test jars in $dest"
+    # Optional: absence disables the backup lane but must not fail the bootstrap,
+    # so this runs as its own loop rather than being added to the list above.
+    for pat in 'gson-2*.jar'; do
+        jar=""
+        for r in $roots; do
+            jar="$(find "$r" -name "$pat" 2>/dev/null | sort | tail -1)"
+            [ -n "$jar" ] && break
+        done
+        if [ -n "$jar" ]; then
+            ln -sf "$jar" "$dest/"
+        else
+            echo "preflight: no $pat found — backup tests will be skipped" >&2
+        fi
+    done
+    echo "preflight: assembled test jars in $dest"
 }
 
 if [ -z "$(find "$JARS" -name '*.jar' 2>/dev/null | head -1)" ]; then
@@ -101,12 +116,12 @@ case "$out" in
     *) fail "syntax-check" ;;
 esac
 
-# --- domain tests -------------------------------------------------------------
+# --- JVM tests -------------------------------------------------------------
 if [ -d "$JARS" ]; then
-    step "domain tests (tools/run-domain-tests.sh $JARS)"
-    tools/run-domain-tests.sh "$JARS" || fail "domain tests"
+    step "JVM tests (tools/run-domain-tests.sh $JARS)"
+    tools/run-domain-tests.sh "$JARS" || fail "JVM tests"
 elif [ -x ./gradlew ] && ./gradlew -q help >/dev/null 2>&1; then
-    step "domain tests (./gradlew testDebugUnitTest — no jar directory found)"
+    step "JVM tests (./gradlew testDebugUnitTest — no jar directory found)"
     ./gradlew testDebugUnitTest || fail "testDebugUnitTest"
 else
     fail "no test lane: no domain-test jars found and Gradle cannot run here (see tools/run-domain-tests.sh header for the jar list)"

@@ -52,8 +52,8 @@ In Android Studio: right-click `app/src/test` → **Run 'Tests'**. From the term
 These are plain JVM tests — no emulator, a few seconds. Run them before every commit; CI
 runs them again on push.
 
-Run everything mechanical with one command — the eleven static checks plus the domain
-suite, which is what every game-plan phase gates on:
+Run everything mechanical with one command — the eleven static checks plus the JVM test
+lanes, which is what every game-plan phase gates on:
 
 ```bash
 tools/preflight.sh
@@ -98,13 +98,32 @@ also taught `check-missing-imports.py` to flag a SCREAMING_SNAKE constant that r
 nowhere, after lifting two composables into new files left their `private val` dimensions
 behind in the old ones — three constants that would each have failed the build.
 
-On a machine with no Android SDK, `tools/run-domain-tests.sh` runs the domain suite on a
-plain JVM, which is possible only because `domain/` is pure Kotlin. Point it at a directory
+On a machine with no Android SDK, `tools/run-domain-tests.sh` runs the host-runnable tests on
+a plain JVM, which is possible only because `domain/` is pure Kotlin. Point it at a directory
 holding the Kotlin compiler, stdlib, coroutines, JUnit and hamcrest jars:
 
 ```bash
 PT_JARS=build/test-jars tools/run-domain-tests.sh
 ```
+
+It runs two lanes. **domain** always: `domain/`, `util/`, `logging/` against
+`test/…/domain/`. **backup** whenever a Gson jar is present as well:
+`BackupDocument`/`BackupJson`/`BackupValidator` against `test/…/data/backup/` — the only three
+files in `data/backup/` with no Android imports, which is why they are named individually
+rather than passed as a directory. Without Gson the backup lane says so and is skipped; it is
+never skipped silently.
+
+The backup lane earned its keep the hour it existed. Those four test files had been written
+against backup v1 and never once executed — `./gradlew test` has never run in this
+environment — and fourteen of them were red: twelve fixtures that predate the `equipment` and
+`loadType` fields the validator now requires, and two assertions describing a codec that
+normalises less than it does. It also surfaced a real defect. `BackupJson.normalized()` reached
+a Gson-injected null through `copy()`, whose generated parameter check threw, and everything
+thrown inside `decode()` is reported as one generic "this file is damaged" — so a backup with
+one missing exercise name lost the validator's specific *"an exercise is missing its name or
+id"*. The file was refused either way; the owner was just no longer told which field was wrong.
+
+If you add a file to `data/backup/` that has no Android imports, add it to the lane.
 
 ## Continuous integration
 

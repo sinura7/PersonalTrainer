@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.data.backup
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.sinura.personaltrainer.domain.EquipmentType
@@ -139,11 +140,25 @@ object BackupJson {
      */
     private fun BackupDocument.normalized(): BackupDocument {
         val exercises = exercises.map { exercise ->
-            exercise.copy(
+            // Rebuilt field by field through `text()` rather than `copy()`. Gson constructs
+            // these classes through Unsafe, so a JSON object missing "name" leaves null in a
+            // field Kotlin declares non-null — and `copy()`, like any public function, checks
+            // its parameters and throws. That threw inside decode(), which reports one generic
+            // "this file is damaged" for everything, costing the validator's specific "an
+            // exercise is missing its name or id". The file is refused either way; the point
+            // is that the owner is told which field was wrong.
+            BackupExercise(
+                id = text(exercise.id),
+                name = text(exercise.name),
+                muscleGroup = text(exercise.muscleGroup),
+                notes = text(exercise.notes),
+                isCustom = exercise.isCustom,
                 equipment = exercise.equipment?.takeIf { it.isNotBlank() }
                     ?: EquipmentType.OTHER.name,
                 loadType = exercise.loadType?.takeIf { it.isNotBlank() }
                     ?: LoadType.EXTERNAL.name,
+                movementKey = exercise.movementKey,
+                imageKey = exercise.imageKey,
             )
         }
         val credits = if (version == 1 || exerciseMuscles.isEmpty() && version < CURRENT_VERSION) {
@@ -162,6 +177,16 @@ object BackupJson {
         return copy(exercises = exercises, exerciseMuscles = credits)
     }
 
+    /**
+     * Reads a String that Kotlin says cannot be null but Gson may have made null anyway.
+     *
+     * The parameter is declared nullable on purpose: that is what stops the compiler emitting
+     * the parameter null-check that is the whole problem, and it is why this must stay a
+     * function rather than becoming an `?: ""` at each call site — on a value the compiler
+     * believes is already non-null, that elvis is free to be optimised away.
+     */
+    private fun text(value: String?): String = value ?: ""
+
     private fun parsePreferences(root: JsonObject): BackupPreferences {
         // Preferences are cosmetic next to training data: a malformed block falls back to
         // defaults rather than failing an otherwise good restore.
@@ -170,16 +195,76 @@ object BackupJson {
         } catch (_: Exception) {
             null
         }
-        val unit = prefs?.get("weightUnit")?.asString ?: "kg"
+        // Read field by field through the tolerant accessors below rather than `?.asInt`:
+        // Gson throws on a type it cannot coerce, so a single junk scalar used to take the
+        // whole decode — and with it the restore — down with it. One bad field now costs that
+        // field alone.
         return BackupPreferences(
-            weightUnit = unit,
-            trainingDaysPerWeek = prefs?.get("trainingDaysPerWeek")?.asInt ?: 4,
-            splitStyle = prefs?.get("splitStyle")?.asString ?: "auto",
-            weekStart = prefs?.get("weekStart")?.asString ?: "MONDAY",
-            restSoundEnabled = prefs?.get("restSoundEnabled")?.asBoolean ?: true,
-            restVibrationEnabled = prefs?.get("restVibrationEnabled")?.asBoolean ?: true,
-            defaultRestSeconds = prefs?.get("defaultRestSeconds")?.asInt ?: 90,
+            weightUnit = prefs.string("weightUnit", "kg"),
+            trainingDaysPerWeek = prefs.int("trainingDaysPerWeek", 4),
+            splitStyle = prefs.string("splitStyle", "auto"),
+            weekStart = prefs.string("weekStart", "MONDAY"),
+            restSoundEnabled = prefs.bool("restSoundEnabled", true),
+            restVibrationEnabled = prefs.bool("restVibrationEnabled", true),
+            defaultRestSeconds = prefs.int("defaultRestSeconds", 90),
+            trainingGoal = prefs.string("trainingGoal", "GENERAL"),
+            availableEquipment = prefs.stringList("availableEquipment"),
+            heatWindow = prefs.string("heatWindow", "CURRENT_WEEK"),
+            // Absent and null both mean "not told", which is a different thing from zero.
+            bodyweightKg = prefs.positiveDoubleOrNull("bodyweightKg"),
+            onboardingComplete = prefs.bool("onboardingComplete", false),
+            dismissedCollisionIds = prefs.stringList("dismissedCollisionIds"),
         )
+    }
+
+    /**
+     * The preference readers.
+     *
+     * All five share one rule: a missing, null, wrong-typed or uncoercible value yields the
+     * fallback and never throws. Preferences are cosmetic next to training data, and no
+     * malformed setting should cost someone their sessions.
+     */
+    private fun JsonObject?.primitive(key: String): JsonElement? =
+        this?.get(key)?.takeIf { !it.isJsonNull && it.isJsonPrimitive }
+
+    private fun JsonObject?.string(key: String, fallback: String): String =
+        try {
+            primitive(key)?.asString ?: fallback
+        } catch (_: Exception) {
+            fallback
+        }
+
+    private fun JsonObject?.int(key: String, fallback: Int): Int =
+        try {
+            primitive(key)?.asInt ?: fallback
+        } catch (_: Exception) {
+            fallback
+        }
+
+    private fun JsonObject?.bool(key: String, fallback: Boolean): Boolean =
+        try {
+            primitive(key)?.asBoolean ?: fallback
+        } catch (_: Exception) {
+            fallback
+        }
+
+    private fun JsonObject?.positiveDoubleOrNull(key: String): Double? =
+        try {
+            primitive(key)?.asDouble?.takeIf { it.isFinite() && it > 0.0 }
+        } catch (_: Exception) {
+            null
+        }
+
+    private fun JsonObject?.stringList(key: String): List<String> {
+        val element = this?.get(key) ?: return emptyList()
+        if (!element.isJsonArray) return emptyList()
+        return element.asJsonArray.mapNotNull { entry ->
+            try {
+                entry.takeIf { !it.isJsonNull && it.isJsonPrimitive }?.asString
+            } catch (_: Exception) {
+                null
+            }
+        }
     }
 
     private fun <T> Gson.fromJsonList(root: JsonObject, key: String, type: Class<Array<T>>): List<T> {

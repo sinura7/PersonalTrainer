@@ -13,6 +13,7 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.HeatWindow
+import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
@@ -58,9 +59,12 @@ class PreferencesRepository(context: Context) {
     /**
      * What the coach emphasises, and what the user actually has to lift with.
      *
-     * Device-local and deliberately outside the backup document: these describe the gym you
-     * walk into, not your training history, and a restore from a phone that lived somewhere
-     * else should not silently tell you that you own a cable machine.
+     * These used to be deliberately outside the backup document, on the reasoning that they
+     * describe the gym you walk into rather than your training history. The guided setup
+     * settled the argument the other way: it is the setup questionnaire that writes both of
+     * them, so leaving them behind meant a restore either re-asked six questions the owner had
+     * already answered, or — once the "already answered" flag travelled — silently kept the
+     * app's defaults with no path back to the questions. They travel.
      */
     val coachPreferences: Flow<CoachPreferences> = safePreferences
         .map { prefs ->
@@ -206,14 +210,36 @@ class PreferencesRepository(context: Context) {
     /**
      * One atomic write for everything a restore carries, so a crash mid-way cannot leave the
      * restored data paired with half the old preferences.
+     *
+     * Every parameter is required and every one is written unconditionally. That is the point:
+     * a restore replaces state, and an optional parameter here would quietly mean "keep what
+     * this handset happened to have", which is how a restored phone ends up with the previous
+     * owner's rest timer. Callers decoding an older document pass the documented defaults
+     * rather than omitting the argument.
+     *
+     * @param bodyweightKg null is a real value — "never told us". Out-of-range numbers are
+     * dropped to null rather than clamped, because a stored 900 is corruption, not a claim.
+     * @param onboardingComplete false here really does send the next launch to the guided
+     * setup, so the caller — not this function — is responsible for not passing false to
+     * someone whose history says otherwise. See the call site in LocalBackupRepository.
+     * @param dismissedCollisionIds replaces rather than merges. A restore replaces the whole
+     * library, so decisions about the old library have nothing left to refer to.
      */
     suspend fun setRestoredPreferences(
         unit: WeightUnit,
         schedule: SchedulePreferences,
         rest: RestTimerPreferences,
+        coach: CoachPreferences,
+        heatWindow: HeatWindow,
+        bodyweightKg: Double?,
+        onboardingComplete: Boolean,
+        dismissedCollisionIds: Set<String>,
     ) {
         val cleanSchedule = schedule.sanitized()
         val cleanRest = rest.sanitized()
+        val cleanBodyweight = bodyweightKg?.takeIf {
+            it.isFinite() && it in OnboardingAnswers.MIN_BODYWEIGHT_KG..OnboardingAnswers.MAX_BODYWEIGHT_KG
+        }
         dataStore.edit { prefs ->
             prefs[WEIGHT_UNIT] = unit.storageKey
             prefs[TRAINING_DAYS] = cleanSchedule.trainingDaysPerWeek
@@ -222,6 +248,16 @@ class PreferencesRepository(context: Context) {
             prefs[REST_SOUND] = cleanRest.soundEnabled
             prefs[REST_VIBRATE] = cleanRest.vibrationEnabled
             prefs[REST_DEFAULT] = cleanRest.defaultRestSeconds
+            prefs[TRAINING_GOAL] = coach.goal.name
+            prefs[AVAILABLE_EQUIPMENT] = coach.availableEquipment
+            prefs[HEAT_WINDOW] = heatWindow.name
+            if (cleanBodyweight == null) {
+                prefs.remove(BODYWEIGHT_KG)
+            } else {
+                prefs[BODYWEIGHT_KG] = cleanBodyweight
+            }
+            prefs[ONBOARDING_COMPLETE] = onboardingComplete
+            prefs[DISMISSED_COLLISIONS] = dismissedCollisionIds
         }
     }
 
