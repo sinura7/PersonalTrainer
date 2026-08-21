@@ -6,6 +6,7 @@ import com.sinura.personaltrainer.data.backup.DriveRestClient
 import com.sinura.personaltrainer.data.backup.NetworkChecker
 import com.sinura.personaltrainer.data.local.TrainerDatabase
 import com.sinura.personaltrainer.data.repository.BackupRepository
+import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
 import com.sinura.personaltrainer.data.repository.LocalBackupRepository
 import com.sinura.personaltrainer.data.repository.PreferencesRepository
@@ -24,10 +25,17 @@ import com.sinura.personaltrainer.workout.WorkoutDraftCache
 class AppContainer(context: Context) {
     private val database: TrainerDatabase = TrainerDatabase.create(context)
 
+    /**
+     * One lock over every wholesale rewrite of the catalog. The startup seed and a restore both
+     * pass through here, so they queue instead of racing each other across the same tables.
+     */
+    val dbMaintenance: DbMaintenance = DbMaintenance(database)
+
     val exerciseRepository: ExerciseRepository = ExerciseRepository(
         exerciseDao = database.exerciseDao(),
         routineDao = database.routineDao(),
         workoutDao = database.workoutDao(),
+        catalogDao = database.catalogDao(),
     )
     val routineRepository: RoutineRepository = RoutineRepository(database.routineDao())
     val workoutRepository: WorkoutRepository = WorkoutRepository(database, database.workoutDao())
@@ -78,6 +86,7 @@ class AppContainer(context: Context) {
             safetySnapshotDir = java.io.File(context.filesDir, "safety-snapshots"),
         ),
         preferencesRepository = preferencesRepository,
+        dbMaintenance = dbMaintenance,
         driveAuthClient = DriveAuthClient(),
         driveRestClient = DriveRestClient(),
         networkChecker = NetworkChecker(context),

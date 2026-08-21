@@ -192,10 +192,19 @@ emulator lane as the truth check precisely so this substitution is legal.
 
 ## Things that will bite you
 
-**Database schema changes.** The database is version 1 with schema export on. Changing any
+**Database schema changes.** The database is version 2 with schema export on. Changing any
 `@Entity` means: bump `version`, write a `Migration`, and commit the new
 `app/schemas/…/<n>.json`. Never add `fallbackToDestructiveMigration` — it silently erases
 the training history this app exists to accumulate.
+
+> **`2.json` is not committed yet.** Room writes the exported schema during a real Gradle
+> build, and no build has run since the v2 entities landed. Until
+> `./gradlew :app:assembleDebug` on a machine with the Android SDK produces it and it is
+> committed, `Migration1To2Test` fails with a missing-schema error and the hand-written
+> `MIGRATION_1_2` SQL has not been diffed against Room's own expectation. That diff is
+> step 0 of `docs/gameplan/artifacts/phase-3-rehearsal.md` and is the gate on the migration,
+> not a formality: Room validates the live schema at open, and a mismatch as small as a
+> quoted default is a permanent crash loop on a phone with no destructive fallback.
 
 **The rest timer cannot be tested with the screen on.** Its whole job is firing while the
 phone sleeps. Verify with the screen off and the phone untouched; force Doze with

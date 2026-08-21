@@ -6,7 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
+import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
 import com.sinura.personaltrainer.domain.PersonalRecordKind
@@ -471,8 +473,10 @@ class ActiveWorkoutViewModel(
                 return@launch
             }
             try {
-                val created = container.exerciseRepository.createCustom(name, muscleGroup)
-                addExerciseInternal(created)
+                when (val result = container.exerciseRepository.createCustom(name, muscleGroup)) {
+                    is SaveExerciseResult.DuplicateName -> error.value = DUPLICATE_NAME_MESSAGE
+                    is SaveExerciseResult.Saved -> addExerciseInternal(result.exercise)
+                }
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "createAndAddExercise failed", thrown)
                 error.value = "Could not create that exercise. Try again."

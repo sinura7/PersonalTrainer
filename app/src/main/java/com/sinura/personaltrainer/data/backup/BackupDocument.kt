@@ -11,6 +11,13 @@ data class BackupDocument(
     val sessions: List<BackupSession>,
     val sessionExercises: List<BackupSessionExercise>,
     val setLogs: List<BackupSetLog>,
+    /**
+     * v2 additions. Defaulted to empty so a v1 file — which has neither array — decodes into a
+     * complete document rather than failing, and so every existing construction site keeps
+     * compiling. `decode` fills [exerciseMuscles] for a v1 document by deriving it.
+     */
+    val exerciseMuscles: List<BackupExerciseMuscle> = emptyList(),
+    val scheduleSlots: List<BackupScheduleSlot> = emptyList(),
 )
 
 data class BackupPreferences(
@@ -23,12 +30,43 @@ data class BackupPreferences(
     val defaultRestSeconds: Int = 90,
 )
 
+/**
+ * The four v2 fields are nullable even though the columns behind them are not.
+ *
+ * Gson does not run Kotlin constructors, so a JSON null lands in a non-null Kotlin field as
+ * null anyway and blows up at the first read — the type says one thing and the object holds
+ * another. Declaring them nullable makes that state expressible, and `decode` normalizes every
+ * one of them in a single step before anything else sees the document.
+ *
+ * `nameKey` is deliberately NOT in the document: it is derived from the name, and a stored copy
+ * is one more thing that can arrive stale. Restore recomputes it.
+ */
 data class BackupExercise(
     val id: String,
     val name: String,
     val muscleGroup: String,
     val notes: String,
     val isCustom: Boolean,
+    val equipment: String? = null,
+    val loadType: String? = null,
+    val movementKey: String? = null,
+    val imageKey: String? = null,
+)
+
+data class BackupExerciseMuscle(
+    val exerciseId: String,
+    val muscleKey: String,
+    val weight: Double,
+)
+
+data class BackupScheduleSlot(
+    val id: String,
+    val position: Int,
+    val routineId: String?,
+    val focusKind: String?,
+    val anchorDay: Int?,
+    val createdAt: Long,
+    val updatedAt: Long,
 )
 
 data class BackupRoutine(

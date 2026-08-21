@@ -6,19 +6,32 @@ import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
 import com.sinura.personaltrainer.data.local.relation.RoutineWithExercises
 import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
+import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.LoadType
+import com.sinura.personaltrainer.domain.MuscleCredit
+import com.sinura.personaltrainer.domain.MuscleNormalizer
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineExercise
 import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.WorkoutSession
 
-fun ExerciseEntity.toDomain(): Exercise = Exercise(
+/**
+ * [credits] is passed in rather than read here: the junction lives in its own table, and a
+ * mapper that queried for it would turn one catalog read into one query per row.
+ */
+fun ExerciseEntity.toDomain(credits: List<MuscleCredit> = emptyList()): Exercise = Exercise(
     id = id,
     name = name,
     muscleGroup = muscleGroup,
     notes = notes,
     isCustom = isCustom,
+    equipment = EquipmentType.fromStorage(equipment),
+    loadType = LoadType.fromStorage(loadType),
+    movementKey = movementKey,
+    imageKey = imageKey,
+    muscles = credits,
 )
 
 fun Exercise.toEntity(): ExerciseEntity = ExerciseEntity(
@@ -27,6 +40,12 @@ fun Exercise.toEntity(): ExerciseEntity = ExerciseEntity(
     muscleGroup = muscleGroup,
     notes = notes,
     isCustom = isCustom,
+    equipment = equipment.name,
+    loadType = loadType.name,
+    movementKey = movementKey,
+    imageKey = imageKey,
+    // One function computes every nameKey in the app. See MuscleNormalizer.nameKeyOf.
+    nameKey = MuscleNormalizer.nameKeyOf(name),
 )
 
 fun RoutineWithExercises.toDomain(): Routine = Routine(

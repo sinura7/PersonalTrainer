@@ -29,6 +29,16 @@ interface ExerciseDao {
     @Query("SELECT * FROM exercises WHERE id = :id")
     suspend fun getById(id: String): ExerciseEntity?
 
+    /**
+     * The duplicate-name check, and the seeder's collision detection, both run through here.
+     * The index behind it is plain, not unique — Room cannot declare the partial unique index
+     * this would want (built-ins only), and an index Room does not know about fails schema
+     * validation at open. So uniqueness is enforced above the database, and this is the query
+     * that enforces it.
+     */
+    @Query("SELECT * FROM exercises WHERE nameKey = :nameKey LIMIT 1")
+    suspend fun getByNameKey(nameKey: String): ExerciseEntity?
+
     /** For the detail screen, which must notice a rename or a deletion while it is open. */
     @Query("SELECT * FROM exercises WHERE id = :id")
     fun observeById(id: String): Flow<ExerciseEntity?>

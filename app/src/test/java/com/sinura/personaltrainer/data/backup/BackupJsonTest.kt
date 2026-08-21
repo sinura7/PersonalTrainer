@@ -9,7 +9,7 @@ class BackupJsonTest {
     @Test
     fun encodesVersionedHumanReadableJson() {
         val json = BackupJson.encode(sampleDocument())
-        assertTrue(json.contains("\"version\": 1"))
+        assertTrue(json.contains("\"version\": 2"))
         assertTrue(json.contains("\"app\": \"personal-trainer\""))
         assertTrue(json.contains("\"weightUnit\": \"lbs\""))
         assertTrue(json.contains("Barbell Back Squat"))
@@ -107,6 +107,8 @@ class BackupJsonTest {
             sessions = document.sessions.reversed(),
             sessionExercises = document.sessionExercises.reversed(),
             setLogs = document.setLogs.reversed(),
+            exerciseMuscles = document.exerciseMuscles.reversed(),
+            scheduleSlots = document.scheduleSlots.reversed(),
         )
         assertEquals(BackupJson.encode(document), BackupJson.encode(shuffled))
     }
@@ -118,6 +120,9 @@ class BackupJsonTest {
         sessions = document.sessions.sortedBy { it.id },
         sessionExercises = document.sessionExercises.sortedBy { it.id },
         setLogs = document.setLogs.sortedBy { it.id },
+        exerciseMuscles = document.exerciseMuscles
+            .sortedWith(compareBy({ it.exerciseId }, { it.muscleKey })),
+        scheduleSlots = document.scheduleSlots.sortedWith(compareBy({ it.position }, { it.id })),
     )
 
     @Test
@@ -160,8 +165,25 @@ class BackupJsonTest {
             exportedAt = "2026-08-18T16:45:00Z",
             preferences = BackupPreferences(weightUnit = "lbs"),
             exercises = listOf(
-                BackupExercise(exerciseId, "Barbell Back Squat", "Quads", "", false),
-                BackupExercise(otherExerciseId, "Bench Press", "Chest", "paused", true),
+                BackupExercise(
+                    id = exerciseId,
+                    name = "Barbell Back Squat",
+                    muscleGroup = "Quads",
+                    notes = "",
+                    isCustom = false,
+                    equipment = "BARBELL",
+                    loadType = "EXTERNAL",
+                    movementKey = "squat",
+                ),
+                BackupExercise(
+                    id = otherExerciseId,
+                    name = "Bench Press",
+                    muscleGroup = "Chest",
+                    notes = "paused",
+                    isCustom = true,
+                    equipment = "BARBELL",
+                    loadType = "EXTERNAL",
+                ),
             ),
             routines = listOf(
                 BackupRoutine("r1", "Push", "", 1L, 2L),
@@ -178,6 +200,15 @@ class BackupJsonTest {
             setLogs = listOf(
                 BackupSetLog("set1", "s1", exerciseId, 1, 80.0, 5, 8, false, 15L),
                 BackupSetLog("set2", "s1", exerciseId, 2, 82.5, 4, 9, false, 16L),
+            ),
+            exerciseMuscles = listOf(
+                BackupExerciseMuscle(exerciseId, "quadriceps", 1.0),
+                BackupExerciseMuscle(exerciseId, "glutes", 0.5),
+                BackupExerciseMuscle(otherExerciseId, "chest", 1.0),
+            ),
+            scheduleSlots = listOf(
+                BackupScheduleSlot("slot1", 0, "r1", null, 0, 1_700_000_000_000L, 1_700_000_000_000L),
+                BackupScheduleSlot("slot2", 1, null, "pull", null, 1_700_000_000_000L, 1_700_000_000_000L),
             ),
         )
     }

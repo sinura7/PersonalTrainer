@@ -1,11 +1,24 @@
 package com.sinura.personaltrainer.domain
 
+/**
+ * A lift.
+ *
+ * [muscleGroup] is display text and stays free-form — the library filter, the planner and every
+ * v1 backup read it. [muscles] is what the body map reads: explicit junction credits, one
+ * primary at 1.0 and its secondaries. Every new field is defaulted so the dozens of existing
+ * construction sites that only care about a name keep compiling and keep meaning the same thing.
+ */
 data class Exercise(
     val id: String,
     val name: String,
     val muscleGroup: String,
     val notes: String,
     val isCustom: Boolean,
+    val equipment: EquipmentType = EquipmentType.OTHER,
+    val loadType: LoadType = LoadType.EXTERNAL,
+    val movementKey: String? = null,
+    val imageKey: String? = null,
+    val muscles: List<MuscleCredit> = emptyList(),
 )
 
 data class RoutineExercise(

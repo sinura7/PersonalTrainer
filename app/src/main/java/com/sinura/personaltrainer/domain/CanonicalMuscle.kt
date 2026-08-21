@@ -151,6 +151,70 @@ object MuscleNormalizer {
         return primaryOf(exerciseGroup) == primaryOf(filter)
     }
 
+    /**
+     * The one function that turns an exercise name into its `nameKey`.
+     *
+     * Public and delegating rather than re-implemented at each call site: four places compute a
+     * nameKey — the seeder, the mappers, the backup insert path, and the duplicate-name check —
+     * and a second implementation of "trim, lowercase, collapse whitespace" is exactly how the
+     * `nameKey` index and the duplicate check drift apart. Punctuation is deliberately kept, so
+     * "Push-Up" keys as `push-up` and stays distinct from a lift someone named "Push Up".
+     *
+     * The migration's SQL backfill `LOWER(TRIM(name))` is the one deliberate exception — it runs
+     * before any Kotlin can — and the first reconciliation pass rewrites every row through here.
+     */
+    fun nameKeyOf(name: String): String = normalizeKey(name)
+
+    /**
+     * What a free-text muscle group is worth, as junction credits.
+     *
+     * This is the v1 model expressed in the v2 shape, and it is the fallback for everything the
+     * catalog has no explicit junction for: a custom exercise the user typed, or a lift embedded
+     * in an old session. Primary takes 1.0, each derived secondary takes the same flat
+     * [MuscleLoadCalculator.SECONDARY_VOLUME_WEIGHT] the body map has always used — so an
+     * exercise with no junction rows heats exactly as it did before v2.
+     *
+     * An unmappable group derives a single `other` credit, preserving today's off-map behaviour
+     * rather than inventing a muscle for it.
+     */
+    fun deriveCredits(muscleGroup: String): List<MuscleCredit> {
+        val mapping = normalize(muscleGroup)
+        if (mapping.primary == CanonicalMuscle.OTHER) {
+            return listOf(MuscleCredit(muscleKey = keyOf(CanonicalMuscle.OTHER), weight = 1.0))
+        }
+        return buildList {
+            add(MuscleCredit(muscleKey = keyOf(mapping.primary), weight = 1.0))
+            mapping.secondaries.forEach { muscle ->
+                add(
+                    MuscleCredit(
+                        muscleKey = keyOf(muscle),
+                        weight = MuscleLoadCalculator.SECONDARY_VOLUME_WEIGHT,
+                    ),
+                )
+            }
+        }
+    }
+
+    /** The storage spelling of a canonical muscle. Exactly `name.lowercase()`, always. */
+    fun keyOf(muscle: CanonicalMuscle): String = muscle.name.lowercase()
+
+    /**
+     * Resolves a stored `muscleKey` back to its canonical muscle, or null when nothing in the
+     * alias index can place it.
+     *
+     * Underscores become spaces before the lookup so a future sub-muscle key like `front_delt`
+     * resolves through its parent's aliases; that is the contract every new key has to satisfy,
+     * and the catalog invariant test makes an unmapped key a build failure rather than a muscle
+     * that silently stops receiving credit.
+     */
+    fun resolveKey(muscleKey: String): CanonicalMuscle? {
+        val candidate = muscleKey.replace('_', ' ')
+        val mapping = normalize(candidate)
+        if (mapping.primary != CanonicalMuscle.OTHER) return mapping.primary
+        // "other" is a legitimate key, not a failed lookup — distinguish the two.
+        return CanonicalMuscle.OTHER.takeIf { normalizeKey(candidate) in it.aliases }
+    }
+
     private fun fuzzyMatch(key: String): CanonicalMuscle? {
         aliasIndex.entries.firstOrNull { (alias, _) ->
             key.contains(alias) || alias.contains(key)

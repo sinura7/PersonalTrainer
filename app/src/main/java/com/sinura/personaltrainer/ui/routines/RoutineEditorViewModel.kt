@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.data.repository.SaveExerciseResult
+import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.EditorPhase
@@ -305,8 +307,11 @@ class RoutineEditorViewModel(
                 return@launch
             }
             try {
-                val created = container.exerciseRepository.createCustom(customName, muscleGroup)
-                addExercise(created, targetSets, targetReps, targetWeightKg, restSeconds)
+                when (val result = container.exerciseRepository.createCustom(customName, muscleGroup)) {
+                    is SaveExerciseResult.DuplicateName -> error.value = DUPLICATE_NAME_MESSAGE
+                    is SaveExerciseResult.Saved ->
+                        addExercise(result.exercise, targetSets, targetReps, targetWeightKg, restSeconds)
+                }
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "createAndAddExercise failed", thrown)
                 error.value = "Could not create that exercise. Try again."

@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.data.repository.DeleteExerciseResult
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseUsage
@@ -144,15 +145,29 @@ class ExerciseLibraryViewModel(application: Application) : AppViewModel(applicat
         }
         viewModelScope.launch {
             try {
-                if (draft.id == null) {
+                val result = if (draft.id == null) {
                     container.exerciseRepository.createCustom(name, draft.muscleGroup, draft.notes)
-                    message.value = "Created $name."
                 } else {
-                    container.exerciseRepository.updateCustom(draft.id, name, draft.muscleGroup, draft.notes)
-                    message.value = "Updated $name."
+                    container.exerciseRepository.updateCustom(
+                        id = draft.id,
+                        name = name,
+                        muscleGroup = draft.muscleGroup,
+                        notes = draft.notes,
+                    )
                 }
-                editor.value = null
-                error.value = null
+                when (result) {
+                    is SaveExerciseResult.DuplicateName -> {
+                        // The editor stays open on the name that was refused, so the fix is one
+                        // edit away rather than a re-entry of the whole form.
+                        error.value = DUPLICATE_NAME_MESSAGE
+                        return@launch
+                    }
+                    else -> {
+                        message.value = if (draft.id == null) "Created $name." else "Updated $name."
+                        editor.value = null
+                        error.value = null
+                    }
+                }
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "saveEditor failed", thrown)
                 error.value = "Could not save that exercise. Try again."
@@ -267,3 +282,6 @@ class ExerciseLibraryViewModel(application: Application) : AppViewModel(applicat
         val addToRoutine: Exercise?,
     )
 }
+
+/** One string, three screens: naming is refused the same way wherever it happens. */
+internal const val DUPLICATE_NAME_MESSAGE = "That name is already in your library"

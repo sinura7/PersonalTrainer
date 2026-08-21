@@ -83,7 +83,10 @@ USE_RE = re.compile(r"(?<![.\w@$])([A-Za-z_]\w*)")
 #   catch  the try/catch keyword vs kotlinx.coroutines.flow.catch
 #   items  LazyListScope.items, in scope inside a LazyColumn block
 #   size   Collection.size and Modifier.size, both reached through a receiver
-ALWAYS_IN_SCOPE = {"catch", "items", "size"}
+# `map` is the same shape of ambiguity: `kotlinx.coroutines.flow.map` needs an import and
+# `List.map` does not, and most files that use one also happen to import the other — so the
+# dictionary learns the name and then flags the first file that only ever calls the stdlib one.
+ALWAYS_IN_SCOPE = {"catch", "items", "size", "map"}
 
 # Kotlin keywords the usage regex would otherwise treat as identifiers.
 KEYWORDS = {

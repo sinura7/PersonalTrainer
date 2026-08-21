@@ -3,21 +3,29 @@ package com.sinura.personaltrainer.data.repository
 import androidx.room.withTransaction
 import com.sinura.personaltrainer.data.backup.BackupDocument
 import com.sinura.personaltrainer.data.backup.BackupExercise
+import com.sinura.personaltrainer.data.backup.BackupExerciseMuscle
 import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.BackupPreferences
 import com.sinura.personaltrainer.data.backup.BackupRoutine
 import com.sinura.personaltrainer.data.backup.BackupRoutineExercise
+import com.sinura.personaltrainer.data.backup.BackupScheduleSlot
 import com.sinura.personaltrainer.data.backup.BackupSession
 import com.sinura.personaltrainer.data.backup.BackupSessionExercise
 import com.sinura.personaltrainer.data.backup.BackupSetLog
 import com.sinura.personaltrainer.data.local.TrainerDatabase
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
+import com.sinura.personaltrainer.data.local.entity.ExerciseMuscleEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
+import com.sinura.personaltrainer.data.local.entity.ScheduleSlotEntity
+import com.sinura.personaltrainer.data.local.entity.SeedMetaEntity
 import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
+import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.LoadType
+import com.sinura.personaltrainer.domain.MuscleNormalizer
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
@@ -71,6 +79,8 @@ class LocalBackupRepository(
                     .filter { it.sessionId in finishedIds },
                 sets = database.workoutDao().getAllSets()
                     .filter { it.sessionId in finishedIds },
+                credits = database.catalogDao().getAllCredits(),
+                scheduleSlots = database.scheduleDao().getAll(),
             )
         }
         val exercises = snapshot.exercises
@@ -96,7 +106,18 @@ class LocalBackupRepository(
                 defaultRestSeconds = rest.defaultRestSeconds,
             ),
             exercises = exercises.map {
-                BackupExercise(it.id, it.name, it.muscleGroup, it.notes, it.isCustom)
+                BackupExercise(
+                    id = it.id,
+                    name = it.name,
+                    muscleGroup = it.muscleGroup,
+                    notes = it.notes,
+                    isCustom = it.isCustom,
+                    equipment = it.equipment,
+                    loadType = it.loadType,
+                    movementKey = it.movementKey,
+                    imageKey = it.imageKey,
+                    // nameKey is deliberately absent: it is derived, and restore recomputes it.
+                )
             },
             routines = routines.map {
                 BackupRoutine(it.id, it.name, it.notes, it.createdAt, it.updatedAt)
@@ -150,6 +171,24 @@ class LocalBackupRepository(
                     completedAt = it.completedAt,
                 )
             },
+            exerciseMuscles = snapshot.credits.map {
+                BackupExerciseMuscle(
+                    exerciseId = it.exerciseId,
+                    muscleKey = it.muscleKey,
+                    weight = it.weight,
+                )
+            },
+            scheduleSlots = snapshot.scheduleSlots.map {
+                BackupScheduleSlot(
+                    id = it.id,
+                    position = it.position,
+                    routineId = it.routineId,
+                    focusKind = it.focusKind,
+                    anchorDay = it.anchorDay,
+                    createdAt = it.createdAt,
+                    updatedAt = it.updatedAt,
+                )
+            },
         )
     }
 
@@ -157,7 +196,10 @@ class LocalBackupRepository(
     suspend fun hasLocalData(): Boolean = database.withTransaction {
         database.exerciseDao().getAll().any { it.isCustom } ||
             database.routineDao().getAllRoutines().isNotEmpty() ||
-            database.workoutDao().getAllSessions().isNotEmpty()
+            database.workoutDao().getAllSessions().isNotEmpty() ||
+            // A pinned week is authored state too. Without this, someone whose only work so far
+            // is a plan looks empty, and an empty-backup restore would wipe it without asking.
+            database.scheduleDao().count() > 0
     }
 
     suspend fun inProgressSessionId(): String? =
@@ -180,17 +222,33 @@ class LocalBackupRepository(
         // Stop anything holding a session id that is about to stop existing.
         onBeforeRestore()
         database.withTransaction {
+            // Children before parents, all the way down. schedule_slots hangs off routines and
+            // exercise_muscles off exercises, so both have to go before the row they reference.
             database.workoutDao().deleteAllSets()
             database.workoutDao().deleteAllSessionExercises()
             database.workoutDao().deleteAllSessions()
+            database.scheduleDao().deleteAll()
             database.routineDao().deleteAllRoutineExercises()
             database.routineDao().deleteAllRoutines()
+            database.catalogDao().deleteAllCredits()
             database.exerciseDao().deleteAll()
 
             if (document.exercises.isNotEmpty()) {
                 database.exerciseDao().replaceAll(
                     document.exercises.map {
-                        ExerciseEntity(it.id, it.name, it.muscleGroup, it.notes, it.isCustom)
+                        ExerciseEntity(
+                            id = it.id,
+                            name = it.name,
+                            muscleGroup = it.muscleGroup,
+                            notes = it.notes,
+                            isCustom = it.isCustom,
+                            equipment = it.equipment ?: EquipmentType.OTHER.name,
+                            loadType = it.loadType ?: LoadType.EXTERNAL.name,
+                            movementKey = it.movementKey,
+                            imageKey = it.imageKey,
+                            // Recomputed, never read from the file: one function owns nameKey.
+                            nameKey = MuscleNormalizer.nameKeyOf(it.name),
+                        )
                     },
                 )
             }
@@ -213,6 +271,21 @@ class LocalBackupRepository(
                             targetReps = it.targetReps,
                             targetWeightKg = it.targetWeightKg,
                             restSeconds = it.restSeconds,
+                        )
+                    },
+                )
+            }
+            if (document.scheduleSlots.isNotEmpty()) {
+                database.scheduleDao().replaceAll(
+                    document.scheduleSlots.map {
+                        ScheduleSlotEntity(
+                            id = it.id,
+                            position = it.position,
+                            routineId = it.routineId,
+                            focusKind = it.focusKind,
+                            anchorDay = it.anchorDay,
+                            createdAt = it.createdAt,
+                            updatedAt = it.updatedAt,
                         )
                     },
                 )
@@ -266,6 +339,23 @@ class LocalBackupRepository(
                     },
                 )
             }
+            if (document.exerciseMuscles.isNotEmpty()) {
+                database.catalogDao().insertCredits(
+                    document.exerciseMuscles.map {
+                        ExerciseMuscleEntity(
+                            exerciseId = it.exerciseId,
+                            muscleKey = it.muscleKey,
+                            weight = it.weight,
+                        )
+                    },
+                )
+            }
+            // seed_meta is never trusted across a restore: whatever catalog version the backup
+            // was taken at says nothing about the catalog this build ships. Zero forces the
+            // reconciliation pass that every restore ends with.
+            database.catalogDao().upsertSeedMeta(
+                SeedMetaEntity(id = 1, catalogVersion = 0, pendingCollisions = "[]"),
+            )
         }
         // The data is safe at this point. Preferences are a single atomic write, and a
         // failure here is reported as a warning rather than failing the whole restore —
@@ -322,6 +412,8 @@ class LocalBackupRepository(
         val sessions: List<WorkoutSessionEntity>,
         val sessionExercises: List<SessionExerciseEntity>,
         val sets: List<SetLogEntity>,
+        val credits: List<ExerciseMuscleEntity>,
+        val scheduleSlots: List<ScheduleSlotEntity>,
     )
 
     private companion object {

@@ -19,6 +19,7 @@ import kotlinx.coroutines.withContext
 class BackupRepository(
     private val localBackupRepository: LocalBackupRepository,
     private val preferencesRepository: PreferencesRepository,
+    private val dbMaintenance: DbMaintenance,
     private val driveAuthClient: DriveAuthClient,
     private val driveRestClient: DriveRestClient,
     private val networkChecker: NetworkChecker,
@@ -125,7 +126,18 @@ class BackupRepository(
         }
         val document = BackupJson.decode(json)
         val validated = validateOrThrow(document, allowEmptyDestructiveRestore)
-        val outcome = localBackupRepository.replaceWith(document)
+        // Decode, validate and wipe are one unit against the catalog: the startup seed pass is
+        // launched fire-and-forget from Application.onCreate and would otherwise be free to
+        // upsert into the middle of the delete pass.
+        val outcome = dbMaintenance.withMaintenanceLock {
+            val result = localBackupRepository.replaceWith(document)
+            // Every restore ends here, v1 file or v2. A restored database carries whatever
+            // catalog the backup was taken from — an old build's 37, a phone that never had
+            // some of them — so the catalog is brought back in line with what THIS build knows
+            // before anyone reads it.
+            dbMaintenance.reconcileCatalogLocked()
+            result
+        }
         RestoreResult(
             sourceName = sourceName,
             summary = validated,

@@ -1,5 +1,8 @@
 package com.sinura.personaltrainer.data.backup
 
+import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.LoadType
+
 /** Counts shown to the user before they agree to overwrite everything. */
 data class BackupSummary(
     val exercises: Int,
@@ -38,6 +41,9 @@ object BackupValidator {
     /** Sanity bound: rules out 0/garbage timestamps without guessing the user's clock. */
     private const val MIN_PLAUSIBLE_EPOCH_MS = 946_684_800_000L // 2000-01-01T00:00:00Z
 
+    private val EQUIPMENT_STORAGE: Set<String> = EquipmentType.entries.map { it.name }.toSet()
+    private val LOAD_TYPE_STORAGE: Set<String> = LoadType.entries.map { it.name }.toSet()
+
     private const val GENERIC_CORRUPT =
         "This backup file is damaged or incomplete, so nothing was changed."
 
@@ -61,6 +67,15 @@ object BackupValidator {
             }
             if (!exerciseIds.add(exercise.id)) {
                 return invalid("two exercises share the id \"${exercise.id}\"")
+            }
+            // Normalization in decode() should have filled both, so a null here means the
+            // document did not come through decode() — refuse rather than silently default,
+            // because silently defaulting is how a corrupt file passes as a good one.
+            if (exercise.equipment !in EQUIPMENT_STORAGE) {
+                return invalid("an exercise has an unknown equipment type")
+            }
+            if (exercise.loadType !in LOAD_TYPE_STORAGE) {
+                return invalid("an exercise has an unknown load type")
             }
         }
 
@@ -155,6 +170,48 @@ object BackupValidator {
             if (rpe != null && rpe !in 1..10) return invalid("a logged set has an RPE outside 1–10")
             if (set.completedAt < MIN_PLAUSIBLE_EPOCH_MS) {
                 return invalid("a logged set has an impossible timestamp")
+            }
+        }
+
+        val creditPairs = HashSet<String>(document.exerciseMuscles.size)
+        document.exerciseMuscles.forEach { credit ->
+            if (isBlank(credit.muscleKey)) {
+                return invalid("a muscle credit is missing its muscle")
+            }
+            if (credit.exerciseId !in exerciseIds) {
+                return invalid("a muscle credit belongs to an exercise that is not in this file")
+            }
+            if (!creditPairs.add("${credit.exerciseId}|${credit.muscleKey}")) {
+                return invalid("an exercise credits the same muscle twice")
+            }
+            val weight = credit.weight
+            if (weight.isNaN() || weight.isInfinite() || weight <= 0.0 || weight > 1.0) {
+                return invalid("a muscle credit has a weight outside 0–1")
+            }
+        }
+
+        val slotIds = HashSet<String>(document.scheduleSlots.size)
+        document.scheduleSlots.forEach { slot ->
+            if (isBlank(slot.id)) return invalid("a schedule slot is missing its id")
+            if (!slotIds.add(slot.id)) {
+                return invalid("two schedule slots share the id \"${slot.id}\"")
+            }
+            if (slot.position < 0) return invalid("a schedule slot has a negative position")
+            val anchorDay = slot.anchorDay
+            if (anchorDay != null && anchorDay !in 0..6) {
+                return invalid("a schedule slot anchors to a day that does not exist")
+            }
+            val routineId = slot.routineId
+            if (routineId != null && routineId !in routineIds) {
+                return invalid("a schedule slot points at a routine that is not in this file")
+            }
+            // A slot that is neither a routine nor a focus is not "rest" — rest is the absence
+            // of a slot. A row like this can only be corruption.
+            if (routineId == null && isBlank(slot.focusKind)) {
+                return invalid("a schedule slot has neither a routine nor a focus")
+            }
+            if (slot.createdAt < MIN_PLAUSIBLE_EPOCH_MS || slot.updatedAt < MIN_PLAUSIBLE_EPOCH_MS) {
+                return invalid("a schedule slot has an impossible timestamp")
             }
         }
 

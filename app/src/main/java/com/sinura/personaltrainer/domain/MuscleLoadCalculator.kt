@@ -33,24 +33,20 @@ object MuscleLoadCalculator {
             session.sets.filterNot { it.isWarmup }.forEach { set ->
                 anyWorkingSets = true
                 val trainedAt = trainedAtMs(session, set)
-                val mapping = mappingFor(set, session, exerciseCatalog)
+                val credits = creditsFor(set, session, exerciseCatalog)
                 val volume = setVolumeKg(set.weightKg, set.reps)
                 val inWindow = trainedAt >= windowStart && trainedAt <= nowMs
 
-                mapping.primary.let { muscle ->
-                    acc.getValue(muscle).recordLifetime(trainedAt)
-                }
-                mapping.secondaries.forEach { muscle ->
+                credits.forEach { (muscle, _) ->
                     acc.getValue(muscle).recordLifetime(trainedAt)
                 }
 
                 if (inWindow) {
                     windowWorkingSets = true
-                    acc.getValue(mapping.primary).recordWindow(session.id, volume, set)
-                    mapping.secondaries.forEach { muscle ->
+                    credits.forEach { (muscle, weight) ->
                         acc.getValue(muscle).recordWindow(
                             sessionId = session.id,
-                            volumeKg = volume * SECONDARY_VOLUME_WEIGHT,
+                            volumeKg = volume * weight,
                             set = set,
                         )
                     }
@@ -96,15 +92,75 @@ object MuscleLoadCalculator {
         return ChronoUnit.DAYS.between(last, now).toInt().coerceAtLeast(0)
     }
 
-    private fun mappingFor(
+    /**
+     * What one set is worth, per muscle.
+     *
+     * The order is catalog-first, and that is a deliberate reversal of v1. v1 read the muscle
+     * group embedded in the session row before it read the catalog, so that an exercise renamed
+     * or reclassified later would not retroactively rewrite what an old session meant. With a
+     * junction table that reasoning inverts: the catalog now holds a real per-muscle split that
+     * the session row cannot express at all, and the whole point of shipping it is that old
+     * history is re-scored honestly — a deadlift logged last year credited the back fully and
+     * the glutes at 0.4, which is not what a deadlift does.
+     *
+     * Each step down is a fallback for something the step above could not answer:
+     *
+     * 1. Catalog junction — the real answer, when the lift is in the library.
+     * 2. Embedded junction — a session carrying its own credits (a restored backup, mid-restore).
+     * 3. Embedded muscleGroup, derived — the v1 model, for a lift no longer in the library.
+     * 4. Catalog muscleGroup, derived — the v1 model, from the catalog row.
+     * 5. OTHER at full weight — off the body map, exactly as before.
+     *
+     * Step 3 is also what keeps the Body tab honest in the window between the migration
+     * finishing and the first seed pass building the junction: no credits yet, same numbers as
+     * yesterday.
+     */
+    private fun creditsFor(
         set: SetLog,
         session: WorkoutSession,
         catalog: Map<String, Exercise>,
-    ): MuscleMapping {
-        val raw = session.exercises.firstOrNull { it.exercise.id == set.exerciseId }?.exercise?.muscleGroup
-            ?: catalog[set.exerciseId]?.muscleGroup
+    ): List<Pair<CanonicalMuscle, Double>> {
+        val embedded = session.exercises.firstOrNull { it.exercise.id == set.exerciseId }?.exercise
+        val fromCatalog = catalog[set.exerciseId]
+
+        resolveCredits(fromCatalog?.muscles, fromCatalog?.muscleGroup ?: embedded?.muscleGroup)
+            ?.let { return it }
+        resolveCredits(embedded?.muscles, embedded?.muscleGroup)?.let { return it }
+
+        val fallbackGroup = embedded?.muscleGroup?.takeIf { it.isNotBlank() }
+            ?: fromCatalog?.muscleGroup
             ?: ""
-        return MuscleNormalizer.normalize(raw)
+        val derived = MuscleNormalizer.deriveCredits(fallbackGroup)
+        return derived.toPairs(fallbackGroup).ifEmpty {
+            listOf(CanonicalMuscle.OTHER to 1.0)
+        }
+    }
+
+    private fun resolveCredits(
+        credits: List<MuscleCredit>?,
+        muscleGroupForFallback: String?,
+    ): List<Pair<CanonicalMuscle, Double>>? {
+        if (credits.isNullOrEmpty()) return null
+        return credits.toPairs(muscleGroupForFallback).takeIf { it.isNotEmpty() }
+    }
+
+    /**
+     * Resolves stored muscle keys to canonical muscles, merging duplicates.
+     *
+     * A key the alias index cannot place falls back to the exercise's own muscle group rather
+     * than to OTHER: a lift whose credits are unreadable is still a lift that trained something,
+     * and dropping it off the body map is a worse answer than approximating it.
+     */
+    private fun List<MuscleCredit>.toPairs(
+        muscleGroupForFallback: String?,
+    ): List<Pair<CanonicalMuscle, Double>> {
+        val merged = LinkedHashMap<CanonicalMuscle, Double>()
+        forEach { credit ->
+            val muscle = MuscleNormalizer.resolveKey(credit.muscleKey)
+                ?: MuscleNormalizer.primaryOf(muscleGroupForFallback)
+            merged[muscle] = (merged[muscle] ?: 0.0) + credit.weight
+        }
+        return merged.map { (muscle, weight) -> muscle to weight }
     }
 
     private fun trainedAtMs(session: WorkoutSession, set: SetLog): Long {

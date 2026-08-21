@@ -177,7 +177,7 @@ Carried forward deliberately, with the phase that will address them.
 | Planner assigns focus to days already in the past | 4 |
 | `arrangeKinds` can still produce back-to-back same-family days | 4 |
 | Toolchain ~20 months stale; release unminified | later (platform) |
-| Exercise imagery and the equipment field it needs | 3 (field) / 7 (catalog) / 8 (imagery) |
+| Exercise imagery and the equipment field it needs | ~~3 (field, done 21 Aug)~~ / 7 (catalog) / 8 (imagery) |
 | Rest-timer sound design; plate calculator; font-scale-2.0 pass | later (platform) |
 | No scheduled auto-backup (manual + prompted only) | later (platform) |
 

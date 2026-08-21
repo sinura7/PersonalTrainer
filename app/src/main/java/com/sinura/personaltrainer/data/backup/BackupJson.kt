@@ -4,12 +4,15 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.LoadType
+import com.sinura.personaltrainer.domain.MuscleNormalizer
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 object BackupJson {
-    const val CURRENT_VERSION = 1
+    const val CURRENT_VERSION = 2
     const val APP_ID = "personal-trainer"
     const val FOLDER_NAME = "PersonalTrainer Backups"
     const val FILE_PREFIX = "personal-trainer-backup-"
@@ -44,6 +47,12 @@ object BackupJson {
             sessions = document.sessions.sortedBy { it.id },
             sessionExercises = document.sessionExercises.sortedBy { it.id },
             setLogs = document.setLogs.sortedBy { it.id },
+            // Sorted so two exports of the same database are byte-identical: a diffable backup
+            // is how you find out what actually changed between them.
+            exerciseMuscles = document.exerciseMuscles
+                .sortedWith(compareBy({ it.exerciseId }, { it.muscleKey })),
+            scheduleSlots = document.scheduleSlots
+                .sortedWith(compareBy({ it.position }, { it.id })),
         )
         return gsonPretty.toJson(sorted) + "\n"
     }
@@ -107,7 +116,50 @@ object BackupJson {
             sessions = gsonPretty.fromJsonList(root, "sessions", Array<BackupSession>::class.java),
             sessionExercises = gsonPretty.fromJsonList(root, "sessionExercises", Array<BackupSessionExercise>::class.java),
             setLogs = gsonPretty.fromJsonList(root, "setLogs", Array<BackupSetLog>::class.java),
-        )
+            exerciseMuscles = gsonPretty.fromJsonList(root, "exerciseMuscles", Array<BackupExerciseMuscle>::class.java),
+            scheduleSlots = gsonPretty.fromJsonList(root, "scheduleSlots", Array<BackupScheduleSlot>::class.java),
+        ).normalized()
+    }
+
+    /**
+     * Makes every accepted document v2-shaped, whatever version it arrived as.
+     *
+     * One place, run once, immediately after parsing — so nothing downstream ever has to ask
+     * "which version is this?" again. Two things happen here:
+     *
+     * Nulls become defaults. Gson bypasses Kotlin constructors, so an absent or explicitly null
+     * `equipment` reaches a non-null field as null; the fields are declared nullable to make
+     * that expressible and are collapsed here.
+     *
+     * A v1 document gains its junction. v1 knew only a muscle-group string per exercise, so the
+     * credits are derived from it exactly the way the body map used to derive its secondaries —
+     * primary 1.0, each secondary at the flat 0.4. That is not new information invented during a
+     * restore; it is the v1 model written down in the v2 shape, so restoring an old backup gives
+     * the same heat picture the old app gave.
+     */
+    private fun BackupDocument.normalized(): BackupDocument {
+        val exercises = exercises.map { exercise ->
+            exercise.copy(
+                equipment = exercise.equipment?.takeIf { it.isNotBlank() }
+                    ?: EquipmentType.OTHER.name,
+                loadType = exercise.loadType?.takeIf { it.isNotBlank() }
+                    ?: LoadType.EXTERNAL.name,
+            )
+        }
+        val credits = if (version == 1 || exerciseMuscles.isEmpty() && version < CURRENT_VERSION) {
+            exercises.flatMap { exercise ->
+                MuscleNormalizer.deriveCredits(exercise.muscleGroup).map { credit ->
+                    BackupExerciseMuscle(
+                        exerciseId = exercise.id,
+                        muscleKey = credit.muscleKey,
+                        weight = credit.weight,
+                    )
+                }
+            }
+        } else {
+            exerciseMuscles
+        }
+        return copy(exercises = exercises, exerciseMuscles = credits)
     }
 
     private fun parsePreferences(root: JsonObject): BackupPreferences {
