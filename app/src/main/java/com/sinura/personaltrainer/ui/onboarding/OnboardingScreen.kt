@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -79,64 +80,84 @@ fun OnboardingScreen(
         if (finished) onFinished()
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = Metrics.gutter),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space4),
-    ) {
-        OnboardingHeader(
-            state = state,
-            onBack = { if (!viewModel.back()) onFinished() },
-        )
-        state.error?.let { GymErrorBanner(it) }
-
-        when (state.step) {
-            OnboardingStep.FORK -> ForkStep(
-                onGuided = viewModel::beginGuided,
-                onOwn = {
-                    viewModel.skip()
-                    onBuildMyOwn()
-                },
-            )
-            OnboardingStep.EXPERIENCE -> ChoiceStep(
-                title = "How much lifting have you done?",
-                blurb = "This sets how much work a session carries, and how fast the weight climbs.",
-                options = TrainingAge.entries.map { Choice(it.displayName, it.blurb, it == state.answers.trainingAge) { viewModel.setExperience(it) } },
-            )
-            OnboardingStep.DAYS_PER_WEEK -> DaysPerWeekStep(
-                selected = state.answers.daysPerWeek,
-                onSelect = viewModel::setDaysPerWeek,
-                onNext = viewModel::next,
-            )
-            OnboardingStep.WHICH_DAYS -> WhichDaysStep(
-                answers = state.answers,
-                onToggle = viewModel::toggleDay,
-                onNext = viewModel::next,
-            )
-            OnboardingStep.PLACE -> ChoiceStep(
-                title = "Where will you train?",
-                blurb = "Only lifts you can actually do will be suggested — everywhere in the app.",
-                options = TrainingPlace.entries.map { Choice(it.displayName, it.blurb, it == state.answers.place) { viewModel.setPlace(it) } },
-            )
-            OnboardingStep.GOAL -> ChoiceStep(
-                title = "What are you training for?",
-                blurb = "Changes what the coach mentions first. You can change it any time.",
-                options = TrainingGoal.entries.map { Choice(it.displayName, it.blurb, it == state.answers.goal) { viewModel.setGoal(it) } },
-            )
-            OnboardingStep.BODYWEIGHT -> BodyweightStep(
-                answers = state.answers,
-                onSet = viewModel::setBodyweight,
-                onNext = viewModel::next,
-            )
-            OnboardingStep.PREVIEW -> PreviewStep(
+    // Its own Scaffold, because setup is composed OUTSIDE the app's nav Scaffold — it owns the
+    // whole screen, with no tabs and no live bar. Without one nothing handles the status-bar
+    // inset and the first thing a new install shows is a header under the clock.
+    Scaffold { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = Metrics.gutter),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space4),
+        ) {
+            OnboardingHeader(
                 state = state,
-                onApply = viewModel::applyPlan,
-                onOwn = {
-                    viewModel.skip()
-                    onBuildMyOwn()
-                },
+                onBack = { if (!viewModel.back()) onFinished() },
             )
+            state.error?.let { GymErrorBanner(it) }
+
+            when (state.step) {
+                OnboardingStep.FORK -> ForkStep(
+                    onGuided = viewModel::beginGuided,
+                    onOwn = {
+                        viewModel.skip()
+                        onBuildMyOwn()
+                    },
+                )
+                OnboardingStep.EXPERIENCE -> ChoiceStep(
+                    title = "How much lifting have you done?",
+                    blurb = "This sets how much work a session carries, and how fast the weight climbs.",
+                    // Named, not `it`: the trailing lambda is the Choice's onClick, which takes no
+                    // parameter, so an inner `it` refers to nothing at all.
+                    options = TrainingAge.entries.map { age ->
+                        Choice(age.displayName, age.blurb, age == state.answers.trainingAge) {
+                            viewModel.setExperience(age)
+                        }
+                    },
+                )
+                OnboardingStep.DAYS_PER_WEEK -> DaysPerWeekStep(
+                    selected = state.answers.daysPerWeek,
+                    onSelect = viewModel::setDaysPerWeek,
+                    onNext = viewModel::next,
+                )
+                OnboardingStep.WHICH_DAYS -> WhichDaysStep(
+                    answers = state.answers,
+                    onToggle = viewModel::toggleDay,
+                    onNext = viewModel::next,
+                )
+                OnboardingStep.PLACE -> ChoiceStep(
+                    title = "Where will you train?",
+                    blurb = "Only lifts you can actually do will be suggested — everywhere in the app.",
+                    options = TrainingPlace.entries.map { place ->
+                        Choice(place.displayName, place.blurb, place == state.answers.place) {
+                            viewModel.setPlace(place)
+                        }
+                    },
+                )
+                OnboardingStep.GOAL -> ChoiceStep(
+                    title = "What are you training for?",
+                    blurb = "Changes what the coach mentions first. You can change it any time.",
+                    options = TrainingGoal.entries.map { goal ->
+                        Choice(goal.displayName, goal.blurb, goal == state.answers.goal) {
+                            viewModel.setGoal(goal)
+                        }
+                    },
+                )
+                OnboardingStep.BODYWEIGHT -> BodyweightStep(
+                    answers = state.answers,
+                    onSet = viewModel::setBodyweight,
+                    onNext = viewModel::next,
+                )
+                OnboardingStep.PREVIEW -> PreviewStep(
+                    state = state,
+                    onApply = viewModel::applyPlan,
+                    onOwn = {
+                        viewModel.skip()
+                        onBuildMyOwn()
+                    },
+                )
+            }
         }
     }
 }

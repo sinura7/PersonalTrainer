@@ -12,6 +12,7 @@ import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.runCatchingCancellable
 import java.time.DayOfWeek
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -112,10 +113,10 @@ class OnboardingViewModel(application: Application) : AppViewModel(application) 
 
     init {
         viewModelScope.launch {
-            catalog.value = runCatching { container.exerciseRepository.observeAll().first() }
+            catalog.value = runCatchingCancellable { container.exerciseRepository.observeAll().first() }
                 .onFailure { AppLog.w(TAG, "Reading the catalog for setup failed", it) }
                 .getOrDefault(emptyList())
-            existingProgram.value = runCatching { container.onboardingApplier.hasExistingProgram() }
+            existingProgram.value = runCatchingCancellable { container.onboardingApplier.hasExistingProgram() }
                 .getOrDefault(false)
         }
     }
@@ -201,19 +202,19 @@ class OnboardingViewModel(application: Application) : AppViewModel(application) 
      */
     fun skip() {
         viewModelScope.launch {
-            runCatching { container.preferencesRepository.setOnboardingComplete(true) }
+            runCatchingCancellable { container.preferencesRepository.setOnboardingComplete(true) }
                 .onFailure { AppLog.w(TAG, "Marking setup complete failed", it) }
             _finished.value = true
         }
     }
 
-    private inline fun update(transform: (OnboardingAnswers) -> OnboardingAnswers) {
+    private fun update(transform: (OnboardingAnswers) -> OnboardingAnswers) {
         answers.value = transform(answers.value)
         error.value = null
     }
 
     /** Answer and move on. Single-choice questions do not need a separate Next tap. */
-    private inline fun advance(transform: (OnboardingAnswers) -> OnboardingAnswers) {
+    private fun advance(transform: (OnboardingAnswers) -> OnboardingAnswers) {
         update(transform)
         next()
     }
