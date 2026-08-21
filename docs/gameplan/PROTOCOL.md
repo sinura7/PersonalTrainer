@@ -1,6 +1,7 @@
 # PROTOCOL — how every phase of the hierarchy game plan executes
 
-**Status:** binding execution protocol. Committed as `docs/gameplan/PROTOCOL.md` by Phase 0.
+**Status:** binding execution protocol. Committed 20 Aug 2026; amended 21 Aug 2026 by the
+second-pass reconciliation (`docs/gameplan/SECOND_PASS.md`).
 Every phase packet references this document; nothing in it is repeated in packets. Where a
 packet and this protocol disagree, this protocol wins.
 
@@ -26,11 +27,19 @@ the packet's owner checklist — never to the executor.
 
 Verified against the repo on 20 Aug 2026:
 
-- `main` holds **only** the initial commit (`1b7eb6a`).
-- All real work — 53 commits, the entire app — lives on
-  **`claude/app-hierarchy-navigation-cjzigo`** (tip `2212628` at protocol time).
+- `main` holds **only** the initial commit (`1b7eb6a`). Nothing else has ever landed there.
+- All real work — the entire app, plus `docs/gameplan/` itself — lives on the working
+  branch **`claude/app-hierarchy-navigation-cjzigo`**, which is many commits ahead of
+  `main`. **No commit count or tip SHA is recorded here on purpose: the branch tip moves,
+  and a number written down here rots.** Re-check the tip, the commit count, and the
+  ahead-of-`main` distance at phase start (see §6, "Mandatory phase-start re-baseline",
+  D-G) with `git log --oneline -1` and `git rev-list --count main..HEAD`.
 - `docs/DEVELOPMENT.md:144` ("Trunk-based: commit to `main`") is false in practice;
   Phase 0 corrects it.
+- The correct test for "has Phase 0 merged?" is `grep -c "Signed:" docs/ROADMAP.md`
+  returning `0` (not merged) or non-zero (merged). The presence of
+  `docs/gameplan/PROTOCOL.md` is **not** that test — the game plan, this protocol
+  included, is already committed on the working branch.
 
 **Never branch a phase from `main` until Phase 0's checkpoint resolves this.** Phase 0
 either merges `claude/app-hierarchy-navigation-cjzigo` into `main` (owner approves the PR)
@@ -44,6 +53,13 @@ Decisions section is the ground truth every later phase branches from.
   only on `main`, `claude/**`, `cursor/**` (`.github/workflows/ci.yml:13`); any other
   name gets zero verification.
 - One PR per phase, into the trunk recorded by Phase 0. The owner reviews and merges.
+- **Phase 1 is one phase built from two packets.** `PHASE_1A_SESSION_LIFECYCLE.md` and
+  `PHASE_1B_LOG_REPAIR.md` share a single branch **`claude/phase-1-session-hygiene`**, a
+  single PR, and a single owner evening (D-B). Both packets go to the **same** executor
+  session, executed strictly in order: 1A in full, **its §7 acceptance gate green**, then
+  1B's work items on top of it. 1B's gate greps re-assert 1A's invariants, so the sequence
+  self-verifies. This is the **one** phase whose session receives **three** documents
+  (this protocol + both packets) rather than the two described in §1.
 - **No phase starts before the previous phase's PR is merged.** No stacked phases, no
   parallel phases. (The one exception: the A1 DI seam, §7, which is not a phase.)
 - Sub-slices inside a phase (where a packet defines them) are separate commits on the
@@ -53,6 +69,16 @@ Note on CI: the GitHub Actions account block (`docs/DEVELOPMENT.md:95-105` — r
 assigned, $0 spending limit) is a **standing owner errand** (add a card, make the repo
 public, or stand up a self-hosted runner). It gates **nothing**. Executors do not attempt
 to fix it and no phase's acceptance gate depends on a CI run.
+
+CI has in fact **never executed** in this repo, so a gate line that says "CI green on the
+PR" can never be satisfied. Four packets previously carried such lines; the second-pass
+reconciliation rewrote every one of them into an **owner-machine gate** — the owner runs
+the command locally and pastes the output into the PR — with CI green kept only as an
+**additional** check to be re-run once the billing block clears (D-F). Correspondingly,
+unblocking billing is now a **requested** (still non-gating) ~30-minute item on Phase 0's
+owner checklist: working CI would remove the plan's main bottleneck (owner evenings are
+the scarce resource), and Phase 3's `schemas/2.json` retrieval leans on a build that runs
+somewhere other than the owner's living room.
 
 ## 4. Owner checkpoints
 
@@ -66,7 +92,9 @@ to fix it and no phase's acceptance gate depends on a CI run.
   (`grep -n "Signed" docs/ROADMAP.md`) and stop if they do not.
 - Estimates convention: every packet states **executor-days** and **owner-days**
   separately, as day ranges. S/M/L labels are banned. The owner-days are real evenings;
-  packets do not schedule more than one device pass per landing.
+  packets do not schedule more than one device pass per landing. Estimates are
+  **informational** — they gate nothing. A packet's own §9 governs where it differs from
+  §7's table.
 
 ## 5. Packet template (contract)
 
@@ -84,32 +112,16 @@ UI_REDESIGN §5.1 + §8, DIRECTION_B_INSTRUMENT rules).
 
 **`tools/preflight.sh` must be green before every push, on every phase.** It chains the
 eight static checks plus the domain tests. The script does not exist yet — creating it is
-a **Phase 2 work item** with exactly these contents:
-
-```bash
-#!/usr/bin/env bash
-# Preflight: all eight static checks + the domain tests. Green before every push.
-set -u
-cd "$(dirname "$0")/.."
-fail=0
-run() { echo "== $*"; "$@" || fail=1; }
-run python3 tools/check-named-args.py app/src/main/java
-run python3 tools/check-named-args.py app/src/test/java
-run python3 tools/check-when-exhaustive.py app/src/main/java
-run python3 tools/check-unused-imports.py app/src/main/java
-run python3 tools/check-internal-imports.py app/src/main/java
-run python3 tools/check-missing-imports.py
-run python3 tools/check-design-tokens.py app/src/main/java
-run python3 tools/check-screen-wiring.py app/src/main/java
-run tools/syntax-check.sh app/src/main/java
-if [ -d "${PT_JARS:-build/test-jars}" ]; then
-  PT_JARS="${PT_JARS:-build/test-jars}" run tools/run-domain-tests.sh
-else
-  echo "!! FAIL: domain tests need a jar directory — see tools/README.md bootstrap"
-  fail=1
-fi
-exit $fail
-```
+a **Phase 2 work item**, and **`PHASE_2_TEST_SUBSTRATE.md` WI-4 holds its literal
+contents**. This protocol deliberately does **not** duplicate that script. WI-4's version
+encodes a **per-check pass criterion** for each of the eight checks, which matters because
+exit codes alone are not a sufficient judge: four of the checks
+(`check-named-args.py`, `check-when-exhaustive.py`, `check-unused-imports.py`,
+`syntax-check.sh`) **always exit 0** and report findings only on stdout, while only
+`check-internal-imports.py`, `check-missing-imports.py`, `check-design-tokens.py`, and
+`check-screen-wiring.py` exit by finding count. Any preflight that judges on exit code
+alone silently passes real findings. Where this protocol and WI-4 appear to describe the
+script differently, **WI-4 is the specification**; the executor transcribes it verbatim.
 
 The eight static checks, by filename, as they exist in `tools/` today (the run commands
 are recorded at `docs/DEVELOPMENT.md:59-66`):
@@ -126,11 +138,54 @@ are recorded at `docs/DEVELOPMENT.md:59-66`):
 (`kotlin_source.py` is a shared library and `build-fonts.py` an asset builder; neither is
 a check.) `tools/run-domain-tests.sh` needs a jar directory (`PT_JARS`) that a fresh
 clone lacks; Phase 2 documents the bootstrap so the domain half of preflight is runnable
-in-session. Until Phase 2 lands, phases run the eight checks individually and say so.
+in-session. Under the execution order in §7, **Phase 2 runs first among the code phases**,
+so `tools/preflight.sh` exists from Phase 2 onward and **every code phase runs it**.
+Phase 0 is docs-only and runs no checks at all. No phase is left running the eight checks
+by hand.
 
 Additionally: **`check-when-exhaustive.py` and `check-screen-wiring.py` must be cited in
 the phase's hand-back wherever an enum gains/loses a variant or a screen callback
 changes** — that is the mechanical proof that no `when` or wiring survivor remains.
+
+### Mandatory phase-start re-baseline (D-G)
+
+**Every count, line number, file path, SHA, and repo-state assertion in a packet is a
+baseline captured against audit commit `2212628`, not an oracle.** Phases land ahead of
+you; the numbers move. Treating a packet literal as ground truth is how an executor
+either stops on a healthy repo or writes a gate that can never go green.
+
+**The rule: the executor's FIRST commit on a phase branch is a re-baseline report.** It is
+a docs/PR-body commit, before any work item. It states:
+
+1. The current trunk tip (`git log --oneline -1`) and which phases have merged since
+   `2212628`.
+2. The actual domain-test totals measured now — test count and test-class count — from a
+   real run, not from the packet.
+3. **Every packet literal that has drifted**, each with its verified current value: line
+   numbers cited by the packet, file counts, seed counts, grep counts, gate-expected
+   output strings.
+
+Then the executor **proceeds**, using the re-baselined values in its gate commands and
+hand-back.
+
+**Expected drift vs. stop-worthy mismatch.** A mismatch that is **fully explained** by a
+merged prior phase, or by the game plan's own commits, is **EXPECTED** — record it, adopt
+the new value, continue. A mismatch with **no such explanation** — a file that should
+exist and does not, a count that moved in a direction no merged phase could cause, a
+symbol the packet says it introduced that is already present — means the packet's world
+model is wrong. **Then, and only then, stop and ask the owner.** "The number differs" is
+never by itself grounds to stop; "the number differs and nothing in the merge history
+accounts for it" is.
+
+*Worked example.* Phase 2's packet asserts `OK (188 tests)` across 24 test classes in 23
+files. Phase 2 runs first among the code phases, so at its slot nothing has merged since
+the baseline and that literal is expected to be **exactly true** — if the executor
+measures 188, it records "no drift" and moves on; if it measures 191 with no merged phase
+in between, that is unexplained and stop-worthy. Contrast a line-number citation such as
+`docs/DEVELOPMENT.md:144`: an executor starting Phase 3 after Phase 1 merged may find that
+line has moved by a few lines because Phase 1 edited the file above it. That is fully
+explained by a merged prior phase — the executor records the new line number, cites it,
+and continues without asking anyone.
 
 ## 7. The phases, in execution order
 
