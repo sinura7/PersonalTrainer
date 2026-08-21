@@ -58,7 +58,32 @@ object SetCopy {
         WeightMeaning.ASSISTANCE -> "How much the machine took off. More assist is an easier set."
     }
 
+    /**
+     * The middle column of a session row, which is a fixed-width slot that has to hold one
+     * number and one label.
+     *
+     * Kilograms when the session moved any, its rep count when it did not. A calisthenics
+     * session would otherwise sit in a column of barbell sessions reading "0 kg", which is the
+     * old stand-in's failure inverted: instead of inventing work that did not happen, erasing
+     * work that did. A mixed session shows kilograms, and its reps are on the session itself —
+     * the column is a comparison across rows, not a full account of one.
+     */
+    fun workColumn(work: SetWork, unit: WeightUnit): WorkColumn = when {
+        work.volumeKg > 0.0 -> WorkColumn(
+            value = WeightConverter.formatGroupedNumber(WeightConverter.toDisplayValue(work.volumeKg, unit)),
+            label = unit.suffix,
+        )
+        work.bodyweightReps > 0 -> WorkColumn(
+            value = work.bodyweightReps.toString(),
+            label = "reps",
+        )
+        else -> WorkColumn(value = NOTHING_YET, label = unit.suffix)
+    }
+
     private fun repsLabel(reps: Int): String = if (reps == 1) "1 rep" else "$reps reps"
 
     const val NOTHING_YET = "—"
 }
+
+/** One number and its unit, for a fixed-width readout. */
+data class WorkColumn(val value: String, val label: String)

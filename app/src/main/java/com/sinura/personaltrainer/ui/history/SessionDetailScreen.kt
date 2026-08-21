@@ -42,7 +42,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.sinura.personaltrainer.domain.MuscleLoadCalculator
+import com.sinura.personaltrainer.domain.WeightMeaning
+import com.sinura.personaltrainer.domain.SetWork
+import com.sinura.personaltrainer.domain.SetCopy
+import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.domain.WeightConverter
@@ -235,7 +238,7 @@ fun SessionDetailScreen(
                         item {
                             SessionReceipt(
                                 dateLabel = dateFormat.format(Date(session.date)),
-                                volumeKg = session.workingVolumeKg(),
+                                work = session.work(),
                                 workingSets = workingSets,
                                 durationMinutes = session.durationMinutes,
                                 notes = state.notes,
@@ -256,15 +259,16 @@ fun SessionDetailScreen(
                         }
                         items(exerciseCards) { (exerciseId, exerciseName) ->
                             val sets = session.setsFor(exerciseId)
-                            // Same per-set rule as the session headline above and the body map; a
-                            // plain weight x reps here scored bodyweight sets at zero.
-                            val volume = sets
-                                .filterNot { it.isWarmup }
-                                .sumOf { MuscleLoadCalculator.setVolumeKg(it.weightKg, it.reps) }
+                            val loadClass = session.loadClassOf(exerciseId)
+                            val work = SetWork.sum(
+                                sets.filterNot { it.isWarmup }
+                                    .map { SetWork.of(it.weightKg, it.reps, loadClass) },
+                            )
                             ExerciseBlock(
                                 name = exerciseName,
                                 sets = sets,
-                                volumeKg = volume,
+                                work = work,
+                                loadClass = loadClass,
                                 unit = unit,
                                 onOpen = { onOpenExercise(exerciseId) },
                                 onEditSet = { editingSetId = it.id },
@@ -372,7 +376,7 @@ fun SessionDetailScreen(
 @Composable
 private fun SessionReceipt(
     dateLabel: String,
-    volumeKg: Double,
+    work: SetWork,
     workingSets: Int,
     durationMinutes: Int,
     notes: String,
@@ -381,18 +385,22 @@ private fun SessionReceipt(
     onNotesChange: (String) -> Unit,
     unit: WeightUnit,
 ) {
+    // The headline is whichever unit this session was actually done in. A calisthenics day
+    // reading a giant "0 kg" would be the bodyweight stand-in's failure inverted: instead of
+    // inventing work that did not happen, erasing work that did.
+    val column = SetCopy.workColumn(work, unit)
     GymCard {
         Text(dateLabel, style = InstrumentType.caption, color = TextSecondary)
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
-                WeightConverter.formatGroupedNumber(WeightConverter.toDisplayValue(volumeKg, unit)),
+                column.value,
                 modifier = Modifier.alignByBaseline(),
                 style = InstrumentType.numeralXl,
                 color = TextPrimary,
                 maxLines = 1,
             )
             Text(
-                unit.suffix,
+                column.label,
                 modifier = Modifier
                     .alignByBaseline()
                     .padding(start = Metrics.space1),
@@ -438,7 +446,8 @@ private fun SessionReceipt(
 private fun ExerciseBlock(
     name: String,
     sets: List<SetLog>,
-    volumeKg: Double,
+    work: SetWork,
+    loadClass: LoadClass,
     unit: WeightUnit,
     onOpen: () -> Unit,
     onEditSet: (SetLog) -> Unit,
@@ -463,12 +472,8 @@ private fun ExerciseBlock(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            MetricCluster(
-                value = WeightConverter.formatGroupedNumber(
-                    WeightConverter.toDisplayValue(volumeKg, unit),
-                ),
-                label = unit.suffix,
-            )
+            val column = SetCopy.workColumn(work, unit)
+            MetricCluster(value = column.value, label = column.label)
         }
         if (sets.isEmpty()) {
             Text(
@@ -481,7 +486,7 @@ private fun ExerciseBlock(
             GroupedList {
                 sets.forEachIndexed { index, set ->
                     if (index > 0) HairlineDivider()
-                    SetRow(set = set, unit = unit, onEdit = { onEditSet(set) })
+                    SetRow(set = set, unit = unit, loadClass = loadClass, onEdit = { onEditSet(set) })
                 }
             }
         }
@@ -497,7 +502,7 @@ private fun ExerciseBlock(
 }
 
 @Composable
-private fun SetRow(set: SetLog, unit: WeightUnit, onEdit: () -> Unit) {
+private fun SetRow(set: SetLog, unit: WeightUnit, loadClass: LoadClass, onEdit: () -> Unit) {
     val tags = buildList {
         if (set.isWarmup) add("Warm-up")
         set.rpe?.let { add("RPE $it") }
@@ -507,12 +512,20 @@ private fun SetRow(set: SetLog, unit: WeightUnit, onEdit: () -> Unit) {
         subtitle = tags.joinToString(" · ").ifEmpty { null },
     ) {
         // Fixed columns, not wrapped content: a 97.5 and a 100 have to land on the same
-        // right edge or there is nothing to compare down the list.
+        // right edge or there is nothing to compare down the list. The weight column keeps its
+        // width even for a lift that has no weight — the reps beside it still have to line up
+        // with the reps of the loaded lift in the block above.
         MetricCluster(
-            value = WeightConverter.formatDisplayNumber(
-                WeightConverter.toDisplayValue(set.weightKg, unit),
-            ),
-            label = unit.suffix,
+            value = if (loadClass.weightMeaning == WeightMeaning.NONE) {
+                SetCopy.NOTHING_YET
+            } else {
+                WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(set.weightKg, unit))
+            },
+            label = if (loadClass.weightMeaning == WeightMeaning.NONE) {
+                unit.suffix
+            } else {
+                "${loadClass.weightMeaning.fieldLabel.lowercase()} ${unit.suffix}"
+            },
             modifier = Modifier.width(WEIGHT_COLUMN),
         )
         MetricCluster(

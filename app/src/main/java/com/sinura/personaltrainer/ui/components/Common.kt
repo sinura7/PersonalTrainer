@@ -65,9 +65,12 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.withFrameNanos
+import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.RestTimer
+import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.WeightConverter
+import com.sinura.personaltrainer.domain.WeightMeaning
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.Hairline
@@ -199,6 +202,13 @@ fun ConfirmActionDialog(
  *
  * The interaction model underneath is unchanged, because it was already right: nudge with
  * the plates, tap the number to type when the nudge is too far.
+ *
+ * **How many wells appear depends on the lift.** A push-up has no weight to enter, so it gets
+ * one well and reps fill the panel: a labelled empty weight box is an invitation to put a
+ * number in it, and the number someone would put there is their own bodyweight, which is not
+ * what that column means. A weighted pull-up gets two, and the first is labelled "added" —
+ * because twenty kilos on a dip belt is not twenty kilos lifted, and the same field on an
+ * assisted machine is weight taken *off*.
  */
 @Composable
 fun SetEntryPanel(
@@ -208,17 +218,21 @@ fun SetEntryPanel(
     onRepsAdjust: (Int) -> Unit,
     modifier: Modifier = Modifier,
     unit: WeightUnit = LocalWeightUnit.current,
+    loadClass: LoadClass = LoadClass.LOADED,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        WeightStepper(
-            valueKg = weightKg,
-            onWeightKgChange = onWeightKgChange,
-            modifier = Modifier.weight(1f),
-            unit = unit,
-        )
+        if (loadClass.weightMeaning != WeightMeaning.NONE) {
+            WeightStepper(
+                valueKg = weightKg,
+                onWeightKgChange = onWeightKgChange,
+                modifier = Modifier.weight(1f),
+                unit = unit,
+                meaning = loadClass.weightMeaning,
+            )
+        }
         RepsStepper(
             value = reps,
             onAdjust = onRepsAdjust,
@@ -233,18 +247,21 @@ fun WeightStepper(
     onWeightKgChange: (Double) -> Unit,
     modifier: Modifier = Modifier,
     unit: WeightUnit = LocalWeightUnit.current,
+    /** What this number is a measurement of. See [LoadClass.weightMeaning]. */
+    meaning: WeightMeaning = WeightMeaning.LIFTED,
 ) {
     val displayNumber = WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(valueKg, unit))
     // Steppers are for nudging a number, not setting one: 20 kg to 140 kg is 48 taps at the
     // 2.5 kg step. Typing is the escape hatch, and the number itself is the obvious target.
     var typing by rememberSaveable { mutableStateOf(false) }
+    val label = meaning.fieldLabel
 
     NumeralWell(
-        label = "weight",
+        label = label.lowercase(),
         value = displayNumber,
         unit = unit.suffix,
         onType = { typing = true },
-        typeLabel = "Type a weight",
+        typeLabel = "Type ${if (meaning == WeightMeaning.LIFTED) "a weight" else label.lowercase()}",
         decrementLabel = "−${unit.stepLabel}",
         incrementLabel = "+${unit.stepLabel}",
         onDecrement = { onWeightKgChange(WeightConverter.incrementKg(valueKg, unit, -1)) },
@@ -254,11 +271,17 @@ fun WeightStepper(
 
     if (typing) {
         NumberEntryDialog(
-            title = "Weight",
+            title = label,
             unitLabel = unit.suffix,
             initial = displayNumber,
             decimal = true,
-            helper = "A number, up to two decimals.",
+            helper = SetCopy.weightFieldHint(
+                when (meaning) {
+                    WeightMeaning.ADDED -> LoadClass.BODYWEIGHT_ADDED
+                    WeightMeaning.ASSISTANCE -> LoadClass.BODYWEIGHT_ASSISTED
+                    WeightMeaning.LIFTED, WeightMeaning.NONE -> LoadClass.LOADED
+                },
+            ) ?: "A number, up to two decimals.",
             parse = { NumericEntry.parseWeightKg(it, unit) },
             onConfirm = { onWeightKgChange(it) },
             onDismiss = { typing = false },

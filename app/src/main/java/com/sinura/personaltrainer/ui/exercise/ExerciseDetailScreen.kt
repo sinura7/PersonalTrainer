@@ -39,6 +39,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.SetCopy
+import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.DayLabel
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
@@ -116,8 +118,16 @@ fun ExerciseDetailScreen(
         estimateSessions.mapNotNull { it.estimatedOneRepMaxKg }
             .map { WeightConverter.toDisplayValue(it, unit) }
     }
-    val weeklyVolume = remember(history, unit) {
-        history.weeklyTonnage.map { WeightConverter.toDisplayValue(it.volumeKg, unit) }
+    // A lift measured in reps gets a rep trend. Plotting its kilograms would draw a flat line
+    // along zero for someone whose pull-ups went from six to fifteen — the app charting the
+    // absence of a number instead of the presence of the progress.
+    val repsAreTheMeasure = LoadClass.of(state.exercise?.loadType).repsAreTheMeasure
+    val weeklySeries = remember(history, unit, repsAreTheMeasure) {
+        if (repsAreTheMeasure) {
+            history.weeklyTonnage.map { it.bodyweightReps.toDouble() }
+        } else {
+            history.weeklyTonnage.map { WeightConverter.toDisplayValue(it.volumeKg, unit) }
+        }
     }
 
     Column(
@@ -238,8 +248,8 @@ fun ExerciseDetailScreen(
                     }
                     item(key = "weekly-volume") {
                         TrendCard(
-                            title = "Weekly volume",
-                            values = weeklyVolume,
+                            title = if (repsAreTheMeasure) "Weekly reps" else "Weekly volume",
+                            values = weeklySeries,
                             startLabel = history.weeklyTonnage.firstOrNull()
                                 ?.let { axisLabel(it.weekStart) }.orEmpty(),
                             endLabel = history.weeklyTonnage.lastOrNull()
@@ -275,6 +285,7 @@ fun ExerciseDetailScreen(
                             SessionRow(
                                 summary = summary,
                                 unit = unit,
+                                loadClass = LoadClass.of(state.exercise?.loadType),
                                 onClick = { onOpenSession(summary.sessionId) },
                             )
                         }
@@ -594,17 +605,19 @@ private fun GhostTrend(modifier: Modifier = Modifier) {
 private fun SessionRow(
     summary: ExerciseSessionSummary,
     unit: WeightUnit,
+    loadClass: LoadClass,
     onClick: () -> Unit,
 ) {
     InstrumentRow(
         title = dateLabel(summary.performedAtMs),
         subtitle = summary.topSet?.let { top ->
-            "Top set ${top.weightKg.toWeightLabel(unit)} × ${top.reps}"
+            "Top set " + SetCopy.setLine(top.weightKg, top.reps, loadClass, unit)
         },
         onClick = onClick,
     ) {
         MetricCluster(value = summary.workingSets.toString(), label = "sets")
-        MetricCluster(value = groupedNumber(summary.volumeKg, unit), label = unit.suffix)
+        val column = SetCopy.workColumn(summary.work, unit)
+        MetricCluster(value = column.value, label = column.label)
     }
 }
 

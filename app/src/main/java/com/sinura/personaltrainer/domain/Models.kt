@@ -106,6 +106,15 @@ data class WorkoutSession(
     /** Just the kilograms — the bar and the vest, never the body. */
     fun workingVolumeKg(): Double = work().volumeKg
 
+    /**
+     * Working sets, warm-ups excluded.
+     *
+     * The one measure every lift shares. Anything that has to compare a squat day with a
+     * calisthenics day — the calendar's intensity shading, the deload signal's three-week
+     * rise — counts these rather than kilograms.
+     */
+    fun workingSetCount(): Int = sets.count { !it.isWarmup }
+
     fun setsFor(exerciseId: String): List<SetLog> =
         sets.filter { it.exerciseId == exerciseId }.sortedBy { it.setNumber }
 

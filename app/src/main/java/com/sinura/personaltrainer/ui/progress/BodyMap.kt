@@ -33,10 +33,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.MuscleLoadSummary
-import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.BodyView
 import com.sinura.personaltrainer.ui.components.FIGURE_ASPECT
@@ -228,12 +228,10 @@ fun MuscleHeatRow(
         },
     ) {
         MetricCluster(value = load.workingSets.toString(), label = "sets")
-        MetricCluster(
-            value = WeightConverter.formatGroupedNumber(
-                WeightConverter.toDisplayValue(load.volumeKg, unit),
-            ),
-            label = unit.suffix,
-        )
+        // Reps for a muscle trained only with bodyweight lifts. "0 kg" beside a real set
+        // count would read as the app having failed to notice the work.
+        val column = SetCopy.workColumn(load.work, unit)
+        MetricCluster(value = column.value, label = column.label)
     }
 }
 

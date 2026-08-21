@@ -25,11 +25,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.MuscleLoadSummary
-import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.BodyView
 import com.sinura.personaltrainer.ui.components.EmptyState
@@ -275,11 +275,10 @@ private fun MuscleDetailSheet(
                 Text(load.muscle.displayName, style = InstrumentType.display, color = TextPrimary)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space6)) {
+                val column = SetCopy.workColumn(load.work, unit)
                 MetricCluster(
-                    value = WeightConverter.formatGroupedNumber(
-                        WeightConverter.toDisplayValue(load.volumeKg, unit),
-                    ),
-                    label = unit.suffix,
+                    value = column.value,
+                    label = column.label,
                     valueStyle = InstrumentType.numeralLg,
                     horizontalAlignment = Alignment.Start,
                 )
@@ -317,12 +316,8 @@ private fun MuscleDetailSheet(
                         if (index > 0) HairlineDivider()
                         InstrumentRow(title = exercise.exerciseName) {
                             MetricCluster(value = exercise.workingSets.toString(), label = "sets")
-                            MetricCluster(
-                                value = WeightConverter.formatGroupedNumber(
-                                    WeightConverter.toDisplayValue(exercise.volumeKg, unit),
-                                ),
-                                label = unit.suffix,
-                            )
+                            val column = SetCopy.workColumn(exercise.work, unit)
+                            MetricCluster(value = column.value, label = column.label)
                         }
                     }
                 }

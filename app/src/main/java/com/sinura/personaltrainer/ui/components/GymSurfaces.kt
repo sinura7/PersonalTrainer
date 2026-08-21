@@ -40,7 +40,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.sinura.personaltrainer.domain.WeightConverter
+import com.sinura.personaltrainer.domain.SetCopy
+import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -336,7 +337,7 @@ fun SessionLogRow(
     title: String,
     dateLabel: String,
     workingSets: Int,
-    volumeKg: Double,
+    work: SetWork,
     durationMinutes: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -359,9 +360,13 @@ fun SessionLogRow(
             label = "sets",
             modifier = Modifier.width(COUNT_COLUMN),
         )
+        // Kilograms when the session moved any, reps when it did not — see SetCopy.workColumn.
+        // A calisthenics session sitting in a column of barbell sessions reading "0 kg" would
+        // be the old bodyweight stand-in's failure inverted.
+        val column = SetCopy.workColumn(work, unit)
         MetricCluster(
-            value = WeightConverter.formatGroupedNumber(WeightConverter.toDisplayValue(volumeKg, unit)),
-            label = unit.suffix,
+            value = column.value,
+            label = column.label,
             modifier = Modifier.width(VOLUME_COLUMN),
         )
         MetricCluster(

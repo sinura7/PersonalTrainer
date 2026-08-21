@@ -26,12 +26,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.CalendarDay
 import com.sinura.personaltrainer.domain.TrainingCalendarBuilder
 import com.sinura.personaltrainer.domain.TrainingMonth
-import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
-import com.sinura.personaltrainer.domain.toVolumeLabel
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -162,11 +161,10 @@ fun TrainingCalendarCard(
                     label = "sets",
                     horizontalAlignment = Alignment.Start,
                 )
+                val column = SetCopy.workColumn(month.work, unit)
                 MetricCluster(
-                    value = WeightConverter.formatGroupedNumber(
-                        WeightConverter.toDisplayValue(month.volumeKg, unit),
-                    ),
-                    label = unit.suffix,
+                    value = column.value,
+                    label = column.label,
                     horizontalAlignment = Alignment.Start,
                 )
             }
@@ -185,7 +183,7 @@ private fun DayCell(
     val shape = RoundedCornerShape(Radius.xs)
     val label = buildString {
         append(day.date.dayOfMonth)
-        if (day.trained) append(", trained, ${day.volumeKg.toVolumeLabel(unit)}")
+        if (day.trained) append(", trained, ${SetCopy.workLine(day.work, unit)}")
     }
     Box(
         modifier = modifier

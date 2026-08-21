@@ -12,13 +12,19 @@ data class CalendarDay(
     /** False for the leading and trailing days that only exist to square off the grid. */
     val inMonth: Boolean,
     val sessionIds: List<String> = emptyList(),
-    val volumeKg: Double = 0.0,
+    val work: SetWork = SetWork.NONE,
     /**
      * How hard this day was relative to the hardest day of the same month, 0..1.
      *
      * Scaled within the month rather than against a lifetime maximum: the question a calendar
      * answers is "how did this month go", and one outlier session from two years ago would
      * otherwise flatten every day of it to nothing.
+     *
+     * Measured in **working sets**, not tonnage. Tonnage is not a unit every lift has: once
+     * bodyweight lifts stopped being priced at an invented 40 kg a rep, a calisthenics month
+     * would have coloured every square at zero. Sets are what every lift has in common, and
+     * they are a better answer to "how big was this day" in any case — thirty sets of squats
+     * and thirty of pull-ups are both a lot of training.
      */
     val intensity: Float = 0f,
 ) {
@@ -30,7 +36,7 @@ data class TrainingMonth(
     /** Whole weeks, each starting on the user's configured week-start day. */
     val weeks: List<List<CalendarDay>> = emptyList(),
     val trainedDays: Int = 0,
-    val volumeKg: Double = 0.0,
+    val work: SetWork = SetWork.NONE,
     val workingSets: Int = 0,
 )
 
@@ -56,8 +62,8 @@ object TrainingCalendarBuilder {
 
         val inMonth = byDate.filterKeys { YearMonth.from(it) == month }
         val busiest = inMonth.values
-            .maxOfOrNull { day -> day.sumOf { it.workingVolumeKg() } }
-            ?: 0.0
+            .maxOfOrNull { day -> day.sumOf { session -> session.workingSetCount() } }
+            ?: 0
 
         val first = month.atDay(1).with(TemporalAdjusters.previousOrSame(weekStart))
         val lastDayOfMonth = month.atEndOfMonth()
@@ -68,19 +74,19 @@ object TrainingCalendarBuilder {
             weeks += (0 until DAYS_IN_WEEK).map { offset ->
                 val date = cursor.plusDays(offset.toLong())
                 val daySessions = byDate[date].orEmpty()
-                val volume = daySessions.sumOf { it.workingVolumeKg() }
+                val sets = daySessions.sumOf { session -> session.workingSetCount() }
                 CalendarDay(
                     date = date,
                     inMonth = YearMonth.from(date) == month,
                     sessionIds = daySessions.map { it.id },
-                    volumeKg = volume,
+                    work = SetWork.sum(daySessions.map { it.work() }),
                     // Clamped because `busiest` only considers in-month days, while the
                     // leading and trailing padding days of the grid keep their real volume:
                     // a heavy end-of-previous-month session divided by a light current
                     // month yields a ratio above 1, which downstream becomes an out-of-range
                     // colour alpha and throws.
-                    intensity = if (busiest > 0.0) {
-                        (volume / busiest).toFloat().coerceIn(0f, 1f)
+                    intensity = if (busiest > 0) {
+                        (sets.toDouble() / busiest).toFloat().coerceIn(0f, 1f)
                     } else {
                         0f
                     },
@@ -93,7 +99,7 @@ object TrainingCalendarBuilder {
             month = month,
             weeks = weeks,
             trainedDays = inMonth.size,
-            volumeKg = inMonth.values.sumOf { day -> day.sumOf { it.workingVolumeKg() } },
+            work = SetWork.sum(inMonth.values.flatten().map { it.work() }),
             workingSets = inMonth.values.sumOf { day ->
                 day.sumOf { session -> session.sets.count { !it.isWarmup } }
             },

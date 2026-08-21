@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.MastheadCopy
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.WeightConverter
@@ -293,11 +294,7 @@ private fun HomeStatRow(
     todayEpoch: Long,
     unit: WeightUnit,
 ) {
-    val volume = lastSession?.let { session ->
-        WeightConverter.formatGroupedNumber(
-            WeightConverter.toDisplayValue(session.workingVolumeKg(), unit),
-        )
-    }
+    val column = lastSession?.let { session -> SetCopy.workColumn(session.work(), unit) }
     val daysSince = lastSession?.let { session ->
         (todayEpoch - todayEpochDay(session.date)).coerceAtLeast(0L).toString()
     }
@@ -307,9 +304,9 @@ private fun HomeStatRow(
     ) {
         StatTile(
             label = "Last session",
-            value = volume ?: NO_VALUE,
-            unit = if (volume != null) unit.suffix else null,
-            valueColor = if (volume != null) TextPrimary else TextTertiary,
+            value = column?.value ?: NO_VALUE,
+            unit = column?.label,
+            valueColor = if (column != null) TextPrimary else TextTertiary,
             modifier = Modifier.weight(1f),
         )
         StatTile(

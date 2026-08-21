@@ -73,9 +73,11 @@ import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.ProgressionCopy
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RestTimer
+import com.sinura.personaltrainer.domain.SetCopy
+import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.domain.SetLog
-import com.sinura.personaltrainer.domain.WeightConverter
+import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutCopy
 import com.sinura.personaltrainer.domain.toWeightLabel
@@ -179,7 +181,7 @@ fun ActiveWorkoutScreen(
     LaunchedEffect(deletedSet) {
         val removed = deletedSet ?: return@LaunchedEffect
         val outcome = snackbarHostState.showSnackbar(
-            message = "Set deleted · ${removed.weightKg.toWeightLabel(unit)} × ${removed.reps}",
+            message = "Set deleted · " + SetCopy.setLine(removed.weightKg, removed.reps, LoadClass.of(selected?.exercise?.loadType), unit),
             actionLabel = "Undo",
             duration = SnackbarDuration.Short,
         )
@@ -233,7 +235,7 @@ fun ActiveWorkoutScreen(
                 routineName = session?.routineName ?: "Workout",
                 startedAt = session?.startedAt,
                 workingSets = session?.sets?.count { !it.isWarmup } ?: 0,
-                volumeKg = session?.workingVolumeKg() ?: 0.0,
+                work = session?.work() ?: SetWork.NONE,
                 unit = unit,
                 canFinish = session != null && session.sets.isNotEmpty(),
                 onExit = { confirmLeave = true },
@@ -248,7 +250,7 @@ fun ActiveWorkoutScreen(
                 LogBar(
                     editing = state.editingSetId != null,
                     error = state.error,
-                    draftLabel = "${state.draft.weightKg.toWeightLabel(unit)} × ${state.draft.reps}",
+                    draftLabel = SetCopy.setLine(state.draft.weightKg, state.draft.reps, LoadClass.of(selected?.exercise?.loadType), unit),
                     onLog = {
                         Haptics.commit(view)
                         viewModel.logSet()
@@ -312,7 +314,7 @@ fun ActiveWorkoutScreen(
                                 PersonalRecordBanner(
                                     headline = personalRecordHeadline(moment),
                                     detail = "${moment.exerciseName.ifBlank { "This lift" }} · " +
-                                        "${moment.weightKg.toWeightLabel(unit)} × ${moment.reps}",
+                                        SetCopy.setLine(moment.weightKg, moment.reps, LoadClass.of(selected?.exercise?.loadType), unit),
                                     onDismiss = viewModel::onPersonalRecordShown,
                                 )
                             }
@@ -352,6 +354,10 @@ fun ActiveWorkoutScreen(
                                         set = set,
                                         isLatest = set.id == session.sets.maxByOrNull { it.completedAt }?.id,
                                         isEditing = state.editingSetId == set.id,
+                                        // Per set, not per screen: this list is every lift in
+                                        // the session, so a push-up row and a squat row sit
+                                        // next to each other and read in their own units.
+                                        loadClass = session.loadClassOf(set.exerciseId),
                                         onEdit = { viewModel.editSet(set.id) },
                                         onDelete = { viewModel.deleteSet(set.id) },
                                         modifier = Modifier.animateItem(),
@@ -373,7 +379,13 @@ fun ActiveWorkoutScreen(
                                 )
                             }
                             state.lastPerformance?.let { last ->
-                                item(key = "last-time") { LastTimeStrip(summary = last, unit = unit) }
+                                                item(key = "last-time") {
+                                    LastTimeStrip(
+                                        summary = last,
+                                        unit = unit,
+                                        loadClass = LoadClass.of(selected?.exercise?.loadType),
+                                    )
+                                }
                             }
                             state.hint?.let { hint ->
                                 item(key = "progression") {
@@ -391,6 +403,10 @@ fun ActiveWorkoutScreen(
                                     onWeightKgChange = viewModel::setWeight,
                                     onRepsAdjust = viewModel::adjustReps,
                                     unit = unit,
+                                    // A push-up gets one well and no weight box; a weighted
+                                    // pull-up gets a box labelled "added"; an assisted machine
+                                    // one labelled "assist".
+                                    loadClass = LoadClass.of(selected?.exercise?.loadType),
                                 )
                             }
                             item(key = "secondary") {
@@ -416,6 +432,7 @@ fun ActiveWorkoutScreen(
                                     set = set,
                                     isLatest = set.id == latestSetId,
                                     isEditing = state.editingSetId == set.id,
+                                    loadClass = LoadClass.of(selected?.exercise?.loadType),
                                     onEdit = { viewModel.editSet(set.id) },
                                     onDelete = { viewModel.deleteSet(set.id) },
                                     modifier = Modifier.animateItem(),
@@ -577,7 +594,7 @@ private fun WorkoutHeader(
     routineName: String,
     startedAt: Long?,
     workingSets: Int,
-    volumeKg: Double,
+    work: SetWork,
     unit: WeightUnit,
     canFinish: Boolean,
     onExit: () -> Unit,
@@ -641,11 +658,10 @@ private fun WorkoutHeader(
                 label = "sets",
                 horizontalAlignment = Alignment.Start,
             )
+            val column = SetCopy.workColumn(work, unit)
             MetricCluster(
-                value = WeightConverter.formatGroupedNumber(
-                    WeightConverter.toDisplayValue(volumeKg, unit),
-                ),
-                label = unit.suffix,
+                value = column.value,
+                label = column.label,
                 horizontalAlignment = Alignment.Start,
             )
         }
@@ -825,6 +841,7 @@ private fun SetDots(completed: Int, target: Int) {
 private fun LastTimeStrip(
     summary: ExerciseSessionSummary,
     unit: WeightUnit,
+    loadClass: LoadClass,
 ) {
     val relative = remember(summary.performedAtMs) {
         DayLabel.relative(summary.performedAtMs, System.currentTimeMillis())
@@ -844,7 +861,7 @@ private fun LastTimeStrip(
                         .padding(horizontal = Metrics.space3, vertical = Metrics.space2),
                 ) {
                     Text(
-                        "${set.weightKg.toWeightLabel(unit)} × ${set.reps}",
+                        SetCopy.setLine(set.weightKg, set.reps, loadClass, unit),
                         style = InstrumentType.numeralSm,
                         color = TextSecondary,
                     )
@@ -935,6 +952,7 @@ private fun SetRow(
     set: SetLog,
     isLatest: Boolean,
     isEditing: Boolean,
+    loadClass: LoadClass,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -966,7 +984,7 @@ private fun SetRow(
             verticalArrangement = Arrangement.spacedBy(Metrics.space1),
         ) {
             Text(
-                "${set.weightKg.toWeightLabel(unit)}  ×  ${set.reps}",
+                SetCopy.setLine(set.weightKg, set.reps, loadClass, unit),
                 style = InstrumentType.numeralSm,
                 color = TextPrimary,
             )

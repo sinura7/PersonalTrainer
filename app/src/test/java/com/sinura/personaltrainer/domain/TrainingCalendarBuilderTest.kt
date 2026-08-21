@@ -17,14 +17,19 @@ class TrainingCalendarBuilderTest {
 
     private fun at(iso: String) = Instant.parse(iso).toEpochMilli()
 
-    private fun workout(id: String, iso: String, weightKg: Double, reps: Int, finished: Boolean = true): WorkoutSession {
+    private fun workout(
+        id: String,
+        iso: String,
+        weightKg: Double,
+        reps: Int,
+        sets: Int = 1,
+        finished: Boolean = true,
+    ): WorkoutSession {
         val ms = at(iso)
         return session(
             id = id,
             finishedAt = if (finished) ms else null,
-            sets = listOf(
-                set("s-${nextId++}", id, "ex-squat", "Squat", weightKg, reps, at = ms),
-            ),
+            sets = (0 until sets).map { set("s-${nextId++}", id, "ex-squat", "Squat", weightKg, reps, at = ms) },
             exercises = listOf(sessionExercise("ex-squat", "Squat", "Quads")),
             date = ms,
         )
@@ -70,7 +75,7 @@ class TrainingCalendarBuilderTest {
         val day = grid.day(LocalDate.of(2026, 8, 10))
         assertTrue(day.trained)
         assertEquals(listOf("a"), day.sessionIds)
-        assertEquals(500.0, day.volumeKg, 0.0001)
+        assertEquals(500.0, day.work.volumeKg, 0.0001)
         assertEquals(1, grid.trainedDays)
     }
 
@@ -87,22 +92,46 @@ class TrainingCalendarBuilderTest {
         )
         assertEquals(1, grid.trainedDays)
         assertEquals(listOf("a", "b"), grid.day(LocalDate.of(2026, 8, 10)).sessionIds)
-        assertEquals(1100.0, grid.day(LocalDate.of(2026, 8, 10)).volumeKg, 0.0001)
+        assertEquals(1100.0, grid.day(LocalDate.of(2026, 8, 10)).work.volumeKg, 0.0001)
     }
 
     @Test
     fun intensityIsRelativeToTheMonthsOwnHardestDay() {
+        // Measured in working sets, not kilograms. Tonnage is not a unit every lift has, and a
+        // calisthenics month would otherwise shade every square at zero.
         val grid = TrainingCalendarBuilder.build(
             august,
             listOf(
-                workout("light", "2026-08-05T10:00:00Z", 50.0, 5),
-                workout("heavy", "2026-08-12T10:00:00Z", 100.0, 5),
+                workout("light", "2026-08-05T10:00:00Z", 50.0, 5, sets = 2),
+                workout("heavy", "2026-08-12T10:00:00Z", 100.0, 5, sets = 4),
             ),
             zone,
             DayOfWeek.MONDAY,
         )
         assertEquals(1f, grid.day(LocalDate.of(2026, 8, 12)).intensity, 0.0001f)
         assertEquals(0.5f, grid.day(LocalDate.of(2026, 8, 5)).intensity, 0.0001f)
+    }
+
+    @Test
+    fun aCalisthenicsMonthIsStillShaded() {
+        // The regression this guards: with intensity keyed on tonnage, a month of pull-ups
+        // has no tonnage at all and every day of the grid renders as untrained.
+        val bodyweightDay = session(
+            id = "bw",
+            finishedAt = at("2026-08-12T10:00:00Z"),
+            sets = (0 until 3).map {
+                set("bw-$it", "bw", "ex-pu", "Pull-Up", 0.0, 10, at = at("2026-08-12T10:00:00Z"))
+            },
+            exercises = listOf(sessionExercise("ex-pu", "Pull-Up", "Back", LoadType.BODYWEIGHT)),
+            date = at("2026-08-12T10:00:00Z"),
+        )
+        val grid = TrainingCalendarBuilder.build(august, listOf(bodyweightDay), zone, DayOfWeek.MONDAY)
+        val day = grid.day(LocalDate.of(2026, 8, 12))
+        assertTrue(day.trained)
+        assertEquals(1f, day.intensity, 0.0001f)
+        assertEquals(0.0, day.work.volumeKg, 0.0001)
+        assertEquals(30, day.work.bodyweightReps)
+        assertEquals(30, grid.work.bodyweightReps)
     }
 
     @Test
@@ -141,15 +170,15 @@ class TrainingCalendarBuilderTest {
         val grid = TrainingCalendarBuilder.build(
             august,
             listOf(
-                workout("july", "2026-07-27T10:00:00Z", 200.0, 10),
-                workout("august", "2026-08-05T10:00:00Z", 50.0, 5),
+                workout("july", "2026-07-27T10:00:00Z", 200.0, 10, sets = 6),
+                workout("august", "2026-08-05T10:00:00Z", 50.0, 5, sets = 1),
             ),
             zone,
             DayOfWeek.MONDAY,
         )
 
         val padding = grid.day(LocalDate.of(2026, 7, 27))
-        assertTrue(padding.volumeKg > grid.day(LocalDate.of(2026, 8, 5)).volumeKg)
+        assertTrue(padding.sessionIds.isNotEmpty())
         assertEquals(1f, padding.intensity, 0.0001f)
         assertTrue(grid.weeks.flatten().all { it.intensity in 0f..1f })
     }

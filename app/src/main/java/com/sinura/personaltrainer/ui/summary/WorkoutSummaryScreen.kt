@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -338,12 +339,8 @@ private fun LiftBreakdown(summary: WorkoutSummary, unit: WeightUnit) {
                 leading = { RecordMark(record = highlight.records.isNotEmpty()) },
             ) {
                 MetricCluster(value = highlight.workingSets.toString(), label = "sets")
-                MetricCluster(
-                    value = WeightConverter.formatGroupedNumber(
-                        WeightConverter.toDisplayValue(highlight.volumeKg, unit),
-                    ),
-                    label = unit.suffix,
-                )
+                val column = SetCopy.workColumn(highlight.work, unit)
+                MetricCluster(value = column.value, label = column.label)
             }
         }
     }
