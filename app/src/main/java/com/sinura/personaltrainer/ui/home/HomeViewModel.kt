@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.domain.WeeklySchedulePlan
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.workout.DiscardOutcome
 import com.sinura.personaltrainer.workout.StartDayOutcome
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +30,14 @@ data class HomeUiState(
     val heatSnapshot: BodyHeatSnapshot? = null,
     val recommendations: List<TrainingRecommendation> = emptyList(),
     val weekPlan: WeeklySchedulePlan? = null,
+    /**
+     * Days that already hold a finished session, so the week strip can mark them.
+     *
+     * Derived from the whole history rather than [recentSessions], which is capped at three for
+     * the stat row: a strip that only knew about the last three sessions would leave older days
+     * in the current week looking untrained.
+     */
+    val loggedEpochDays: Set<Long> = emptySet(),
     val error: String? = null,
 )
 
@@ -53,6 +62,10 @@ class HomeViewModel(application: Application) : AppViewModel(application) {
                 rec.id == "progression-ready" && insights.hints.isNotEmpty()
             },
             weekPlan = insights.weekPlan,
+            loggedEpochDays = insights.history
+                .filter { it.isFinished }
+                .map { todayEpochDay(it.date) }
+                .toSet(),
             error = error,
         )
     }.stateIn(

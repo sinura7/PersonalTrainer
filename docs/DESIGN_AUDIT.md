@@ -253,20 +253,24 @@ These apply to every screen.
 
 **Job:** “What do I do right now?” One answer.
 
-| ID | Issue | Priority |
-|---|---|---|
-| H-01 | Three ways to resume: primary button, rest card, **In progress** card. Same action three times | P1 |
-| H-02 | In-progress + rest card + “Resume workout” + weekly card start = CTA pile-up on a training day | P1 |
-| H-03 | Header title is the app name. Should be today: time of day, in-progress lift, or “Upper · 4 lifts” | P1 |
-| H-04 | “Units · kg” is Settings. Relabel to a gear or “Settings.” Unit change stays inside Settings | P1 |
-| H-05 | Quick actions (Routines / Library / History) duplicate the tab bar | P2 |
-| H-06 | Training balance is six unlabeled color dots. Not a body. Not convincing | P1 |
-| H-07 | “Ready to progress” empty state on a brand-new install is noise. Hide the section until there is history | P1 |
-| H-08 | Progress cards say “Tap to start a workout” and go to Start Workout, not a prefilled session for that lift | P2 |
-| H-09 | Weekly card copy can read like a placeholder (“starter week” / generate copy) | P2 |
-| H-10 | Recent activity duplicates History | P2 |
-| H-11 | Rest remaining card copy explains the notification. Once overlay exists, copy must match the real surface | P2 |
-| H-12 | Greeting + “Personal Trainer” + unit line is three lines of chrome before the workout | P2 |
+| ID | Issue | Priority | Status |
+|---|---|---|---|
+| H-01 | Three ways to resume: primary button, rest card, **In progress** card. Same action three times | P1 | ✅ 1A deleted the rest strip; 6b deleted the in-progress card. `LiveSessionBar` is the only one left |
+| H-02 | In-progress + rest card + “Resume workout” + weekly card start = CTA pile-up on a training day | P1 | ✅ 6b — Home carries one filled button, in the hero, and it never says Resume |
+| H-03 | Header title is the app name. Should be today: time of day, in-progress lift, or “Upper · 4 lifts” | P1 | ✅ 6b — `MastheadCopy.headline`, pure and tested. It states the **day**, never the live session: the bar owns live |
+| H-04 | “Units · kg” is Settings. Relabel to a gear or “Settings.” Unit change stays inside Settings | P1 | ✅ 6b — a bare gear in the masthead; the unit line is gone |
+| H-05 | Quick actions (Routines / Library / History) duplicate the tab bar | P2 | ⚠️ 6b — the grid is gone. Two tertiary links remain (This week → Plan, Training calendar → History); they are contextual handoffs from the section above them, not a menu, but they *are* still tab destinations |
+| H-06 | Training balance is six unlabeled color dots. Not a body. Not convincing | P1 | ✅ 6b — `TrainingBalanceCard` and the heat tile deleted. The body map is the Body tab's job |
+| H-07 | “Ready to progress” empty state on a brand-new install is noise. Hide the section until there is history | P1 | ✅ the section is composed only when it has rows |
+| H-08 | Progress cards say “Tap to start a workout” and go to Start Workout, not a prefilled session for that lift | P2 | ⚠️ 6b — a row now opens **that lift**, not a start screen. It still does not prefill a session for it |
+| H-09 | Weekly card copy can read like a placeholder (“starter week” / generate copy) | P2 | ✅ 4 — `ThisWeekCard` rewritten; the empty state makes “Suggest a week” the primary action instead of narrating one |
+| H-10 | Recent activity duplicates History | P2 | ✅ 6b — `RecentSection` deleted. The last session survives as two numerals in the stat row |
+| H-11 | Rest remaining card copy explains the notification. Once overlay exists, copy must match the real surface | P2 | ✅ 1A — `RestRemainingStrip` deleted outright |
+| H-12 | Greeting + “Personal Trainer” + unit line is three lines of chrome before the workout | P2 | ✅ 6b — replaced by a date kicker and the headline |
+
+Two rows above are marked ⚠️ rather than ✅ on purpose. H-05 and H-08 were both improved by
+6b without being closed, and recording them as delivered would hide the remaining half from
+whoever reads this table next.
 
 **Home target layout (designed, still simple):**
 

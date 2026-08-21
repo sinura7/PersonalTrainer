@@ -49,17 +49,21 @@ import com.sinura.personaltrainer.ui.theme.Surface3
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import com.sinura.personaltrainer.ui.workout.StartOptionsSheet
 
 @Composable
 fun ProgressScreen(
     onOpenLibrary: (String?) -> Unit,
     onOpenExercise: (String) -> Unit,
-    onStartWorkout: () -> Unit,
+    onWorkoutStarted: (String) -> Unit,
     onOpenRoutines: () -> Unit,
     viewModel: ProgressViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
+    // Body hosts the shared start sheet: its empty state and its coach cards both used to
+    // navigate to an interstitial screen whose only job was to ask what you meant.
+    var startOptionsOpen by rememberSaveable { mutableStateOf(false) }
     var bodyView by rememberSaveable { mutableStateOf(BodyView.FRONT) }
     var selectedName by rememberSaveable { mutableStateOf<String?>(null) }
     val selected = selectedName?.let { runCatching { CanonicalMuscle.valueOf(it) }.getOrNull() }
@@ -98,7 +102,7 @@ fun ProgressScreen(
                     title = "See what you trained",
                     body = "Weekly working sets light the map for the window you pick.",
                     actionLabel = "Start workout",
-                    onAction = onStartWorkout,
+                    onAction = { startOptionsOpen = true },
                     modifier = Modifier.padding(Metrics.gutter),
                 )
             }
@@ -159,7 +163,7 @@ fun ProgressScreen(
                                         recommendation = rec,
                                         onOpenLibrary = onOpenLibrary,
                                         onOpenExercise = onOpenExercise,
-                                        onStartWorkout = onStartWorkout,
+                                        onStartOptions = { startOptionsOpen = true },
                                         onOpenRoutines = onOpenRoutines,
                                         onOpenProgress = { selectedName = rec.actionMuscle?.name },
                                     )
@@ -202,6 +206,13 @@ fun ProgressScreen(
                 },
             )
         }
+    }
+
+    if (startOptionsOpen) {
+        StartOptionsSheet(
+            onDismiss = { startOptionsOpen = false },
+            onWorkoutStarted = onWorkoutStarted,
+        )
     }
 }
 

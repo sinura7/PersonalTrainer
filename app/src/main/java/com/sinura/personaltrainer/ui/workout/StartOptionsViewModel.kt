@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.OwnedLiftResolver
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.workout.DiscardOutcome
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -19,9 +20,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-private const val TAG = "PT/StartWorkoutVM"
+private const val TAG = "PT/StartOptionsVM"
 
-data class StartWorkoutUiState(
+data class StartOptionsUiState(
     val isLoading: Boolean = true,
     val inProgress: WorkoutSession? = null,
     val routines: List<Routine> = emptyList(),
@@ -31,7 +32,16 @@ data class StartWorkoutUiState(
     val error: String? = null,
 )
 
-class StartWorkoutViewModel(application: Application) : AppViewModel(application) {
+/**
+ * The start spine, now behind a sheet instead of a screen.
+ *
+ * Starting a workout used to cost a full-screen interstitial: you tapped Start on Home, a
+ * screen appeared, you tapped again. It also became a THIRD place that offered to resume a
+ * live session, alongside Home's hero and the notification. The logic here is unchanged — what
+ * changed is that it opens over the screen you were already on, so the common case (start
+ * today's plan) skips it entirely and everything else is one tap deeper rather than one screen.
+ */
+class StartOptionsViewModel(application: Application) : AppViewModel(application) {
     private val error = MutableStateFlow<String?>(null)
 
     private val suggestedLift: Flow<Pair<Exercise, String>?> =
@@ -48,13 +58,13 @@ class StartWorkoutViewModel(application: Application) : AppViewModel(application
                 emit(null)
             }
 
-    val uiState: StateFlow<StartWorkoutUiState> = combine(
+    val uiState: StateFlow<StartOptionsUiState> = combine(
         container.workoutRepository.observeInProgress(),
         container.routineRepository.observeAll(),
         suggestedLift,
         error,
     ) { inProgress, routines, suggested, err ->
-        StartWorkoutUiState(
+        StartOptionsUiState(
             isLoading = false,
             inProgress = inProgress,
             routines = routines,
@@ -65,7 +75,7 @@ class StartWorkoutViewModel(application: Application) : AppViewModel(application
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = StartWorkoutUiState(),
+        initialValue = StartOptionsUiState(),
     )
 
     /**
@@ -125,6 +135,22 @@ class StartWorkoutViewModel(application: Application) : AppViewModel(application
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "startSuggested failed", thrown)
                 error.value = "Could not start that session. Try again."
+            }
+        }
+    }
+
+    /**
+     * Discards the live session from inside the sheet.
+     *
+     * Routed through the shared use case so the rest timer stops and the draft is cleared —
+     * the sheet is not allowed its own idea of what discarding means.
+     */
+    fun discardInProgress() {
+        val live = uiState.value.inProgress ?: return
+        viewModelScope.launch {
+            when (val result = container.discardWorkout(live.id)) {
+                DiscardOutcome.Discarded -> error.value = null
+                is DiscardOutcome.Failed -> error.value = result.message
             }
         }
     }

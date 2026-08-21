@@ -22,6 +22,18 @@ Two passes, because the two real misses were different kinds of symbol:
             importing it is the same bug. This is a convention check, not a compiler —
             a symbol the project has never imported anywhere is invisible to it.
 
+  constant  Both passes above share one blind spot: they can only flag a name they have
+            seen somewhere. A name that resolves to *nothing* — declared in no file and
+            imported by none — is simply absent from both dictionaries and gets a free
+            pass. That is precisely what happens when a composable is lifted out of one
+            file into another and its `private val` dimensions are left behind: the new
+            file references TODAY_MARKER_WIDTH, no file declares it visibly, and the two
+            passes above see an unknown name rather than a broken one. This pass closes
+            it for SCREAMING_SNAKE_CASE names, which in this project are always top-level
+            or companion constants and never a receiver member or a bound parameter — so
+            "declared in no visible scope" means "will not compile", with no ambiguity to
+            trade off against. It cost a real compile break in WeekStrip.kt.
+
 Restrictions that keep it quiet enough to be worth running:
 
   private    A private top-level declaration is visible only inside its own file, so it
@@ -88,6 +100,48 @@ USE_RE = re.compile(r"(?<![.\w@$])([A-Za-z_]\w*)")
 # dictionary learns the name and then flags the first file that only ever calls the stdlib one.
 ALWAYS_IN_SCOPE = {"catch", "items", "size", "map"}
 
+# A project constant: SCREAMING_SNAKE with at least one underscore.
+CONSTANT_RE = re.compile(r"^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+$")
+
+# Two shapes of all-caps name are legitimately bare and must be subtracted first, or this
+# pass reports a dozen non-bugs for every real one:
+#
+#   enum entries    An entry is in scope un-qualified inside its own enum's body, which is
+#                   exactly where `when (this)` lives. LAST_30_DAYS and ESTIMATED_ONE_REP_MAX
+#                   are entries, not constants, and look identical from out here.
+#   inherited       A class extending something outside the project inherits that type's
+#                   constants — START_STICKY comes from android.app.Service. Nothing here can
+#                   enumerate a supertype it cannot read, so a file with a foreign supertype
+#                   opts out of this pass rather than guessing.
+ENUM_HEAD_RE = re.compile(r"\benum\s+class\s+\w+[^{]*\{")
+SUPERTYPE_RE = re.compile(r"^\s*(?:\w+\s+)*class\s+\w+(?:<[^>]*>)?\s*(?:\([^)]*\))?\s*:\s*([\w.]+)", re.M)
+ALLCAPS_RE = re.compile(r"\b[A-Z][A-Z0-9_]*\b")
+
+
+def enum_entry_names(body):
+    """All-caps names inside an enum body, which are in scope there without qualification."""
+    names = set()
+    for head in ENUM_HEAD_RE.finditer(body):
+        depth, i = 0, head.end() - 1
+        while i < len(body):
+            if body[i] == "{":
+                depth += 1
+            elif body[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    break
+            i += 1
+        names.update(ALLCAPS_RE.findall(body[head.end():i]))
+    return names
+
+
+def has_foreign_supertype(body, index):
+    """True when the file extends a type this project does not declare."""
+    return any(
+        supertype.rsplit(".", 1)[-1] not in index
+        for supertype in SUPERTYPE_RE.findall(body)
+    )
+
 # Kotlin keywords the usage regex would otherwise treat as identifiers.
 KEYWORDS = {
     "as", "break", "class", "continue", "do", "else", "false", "for", "fun", "if", "in",
@@ -153,7 +207,8 @@ def scan(files, index, external):
 
         body = strip_comments_and_strings(raw)
         body = DECL_LINE_RE.sub("", body)
-        local = bound_names(body)
+        local = bound_names(body) | enum_entry_names(body)
+        check_constants = not has_foreign_supertype(body, index)
         body = NAMED_ARG_RE.sub(" ", body)
 
         seen = set()
@@ -173,6 +228,13 @@ def scan(files, index, external):
             if candidates and not any(c.rsplit(".", 1)[0] in star_packages for c in candidates):
                 seen.add(name)
                 findings.append((path, name, sorted(candidates)))
+                continue
+            # Nothing anywhere declares or imports this name. Harmless for most shapes —
+            # the dictionaries are incomplete by construction — but a constant that
+            # resolves nowhere is a compile error, not a gap in this tool's knowledge.
+            if not candidates and check_constants and CONSTANT_RE.match(name) and not star_packages:
+                seen.add(name)
+                findings.append((path, name, ["declared in no visible scope"]))
     return findings
 
 

@@ -21,9 +21,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,8 +37,8 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
-import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.GroupedList
+import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -53,11 +53,12 @@ import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.theme.Surface3
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import com.sinura.personaltrainer.ui.workout.StartOptionsSheet
 import java.text.DateFormat
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.LocalDate
 import java.util.Date
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -65,7 +66,7 @@ import java.util.Date
 fun HistoryScreen(
     onOpenSession: (String) -> Unit,
     onOpenExercise: (String) -> Unit,
-    onStartWorkout: () -> Unit,
+    onWorkoutStarted: (String) -> Unit,
     onOpenActiveSession: (String) -> Unit,
     viewModel: HistoryViewModel = viewModel(),
 ) {
@@ -78,6 +79,9 @@ fun HistoryScreen(
     val today = remember { LocalDate.now() }
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedDayEpoch by rememberSaveable { mutableStateOf<Long?>(null) }
+    // The third host of the shared start sheet: History's empty state used to navigate to the
+    // interstitial, which no longer exists.
+    var startOptionsOpen by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(navigateToSession) {
         val target = navigateToSession ?: return@LaunchedEffect
@@ -114,7 +118,7 @@ fun HistoryScreen(
                         title = "No sessions yet",
                         body = "Finish a workout and it lands here.",
                         actionLabel = "Start workout",
-                        onAction = onStartWorkout,
+                        onAction = { startOptionsOpen = true },
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(Metrics.gutter),
@@ -244,6 +248,13 @@ fun HistoryScreen(
                 onDismiss = { selectedDayEpoch = null },
             )
         }
+    }
+
+    if (startOptionsOpen) {
+        StartOptionsSheet(
+            onDismiss = { startOptionsOpen = false },
+            onWorkoutStarted = onOpenActiveSession,
+        )
     }
 
     if (blockedRepeat != null) {

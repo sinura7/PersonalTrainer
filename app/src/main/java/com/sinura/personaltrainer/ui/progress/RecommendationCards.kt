@@ -75,7 +75,8 @@ fun dispatchRecommendation(
     recommendation: TrainingRecommendation,
     onOpenLibrary: (String?) -> Unit,
     onOpenExercise: (String) -> Unit,
-    onStartWorkout: () -> Unit,
+    /** Opens the start-options sheet. The interstitial it used to navigate to is gone. */
+    onStartOptions: () -> Unit,
     onOpenRoutines: () -> Unit,
     onOpenProgress: () -> Unit,
 ) {
@@ -86,7 +87,7 @@ fun dispatchRecommendation(
         // undo the whole point of naming it.
         RecommendationAction.OPEN_EXERCISE ->
             recommendation.actionExerciseId?.let(onOpenExercise) ?: onOpenProgress()
-        RecommendationAction.START_WORKOUT -> onStartWorkout()
+        RecommendationAction.START_WORKOUT -> onStartOptions()
         RecommendationAction.OPEN_ROUTINES -> onOpenRoutines()
         RecommendationAction.OPEN_BODY_MAP -> onOpenProgress()
         null -> onOpenProgress()

@@ -148,6 +148,7 @@ Plus:
 
 - **LiveSessionBar** — one persistent bar above the nav bar whenever a session is in progress (lift, set count, rest countdown; tap = return). Deletes the three hand-rolled Resume buttons, unlocks every screen during a session, and makes the "leave workout?" dialog unnecessary (back just leaves; discard moves to an overflow with its existing confirm).
 - **One start spine** — the hero starts today's plan directly; "other options" opens a sheet (today preselected → routines by last-done → free workout last). `Route.StartWorkout` as an interstitial disappears. A stale session always offers "Discard current session…" next to Resume, right where it blocks.
+  **Delivered in Phase 6b.** `StartOptionsSheet` replaces `StartWorkoutScreen`, and `Route.StartWorkout` is deleted — declaration, composable and every caller. The hero starts today's plan in one tap and opens the sheet only when there is a question to ask: a rest day, an empty week, or a session already running. The sheet's order is today → the coach's suggestion → routines → free workout, and when a session is live it shows "Go to session" and "Discard it" instead of any start. Home, Progress and History all open the same sheet, so there is one spine rather than three.
 - **Mid-workout swap/remove** — overflow on the current lift header; `WorkoutRepository.removeExerciseFromSession` already exists with no UI caller.
 - **Confirm destruction, never completion** — Finish executes immediately (dialog deleted, Finish also pinned in the top bar); delete-set becomes immediate + snackbar Undo; sheets host tasks, alerts only confirm (routine picker dialog → sheet).
 
@@ -178,6 +179,15 @@ The redesign was implemented on this branch in the order set out in §7. Directi
 **Delivered:** the two §2 defects; a dark-only theme with every Material colour role mapped explicitly; bundled Space Grotesk and Inter with real tabular figures; token files for colour, type, shape, spacing, motion and haptics; a rebuilt component library (grouped lists, metric clusters, stat tiles, instrument chips, the three banner tones, the rest ring, the merged set-entry panel, both chart kinds); and every screen migrated onto it. Design-token violations went from 22 to zero.
 
 **Not delivered, and why.** Exercise imagery and the equipment field it needs belong with the Phase 4 schema change — the picker and library rows now reserve the leading slot for them, so they land without another layout pass. Mid-workout swap/remove, delete-set undo, and routine-editor autosave all need ViewModel or repository work that was deliberately out of scope for a design pass; the repository method for the first of them (`removeExerciseFromSession`) already exists with no caller. The three-tab IA consolidation in §6 and the persistent live-session bar are the largest remaining items: they change navigation structure rather than presentation, and the plumbing they touch is load-bearing enough to deserve their own change.
+
+**Amended after Phases 1–6b.** That paragraph has largely been overtaken, and leaving it as
+written would misreport the app. Delivered since: the live-session bar (1A); mid-workout
+swap/remove and delete-set undo (1B and 5); routine-editor autosave, which now writes the
+name and notes on exit rather than asking (`persistDetailsOnExit`); the equipment field and
+the schema behind imagery (3); and the IA consolidation itself (6a/6b) — though as **four**
+tabs, not three, per the signed D1 adjudication: Home · Body · Plan · History, with Library
+demoted to a pushed route. The only item on that list still outstanding is exercise imagery
+(Phase 8, optional); the leading slot in the picker and library rows is still reserved for it.
 
 **How it was verified.** This work was done in an environment with no Android SDK and no route to Google's Maven, so **no compiler ever saw this code and no screen was ever rendered.** That is the single most important caveat on everything above, and it was compensated for rather than ignored:
 

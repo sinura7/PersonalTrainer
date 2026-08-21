@@ -1,81 +1,68 @@
 package com.sinura.personaltrainer.ui.home
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.sinura.personaltrainer.domain.BodyHeatSnapshot
-import com.sinura.personaltrainer.domain.CanonicalMuscle
+import com.sinura.personaltrainer.domain.MastheadCopy
 import com.sinura.personaltrainer.domain.ProgressionHint
-import com.sinura.personaltrainer.domain.SessionFocusKind
+import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
-import com.sinura.personaltrainer.domain.todayEpochDay
-import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.domain.nextSessionReason
 import com.sinura.personaltrainer.domain.toWeightLabel
-import com.sinura.personaltrainer.ui.components.EmptyState
+import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
-import com.sinura.personaltrainer.ui.components.ResumeOrDiscardDialog
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
+import com.sinura.personaltrainer.ui.components.ResumeOrDiscardDialog
 import com.sinura.personaltrainer.ui.components.ScreenLoading
-import com.sinura.personaltrainer.ui.components.SessionLogRow
 import com.sinura.personaltrainer.ui.components.StatTile
-import com.sinura.personaltrainer.ui.progress.dispatchRecommendation
+import com.sinura.personaltrainer.ui.components.WeekStrip
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
-import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
-import com.sinura.personaltrainer.ui.theme.heatColor
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
-import java.text.DateFormat
+import com.sinura.personaltrainer.ui.workout.StartOptionsSheet
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.util.Date
 
 @Composable
 fun HomeScreen(
-    onStartWorkout: () -> Unit,
     onResumeWorkout: (String) -> Unit,
-    onOpenRoutines: () -> Unit,
-    onOpenHistory: () -> Unit,
-    onOpenProgress: () -> Unit,
     onOpenPlan: () -> Unit,
-    onOpenLibraryMuscle: (String?) -> Unit,
+    onOpenHistory: () -> Unit,
     onOpenExercise: (String) -> Unit,
-    onOpenSession: (String) -> Unit,
     onOpenSettings: () -> Unit,
     viewModel: HomeViewModel = viewModel(),
 ) {
@@ -88,8 +75,9 @@ fun HomeScreen(
     }
     val blocked by viewModel.blockedByInProgress.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
-    val dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM)
     val inProgress = state.inProgress
+    // Home owns the sheet's visibility now that there is no interstitial to navigate to.
+    var startOptionsOpen by rememberSaveable { mutableStateOf(false) }
 
     // Starting a planned day while another session is live is a question, not something the
     // app answers on the user's behalf. Composed before the loading return so it survives a
@@ -110,6 +98,12 @@ fun HomeScreen(
     val today = todayEpochDay()
     val plan = state.weekPlan
     val todayDay = plan?.dayOn(today)
+    // Read from the full logged-day set, not the three-session stat feed: a fourth session
+    // today would otherwise push today's own entry out of the window the masthead reads.
+    val loggedToday = today in state.loggedEpochDays
+    val liftCount = todayDay?.routineId?.let { routineId ->
+        state.routines.firstOrNull { it.id == routineId }?.exercises?.size
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -125,7 +119,14 @@ fun HomeScreen(
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
                 HomeMasthead(
                     epochDay = today,
-                    headline = todayHeadline(day = todayDay, inProgress = inProgress != null),
+                    // The masthead describes the DAY, never the session. The live bar owns
+                    // live, and a masthead that switched to narrating the workout would be a
+                    // second answer to "where is my workout" on the screen that had three.
+                    headline = MastheadCopy.headline(
+                        day = todayDay,
+                        loggedToday = loggedToday,
+                        liftCount = liftCount,
+                    ),
                     onOpenSettings = onOpenSettings,
                 )
                 HomeStatRow(
@@ -141,49 +142,59 @@ fun HomeScreen(
             }
         }
         item {
-            // The hero carries Home's only filled button, and it never says Resume: while a
-            // session is live the LiveSessionBar is the only surface that returns to it.
-            // Home used to answer "where is my workout" three ways — this card, the rest
-            // strip, and the hero's own relabelling — none of which existed off this screen.
-            ThisWeekCard(
-                day = todayDay,
-                nextDay = plan?.nextTrainingOnOrAfter(today),
-                loggedToday = state.recentSessions.any { session ->
-                    todayEpochDay(session.date) == today
-                },
-                onOpenPlan = onOpenPlan,
-                onSuggestWeek = {
-                    viewModel.requestWeekSuggestion()
-                    onOpenPlan()
-                },
-                onPrimary = {
-                    val target = todayDay?.takeUnless { it.isRest }
-                    when {
-                        // The start screen states the block explicitly rather than silently
-                        // resuming; the bar is how you get back to a running session.
-                        inProgress != null -> onStartWorkout()
-                        target != null -> viewModel.startSuggestedDay(target)
-                        else -> onStartWorkout()
-                    }
-                },
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                // The hero carries Home's only filled button, and it never says Resume: while
+                // a session is live the LiveSessionBar is the only surface that returns to it.
+                ThisWeekCard(
+                    day = todayDay,
+                    nextDay = plan?.nextTrainingOnOrAfter(today),
+                    loggedToday = loggedToday,
+                    onSuggestWeek = {
+                        viewModel.requestWeekSuggestion()
+                        onOpenPlan()
+                    },
+                    onPrimary = {
+                        val target = todayDay?.takeUnless { it.isRest }
+                        // One tap starts today's plan. Everything else — a rest day, an empty
+                        // week, a session already running — is a question, and the sheet is
+                        // where questions get asked.
+                        when {
+                            inProgress != null || target == null -> startOptionsOpen = true
+                            else -> viewModel.startSuggestedDay(target)
+                        }
+                    },
+                )
+                // The card body no longer navigates. A whole-card tap that went to the plan,
+                // with a filled Start inside it, was a mis-tap trap on the most-pressed
+                // control in the app.
+                LinkRow(label = "This week", onClick = onOpenPlan)
+            }
+        }
+        if (plan != null) {
+            item {
+                // The same composable Plan renders, fed from the same derived week — not a
+                // Home-only variant that agrees by convention until one of them changes.
+                WeekStrip(
+                    days = plan.days,
+                    proposals = emptyMap(),
+                    loggedEpochDays = state.loggedEpochDays,
+                    today = today,
+                    onOpenDay = { onOpenPlan() },
+                )
+            }
         }
         item {
-            TrainingBalanceCard(
-                hasWork = state.heatSnapshot?.hasAnyWorkingSets == true,
-                recommendations = state.recommendations.take(1),
-                onOpenProgress = onOpenProgress,
-                onRecommendation = { rec ->
-                    dispatchRecommendation(
-                        recommendation = rec,
-                        onOpenLibrary = onOpenLibraryMuscle,
-                        onOpenExercise = onOpenExercise,
-                        onStartWorkout = onStartWorkout,
-                        onOpenRoutines = onOpenRoutines,
-                        onOpenProgress = onOpenProgress,
-                    )
+            NextSessionCard(
+                day = todayDay,
+                routine = todayDay?.routineId?.let { id -> state.routines.firstOrNull { it.id == id } },
+                reason = nextSessionReason(todayDay, state.recommendations),
+                onClick = {
+                    val target = todayDay?.takeUnless { it.isRest }
+                    when {
+                        inProgress != null || target == null -> startOptionsOpen = true
+                        else -> viewModel.startSuggestedDay(target)
+                    }
                 },
-                snapshotHighlights = state.heatSnapshot,
             )
         }
         if (state.readyToProgress.isNotEmpty()) {
@@ -191,18 +202,37 @@ fun HomeScreen(
                 ReadyToProgressSection(
                     hints = state.readyToProgress,
                     unit = unit,
-                    onStartWorkout = onStartWorkout,
+                    onOpenExercise = onOpenExercise,
                 )
             }
         }
         item {
-            RecentSection(
-                sessions = state.recentSessions,
-                dateFormat = dateFormat,
-                onOpenHistory = onOpenHistory,
-                onOpenSession = onOpenSession,
-            )
+            LinkRow(label = "Training calendar", onClick = onOpenHistory)
         }
+    }
+
+    if (startOptionsOpen) {
+        StartOptionsSheet(
+            onDismiss = { startOptionsOpen = false },
+            onWorkoutStarted = onResumeWorkout,
+            todayDay = todayDay,
+            onStartToday = todayDay?.takeUnless { it.isRest }?.let { target ->
+                { viewModel.startSuggestedDay(target) }
+            },
+        )
+    }
+}
+
+/**
+ * A tertiary row that goes somewhere.
+ *
+ * Deliberately quiet: these are the two places Home hands off to another tab, and neither
+ * competes with the hero for the eye.
+ */
+@Composable
+private fun LinkRow(label: String, onClick: () -> Unit) {
+    TextButton(onClick = onClick, contentPadding = PaddingValues(0.dp)) {
+        Text("$label  \u203a", style = InstrumentType.bodyStrong, color = TextSecondary)
     }
 }
 
@@ -292,7 +322,7 @@ private fun HomeStatRow(
 private fun ReadyToProgressSection(
     hints: List<ProgressionHint>,
     unit: WeightUnit,
-    onStartWorkout: () -> Unit,
+    onOpenExercise: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
         GymSectionHeader("Ready to progress")
@@ -302,7 +332,9 @@ private fun ReadyToProgressSection(
                 InstrumentRow(
                     title = hint.exerciseName,
                     subtitle = "Top set ${hint.lastWeightKg.toWeightLabel(unit)} × ${hint.lastReps}",
-                    onClick = onStartWorkout,
+                    // The lift, not a start screen. A row that names a lift and opens a menu
+                    // was asking the user to find it again themselves.
+                    onClick = { onOpenExercise(hint.exerciseId) },
                 ) {
                     MetricCluster(
                         value = WeightConverter.formatDisplayNumber(
@@ -317,157 +349,51 @@ private fun ReadyToProgressSection(
     }
 }
 
-@Composable
-private fun RecentSection(
-    sessions: List<WorkoutSession>,
-    dateFormat: DateFormat,
-    onOpenHistory: () -> Unit,
-    onOpenSession: (String) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
-        GymSectionHeader(
-            title = "Recent",
-            // Kept, unlike the other section actions: the rows below open one session each,
-            // the action opens the whole history — two destinations, not one twice.
-            actionLabel = if (sessions.isNotEmpty()) "History" else null,
-            onAction = if (sessions.isNotEmpty()) onOpenHistory else null,
-        )
-        if (sessions.isEmpty()) {
-            EmptyState(
-                title = "No sessions yet",
-                body = "Finish a workout and it lands here.",
-                compact = true,
-            )
-        } else {
-            GroupedList {
-                sessions.forEachIndexed { index, session ->
-                    if (index > 0) HairlineDivider()
-                    SessionLogRow(
-                        title = session.routineName ?: "Workout",
-                        dateLabel = dateFormat.format(Date(session.date)),
-                        workingSets = session.sets.count { !it.isWarmup },
-                        volumeKg = session.workingVolumeKg(),
-                        durationMinutes = session.durationMinutes,
-                        onClick = { onOpenSession(session.id) },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TrainingBalanceCard(
-    hasWork: Boolean,
-    recommendations: List<TrainingRecommendation>,
-    onOpenProgress: () -> Unit,
-    onRecommendation: (TrainingRecommendation) -> Unit,
-    snapshotHighlights: BodyHeatSnapshot?,
-) {
-    val highlights = listOf(
-        CanonicalMuscle.CHEST,
-        CanonicalMuscle.BACK,
-        CanonicalMuscle.SHOULDERS,
-        CanonicalMuscle.QUADRICEPS,
-        CanonicalMuscle.HAMSTRINGS,
-        CanonicalMuscle.CORE,
-    )
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
-        // No header action: the card underneath already navigates to the body map, and a
-        // section header that repeats its own card's tap is one affordance drawn twice.
-        GymSectionHeader("Training")
-        GymCard(onClick = onOpenProgress) {
-            if (!hasWork) {
-                Text(
-                    "Finish a few sessions to see which muscles are loaded.",
-                    style = InstrumentType.body,
-                    color = TextSecondary,
-                )
-            } else {
-                Kicker(snapshotHighlights?.window?.label ?: "This week")
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
-                ) {
-                    highlights.forEach { muscle ->
-                        val load = snapshotHighlights?.load(muscle)
-                        MuscleHeatTile(
-                            label = muscle.shortLabel,
-                            workingSets = load?.workingSets ?: 0,
-                            heat = load?.heat ?: 0.0,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
-            }
-        }
-        recommendations.firstOrNull()?.let { rec ->
-            GymCard(onClick = { onRecommendation(rec) }) {
-                Text(
-                    rec.title,
-                    style = InstrumentType.title,
-                    color = TextPrimary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    rec.reason,
-                    style = InstrumentType.caption,
-                    color = TextSecondary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-    }
-}
-
 /**
- * One muscle's share of the last window: a heat bar, its working-set count, its name.
+ * What today's session actually is, in one card.
  *
- * These were six 16dp dots with nothing but a label — the app's only instrument moment,
- * drawn at the size of a chart legend and carrying no number at all. The fill comes from
- * [heatColor], the same ramp as the body map and the calendar.
+ * Home used to carry two recommendation slots — a heat card with a suggestion inside it, and
+ * a second list beneath — which is two answers to one question, competing for the same tap.
+ * This is the one: the focus, the lifts it holds, and a single line saying why it is worth
+ * doing. Tapping it does what the hero does, because it is describing the same session.
  */
 @Composable
-private fun MuscleHeatTile(
-    label: String,
-    workingSets: Int,
-    heat: Double,
-    modifier: Modifier = Modifier,
+private fun NextSessionCard(
+    day: SuggestedTrainingDay?,
+    routine: Routine?,
+    reason: String?,
+    onClick: () -> Unit,
 ) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Metrics.space1),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(HEAT_TILE_HEIGHT)
-                .clip(RoundedCornerShape(Radius.xs))
-                .background(heatColor(heat)),
-        )
+    GymCard(onClick = onClick) {
+        Kicker("Next session")
         Text(
-            workingSets.toString(),
-            style = InstrumentType.numeralSm,
-            color = if (workingSets > 0) TextPrimary else TextTertiary,
+            when {
+                day == null -> "Nothing planned"
+                day.isRest -> "Rest day"
+                else -> day.routineName ?: day.focusTitle
+            },
+            style = InstrumentType.title,
+            color = TextPrimary,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
-        Kicker(label, color = TextTertiary)
+        val lifts = routine?.exercises.orEmpty().take(LIFTS_PREVIEWED)
+        if (lifts.isNotEmpty()) {
+            Text(
+                lifts.joinToString(" · ") { it.exercise.name },
+                style = InstrumentType.body,
+                color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (reason != null) {
+            Text(reason, style = InstrumentType.caption, color = TextTertiary)
+        }
     }
-}
-
-/** Today's answer, in the fewest words that still name the session. */
-private fun todayHeadline(day: SuggestedTrainingDay?, inProgress: Boolean): String = when {
-    inProgress -> "Workout in progress"
-    day == null -> "Ready to train"
-    day.isRest -> "Rest day"
-    day.focusKind == SessionFocusKind.RECOVERY -> "Recovery day"
-    else -> "${day.focusKind.label.lowercase().replaceFirstChar { it.titlecase() }} day"
 }
 
 // The separator is quoted: everything outside quotes in a pattern is a format field.
 private const val DATE_LINE_PATTERN = "EEEE '·' d MMM"
 private const val NO_VALUE = "—"
-private val HEAT_TILE_HEIGHT = 28.dp
+private const val LIFTS_PREVIEWED = 3

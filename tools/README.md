@@ -60,8 +60,21 @@ are excluded (they are file-scoped, so no other file could have imported them); 
 source set is indexed separately from main (main cannot see test, and a test helper named
 `session` would otherwise indict every `session` lambda parameter in the app); and names being
 *introduced* — declarations, value parameters, lambda parameters, named arguments — are never
-counted as references. Three names are suppressed outright in `ALWAYS_IN_SCOPE`, each because
+counted as references. Four names are suppressed outright in `ALWAYS_IN_SCOPE`, each because
 the project genuinely imports it somewhere and genuinely uses it un-imported elsewhere.
+
+A third pass covers what the first two structurally cannot. Both work from dictionaries of
+names seen elsewhere, so a name that resolves to *nothing at all* is absent from both and
+passes silently. That is what happens when a composable is lifted into a new file and its
+`private val` dimensions stay behind: the new file references `TODAY_MARKER_WIDTH`, no file
+declares it visibly, and an unknown name looks the same as a fine one. For
+SCREAMING_SNAKE_CASE names — always constants in this project, never a receiver member or a
+bound parameter — "declared in no visible scope" therefore means "will not compile". Two
+subtractions keep it honest: an enum entry is in scope un-qualified inside its own enum's
+body (`LAST_30_DAYS` is an entry, not a constant), and a class extending a type from outside
+the project inherits constants nothing here can enumerate (`START_STICKY` comes from
+`android.app.Service`), so such a file opts out. Without those, the pass reported fifteen
+non-bugs alongside its three real ones.
 
 ## `check-unused-imports.py`
 
@@ -73,6 +86,28 @@ python3 tools/check-unused-imports.py app/src/main/java
 
 Deliberately conservative: under-reporting is the safe direction for output you act on by
 deleting lines, so a name that also exists as a member of an unrelated type counts as used.
+
+## `check-state-members.py`
+
+Checks every `state.foo` read against the properties its screen's `UiState` actually
+declares.
+
+```bash
+python3 tools/check-state-members.py app/src/main/java
+```
+
+Member access was the one error class nothing else here could see: `check-missing-imports.py`
+skips dotted names deliberately, because they are resolved by a receiver rather than an
+import. So a screen could read a field its state class never had, pass all eight other checks,
+and fail in Android Studio — which is exactly what Phase 6b did with `state.loggedEpochDays`
+on a `HomeUiState` that did not have it.
+
+Resolving the receiver without a type checker works only because the project is rigidly
+consistent about two things: a screen's collected state is always the local `state`, and a
+view model always declares `val uiState: StateFlow<SomethingUiState>`. The screen names the
+view model, the view model names the state type. A file mentioning no view model or several is
+skipped rather than guessed at, and the four members every data class gets for free (`copy`,
+`equals`, `hashCode`, `toString`) are never reported.
 
 ## `syntax-check.sh`
 
@@ -98,12 +133,12 @@ blanking whole string literals hid the only use of several others.
 ## preflight.sh
 
 `tools/preflight.sh` is the mechanical half of every game-plan phase's definition of done:
-run it before every push. It chains the eight static checks above and then the domain
+run it before every push. It chains the nine static checks above and then the domain
 suite, exiting non-zero on the first failure.
 
 Three of the checks (`check-named-args`, `check-when-exhaustive`, `check-unused-imports`)
 and `syntax-check.sh` always exit 0, so preflight judges them on their summary line rather
-than their status; the other four exit by finding-count and are judged on that.
+than their status; the other five exit by finding-count and are judged on that.
 
 The domain tests need a directory of seven jars (see `run-domain-tests.sh`'s header). If
 `$PT_JARS` / `build/test-jars` is absent, preflight assembles it by symlinking jars found in

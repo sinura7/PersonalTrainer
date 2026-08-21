@@ -52,7 +52,7 @@ In Android Studio: right-click `app/src/test` → **Run 'Tests'**. From the term
 These are plain JVM tests — no emulator, a few seconds. Run them before every commit; CI
 runs them again on push.
 
-Run everything mechanical with one command — the eight static checks plus the domain
+Run everything mechanical with one command — the nine static checks plus the domain
 suite, which is what every game-plan phase gates on:
 
 ```bash
@@ -70,20 +70,31 @@ python3 tools/check-internal-imports.py app/src/main/java  # in-project names ac
 python3 tools/check-missing-imports.py                     # names used but never imported
 python3 tools/check-design-tokens.py app/src/main/java     # no raw colours/radii/elevation
 python3 tools/check-screen-wiring.py app/src/main/java     # every callback is actually called
+python3 tools/check-state-members.py app/src/main/java     # state.foo exists on that UiState
 tools/syntax-check.sh app/src/main/java                    # parse-level diagnostics only
 ```
 
 Each targets an error class that survives a parse-only check and still breaks the build or
 the product: a call site passing a parameter the function no longer has, a `when` that lost
 its exhaustiveness, a name that was never declared, a name that was used but never imported,
-a colour that escaped the token layer, and a screen that quietly stopped calling one of its
-callbacks. See [tools/README.md](../tools/README.md).
+a colour that escaped the token layer, a screen that quietly stopped calling one of its
+callbacks, and a screen reading a state field its view model never exposed. See
+[tools/README.md](../tools/README.md).
 
-`check-missing-imports.py` is the newest and was written from a real miss: `Surface1` shipped
-un-imported in `ExerciseDetailScreen`, and before it `LaunchedEffect` in `HomeScreen` and
-`ScheduleScreen`. Both were caught by a human opening Android Studio, which is precisely the
-loop these checks exist to shorten. It takes both source roots at once, so it needs no
-argument.
+Every one of these was written from a real miss, because a check nobody has watched fail is a
+check nobody knows works. `check-missing-imports.py` came from `Surface1` shipping un-imported
+in `ExerciseDetailScreen`, and before it `LaunchedEffect` in `HomeScreen` and `ScheduleScreen`.
+It takes both source roots at once, so it needs no argument.
+
+`check-state-members.py` is the newest, from Phase 6b: Home's new week strip read
+`state.loggedEpochDays` and `HomeUiState` had no such property. Member access was the one error
+class nothing here could see — `check-missing-imports.py` skips dotted names on purpose, since
+they are resolved by a receiver rather than an import. It is checkable at all only because the
+project is consistent about two things: a screen's collected state is always called `state`,
+and a view model always declares `val uiState: StateFlow<SomethingUiState>`. The same phase
+also taught `check-missing-imports.py` to flag a SCREAMING_SNAKE constant that resolves
+nowhere, after lifting two composables into new files left their `private val` dimensions
+behind in the old ones — three constants that would each have failed the build.
 
 On a machine with no Android SDK, `tools/run-domain-tests.sh` runs the domain suite on a
 plain JVM, which is possible only because `domain/` is pure Kotlin. Point it at a directory

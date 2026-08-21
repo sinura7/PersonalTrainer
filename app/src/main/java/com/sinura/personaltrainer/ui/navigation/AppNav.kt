@@ -83,13 +83,11 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.workout.ActiveWorkoutScreen
-import com.sinura.personaltrainer.ui.workout.StartWorkoutScreen
 
 sealed class Route(val path: String) {
     data object Home : Route("home")
     data object Routines : Route("routines")
     data object History : Route("history")
-    data object StartWorkout : Route("startWorkout")
     data object RoutineEditor : Route("routine/{routineId}") {
         fun create(routineId: String): String = "routine/$routineId"
     }
@@ -156,7 +154,10 @@ private val ScreenExit: ExitTransition = fadeOut(tween(Motion.TAP, easing = Moti
 private val LIVE_BAR_HIDDEN_ROUTES = setOf(
     Route.ActiveWorkout.path,
     Route.WorkoutSummary.path,
-    Route.StartWorkout.path,
+    // The start interstitial that used to be listed here is gone (amends Phase 1a's settled
+    // decision 2). Its replacement, StartOptionsSheet, is a MODAL surface the user deliberately
+    // opened, not ambient chrome — so the bar staying visible behind it is still exactly one
+    // live-session affordance, and the sheet itself shows "Go to session" rather than any start.
 )
 
 @Composable
@@ -292,24 +293,16 @@ fun PersonalTrainerNav(
             ) {
                 composable(Route.Home.path) {
                     HomeScreen(
-                        onStartWorkout = { navController.navigate(Route.StartWorkout.path) },
                         onResumeWorkout = { sessionId ->
                             navController.navigate(Route.ActiveWorkout.create(sessionId)) {
                                 launchSingleTop = true
                             }
                         },
-                        onOpenRoutines = { goToTab(Route.Routines.path) },
-                        onOpenHistory = { goToTab(Route.History.path) },
-                        onOpenProgress = { goToTab(Route.Progress.path) },
                         onOpenPlan = { goToTab(Route.Routines.path) },
-                        // A plain push now that Library is not a tab. The old version was a tab
-                        // navigation with restoreState turned off — a hack that existed only to
-                        // stop a filtered jump landing on the previous, unfiltered scroll state.
-                        onOpenLibraryMuscle = { muscle ->
-                            navController.navigate(Route.Library.create(muscle))
-                        },
+                        // History's calendar is the first thing on that tab, so arriving on the
+                        // tab IS arriving at the calendar — no route parameter, no scroll effect.
+                        onOpenHistory = { goToTab(Route.History.path) },
                         onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
-                        onOpenSession = { navController.navigate(Route.SessionDetail.create(it)) },
                         onOpenSettings = { navController.navigate(Route.Settings.path) },
                     )
                 }
@@ -317,7 +310,11 @@ fun PersonalTrainerNav(
                     ProgressScreen(
                         onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
                         onOpenLibrary = { muscle -> navController.navigate(Route.Library.create(muscle)) },
-                        onStartWorkout = { navController.navigate(Route.StartWorkout.path) },
+                        onWorkoutStarted = { sessionId ->
+                            navController.navigate(Route.ActiveWorkout.create(sessionId)) {
+                                launchSingleTop = true
+                            }
+                        },
                         onOpenRoutines = { goToTab(Route.Routines.path) },
                     )
                 }
@@ -363,21 +360,14 @@ fun PersonalTrainerNav(
                     HistoryScreen(
                         onOpenSession = { navController.navigate(Route.SessionDetail.create(it)) },
                         onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
-                        onStartWorkout = { navController.navigate(Route.StartWorkout.path) },
-                        onOpenActiveSession = { sessionId ->
+                        onWorkoutStarted = { sessionId ->
                             navController.navigate(Route.ActiveWorkout.create(sessionId)) {
                                 launchSingleTop = true
                             }
                         },
-                    )
-                }
-                composable(Route.StartWorkout.path) {
-                    StartWorkoutScreen(
-                        onBack = { navController.popBackStack() },
-                        onWorkoutStarted = { sessionId ->
+                        onOpenActiveSession = { sessionId ->
                             navController.navigate(Route.ActiveWorkout.create(sessionId)) {
                                 launchSingleTop = true
-                                popUpTo(Route.StartWorkout.path) { inclusive = true }
                             }
                         },
                     )
