@@ -69,7 +69,7 @@ class BlockReviewTest {
     @Test
     fun aLiftThatGotHeavierIsAMover() {
         val early = workout("a", dayMs(0), sets = listOf(100.0 to 5))
-        val late = workout("b", dayMs(8), sets = listOf(120.0 to 5))
+        val late = workout("b", dayMs(11), sets = listOf(120.0 to 5))
         val review = BlockReviewBuilder.build(block, listOf(early, late), WeightUnit.KG, zone)
         val mover = review.movers.single()
         assertEquals("Squat", mover.exerciseName)
@@ -83,7 +83,7 @@ class BlockReviewTest {
         // Eight pull-ups to fifteen is progress, and it used to be invisible to everything that
         // measured in kilograms.
         val early = workout("a", dayMs(0), "ex-pu", "Pull-Up", LoadType.BODYWEIGHT, listOf(0.0 to 8))
-        val late = workout("b", dayMs(8), "ex-pu", "Pull-Up", LoadType.BODYWEIGHT, listOf(0.0 to 15))
+        val late = workout("b", dayMs(11), "ex-pu", "Pull-Up", LoadType.BODYWEIGHT, listOf(0.0 to 15))
         val review = BlockReviewBuilder.build(block, listOf(early, late), WeightUnit.KG, zone)
         val mover = review.movers.single()
         assertEquals("8 reps", mover.fromLabel)
@@ -97,16 +97,55 @@ class BlockReviewTest {
     }
 
     @Test
+    fun aLiftHasToAppearAtBothEndsToBeJudged() {
+        // Trained hard in the middle and never again is not a direction. Neither is a lift
+        // picked up in week eleven, which has nothing to be compared against.
+        val middleOnly = listOf(
+            workout("a", dayMs(5), sets = listOf(100.0 to 5)),
+            workout("b", dayMs(6), sets = listOf(140.0 to 5)),
+        )
+        assertTrue(BlockReviewBuilder.build(block, middleOnly, WeightUnit.KG, zone).movers.isEmpty())
+    }
+
+    @Test
+    fun oneBadDayAtEitherEndDoesNotDecideTheAnswer() {
+        // The reason this is a window and not the first session against the last. Week one has
+        // a bad day and a good one; judging on the bad day alone would invent a gain that the
+        // fortnight either side says is not there.
+        val sessions = listOf(
+            workout("w1a", dayMs(0), sets = listOf(60.0 to 5)),
+            workout("w2a", dayMs(1), sets = listOf(120.0 to 5)),
+            workout("w11", dayMs(10), sets = listOf(120.0 to 5)),
+            workout("w12", dayMs(11), sets = listOf(122.5 to 5)),
+        )
+        val movers = BlockReviewBuilder.build(block, sessions, WeightUnit.KG, zone).movers
+        // 120 -> 122.5, not 60 -> 122.5: a real but modest gain rather than a doubling.
+        assertEquals(1, movers.size)
+        assertTrue("gain was ${movers.single().gain}", movers.single().gain < 0.05)
+    }
+
+    @Test
+    fun shortBlocksNarrowTheWindowRatherThanLettingItMeetInTheMiddle() {
+        assertEquals(2, BlockReviewBuilder.comparisonWeeks(12))
+        assertEquals(2, BlockReviewBuilder.comparisonWeeks(8))
+        assertEquals(1, BlockReviewBuilder.comparisonWeeks(4))
+        // Whatever the length, the two windows never overlap.
+        listOf(4, 6, 8, 12, 16, 24).forEach { weeks ->
+            assertTrue("$weeks", BlockReviewBuilder.comparisonWeeks(weeks) * 2 <= weeks)
+        }
+    }
+
+    @Test
     fun standingStillIsNotMoving() {
         val early = workout("a", dayMs(0), sets = listOf(100.0 to 5))
-        val late = workout("b", dayMs(8), sets = listOf(100.0 to 5))
+        val late = workout("b", dayMs(11), sets = listOf(100.0 to 5))
         assertTrue(BlockReviewBuilder.build(block, listOf(early, late), WeightUnit.KG, zone).movers.isEmpty())
     }
 
     @Test
     fun goingBackwardsIsNotMoving() {
         val early = workout("a", dayMs(0), sets = listOf(120.0 to 5))
-        val late = workout("b", dayMs(8), sets = listOf(100.0 to 5))
+        val late = workout("b", dayMs(11), sets = listOf(100.0 to 5))
         assertTrue(BlockReviewBuilder.build(block, listOf(early, late), WeightUnit.KG, zone).movers.isEmpty())
     }
 
@@ -116,7 +155,7 @@ class BlockReviewTest {
         // called the second one a regression would be wrong, which is why the loaded measure is
         // an estimated max rather than the weight.
         val early = workout("a", dayMs(0), sets = listOf(100.0 to 3))
-        val late = workout("b", dayMs(8), sets = listOf(100.0 to 8))
+        val late = workout("b", dayMs(11), sets = listOf(100.0 to 8))
         val review = BlockReviewBuilder.build(block, listOf(early, late), WeightUnit.KG, zone)
         assertTrue(review.movers.single().gain > 0.0)
     }
@@ -146,7 +185,7 @@ class BlockReviewTest {
         val sessions = (1..5).flatMap { n ->
             listOf(
                 workout("a$n", dayMs(0), "ex-$n", "Lift $n", sets = listOf(100.0 to 5)),
-                workout("b$n", dayMs(8), "ex-$n", "Lift $n", sets = listOf((100.0 + n * 10) to 5)),
+                workout("b$n", dayMs(11), "ex-$n", "Lift $n", sets = listOf((100.0 + n * 10) to 5)),
             )
         }
         val review = BlockReviewBuilder.build(block, sessions, WeightUnit.KG, zone)

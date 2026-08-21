@@ -49,6 +49,18 @@ object BlockReviewBuilder {
     /** Below this a "gain" is noise — a rounding difference, or one better rep on one day. */
     const val MIN_GAIN = 0.01
     const val MOVERS_SHOWN = 3
+    private const val DAYS_IN_WEEK = 7L
+
+    /**
+     * How many weeks at each end of the block a lift is judged on.
+     *
+     * Not the first session against the last. One session is one day, and one bad day at either
+     * end decides the whole answer — a lifter who was ill in week one gets a flattering result,
+     * and one who was ill in week twelve gets told they went backwards. A fortnight at each end
+     * is two to four sessions of most lifts, which is enough for the worst day not to be the
+     * only day. Shorter blocks narrow it rather than letting the windows meet in the middle.
+     */
+    fun comparisonWeeks(blockWeeks: Int): Int = maxOf(1, minOf(2, blockWeeks / 4))
 
     /**
      * @param sessions every session; those outside the block are ignored rather than trusted to
@@ -74,7 +86,7 @@ object BlockReviewBuilder {
             work = SetWork.sum(inBlock.map { it.work() }),
             daysTrained = inBlock.map { it.performedEpochDay(zone) }.distinct().size,
             recordsBroken = countRecords(inBlock),
-            movers = movers(inBlock, unit),
+            movers = movers(block, inBlock, unit, zone),
         )
     }
 
@@ -110,37 +122,45 @@ object BlockReviewBuilder {
     }
 
     /**
-     * The lifts that improved most, comparing the first session of the block against the last.
+     * The lifts that improved most, judged on a window at each end of the block.
      *
-     * A lift needs two sessions inside the block to say anything: one point is a position, not
-     * a direction. The measure is the lift's own — a top set for loaded work, the best rep
+     * A lift has to appear in both windows to say anything: a lift trained only in week one is
+     * a position, not a direction, and one picked up in week eleven has nothing to be compared
+     * against. The measure is the lift's own — an estimated max for loaded work, the best rep
      * count for bodyweight — so a pull-up going eight to fifteen is a mover on the same list as
      * a squat going 100 to 120.
      */
-    private fun movers(inBlock: List<WorkoutSession>, unit: WeightUnit): List<BlockMover> {
+    private fun movers(
+        block: TrainingBlock,
+        inBlock: List<WorkoutSession>,
+        unit: WeightUnit,
+        zone: ZoneId,
+    ): List<BlockMover> {
+        val window = comparisonWeeks(block.weeks) * DAYS_IN_WEEK
+        val openingEnds = block.startEpochDay + window
+        val closingBegins = block.endExclusiveEpochDay - window
+
         val byExercise = inBlock
             .flatMap { session -> session.sets.filterNot { it.isWarmup }.map { session to it } }
             .groupBy { (_, set) -> set.exerciseId }
 
         return byExercise.mapNotNull { (exerciseId, pairs) ->
             val loadClass = pairs.first().first.loadClassOf(exerciseId)
-            val bySession = pairs.groupBy { (session, _) -> session.id }
-            if (bySession.size < 2) return@mapNotNull null
+            val opening = pairs.filter { (session, _) -> session.performedEpochDay(zone) < openingEnds }
+            val closing = pairs.filter { (session, _) -> session.performedEpochDay(zone) >= closingBegins }
+            if (opening.isEmpty() || closing.isEmpty()) return@mapNotNull null
 
-            val ordered = bySession.values
-                .map { group -> group.map { (session, set) -> session to set } }
-                .sortedBy { group -> group.minOf { (_, set) -> set.completedAt } }
-            val first = bestOf(ordered.first().map { it.second }, loadClass) ?: return@mapNotNull null
-            val last = bestOf(ordered.last().map { it.second }, loadClass) ?: return@mapNotNull null
-            if (first <= 0.0) return@mapNotNull null
+            val from = bestOf(opening.map { it.second }, loadClass) ?: return@mapNotNull null
+            val to = bestOf(closing.map { it.second }, loadClass) ?: return@mapNotNull null
+            if (from <= 0.0) return@mapNotNull null
 
-            val gain = (last - first) / first
+            val gain = (to - from) / from
             if (gain < MIN_GAIN) return@mapNotNull null
             BlockMover(
                 exerciseId = exerciseId,
                 exerciseName = pairs.first().second.exerciseName,
-                fromLabel = label(first, loadClass, unit),
-                toLabel = label(last, loadClass, unit),
+                fromLabel = label(from, loadClass, unit),
+                toLabel = label(to, loadClass, unit),
                 gain = gain,
             )
         }
