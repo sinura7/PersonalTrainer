@@ -1,0 +1,174 @@
+package com.sinura.personaltrainer.domain
+
+import java.time.ZoneId
+
+/**
+ * What twelve weeks actually came to.
+ *
+ * The whole reason a block has an end. Without this the completed state is a label and a
+ * button — the app noticing a date passed and asking whether you would like another one — and
+ * a lifter who trained hard for three months gets no more acknowledgement than one who did
+ * nothing. The numbers all already exist; nothing here is a new measurement, only the first
+ * time the app adds them up over a span it chose.
+ *
+ * Deliberately about what MOVED rather than what is biggest. "Most volume" would name whatever
+ * lift happens to be a squat; "moved most" names the lift you actually got better at, which is
+ * the question twelve weeks was asked to answer.
+ */
+data class BlockReview(
+    val weeks: Int,
+    val sessions: Int,
+    val workingSets: Int,
+    val work: SetWork,
+    /** Distinct days trained, not sessions: two workouts in one day is one day of training. */
+    val daysTrained: Int,
+    val recordsBroken: Int,
+    /** The lifts that improved most, best first. Empty when nothing had two comparable points. */
+    val movers: List<BlockMover>,
+) {
+    val isEmpty: Boolean get() = sessions == 0
+}
+
+/**
+ * One lift's progress across the block, in whichever unit that lift is measured in.
+ *
+ * [fromLabel] and [toLabel] are pre-rendered rather than raw numbers because a loaded lift's
+ * pair reads "100 kg → 110 kg" and a bodyweight lift's reads "8 reps → 15 reps", and the
+ * caller that knows the unit is the only one that can say which.
+ */
+data class BlockMover(
+    val exerciseId: String,
+    val exerciseName: String,
+    val fromLabel: String,
+    val toLabel: String,
+    /** Fractional improvement, for ordering. 0.25 is a quarter better than where it started. */
+    val gain: Double,
+)
+
+object BlockReviewBuilder {
+    /** Below this a "gain" is noise — a rounding difference, or one better rep on one day. */
+    const val MIN_GAIN = 0.01
+    const val MOVERS_SHOWN = 3
+
+    /**
+     * @param sessions every session; those outside the block are ignored rather than trusted to
+     * have been filtered, because a caller that forgets turns a block review into a career one.
+     * @param unit only for rendering the movers' labels.
+     */
+    fun build(
+        block: TrainingBlock,
+        sessions: List<WorkoutSession>,
+        unit: WeightUnit,
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): BlockReview {
+        val inBlock = sessions.filter { session ->
+            val day = session.performedEpochDay(zone)
+            session.isFinished &&
+                day >= block.startEpochDay &&
+                day < block.endExclusiveEpochDay
+        }
+        return BlockReview(
+            weeks = block.weeks,
+            sessions = inBlock.size,
+            workingSets = inBlock.sumOf { it.workingSetCount() },
+            work = SetWork.sum(inBlock.map { it.work() }),
+            daysTrained = inBlock.map { it.performedEpochDay(zone) }.distinct().size,
+            recordsBroken = countRecords(inBlock),
+            movers = movers(inBlock, unit),
+        )
+    }
+
+    /**
+     * Records broken *within the block*, judged against everything logged before each set.
+     *
+     * Prior history includes sessions from before the block: a personal best set in week one is
+     * only a best if it beat what came before, and starting the comparison at the block's first
+     * day would hand a returning lifter a record for every lift they touched.
+     */
+    private fun countRecords(inBlock: List<WorkoutSession>): Int {
+        var total = 0
+        val byExercise = inBlock
+            .flatMap { session -> session.sets.filterNot { it.isWarmup }.map { session to it } }
+            .groupBy { (_, set) -> set.exerciseId }
+        byExercise.forEach { (exerciseId, pairs) ->
+            val loadClass = pairs.first().first.loadClassOf(exerciseId)
+            val ordered = pairs.map { (_, set) -> set }.sortedBy { it.completedAt }
+            val seen = mutableListOf<ExerciseSetRecord>()
+            ordered.forEach { set ->
+                val record = ExerciseSetRecord(
+                    setId = set.id,
+                    sessionId = set.sessionId,
+                    weightKg = set.weightKg,
+                    reps = set.reps,
+                    completedAt = set.completedAt,
+                )
+                total += PersonalRecords.detect(record, seen, loadClass).size
+                seen += record
+            }
+        }
+        return total
+    }
+
+    /**
+     * The lifts that improved most, comparing the first session of the block against the last.
+     *
+     * A lift needs two sessions inside the block to say anything: one point is a position, not
+     * a direction. The measure is the lift's own — a top set for loaded work, the best rep
+     * count for bodyweight — so a pull-up going eight to fifteen is a mover on the same list as
+     * a squat going 100 to 120.
+     */
+    private fun movers(inBlock: List<WorkoutSession>, unit: WeightUnit): List<BlockMover> {
+        val byExercise = inBlock
+            .flatMap { session -> session.sets.filterNot { it.isWarmup }.map { session to it } }
+            .groupBy { (_, set) -> set.exerciseId }
+
+        return byExercise.mapNotNull { (exerciseId, pairs) ->
+            val loadClass = pairs.first().first.loadClassOf(exerciseId)
+            val bySession = pairs.groupBy { (session, _) -> session.id }
+            if (bySession.size < 2) return@mapNotNull null
+
+            val ordered = bySession.values
+                .map { group -> group.map { (session, set) -> session to set } }
+                .sortedBy { group -> group.minOf { (_, set) -> set.completedAt } }
+            val first = bestOf(ordered.first().map { it.second }, loadClass) ?: return@mapNotNull null
+            val last = bestOf(ordered.last().map { it.second }, loadClass) ?: return@mapNotNull null
+            if (first <= 0.0) return@mapNotNull null
+
+            val gain = (last - first) / first
+            if (gain < MIN_GAIN) return@mapNotNull null
+            BlockMover(
+                exerciseId = exerciseId,
+                exerciseName = pairs.first().second.exerciseName,
+                fromLabel = label(first, loadClass, unit),
+                toLabel = label(last, loadClass, unit),
+                gain = gain,
+            )
+        }
+            .sortedWith(compareByDescending<BlockMover> { it.gain }.thenBy { it.exerciseName })
+            .take(MOVERS_SHOWN)
+    }
+
+    /**
+     * One session's best showing of a lift, in that lift's own unit.
+     *
+     * Reps for anything measured in reps; the top working set's estimated max for loaded work,
+     * falling back to raw weight when the set is too long to estimate from. An estimate rather
+     * than the bar weight because five at 100 and three at 105 are not ordered by the number on
+     * the bar, and a block review that called the second one a regression would be wrong.
+     */
+    private fun bestOf(sets: List<SetLog>, loadClass: LoadClass): Double? {
+        if (sets.isEmpty()) return null
+        if (loadClass.repsAreTheMeasure) return sets.maxOf { it.reps }.toDouble()
+        val estimate = sets.mapNotNull { PersonalRecords.estimatedOneRepMaxKg(it.weightKg, it.reps) }
+            .maxOrNull()
+        return estimate ?: sets.maxOf { it.weightKg }.takeIf { it > 0.0 }
+    }
+
+    private fun label(value: Double, loadClass: LoadClass, unit: WeightUnit): String =
+        if (loadClass.repsAreTheMeasure) {
+            val reps = value.toInt()
+            if (reps == 1) "1 rep" else "$reps reps"
+        } else {
+            value.toWeightLabel(unit)
+        }
+}

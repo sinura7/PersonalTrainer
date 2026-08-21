@@ -44,9 +44,11 @@ import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
+import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ResumeOrDiscardDialog
@@ -59,6 +61,8 @@ import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.domain.BlockReview
+import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Volt
@@ -83,6 +87,8 @@ import java.util.Date
 private fun BlockLine(
     block: TrainingBlock,
     today: Long,
+    /** Present only once the block is over — see PlanUiState.blockReview. */
+    review: BlockReview?,
     onStartNext: () -> Unit,
 ) {
     val complete = block.isCompleteOn(today)
@@ -119,12 +125,85 @@ private fun BlockLine(
             )
         }
         if (complete) {
+            if (review != null && !review.isEmpty) {
+                BlockReviewPanel(review = review)
+            }
             Text(
-                "Twelve weeks done. Your routines, your week and every session stay exactly as " +
-                    "they are — starting the next block only moves the marker.",
+                "Your routines, your week and every session stay exactly as they are — " +
+                    "starting the next block only moves the marker.",
                 style = InstrumentType.caption,
                 color = TextTertiary,
             )
+        }
+    }
+}
+
+/**
+ * What the twelve weeks came to.
+ *
+ * Without this the completed state is a label and a button — the app noticing a date passed and
+ * asking whether you would like another one — and someone who trained hard for three months
+ * gets no more acknowledgement than someone who did nothing.
+ *
+ * The movers are the point, and they are deliberately what *moved* rather than what was
+ * biggest: "most volume" names whatever lift happens to be a squat, while "moved most" names
+ * the lift you actually got better at. Each reads in its own unit, so a pull-up going eight to
+ * fifteen sits on the same list as a squat going 100 to 120.
+ */
+@Composable
+private fun BlockReviewPanel(review: BlockReview) {
+    // Read here rather than threaded down: this is the only thing on the screen that needs it.
+    val unit = LocalWeightUnit.current
+    GymCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space5),
+        ) {
+            MetricCluster(
+                value = review.daysTrained.toString(),
+                label = "days",
+                horizontalAlignment = Alignment.Start,
+            )
+            MetricCluster(
+                value = review.workingSets.toString(),
+                label = "sets",
+                horizontalAlignment = Alignment.Start,
+            )
+            val column = SetCopy.workColumn(review.work, unit)
+            MetricCluster(
+                value = column.value,
+                label = column.label,
+                horizontalAlignment = Alignment.Start,
+            )
+            MetricCluster(
+                value = review.recordsBroken.toString(),
+                label = "PRs",
+                horizontalAlignment = Alignment.Start,
+            )
+        }
+        if (review.movers.isNotEmpty()) {
+            HairlineDivider(startIndent = 0.dp)
+            Kicker("Moved most")
+            review.movers.forEach { mover ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        mover.exerciseName,
+                        modifier = Modifier.weight(1f),
+                        style = InstrumentType.body,
+                        color = TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        "${mover.fromLabel}  →  ${mover.toLabel}",
+                        style = InstrumentType.numeralSm,
+                        color = Volt,
+                    )
+                }
+            }
         }
     }
 }
@@ -210,6 +289,7 @@ fun PlanScreen(
                     BlockLine(
                         block = block,
                         today = today,
+                        review = state.blockReview,
                         onStartNext = viewModel::startNextBlock,
                     )
                 }

@@ -204,10 +204,6 @@ object ExerciseHistoryBuilder {
         )
     }
 
-    /** date is the ordering key history uses everywhere; fall back for older rows. */
-    private fun WorkoutSession.performedAtMs(): Long =
-        listOf(date, finishedAt ?: 0L, startedAt).firstOrNull { it > 0L } ?: 0L
-
     private fun WorkoutSession.workingSetRecords(exerciseId: String): Sequence<ExerciseSetRecord> =
         sets.asSequence()
             .filter { it.exerciseId == exerciseId && !it.isWarmup }

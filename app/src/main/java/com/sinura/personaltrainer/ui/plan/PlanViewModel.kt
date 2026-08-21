@@ -8,8 +8,12 @@ import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SplitStyle
+import com.sinura.personaltrainer.domain.BlockReview
+import com.sinura.personaltrainer.domain.BlockReviewBuilder
+import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.TrainingBlock
+import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.domain.WeeklySchedulePlan
 import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
@@ -29,6 +33,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -46,6 +51,13 @@ data class PlanUiState(
     val proposals: List<SuggestedTrainingDay> = emptyList(),
     /** The block this week belongs to, or null when the lifter is not in one. */
     val block: TrainingBlock? = null,
+    /**
+     * What the block came to, present only once it is over.
+     *
+     * Null while the block is running — not an empty review. Totting up twelve weeks that are
+     * still going would invite reading a mid-block number as a result.
+     */
+    val blockReview: BlockReview? = null,
     val error: String? = null,
 ) {
     /**
@@ -86,7 +98,8 @@ class PlanViewModel(application: Application) : AppViewModel(application) {
         combine(
             container.preferencesRepository.schedulePreferences,
             container.preferencesRepository.trainingBlock,
-        ) { preferences, block -> SettingsAndBlock(preferences, block) },
+            container.preferencesRepository.weightUnit,
+        ) { preferences, block, unit -> SettingsAndBlock(preferences, block, unit) },
         proposals,
         actionError,
     ) { current, inProgress, settings, previewed, error ->
@@ -104,17 +117,33 @@ class PlanViewModel(application: Application) : AppViewModel(application) {
                 .toSet(),
             proposals = previewed,
             block = settings.block,
+            blockReview = settings.block
+                ?.takeIf { it.isCompleteOn(todayEpochDay()) }
+                ?.let { finished ->
+                    BlockReviewBuilder.build(
+                        block = finished,
+                        sessions = current.history,
+                        unit = settings.unit,
+                        zone = zone,
+                    )
+                },
             error = error ?: when {
                 current.failed(InsightFailure.PLAN) ->
                     "Couldn’t read this week’s plan. Your pins are safe — try again."
                 else -> null
             },
         )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = PlanUiState(),
-    )
+    }
+        // Off the main thread. This transform walks every finished session to build the logged
+        // set, and once a block completes it walks every set of it again for the review — with
+        // a records check per set, which compares against everything before it. That is not
+        // main-thread work, and it was on the main thread before the review made it obvious.
+        .flowOn(Dispatchers.Default)
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = PlanUiState(),
+        )
 
     private val _navigateToSession = MutableStateFlow<String?>(null)
     val navigateToSession: StateFlow<String?> = _navigateToSession.asStateFlow()
@@ -332,5 +361,6 @@ class PlanViewModel(application: Application) : AppViewModel(application) {
     private data class SettingsAndBlock(
         val preferences: SchedulePreferences,
         val block: TrainingBlock?,
+        val unit: WeightUnit,
     )
 }

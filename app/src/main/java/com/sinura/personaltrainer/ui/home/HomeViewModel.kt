@@ -14,11 +14,13 @@ import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.workout.DiscardOutcome
 import com.sinura.personaltrainer.workout.StartDayOutcome
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -73,11 +75,15 @@ class HomeViewModel(application: Application) : AppViewModel(application) {
             block = block,
             error = error,
         )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = HomeUiState(),
-    )
+    }
+        // Same reason as Plan: this transform walks every finished session to build the logged
+        // set, and the week strip below it reads that on the first frame after a cold start.
+        .flowOn(Dispatchers.Default)
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = HomeUiState(),
+        )
 
     /**
      * The session to open, held as state rather than passed as a callback.

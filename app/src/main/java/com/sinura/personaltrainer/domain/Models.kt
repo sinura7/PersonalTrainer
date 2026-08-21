@@ -1,5 +1,8 @@
 package com.sinura.personaltrainer.domain
 
+import java.time.Instant
+import java.time.ZoneId
+
 /**
  * A lift.
  *
@@ -120,6 +123,20 @@ data class WorkoutSession(
 
     /** Just the kilograms — the bar and the vest, never the body. */
     fun workingVolumeKg(): Double = work().volumeKg
+
+    /**
+     * When this session happened, in milliseconds.
+     *
+     * `date` is the ordering key history uses everywhere, with two fallbacks for rows old
+     * enough to have been written before it was. Promoted out of ExerciseHistory because the
+     * block review needs the same rule, and two copies of "which of these three timestamps is
+     * the real one" is how two surfaces end up disagreeing about what week a workout was in.
+     */
+    fun performedAtMs(): Long =
+        listOf(date, finishedAt ?: 0L, startedAt).firstOrNull { it > 0L } ?: 0L
+
+    fun performedEpochDay(zone: ZoneId = ZoneId.systemDefault()): Long =
+        Instant.ofEpochMilli(performedAtMs()).atZone(zone).toLocalDate().toEpochDay()
 
     /**
      * Working sets, warm-ups excluded.
