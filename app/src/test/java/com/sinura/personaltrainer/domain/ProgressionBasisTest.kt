@@ -44,6 +44,8 @@ class ProgressionBasisTest {
             lastWeightKg = top.weightKg,
             lastWorkingReps = top.reps,
             targetReps = 5,
+            stepKg = IncrementTable.STEP_KG,
+            loadType = LoadType.EXTERNAL,
         )
         assertEquals(ProgressionAction.INCREASE, hint.action)
         assertEquals(102.5, hint.suggestedWeightKg, 0.001)
@@ -82,7 +84,7 @@ class ProgressionBasisTest {
     fun aBigMissStillDeloads() {
         val session = listOf(WorkingSetCandidate(100.0, 1, 1_000L))
         val top = ProgressionBasis.topWorkingSet(session)!!
-        val suggestion = ProgressionCalculator.suggestWeightKg(top.weightKg, top.reps, 5)
+        val suggestion = ProgressionCalculator.suggestWeightKg(top.weightKg, top.reps, 5, IncrementTable.STEP_KG)
         assertEquals(ProgressionAction.DECREASE, ProgressionCalculator.action(top.reps, 5))
         assertEquals(97.5, suggestion, 0.001)
     }

@@ -244,7 +244,6 @@ object RecommendationEngine {
         if (ready.isEmpty()) return null
         val first = ready.first()
         val extra = ready.size - 1
-        val increment = ProgressionCalculator.INCREMENT_KG.toWeightLabel(inputs.unit)
         return TrainingRecommendation(
             id = "progression-ready",
             kicker = KICKER_PROGRESSION,
@@ -253,8 +252,7 @@ object RecommendationEngine {
             } else {
                 "${first.exerciseName}: ready to progress"
             },
-            reason = "Top set ${first.lastWeightKg.toWeightLabel(inputs.unit)}×${first.lastReps} " +
-                "hit target. Next session add $increment.",
+            reason = ProgressionCopy.coachReason(first, inputs.unit),
             priority = RecommendationPriority.INFO,
             action = RecommendationAction.OPEN_EXERCISE,
             actionExerciseId = first.exerciseId,

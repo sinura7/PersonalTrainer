@@ -9,20 +9,36 @@ enum class WeightUnit(
     val storageKey: String,
     val suffix: String,
     val displayName: String,
-    val step: Double,
 ) {
     KG(
         storageKey = "kg",
         suffix = "kg",
         displayName = "Kilograms (kg)",
-        step = 2.5,
     ),
     LBS(
         storageKey = "lbs",
         suffix = "lbs",
         displayName = "Pounds (lbs)",
-        step = 5.0,
     );
+
+    /**
+     * The general-purpose stepper increment for any weight field.
+     *
+     * Read from [IncrementTable] rather than declared here, because it used to be declared in
+     * both places and the two drifted: the coach quoted the calculator's 2.5 kg through the
+     * unit formatter and told pound users to add "+5.5 lbs" while the stepper next to it moved
+     * in fives. One table, and the disagreement has nowhere to live.
+     *
+     * [LoadType.EXTERNAL] because this is the *field's* step, not a particular lift's: a
+     * bodyweight lift has no weight to progress but can still carry added load, and its weight
+     * field must keep stepping. What a bodyweight lift is ADVISED to do is the calculator's
+     * question, and that one honours the null.
+     *
+     * Computed rather than a constructor argument to avoid initialising the enum from an object
+     * that reads the enum back.
+     */
+    val step: Double
+        get() = IncrementTable.displayStep(LoadType.EXTERNAL, this)!!
 
     val stepLabel: String
         get() = WeightConverter.formatDisplayNumber(step)

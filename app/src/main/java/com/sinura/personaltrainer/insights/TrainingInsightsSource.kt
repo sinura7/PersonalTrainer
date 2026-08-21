@@ -84,7 +84,7 @@ class TrainingInsightsSource(
         // Null, not emptyList: "the query failed" and "nothing is ready to progress" render
         // very differently, and the old code collapsed them into the same empty section.
         val hints = runCatchingCancellable {
-            workoutRepository.readyForProgression(sources.routines)
+            workoutRepository.readyForProgression(sources.routines, sources.unit)
         }.getOrElse { thrown ->
             AppLog.w(TAG, "Reading the progression hints failed", thrown)
             null

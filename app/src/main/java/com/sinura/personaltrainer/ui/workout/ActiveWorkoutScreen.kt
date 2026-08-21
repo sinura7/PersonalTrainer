@@ -70,8 +70,7 @@ import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.domain.DayLabel
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
 import com.sinura.personaltrainer.domain.PersonalRecordKind
-import com.sinura.personaltrainer.domain.ProgressionAction
-import com.sinura.personaltrainer.domain.ProgressionCalculator
+import com.sinura.personaltrainer.domain.ProgressionCopy
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SessionExercise
@@ -131,7 +130,6 @@ fun ActiveWorkoutScreen(
     val session = state.session
     val selected = session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId }
     val unit = LocalWeightUnit.current
-    val incrementLabel = ProgressionCalculator.INCREMENT_KG.toWeightLabel(unit)
     val view = LocalView.current
     val listState = rememberLazyListState()
 
@@ -378,7 +376,6 @@ fun ActiveWorkoutScreen(
                                 item(key = "progression") {
                                     ProgressionStrip(
                                         hint = hint,
-                                        incrementLabel = incrementLabel,
                                         unit = unit,
                                         onApply = viewModel::applySuggestedWeight,
                                     )
@@ -847,17 +844,12 @@ private fun LastTimeStrip(
 @Composable
 private fun ProgressionStrip(
     hint: ProgressionHint,
-    incrementLabel: String,
     unit: WeightUnit,
     onApply: () -> Unit,
 ) {
-    val reason = when {
-        // A hold with no explanation reads as the app having lost count. If RPE is why, say so.
-        hint.rpeHold -> "Top set at RPE 9+. Hold ${hint.lastWeightKg.toWeightLabel(unit)}."
-        hint.action == ProgressionAction.INCREASE -> "Hit target. Add $incrementLabel."
-        hint.action == ProgressionAction.HOLD -> "Close. Keep ${hint.lastWeightKg.toWeightLabel(unit)}."
-        else -> "Missed target. Drop $incrementLabel."
-    }
+    // The sentence lives in the domain so this strip and the coach card cannot disagree about
+    // the same lift, and so a bodyweight lift is told to add a rep rather than a kilogram.
+    val reason = ProgressionCopy.stripReason(hint, unit)
     Row(
         modifier = Modifier
             .fillMaxWidth()

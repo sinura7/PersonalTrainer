@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RoutineExercise
 import com.sinura.personaltrainer.domain.WeightConverter
@@ -199,22 +200,28 @@ fun RoutineEditorScreen(
             results = state.searchResults,
             onQueryChange = viewModel::onSearchQuery,
             onSelect = { exercise ->
+                // Per lift class now, not one literal for all of them: 3x5 at 90s was a squat's
+                // scheme applied to cable lateral raises.
+                val defaults = AddDefaults.forExercise(exercise)
                 viewModel.addExercise(
                     exercise = exercise,
-                    targetSets = NEW_LIFT_TARGETS.sets,
-                    targetReps = NEW_LIFT_TARGETS.reps,
-                    targetWeightKg = NEW_LIFT_TARGETS.weightKg,
-                    restSeconds = NEW_LIFT_TARGETS.rest,
+                    targetSets = defaults.sets,
+                    targetReps = defaults.reps,
+                    targetWeightKg = null,
+                    restSeconds = defaults.restSeconds,
                 )
             },
             onCreate = { name, muscle ->
+                // A lift being invented in the picker has no load type yet, so it takes the
+                // fallback row deliberately rather than by accident.
+                val defaults = AddDefaults.forExercise(loadType = null, isCompound = false)
                 viewModel.createAndAddExercise(
                     customName = name,
                     muscleGroup = muscle,
-                    targetSets = NEW_LIFT_TARGETS.sets,
-                    targetReps = NEW_LIFT_TARGETS.reps,
-                    targetWeightKg = NEW_LIFT_TARGETS.weightKg,
-                    restSeconds = NEW_LIFT_TARGETS.rest,
+                    targetSets = defaults.sets,
+                    targetReps = defaults.reps,
+                    targetWeightKg = null,
+                    restSeconds = defaults.restSeconds,
                 )
             },
             onDismiss = { viewModel.setPickerVisible(false) },
@@ -487,18 +494,3 @@ private fun prescriptionLabel(item: RoutineExercise, unit: WeightUnit): String =
     append(RestTimer.formatClock(item.restSeconds))
 }
 
-private data class TargetDraft(
-    val sets: Int = 3,
-    val reps: Int = 5,
-    val weightKg: Double? = null,
-    val rest: Int = 90,
-)
-
-/**
- * What a lift is added with, before its card is touched.
- *
- * Held as a constant rather than as screen state: nothing ever wrote to it, and as a
- * `rememberSaveable` of a plain data class it would have thrown the moment the editor was
- * rotated, because the default saver can only put Bundle-able values away.
- */
-private val NEW_LIFT_TARGETS = TargetDraft()

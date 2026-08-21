@@ -134,6 +134,14 @@ data class ProgressionHint(
      * an unexplained hold reads as the app having forgotten how to count.
      */
     val rpeHold: Boolean = false,
+    /**
+     * How this lift is loaded, so the copy can match it.
+     *
+     * A domain field, not a column — the repository knows the exercise when it builds the hint.
+     * It is here because the coach and the in-workout strip both have to be able to say "add a
+     * rep" instead of "+2.5 kg" for a push-up, and neither of them has the exercise to hand.
+     */
+    val loadType: LoadType? = null,
 )
 
 enum class ProgressionAction {

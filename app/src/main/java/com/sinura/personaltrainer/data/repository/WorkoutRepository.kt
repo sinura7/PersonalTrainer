@@ -8,26 +8,28 @@ import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
 import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toSummary
-import com.sinura.personaltrainer.domain.Exercise
-import com.sinura.personaltrainer.domain.ProgressionAction
 import com.sinura.personaltrainer.data.local.dao.ExerciseSetRow
+import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseHistoryBuilder
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
 import com.sinura.personaltrainer.domain.ExerciseSetEntry
 import com.sinura.personaltrainer.domain.ExerciseSetRecord
+import com.sinura.personaltrainer.domain.FinishedSessionEdits
+import com.sinura.personaltrainer.domain.IncrementTable
+import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.PersonalRecords
+import com.sinura.personaltrainer.domain.ProgressionAction
 import com.sinura.personaltrainer.domain.ProgressionBasis
 import com.sinura.personaltrainer.domain.ProgressionCalculator
-import com.sinura.personaltrainer.domain.ProgressionBasis
 import com.sinura.personaltrainer.domain.ProgressionHint
-import com.sinura.personaltrainer.domain.RpeModifier
-import com.sinura.personaltrainer.domain.Routine
-import com.sinura.personaltrainer.domain.FinishedSessionEdits
-import com.sinura.personaltrainer.domain.SessionActivity
 import com.sinura.personaltrainer.domain.RepeatSessionPlan
+import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.RpeModifier
+import com.sinura.personaltrainer.domain.SessionActivity
 import com.sinura.personaltrainer.domain.SessionEditRules
 import com.sinura.personaltrainer.domain.SetLogRules
+import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkingSetCandidate
 import com.sinura.personaltrainer.domain.WorkoutSession
 import java.util.UUID
@@ -186,13 +188,21 @@ class WorkoutRepository(
         }
     }
 
+    /**
+     * Adds a lift to a live session with targets suited to it.
+     *
+     * The defaults are gone on purpose. `targetSets = 3, targetReps = 5` as parameter defaults
+     * meant every caller that omitted them silently got a barbell scheme, including the ones
+     * adding a cable fly — and a default is invisible at the call site, so nobody saw it happen.
+     * The caller now names what it wants, and [AddDefaults] is where "what it wants" is decided.
+     */
     suspend fun addExerciseToSession(
         sessionId: String,
         exercise: Exercise,
-        targetSets: Int = 3,
-        targetReps: Int = 5,
-        targetWeightKg: Double? = null,
-        restSeconds: Int = 90,
+        targetSets: Int,
+        targetReps: Int,
+        targetWeightKg: Double?,
+        restSeconds: Int,
     ) {
         val current = workoutDao.getSession(sessionId) ?: return
         if (current.session.finishedAt != null) return
@@ -502,6 +512,8 @@ class WorkoutRepository(
         exerciseName: String,
         targetReps: Int,
         excludeSessionId: String,
+        loadType: LoadType?,
+        unit: WeightUnit,
     ): ProgressionHint? {
         val topSet = topSetOfLastSession(exerciseId, excludeSessionId) ?: return null
         val resolvedTarget = targetReps.takeIf { it > 0 }
@@ -513,6 +525,11 @@ class WorkoutRepository(
             lastWeightKg = topSet.weightKg,
             lastWorkingReps = topSet.reps,
             targetReps = resolvedTarget,
+            // The lift decides the size of the jump and the unit decides its shape. An unknown
+            // load type — a custom, or a row from a backup this build predates — is treated as
+            // loadable, because refusing to suggest anything is worse than suggesting 2.5 kg.
+            stepKg = IncrementTable.stepKg(loadType ?: LoadType.EXTERNAL, unit),
+            loadType = loadType,
         )
         // Hitting the target reps at RPE 9 and hitting them at RPE 6 are the same event to the
         // calculator, and only one of them means "ready for more".
@@ -673,7 +690,10 @@ class WorkoutRepository(
         sessionPerformedAtMs = sessionDate,
     )
 
-    suspend fun readyForProgression(routines: List<Routine>): List<ProgressionHint> {
+    suspend fun readyForProgression(
+        routines: List<Routine>,
+        unit: WeightUnit,
+    ): List<ProgressionHint> {
         val seen = linkedSetOf<String>()
         val hints = mutableListOf<ProgressionHint>()
         routines.forEach { routine ->
@@ -686,6 +706,8 @@ class WorkoutRepository(
                         lastWeightKg = topSet.weightKg,
                         lastWorkingReps = topSet.reps,
                         targetReps = item.targetReps,
+                        stepKg = IncrementTable.stepKg(item.exercise.loadType, unit),
+                        loadType = item.exercise.loadType,
                     )
                     // The RPE rule downgrades a grinding lift to HOLD, which drops it out of
                     // this list automatically — "ready to progress" must not name a lift the

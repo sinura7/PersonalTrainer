@@ -9,6 +9,7 @@ import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
+import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
 import com.sinura.personaltrainer.domain.PersonalRecordKind
@@ -418,6 +419,10 @@ class ActiveWorkoutViewModel(
             exerciseName = planned?.exercise?.name ?: "",
             targetReps = targetReps,
             excludeSessionId = sessionId,
+            loadType = planned?.exercise?.loadType,
+            // Read once here rather than collected: the hint is computed at the moment a lift
+            // opens, and a unit change mid-set recomputes it on the next open anyway.
+            unit = container.preferencesRepository.weightUnit.first(),
         )
         hint.value = progression
         lastPerformance.value = container.workoutRepository.lastPerformance(exerciseId, sessionId)
@@ -580,7 +585,15 @@ class ActiveWorkoutViewModel(
             return
         }
         try {
-            container.workoutRepository.addExerciseToSession(sessionId, exercise)
+            val defaults = AddDefaults.forExercise(exercise)
+            container.workoutRepository.addExerciseToSession(
+                sessionId = sessionId,
+                exercise = exercise,
+                targetSets = defaults.sets,
+                targetReps = defaults.reps,
+                targetWeightKg = null,
+                restSeconds = defaults.restSeconds,
+            )
             selectExercise(exercise.id)
             showPicker.value = false
             error.value = null

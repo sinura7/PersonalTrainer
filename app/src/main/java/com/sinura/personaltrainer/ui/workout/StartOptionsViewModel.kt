@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.OwnedLiftResolver
 import com.sinura.personaltrainer.domain.Routine
@@ -129,7 +130,15 @@ class StartOptionsViewModel(application: Application) : AppViewModel(application
             try {
                 val focus = OwnedLiftResolver.primaryMuscleOf(exercise)?.displayName
                 val session = container.workoutRepository.startFreeWorkout(focusTitle = focus)
-                container.workoutRepository.addExerciseToSession(session.id, exercise)
+                val defaults = AddDefaults.forExercise(exercise)
+                container.workoutRepository.addExerciseToSession(
+                    sessionId = session.id,
+                    exercise = exercise,
+                    targetSets = defaults.sets,
+                    targetReps = defaults.reps,
+                    targetWeightKg = null,
+                    restSeconds = defaults.restSeconds,
+                )
                 error.value = null
                 _navigateToSession.value = session.id
             } catch (thrown: Exception) {
