@@ -199,14 +199,21 @@ fun PersonalTrainerNav(
         // exists to stop anyone seeing.
         OnboardingGate.UNKNOWN -> return
         OnboardingGate.SETUP -> {
-            OnboardingScreen(
-                // Nothing to do: the gate reads the completion flag directly, so finishing
-                // moves the app on its own. Deliberately NOT clearing openEditorOnEntry here
-                // — "I'll build my own" also completes setup, and its callback would race this
-                // one and lose, dropping the lifter on Home instead of in the editor.
-                onFinished = {},
-                onBuildMyOwn = { openEditorOnEntry = true },
-            )
+            // Inside the unit provider, like every other screen. Setup was composed outside it
+            // and so read the static KG default rather than the stored preference — which does
+            // not matter on a true first run, where nothing has been chosen yet, but setup is
+            // re-enterable from Settings and an lbs lifter was being asked their bodyweight in
+            // unlabelled kilograms.
+            CompositionLocalProvider(LocalWeightUnit provides weightUnit) {
+                OnboardingScreen(
+                    // Nothing to do: the gate reads the completion flag directly, so finishing
+                    // moves the app on its own. Deliberately NOT clearing openEditorOnEntry
+                    // here — "I'll build my own" also completes setup, and its callback would
+                    // race this one and lose, dropping the lifter on Home instead of the editor.
+                    onFinished = {},
+                    onBuildMyOwn = { openEditorOnEntry = true },
+                )
+            }
             return
         }
         OnboardingGate.APP -> Unit

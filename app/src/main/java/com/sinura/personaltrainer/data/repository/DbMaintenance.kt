@@ -130,7 +130,7 @@ class DbMaintenance(private val database: TrainerDatabase) {
                     }
                 }
 
-            val collisions = detectCollisions(exerciseDao.getAll(), builtInIds)
+            val collisions = detectCollisions(exerciseDao.getAll())
             catalogDao.upsertSeedMeta(
                 SeedMetaEntity(
                     id = 1,
@@ -144,15 +144,23 @@ class DbMaintenance(private val database: TrainerDatabase) {
         }
     }
 
-    private fun detectCollisions(
-        all: List<ExerciseEntity>,
-        builtInIds: Set<String>,
-    ): List<CatalogCollision> {
+    /**
+     * Keys on the `isCustom` column, not on membership of this build's id list.
+     *
+     * There are two collision detectors in the app and they used to disagree. This one asked
+     * "is the id one this build ships"; the Library's needs-attention list asks
+     * `ExerciseDao.observeBuiltInCollisions`, which asks the column. A row restored from a
+     * backup with `isCustom = false` and an id this build no longer ships was custom to one and
+     * built-in to the other, so the same pair of lifts could be flagged in one place and not the
+     * other. The column wins because it is what the row itself claims to be, and because it is
+     * what the surface the user actually looks at already used.
+     */
+    private fun detectCollisions(all: List<ExerciseEntity>): List<CatalogCollision> {
         val byKey = all.groupBy { it.nameKey }
         return byKey.flatMap { (key, rows) ->
             if (key.isBlank() || rows.size < 2) return@flatMap emptyList()
-            val builtIn = rows.firstOrNull { it.id in builtInIds } ?: return@flatMap emptyList()
-            rows.filter { it.id !in builtInIds }
+            val builtIn = rows.firstOrNull { !it.isCustom } ?: return@flatMap emptyList()
+            rows.filter { it.isCustom }
                 .map { custom ->
                     CatalogCollision(builtInId = builtIn.id, customId = custom.id, nameKey = key)
                 }

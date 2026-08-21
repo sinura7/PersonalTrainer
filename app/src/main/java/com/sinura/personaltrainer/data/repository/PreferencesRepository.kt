@@ -248,6 +248,11 @@ class PreferencesRepository(context: Context) {
             prefs[REST_SOUND] = cleanRest.soundEnabled
             prefs[REST_VIBRATE] = cleanRest.vibrationEnabled
             prefs[REST_DEFAULT] = cleanRest.defaultRestSeconds
+            // Cleared, not carried. RestTimer.secondsToStart prefers the last preset over the
+            // default, so leaving this handset's value in place lets a stale tap outrank the
+            // rest time that was just restored. It is deliberately not in the backup document
+            // either: one phone's transient preset has no business landing on another.
+            prefs.remove(REST_LAST_PRESET)
             prefs[TRAINING_GOAL] = coach.goal.name
             prefs[AVAILABLE_EQUIPMENT] = coach.availableEquipment
             prefs[HEAT_WINDOW] = heatWindow.name

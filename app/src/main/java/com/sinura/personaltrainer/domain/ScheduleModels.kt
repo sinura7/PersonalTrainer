@@ -23,7 +23,7 @@ enum class SplitStyle(
 data class SchedulePreferences(
     val trainingDaysPerWeek: Int = DEFAULT_DAYS,
     val splitStyle: SplitStyle = SplitStyle.AUTO,
-    val weekStart: DayOfWeek = DayOfWeek.MONDAY,
+    val weekStart: DayOfWeek = DEFAULT_WEEK_START,
 ) {
     fun sanitized(): SchedulePreferences = copy(
         trainingDaysPerWeek = trainingDaysPerWeek.coerceIn(MIN_DAYS, MAX_DAYS),
@@ -34,11 +34,18 @@ data class SchedulePreferences(
         const val MIN_DAYS = 2
         const val MAX_DAYS = 6
         const val DEFAULT_DAYS = 4
+
+        /**
+         * Named rather than spelled `DayOfWeek.MONDAY` at each site, because the guided setup
+         * had its own Monday default in a parameter nobody passed, and it silently overwrote
+         * the lifter's stored choice on every run.
+         */
+        val DEFAULT_WEEK_START: DayOfWeek = DayOfWeek.MONDAY
         val DEFAULT = SchedulePreferences()
 
         fun weekStartFromStorage(value: String?): DayOfWeek =
             DayOfWeek.entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
-                ?: DayOfWeek.MONDAY
+                ?: DEFAULT_WEEK_START
     }
 }
 

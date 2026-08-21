@@ -34,11 +34,20 @@ class OnboardingApplier(
     private val scheduleRepository: ScheduleRepository,
     private val preferencesRepository: PreferencesRepository,
 ) {
+    /**
+     * @param weekStart the lifter's stored first day of the week. Required, and deliberately
+     * not defaulted: it used to default to Monday and the one caller never passed it, so every
+     * run of setup wrote Monday over whatever the lifter had chosen. Setup is re-enterable from
+     * Settings, so a Sunday-week lifter who re-ran it was silently moved to Monday — reshaping
+     * their week derivation, their heat window and every weekly chart. The questionnaire has no
+     * question about week start, so setup has no answer to write; this value is read from
+     * preferences by the caller, used to lay the week out, and written back by nobody.
+     */
     suspend fun apply(
         answers: OnboardingAnswers,
         blueprint: PlanBlueprint,
         catalog: List<Exercise>,
-        weekStart: DayOfWeek = DayOfWeek.MONDAY,
+        weekStart: DayOfWeek,
     ): ApplyPlanResult {
         val clean = answers.sanitized()
         return runCatchingCancellable {
@@ -47,9 +56,11 @@ class OnboardingApplier(
             // whole plan, but a much better one than a questionnaire they filled in for
             // nothing.
             val schedule = clean.schedulePreferences(weekStart)
+            // Days per week and split style are answers the questionnaire actually asked for,
+            // so a re-run overwriting them is the point. Week start is not asked, and is not
+            // written — see the note on [weekStart] above.
             preferencesRepository.setTrainingDaysPerWeek(schedule.trainingDaysPerWeek)
             preferencesRepository.setSplitStyle(schedule.splitStyle)
-            preferencesRepository.setWeekStart(schedule.weekStart)
             val coach = clean.coachPreferences()
             preferencesRepository.setTrainingGoal(coach.goal)
             preferencesRepository.setAvailableEquipment(coach.availableEquipment)

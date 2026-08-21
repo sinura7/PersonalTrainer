@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.PlanBlueprint
 import com.sinura.personaltrainer.domain.RoutineGenerator
+import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
@@ -18,8 +19,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -79,12 +80,21 @@ class OnboardingViewModel(application: Application) : AppViewModel(application) 
     private val existingProgram = MutableStateFlow(false)
     private val catalog = MutableStateFlow<List<Exercise>>(emptyList())
 
+    /**
+     * The lifter's stored first day of the week.
+     *
+     * Setup never asks about it and must never write it, but it does have to *read* it: the
+     * generator lays the week out starting from this day, so a Sunday-week lifter generating
+     * against a Monday default gets their sessions on the wrong weekdays.
+     */
+    private val weekStart = MutableStateFlow(SchedulePreferences.DEFAULT_WEEK_START)
+
     val uiState: StateFlow<OnboardingUiState> = combine(
         step,
         answers,
         catalog,
-        combine(applying, error, existingProgram) { busy, err, existing ->
-            Triple(busy, err, existing)
+        combine(applying, error, existingProgram, weekStart) { busy, err, existing, start ->
+            Flags(busy, err, existing, start)
         },
     ) { currentStep, currentAnswers, exercises, flags ->
         OnboardingUiState(
@@ -95,11 +105,11 @@ class OnboardingViewModel(application: Application) : AppViewModel(application) 
             preview = if (exercises.isEmpty()) {
                 null
             } else {
-                RoutineGenerator.generate(currentAnswers, exercises)
+                RoutineGenerator.generate(currentAnswers, exercises, flags.weekStart)
             },
-            applying = flags.first,
-            error = flags.second,
-            existingProgram = flags.third,
+            applying = flags.applying,
+            error = flags.error,
+            existingProgram = flags.existingProgram,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -113,11 +123,37 @@ class OnboardingViewModel(application: Application) : AppViewModel(application) 
 
     init {
         viewModelScope.launch {
-            catalog.value = runCatchingCancellable { container.exerciseRepository.observeAll().first() }
-                .onFailure { AppLog.w(TAG, "Reading the catalog for setup failed", it) }
-                .getOrDefault(emptyList())
+            // Collected for as long as this view model lives, not read once.
+            //
+            // `observeAll().first()` took whatever the catalog tables held at the instant of
+            // subscription — and on the launch this whole phase exists for, that is nothing.
+            // A fresh install seeds the catalog from Application.onCreate, fire and forget on
+            // an IO dispatcher, while the gate puts this screen up on the first composed
+            // frame. Room emits the empty table immediately, `first()` takes it, and the field
+            // is never read again: the preview stays null, the last step of setup says
+            // "Building it…" forever, and "Use this plan" stays disabled with no way to
+            // finish. Collecting means the seed's arrival is what fills the preview in.
+            container.exerciseRepository.observeAll()
+                .catch { thrown ->
+                    AppLog.w(TAG, "Reading the catalog for setup failed", thrown)
+                    emit(emptyList())
+                }
+                .collect { exercises -> catalog.value = exercises }
+        }
+        viewModelScope.launch {
+            // Its own coroutine: the collection above never returns, so anything sequenced
+            // after it would never run.
             existingProgram.value = runCatchingCancellable { container.onboardingApplier.hasExistingProgram() }
                 .getOrDefault(false)
+        }
+        viewModelScope.launch {
+            // Collected rather than snapshotted, so that a week start changed in Settings while
+            // setup is open regenerates the preview instead of leaving it a day out.
+            container.preferencesRepository.schedulePreferences
+                .catch { thrown ->
+                    AppLog.w(TAG, "Reading the week start for setup failed", thrown)
+                }
+                .collect { preferences -> weekStart.value = preferences.weekStart }
         }
     }
 
@@ -181,6 +217,7 @@ class OnboardingViewModel(application: Application) : AppViewModel(application) 
                 answers = answers.value,
                 blueprint = blueprint,
                 catalog = catalog.value,
+                weekStart = weekStart.value,
             )
             applying.value = false
             when (result) {
@@ -218,4 +255,15 @@ class OnboardingViewModel(application: Application) : AppViewModel(application) 
         update(transform)
         next()
     }
+
+    /**
+     * The flags that ride alongside the answers. A named type rather than a Triple, because
+     * `flags.first` said nothing about which of three booleans it was.
+     */
+    private data class Flags(
+        val applying: Boolean,
+        val error: String?,
+        val existingProgram: Boolean,
+        val weekStart: DayOfWeek,
+    )
 }

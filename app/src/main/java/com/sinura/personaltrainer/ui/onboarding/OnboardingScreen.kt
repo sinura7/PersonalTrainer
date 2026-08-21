@@ -30,6 +30,7 @@ import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
+import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.shortLabel
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
@@ -45,6 +46,7 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import java.time.DayOfWeek
 
 /**
@@ -276,25 +278,37 @@ private fun BodyweightStep(
     onNext: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap)) {
+        val unit = LocalWeightUnit.current
         QuestionTitle(
             "Roughly what do you weigh?",
             "Only used to value push-ups and pull-ups honestly in your totals. Skip it and a flat estimate is used instead.",
         )
         // Coarse buttons rather than a keypad. This is the one question that would otherwise
         // need the keyboard, and it is precise enough at ten-kilogram steps for what it does.
+        //
+        // Labelled in the lifter's unit, and the label carries the suffix. These used to be
+        // bare numbers stored as kilograms whatever the preference said, so an lbs lifter
+        // re-running setup could tap "80" meaning pounds and be recorded at eighty kilos.
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
         ) {
             BODYWEIGHT_STEPS.forEach { kg ->
                 InstrumentChip(
-                    label = "$kg",
+                    label = WeightConverter.formatDisplayNumber(
+                        WeightConverter.toDisplayValue(kg.toDouble(), unit),
+                    ),
                     selected = answers.bodyweightKg == kg.toDouble(),
                     onClick = { onSet(kg.toDouble()) },
                     modifier = Modifier.weight(1f),
                 )
             }
         }
+        Text(
+            unit.suffix,
+            style = InstrumentType.caption,
+            color = TextTertiary,
+        )
         PrimaryGymButton(
             text = if (answers.bodyweightKg == null) "Skip this" else "Continue",
             onClick = onNext,

@@ -269,7 +269,7 @@ private fun PersonalRecordPanel(summary: WorkoutSummary, modifier: Modifier = Mo
     val lines = remember(summary) {
         summary.highlights
             .filter { it.records.isNotEmpty() }
-            .map { it.exerciseName to it.records.joinToString(" · ") { kind -> kind.label } }
+            .map { it.exerciseName to it.records.joinToString(" · ") { kind -> kind.celebrationLabel } }
     }
     var revealed by rememberSaveable { mutableStateOf(0) }
     LaunchedEffect(lines.size) {
@@ -387,7 +387,15 @@ private fun SummaryActions(onDone: () -> Unit, onOpenSession: () -> Unit) {
     }
 }
 
-private val PersonalRecordKind.label: String
+/**
+ * The longer wording, for the one screen that is a celebration rather than a readout.
+ *
+ * Named `celebrationLabel` and not `label`, which is what it used to be called: the enum has a
+ * member `label` of its own ("Heaviest", "Most reps", "Est. 1RM"), members always beat
+ * extensions, and so the call site below silently bound to the member and this whole block was
+ * dead code. A warning, never an error — which is exactly why it survived.
+ */
+private val PersonalRecordKind.celebrationLabel: String
     get() = when (this) {
         PersonalRecordKind.WEIGHT -> "Heaviest ever"
         PersonalRecordKind.REPS_AT_WEIGHT -> "Most reps at that weight"
