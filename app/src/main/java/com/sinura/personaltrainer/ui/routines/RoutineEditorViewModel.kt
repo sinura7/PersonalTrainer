@@ -8,9 +8,10 @@ import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
-import com.sinura.personaltrainer.domain.Exercise
-import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.EditorPhase
+import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.LibraryGrouping
+import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineEditorLoad
 import com.sinura.personaltrainer.domain.RoutineEditorPolicy
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -35,9 +36,29 @@ data class RoutineEditorUiState(
     val searchQuery: String = "",
     val searchResults: List<Exercise> = emptyList(),
     val showExercisePicker: Boolean = false,
+    /** The whole catalog, so the editor can work out a lift's variants without another query. */
+    val catalog: List<Exercise> = emptyList(),
+    /** Non-null while a swap sheet is open, naming the routine row being replaced. */
+    val swapItemId: String? = null,
     val error: String? = null,
     val saved: Boolean = false,
-)
+) {
+    /**
+     * The other lifts in this one's family, minus what the routine already holds.
+     *
+     * Computed here rather than stored per row: the exclusion set changes every time the
+     * routine changes, and a cached list would go stale exactly when it mattered — offering a
+     * swap to a lift that had just been added two rows down.
+     */
+    fun swapCandidates(exerciseId: String): List<Exercise> {
+        val exercise = catalog.firstOrNull { it.id == exerciseId } ?: return emptyList()
+        return LibraryGrouping.siblings(
+            exercise = exercise,
+            catalog = catalog,
+            exclude = routine?.exercises.orEmpty().map { it.exercise.id }.toSet(),
+        )
+    }
+}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RoutineEditorViewModel(
@@ -58,6 +79,7 @@ class RoutineEditorViewModel(
     private val showPicker = MutableStateFlow(false)
     private val error = MutableStateFlow<String?>(null)
     private val saved = MutableStateFlow(false)
+    private val swapItemId = MutableStateFlow<String?>(null)
 
     // Shared, not two independent collections: the missing-routine detector below and the
     // uiState chain each used to open their own Room query for the same row.
@@ -117,7 +139,10 @@ class RoutineEditorViewModel(
         combine(showPicker, error, saved, load) { picker, err, didSave, loadState ->
             EditorFlags(picker, err, didSave, loadState.phase)
         },
-    ) { core, extras ->
+        combine(container.exerciseRepository.observeAll(), swapItemId) { catalog, swapTarget ->
+            catalog to swapTarget
+        },
+    ) { core, extras, (catalog, swapTarget) ->
         RoutineEditorUiState(
             isLoading = extras.phase == EditorPhase.LOADING,
             missing = extras.phase == EditorPhase.MISSING,
@@ -127,6 +152,8 @@ class RoutineEditorViewModel(
             searchQuery = core.query,
             searchResults = core.results,
             showExercisePicker = extras.showPicker,
+            catalog = catalog,
+            swapItemId = swapTarget,
             error = extras.error,
             saved = extras.saved,
         )
@@ -135,6 +162,34 @@ class RoutineEditorViewModel(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = RoutineEditorUiState(isLoading = incomingId != null),
     )
+
+    fun requestSwap(itemId: String) {
+        swapItemId.value = itemId
+    }
+
+    fun dismissSwap() {
+        swapItemId.value = null
+    }
+
+    /**
+     * Replaces the lift, keeping its position and its targets.
+     *
+     * The repository decides whether it is allowed and says why if not, so this cannot drift
+     * from the rule the routine actually enforces.
+     */
+    fun swapExercise(replacement: Exercise) {
+        val itemId = swapItemId.value ?: return
+        val routineId = routineId.value ?: return
+        swapItemId.value = null
+        viewModelScope.launch {
+            runCatchingCancellable {
+                error.value = container.routineRepository.swapExercise(routineId, itemId, replacement)
+            }.onFailure {
+                AppLog.w(TAG, "swapExercise failed", it)
+                error.value = "Could not swap that lift. Try again."
+            }
+        }
+    }
 
     fun onNameChange(value: String) {
         name.value = value

@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -203,5 +204,61 @@ class ExerciseOrderingTest {
         val squat = lift("ex-barbell-back-squat", "Barbell Back Squat")
         val ordered = ExerciseOrdering.catalogOrder(listOf(zebra, apple, squat))
         assertEquals(listOf("ex-barbell-back-squat", "custom-a", "custom-z"), ordered.map { it.id })
+    }
+}
+
+/**
+ * Swap eligibility, which Phase 5 set and this phase must not relax.
+ */
+class SwapEligibilityTest {
+    @Test
+    fun aLiftWithNoSetsLoggedCanBeSwapped() {
+        assertEquals(
+            null,
+            SessionEditRules.refusalForSwap(
+                sessionFinished = false,
+                itemExists = true,
+                loggedSetCount = 0,
+                replacementAlreadyPresent = false,
+            ),
+        )
+    }
+
+    @Test
+    fun aLiftWithLoggedSetsCannotBe() {
+        // The rule Phase 5 shipped: a lift you have already worked is part of what happened,
+        // and swapping it would re-attribute real sets to a lift that was never performed.
+        assertNotNull(
+            SessionEditRules.refusalForSwap(
+                sessionFinished = false,
+                itemExists = true,
+                loggedSetCount = 1,
+                replacementAlreadyPresent = false,
+            ),
+        )
+    }
+
+    @Test
+    fun swappingToSomethingAlreadyInTheSessionIsRefused() {
+        assertNotNull(
+            SessionEditRules.refusalForSwap(
+                sessionFinished = false,
+                itemExists = true,
+                loggedSetCount = 0,
+                replacementAlreadyPresent = true,
+            ),
+        )
+    }
+
+    @Test
+    fun aFinishedSessionIsNotSwappable() {
+        assertNotNull(
+            SessionEditRules.refusalForSwap(
+                sessionFinished = true,
+                itemExists = true,
+                loggedSetCount = 0,
+                replacementAlreadyPresent = false,
+            ),
+        )
     }
 }

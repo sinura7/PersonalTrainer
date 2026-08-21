@@ -20,12 +20,15 @@ import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.AddDefaults
+import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RoutineExercise
 import com.sinura.personaltrainer.domain.WeightConverter
@@ -49,6 +53,7 @@ import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
+import com.sinura.personaltrainer.ui.components.ExerciseRow
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymStatusBanner
@@ -166,6 +171,13 @@ fun RoutineEditorScreen(
                         onMoveUp = { viewModel.moveExercise(item.id, -1) },
                         onMoveDown = { viewModel.moveExercise(item.id, 1) },
                         onRemove = { pendingRemoveId = item.id },
+                        // Hidden rather than disabled when the lift stands alone in its family:
+                        // a permanently greyed-out button is a promise the app cannot keep.
+                        onSwap = if (state.swapCandidates(item.exercise.id).isNotEmpty()) {
+                            { viewModel.requestSwap(item.id) }
+                        } else {
+                            null
+                        },
                         onSaveTargets = { sets, reps, weight, rest ->
                             viewModel.updateExercise(item.id, sets, reps, weight, rest)
                         },
@@ -226,6 +238,18 @@ fun RoutineEditorScreen(
             },
             onDismiss = { viewModel.setPickerVisible(false) },
         )
+    }
+
+    state.swapItemId?.let { itemId ->
+        val row = state.routine?.exercises?.firstOrNull { it.id == itemId }
+        if (row != null) {
+            SwapExerciseSheet(
+                current = row.exercise,
+                siblings = state.swapCandidates(row.exercise.id),
+                onSelect = viewModel::swapExercise,
+                onDismiss = viewModel::dismissSwap,
+            )
+        }
     }
 
     pendingRemoveId?.let { itemId ->
@@ -341,6 +365,8 @@ private fun RoutineExerciseCard(
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
     onRemove: () -> Unit,
+    /** Null when this lift has no variants, so the button is absent rather than disabled. */
+    onSwap: (() -> Unit)?,
     onSaveTargets: (Int, Int, Double?, Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -409,6 +435,11 @@ private fun RoutineExerciseCard(
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
             TextButton(onClick = onRemove) {
                 Text("Remove", style = InstrumentType.bodyStrong, color = Danger)
+            }
+            if (onSwap != null) {
+                TextButton(onClick = onSwap) {
+                    Text("Swap", style = InstrumentType.bodyStrong, color = TextSecondary)
+                }
             }
             TextButton(
                 onClick = {
@@ -494,3 +525,56 @@ private fun prescriptionLabel(item: RoutineExercise, unit: WeightUnit): String =
     append(RestTimer.formatClock(item.restSeconds))
 }
 
+/**
+ * Same movement, different kit.
+ *
+ * Deliberately not the full picker: this is not "add a lift", it is "the bench is taken". A
+ * search field would invite the user to leave the family, which is what Add exercise is for,
+ * and the whole value here is that the list is already the four or five right answers.
+ *
+ * Targets and position stay put, and the sheet says so — the alternative reading, that a swap
+ * resets the row, is the one that would stop people using it.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwapExerciseSheet(
+    current: Exercise,
+    siblings: List<Exercise>,
+    onSelect: (Exercise) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = Metrics.gutter)
+                    .padding(bottom = Metrics.space3),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+            ) {
+                Text("Swap ${current.name}", style = InstrumentType.title, color = TextPrimary)
+                Text(
+                    "Same movement, different kit. Sets, reps, rest and position stay as they are.",
+                    style = InstrumentType.caption,
+                    color = TextTertiary,
+                )
+            }
+            HairlineDivider(startIndent = 0.dp)
+            LazyColumn(contentPadding = PaddingValues(bottom = Metrics.space7)) {
+                itemsIndexed(siblings, key = { _, exercise -> exercise.id }) { index, exercise ->
+                    Column {
+                        ExerciseRow(
+                            name = exercise.name,
+                            muscleGroup = exercise.muscleGroup,
+                            onClick = { onSelect(exercise) },
+                            tag = exercise.equipment.label,
+                        )
+                        if (index < siblings.lastIndex) HairlineDivider()
+                    }
+                }
+            }
+        }
+    }
+}

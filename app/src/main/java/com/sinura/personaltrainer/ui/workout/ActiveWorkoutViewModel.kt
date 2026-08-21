@@ -11,12 +11,14 @@ import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
 import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.ExerciseOrdering
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
+import com.sinura.personaltrainer.domain.LibraryGrouping
 import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.ProgressionHint
-import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SetLogRules
+import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
 import com.sinura.personaltrainer.workout.DiscardOutcome
 import com.sinura.personaltrainer.workout.FinishOutcome
@@ -103,6 +105,14 @@ data class ActiveWorkoutUiState(
     val editingSetId: String? = null,
     /** True while the picker is exchanging a lift rather than adding one. */
     val swapping: Boolean = false,
+    /**
+     * Variants of the lift being swapped, pinned above the general list.
+     *
+     * Swapping is almost always "same movement, different kit" — the bench is taken, the cable
+     * station is free. Making the user search for "incline dumbbell" to express that, in a list
+     * of 98, is the thing this section removes.
+     */
+    val swapSiblings: List<Exercise> = emptyList(),
     /** The coach's pick for this session, pinned above the picker's results. */
     val suggestion: Exercise? = null,
     val suggestionReason: String? = null,
@@ -360,10 +370,39 @@ class ActiveWorkoutViewModel(
                 else -> SessionLoadState.MISSING
             },
         )
-    }.combine(searchQuery.flatMapLatest { container.exerciseRepository.search(it) }) { state, results ->
-        state.copy(searchResults = results)
-    }.combine(swapTargetItemId) { state, swapTarget ->
-        state.copy(swapping = swapTarget != null)
+    }.combine(
+        combine(
+            searchQuery.flatMapLatest { container.exerciseRepository.search(it) },
+            container.exerciseRepository.observeLastLogged(),
+        ) { results, lastLogged -> results to lastLogged },
+    ) { state, (results, lastLogged) ->
+        // With an empty query the picker leads with what you have actually been training.
+        // A search has already expressed an intent, and re-ranking it by recency would fight
+        // what was typed.
+        val ordered = if (state.searchQuery.isBlank()) {
+            ExerciseOrdering.pickerOrder(results, lastLogged)
+        } else {
+            results
+        }
+        state.copy(searchResults = ordered)
+    }.combine(
+        combine(swapTargetItemId, container.exerciseRepository.observeAll()) { target, catalog ->
+            target to catalog
+        },
+    ) { state, (swapTarget, catalog) ->
+        val item = state.session?.exercises?.firstOrNull { it.id == swapTarget }
+        state.copy(
+            swapping = swapTarget != null,
+            swapSiblings = item?.let {
+                LibraryGrouping.siblings(
+                    exercise = it.exercise,
+                    catalog = catalog,
+                    // Offering a swap to something already in the session is offering to create
+                    // a duplicate, which the repository would refuse anyway.
+                    exclude = state.session.exercises.map { row -> row.exercise.id }.toSet(),
+                )
+            }.orEmpty(),
+        )
     }.combine(suggestedLift) { state, suggested ->
         // Never suggest a lift the session already has: the row would offer to add something
         // that is one chip away on screen.

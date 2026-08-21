@@ -77,6 +77,31 @@ class RoutineRepository(
         touch(routineId)
     }
 
+    /**
+     * Replaces one lift in a routine with another, keeping everything about its place.
+     *
+     * Its id, its position and its targets all stay, because the plan is "third lift, three
+     * sets of eight, ninety seconds' rest" and only the implement changed. Remove-then-add
+     * would have lost the position and reset the targets, which is why nobody used it.
+     *
+     * `targetWeightKg` is the one thing deliberately dropped: a weight chosen for a barbell is
+     * not a starting point on a machine, and the progression prefill will suggest a real number
+     * from that lift's own history.
+     *
+     * Returns a message when it refuses, so the editor can say why rather than doing nothing.
+     */
+    suspend fun swapExercise(routineId: String, itemId: String, replacement: Exercise): String? {
+        val routine = routineDao.getById(routineId) ?: return "That routine is no longer available."
+        val current = routine.items.firstOrNull { it.item.id == itemId }
+            ?: return "That lift is no longer in this routine."
+        if (routine.items.any { it.exercise.id == replacement.id }) {
+            return "${replacement.name} is already in this routine."
+        }
+        routineDao.upsertRoutineExercise(current.item.copy(exerciseId = replacement.id, targetWeightKg = null))
+        touch(routineId)
+        return null
+    }
+
     suspend fun updateExercise(
         itemId: String,
         routineId: String,

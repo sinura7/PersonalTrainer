@@ -445,6 +445,7 @@ fun ActiveWorkoutScreen(
             title = if (state.swapping) "Swap lift" else "Add a lift",
             suggestion = state.suggestion,
             suggestionReason = state.suggestionReason,
+            siblings = state.swapSiblings,
         )
     }
 

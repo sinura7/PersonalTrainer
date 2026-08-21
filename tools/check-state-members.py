@@ -23,9 +23,10 @@ inference do the rest — so the receiver is resolved in two hops: the one view 
 file mentions, then that view model's declared uiState type. A file that mentions no view
 model, or more than one, is skipped rather than guessed at.
 
-Properties are read from both places Kotlin allows them: the constructor parameter list,
-and the class body — `val canFinish: Boolean get() = totalSets >= 1` is as real a property
-as a constructor `val`, and treating the body as empty would report it as missing.
+Members are read from every place Kotlin allows them: the constructor parameter list, and the
+class body — `val canFinish: Boolean get() = totalSets >= 1` is as real a property as a
+constructor `val`, and a body `fun swapCandidates(id)` is as real a member as either. Treating
+the body as empty reports all three as missing.
 
 Usage:  tools/check-state-members.py [main-root]
 Exit code is the number of unresolved reads.
@@ -41,6 +42,9 @@ MAIN_ROOT = sys.argv[1] if len(sys.argv) > 1 else "app/src/main/java"
 
 STATE_CLASS_RE = re.compile(r"data class (\w*UiState)\s*\(", re.S)
 PROP_RE = re.compile(r"\bva[lr]\s+(\w+)\s*(?::|=)")
+# Members reached with `state.foo(...)` are just as real as `state.foo`, and a state class
+# earns a body function whenever a derivation depends on more than one of its own fields.
+METHOD_RE = re.compile(r"\bfun\s+(?:<[^>]*>\s*)?(\w+)\s*\(")
 VM_CLASS_RE = re.compile(r"\bclass\s+(\w+ViewModel)\b")
 VM_STATE_RE = re.compile(r"\bval\s+uiState\s*:\s*StateFlow<\s*(\w+)\s*>")
 MENTION_VM_RE = re.compile(r"\b(\w+ViewModel)\b")
@@ -76,7 +80,9 @@ def state_classes(files):
             rest = body[params_end + 1:]
             brace = rest.find("{")
             if brace != -1 and rest[:brace].strip() == "":
-                names.update(PROP_RE.findall(rest[brace:balanced_end(rest, brace, "{", "}")]))
+                body = rest[brace:balanced_end(rest, brace, "{", "}")]
+                names.update(PROP_RE.findall(body))
+                names.update(METHOD_RE.findall(body))
             index[match.group(1)] = names
     return index
 

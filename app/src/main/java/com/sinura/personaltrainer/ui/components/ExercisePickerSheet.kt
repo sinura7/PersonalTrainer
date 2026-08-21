@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -93,6 +94,15 @@ fun ExercisePickerSheet(
      */
     suggestion: Exercise? = null,
     suggestionReason: String? = null,
+    /**
+     * Variants of the lift being swapped, pinned above everything else.
+     *
+     * A swap is almost always "same movement, different kit": the bench is taken, the cable
+     * station is free. Making someone search for "incline dumbbell" to say that, in a list of
+     * 98, is the search this section removes. Empty for a plain add, and hidden once a query
+     * is typed, so it never sits above results that contradict what was searched for.
+     */
+    siblings: List<Exercise> = emptyList(),
 ) {
     val needle = query.trim()
     val canCreate = needle.isNotEmpty() && results.none { it.name.equals(needle, ignoreCase = true) }
@@ -130,6 +140,29 @@ fun ExercisePickerSheet(
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(bottom = Metrics.space7),
             ) {
+                if (siblings.isNotEmpty() && needle.isEmpty()) {
+                    item(key = "siblings-header") {
+                        Kicker(
+                            "SAME MOVEMENT",
+                            modifier = Modifier.padding(
+                                start = Metrics.space4,
+                                top = Metrics.space3,
+                                bottom = Metrics.space1,
+                            ),
+                        )
+                    }
+                    items(siblings, key = { "sibling-${it.id}" }) { sibling ->
+                        Column {
+                            ExerciseRow(
+                                name = sibling.name,
+                                muscleGroup = sibling.muscleGroup,
+                                onClick = { onSelect(sibling) },
+                                tag = sibling.equipment.label,
+                            )
+                            HairlineDivider()
+                        }
+                    }
+                }
                 if (suggestion != null && needle.isEmpty()) {
                     item(key = "suggested") {
                         Column {
@@ -178,6 +211,7 @@ fun ExercisePickerSheet(
                                 name = exercise.name,
                                 muscleGroup = exercise.muscleGroup,
                                 onClick = { onSelect(exercise) },
+                                tag = exercise.equipment.label,
                             )
                             if (index < results.lastIndex) HairlineDivider()
                         }
