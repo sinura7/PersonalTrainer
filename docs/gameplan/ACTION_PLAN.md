@@ -16,6 +16,9 @@ Lineage, so nothing here floats free of evidence:
 3. **The packets** (nine writer + nine verifier agents) rebuilt it as executable specs,
    every file:line claim re-verified against commit `2212628`.
 
+Interactive version:
+**https://claude.ai/code/artifact/0dbf304d-4761-4516-865e-af569f008099**
+
 ---
 
 ## 1. Where the app stands
