@@ -106,12 +106,23 @@ holding the Kotlin compiler, stdlib, coroutines, JUnit and hamcrest jars:
 PT_JARS=build/test-jars tools/run-domain-tests.sh
 ```
 
-It runs two lanes. **domain** always: `domain/`, `util/`, `logging/` against
-`test/…/domain/`. **backup** whenever a Gson jar is present as well:
-`BackupDocument`/`BackupJson`/`BackupValidator` against `test/…/data/backup/` — the only three
-files in `data/backup/` with no Android imports, which is why they are named individually
-rather than passed as a directory. Without Gson the backup lane says so and is skipped; it is
-never skipped silently.
+It runs two lanes. **domain** always: `domain/`, `util/`, `logging/`, plus a hand-picked list
+of files elsewhere that carry no Android imports — `WorkoutDraftCache`, `WorkoutDraftRecovery`,
+`RestTimerStore`, `RestTimerStatePersistence` — against `test/…/{domain,util,workout,timer}/`.
+**backup** whenever a Gson jar is present as well: `BackupDocument`/`BackupJson`/
+`BackupValidator` against `test/…/data/backup/`. Both lanes name files individually rather than
+passing directories, because every one of those packages also holds files that *do* need
+Android (`RestTimerService`, `StartTrainingDay`, the Drive clients). Without Gson the backup
+lane says so and is skipped; it is never skipped silently.
+
+Adding a file to `EXTRA_MAIN` is what makes its test directory runnable, and the two lists in
+the script move together. `RestTimerStatePersistence` needs three stubs — `SystemClock`,
+`Context`, `SharedPreferences` — which, like the `android.util.Log` stub the lane was built on,
+throw if anything ever actually calls them. A stub that returned a plausible value instead would
+let the code under test start depending on Android behaviour with nothing noticing.
+
+That expansion took the executed count from 384 to 467. None of the newly reached tests failed,
+which is the good outcome and not the expected one — see the backup lane below.
 
 The backup lane earned its keep the hour it existed. Those four test files had been written
 against backup v1 and never once executed — `./gradlew test` has never run in this

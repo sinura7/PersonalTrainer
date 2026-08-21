@@ -40,10 +40,13 @@ esac
 
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
-mkdir -p "$WORK/stub/android/util" "$WORK/main" "$WORK/test"
+mkdir -p "$WORK/stub/android/util" "$WORK/stub/android/os" "$WORK/stub/android/content" \
+  "$WORK/main" "$WORK/test"
 
-# Compile-time only: AppLog's androidSink references these two symbols, then
-# catches the Throwable they raise off-device.
+# Stubs, compile-time only. Every one of these throws if it is ever actually called: the code
+# under test must not depend on Android behaviour, and a stub that quietly returned a plausible
+# value would let it start to without anything noticing. AppLog is the exception it was written
+# for — it references Log, catches the Throwable off-device, and falls back to stdout.
 cat > "$WORK/stub/android/util/Log.kt" <<'STUB'
 package android.util
 
@@ -57,14 +60,68 @@ object Log {
 }
 STUB
 
+# Referenced only as a default argument in RestTimerRehydrator.rehydrate, which every caller
+# and every test overrides — the whole point of that parameter existing.
+cat > "$WORK/stub/android/os/SystemClock.kt" <<'STUB'
+package android.os
+
+object SystemClock {
+    @JvmStatic
+    fun elapsedRealtime(): Long =
+        throw UnsupportedOperationException("android.os.SystemClock is not available on the JVM")
+}
+STUB
+
+# The SharedPreferences-backed persistence class has to compile for the pure rehydration rules
+# in the same file to be reachable. Nothing constructs it here.
+cat > "$WORK/stub/android/content/Context.kt" <<'STUB'
+package android.content
+
+abstract class Context {
+    open val applicationContext: Context get() = this
+    abstract fun getSharedPreferences(name: String, mode: Int): SharedPreferences
+
+    companion object {
+        const val MODE_PRIVATE: Int = 0
+    }
+}
+
+interface SharedPreferences {
+    fun contains(key: String): Boolean
+    fun getLong(key: String, defValue: Long): Long
+    fun getInt(key: String, defValue: Int): Int
+    fun getString(key: String, defValue: String?): String?
+    fun edit(): Editor
+
+    interface Editor {
+        fun putLong(key: String, value: Long): Editor
+        fun putInt(key: String, value: Int): Editor
+        fun putString(key: String, value: String?): Editor
+        fun clear(): Editor
+        fun apply()
+    }
+}
+STUB
+
 kotlinc() {
   java -cp "$CP" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler "$@"
 }
 
 SRC=app/src/main/java/com/sinura/personaltrainer
+TESTS=app/src/test/java/com/sinura/personaltrainer
+
+# Files outside domain/util/logging that carry no Android imports and so link on a plain JVM.
+# Named one by one rather than by directory because each package they live in also holds files
+# that do not — RestTimerService, StartTrainingDay, and so on. Adding a file here is what makes
+# its test directory below runnable; the two lists move together.
+EXTRA_MAIN="$SRC/workout/WorkoutDraftCache.kt $SRC/workout/WorkoutDraftRecovery.kt \
+            $SRC/timer/RestTimerStore.kt $SRC/timer/RestTimerStatePersistence.kt"
+EXTRA_TESTS="$TESTS/util $TESTS/workout $TESTS/timer"
+
 echo "Compiling domain sources..."
+# shellcheck disable=SC2086
 kotlinc -nowarn -jvm-target 17 -module-name main -cp "$CP" -d "$WORK/main" \
-  "$SRC/domain" "$SRC/util" "$SRC/logging" "$WORK/stub" 2>&1 | grep -v '^warning:' || true
+  "$SRC/domain" "$SRC/util" "$SRC/logging" "$WORK/stub" $EXTRA_MAIN 2>&1 | grep -v '^warning:' || true
 
 if [ ! -d "$WORK/main/com" ]; then
   echo "FAILED: domain sources did not compile." >&2
@@ -109,8 +166,8 @@ if [ -n "$BACKUP_SRC" ]; then
 fi
 
 echo "Compiling tests..."
-TEST_SRC="app/src/test/java/com/sinura/personaltrainer/domain"
-[ -n "$BACKUP_SRC" ] && TEST_SRC="$TEST_SRC app/src/test/java/com/sinura/personaltrainer/data/backup"
+TEST_SRC="$TESTS/domain $EXTRA_TESTS"
+[ -n "$BACKUP_SRC" ] && TEST_SRC="$TEST_SRC $TESTS/data/backup"
 # -Xfriend-paths mirrors Gradle's associated test compilation: without it the tests
 # cannot see `internal` declarations they legitimately exercise.
 # shellcheck disable=SC2086
