@@ -60,17 +60,7 @@ data class PlanUiState(
      */
     val blockReview: BlockReview? = null,
     val error: String? = null,
-) {
-    /**
-     * Which week of the block today is, and whether the block is done.
-     *
-     * Null when there is no block. Computed here rather than stored, because "today" moves and
-     * a stored week number would be right on the morning it was written and wrong by Tuesday.
-     */
-    fun blockWeek(today: Long): Int? = block?.displayWeekOn(today)
-
-    fun blockComplete(today: Long): Boolean = block?.isCompleteOn(today) == true
-}
+)
 
 /**
  * The Plan tab: the week you decided on, and the routines it is built from.

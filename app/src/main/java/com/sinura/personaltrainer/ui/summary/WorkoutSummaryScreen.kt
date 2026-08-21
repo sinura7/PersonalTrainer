@@ -46,7 +46,6 @@ import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSummary
-import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
@@ -334,7 +333,10 @@ private fun LiftBreakdown(summary: WorkoutSummary, unit: WeightUnit) {
             InstrumentRow(
                 title = highlight.exerciseName,
                 subtitle = highlight.topSet?.let { top ->
-                    "Top set ${top.weightKg.toWeightLabel(unit)} × ${top.reps}"
+                    // Through SetCopy, not raw tonnage: the highlight already knows how this
+                    // lift is measured, and a set of push-ups read "Top set 0 kg × 20" here
+                    // long after every other surface had stopped saying that.
+                    "Top set " + SetCopy.setLine(top.weightKg, top.reps, highlight.loadClass, unit)
                 },
                 leading = { RecordMark(record = highlight.records.isNotEmpty()) },
             ) {

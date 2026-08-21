@@ -473,7 +473,7 @@ fun StepperButton(
  * opens fully selected, because the first thing anyone does here is replace the number.
  */
 @Composable
-private fun <T> NumberEntryDialog(
+fun <T> NumberEntryDialog(
     title: String,
     unitLabel: String?,
     initial: String,

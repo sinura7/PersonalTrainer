@@ -68,6 +68,7 @@ import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.components.NumberEntryDialog
 import com.sinura.personaltrainer.ui.components.RestPresetChips
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.plan.PreferenceBlock

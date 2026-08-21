@@ -31,7 +31,15 @@ data class ExerciseSessionSummary(
     val estimatedOneRepMaxKg: Double?,
     /** Every working set of this exercise in the session, in the order logged. */
     val sets: List<ExerciseSetRecord>,
-)
+) {
+    /**
+     * The two numbers as one value, so the screen renders whichever this lift is measured in
+     * without deciding for itself. Same shape as [ExerciseLoadContribution.work] and
+     * [ExerciseHighlight.work] — a summary that carried the pair but not the accessor was the
+     * one place a caller had to reassemble it by hand.
+     */
+    val work: SetWork get() = SetWork(volumeKg = volumeKg, bodyweightReps = bodyweightReps)
+}
 
 /** Volume for one training week, for the tonnage trend. */
 data class WeeklyTonnage(

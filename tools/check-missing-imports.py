@@ -37,7 +37,14 @@ Two passes, because the two real misses were different kinds of symbol:
 Restrictions that keep it quiet enough to be worth running:
 
   private    A private top-level declaration is visible only inside its own file, so it
-             can never be the thing another file failed to import.
+             can never be the thing another file failed to import — but it is not
+             therefore harmless. It is indexed separately, and a file referencing a name
+             that resolves ONLY to a private declaration in some other file is reported:
+             there is no import that would make it legal, so it is a compile error with
+             no ambiguity to weigh. That is exactly how a shared `NumberEntryDialog`,
+             left `private` in Common.kt and called from SettingsScreen.kt, reached a
+             commit — invisible to every pass here, because a private name was treated as
+             no name at all.
   source set Main cannot see test. A helper named `session` in a test file must not make
              every `session` lambda parameter in main look like a missing import.
   bindings   Named arguments, lambda parameters, declarations and value parameters are
@@ -179,6 +186,21 @@ def index_declarations(files):
     return index
 
 
+def index_private(files):
+    """symbol name -> set of files that declare it privately at the top level."""
+    index = {}
+    for path in files:
+        src = open(path, encoding="utf-8").read()
+        pkg_match = PACKAGE_RE.search(src)
+        if not pkg_match or not pkg_match.group(1).startswith(PACKAGE_PREFIX):
+            continue
+        body = strip_comments_and_strings(src)
+        for modifiers, name in TOP_DECL_RE.findall(body):
+            if "private" in modifiers:
+                index.setdefault(name, set()).add(path)
+    return index
+
+
 def index_external(files):
     """simple name -> set of fully qualified names the project imports it under."""
     index = {}
@@ -198,7 +220,7 @@ def bound_names(body):
     return names
 
 
-def scan(files, index, external):
+def scan(files, index, external, private):
     findings = []
     for path in sorted(files):
         raw = open(path, encoding="utf-8").read()
@@ -215,6 +237,22 @@ def scan(files, index, external):
                 imported_names.add(alias)
             else:
                 imported_names.add(fqn.rsplit(".", 1)[-1])
+
+        # An import OF a private declaration is itself illegal, and the use-site loop below
+        # would never see it: an imported name is skipped there by construction. Both halves
+        # are needed, because the same mistake shows up either way — with an import that
+        # cannot resolve, or with no import because none was possible.
+        for fqn, star, alias in IMPORT_RE.findall(raw):
+            if star or not fqn.startswith(PACKAGE_PREFIX):
+                continue
+            simple = fqn.rsplit(".", 1)[-1]
+            if simple in index:
+                continue
+            owners = private.get(simple)
+            if owners and path not in owners:
+                findings.append(
+                    (path, simple, [f"private in {o}" for o in sorted(owners)])
+                )
 
         body = strip_comments_and_strings(raw)
         body = DECL_LINE_RE.sub("", body)
@@ -234,6 +272,14 @@ def scan(files, index, external):
                 findings.append((path, name, sorted(f"{p}.{name}" for p in packages)))
                 continue
             if packages:
+                continue
+            # Declared, but privately, and not in this file: no import makes that legal.
+            owners = private.get(name)
+            if owners and path not in owners:
+                seen.add(name)
+                findings.append(
+                    (path, name, [f"private in {o}" for o in sorted(owners)])
+                )
                 continue
             candidates = external.get(name)
             if candidates and not any(c.rsplit(".", 1)[0] in star_packages for c in candidates):
@@ -263,13 +309,22 @@ def main():
         test_index.setdefault(name, set()).update(packages)
 
     external = index_external(main_files + test_files)
+    # Main cannot see test privates and vice versa, for the same reason the declaration
+    # index is split: a private helper in a test file is not a symbol main code lost.
+    main_private = index_private(main_files)
+    test_private = index_private(test_files)
 
-    findings = scan(main_files, main_index, external) + scan(test_files, test_index, external)
+    findings = (
+        scan(main_files, main_index, external, main_private)
+        + scan(test_files, test_index, external, test_private)
+    )
 
     for path, name, options in findings:
-        print(f"{path}: '{name}' is used but never imported -> {' | '.join(options)}")
+        verb = "is private elsewhere" if options[0].startswith("private in ") \
+            else "is used but never imported"
+        print(f"{path}: '{name}' {verb} -> {' | '.join(options)}")
 
-    print(f"\n{len(findings)} missing import(s)")
+    print(f"\n{len(findings)} unresolvable reference(s)")
     return len(findings)
 
 
