@@ -18,6 +18,17 @@ enum class PersonalRecordKind {
 
     /** Best estimated one-rep max. */
     ESTIMATED_ONE_REP_MAX,
+
+    /**
+     * Most reps ever, at whatever the lift was carrying.
+     *
+     * The record a bodyweight lift is actually chasing. The three above are statements about a
+     * bar: "heaviest" and "estimated max" are meaningless for a push-up, and "most reps at that
+     * weight" collapses into this one when the weight is always nothing. A calisthenics lifter
+     * could previously break no records at all, session after session, however much better they
+     * got at the thing they were training.
+     */
+    REPS,
     ;
 
     /**
@@ -31,6 +42,7 @@ enum class PersonalRecordKind {
             WEIGHT -> "Heaviest"
             REPS_AT_WEIGHT -> "Most reps"
             ESTIMATED_ONE_REP_MAX -> "Est. 1RM"
+            REPS -> "Most reps"
         }
 }
 
@@ -76,9 +88,34 @@ object PersonalRecords {
         else -> weightKg * (1.0 + reps / 30.0)
     }
 
-    /** The standing bests, one per kind, or no entry when history holds nothing comparable. */
-    fun bests(history: List<ExerciseSetRecord>): Map<PersonalRecordKind, PersonalRecord> {
+    /**
+     * The standing bests, one per kind, or no entry when history holds nothing comparable.
+     *
+     * @param loadClass which records this lift can even have. A push-up has no heaviest set and
+     * no estimated max; what it has is a rep count. Required rather than defaulted, because a
+     * default would silently give every bodyweight lift the barbell's three records and none of
+     * its own — which is what it used to do.
+     */
+    fun bests(
+        history: List<ExerciseSetRecord>,
+        loadClass: LoadClass,
+    ): Map<PersonalRecordKind, PersonalRecord> {
         val result = LinkedHashMap<PersonalRecordKind, PersonalRecord>()
+
+        if (loadClass.repsAreTheMeasure) {
+            history.bestBy { it.reps.toDouble() }?.let { best ->
+                result[PersonalRecordKind.REPS] = best.toRecord(PersonalRecordKind.REPS, best.reps.toDouble())
+            }
+            // A vest has a heaviest, and it is worth chasing: the same eight pull-ups with ten
+            // more kilograms on is a better set, and nothing else here would notice.
+            if (loadClass == LoadClass.BODYWEIGHT_ADDED) {
+                history.filter { it.weightKg > 0.0 }.bestBy { it.weightKg }?.let { best ->
+                    result[PersonalRecordKind.WEIGHT] =
+                        best.toRecord(PersonalRecordKind.WEIGHT, best.weightKg)
+                }
+            }
+            return result
+        }
 
         history.bestBy { it.weightKg }?.let { best ->
             result[PersonalRecordKind.WEIGHT] = best.toRecord(PersonalRecordKind.WEIGHT, best.weightKg)
@@ -114,9 +151,22 @@ object PersonalRecords {
     fun detect(
         candidate: ExerciseSetRecord,
         priorHistory: List<ExerciseSetRecord>,
+        loadClass: LoadClass,
     ): Set<PersonalRecordKind> {
         if (priorHistory.isEmpty() || candidate.reps <= 0) return emptySet()
         val broken = linkedSetOf<PersonalRecordKind>()
+
+        if (loadClass.repsAreTheMeasure) {
+            if (candidate.reps > priorHistory.maxOf { it.reps }) broken += PersonalRecordKind.REPS
+            // A vest has a heaviest, and it is worth chasing: the same eight pull-ups with ten
+            // more kilograms on is a better set, and nothing else here would notice.
+            if (loadClass == LoadClass.BODYWEIGHT_ADDED && candidate.weightKg > 0.0) {
+                if (candidate.weightKg > priorHistory.maxOf { it.weightKg }) {
+                    broken += PersonalRecordKind.WEIGHT
+                }
+            }
+            return broken
+        }
 
         val heaviest = priorHistory.maxOf { it.weightKg }
         if (candidate.weightKg > heaviest) broken += PersonalRecordKind.WEIGHT

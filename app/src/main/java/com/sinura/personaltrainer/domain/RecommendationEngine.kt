@@ -318,8 +318,8 @@ object RecommendationEngine {
         return TrainingRecommendation(
             id = "deload-volume-flat-strength",
             kicker = KICKER_LOAD,
-            title = "Volume up 3 weeks, e1RM flat",
-            reason = "Weekly volume rose ${finding.volumeRisePercent}% over three weeks while " +
+            title = "Sets up 3 weeks, e1RM flat",
+            reason = "Weekly working sets rose ${finding.setRisePercent}% over three weeks while " +
                 "top-lift e1RMs did not move. Take an easier week: same lifts, fewer sets.",
             priority = RecommendationPriority.HIGH,
             rankScore = 75,

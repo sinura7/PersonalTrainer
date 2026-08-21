@@ -242,15 +242,17 @@ class BodyweightLoggingTest {
     }
 
     @Test
-    fun theLiftersOwnWeightReplacesTheStandIn() {
-        // A zero-weight set is worth what they actually weigh, once they have said.
-        assertEquals(40.0 * 10, MuscleLoadCalculator.setVolumeKg(0.0, 10), 0.001)
-        assertEquals(82.0 * 10, MuscleLoadCalculator.setVolumeKg(0.0, 10, bodyweightKg = 82.0), 0.001)
-        // Nonsense never displaces the stand-in.
-        assertEquals(40.0 * 10, MuscleLoadCalculator.setVolumeKg(0.0, 10, bodyweightKg = 0.0), 0.001)
-        assertEquals(40.0 * 10, MuscleLoadCalculator.setVolumeKg(0.0, 10, bodyweightKg = -5.0), 0.001)
-        // And a loaded set is untouched by it.
-        assertEquals(100.0 * 5, MuscleLoadCalculator.setVolumeKg(100.0, 5, bodyweightKg = 82.0), 0.001)
+    fun aBodyweightSetIsNotPricedInKilogramsAtAll() {
+        // What this replaced: an assertion that ten bodyweight reps were worth 400 kg, or the
+        // lifter's own weight times ten once they had told the app what they weighed. Neither
+        // number was a measurement. Reps are.
+        assertEquals(0.0, MuscleLoadCalculator.setVolumeKg(0.0, 10, LoadClass.BODYWEIGHT), 0.001)
+        assertEquals(
+            SetWork(volumeKg = 0.0, bodyweightReps = 10),
+            SetWork.of(0.0, 10, LoadClass.BODYWEIGHT),
+        )
+        // A loaded set is exactly what was on the bar, as it always was.
+        assertEquals(500.0, MuscleLoadCalculator.setVolumeKg(100.0, 5, LoadClass.LOADED), 0.001)
     }
 }
 

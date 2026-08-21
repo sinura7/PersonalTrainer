@@ -549,6 +549,10 @@ fun ActiveWorkoutScreen(
 }
 
 private fun personalRecordHeadline(moment: PersonalRecordMoment): String = when {
+    // REPS first: it is the only record a bodyweight lift can break, so anything that outranks
+    // it here would leave the banner saying "most reps at this weight" about a push-up, whose
+    // weight is nothing.
+    PersonalRecordKind.REPS in moment.kinds -> "Most reps ever"
     PersonalRecordKind.WEIGHT in moment.kinds -> "Heaviest ever"
     PersonalRecordKind.ESTIMATED_ONE_REP_MAX in moment.kinds -> "Strongest set ever"
     else -> "Most reps at this weight"

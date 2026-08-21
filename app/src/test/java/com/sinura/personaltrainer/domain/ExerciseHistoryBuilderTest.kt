@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -167,13 +168,13 @@ class ExerciseHistoryBuilderTest {
         )
 
         val mondayWeeks = ExerciseHistoryBuilder
-            .build(squat, sessions, zone, DayOfWeek.MONDAY)
+            .build(squat, sessions, zone = zone, weekStart = DayOfWeek.MONDAY)
             .weeklyTonnage
         assertEquals(2, mondayWeeks.size)
         assertEquals(LocalDate.of(2026, 8, 10), mondayWeeks.first().weekStart)
 
         val sundayWeeks = ExerciseHistoryBuilder
-            .build(squat, sessions, zone, DayOfWeek.SUNDAY)
+            .build(squat, sessions, zone = zone, weekStart = DayOfWeek.SUNDAY)
             .weeklyTonnage
         assertEquals(1, sundayWeeks.size)
         assertEquals(LocalDate.of(2026, 8, 16), sundayWeeks.single().weekStart)
@@ -181,16 +182,37 @@ class ExerciseHistoryBuilderTest {
     }
 
     @Test
-    fun bodyweightSetsStillCarryVolumeButNoEstimate() {
+    fun aBodyweightLiftIsCountedInRepsAndCarriesNoKilograms() {
+        // This used to assert the opposite: that eight bodyweight reps were worth 320 kg,
+        // being eight times a flat 40 kg stand-in. The number was consistent across every
+        // surface and true on none of them.
         val day = at("2026-08-10T10:00:00Z")
         val history = ExerciseHistoryBuilder.build(
             exerciseId = squat,
             sessions = listOf(workout("a", day, listOf(squatSet("a", 0.0, 8, day)))),
+            loadClass = LoadClass.BODYWEIGHT,
             zone = zone,
         )
         val summary = history.sessions.single()
-        assertEquals(MuscleLoadCalculator.BODYWEIGHT_EQUIVALENT_KG * 8, summary.volumeKg, 0.0001)
+        assertEquals(0.0, summary.volumeKg, 0.0001)
+        assertEquals(8, summary.bodyweightReps)
         assertNull(summary.estimatedOneRepMaxKg)
+        assertEquals(8, history.weeklyTonnage.single().bodyweightReps)
+    }
+
+    @Test
+    fun aLoadedLiftStillEstimatesAOneRepMax() {
+        val day = at("2026-08-10T10:00:00Z")
+        val history = ExerciseHistoryBuilder.build(
+            exerciseId = squat,
+            sessions = listOf(workout("a", day, listOf(squatSet("a", 100.0, 5, day)))),
+            loadClass = LoadClass.LOADED,
+            zone = zone,
+        )
+        val summary = history.sessions.single()
+        assertEquals(500.0, summary.volumeKg, 0.0001)
+        assertEquals(0, summary.bodyweightReps)
+        assertNotNull(summary.estimatedOneRepMaxKg)
     }
 
     @Test

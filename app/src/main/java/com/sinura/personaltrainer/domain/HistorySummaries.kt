@@ -73,6 +73,11 @@ fun prSummary(sessions: List<WorkoutSession>, limit: Int = 3): List<PrSummaryRow
         .groupBy { it.exerciseId }
 
     return byExercise.mapNotNull { (exerciseId, sets) ->
+        // The class comes from a session that actually holds the lift, not from the library:
+        // a lift edited or deleted since must not restate months of past records in new units.
+        val loadClass = sessions.firstOrNull { session ->
+            session.exercises.any { it.exercise.id == exerciseId }
+        }?.loadClassOf(exerciseId) ?: LoadClass.LOADED
         val records = PersonalRecords.bests(
             sets.map { set ->
                 ExerciseSetRecord(
@@ -83,8 +88,13 @@ fun prSummary(sessions: List<WorkoutSession>, limit: Int = 3): List<PrSummaryRow
                     completedAt = set.completedAt,
                 )
             },
+            loadClass,
         )
-        val best = records[PersonalRecordKind.ESTIMATED_ONE_REP_MAX]
+        // REPS first for a bodyweight lift, because it is the only record that lift can hold.
+        // The list used to fall through both barbell kinds and drop the row entirely, so a
+        // calisthenics lifter's recent-PR list was permanently empty however hard they trained.
+        val best = records[PersonalRecordKind.REPS]
+            ?: records[PersonalRecordKind.ESTIMATED_ONE_REP_MAX]
             ?: records[PersonalRecordKind.WEIGHT]
             ?: return@mapNotNull null
         PrSummaryRow(

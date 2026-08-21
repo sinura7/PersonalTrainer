@@ -92,12 +92,26 @@ data class ExerciseLoadContribution(
     val exerciseId: String,
     val exerciseName: String,
     val volumeKg: Double,
+    /** Reps of this lift, when reps rather than kilograms are what it is measured in. */
+    val bodyweightReps: Int = 0,
     val workingSets: Int,
-)
+) {
+    val work: SetWork get() = SetWork(volumeKg = volumeKg, bodyweightReps = bodyweightReps)
+}
 
 data class MuscleLoadSummary(
     val muscle: CanonicalMuscle,
     val volumeKg: Double,
+    /**
+     * Bodyweight reps credited to this muscle in the window.
+     *
+     * Carried alongside [volumeKg] rather than folded into it, because a muscle trained only
+     * with push-ups has no honest kilogram total and used to be given an invented one. A
+     * calisthenics chest reading "0 kg" would be a worse lie than the 40 kg stand-in was; it
+     * reads as its rep count instead. The band is unaffected either way — [weeklySets] is what
+     * it comes from, and always was.
+     */
+    val bodyweightReps: Int = 0,
     val workingSets: Int,
     val sessionCount: Int,
     val lastTrainedAtMs: Long?,
@@ -116,6 +130,7 @@ data class MuscleLoadSummary(
 ) {
     val band: HeatBand get() = HeatBand.fromWeeklySets(weeklySets)
     val trainedInWindow: Boolean get() = workingSets > 0
+    val work: SetWork get() = SetWork(volumeKg = volumeKg, bodyweightReps = bodyweightReps)
 }
 
 data class BodyHeatSnapshot(
@@ -131,6 +146,7 @@ data class BodyHeatSnapshot(
             ?: MuscleLoadSummary(
                 muscle = muscle,
                 volumeKg = 0.0,
+                bodyweightReps = 0,
                 workingSets = 0,
                 sessionCount = 0,
                 lastTrainedAtMs = null,

@@ -69,7 +69,7 @@ class DeloadSignalTest {
     fun risingVolumeWithFlatStrengthFires() {
         val finding = DeloadSignal.detect(history(risingVolume = true, improving = false), now, zone)
         assertNotNull(finding)
-        assertTrue("the rise must be reportable", finding!!.volumeRisePercent > 0)
+        assertTrue("the rise must be reportable", finding!!.setRisePercent > 0)
         assertTrue(finding.topLifts.isNotEmpty())
     }
 

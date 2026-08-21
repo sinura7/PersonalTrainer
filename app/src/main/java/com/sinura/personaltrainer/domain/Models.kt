@@ -80,21 +80,31 @@ data class WorkoutSession(
     val isFinished: Boolean get() = finishedAt != null
 
     /**
-     * Working volume, using the same per-set rule as the heat map and the exercise history.
+     * How a lift in this session is measured.
      *
-     * This used to be a plain `weightKg * reps`, which scored every bodyweight set at zero
-     * while [MuscleLoadCalculator] credited the same set at its bodyweight equivalent. A pull-up
-     * session therefore read "0 kg" on History and lit up the body map — one app, two answers
-     * to "how much did I lift".
+     * Read from the session's own copy of the exercise, not from the library. A lift deleted or
+     * edited after the session was logged must not retroactively change what its history means
+     * — a pull-up reclassified as loaded would turn a rep count into kilograms across months of
+     * past workouts. Unknown lifts fall back to loaded; see [LoadClass.of].
      */
+    fun loadClassOf(exerciseId: String): LoadClass =
+        LoadClass.of(exercises.firstOrNull { it.exercise.id == exerciseId }?.exercise?.loadType)
+
     /**
-     * @param bodyweightKg see [MuscleLoadCalculator.setVolumeKg]. Defaulted rather than
-     * required so every existing caller keeps exactly the number it showed before; the
-     * surfaces that know the lifter's weight opt in by passing it.
+     * What this session was worth, in both of the units training is actually measured in.
+     *
+     * Replaces a single `workingVolumeKg()`, which had to answer "how many kilograms" even for
+     * sessions that contained none. It did so by pricing every bodyweight rep at a flat 40 kg,
+     * so a set of ten push-ups reported four hundred kilograms lifted. The number agreed with
+     * the body map, which is why it survived — both were quoting the same invention.
      */
-    fun workingVolumeKg(bodyweightKg: Double? = null): Double = sets
-        .filterNot { it.isWarmup }
-        .sumOf { MuscleLoadCalculator.setVolumeKg(it.weightKg, it.reps, bodyweightKg) }
+    fun work(): SetWork = SetWork.sum(
+        sets.filterNot { it.isWarmup }
+            .map { SetWork.of(it.weightKg, it.reps, loadClassOf(it.exerciseId)) },
+    )
+
+    /** Just the kilograms — the bar and the vest, never the body. */
+    fun workingVolumeKg(): Double = work().volumeKg
 
     fun setsFor(exerciseId: String): List<SetLog> =
         sets.filter { it.exerciseId == exerciseId }.sortedBy { it.setNumber }

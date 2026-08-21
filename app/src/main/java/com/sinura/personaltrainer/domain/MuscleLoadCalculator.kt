@@ -7,7 +7,6 @@ import java.time.temporal.ChronoUnit
 import kotlin.math.max
 
 object MuscleLoadCalculator {
-    const val BODYWEIGHT_EQUIVALENT_KG = 40.0
     const val SECONDARY_VOLUME_WEIGHT = 0.4
 
     /** Where each band starts, in weighted sets per week. Mirrored on [HeatBand]. */
@@ -35,19 +34,15 @@ object MuscleLoadCalculator {
     const val COACH_TRAILING_DAYS = 14L
 
     /**
-     * @param bodyweightKg the lifter's own weight, when they have told us. A zero-weight set
-     * is a bodyweight set, and it is worth what they actually weigh — [BODYWEIGHT_EQUIVALENT_KG]
-     * is only the stand-in used until they say. Passing null keeps the stand-in, so no surface
-     * silently re-values history it was not given the figure for.
+     * Kilograms that were genuinely external.
+     *
+     * This used to price a bodyweight set at a flat 40 kg stand-in so that everything could be
+     * one number. [SetWork] replaced that: bodyweight lifts are measured in reps, and the only
+     * kilograms reported are the ones that were really on the bar or in the vest. Kept as a
+     * thin wrapper because tonnage alone is what several callers genuinely want.
      */
-    fun setVolumeKg(weightKg: Double, reps: Int, bodyweightKg: Double? = null): Double {
-        val load = if (weightKg > 0.0) weightKg else bodyweightOrDefault(bodyweightKg)
-        return load * reps.coerceAtLeast(0)
-    }
-
-    /** The lifter's weight if it is known and sane, otherwise the flat stand-in. */
-    fun bodyweightOrDefault(bodyweightKg: Double?): Double =
-        bodyweightKg?.takeIf { it.isFinite() && it > 0.0 } ?: BODYWEIGHT_EQUIVALENT_KG
+    fun setVolumeKg(weightKg: Double, reps: Int, loadClass: LoadClass): Double =
+        SetWork.of(weightKg, reps, loadClass).volumeKg
 
     fun snapshot(
         sessions: List<WorkoutSession>,
@@ -68,7 +63,7 @@ object MuscleLoadCalculator {
                 anyWorkingSets = true
                 val trainedAt = trainedAtMs(session, set)
                 val credits = creditsFor(set, session, exerciseCatalog)
-                val volume = setVolumeKg(set.weightKg, set.reps)
+                val work = SetWork.of(set.weightKg, set.reps, loadClassFor(set, session, exerciseCatalog))
                 val inWindow = trainedAt >= windowStart && trainedAt <= nowMs
 
                 credits.forEach { (muscle, _) ->
@@ -80,7 +75,13 @@ object MuscleLoadCalculator {
                     credits.forEach { (muscle, weight) ->
                         acc.getValue(muscle).recordWindow(
                             sessionId = session.id,
-                            volumeKg = volume * weight,
+                            // Tonnage is split by junction weight; reps are not. Half a set of
+                            // triceps is half the kilograms, but "six reps" cannot be three
+                            // reps of triceps — a rep is a thing that happened, not a quantity
+                            // to divide. Whole reps are credited to every muscle the lift
+                            // trains, which is also how a rep count is read out loud.
+                            volumeKg = work.volumeKg * weight,
+                            bodyweightReps = work.bodyweightReps,
                             weightedSets = weight,
                             set = set,
                         )
@@ -95,6 +96,7 @@ object MuscleLoadCalculator {
             MuscleLoadSummary(
                 muscle = muscle,
                 volumeKg = row.windowVolumeKg,
+                bodyweightReps = row.windowBodyweightReps,
                 workingSets = row.windowSets,
                 sessionCount = row.windowSessions.size,
                 lastTrainedAtMs = row.lastTrainedAtMs,
@@ -253,6 +255,22 @@ object MuscleLoadCalculator {
      * finishing and the first seed pass building the junction: no credits yet, same numbers as
      * yesterday.
      */
+    /**
+     * How this set is measured, resolved the same way [creditsFor] resolves its muscles: the
+     * catalog first, then the copy embedded in the session. A lift deleted from the library
+     * after it was trained still has its class recorded in the session that used it, which is
+     * what stops old history silently changing units.
+     */
+    private fun loadClassFor(
+        set: SetLog,
+        session: WorkoutSession,
+        catalog: Map<String, Exercise>,
+    ): LoadClass {
+        val loadType = catalog[set.exerciseId]?.loadType
+            ?: session.exercises.firstOrNull { it.exercise.id == set.exerciseId }?.exercise?.loadType
+        return LoadClass.of(loadType)
+    }
+
     private fun creditsFor(
         set: SetLog,
         session: WorkoutSession,
@@ -313,6 +331,7 @@ object MuscleLoadCalculator {
 
     private class MuscleAccumulator {
         var windowVolumeKg: Double = 0.0
+        var windowBodyweightReps: Int = 0
         /** Sets credited by junction weight: a bench press is 1.0 chest and 0.5 triceps. */
         var windowWeightedSets: Double = 0.0
         var windowSets: Int = 0
@@ -324,8 +343,15 @@ object MuscleLoadCalculator {
             lastTrainedAtMs = max(lastTrainedAtMs ?: 0L, trainedAt).takeIf { it > 0L }
         }
 
-        fun recordWindow(sessionId: String, volumeKg: Double, weightedSets: Double, set: SetLog) {
+        fun recordWindow(
+            sessionId: String,
+            volumeKg: Double,
+            bodyweightReps: Int,
+            weightedSets: Double,
+            set: SetLog,
+        ) {
             windowVolumeKg += volumeKg
+            windowBodyweightReps += bodyweightReps
             windowWeightedSets += weightedSets
             windowSets += 1
             windowSessions += sessionId
@@ -334,6 +360,7 @@ object MuscleLoadCalculator {
                 exerciseId = set.exerciseId,
                 exerciseName = set.exerciseName.ifBlank { existing?.exerciseName ?: "Exercise" },
                 volumeKg = (existing?.volumeKg ?: 0.0) + volumeKg,
+                bodyweightReps = (existing?.bodyweightReps ?: 0) + bodyweightReps,
                 workingSets = (existing?.workingSets ?: 0) + 1,
             )
         }

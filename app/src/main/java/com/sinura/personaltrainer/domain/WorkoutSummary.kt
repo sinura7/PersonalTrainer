@@ -4,11 +4,16 @@ package com.sinura.personaltrainer.domain
 data class SessionHighlight(
     val exerciseId: String,
     val exerciseName: String,
+    /** How this lift is measured, so the panel can read it back in its own units. */
+    val loadClass: LoadClass = LoadClass.LOADED,
     val topSet: ExerciseSetRecord?,
     val workingSets: Int,
     val volumeKg: Double,
+    val bodyweightReps: Int = 0,
     val records: Set<PersonalRecordKind>,
-)
+) {
+    val work: SetWork get() = SetWork(volumeKg = volumeKg, bodyweightReps = bodyweightReps)
+}
 
 data class WorkoutSummary(
     val sessionId: String = "",
@@ -57,13 +62,17 @@ object WorkoutSummaryBuilder {
                         )
                     }
                     .sortedBy { it.completedAt }
+                val loadClass = session.loadClassOf(exerciseId)
+                val work = SetWork.sum(records.map { SetWork.of(it.weightKg, it.reps, loadClass) })
                 SessionHighlight(
                     exerciseId = exerciseId,
                     exerciseName = sets.first().exerciseName,
+                    loadClass = loadClass,
                     topSet = topSetOf(records),
                     workingSets = records.size,
-                    volumeKg = records.sumOf { MuscleLoadCalculator.setVolumeKg(it.weightKg, it.reps) },
-                    records = recordsBroken(records, priorByExercise[exerciseId].orEmpty()),
+                    volumeKg = work.volumeKg,
+                    bodyweightReps = work.bodyweightReps,
+                    records = recordsBroken(records, priorByExercise[exerciseId].orEmpty(), loadClass),
                 )
             }
             .sortedWith(compareByDescending<SessionHighlight> { it.volumeKg }.thenBy { it.exerciseName })
@@ -92,11 +101,12 @@ object WorkoutSummaryBuilder {
     private fun recordsBroken(
         sessionSets: List<ExerciseSetRecord>,
         prior: List<ExerciseSetRecord>,
+        loadClass: LoadClass,
     ): Set<PersonalRecordKind> {
         val seen = prior.toMutableList()
         val broken = linkedSetOf<PersonalRecordKind>()
         sessionSets.forEach { candidate ->
-            broken += PersonalRecords.detect(candidate, seen)
+            broken += PersonalRecords.detect(candidate, seen, loadClass)
             seen += candidate
         }
         return broken

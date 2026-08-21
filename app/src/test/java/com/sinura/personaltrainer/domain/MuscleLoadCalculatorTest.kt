@@ -32,16 +32,52 @@ class MuscleLoadCalculatorTest {
     }
 
     @Test
-    fun bodyweightSetsUseEquivalentLoad() {
+    fun bodyweightSetsAreCountedInRepsAndStillHeatTheMap() {
         val session = session(
             id = "s1",
             finishedAt = now - days(1),
             sets = listOf(set("a", "s1", "ex-pu", "Pull-Up", 0.0, 8, at = now - days(1))),
-            exercises = listOf(sessionExercise("ex-pu", "Pull-Up", "Back")),
+            exercises = listOf(sessionExercise("ex-pu", "Pull-Up", "Back", LoadType.BODYWEIGHT)),
+        )
+        val back = MuscleLoadCalculator
+            .snapshot(listOf(session), HeatWindow.LAST_30_DAYS, now, zone)
+            .load(CanonicalMuscle.BACK)
+
+        // No kilograms, because there were none. This used to assert 320 — eight reps at a
+        // flat 40 kg stand-in.
+        assertEquals(0.0, back.volumeKg, 0.001)
+        assertEquals(8, back.bodyweightReps)
+        // The band never came from tonnage, so the map lights up exactly as it did before.
+        assertEquals(1, back.workingSets)
+        assertTrue(back.trainedInWindow)
+    }
+
+    @Test
+    fun repsAreCreditedWholeWhileTonnageIsStillSplit() {
+        // The two measures divide differently, on purpose. A secondary muscle takes a fraction
+        // of a set's kilograms, because kilograms are a quantity. A rep is not: "2.4 reps of
+        // glutes" is not a sentence anyone says, and it is not what happened either — the set
+        // happened, and it trained all three.
+        //
+        // A weighted lift, so both numbers are non-zero at once and the contrast is visible.
+        val session = session(
+            id = "s1",
+            finishedAt = now - days(1),
+            sets = listOf(set("a", "s1", "ex-pistol", "Pistol Squat", 10.0, 6, at = now - days(1))),
+            exercises = listOf(
+                sessionExercise("ex-pistol", "Pistol Squat", "Legs", LoadType.BODYWEIGHT_PLUS),
+            ),
         )
         val snap = MuscleLoadCalculator.snapshot(listOf(session), HeatWindow.LAST_30_DAYS, now, zone)
-        val expected = MuscleLoadCalculator.BODYWEIGHT_EQUIVALENT_KG * 8
-        assertEquals(expected, snap.load(CanonicalMuscle.BACK).volumeKg, 0.001)
+        val quads = snap.load(CanonicalMuscle.QUADRICEPS)
+        val glutes = snap.load(CanonicalMuscle.GLUTES)
+
+        // Both muscles were trained by the same six reps, so both are credited with six.
+        assertEquals(6, quads.bodyweightReps)
+        assertEquals(6, glutes.bodyweightReps)
+        // The vest's 60 kg lands whole on the primary and at the secondary weight elsewhere.
+        assertEquals(60.0, quads.volumeKg, 0.001)
+        assertEquals(60.0 * MuscleLoadCalculator.SECONDARY_VOLUME_WEIGHT, glutes.volumeKg, 0.001)
     }
 
     @Test
@@ -251,11 +287,16 @@ internal fun session(
     sets = sets,
 )
 
-internal fun sessionExercise(exerciseId: String, name: String, muscleGroup: String): SessionExercise =
+internal fun sessionExercise(
+    exerciseId: String,
+    name: String,
+    muscleGroup: String,
+    loadType: LoadType = LoadType.EXTERNAL,
+): SessionExercise =
     SessionExercise(
         id = "se-$exerciseId",
         sessionId = "s",
-        exercise = Exercise(exerciseId, name, muscleGroup, "", false),
+        exercise = Exercise(exerciseId, name, muscleGroup, "", false, loadType = loadType),
         sortOrder = 0,
         targetSets = 3,
         targetReps = 5,

@@ -18,7 +18,7 @@ import java.time.ZoneId
  */
 data class DeloadFinding(
     /** Percent rise from the oldest week to the newest, rounded, for the copy. */
-    val volumeRisePercent: Int,
+    val setRisePercent: Int,
     val topLifts: List<String>,
 )
 
@@ -38,15 +38,22 @@ object DeloadSignal {
         val finished = history.filter { it.isFinished }
         if (finished.isEmpty()) return null
 
-        // Three consecutive weeks ending now. Bucketed by the same trainedAt attribution the
-        // heat map uses, so a set cannot land in one week here and another week there.
+        // Three consecutive weeks ending now, counted in working sets. Bucketed by the same
+        // trainedAt attribution the heat map uses, so a set cannot land in one week here and
+        // another week there.
+        //
+        // Sets rather than tonnage, for the same reason the heat bands use them: tonnage is not
+        // a unit every lift has. It used to price each bodyweight rep at a flat 40 kg, so a
+        // week of extra push-ups showed up as hundreds of kilograms of "rising volume"; drop
+        // that invention and tonnage instead reads zero for the same week. Sets are the honest
+        // measure of how much work went in, and they are the same measure for every lift.
         val buckets = DoubleArray(DELOAD_WEEKS)
         finished.forEach { session ->
             session.sets.filterNot { it.isWarmup }.forEach { set ->
                 val at = MuscleLoadCalculator.trainedAtMs(session, set)
                 val weeksBack = ((nowMs - at) / WEEK_MS).toInt()
                 if (at <= nowMs && weeksBack in 0 until DELOAD_WEEKS) {
-                    buckets[weeksBack] += MuscleLoadCalculator.setVolumeKg(set.weightKg, set.reps)
+                    buckets[weeksBack] += 1.0
                 }
             }
         }
@@ -84,7 +91,7 @@ object DeloadSignal {
 
         val names = topLiftIds.mapNotNull { id -> recentSets.firstOrNull { it.exerciseId == id }?.exerciseName }
         val rise = ((newest / oldest - 1.0) * 100.0).toInt()
-        return DeloadFinding(volumeRisePercent = rise, topLifts = names)
+        return DeloadFinding(setRisePercent = rise, topLifts = names)
     }
 
     private fun setsBetween(sessions: List<WorkoutSession>, fromMs: Long, toMs: Long): List<Scored> =

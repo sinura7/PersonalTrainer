@@ -431,7 +431,9 @@ private fun RecordsCard(
     unit: WeightUnit,
 ) {
     val heaviest = records[PersonalRecordKind.WEIGHT]
-    val topReps = records[PersonalRecordKind.REPS_AT_WEIGHT]
+    // REPS for a bodyweight lift, REPS_AT_WEIGHT for a loaded one — the same slot, because they
+    // are the same question asked of two kinds of lift. Only one is ever present.
+    val topReps = records[PersonalRecordKind.REPS] ?: records[PersonalRecordKind.REPS_AT_WEIGHT]
     val estimate = records[PersonalRecordKind.ESTIMATED_ONE_REP_MAX]
 
     GymCard(colors = CardDefaults.cardColors(containerColor = GoldContainer)) {

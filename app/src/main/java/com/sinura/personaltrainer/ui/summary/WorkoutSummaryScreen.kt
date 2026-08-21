@@ -400,6 +400,7 @@ private val PersonalRecordKind.celebrationLabel: String
         PersonalRecordKind.WEIGHT -> "Heaviest ever"
         PersonalRecordKind.REPS_AT_WEIGHT -> "Most reps at that weight"
         PersonalRecordKind.ESTIMATED_ONE_REP_MAX -> "Best estimated 1RM"
+        PersonalRecordKind.REPS -> "Most reps ever"
     }
 
 private const val RECORD_STAGGER_MS = 140L

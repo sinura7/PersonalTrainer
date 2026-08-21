@@ -19,6 +19,15 @@ data class ExerciseSessionSummary(
     val topSet: ExerciseSetRecord?,
     val workingSets: Int,
     val volumeKg: Double,
+    /** Reps, for a lift measured in reps. Zero for a loaded one. See [SetWork]. */
+    val bodyweightReps: Int = 0,
+    /**
+     * Null for anything measured in reps.
+     *
+     * An estimated one-rep max is a statement about a bar, arrived at by extrapolating from
+     * weight and reps. A push-up has no bar; extrapolating from a rep count alone would produce
+     * a kilogram figure out of thin air, which is the same invention this whole class removed.
+     */
     val estimatedOneRepMaxKg: Double?,
     /** Every working set of this exercise in the session, in the order logged. */
     val sets: List<ExerciseSetRecord>,
@@ -28,6 +37,8 @@ data class ExerciseSessionSummary(
 data class WeeklyTonnage(
     val weekStart: LocalDate,
     val volumeKg: Double,
+    /** Reps, for a lift measured in reps. The trend plots whichever of the two is this lift's. */
+    val bodyweightReps: Int = 0,
     val workingSets: Int,
 )
 
@@ -64,9 +75,16 @@ data class ExerciseSetEntry(
  * they are preparation, not work, and counting them would inflate both tonnage and records.
  */
 object ExerciseHistoryBuilder {
+    /**
+     * @param loadClass resolved by the caller. Taken from the sessions themselves when they
+     * hold the lift, so history logged against a since-edited exercise keeps its own units.
+     */
     fun build(
         exerciseId: String,
         sessions: List<WorkoutSession>,
+        loadClass: LoadClass = sessions.firstOrNull { session ->
+            session.exercises.any { it.exercise.id == exerciseId }
+        }?.loadClassOf(exerciseId) ?: LoadClass.LOADED,
         zone: ZoneId = ZoneId.systemDefault(),
         weekStart: DayOfWeek = DayOfWeek.MONDAY,
     ): ExerciseHistory = fromEntries(
@@ -80,19 +98,26 @@ object ExerciseHistoryBuilder {
                 )
             }.toList()
         },
+        loadClass = loadClass,
         zone = zone,
         weekStart = weekStart,
     )
 
+    /**
+     * @param loadClass how this lift is measured. Required rather than defaulted: every caller
+     * has the exercise in hand, and a default here would quietly report a calisthenics history
+     * in kilograms — the exact failure [SetWork] exists to end.
+     */
     fun fromEntries(
         exerciseId: String,
         entries: List<ExerciseSetEntry>,
+        loadClass: LoadClass,
         zone: ZoneId = ZoneId.systemDefault(),
         weekStart: DayOfWeek = DayOfWeek.MONDAY,
     ): ExerciseHistory {
         val summaries = entries
             .groupBy { it.record.sessionId }
-            .map { (sessionId, group) -> summarise(sessionId, group) }
+            .map { (sessionId, group) -> summarise(sessionId, group, loadClass) }
             .sortedByDescending { it.performedAtMs }
 
         val allSets = summaries.flatMap { it.sets }
@@ -104,9 +129,13 @@ object ExerciseHistoryBuilder {
                     .with(TemporalAdjusters.previousOrSame(weekStart))
             }
             .map { (start, records) ->
+                val work = SetWork.sum(
+                    records.map { SetWork.of(it.weightKg, it.reps, loadClass) },
+                )
                 WeeklyTonnage(
                     weekStart = start,
-                    volumeKg = records.sumOf { MuscleLoadCalculator.setVolumeKg(it.weightKg, it.reps) },
+                    volumeKg = work.volumeKg,
+                    bodyweightReps = work.bodyweightReps,
                     workingSets = records.size,
                 )
             }
@@ -115,7 +144,7 @@ object ExerciseHistoryBuilder {
         return ExerciseHistory(
             exerciseId = exerciseId,
             sessions = summaries,
-            records = PersonalRecords.bests(allSets),
+            records = PersonalRecords.bests(allSets, loadClass),
             weeklyTonnage = weekly,
             lifetimeVolumeKg = weekly.sumOf { it.volumeKg },
             lifetimeWorkingSets = allSets.size,
@@ -143,8 +172,10 @@ object ExerciseHistoryBuilder {
     private fun summarise(
         sessionId: String,
         group: List<ExerciseSetEntry>,
+        loadClass: LoadClass,
     ): ExerciseSessionSummary {
         val records = group.map { it.record }.sortedBy { it.completedAt }
+        val work = SetWork.sum(records.map { SetWork.of(it.weightKg, it.reps, loadClass) })
         val top = ProgressionBasis.topWorkingSet(
             records.map { WorkingSetCandidate(it.weightKg, it.reps, it.completedAt) },
         )
@@ -161,10 +192,14 @@ object ExerciseHistoryBuilder {
             performedAtMs = group.first().sessionPerformedAtMs,
             topSet = topRecord,
             workingSets = records.size,
-            volumeKg = records.sumOf { MuscleLoadCalculator.setVolumeKg(it.weightKg, it.reps) },
-            estimatedOneRepMaxKg = records
-                .mapNotNull { PersonalRecords.estimatedOneRepMaxKg(it.weightKg, it.reps) }
-                .maxOrNull(),
+            volumeKg = work.volumeKg,
+            bodyweightReps = work.bodyweightReps,
+            estimatedOneRepMaxKg = if (loadClass.repsAreTheMeasure) {
+                null
+            } else {
+                records.mapNotNull { PersonalRecords.estimatedOneRepMaxKg(it.weightKg, it.reps) }
+                    .maxOrNull()
+            },
             sets = records,
         )
     }

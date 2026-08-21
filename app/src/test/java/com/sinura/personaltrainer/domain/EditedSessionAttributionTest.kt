@@ -79,7 +79,7 @@ class EditedSessionAttributionTest {
             ExerciseSetRecord("b", "recent", weightKg = 120.0, reps = 5, completedAt = newerAt),
         )
 
-        val bests = PersonalRecords.bests(history)
+        val bests = PersonalRecords.bests(history, LoadClass.LOADED)
         val weight = bests.getValue(PersonalRecordKind.WEIGHT)
         // The record belongs to the day it was actually lifted, not to the day it was typed.
         assertEquals(oldAt, weight.achievedAt)
