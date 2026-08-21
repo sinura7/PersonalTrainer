@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.domain
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -89,6 +90,46 @@ class AddDefaultsTest {
         assertEquals(TargetDefaults(3, 12, 60), AddDefaults.forExercise(LoadType.BODYWEIGHT, false))
         assertEquals(TargetDefaults(3, 8, 90), AddDefaults.forExercise(LoadType.ASSISTED, true))
         assertEquals(TargetDefaults(3, 8, 90), AddDefaults.forExercise(LoadType.ASSISTED, false))
+    }
+
+    @Test
+    fun anAccessoryIsTheSameLiftDoneLater() {
+        // Derived from the primary row, so there is one table to argue with, not two.
+        assertEquals(
+            TargetDefaults(3, 8, 90),
+            AddDefaults.forExercise(LoadType.EXTERNAL, isCompound = true, role = LiftRole.ACCESSORY),
+        )
+        assertEquals(
+            TargetDefaults(3, 12, 60),
+            AddDefaults.forExercise(LoadType.EXTERNAL, isCompound = false, role = LiftRole.ACCESSORY),
+        )
+    }
+
+    @Test
+    fun anAccessoryNeverAsksForFewerRepsOrMoreRest() {
+        LoadType.entries.forEach { loadType ->
+            listOf(true, false).forEach { compound ->
+                val primary = AddDefaults.forExercise(loadType, compound, LiftRole.PRIMARY)
+                val accessory = AddDefaults.forExercise(loadType, compound, LiftRole.ACCESSORY)
+                assertTrue("$loadType/$compound reps", accessory.reps >= primary.reps)
+                assertTrue("$loadType/$compound rest", accessory.restSeconds <= primary.restSeconds)
+                assertTrue("$loadType/$compound floor", accessory.restSeconds >= 60)
+                assertTrue("$loadType/$compound cap", accessory.reps <= 12)
+            }
+        }
+    }
+
+    @Test
+    fun aHandAddedLiftIsUnchangedByTheRoleParameter() {
+        // PRIMARY is the default, and PRIMARY is exactly what shipped before roles existed.
+        LoadType.entries.forEach { loadType ->
+            listOf(true, false).forEach { compound ->
+                assertEquals(
+                    AddDefaults.forExercise(loadType, compound),
+                    AddDefaults.forExercise(loadType, compound, LiftRole.PRIMARY),
+                )
+            }
+        }
     }
 
     @Test

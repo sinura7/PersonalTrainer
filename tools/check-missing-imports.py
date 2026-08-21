@@ -81,13 +81,20 @@ TOP_DECL_RE = re.compile(
 # symbol is normal Kotlin, not a missing import.
 ANY_DECL_RE = re.compile(r"\b(?:class|object|interface|fun|val|var|typealias)\s+(?:<[^>]*>\s*)?(\w+)")
 VALUE_PARAM_RE = re.compile(r"[(,]\s*(?:@\w+\s+)*(?:vararg\s+|noinline\s+|crossinline\s+)?(\w+)\s*:")
-# Bounded to one line and to identifier/comma runs: an unbounded [\w\s,]+? between
+# Bounded to one line and to identifier/comma/paren runs: an unbounded [\w\s,]+? between
 # "{" and "->" backtracks across whole files and effectively never returns.
+#
+# Parentheses are allowed ANYWHERE in the run, not just around the whole list, because a
+# destructured parameter can sit among plain ones — `map { index, (key, value) -> }`. Matching
+# only the wrapped form left `key` and `value` unbound, and the first file to destructure a
+# Pair had its `key` reported as a missing import of Compose's `key`.
+#
+# Deliberately no `:`, so a typed parameter list does not match and this never binds a TYPE
+# name as though it were a variable.
 LAMBDA_PARAM_RE = re.compile(
-    r"\{[^\S\n]*\(?[^\S\n]*"
-    r"([A-Za-z_]\w*(?:[^\S\n]*,[^\S\n]*[A-Za-z_]\w*){0,7})"
-    r"[^\S\n]*\)?[^\S\n]*->"
+    r"\{[^\S\n]*([A-Za-z_(][A-Za-z0-9_,()\t ]{0,120}?)[^\S\n]*->"
 )
+
 NAMED_ARG_RE = re.compile(r"\b\w+\s*=(?!=)")
 DECL_LINE_RE = re.compile(r"^\s*(?:import|package)\s+.*$", re.M)
 # A name preceded by a dot is member access, resolved by its receiver, not by an import.
@@ -187,7 +194,7 @@ def index_external(files):
 def bound_names(body):
     names = set(ANY_DECL_RE.findall(body)) | set(VALUE_PARAM_RE.findall(body))
     for group in LAMBDA_PARAM_RE.findall(body):
-        names.update(part.strip() for part in group.split(",") if part.strip())
+        names.update(re.findall(r"[A-Za-z_]\w*", group))
     return names
 
 
