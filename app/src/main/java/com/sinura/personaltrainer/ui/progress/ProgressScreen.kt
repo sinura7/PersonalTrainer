@@ -53,7 +53,7 @@ import com.sinura.personaltrainer.ui.workout.StartOptionsSheet
 
 @Composable
 fun ProgressScreen(
-    onOpenLibrary: (String?) -> Unit,
+    onOpenLibrary: (CanonicalMuscle?) -> Unit,
     onOpenExercise: (String) -> Unit,
     onWorkoutStarted: (String) -> Unit,
     onOpenRoutines: () -> Unit,
@@ -202,7 +202,7 @@ fun ProgressScreen(
                 onDismiss = { selectedName = null },
                 onFindLifts = {
                     selectedName = null
-                    onOpenLibrary(muscle.catalogLabel)
+                    onOpenLibrary(muscle)
                 },
             )
         }

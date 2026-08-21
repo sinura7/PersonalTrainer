@@ -73,7 +73,7 @@ private fun actionLabel(recommendation: TrainingRecommendation): String =
 
 fun dispatchRecommendation(
     recommendation: TrainingRecommendation,
-    onOpenLibrary: (String?) -> Unit,
+    onOpenLibrary: (CanonicalMuscle?) -> Unit,
     onOpenExercise: (String) -> Unit,
     /** Opens the start-options sheet. The interstitial it used to navigate to is gone. */
     onStartOptions: () -> Unit,
@@ -81,8 +81,10 @@ fun dispatchRecommendation(
     onOpenProgress: () -> Unit,
 ) {
     when (recommendation.action) {
-        RecommendationAction.OPEN_LIBRARY_MUSCLE ->
-            onOpenLibrary(recommendation.actionMuscle?.catalogLabel ?: CanonicalMuscle.OTHER.catalogLabel)
+        // The muscle itself, not its label. Display text used to be the wire format here, so a
+        // copy edit could break the filter with nothing failing — the Library would just open
+        // showing everything.
+        RecommendationAction.OPEN_LIBRARY_MUSCLE -> onOpenLibrary(recommendation.actionMuscle)
         // A card that names a lift opens that lift. Falling back to the muscle filter would
         // undo the whole point of naming it.
         RecommendationAction.OPEN_EXERCISE ->

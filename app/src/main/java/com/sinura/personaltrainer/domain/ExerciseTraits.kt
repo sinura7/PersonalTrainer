@@ -23,6 +23,26 @@ enum class EquipmentType {
     OTHER,
     ;
 
+    /**
+     * How the kit reads on a chip or a row tag.
+     *
+     * Title case rather than the enum name, because SMITH on a filter chip is a surname and
+     * "Smith" is a rack. The declaration order is the chip order, and it is deliberate: it runs
+     * free weight, cable, machine, then the rest, which is roughly how a gym floor is laid out.
+     */
+    val label: String
+        get() = when (this) {
+            BARBELL -> "Barbell"
+            DUMBBELL -> "Dumbbell"
+            CABLE -> "Cable"
+            MACHINE -> "Machine"
+            SMITH -> "Smith"
+            KETTLEBELL -> "Kettlebell"
+            BAND -> "Band"
+            BODYWEIGHT -> "Bodyweight"
+            OTHER -> "Other"
+        }
+
     companion object {
         /** DB junk must never crash a mapper: anything unrecognized reads as [OTHER]. */
         fun fromStorage(raw: String?): EquipmentType =

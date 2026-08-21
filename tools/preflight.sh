@@ -65,7 +65,8 @@ for c in "check-internal-imports.py app/src/main/java" \
          "check-missing-imports.py" \
          "check-design-tokens.py app/src/main/java" \
          "check-screen-wiring.py app/src/main/java" \
-         "check-state-members.py app/src/main/java"; do
+         "check-state-members.py app/src/main/java" \
+         "check-annotation-targets.py"; do
     step "$c"
     # shellcheck disable=SC2086
     python3 tools/$c || fail "$c"

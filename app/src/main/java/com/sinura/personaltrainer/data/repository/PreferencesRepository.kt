@@ -224,6 +224,25 @@ class PreferencesRepository(context: Context) {
         }
     }
 
+    /**
+     * Name collisions the owner has said they are fine with.
+     *
+     * Device-local by design. A collision is between a lift the owner made and one the app
+     * ships, and "keep both" is a statement about their own library on their own phone — not a
+     * property of either lift. Storing it as a preference also means it survives a restore,
+     * which has one consequence worth stating: a collision re-detected after a restore stays
+     * hidden if it was dismissed before. That is the right default (the owner already answered
+     * the question) and it is recorded here so it is not a surprise.
+     */
+    val dismissedCollisionIds: Flow<Set<String>> = safePreferences
+        .map { prefs -> prefs[DISMISSED_COLLISIONS].orEmpty() }
+
+    suspend fun dismissCollision(exerciseId: String) {
+        dataStore.edit { prefs ->
+            prefs[DISMISSED_COLLISIONS] = prefs[DISMISSED_COLLISIONS].orEmpty() + exerciseId
+        }
+    }
+
     val lastRestoreAt: Flow<Long?> = safePreferences.map { prefs -> prefs[LAST_RESTORE_AT] }
 
     val lastRestoreName: Flow<String?> = safePreferences.map { prefs -> prefs[LAST_RESTORE_NAME] }
@@ -258,6 +277,7 @@ class PreferencesRepository(context: Context) {
         val WEIGHT_UNIT = stringPreferencesKey("weight_unit")
         val TRAINING_GOAL = stringPreferencesKey("training_goal")
         val AVAILABLE_EQUIPMENT = stringSetPreferencesKey("available_equipment")
+        val DISMISSED_COLLISIONS = stringSetPreferencesKey("library_collision_dismissed_ids")
         val HEAT_WINDOW = stringPreferencesKey("heat_window")
         val TRAINING_DAYS = intPreferencesKey("training_days_per_week")
         val SPLIT_STYLE = stringPreferencesKey("split_style")

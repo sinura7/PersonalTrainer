@@ -61,6 +61,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.sinura.personaltrainer.domain.CanonicalMuscle
+import com.sinura.personaltrainer.domain.MuscleNormalizer
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.history.HistoryScreen
@@ -106,9 +108,20 @@ sealed class Route(val path: String) {
     data object Settings : Route("settings")
     data object Progress : Route("progress")
     data object Library : Route("library") {
-        fun create(muscle: String? = null): String =
-            if (muscle.isNullOrBlank()) path
-            else "$path?muscle=${Uri.encode(muscle)}"
+        /**
+         * The muscle filter crosses the nav boundary as an enum NAME, never as display text.
+         *
+         * It used to travel as `catalogLabel` — "Quads" — which meant the sending screen, the
+         * URL and the receiving screen all had to agree on a human-readable string that exists
+         * to be shown to humans. Renaming a label for the UI would silently break the filter,
+         * and nothing would fail: the Library would simply open unfiltered. An enum name has no
+         * reason to change and no other job.
+         */
+        fun create(muscle: CanonicalMuscle? = null): String =
+            if (muscle == null) path else "$path?muscle=${Uri.encode(muscle.name)}"
+
+        /** Reads the argument back. The rule lives in the domain so it can be tested. */
+        fun parseMuscle(raw: String?): CanonicalMuscle? = MuscleNormalizer.fromRouteArgument(raw)
     }
 }
 
@@ -332,7 +345,7 @@ fun PersonalTrainerNav(
                         onBack = { navController.popBackStack() },
                         onCreateRoutine = { navController.navigate(Route.RoutineEditor.create("new")) },
                         onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
-                        initialMuscle = entry.arguments?.getString("muscle"),
+                        initialMuscle = Route.Library.parseMuscle(entry.arguments?.getString("muscle")),
                     )
                 }
                 composable(Route.Settings.path) {

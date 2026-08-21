@@ -52,7 +52,7 @@ In Android Studio: right-click `app/src/test` → **Run 'Tests'**. From the term
 These are plain JVM tests — no emulator, a few seconds. Run them before every commit; CI
 runs them again on push.
 
-Run everything mechanical with one command — the nine static checks plus the domain
+Run everything mechanical with one command — the ten static checks plus the domain
 suite, which is what every game-plan phase gates on:
 
 ```bash
@@ -71,6 +71,7 @@ python3 tools/check-missing-imports.py                     # names used but neve
 python3 tools/check-design-tokens.py app/src/main/java     # no raw colours/radii/elevation
 python3 tools/check-screen-wiring.py app/src/main/java     # every callback is actually called
 python3 tools/check-state-members.py app/src/main/java     # state.foo exists on that UiState
+python3 tools/check-annotation-targets.py                  # annotations still on a declaration
 tools/syntax-check.sh app/src/main/java                    # parse-level diagnostics only
 ```
 

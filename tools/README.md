@@ -117,6 +117,27 @@ view model, the view model names the state type. A file mentioning no view model
 skipped rather than guessed at, and the four members every data class gets for free (`copy`,
 `equals`, `hashCode`, `toString`) are never reported.
 
+## `check-annotation-targets.py`
+
+Finds annotations that are no longer attached to a declaration.
+
+```bash
+python3 tools/check-annotation-targets.py
+```
+
+Inserting a composable above an existing one is a two-line edit that a scripted patch gets
+subtly wrong: the new function lands between the old one's KDoc-plus-`@Composable` and the `fun`
+they belonged to. The stranded `@Composable` then binds to the *new* function, which has its
+own, and Kotlin rejects the duplicate. It reads perfectly and every other check here passed on
+the file it happened to.
+
+`syntax-check.sh` cannot cover it: annotation binding is resolution, not parsing, and the
+diagnostic is filtered out with the rest of the semantic noise an SDK-less classpath produces.
+
+`@Suppress` and `@OptIn` are exempt from the "must precede a declaration" rule, because Kotlin
+genuinely allows them on an expression. The duplicate-across-a-comment rule still applies to
+them, since two of the same annotation separated by a doc comment is wrong wherever it appears.
+
 ## `syntax-check.sh`
 
 Runs the Kotlin front end over a source root and reports only parse-level diagnostics.
@@ -141,12 +162,12 @@ blanking whole string literals hid the only use of several others.
 ## preflight.sh
 
 `tools/preflight.sh` is the mechanical half of every game-plan phase's definition of done:
-run it before every push. It chains the nine static checks above and then the domain
+run it before every push. It chains the ten static checks above and then the domain
 suite, exiting non-zero on the first failure.
 
 Three of the checks (`check-named-args`, `check-when-exhaustive`, `check-unused-imports`)
 and `syntax-check.sh` always exit 0, so preflight judges them on their summary line rather
-than their status; the other five exit by finding-count and are judged on that.
+than their status; the other six exit by finding-count and are judged on that.
 
 The domain tests need a directory of seven jars (see `run-domain-tests.sh`'s header). If
 `$PT_JARS` / `build/test-jars` is absent, preflight assembles it by symlinking jars found in

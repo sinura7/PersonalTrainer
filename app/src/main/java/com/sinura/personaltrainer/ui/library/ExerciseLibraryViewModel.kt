@@ -6,10 +6,16 @@ import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.data.repository.DeleteExerciseResult
+import com.sinura.personaltrainer.domain.AddDefaults
+import com.sinura.personaltrainer.domain.CanonicalMuscle
+import com.sinura.personaltrainer.domain.CatalogMeta
+import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.ExerciseOrdering
 import com.sinura.personaltrainer.domain.ExerciseUsage
-import com.sinura.personaltrainer.domain.MuscleGroups
-import com.sinura.personaltrainer.domain.MuscleNormalizer
+import com.sinura.personaltrainer.domain.LibraryFamily
+import com.sinura.personaltrainer.domain.LibraryFilter
+import com.sinura.personaltrainer.domain.LibraryGrouping
 import com.sinura.personaltrainer.domain.Routine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -30,9 +36,23 @@ data class ExerciseEditorDraft(
 data class ExerciseLibraryUiState(
     val isLoading: Boolean = true,
     val exercises: List<Exercise> = emptyList(),
+    /** The flat list, used whenever a query or a filter is active. */
     val visibleExercises: List<Exercise> = emptyList(),
-    val muscleFilters: List<String> = emptyList(),
-    val selectedGroup: String? = null,
+    /**
+     * The grouped list, populated ONLY when the library is unfiltered and unsearched.
+     *
+     * Grouping a result set the user has already narrowed would hide the answer inside
+     * collapsed headers: if you typed "incline" you want the three inclines, not three
+     * one-member families to expand.
+     */
+    val families: List<LibraryFamily> = emptyList(),
+    val expandedFamilies: Set<String> = emptySet(),
+    val muscleFilters: List<CanonicalMuscle> = emptyList(),
+    val selectedMuscle: CanonicalMuscle? = null,
+    val equipmentFilters: List<EquipmentType> = emptyList(),
+    val selectedEquipment: EquipmentType? = null,
+    /** Customs sharing a name with a built-in, minus the ones already waved through. */
+    val needsAttention: List<Exercise> = emptyList(),
     val query: String = "",
     val routines: List<Routine> = emptyList(),
     val editor: ExerciseEditorDraft? = null,
@@ -41,11 +61,17 @@ data class ExerciseLibraryUiState(
     val addToRoutine: Exercise? = null,
     val error: String? = null,
     val message: String? = null,
-)
+) {
+    /** True when nothing is narrowing the list, which is the only time families are shown. */
+    val grouped: Boolean
+        get() = query.isBlank() && selectedMuscle == null && selectedEquipment == null
+}
 
 class ExerciseLibraryViewModel(application: Application) : AppViewModel(application) {
     private val query = MutableStateFlow("")
-    private val selectedGroup = MutableStateFlow<String?>(null)
+    private val selectedMuscle = MutableStateFlow<CanonicalMuscle?>(null)
+    private val selectedEquipment = MutableStateFlow<EquipmentType?>(null)
+    private val expandedFamilies = MutableStateFlow<Set<String>>(emptySet())
     private val editor = MutableStateFlow<ExerciseEditorDraft?>(null)
     private val pendingDelete = MutableStateFlow<Exercise?>(null)
     private val blockedDelete = MutableStateFlow<Pair<Exercise, ExerciseUsage>?>(null)
@@ -58,30 +84,57 @@ class ExerciseLibraryViewModel(application: Application) : AppViewModel(applicat
             container.exerciseRepository.observeAll(),
             container.routineRepository.observeAll(),
             query,
-            selectedGroup,
-        ) { exercises, routines, currentQuery, group ->
-            LibraryCore(exercises, routines, currentQuery, group)
+            selectedMuscle,
+            selectedEquipment,
+        ) { exercises, routines, currentQuery, muscle, equipment ->
+            LibraryCore(exercises, routines, currentQuery, muscle, equipment)
         },
         combine(editor, pendingDelete, blockedDelete, addToRoutine) { draft, delete, blocked, add ->
             LibraryDialogs(draft, delete, blocked, add)
         },
+        combine(
+            container.exerciseRepository.observeNameCollisions(),
+            container.preferencesRepository.dismissedCollisionIds,
+            expandedFamilies,
+        ) { collisions, dismissed, expanded ->
+            LibraryAside(collisions.filterNot { it.id in dismissed }, expanded)
+        },
         combine(error, message) { err, note -> err to note },
-    ) { core, dialogs, notices ->
+    ) { core, dialogs, aside, notices ->
         val needle = core.query.trim()
-        val visible = core.exercises.filter { exercise ->
-            val matchesGroup = MuscleNormalizer.matchesFilter(exercise.muscleGroup, core.group)
-            val matchesQuery = needle.isEmpty() ||
-                exercise.name.contains(needle, ignoreCase = true) ||
-                exercise.muscleGroup.contains(needle, ignoreCase = true) ||
-                exercise.notes.contains(needle, ignoreCase = true)
-            matchesGroup && matchesQuery
+        // Muscle first, because it is the filter that reorders as well as narrows: a lift where
+        // the muscle is a secondary credit belongs in the list, below the ones where it is the
+        // point of the lift.
+        var visible = LibraryFilter.apply(core.exercises, core.muscle)
+        if (core.equipment != null) {
+            visible = visible.filter { it.equipment == core.equipment }
         }
+        if (needle.isNotEmpty()) {
+            visible = visible.filter { exercise ->
+                exercise.name.contains(needle, ignoreCase = true) ||
+                    exercise.muscleGroup.contains(needle, ignoreCase = true) ||
+                    exercise.notes.contains(needle, ignoreCase = true) ||
+                    CatalogMeta.matchesSearchTerms(needle, exercise.id)
+            }
+        }
+        // A muscle filter has already ranked its results by credit; re-sorting by catalog rank
+        // would throw that away and put the leg extension back below the sumo deadlift.
+        if (core.muscle == null) visible = ExerciseOrdering.catalogOrder(visible)
+
+        val grouped = needle.isEmpty() && core.muscle == null && core.equipment == null
         ExerciseLibraryUiState(
             isLoading = false,
             exercises = core.exercises,
             visibleExercises = visible,
-            muscleFilters = MuscleGroups.presentIn(core.exercises),
-            selectedGroup = core.group,
+            families = if (grouped) LibraryGrouping.group(core.exercises) else emptyList(),
+            expandedFamilies = aside.expandedFamilies,
+            muscleFilters = LibraryFilter.musclesPresentIn(core.exercises),
+            selectedMuscle = core.muscle,
+            equipmentFilters = EquipmentType.entries.filter { type ->
+                core.exercises.any { it.equipment == type }
+            },
+            selectedEquipment = core.equipment,
+            needsAttention = aside.collisions,
             query = core.query,
             routines = core.routines,
             editor = dialogs.editor,
@@ -101,12 +154,36 @@ class ExerciseLibraryViewModel(application: Application) : AppViewModel(applicat
         query.value = value
     }
 
-    fun onGroupSelected(group: String?) {
-        selectedGroup.value = if (selectedGroup.value == group) null else group
+    /** Tapping the selected chip clears it, so a filter is never a one-way door. */
+    fun onMuscleSelected(muscle: CanonicalMuscle?) {
+        selectedMuscle.value = if (selectedMuscle.value == muscle) null else muscle
     }
 
-    fun applyMuscleFilter(group: String?) {
-        selectedGroup.value = group?.trim()?.ifBlank { null }
+    fun onEquipmentSelected(equipment: EquipmentType?) {
+        selectedEquipment.value = if (selectedEquipment.value == equipment) null else equipment
+    }
+
+    /** Set from the navigation argument; unlike a chip tap it never toggles off. */
+    fun applyMuscleFilter(muscle: CanonicalMuscle?) {
+        selectedMuscle.value = muscle
+    }
+
+    fun toggleFamily(movementKey: String) {
+        expandedFamilies.value = expandedFamilies.value.let { open ->
+            if (movementKey in open) open - movementKey else open + movementKey
+        }
+    }
+
+    /**
+     * "Keep both" — the owner has looked at the collision and decided it is fine.
+     *
+     * Nothing is renamed, merged, or deleted: their history points at their row, and the only
+     * thing that changes is that the app stops asking.
+     */
+    fun keepBothNames(exercise: Exercise) {
+        viewModelScope.launch {
+            container.preferencesRepository.dismissCollision(exercise.id)
+        }
     }
 
     fun openCreate() {
@@ -250,13 +327,14 @@ class ExerciseLibraryViewModel(application: Application) : AppViewModel(applicat
                 return@launch
             }
             try {
+                val defaults = AddDefaults.forExercise(exercise)
                 container.routineRepository.addExercise(
                     routineId = routine.id,
                     exercise = exercise,
-                    targetSets = 3,
-                    targetReps = 5,
+                    targetSets = defaults.sets,
+                    targetReps = defaults.reps,
                     targetWeightKg = null,
-                    restSeconds = 90,
+                    restSeconds = defaults.restSeconds,
                 )
                 message.value = "Added ${exercise.name} to ${routine.name}."
                 addToRoutine.value = null
@@ -272,7 +350,13 @@ class ExerciseLibraryViewModel(application: Application) : AppViewModel(applicat
         val exercises: List<Exercise>,
         val routines: List<Routine>,
         val query: String,
-        val group: String?,
+        val muscle: CanonicalMuscle?,
+        val equipment: EquipmentType?,
+    )
+
+    private data class LibraryAside(
+        val collisions: List<Exercise>,
+        val expandedFamilies: Set<String>,
     )
 
     private data class LibraryDialogs(

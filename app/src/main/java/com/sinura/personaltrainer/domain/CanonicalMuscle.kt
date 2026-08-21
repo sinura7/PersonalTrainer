@@ -207,6 +207,23 @@ object MuscleNormalizer {
      * and the catalog invariant test makes an unmapped key a build failure rather than a muscle
      * that silently stops receiving credit.
      */
+    /**
+     * Reads a muscle back out of a navigation argument.
+     *
+     * Lives here rather than in the nav graph so it can be tested: the JVM test lane compiles
+     * `domain/` and nothing Compose-shaped, and a parse rule proved only by a copy of itself in
+     * a test file is not proved at all.
+     *
+     * The exact-name match is the contract. The alias fallback exists for a link created by an
+     * older build — one still carrying a display label like "Quads" — sitting in a saved back
+     * stack; it costs one lookup and turns a dead filter into a working one.
+     */
+    fun fromRouteArgument(raw: String?): CanonicalMuscle? {
+        if (raw.isNullOrBlank()) return null
+        CanonicalMuscle.entries.firstOrNull { it.name == raw }?.let { return it }
+        return primaryOf(raw).takeIf { it != CanonicalMuscle.OTHER }
+    }
+
     fun resolveKey(muscleKey: String): CanonicalMuscle? {
         val candidate = muscleKey.replace('_', ' ')
         val mapping = normalize(candidate)
