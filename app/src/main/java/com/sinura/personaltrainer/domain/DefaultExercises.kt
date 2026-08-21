@@ -37,7 +37,7 @@ data class SeedExercise(
  * re-keyed later on data that has already migrated.
  */
 object DefaultExercises {
-    const val CATALOG_VERSION = 4
+    const val CATALOG_VERSION = 5
 
     /**
      * The family vocabulary. Batch 1 shipped 23 families and batch 2 adds three; a later batch
@@ -558,6 +558,37 @@ object DefaultExercises {
             id = "ex-farmer-s-carry", name = "Farmer's Carry", muscleGroup = "Core",
             equipment = EquipmentType.DUMBBELL, loadType = LoadType.EXTERNAL, movementKey = "carry",
             primary = "core", secondaries = listOf("back" to 0.25),
+        ),
+
+        // --- Batch 4 (v5): the assisted machines. 3 rows.
+        //
+        // LoadType.ASSISTED shipped with the bodyweight work and no catalog row used it, which
+        // made it a capability the app had and nobody could reach: the machine in every gym that
+        // gets a beginner to their first pull-up had to be logged as a custom lift, with no
+        // progression, because the built-in catalog only offered the unassisted version.
+        //
+        // Same family and same credits as the lift they lead to, deliberately. The assistance
+        // machine is a pull-up you can currently do, not a different exercise, and keeping the
+        // movementKey means the library offers the sibling swap in the direction that matters:
+        // from assisted to free once the stack runs out.
+        //
+        // Appended rather than slotted beside their siblings, because the frozen-id test reads
+        // batch 1 as a prefix of this list. Presentation order is CatalogMeta's job, and there
+        // each one sits directly behind the lift it leads to.
+        seed(
+            id = "ex-assisted-pull-up", name = "Assisted Pull-Up", muscleGroup = "Back",
+            equipment = EquipmentType.MACHINE, loadType = LoadType.ASSISTED, movementKey = "pull-up",
+            primary = "back", secondaries = listOf("biceps" to 0.50, "core" to 0.25),
+        ),
+        seed(
+            id = "ex-assisted-chin-up", name = "Assisted Chin-Up", muscleGroup = "Back",
+            equipment = EquipmentType.MACHINE, loadType = LoadType.ASSISTED, movementKey = "pull-up",
+            primary = "back", secondaries = listOf("biceps" to 0.50, "core" to 0.25),
+        ),
+        seed(
+            id = "ex-assisted-dip", name = "Assisted Dip", muscleGroup = "Chest",
+            equipment = EquipmentType.MACHINE, loadType = LoadType.ASSISTED, movementKey = "dip",
+            primary = "chest", secondaries = listOf("triceps" to 0.50, "shoulders" to 0.25),
         ),
     )
 

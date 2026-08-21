@@ -15,10 +15,10 @@ import org.junit.Test
 class DefaultExercisesTest {
 
     @Test
-    fun catalogHasExactly98EntriesAtVersion4() {
-        // Batch 1 (37) + batch 2 (33) + batch 3 (28). This is the curated target.
-        assertEquals(98, DefaultExercises.catalog().size)
-        assertEquals(4, DefaultExercises.CATALOG_VERSION)
+    fun catalogHasExactly101EntriesAtVersion5() {
+        // Batch 1 (37) + batch 2 (33) + batch 3 (28) + batch 4 (3, the assisted machines).
+        assertEquals(101, DefaultExercises.catalog().size)
+        assertEquals(5, DefaultExercises.CATALOG_VERSION)
     }
 
     @Test
@@ -111,6 +111,48 @@ class DefaultExercisesTest {
     }
 
     @Test
+    fun assistedSeedsReachTheAssistanceMachineryTheyWereAddedFor() {
+        // LoadType.ASSISTED existed for a release with no catalog row using it, so nothing
+        // proved the wiring end to end. These three rows are the proof: a machine row whose
+        // weight column still read "kg lifted", or whose progression added assistance on a
+        // good set, would be a worse answer than not shipping the row at all.
+        val assisted = DefaultExercises.catalog().filter { it.loadType == LoadType.ASSISTED }
+        assertEquals(3, assisted.size)
+        assisted.forEach { seed ->
+            val loadClass = LoadClass.of(seed.loadType)
+            assertEquals("${seed.id}", LoadClass.BODYWEIGHT_ASSISTED, loadClass)
+            assertEquals("${seed.id}", WeightMeaning.ASSISTANCE, loadClass.weightMeaning)
+            assertTrue("${seed.id} is measured in reps", loadClass.repsAreTheMeasure)
+            // Less assistance on a good set, not more. The sign flip is the whole point.
+            val next = ProgressionCalculator.suggestWeightKg(
+                lastWeightKg = 30.0,
+                lastWorkingReps = 8,
+                targetReps = 8,
+                stepKg = IncrementTable.stepKg(seed.loadType, WeightUnit.KG),
+                weightMeaning = loadClass.weightMeaning,
+            )
+            assertTrue("${seed.id} suggested $next, which is not lighter assistance", next < 30.0)
+        }
+    }
+
+    @Test
+    fun assistedVariantsNeverOutrankTheLiftTheyLeadTo() {
+        // The generator picks a family's lift by lowest sortRank, so an assisted row ranked
+        // ahead of its sibling would quietly put the machine in every generated programme —
+        // including for someone who can already do the free version.
+        listOf(
+            "ex-assisted-pull-up" to "ex-pull-up",
+            "ex-assisted-chin-up" to "ex-chin-up",
+            "ex-assisted-dip" to "ex-dip",
+        ).forEach { (assisted, free) ->
+            assertTrue(
+                "$assisted outranks $free",
+                CatalogMeta.sortRank(assisted) > CatalogMeta.sortRank(free),
+            )
+        }
+    }
+
+    @Test
     fun idsAreUniqueAcrossEveryBatch() {
         val ids = DefaultExercises.catalog().map { it.id }
         assertEquals("a batch re-used an id", ids.size, ids.toSet().size)
@@ -164,9 +206,9 @@ class DefaultExercisesTest {
             "ex-close-grip-bench-press", "ex-plank", "ex-hanging-leg-raise", "ex-cable-crunch",
         )
 
-        /** The plan's per-bucket totals for the finished 98-lift catalog. */
+        /** The plan's per-bucket totals for the 101-lift catalog. */
         val BUCKET_COUNTS = mapOf(
-            "Chest" to 12, "Back" to 15, "Hinge" to 5, "Shoulders" to 11, "Biceps" to 8,
+            "Chest" to 13, "Back" to 17, "Hinge" to 5, "Shoulders" to 11, "Biceps" to 8,
             "Triceps" to 8, "Quads" to 12, "Hamstrings" to 7, "Glutes" to 6, "Calves" to 4,
             "Core" to 10,
         )
@@ -177,7 +219,7 @@ class DefaultExercisesTest {
                 "ex-push-up", "ex-chest-fly",
                 "ex-incline-dumbbell-bench-press", "ex-machine-chest-press", "ex-dip",
                 "ex-cable-fly", "ex-pec-deck", "ex-decline-bench-press",
-                "ex-smith-machine-bench-press",
+                "ex-smith-machine-bench-press", "ex-assisted-dip",
             ),
             "Back" to listOf(
                 "ex-barbell-row", "ex-pendlay-row", "ex-one-arm-dumbbell-row", "ex-lat-pulldown",
@@ -185,6 +227,7 @@ class DefaultExercisesTest {
                 "ex-t-bar-row", "ex-machine-seated-row", "ex-chest-supported-dumbbell-row",
                 "ex-inverted-row", "ex-close-grip-lat-pulldown", "ex-straight-arm-pulldown",
                 "ex-barbell-shrug", "ex-dumbbell-shrug",
+                "ex-assisted-pull-up", "ex-assisted-chin-up",
             ),
             // Hinge is a curation bucket, not a muscle: its lifts credit back and glutes.
             "Hinge" to listOf(

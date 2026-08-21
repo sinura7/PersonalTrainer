@@ -30,6 +30,11 @@ object CatalogMeta {
         meta("ex-overhead-press", 115, setOf("ohp", "military press", "strict press")),   // Overhead Press
         meta("ex-barbell-row", 120, emptySet()),   // Barbell Row
         meta("ex-pull-up", 125, emptySet()),   // Pull-Up
+        // Directly behind the lift it leads to, and one rank apart rather than the usual
+        // five: the assisted machines were added after the ladder was laid out, and moving
+        // ninety-eight ranks to keep the spacing tidy would change the order of every
+        // screen that reads it for no gain the owner can see.
+        meta("ex-assisted-pull-up", 126, setOf("assisted", "machine pull-up")),   // Assisted Pull-Up
         meta("ex-romanian-deadlift", 130, setOf("rdl")),   // Romanian Deadlift
         meta("ex-front-squat", 135, emptySet()),   // Front Squat
         meta("ex-incline-bench-press", 140, emptySet()),   // Incline Bench Press
@@ -37,6 +42,7 @@ object CatalogMeta {
         meta("ex-lat-pulldown", 150, setOf("pulldown")),   // Lat Pulldown
         meta("ex-seated-cable-row", 155, emptySet()),   // Seated Cable Row
         meta("ex-chin-up", 160, emptySet()),   // Chin-Up
+        meta("ex-assisted-chin-up", 161, setOf("assisted", "machine chin-up")),   // Assisted Chin-Up
         meta("ex-hip-thrust", 165, emptySet()),   // Hip Thrust
         meta("ex-leg-press", 170, emptySet()),   // Leg Press
         meta("ex-bulgarian-split-squat", 175, emptySet()),   // Bulgarian Split Squat
@@ -64,6 +70,7 @@ object CatalogMeta {
         meta("ex-incline-dumbbell-bench-press", 300, setOf("incline db press")),   // Incline Dumbbell Bench Press
         meta("ex-machine-chest-press", 305, setOf("chest press machine")),   // Machine Chest Press
         meta("ex-dip", 310, setOf("chest dip", "weighted dip")),   // Dip
+        meta("ex-assisted-dip", 311, setOf("assisted", "machine dip")),   // Assisted Dip
         meta("ex-cable-fly", 315, setOf("cable crossover")),   // Cable Fly
         meta("ex-pec-deck", 320, setOf("seated fly", "butterfly")),   // Pec Deck
         meta("ex-decline-bench-press", 325, emptySet()),   // Decline Bench Press
