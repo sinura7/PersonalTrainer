@@ -32,13 +32,6 @@ data class HomeUiState(
 )
 
 class HomeViewModel(application: Application) : AppViewModel(application) {
-    val restRemainingSeconds: StateFlow<Int> = container.restTimerController.remainingSeconds
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = 0,
-        )
-
     private val actionError = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<HomeUiState> = combine(

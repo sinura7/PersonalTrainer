@@ -21,6 +21,7 @@ import com.sinura.personaltrainer.domain.ProgressionBasis
 import com.sinura.personaltrainer.domain.ProgressionCalculator
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.SessionActivity
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.WorkingSetCandidate
 import com.sinura.personaltrainer.domain.WorkoutSession
@@ -47,6 +48,12 @@ class WorkoutRepository(
 
     suspend fun getInProgress(): WorkoutSession? =
         workoutDao.getInProgressSession()?.toSummary()
+
+    /** Live set counters for the session bar; degrades to zeroes rather than throwing. */
+    fun observeSessionActivity(sessionId: String): Flow<SessionActivity> =
+        workoutDao.observeSessionActivity(sessionId)
+            .map { SessionActivity(it.totalSets, it.workingSets, it.lastCompletedAt) }
+            .orLogAndFallback("session activity", SessionActivity(0, 0, null))
 
     suspend fun getSession(id: String): WorkoutSession? = workoutDao.getSession(id)?.toDomain()
 

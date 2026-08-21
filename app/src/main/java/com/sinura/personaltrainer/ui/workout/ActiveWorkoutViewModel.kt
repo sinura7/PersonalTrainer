@@ -14,6 +14,8 @@ import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
+import com.sinura.personaltrainer.workout.DiscardOutcome
+import com.sinura.personaltrainer.workout.FinishOutcome
 import com.sinura.personaltrainer.workout.WorkoutDraft
 import com.sinura.personaltrainer.workout.WorkoutDraftRecovery
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -655,36 +657,44 @@ class ActiveWorkoutViewModel(
         _exitRequested.value = null
     }
 
+    /**
+     * Dispatches to [FinishWorkout], which owns the timer-stop / write / draft-clear order.
+     * This screen keeps only what is its own: the error channel, the finished flag and the
+     * one-shot exit event.
+     */
     fun finishWorkout() {
         viewModelScope.launch {
-            val current = session.value
-            if (current == null || current.sets.isEmpty()) {
-                error.value = "Log at least one set before finishing."
-                return@launch
-            }
-            try {
-                restTimer.stop()
-                container.workoutRepository.finishSession(sessionId, notes.value)
-                clearDraft()
-                finished.value = true
-                _exitRequested.value = WorkoutExit.Finished(sessionId)
-            } catch (thrown: Exception) {
-                AppLog.w(TAG, "finishWorkout failed", thrown)
-                error.value = "Could not finish this workout. Try again."
+            when (val outcome = container.finishWorkout(sessionId, notes.value)) {
+                is FinishOutcome.Finished -> {
+                    error.value = null
+                    // The use case clears the process-wide cache; the SavedStateHandle mirror
+                    // is scoped to this nav entry and unreachable from anywhere else, so it
+                    // stays this ViewModel's job.
+                    savedDraft.clear()
+                    finished.value = true
+                    _exitRequested.value = WorkoutExit.Finished(outcome.sessionId)
+                }
+
+                FinishOutcome.NothingLogged ->
+                    error.value = "Log at least one set before finishing."
+
+                FinishOutcome.SessionMissing, is FinishOutcome.Failed ->
+                    error.value = "Could not finish this workout. Try again."
             }
         }
     }
 
     fun discardWorkout() {
         viewModelScope.launch {
-            restTimer.stop()
-            try {
-                container.workoutRepository.discardSession(sessionId)
-                clearDraft()
-                _exitRequested.value = WorkoutExit.Discarded
-            } catch (thrown: Exception) {
-                AppLog.w(TAG, "discardWorkout failed", thrown)
-                error.value = "Could not discard this workout. Try again."
+            when (container.discardWorkout(sessionId)) {
+                DiscardOutcome.Discarded -> {
+                    error.value = null
+                    savedDraft.clear()
+                    _exitRequested.value = WorkoutExit.Discarded
+                }
+
+                is DiscardOutcome.Failed ->
+                    error.value = "Could not discard this workout. Try again."
             }
         }
     }
@@ -723,11 +733,6 @@ class ActiveWorkoutViewModel(
         // Written through to saved state so the numbers dialed in before a rest survive the
         // process being killed while the phone sits in a pocket.
         savedDraft.write(current)
-    }
-
-    private fun clearDraft() {
-        draftCache.clear(sessionId)
-        savedDraft.clear()
     }
 
     private data class WorkoutCore(

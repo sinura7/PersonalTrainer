@@ -1,8 +1,6 @@
 package com.sinura.personaltrainer.ui.home
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,7 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -33,7 +30,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.ProgressionHint
-import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.TrainingRecommendation
@@ -56,12 +52,9 @@ import com.sinura.personaltrainer.ui.components.StatTile
 import com.sinura.personaltrainer.ui.progress.dispatchRecommendation
 import com.sinura.personaltrainer.ui.schedule.ThisWeekHomeCard
 import com.sinura.personaltrainer.ui.schedule.todayEpochDay
-import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Radius
-import com.sinura.personaltrainer.ui.theme.RestCyan
-import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
@@ -92,7 +85,6 @@ fun HomeScreen(
         onResumeWorkout(id)
         viewModel.onSessionNavigationHandled()
     }
-    val restRemaining by viewModel.restRemainingSeconds.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
     val dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM)
     val inProgress = state.inProgress
@@ -135,18 +127,11 @@ fun HomeScreen(
                 GymErrorBanner(message)
             }
         }
-        if (restRemaining > 0 && inProgress != null) {
-            item {
-                RestRemainingStrip(
-                    remainingSeconds = restRemaining,
-                    onResume = { onResumeWorkout(inProgress.id) },
-                )
-            }
-        }
         item {
-            // The hero carries Home's only filled button. The standalone Start/Resume that
-            // used to sit above it competed with this card, the rest strip and its own
-            // secondary Start — four ways to begin one session.
+            // The hero carries Home's only filled button, and it never says Resume: while a
+            // session is live the LiveSessionBar is the only surface that returns to it.
+            // Home used to answer "where is my workout" three ways — this card, the rest
+            // strip, and the hero's own relabelling — none of which existed off this screen.
             ThisWeekHomeCard(
                 day = todayDay,
                 nextDay = plan?.nextTrainingOnOrAfter(today),
@@ -154,12 +139,15 @@ fun HomeScreen(
                 loggedToday = state.recentSessions.any { session ->
                     todayEpochDay(session.date) == today
                 },
-                inProgress = inProgress != null,
+                // Always false: the card can no longer render its In-progress/Resume branch.
+                inProgress = false,
                 onOpenSchedule = onOpenSchedule,
                 onPrimary = {
                     val target = todayDay?.takeUnless { it.isRest }
                     when {
-                        inProgress != null -> onResumeWorkout(inProgress.id)
+                        // The start screen states the block explicitly rather than silently
+                        // resuming; the bar is how you get back to a running session.
+                        inProgress != null -> onStartWorkout()
                         target != null -> viewModel.startSuggestedDay(target)
                         else -> onStartWorkout()
                     }
@@ -281,37 +269,6 @@ private fun HomeStatRow(
             value = daysSince ?: NO_VALUE,
             valueColor = if (daysSince != null) TextPrimary else TextTertiary,
             modifier = Modifier.weight(1f),
-        )
-    }
-}
-
-/** A rest clock still running in a workout that was left behind. Tapping goes back to it. */
-@Composable
-private fun RestRemainingStrip(
-    remainingSeconds: Int,
-    onResume: () -> Unit,
-) {
-    val shape = RoundedCornerShape(Radius.md)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(Surface2)
-            .border(Metrics.hairline, Hairline, shape)
-            .clickable(onClick = onResume, onClickLabel = "Back to the workout")
-            .padding(horizontal = Metrics.space4, vertical = Metrics.space3),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-            Kicker("Rest", color = RestCyan)
-            Text("Back to the workout", style = InstrumentType.caption, color = TextSecondary)
-        }
-        Text(
-            RestTimer.formatClock(remainingSeconds),
-            style = InstrumentType.numeralMd,
-            color = TextPrimary,
-            maxLines = 1,
         )
     }
 }

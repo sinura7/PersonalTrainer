@@ -143,6 +143,16 @@ private val ScreenEnter: EnterTransition =
 
 private val ScreenExit: ExitTransition = fadeOut(tween(Motion.TAP, easing = Motion.Exit))
 
+/**
+ * Routes that already own the live session, or exist to start one. The bar is visible
+ * everywhere else — including pushed routes, where the tab bar is not.
+ */
+private val LIVE_BAR_HIDDEN_ROUTES = setOf(
+    Route.ActiveWorkout.path,
+    Route.WorkoutSummary.path,
+    Route.StartWorkout.path,
+)
+
 @Composable
 fun PersonalTrainerNav(
     openSessionId: String? = null,
@@ -161,13 +171,30 @@ fun PersonalTrainerNav(
         Tab(Route.Library, "Library", Icons.Outlined.GridView, Icons.Filled.GridView),
         Tab(Route.History, "History", Icons.Outlined.History, Icons.Filled.History),
     )
+    val liveBarViewModel: LiveSessionBarViewModel = viewModel()
+    val liveSession by liveBarViewModel.uiState.collectAsStateWithLifecycle()
+    val finishedNavigation by liveBarViewModel.finishedNavigation.collectAsStateWithLifecycle()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    // Hidden exactly where the session already owns the screen, or where starting one is the
+    // whole point. Everywhere else — tabs and pushed routes alike — the bar is present, which
+    // is the difference between "the workout is somewhere" and "the workout is right here".
+    val showLiveBar = liveSession != null &&
+        currentDestination?.route !in LIVE_BAR_HIDDEN_ROUTES
     // Before the back-stack flow emits, currentDestination is null. The start destination
     // is a tab, so treat that first frame as one — otherwise the bar slides up from nothing
     // on every cold start.
     val showBottomBar = navBackStackEntry == null || tabs.any { tab ->
         currentDestination?.hierarchy?.any { isTabRoute(it.route, tab.route.path) } == true
+    }
+
+    LaunchedEffect(finishedNavigation) {
+        val sessionId = finishedNavigation ?: return@LaunchedEffect
+        navController.navigate(Route.WorkoutSummary.create(sessionId)) {
+            popUpTo(Route.Home.path) { inclusive = false }
+            launchSingleTop = true
+        }
+        liveBarViewModel.onFinishNavigationHandled()
     }
 
     LaunchedEffect(openSessionId) {
@@ -191,6 +218,32 @@ fun PersonalTrainerNav(
     CompositionLocalProvider(LocalWeightUnit provides weightUnit) {
         Scaffold(
             bottomBar = {
+              Column {
+                AnimatedVisibility(
+                    visible = showLiveBar,
+                    enter = slideInVertically(
+                        animationSpec = tween(Motion.BASE, easing = Motion.Standard),
+                    ) { it },
+                    exit = slideOutVertically(
+                        animationSpec = tween(Motion.BASE, easing = Motion.Exit),
+                    ) { it },
+                ) {
+                    liveSession?.let { live ->
+                        LiveSessionBar(
+                            state = live,
+                            // When the tab bar is hidden the bar is the bottom-most thing on
+                            // screen and must own the gesture inset itself.
+                            applyNavInsets = !showBottomBar,
+                            onResume = {
+                                navController.navigate(Route.ActiveWorkout.create(live.sessionId)) {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onFinish = liveBarViewModel::finishFromBar,
+                            onDiscard = liveBarViewModel::discardFromBar,
+                        )
+                    }
+                }
                 // Slides rather than disappears: entering a workout used to delete the bar in
                 // one frame and let the content jolt down into the space it had been holding.
                 AnimatedVisibility(
@@ -212,6 +265,7 @@ fun PersonalTrainerNav(
                         onSelect = { tab -> goToTab(tab.route.path) },
                     )
                 }
+              }
             },
         ) { padding ->
             NavHost(

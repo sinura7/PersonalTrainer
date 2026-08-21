@@ -16,6 +16,8 @@ import com.sinura.personaltrainer.timer.RestTimerController
 import com.sinura.personaltrainer.timer.RestTimerStatePersistence
 import com.sinura.personaltrainer.timer.RestTimerStore
 import com.sinura.personaltrainer.timer.SharedPrefsRestTimerStatePersistence
+import com.sinura.personaltrainer.workout.DiscardWorkout
+import com.sinura.personaltrainer.workout.FinishWorkout
 import com.sinura.personaltrainer.workout.StartTrainingDay
 import com.sinura.personaltrainer.workout.WorkoutDraftCache
 
@@ -38,6 +40,19 @@ class AppContainer(context: Context) {
     val restTimerController: RestTimerController =
         RestTimerController(context, restTimerStore, restTimerStatePersistence)
     val workoutDraftCache: WorkoutDraftCache = WorkoutDraftCache()
+
+    // Every finish and every discard in the app routes through these two, so no surface can
+    // end a workout while leaving a rest timer running or a draft pointing at a dead session.
+    val finishWorkout: FinishWorkout = FinishWorkout(
+        workoutRepository = workoutRepository,
+        restTimer = restTimerController,
+        draftCache = workoutDraftCache,
+    )
+    val discardWorkout: DiscardWorkout = DiscardWorkout(
+        workoutRepository = workoutRepository,
+        restTimer = restTimerController,
+        draftCache = workoutDraftCache,
+    )
 
     /** One analytics pipeline behind Home, Schedule and Progress. */
     val trainingInsights: TrainingInsightsSource = TrainingInsightsSource(

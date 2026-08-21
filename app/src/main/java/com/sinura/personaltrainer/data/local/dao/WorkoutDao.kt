@@ -36,6 +36,22 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout_sessions WHERE finishedAt IS NULL ORDER BY startedAt DESC LIMIT 1")
     fun observeInProgressSession(): Flow<WorkoutSessionEntity?>
 
+    /**
+     * Set counters for one session, aggregated in SQL for the live-session bar.
+     *
+     * `lastCompletedAt` counts warm-ups on purpose: a warm-up set is activity, and the
+     * staleness rule is about whether the user is still training, not about working volume.
+     */
+    @Query(
+        """
+        SELECT COUNT(*) AS totalSets,
+               COUNT(CASE WHEN isWarmup = 0 THEN 1 END) AS workingSets,
+               MAX(completedAt) AS lastCompletedAt
+        FROM set_logs WHERE sessionId = :sessionId
+        """,
+    )
+    fun observeSessionActivity(sessionId: String): Flow<SessionActivityRow>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertSession(session: WorkoutSessionEntity)
 
