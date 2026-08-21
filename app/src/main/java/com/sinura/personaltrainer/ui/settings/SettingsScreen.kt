@@ -8,10 +8,10 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,13 +47,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.BuildConfig
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
-import com.sinura.personaltrainer.domain.DayLabel
 import com.sinura.personaltrainer.domain.CoachPreferences
+import com.sinura.personaltrainer.domain.DayLabel
 import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
-import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.SplitStyle
+import com.sinura.personaltrainer.domain.TrainingGoal
+import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.CustomRestDialog
@@ -90,6 +93,7 @@ fun SettingsScreen(
     val schedulePrefs by viewModel.schedulePreferences.collectAsStateWithLifecycle()
     val restPrefs by viewModel.restTimerPreferences.collectAsStateWithLifecycle()
     val coachPrefs by viewModel.coachPreferences.collectAsStateWithLifecycle()
+    val bodyweightKg by viewModel.bodyweightKg.collectAsStateWithLifecycle()
     val backup by viewModel.backupState.collectAsStateWithLifecycle()
     val activity = LocalContext.current.findActivity()
     val dateTimeFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
@@ -146,8 +150,12 @@ fun SettingsScreen(
             )
             CoachingSection(
                 preferences = coachPrefs,
+                bodyweightKg = bodyweightKg,
+                unit = selectedUnit,
                 onGoal = viewModel::setTrainingGoal,
                 onToggleEquipment = viewModel::toggleEquipment,
+                onRecordBodyweight = viewModel::recordBodyweight,
+                onClearBodyweight = viewModel::clearBodyweight,
             )
             RestTimerPrefsSection(
                 preferences = restPrefs,
@@ -325,9 +333,31 @@ private fun SchedulePrefsSection(
 @Composable
 private fun CoachingSection(
     preferences: CoachPreferences,
+    bodyweightKg: Double?,
+    unit: WeightUnit,
     onGoal: (TrainingGoal) -> Unit,
     onToggleEquipment: (EquipmentType) -> Unit,
+    onRecordBodyweight: (Double) -> Unit,
+    onClearBodyweight: () -> Unit,
 ) {
+    var weighingIn by rememberSaveable { mutableStateOf(false) }
+    if (weighingIn) {
+        NumberEntryDialog(
+            title = "Bodyweight",
+            unitLabel = unit.suffix,
+            initial = bodyweightKg
+                ?.let { WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(it, unit)) }
+                .orEmpty(),
+            decimal = true,
+            helper = "Today's weigh-in. One a day is kept — the last one you type.",
+            parse = { NumericEntry.parseWeightKg(it, unit) },
+            onConfirm = {
+                weighingIn = false
+                onRecordBodyweight(it)
+            },
+            onDismiss = { weighingIn = false },
+        )
+    }
     SettingsGroup(
         title = "Coaching",
         caption = "Your goal reorders the suggestions; it never changes what they are. " +
@@ -351,6 +381,40 @@ private fun CoachingSection(
                         }
                     },
                 )
+            }
+        }
+        GymCard {
+            Kicker("Bodyweight")
+            Text(
+                "Only used to say what your weight did across a block. Nothing else reads it — " +
+                    "bodyweight lifts are counted in reps.",
+                style = InstrumentType.caption,
+                color = TextSecondary,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    bodyweightKg?.toWeightLabel(unit) ?: "Not set",
+                    style = InstrumentType.numeralSm,
+                    color = if (bodyweightKg != null) TextPrimary else TextTertiary,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                    if (bodyweightKg != null) {
+                        TextButton(onClick = onClearBodyweight) {
+                            Text("Clear", style = InstrumentType.bodyStrong, color = TextSecondary)
+                        }
+                    }
+                    TextButton(onClick = { weighingIn = true }) {
+                        Text(
+                            if (bodyweightKg != null) "Update" else "Add",
+                            style = InstrumentType.bodyStrong,
+                            color = Volt,
+                        )
+                    }
+                }
             }
         }
         GymCard {

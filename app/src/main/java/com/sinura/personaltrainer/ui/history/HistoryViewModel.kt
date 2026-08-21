@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.domain.TrainingCalendarBuilder
 import com.sinura.personaltrainer.domain.groupSessionsByMonth
 import com.sinura.personaltrainer.domain.prSummary
 import com.sinura.personaltrainer.domain.BlockReview
+import com.sinura.personaltrainer.domain.BodyweightEntry
 import com.sinura.personaltrainer.domain.BlockReviewBuilder
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.TrainingBlock
@@ -84,7 +85,8 @@ class HistoryViewModel(application: Application) : AppViewModel(application) {
             container.preferencesRepository.schedulePreferences,
             container.preferencesRepository.pastBlocks,
             container.preferencesRepository.weightUnit,
-        ) { preferences, blocks, unit -> Settings(preferences, blocks, unit) },
+            container.preferencesRepository.bodyweightLog,
+        ) { preferences, blocks, unit, log -> Settings(preferences, blocks, unit, log) },
         visibleMonth,
     ) { sessions, settings, month ->
         val preferences = settings.preferences
@@ -113,6 +115,7 @@ class HistoryViewModel(application: Application) : AppViewModel(application) {
                             sessions = sessions,
                             unit = settings.unit,
                             zone = ZoneId.systemDefault(),
+                            bodyweightLog = settings.bodyweightLog,
                         ),
                     )
                 }
@@ -183,6 +186,7 @@ class HistoryViewModel(application: Application) : AppViewModel(application) {
         val preferences: SchedulePreferences,
         val blocks: List<TrainingBlock>,
         val unit: WeightUnit,
+        val bodyweightLog: List<BodyweightEntry>,
     )
 }
 

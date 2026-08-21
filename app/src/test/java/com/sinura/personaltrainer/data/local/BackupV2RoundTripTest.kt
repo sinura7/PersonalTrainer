@@ -137,7 +137,7 @@ class BackupV2RoundTripTest {
         preferences.setTrainingGoal(TrainingGoal.STRENGTH)
         preferences.setAvailableEquipment(setOf("BARBELL", "DUMBBELL"))
         preferences.setHeatWindow(HeatWindow.LAST_30_DAYS)
-        preferences.setBodyweightKg(82.5)
+        preferences.recordBodyweight(82.5, 20_000L)
         preferences.setOnboardingComplete(true)
         preferences.dismissCollision("ex-custom-1")
 
@@ -147,7 +147,7 @@ class BackupV2RoundTripTest {
         preferences.setTrainingGoal(TrainingGoal.HYPERTROPHY)
         preferences.setAvailableEquipment(setOf("CABLE"))
         preferences.setHeatWindow(HeatWindow.CURRENT_WEEK)
-        preferences.setBodyweightKg(60.0)
+        preferences.recordBodyweight(60.0, 20_100L)
         preferences.setOnboardingComplete(false)
 
         restore(json)
@@ -158,6 +158,9 @@ class BackupV2RoundTripTest {
         assertEquals(setOf("BARBELL", "DUMBBELL"), coach.availableEquipment)
         assertEquals(HeatWindow.LAST_30_DAYS, preferences.heatWindow.first())
         assertEquals(82.5, preferences.bodyweightKg.first()!!, 0.001)
+        // The weigh-in history travels too — it is what lets a block review say what
+        // bodyweight did over its twelve weeks.
+        assertEquals(listOf(20_000L), preferences.bodyweightLog.first().map { it.epochDay })
         assertTrue(preferences.onboardingComplete.first())
         assertEquals(setOf("ex-custom-1"), preferences.dismissedCollisionIds.first())
     }
@@ -203,6 +206,7 @@ class BackupV2RoundTripTest {
             dismissedCollisionIds = emptySet(),
             block = null,
             pastBlocks = emptyList(),
+            bodyweightLog = emptyList(),
         )
         assertTrue(preferences.pastBlocks.first().isEmpty())
 

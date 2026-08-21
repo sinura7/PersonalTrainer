@@ -395,6 +395,15 @@ private fun FinishedBlockCard(finished: FinishedBlock, unit: WeightUnit) {
                 horizontalAlignment = Alignment.Start,
             )
         }
+        SetCopy.bodyweightLine(review.bodyweight, unit)?.let { line ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text("Bodyweight", style = InstrumentType.body, color = TextSecondary)
+                Text(line, style = InstrumentType.numeralSm, color = TextSecondary)
+            }
+        }
         review.movers.forEach { mover ->
             Row(
                 modifier = Modifier.fillMaxWidth(),

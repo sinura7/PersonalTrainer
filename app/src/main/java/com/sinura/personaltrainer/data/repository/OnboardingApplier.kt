@@ -69,7 +69,11 @@ class OnboardingApplier(
             val coach = clean.coachPreferences()
             preferencesRepository.setTrainingGoal(coach.goal)
             preferencesRepository.setAvailableEquipment(coach.availableEquipment)
-            preferencesRepository.setBodyweightKg(clean.bodyweightKg)
+            // Recorded as a weigh-in, not just stored: it is the opening reading of the block
+            // being started on the next line, and the block review compares against it.
+            clean.bodyweightKg?.let { kg ->
+                preferencesRepository.recordBodyweight(kg, today.toEpochDay())
+            }
             // The block starts the moment a plan is accepted, not the moment the app was
             // installed: what is being counted is twelve weeks of *this* programme. beginBlock
             // keeps the one this replaces if it had finished — re-running setup the week after

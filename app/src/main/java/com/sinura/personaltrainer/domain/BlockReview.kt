@@ -25,6 +25,15 @@ data class BlockReview(
     val recordsBroken: Int,
     /** The lifts that improved most, best first. Empty when nothing had two comparable points. */
     val movers: List<BlockMover>,
+    /**
+     * How bodyweight moved across the block, when enough was logged to say.
+     *
+     * The companion question to every other number here. Twelve weeks of added reps means one
+     * thing at a steady bodyweight and something else entirely at plus four kilos, and this is
+     * the only place in the app where both halves can be read at once. Null when there are
+     * fewer than two weigh-ins, because one reading is a weight, not a direction.
+     */
+    val bodyweight: BodyweightChange? = null,
 ) {
     val isEmpty: Boolean get() = sessions == 0
 }
@@ -72,6 +81,7 @@ object BlockReviewBuilder {
         sessions: List<WorkoutSession>,
         unit: WeightUnit,
         zone: ZoneId = ZoneId.systemDefault(),
+        bodyweightLog: List<BodyweightEntry> = emptyList(),
     ): BlockReview {
         val inBlock = sessions.filter { session ->
             val day = session.performedEpochDay(zone)
@@ -87,7 +97,26 @@ object BlockReviewBuilder {
             daysTrained = inBlock.map { it.performedEpochDay(zone) }.distinct().size,
             recordsBroken = countRecords(inBlock),
             movers = movers(block, inBlock, unit, zone),
+            bodyweight = bodyweightChange(block, bodyweightLog),
         )
+    }
+
+    /**
+     * Bodyweight at the block's start against its end.
+     *
+     * Two distinct weigh-ins or nothing: one reading is a weight, not a direction, and showing
+     * "78 kg → 78 kg" because the same entry answered both ends would be the app inventing a
+     * result out of a single measurement.
+     */
+    private fun bodyweightChange(
+        block: TrainingBlock,
+        log: List<BodyweightEntry>,
+    ): BodyweightChange? {
+        if (log.size < 2) return null
+        val opening = BodyweightLog.nearest(log, block.startEpochDay) ?: return null
+        val closing = BodyweightLog.nearest(log, block.endExclusiveEpochDay - 1) ?: return null
+        if (opening.epochDay == closing.epochDay) return null
+        return BodyweightChange(fromKg = opening.kg, toKg = closing.kg)
     }
 
     /**

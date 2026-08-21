@@ -181,6 +181,15 @@ private fun BlockReviewPanel(review: BlockReview) {
                 horizontalAlignment = Alignment.Start,
             )
         }
+        SetCopy.bodyweightLine(review.bodyweight, unit)?.let { line ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text("Bodyweight", style = InstrumentType.body, color = TextSecondary)
+                Text(line, style = InstrumentType.numeralSm, color = TextSecondary)
+            }
+        }
         if (review.movers.isNotEmpty()) {
             HairlineDivider(startIndent = 0.dp)
             Kicker("Moved most")

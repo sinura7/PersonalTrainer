@@ -80,6 +80,22 @@ object SetCopy {
         else -> WorkColumn(value = NOTHING_YET, label = unit.suffix)
     }
 
+    /**
+     * How bodyweight moved, as a line. Null when it did not move enough to be a trend.
+     *
+     * Signed, because the direction is the whole content: the same four kilos is the point of a
+     * bulk and the failure of a cut, and the app has no business deciding which one this was.
+     */
+    fun bodyweightLine(change: BodyweightChange?, unit: WeightUnit): String? {
+        if (change == null) return null
+        val from = change.fromKg.toWeightLabel(unit)
+        val to = change.toKg.toWeightLabel(unit)
+        if (change.isFlat) return "$from → $to · held"
+        val delta = kotlin.math.abs(change.deltaKg).toWeightLabel(unit)
+        val sign = if (change.deltaKg > 0) "+" else "−"
+        return "$from → $to · $sign$delta"
+    }
+
     private fun repsLabel(reps: Int): String = if (reps == 1) "1 rep" else "$reps reps"
 
     const val NOTHING_YET = "—"

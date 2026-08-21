@@ -74,4 +74,31 @@ class SetCopyTest {
             SetCopy.weightFieldHint(LoadClass.BODYWEIGHT_ASSISTED),
         )
     }
+
+    @Test
+    fun bodyweightReadsWithItsDirection() {
+        // The direction is the whole content: the same four kilos is the point of a bulk and
+        // the failure of a cut, and the app has no business deciding which one this was.
+        assertEquals(
+            "78 kg → 82 kg · +4 kg",
+            SetCopy.bodyweightLine(BodyweightChange(fromKg = 78.0, toKg = 82.0), WeightUnit.KG),
+        )
+        assertEquals(
+            "82 kg → 78 kg · −4 kg",
+            SetCopy.bodyweightLine(BodyweightChange(fromKg = 82.0, toKg = 78.0), WeightUnit.KG),
+        )
+    }
+
+    @Test
+    fun halfAKiloReadsAsHeldRatherThanAsAChange() {
+        assertEquals(
+            "78 kg → 78.3 kg · held",
+            SetCopy.bodyweightLine(BodyweightChange(fromKg = 78.0, toKg = 78.3), WeightUnit.KG),
+        )
+    }
+
+    @Test
+    fun nothingLoggedSaysNothing() {
+        assertNull(SetCopy.bodyweightLine(null, WeightUnit.KG))
+    }
 }

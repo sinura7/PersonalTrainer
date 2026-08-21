@@ -12,6 +12,8 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.sinura.personaltrainer.domain.BlockArchive
+import com.sinura.personaltrainer.domain.BodyweightEntry
+import com.sinura.personaltrainer.domain.BodyweightLog
 import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.OnboardingAnswers
@@ -234,6 +236,7 @@ class PreferencesRepository(context: Context) {
         coach: CoachPreferences,
         heatWindow: HeatWindow,
         bodyweightKg: Double?,
+        bodyweightLog: List<BodyweightEntry>,
         onboardingComplete: Boolean,
         dismissedCollisionIds: Set<String>,
         block: TrainingBlock?,
@@ -264,6 +267,11 @@ class PreferencesRepository(context: Context) {
                 prefs.remove(BODYWEIGHT_KG)
             } else {
                 prefs[BODYWEIGHT_KG] = cleanBodyweight
+            }
+            if (bodyweightLog.isEmpty()) {
+                prefs.remove(BODYWEIGHT_LOG)
+            } else {
+                prefs[BODYWEIGHT_LOG] = BodyweightLog.encode(bodyweightLog)
             }
             prefs[ONBOARDING_COMPLETE] = onboardingComplete
             prefs[DISMISSED_COLLISIONS] = dismissedCollisionIds
@@ -325,6 +333,38 @@ class PreferencesRepository(context: Context) {
      */
     val bodyweightKg: Flow<Double?> = safePreferences
         .map { prefs -> prefs[BODYWEIGHT_KG]?.takeIf { it > 0.0 } }
+
+    /**
+     * Every weigh-in, oldest first.
+     *
+     * Kept beside [bodyweightKg] rather than instead of it: that is the current value, this is
+     * how it got there, and [recordBodyweight] writes both in one edit so they cannot disagree.
+     */
+    val bodyweightLog: Flow<List<BodyweightEntry>> = safePreferences
+        .map { prefs -> BodyweightLog.decode(prefs[BODYWEIGHT_LOG]) }
+
+    /**
+     * Record what the lifter weighs today, keeping the history.
+     *
+     * The only writer anything should use. [setBodyweightKg] survives for clearing the value,
+     * which is a different act — saying "I would rather not say" is not a weigh-in.
+     */
+    suspend fun recordBodyweight(kg: Double, epochDay: Long) {
+        val clean = kg.takeIf {
+            it.isFinite() &&
+                it >= OnboardingAnswers.MIN_BODYWEIGHT_KG &&
+                it <= OnboardingAnswers.MAX_BODYWEIGHT_KG
+        } ?: return
+        dataStore.edit { prefs ->
+            prefs[BODYWEIGHT_KG] = clean
+            prefs[BODYWEIGHT_LOG] = BodyweightLog.encode(
+                BodyweightLog.record(
+                    BodyweightLog.decode(prefs[BODYWEIGHT_LOG]),
+                    BodyweightEntry(epochDay = epochDay, kg = clean),
+                ),
+            )
+        }
+    }
 
     suspend fun setBodyweightKg(kg: Double?) {
         dataStore.edit { prefs ->
@@ -436,6 +476,7 @@ class PreferencesRepository(context: Context) {
         val DISMISSED_COLLISIONS = stringSetPreferencesKey("library_collision_dismissed_ids")
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val BODYWEIGHT_KG = doublePreferencesKey("bodyweight_kg")
+        val BODYWEIGHT_LOG = stringPreferencesKey("bodyweight_log")
         val BLOCK_START = longPreferencesKey("block_start_epoch_day")
         val BLOCK_WEEKS = intPreferencesKey("block_weeks")
         val PAST_BLOCKS = stringPreferencesKey("past_blocks")

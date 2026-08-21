@@ -9,6 +9,7 @@ import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.BlockReview
+import com.sinura.personaltrainer.domain.BodyweightEntry
 import com.sinura.personaltrainer.domain.BlockReviewBuilder
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
@@ -99,7 +100,8 @@ class PlanViewModel(application: Application) : AppViewModel(application) {
             container.preferencesRepository.schedulePreferences,
             container.preferencesRepository.trainingBlock,
             container.preferencesRepository.weightUnit,
-        ) { preferences, block, unit -> SettingsAndBlock(preferences, block, unit) },
+            container.preferencesRepository.bodyweightLog,
+        ) { preferences, block, unit, log -> SettingsAndBlock(preferences, block, unit, log) },
         proposals,
         actionError,
     ) { current, inProgress, settings, previewed, error ->
@@ -125,6 +127,7 @@ class PlanViewModel(application: Application) : AppViewModel(application) {
                         sessions = current.history,
                         unit = settings.unit,
                         zone = zone,
+                        bodyweightLog = settings.bodyweightLog,
                     )
                 },
             error = error ?: when {
@@ -366,5 +369,6 @@ class PlanViewModel(application: Application) : AppViewModel(application) {
         val preferences: SchedulePreferences,
         val block: TrainingBlock?,
         val unit: WeightUnit,
+        val bodyweightLog: List<BodyweightEntry>,
     )
 }

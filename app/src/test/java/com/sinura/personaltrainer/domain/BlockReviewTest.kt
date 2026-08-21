@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.DayOfWeek
@@ -192,5 +193,61 @@ class BlockReviewTest {
         assertEquals(BlockReviewBuilder.MOVERS_SHOWN, review.movers.size)
         // Best first.
         assertEquals("Lift 5", review.movers.first().exerciseName)
+    }
+
+    // ---- the companion question ----
+
+    private fun weighIn(weeksIn: Long, kg: Double) =
+        BodyweightEntry(start.plusWeeks(weeksIn).toEpochDay(), kg)
+
+    @Test
+    fun theReviewSaysWhatBodyweightDidAcrossTheBlock() {
+        val review = BlockReviewBuilder.build(
+            block = block,
+            sessions = listOf(workout("a", dayMs(1), sets = listOf(100.0 to 5))),
+            unit = WeightUnit.KG,
+            zone = zone,
+            bodyweightLog = listOf(weighIn(0, 78.0), weighIn(11, 82.0)),
+        )
+        assertEquals(78.0, review.bodyweight!!.fromKg, 0.001)
+        assertEquals(82.0, review.bodyweight!!.toKg, 0.001)
+        assertEquals(4.0, review.bodyweight!!.deltaKg, 0.001)
+    }
+
+    @Test
+    fun oneWeighInIsAWeightNotADirection() {
+        val review = BlockReviewBuilder.build(
+            block = block,
+            sessions = listOf(workout("a", dayMs(1), sets = listOf(100.0 to 5))),
+            unit = WeightUnit.KG,
+            zone = zone,
+            bodyweightLog = listOf(weighIn(0, 78.0)),
+        )
+        assertNull(review.bodyweight)
+    }
+
+    @Test
+    fun weighInsThatBothResolveToTheSameDaySayNothing() {
+        // Two entries, but both ends of the block land on the same one. Reporting "78 -> 78"
+        // would be the app inventing a result out of a single measurement.
+        val review = BlockReviewBuilder.build(
+            block = block,
+            sessions = listOf(workout("a", dayMs(1), sets = listOf(100.0 to 5))),
+            unit = WeightUnit.KG,
+            zone = zone,
+            bodyweightLog = listOf(weighIn(20, 78.0), weighIn(30, 80.0)),
+        )
+        assertNull(review.bodyweight)
+    }
+
+    @Test
+    fun aBlockWithNoWeighInsSimplyDoesNotSay() {
+        val review = BlockReviewBuilder.build(
+            block = block,
+            sessions = listOf(workout("a", dayMs(1), sets = listOf(100.0 to 5))),
+            unit = WeightUnit.KG,
+            zone = zone,
+        )
+        assertNull(review.bodyweight)
     }
 }

@@ -24,6 +24,7 @@ import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
 import com.sinura.personaltrainer.domain.BlockArchive
+import com.sinura.personaltrainer.domain.BodyweightLog
 import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.HeatWindow
@@ -104,6 +105,7 @@ class LocalBackupRepository(
         val dismissedCollisions = preferencesRepository.dismissedCollisionIds.first()
         val block = preferencesRepository.trainingBlock.first()
         val pastBlocks = preferencesRepository.pastBlocks.first()
+        val bodyweightLog = preferencesRepository.bodyweightLog.first()
         return BackupDocument(
             version = BackupJson.CURRENT_VERSION,
             app = BackupJson.APP_ID,
@@ -127,6 +129,7 @@ class LocalBackupRepository(
                 blockStartEpochDay = block?.startEpochDay,
                 blockWeeks = block?.weeks ?: TrainingBlock.DEFAULT_WEEKS,
                 pastBlocks = BlockArchive.encode(pastBlocks),
+                bodyweightLog = BodyweightLog.encode(bodyweightLog),
             ),
             exercises = exercises.map {
                 BackupExercise(
@@ -408,6 +411,7 @@ class LocalBackupRepository(
                     TrainingBlock(startEpochDay = start, weeks = document.preferences.blockWeeks)
                 },
                 pastBlocks = BlockArchive.decode(document.preferences.pastBlocks),
+                bodyweightLog = BodyweightLog.decode(document.preferences.bodyweightLog),
             )
             true
         } catch (_: Exception) {

@@ -17,6 +17,7 @@ import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.TrainingGoal
+import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
@@ -83,6 +84,37 @@ class SettingsViewModel(application: Application) : AppViewModel(application) {
                 started = SharingStarted.WhileSubscribed(5_000),
                 initialValue = CoachPreferences.DEFAULT,
             )
+
+    /**
+     * What the lifter currently weighs, or null when they have not said.
+     *
+     * Asked once during setup and, until this existed, unchangeable without re-running the
+     * whole questionnaire — a stored value with no way to correct it.
+     */
+    val bodyweightKg: StateFlow<Double?> =
+        container.preferencesRepository.bodyweightKg
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /**
+     * Record a weigh-in for today.
+     *
+     * A weigh-in rather than an overwrite: the block review reads the history to say what
+     * bodyweight did across twelve weeks, and it can only do that if each change is kept.
+     */
+    fun recordBodyweight(kg: Double) {
+        viewModelScope.launch {
+            runCatchingCancellable {
+                container.preferencesRepository.recordBodyweight(kg, todayEpochDay())
+            }.onFailure { AppLog.w(TAG, "Recording bodyweight failed", it) }
+        }
+    }
+
+    fun clearBodyweight() {
+        viewModelScope.launch {
+            runCatchingCancellable { container.preferencesRepository.setBodyweightKg(null) }
+                .onFailure { AppLog.w(TAG, "Clearing bodyweight failed", it) }
+        }
+    }
 
     fun setTrainingGoal(goal: TrainingGoal) {
         viewModelScope.launch { container.preferencesRepository.setTrainingGoal(goal) }

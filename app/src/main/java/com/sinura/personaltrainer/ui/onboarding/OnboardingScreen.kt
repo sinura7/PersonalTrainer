@@ -282,7 +282,8 @@ private fun BodyweightStep(
         val unit = LocalWeightUnit.current
         QuestionTitle(
             "Roughly what do you weigh?",
-            "Only used to value push-ups and pull-ups honestly in your totals. Skip it and a flat estimate is used instead.",
+            "Recorded so the end of your block can say what your weight did over twelve weeks. " +
+                "Nothing else reads it — bodyweight lifts are counted in reps. Skip it if you'd rather not.",
         )
         // Coarse buttons rather than a keypad. This is the one question that would otherwise
         // need the keyboard, and it is precise enough at ten-kilogram steps for what it does.

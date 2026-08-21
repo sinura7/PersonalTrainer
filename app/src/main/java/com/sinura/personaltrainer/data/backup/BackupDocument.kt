@@ -93,6 +93,8 @@ data class BackupPreferences(
      * version gate. Unreadable content decodes to no blocks, never to a failed restore.
      */
     val pastBlocks: String = "",
+    /** Weigh-ins as "epochDay:kg" pairs — see BodyweightLog. Unreadable content decodes to none. */
+    val bodyweightLog: String = "",
 )
 
 /**

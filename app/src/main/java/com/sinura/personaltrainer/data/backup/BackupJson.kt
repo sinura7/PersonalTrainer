@@ -217,6 +217,7 @@ object BackupJson {
             blockStartEpochDay = prefs.longOrNull("blockStartEpochDay"),
             blockWeeks = prefs.int("blockWeeks", 12),
             pastBlocks = prefs.string("pastBlocks", ""),
+            bodyweightLog = prefs.string("bodyweightLog", ""),
         )
     }
 
