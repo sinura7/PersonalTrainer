@@ -1,6 +1,8 @@
 package com.sinura.personaltrainer.ui.history
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,12 +12,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,10 +31,18 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.PrSummaryRow
+import com.sinura.personaltrainer.domain.WeightConverter
+import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
+import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.HairlineDivider
+import com.sinura.personaltrainer.ui.components.InstrumentRow
+import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SessionLogRow
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -35,15 +50,21 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Surface1
+import com.sinura.personaltrainer.ui.theme.Surface3
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import java.text.DateFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.time.LocalDate
 import java.util.Date
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HistoryScreen(
     onOpenSession: (String) -> Unit,
+    onOpenExercise: (String) -> Unit,
     onStartWorkout: () -> Unit,
     onOpenActiveSession: (String) -> Unit,
     viewModel: HistoryViewModel = viewModel(),
@@ -56,6 +77,7 @@ fun HistoryScreen(
     val dateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
     val today = remember { LocalDate.now() }
     val snackbarHostState = remember { SnackbarHostState() }
+    var selectedDayEpoch by rememberSaveable { mutableStateOf<Long?>(null) }
 
     LaunchedEffect(navigateToSession) {
         val target = navigateToSession ?: return@LaunchedEffect
@@ -115,36 +137,80 @@ fun HistoryScreen(
                                 today = today,
                                 onPreviousMonth = viewModel::showPreviousMonth,
                                 onNextMonth = viewModel::showNextMonth,
-                                // Two sessions in a day is rare; opening the first is the useful
-                                // default and the list below reaches the rest.
-                                onOpenDay = { day -> day.sessionIds.firstOrNull()?.let(onOpenSession) },
+                                // One session opens straight away; two or more open a sheet.
+                                // Opening "the first one" was a coin toss dressed as a default:
+                                // nothing on screen said there had been a second.
+                                onOpenDay = { day ->
+                                    when (day.sessionIds.size) {
+                                        0 -> Unit
+                                        1 -> onOpenSession(day.sessionIds.first())
+                                        else -> selectedDayEpoch = day.date.toEpochDay()
+                                    }
+                                },
                                 unit = unit,
                                 modifier = Modifier.padding(bottom = Metrics.sectionGap),
                             )
                         }
-                        item(key = "sessions-header") {
-                            GymSectionHeader(
-                                "All sessions",
-                                modifier = Modifier.padding(bottom = Metrics.kickerGap),
-                            )
-                        }
-                        itemsIndexed(state.sessions, key = { _, session -> session.id }) { index, session ->
-                            Column(
-                                modifier = Modifier
-                                    .animateItem()
-                                    .clip(groupedRowShape(index, state.sessions.size))
-                                    .background(Surface1),
-                            ) {
-                                if (index > 0) HairlineDivider()
-                                SessionLogRow(
-                                    title = session.routineName ?: "Workout",
-                                    dateLabel = dateFormat.format(Date(session.date)),
-                                    workingSets = session.sets.count { !it.isWarmup },
-                                    volumeKg = session.workingVolumeKg(),
-                                    durationMinutes = session.durationMinutes,
-                                    onClick = { onOpenSession(session.id) },
-                                    onRepeat = { viewModel.repeatSession(session.id) },
+                        state.monthGroups.forEach { group ->
+                            // Pinned while its own sessions scroll, so a long log always says
+                            // which month you are looking at. A flat list had no landmarks at
+                            // all past the first screenful.
+                            stickyHeader(key = "month-${group.month}") {
+                                Kicker(
+                                    MONTH_FORMAT.format(group.month),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Pit)
+                                        .padding(top = Metrics.space3, bottom = Metrics.kickerGap),
                                 )
+                            }
+                            itemsIndexed(
+                                group.sessions,
+                                key = { _, session -> session.id },
+                            ) { index, session ->
+                                Column(
+                                    modifier = Modifier
+                                        .animateItem()
+                                        // Shape computed WITHIN the group, so each month reads
+                                        // as its own panel with rounded ends.
+                                        .clip(groupedRowShape(index, group.sessions.size))
+                                        .background(Surface1),
+                                ) {
+                                    if (index > 0) HairlineDivider()
+                                    SessionLogRow(
+                                        title = session.routineName ?: "Workout",
+                                        dateLabel = dateFormat.format(Date(session.date)),
+                                        workingSets = session.sets.count { !it.isWarmup },
+                                        volumeKg = session.workingVolumeKg(),
+                                        durationMinutes = session.durationMinutes,
+                                        onClick = { onOpenSession(session.id) },
+                                        onRepeat = { viewModel.repeatSession(session.id) },
+                                    )
+                                }
+                            }
+                        }
+                        if (state.records.isNotEmpty()) {
+                            item(key = "records-header") {
+                                GymSectionHeader(
+                                    "Records",
+                                    modifier = Modifier.padding(
+                                        top = Metrics.sectionGap,
+                                        bottom = Metrics.kickerGap,
+                                    ),
+                                )
+                            }
+                            item(key = "records") {
+                                GroupedList {
+                                    state.records.forEachIndexed { index, record ->
+                                        if (index > 0) HairlineDivider()
+                                        RecordRow(
+                                            record = record,
+                                            unit = unit,
+                                            dateFormat = dateFormat,
+                                            onClick = { onOpenExercise(record.exerciseId) },
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -155,6 +221,29 @@ fun HistoryScreen(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter),
         )
+    }
+
+    val dayEpoch = selectedDayEpoch
+    if (dayEpoch != null) {
+        val zone = remember { ZoneId.systemDefault() }
+        val daySessions = state.sessions.filter { session ->
+            Instant.ofEpochMilli(session.date).atZone(zone).toLocalDate().toEpochDay() == dayEpoch
+        }
+        if (daySessions.isEmpty()) {
+            selectedDayEpoch = null
+        } else {
+            DaySessionsSheet(
+                sessions = daySessions,
+                dateLabel = DAY_FORMAT.format(LocalDate.ofEpochDay(dayEpoch)),
+                unit = unit,
+                dateFormat = dateFormat,
+                onOpenSession = { sessionId ->
+                    selectedDayEpoch = null
+                    onOpenSession(sessionId)
+                },
+                onDismiss = { selectedDayEpoch = null },
+            )
+        }
     }
 
     if (blockedRepeat != null) {
@@ -169,6 +258,88 @@ fun HistoryScreen(
         )
     }
 }
+
+/**
+ * The sessions of one day, when there is more than one of them.
+ *
+ * A calendar cell can only ever show that *something* happened; two sessions on a Saturday
+ * look exactly like one. This is the disambiguation, and it exists so that tapping a day is
+ * never a guess about which workout you are about to open.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DaySessionsSheet(
+    sessions: List<WorkoutSession>,
+    dateLabel: String,
+    unit: WeightUnit,
+    dateFormat: DateFormat,
+    onOpenSession: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Surface3) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Metrics.gutter)
+                .padding(bottom = Metrics.space7),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
+                Kicker(dateLabel)
+                Text(
+                    "${sessions.size} sessions",
+                    style = InstrumentType.title,
+                    color = TextPrimary,
+                )
+            }
+            GroupedList {
+                sessions.forEachIndexed { index, session ->
+                    if (index > 0) HairlineDivider()
+                    SessionLogRow(
+                        title = session.routineName ?: "Workout",
+                        dateLabel = dateFormat.format(Date(session.date)),
+                        workingSets = session.sets.count { !it.isWarmup },
+                        volumeKg = session.workingVolumeKg(),
+                        durationMinutes = session.durationMinutes,
+                        onClick = { onOpenSession(session.id) },
+                        unit = unit,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * A standing record: which lift, what it was, and when.
+ *
+ * The kind is spelled out rather than implied by the number, because "120 kg" and "120 kg
+ * estimated from a set of five" are different claims and only one of them was ever lifted.
+ */
+@Composable
+private fun RecordRow(
+    record: PrSummaryRow,
+    unit: WeightUnit,
+    dateFormat: DateFormat,
+    onClick: () -> Unit,
+) {
+    InstrumentRow(
+        title = record.exerciseName,
+        subtitle = "${record.kind.label} · ${dateFormat.format(Date(record.achievedAt))}",
+        onClick = onClick,
+    ) {
+        MetricCluster(
+            value = WeightConverter.formatDisplayNumber(
+                WeightConverter.toDisplayValue(record.valueKg, unit),
+            ),
+            label = unit.suffix,
+        )
+        MetricCluster(value = record.reps.toString(), label = "reps")
+    }
+}
+
+private val MONTH_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM yyyy")
+private val DAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE d MMMM")
 
 /**
  * The sessions read as one grouped panel, but stay individual lazy items.

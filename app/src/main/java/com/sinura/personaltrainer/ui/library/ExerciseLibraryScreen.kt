@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -17,6 +18,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PlaylistAdd
@@ -67,6 +69,7 @@ import com.sinura.personaltrainer.ui.theme.Volt
 
 @Composable
 fun ExerciseLibraryScreen(
+    onBack: () -> Unit,
     onCreateRoutine: () -> Unit,
     onOpenExercise: (String) -> Unit,
     initialMuscle: String? = null,
@@ -84,16 +87,30 @@ fun ExerciseLibraryScreen(
 
     Scaffold(
         topBar = {
-            Text(
-                "Library",
+            // A back arrow now that Library is pushed rather than a tab. Without one, arriving
+            // here from a coach card would be a one-way trip to a screen with no visible exit
+            // except the system gesture.
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Pit)
-                    .padding(horizontal = Metrics.gutter)
-                    .padding(top = Metrics.space2, bottom = Metrics.space3),
-                style = InstrumentType.display,
-                color = TextPrimary,
-            )
+                    .padding(end = Metrics.gutter, bottom = Metrics.space2),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        Icons.AutoMirrored.Outlined.ArrowBack,
+                        contentDescription = "Back",
+                        tint = TextSecondary,
+                    )
+                }
+                Text(
+                    "Library",
+                    modifier = Modifier.weight(1f),
+                    style = InstrumentType.display,
+                    color = TextPrimary,
+                )
+            }
         },
         floatingActionButton = {
             if (state.visibleExercises.isNotEmpty()) {

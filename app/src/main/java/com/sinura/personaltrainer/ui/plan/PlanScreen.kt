@@ -86,6 +86,7 @@ fun PlanScreen(
     onCreateRoutine: () -> Unit,
     onOpenRoutine: (String) -> Unit,
     onWorkoutStarted: (String) -> Unit,
+    onOpenLibrary: () -> Unit,
     onOpenSettings: () -> Unit,
     viewModel: PlanViewModel = viewModel(),
 ) {
@@ -115,6 +116,7 @@ fun PlanScreen(
             canCreate = state.routines.isNotEmpty(),
             onToggleTune = { tuning = !tuning },
             onCreate = onCreateRoutine,
+            onOpenLibrary = onOpenLibrary,
             onOpenSettings = onOpenSettings,
         )
 
@@ -293,6 +295,7 @@ private fun PlanHeader(
     canCreate: Boolean,
     onToggleTune: () -> Unit,
     onCreate: () -> Unit,
+    onOpenLibrary: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     Row(
@@ -319,6 +322,11 @@ private fun PlanHeader(
                 style = InstrumentType.bodyStrong,
                 color = if (tuning) Volt else TextSecondary,
             )
+        }
+        // Library's unfiltered door, now that it is not a tab. It belongs beside the routines
+        // it feeds: everywhere else you reach Library, you arrive already filtered.
+        TextButton(onClick = onOpenLibrary) {
+            Text("Library", style = InstrumentType.bodyStrong, color = TextSecondary)
         }
         if (canCreate) {
             TextButton(onClick = onCreate) {

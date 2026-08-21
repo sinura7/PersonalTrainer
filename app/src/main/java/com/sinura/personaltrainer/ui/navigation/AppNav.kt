@@ -31,12 +31,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessibilityNew
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.outlined.AccessibilityNew
 import androidx.compose.material.icons.outlined.FitnessCenter
-import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material3.Icon
@@ -121,7 +119,17 @@ private data class Tab(
     val label: String,
     val icon: ImageVector,
     val selectedIcon: ImageVector,
-)
+) {
+    /**
+     * What a destination's registered route must equal for this tab to be selected.
+     *
+     * Plain equality, now that no tab route carries a query parameter. Library used to, which
+     * forced a fuzzy prefix match everywhere a tab was identified — and that match is exactly
+     * the kind of thing that keeps working while quietly selecting the wrong tab once a second
+     * route shares a prefix.
+     */
+    val matchPattern: String get() = route.path
+}
 
 /**
  * One fade-through for every destination change.
@@ -166,7 +174,10 @@ fun PersonalTrainerNav(
         Tab(Route.Home, "Home", Icons.Outlined.Home, Icons.Filled.Home),
         Tab(Route.Progress, "Body", Icons.Outlined.AccessibilityNew, Icons.Filled.AccessibilityNew),
         Tab(Route.Routines, "Plan", Icons.Outlined.FitnessCenter, Icons.Filled.FitnessCenter),
-        Tab(Route.Library, "Library", Icons.Outlined.GridView, Icons.Filled.GridView),
+        // Library is not a tab. It is a catalog you visit to answer a question — "what could I
+        // do for hamstrings" — and it was holding a fifth of the bottom bar for something
+        // nobody navigates to as a destination. Every path that used to reach it as a tab now
+        // pushes it with the filter already applied, which is how it was actually being used.
         Tab(Route.History, "History", Icons.Outlined.History, Icons.Filled.History),
     )
     val liveBarViewModel: LiveSessionBarViewModel = viewModel()
@@ -183,7 +194,7 @@ fun PersonalTrainerNav(
     // is a tab, so treat that first frame as one — otherwise the bar slides up from nothing
     // on every cold start.
     val showBottomBar = navBackStackEntry == null || tabs.any { tab ->
-        currentDestination?.hierarchy?.any { isTabRoute(it.route, tab.route.path) } == true
+        currentDestination?.hierarchy?.any { it.route == tab.matchPattern } == true
     }
 
     LaunchedEffect(finishedNavigation) {
@@ -256,9 +267,7 @@ fun PersonalTrainerNav(
                     InstrumentNavBar(
                         tabs = tabs,
                         isSelected = { tab ->
-                            currentDestination?.hierarchy?.any {
-                                isTabRoute(it.route, tab.route.path)
-                            } == true
+                            currentDestination?.hierarchy?.any { it.route == tab.matchPattern } == true
                         },
                         onSelect = { tab -> goToTab(tab.route.path) },
                     )
@@ -293,14 +302,11 @@ fun PersonalTrainerNav(
                         onOpenHistory = { goToTab(Route.History.path) },
                         onOpenProgress = { goToTab(Route.Progress.path) },
                         onOpenPlan = { goToTab(Route.Routines.path) },
+                        // A plain push now that Library is not a tab. The old version was a tab
+                        // navigation with restoreState turned off — a hack that existed only to
+                        // stop a filtered jump landing on the previous, unfiltered scroll state.
                         onOpenLibraryMuscle = { muscle ->
-                            navController.navigate(Route.Library.create(muscle)) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = false
-                            }
+                            navController.navigate(Route.Library.create(muscle))
                         },
                         onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
                         onOpenSession = { navController.navigate(Route.SessionDetail.create(it)) },
@@ -310,15 +316,7 @@ fun PersonalTrainerNav(
                 composable(Route.Progress.path) {
                     ProgressScreen(
                         onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
-                        onOpenLibrary = { muscle ->
-                            navController.navigate(Route.Library.create(muscle)) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = false
-                            }
-                        },
+                        onOpenLibrary = { muscle -> navController.navigate(Route.Library.create(muscle)) },
                         onStartWorkout = { navController.navigate(Route.StartWorkout.path) },
                         onOpenRoutines = { goToTab(Route.Routines.path) },
                     )
@@ -334,6 +332,7 @@ fun PersonalTrainerNav(
                     ),
                 ) { entry ->
                     ExerciseLibraryScreen(
+                        onBack = { navController.popBackStack() },
                         onCreateRoutine = { navController.navigate(Route.RoutineEditor.create("new")) },
                         onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
                         initialMuscle = entry.arguments?.getString("muscle"),
@@ -356,12 +355,14 @@ fun PersonalTrainerNav(
                                 launchSingleTop = true
                             }
                         },
+                        onOpenLibrary = { navController.navigate(Route.Library.create(null)) },
                         onOpenSettings = { navController.navigate(Route.Settings.path) },
                     )
                 }
                 composable(Route.History.path) {
                     HistoryScreen(
                         onOpenSession = { navController.navigate(Route.SessionDetail.create(it)) },
+                        onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
                         onStartWorkout = { navController.navigate(Route.StartWorkout.path) },
                         onOpenActiveSession = { sessionId ->
                             navController.navigate(Route.ActiveWorkout.create(sessionId)) {
@@ -558,12 +559,6 @@ private fun NavTab(
         )
         Kicker(tab.label, color = content)
     }
-}
-
-private fun isTabRoute(destinationRoute: String?, tabPath: String): Boolean {
-    if (destinationRoute == null) return false
-    if (destinationRoute == tabPath) return true
-    return destinationRoute.substringBefore("?") == tabPath
 }
 
 private const val SCREEN_ENTER_SCALE = 0.98f

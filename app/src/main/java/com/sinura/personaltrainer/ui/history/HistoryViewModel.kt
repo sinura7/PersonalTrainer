@@ -4,7 +4,11 @@ import android.app.Application
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.data.repository.RepeatOutcome
+import com.sinura.personaltrainer.domain.PrSummaryRow
+import com.sinura.personaltrainer.domain.SessionMonthGroup
 import com.sinura.personaltrainer.domain.TrainingCalendarBuilder
+import com.sinura.personaltrainer.domain.groupSessionsByMonth
+import com.sinura.personaltrainer.domain.prSummary
 import com.sinura.personaltrainer.domain.TrainingMonth
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.logging.AppLog
@@ -25,6 +29,10 @@ import java.time.ZoneId
 data class HistoryUiState(
     val isLoading: Boolean = true,
     val sessions: List<WorkoutSession> = emptyList(),
+    /** The same sessions, grouped for the list. Derived, never a second query. */
+    val monthGroups: List<SessionMonthGroup> = emptyList(),
+    /** The standing records, newest first — what History could never tell you before. */
+    val records: List<PrSummaryRow> = emptyList(),
     val calendar: TrainingMonth = TrainingMonth(month = YearMonth.now()),
     val weekStart: DayOfWeek = DayOfWeek.MONDAY,
 )
@@ -58,6 +66,8 @@ class HistoryViewModel(application: Application) : AppViewModel(application) {
         HistoryUiState(
             isLoading = false,
             sessions = sessions,
+            monthGroups = groupSessionsByMonth(sessions, ZoneId.systemDefault()),
+            records = prSummary(sessions),
             calendar = TrainingCalendarBuilder.build(
                 month = month,
                 sessions = sessions,

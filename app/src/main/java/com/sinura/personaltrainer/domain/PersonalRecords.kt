@@ -18,6 +18,20 @@ enum class PersonalRecordKind {
 
     /** Best estimated one-rep max. */
     ESTIMATED_ONE_REP_MAX,
+    ;
+
+    /**
+     * How the record reads in a list.
+     *
+     * "Heaviest" and "estimated max" are different claims — only one of them was actually
+     * lifted — so the kind is spelled out rather than left to be inferred from the number.
+     */
+    val label: String
+        get() = when (this) {
+            WEIGHT -> "Heaviest"
+            REPS_AT_WEIGHT -> "Most reps"
+            ESTIMATED_ONE_REP_MAX -> "Est. 1RM"
+        }
 }
 
 data class PersonalRecord(
