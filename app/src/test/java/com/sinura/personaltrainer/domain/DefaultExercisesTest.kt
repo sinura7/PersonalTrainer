@@ -15,9 +15,10 @@ import org.junit.Test
 class DefaultExercisesTest {
 
     @Test
-    fun catalogHasExactly37EntriesAtVersion2() {
-        assertEquals(37, DefaultExercises.catalog().size)
-        assertEquals(2, DefaultExercises.CATALOG_VERSION)
+    fun catalogHasExactly70EntriesAtVersion3() {
+        // Batch 1 (37) + batch 2 (33). Batch 3 takes this to 98 at version 4.
+        assertEquals(70, DefaultExercises.catalog().size)
+        assertEquals(3, DefaultExercises.CATALOG_VERSION)
     }
 
     @Test
@@ -59,7 +60,11 @@ class DefaultExercisesTest {
         // Two assertions in one, deliberately. The literal list is what history points at and is
         // frozen forever; the slug comparison proves the literals were transcribed from v1's
         // generator rather than invented.
-        assertEquals(FROZEN_IDS, DefaultExercises.catalog().map { it.id })
+        //
+        // Batch 1 is asserted as a PREFIX rather than the whole list: later batches append, and
+        // an appended row must never be able to displace or re-order a frozen id. Checking the
+        // prefix catches exactly that, and keeps working as the catalog grows.
+        assertEquals(FROZEN_IDS, DefaultExercises.catalog().take(FROZEN_IDS.size).map { it.id })
         DefaultExercises.catalog().forEach { seed ->
             assertEquals(
                 "${seed.name} no longer slugs to its frozen id",
@@ -105,6 +110,44 @@ class DefaultExercisesTest {
         assertEquals(DefaultExercises.MOVEMENT_FAMILIES, used)
     }
 
+    @Test
+    fun idsAreUniqueAcrossEveryBatch() {
+        val ids = DefaultExercises.catalog().map { it.id }
+        assertEquals("a batch re-used an id", ids.size, ids.toSet().size)
+    }
+
+    @Test
+    fun everyBuiltInHasCatalogMetadataAndRanksAreUnique() {
+        // sortRank and searchTerms live in code beside the catalog rather than in the database,
+        // so nothing but this test stops the two tables drifting. A lift missing from CatalogMeta
+        // would silently sort last, behind every custom, with no nickname search.
+        val ids = DefaultExercises.catalog().map { it.id }.toSet()
+        assertEquals("CatalogMeta and the catalog disagree", ids, CatalogMeta.knownIds())
+
+        val ranks = ids.map { CatalogMeta.sortRank(it) }
+        assertEquals("two built-ins share a sortRank", ranks.size, ranks.toSet().size)
+        assertTrue("a built-in has no sortRank", ranks.none { it == Int.MAX_VALUE })
+    }
+
+    @Test
+    fun curationBucketsMatchThePlannedCounts() {
+        // Buckets are a CURATION judgment — "how many chest lifts does the catalog offer" — and
+        // are not derivable from junction data: the Hinge bucket's primaries are back and glutes,
+        // not a "hinge" muscle. So the membership is stated here and the counts checked against
+        // the plan, which is what stops a batch quietly shipping nine back lifts and three legs.
+        BUCKETS.forEach { (bucket, ids) ->
+            val expected = BUCKET_COUNTS.getValue(bucket)
+            assertEquals("$bucket bucket", expected, ids.size)
+        }
+        val assigned = BUCKETS.values.flatten()
+        assertEquals("a lift is in two buckets", assigned.size, assigned.toSet().size)
+        assertEquals(
+            "every built-in belongs to exactly one bucket",
+            DefaultExercises.catalog().map { it.id }.toSet(),
+            assigned.toSet(),
+        )
+    }
+
     private companion object {
         const val EPSILON = 1e-9
 
@@ -120,6 +163,56 @@ class DefaultExercisesTest {
             "ex-dumbbell-curl", "ex-tricep-pushdown", "ex-skull-crusher",
             "ex-close-grip-bench-press", "ex-plank", "ex-hanging-leg-raise", "ex-cable-crunch",
         )
+
+        /** The plan's per-bucket totals at this catalog version. Batch 3 raises them to 98. */
+        val BUCKET_COUNTS = mapOf(
+            "Chest" to 12, "Back" to 15, "Hinge" to 2, "Shoulders" to 11, "Biceps" to 8,
+            "Triceps" to 8, "Quads" to 7, "Hamstrings" to 2, "Glutes" to 1, "Calves" to 1,
+            "Core" to 3,
+        )
+
+        val BUCKETS: Map<String, List<String>> = mapOf(
+            "Chest" to listOf(
+                "ex-barbell-bench-press", "ex-incline-bench-press", "ex-dumbbell-bench-press",
+                "ex-push-up", "ex-chest-fly",
+                "ex-incline-dumbbell-bench-press", "ex-machine-chest-press", "ex-dip",
+                "ex-cable-fly", "ex-pec-deck", "ex-decline-bench-press",
+                "ex-smith-machine-bench-press",
+            ),
+            "Back" to listOf(
+                "ex-barbell-row", "ex-pendlay-row", "ex-one-arm-dumbbell-row", "ex-lat-pulldown",
+                "ex-pull-up", "ex-chin-up", "ex-seated-cable-row",
+                "ex-t-bar-row", "ex-machine-seated-row", "ex-chest-supported-dumbbell-row",
+                "ex-inverted-row", "ex-close-grip-lat-pulldown", "ex-straight-arm-pulldown",
+                "ex-barbell-shrug", "ex-dumbbell-shrug",
+            ),
+            // Hinge is a curation bucket, not a muscle: its lifts credit back and glutes.
+            "Hinge" to listOf("ex-conventional-deadlift", "ex-trap-bar-deadlift"),
+            "Shoulders" to listOf(
+                "ex-overhead-press", "ex-seated-dumbbell-press", "ex-lateral-raise", "ex-face-pull",
+                "ex-push-press", "ex-arnold-press", "ex-machine-shoulder-press",
+                "ex-cable-lateral-raise", "ex-machine-lateral-raise", "ex-reverse-pec-deck",
+                "ex-dumbbell-rear-delt-fly",
+            ),
+            "Biceps" to listOf(
+                "ex-barbell-curl", "ex-dumbbell-curl",
+                "ex-ez-bar-curl", "ex-hammer-curl", "ex-preacher-curl", "ex-incline-dumbbell-curl",
+                "ex-cable-curl", "ex-machine-bicep-curl",
+            ),
+            "Triceps" to listOf(
+                "ex-tricep-pushdown", "ex-skull-crusher", "ex-close-grip-bench-press",
+                "ex-overhead-cable-triceps-extension", "ex-overhead-dumbbell-triceps-extension",
+                "ex-machine-triceps-extension", "ex-diamond-push-up", "ex-bench-dip",
+            ),
+            "Quads" to listOf(
+                "ex-barbell-back-squat", "ex-front-squat", "ex-goblet-squat",
+                "ex-bulgarian-split-squat", "ex-walking-lunge", "ex-leg-press", "ex-leg-extension",
+            ),
+            "Hamstrings" to listOf("ex-romanian-deadlift", "ex-leg-curl"),
+            "Glutes" to listOf("ex-hip-thrust"),
+            "Calves" to listOf("ex-standing-calf-raise"),
+            "Core" to listOf("ex-plank", "ex-hanging-leg-raise", "ex-cable-crunch"),
+        )
     }
 }
 
@@ -132,13 +225,14 @@ class CatalogReviewArtifactTest {
     @Test
     fun artifactMatchesCatalog() {
         val expected = CatalogReviewRenderer.render()
+        val name = CatalogReviewRenderer.artifactName()
         val file = listOf(
-            File("../docs/gameplan/artifacts/catalog-v2-review.md"),
-            File("docs/gameplan/artifacts/catalog-v2-review.md"),
+            File("../docs/gameplan/artifacts/$name"),
+            File("docs/gameplan/artifacts/$name"),
         ).firstOrNull { it.exists() }
-        assertTrue("catalog-v2-review.md is not committed", file != null)
+        assertTrue("$name is not committed", file != null)
         assertEquals(
-            "Re-render docs/gameplan/artifacts/catalog-v2-review.md from CatalogReviewRenderer",
+            "Re-render docs/gameplan/artifacts/$name from CatalogReviewRenderer",
             expected,
             file!!.readText(),
         )

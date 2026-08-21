@@ -21,6 +21,14 @@ python3 tools/check-named-args.py app/src/test/java
 
 Exits quietly with `0 mismatch(es)` when clean. Nothing to install.
 
+Declarations are indexed by simple name, and this index is the *only* source of truth for a
+name — the Android and Compose APIs are not on the classpath here, so a name the project
+declares is the only definition it has. That makes visibility load-bearing rather than a nicety:
+a `private data class Row` in one domain file was, for one preflight run, the project's entire
+definition of `Row`, and 66 correct `Row(modifier = …)` call sites across the UI were reported
+as broken. Private declarations are therefore recorded against their own file and considered
+only for calls in it; everything else is visible project-wide.
+
 ## `check-when-exhaustive.py`
 
 Finds `when` blocks over the project's own enum and sealed types that miss a case. That is a

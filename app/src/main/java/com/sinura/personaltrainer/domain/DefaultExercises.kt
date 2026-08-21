@@ -37,17 +37,21 @@ data class SeedExercise(
  * re-keyed later on data that has already migrated.
  */
 object DefaultExercises {
-    const val CATALOG_VERSION = 2
+    const val CATALOG_VERSION = 3
 
     /**
-     * The closed family vocabulary for batch 1. Later catalog batches extend this set with
-     * their own families; they never re-key a row that already shipped.
+     * The family vocabulary. Batch 1 shipped 23 families and batch 2 adds three; a later batch
+     * may add more, but no batch ever re-keys a row that already shipped — the library's family
+     * grouping and the sibling swap both ride on these exact strings, and re-keying would
+     * silently move a lift out of the family the user found it in.
      */
     val MOVEMENT_FAMILIES: Set<String> = setOf(
         "squat", "lunge", "leg-press", "leg-extension", "deadlift", "romanian-deadlift",
         "hip-thrust", "leg-curl", "calf-raise", "bench-press", "push-up", "chest-fly",
         "overhead-press", "lateral-raise", "rear-delt", "row", "pulldown", "pull-up",
         "curl", "triceps-extension", "plank", "leg-raise", "crunch",
+        // Batch 2 (v3).
+        "dip", "pullover", "shrug",
     )
 
     fun catalog(): List<SeedExercise> = CATALOG
@@ -239,6 +243,175 @@ object DefaultExercises {
             id = "ex-cable-crunch", name = "Cable Crunch", muscleGroup = "Core",
             equipment = EquipmentType.CABLE, loadType = LoadType.STACK, movementKey = "crunch",
             primary = "core", secondaries = emptyList(),
+        ),
+
+        // --- Batch 2 (v3): upper body. 33 rows, appended never reordered — the list order is
+        // not the display order (that is CatalogMeta.sortRank), so appending keeps every diff
+        // against the previous version readable.
+        seed(
+            id = "ex-incline-dumbbell-bench-press", name = "Incline Dumbbell Bench Press", muscleGroup = "Chest",
+            equipment = EquipmentType.DUMBBELL, loadType = LoadType.EXTERNAL, movementKey = "bench-press",
+            primary = "chest", secondaries = listOf("shoulders" to 0.50, "triceps" to 0.50),
+        ),
+        seed(
+            id = "ex-machine-chest-press", name = "Machine Chest Press", muscleGroup = "Chest",
+            equipment = EquipmentType.MACHINE, loadType = LoadType.STACK, movementKey = "bench-press",
+            primary = "chest", secondaries = listOf("triceps" to 0.50, "shoulders" to 0.25),
+        ),
+        seed(
+            id = "ex-dip", name = "Dip", muscleGroup = "Chest",
+            equipment = EquipmentType.BODYWEIGHT, loadType = LoadType.BODYWEIGHT_PLUS, movementKey = "dip",
+            primary = "chest", secondaries = listOf("triceps" to 0.50, "shoulders" to 0.25),
+        ),
+        seed(
+            id = "ex-cable-fly", name = "Cable Fly", muscleGroup = "Chest",
+            equipment = EquipmentType.CABLE, loadType = LoadType.STACK, movementKey = "chest-fly",
+            primary = "chest", secondaries = listOf("shoulders" to 0.25),
+        ),
+        seed(
+            id = "ex-pec-deck", name = "Pec Deck", muscleGroup = "Chest",
+            equipment = EquipmentType.MACHINE, loadType = LoadType.STACK, movementKey = "chest-fly",
+            primary = "chest", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-decline-bench-press", name = "Decline Bench Press", muscleGroup = "Chest",
+            equipment = EquipmentType.BARBELL, loadType = LoadType.EXTERNAL, movementKey = "bench-press",
+            primary = "chest", secondaries = listOf("triceps" to 0.50),
+        ),
+        seed(
+            id = "ex-smith-machine-bench-press", name = "Smith Machine Bench Press", muscleGroup = "Chest",
+            equipment = EquipmentType.SMITH, loadType = LoadType.EXTERNAL, movementKey = "bench-press",
+            primary = "chest", secondaries = listOf("triceps" to 0.50, "shoulders" to 0.25),
+        ),
+        seed(
+            id = "ex-t-bar-row", name = "T-Bar Row", muscleGroup = "Back",
+            equipment = EquipmentType.BARBELL, loadType = LoadType.EXTERNAL, movementKey = "row",
+            primary = "back", secondaries = listOf("biceps" to 0.50),
+        ),
+        seed(
+            id = "ex-machine-seated-row", name = "Machine Seated Row", muscleGroup = "Back",
+            equipment = EquipmentType.MACHINE, loadType = LoadType.STACK, movementKey = "row",
+            primary = "back", secondaries = listOf("biceps" to 0.50),
+        ),
+        seed(
+            id = "ex-chest-supported-dumbbell-row", name = "Chest-Supported Dumbbell Row", muscleGroup = "Back",
+            equipment = EquipmentType.DUMBBELL, loadType = LoadType.EXTERNAL, movementKey = "row",
+            primary = "back", secondaries = listOf("biceps" to 0.50),
+        ),
+        seed(
+            id = "ex-inverted-row", name = "Inverted Row", muscleGroup = "Back",
+            equipment = EquipmentType.BODYWEIGHT, loadType = LoadType.BODYWEIGHT, movementKey = "row",
+            primary = "back", secondaries = listOf("biceps" to 0.50, "core" to 0.25),
+        ),
+        seed(
+            id = "ex-close-grip-lat-pulldown", name = "Close-Grip Lat Pulldown", muscleGroup = "Back",
+            equipment = EquipmentType.CABLE, loadType = LoadType.STACK, movementKey = "pulldown",
+            primary = "back", secondaries = listOf("biceps" to 0.50),
+        ),
+        seed(
+            id = "ex-straight-arm-pulldown", name = "Straight-Arm Pulldown", muscleGroup = "Back",
+            equipment = EquipmentType.CABLE, loadType = LoadType.STACK, movementKey = "pullover",
+            primary = "back", secondaries = listOf("triceps" to 0.25),
+        ),
+        seed(
+            id = "ex-barbell-shrug", name = "Barbell Shrug", muscleGroup = "Back",
+            equipment = EquipmentType.BARBELL, loadType = LoadType.EXTERNAL, movementKey = "shrug",
+            primary = "back", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-dumbbell-shrug", name = "Dumbbell Shrug", muscleGroup = "Back",
+            equipment = EquipmentType.DUMBBELL, loadType = LoadType.EXTERNAL, movementKey = "shrug",
+            primary = "back", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-push-press", name = "Push Press", muscleGroup = "Shoulders",
+            equipment = EquipmentType.BARBELL, loadType = LoadType.EXTERNAL, movementKey = "overhead-press",
+            primary = "shoulders", secondaries = listOf("triceps" to 0.50, "quadriceps" to 0.25),
+        ),
+        seed(
+            id = "ex-arnold-press", name = "Arnold Press", muscleGroup = "Shoulders",
+            equipment = EquipmentType.DUMBBELL, loadType = LoadType.EXTERNAL, movementKey = "overhead-press",
+            primary = "shoulders", secondaries = listOf("triceps" to 0.50),
+        ),
+        seed(
+            id = "ex-machine-shoulder-press", name = "Machine Shoulder Press", muscleGroup = "Shoulders",
+            equipment = EquipmentType.MACHINE, loadType = LoadType.STACK, movementKey = "overhead-press",
+            primary = "shoulders", secondaries = listOf("triceps" to 0.50),
+        ),
+        seed(
+            id = "ex-cable-lateral-raise", name = "Cable Lateral Raise", muscleGroup = "Shoulders",
+            equipment = EquipmentType.CABLE, loadType = LoadType.STACK, movementKey = "lateral-raise",
+            primary = "shoulders", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-machine-lateral-raise", name = "Machine Lateral Raise", muscleGroup = "Shoulders",
+            equipment = EquipmentType.MACHINE, loadType = LoadType.STACK, movementKey = "lateral-raise",
+            primary = "shoulders", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-reverse-pec-deck", name = "Reverse Pec Deck", muscleGroup = "Shoulders",
+            equipment = EquipmentType.MACHINE, loadType = LoadType.STACK, movementKey = "rear-delt",
+            primary = "shoulders", secondaries = listOf("back" to 0.25),
+        ),
+        seed(
+            id = "ex-dumbbell-rear-delt-fly", name = "Dumbbell Rear-Delt Fly", muscleGroup = "Shoulders",
+            equipment = EquipmentType.DUMBBELL, loadType = LoadType.EXTERNAL, movementKey = "rear-delt",
+            primary = "shoulders", secondaries = listOf("back" to 0.25),
+        ),
+        seed(
+            id = "ex-ez-bar-curl", name = "EZ-Bar Curl", muscleGroup = "Biceps",
+            equipment = EquipmentType.BARBELL, loadType = LoadType.EXTERNAL, movementKey = "curl",
+            primary = "biceps", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-hammer-curl", name = "Hammer Curl", muscleGroup = "Biceps",
+            equipment = EquipmentType.DUMBBELL, loadType = LoadType.EXTERNAL, movementKey = "curl",
+            primary = "biceps", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-preacher-curl", name = "Preacher Curl", muscleGroup = "Biceps",
+            equipment = EquipmentType.BARBELL, loadType = LoadType.EXTERNAL, movementKey = "curl",
+            primary = "biceps", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-incline-dumbbell-curl", name = "Incline Dumbbell Curl", muscleGroup = "Biceps",
+            equipment = EquipmentType.DUMBBELL, loadType = LoadType.EXTERNAL, movementKey = "curl",
+            primary = "biceps", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-cable-curl", name = "Cable Curl", muscleGroup = "Biceps",
+            equipment = EquipmentType.CABLE, loadType = LoadType.STACK, movementKey = "curl",
+            primary = "biceps", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-machine-bicep-curl", name = "Machine Bicep Curl", muscleGroup = "Biceps",
+            equipment = EquipmentType.MACHINE, loadType = LoadType.STACK, movementKey = "curl",
+            primary = "biceps", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-overhead-cable-triceps-extension", name = "Overhead Cable Triceps Extension", muscleGroup = "Triceps",
+            equipment = EquipmentType.CABLE, loadType = LoadType.STACK, movementKey = "triceps-extension",
+            primary = "triceps", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-overhead-dumbbell-triceps-extension", name = "Overhead Dumbbell Triceps Extension", muscleGroup = "Triceps",
+            equipment = EquipmentType.DUMBBELL, loadType = LoadType.EXTERNAL, movementKey = "triceps-extension",
+            primary = "triceps", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-machine-triceps-extension", name = "Machine Triceps Extension", muscleGroup = "Triceps",
+            equipment = EquipmentType.MACHINE, loadType = LoadType.STACK, movementKey = "triceps-extension",
+            primary = "triceps", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-diamond-push-up", name = "Diamond Push-Up", muscleGroup = "Triceps",
+            equipment = EquipmentType.BODYWEIGHT, loadType = LoadType.BODYWEIGHT, movementKey = "push-up",
+            primary = "triceps", secondaries = listOf("chest" to 0.50),
+        ),
+        seed(
+            id = "ex-bench-dip", name = "Bench Dip", muscleGroup = "Triceps",
+            equipment = EquipmentType.BODYWEIGHT, loadType = LoadType.BODYWEIGHT, movementKey = "dip",
+            primary = "triceps", secondaries = listOf("chest" to 0.50, "shoulders" to 0.25),
         ),
     )
 

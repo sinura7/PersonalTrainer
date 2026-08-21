@@ -15,9 +15,19 @@ package com.sinura.personaltrainer.domain
  * re-rendering and the build fails.
  */
 object CatalogReviewRenderer {
+    /**
+     * Where the rendered artifact is committed, derived from the version rather than typed.
+     *
+     * Each catalog batch gets its own file so the owner reviews a diff-able snapshot per bump
+     * instead of one file that silently rewrites itself; deriving the name here is what stops
+     * the renderer and the golden-file test disagreeing about which file that is.
+     */
+    fun artifactName(version: Int = DefaultExercises.CATALOG_VERSION): String =
+        "catalog-v$version-review.md"
+
     fun render(catalog: List<SeedExercise> = DefaultExercises.catalog()): String {
         val builder = StringBuilder()
-        builder.appendLine("# Catalog v2 — review artifact")
+        builder.appendLine("# Catalog v${DefaultExercises.CATALOG_VERSION} — review artifact")
         builder.appendLine()
         builder.appendLine(
             "Generated from `DefaultExercises.catalog()` at catalog version " +

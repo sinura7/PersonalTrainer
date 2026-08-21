@@ -59,19 +59,37 @@ files = kotlin_files(ROOT)
 clean = {p: strip_comments_and_strings(open(p).read()) for p in files}
 decls = collections.defaultdict(list)
 
+# A `private` declaration is visible only inside its own file, so it is recorded with that
+# file's path and considered only for calls there. Indexing it globally is not a harmless
+# over-approximation: this index is the ONLY source of truth for a name, so one private
+# `data class Row` in a domain file replaced Compose's `Row` for the whole project and
+# reported 66 correct call sites as broken. Anything not private is recorded under None,
+# meaning "visible everywhere".
+PRIVATE_RE = re.compile(r"(?:^|[\s;{}])private\s+(?:[a-z]+\s+)*$")
+
+
+def visibility_scope(src, start, path):
+    """The path a declaration is confined to, or None when it is visible project-wide."""
+    return path if PRIVATE_RE.search(src[max(0, start - 80):start]) else None
+
+
 for path, src in clean.items():
     for m in re.finditer(r"\bfun\s*(?:<[^>]*>\s*)?(?:[A-Za-z_][\w.]*(?:<[^>]*>)?\??\.)?([A-Za-z_]\w*)\s*\(", src):
         op = src.index("(", m.end() - 1); cl = balanced(src, op)
-        if cl > 0: decls[m.group(1)].append(set(param_names(src[op+1:cl])))
+        if cl > 0:
+            decls[m.group(1)].append((visibility_scope(src, m.start(), path), set(param_names(src[op+1:cl]))))
     for m in re.finditer(r"\b(?:data\s+|value\s+|enum\s+)?class\s+([A-Za-z_]\w*)\s*(?:<[^>]*>\s*)?(?:@\w+\s*)?\(", src):
         op = src.index("(", m.end() - 1); cl = balanced(src, op)
-        if cl > 0: decls[m.group(1)].append(set(param_names(src[op+1:cl])))
+        if cl > 0:
+            decls[m.group(1)].append((visibility_scope(src, m.start(), path), set(param_names(src[op+1:cl]))))
 
 problems = []
 for path, src in clean.items():
     for m in re.finditer(r"(?<![\w.])([A-Za-z]\w*)\s*\(", src):
         name = m.group(1)
         if name not in decls: continue
+        visible = [params for scope, params in decls[name] if scope is None or scope == path]
+        if not visible: continue
         op = src.index("(", m.end() - 1); cl = balanced(src, op)
         if cl < 0: continue
         used = {n for n in (
@@ -81,8 +99,8 @@ for path, src in clean.items():
             a = re.match(r"^\s*([a-z]\w*)\s*=(?!=)", chunk)
             if a: used.add(a.group(1))
         if not used: continue
-        if any(used <= allowed for allowed in decls[name]): continue
-        best = max(decls[name], key=lambda a: len(used & a))
+        if any(used <= allowed for allowed in visible): continue
+        best = max(visible, key=lambda a: len(used & a))
         problems.append((path, src[:m.start()].count("\n") + 1, name, sorted(used - best)))
 
 for path, line, name, bad in sorted(problems):
