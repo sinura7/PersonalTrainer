@@ -52,7 +52,7 @@ In Android Studio: right-click `app/src/test` → **Run 'Tests'**. From the term
 These are plain JVM tests — no emulator, a few seconds. Run them before every commit; CI
 runs them again on push.
 
-Run everything mechanical with one command — the eleven static checks plus the JVM test
+Run everything mechanical with one command — the twelve static checks plus the JVM test
 lanes, which is what every game-plan phase gates on:
 
 ```bash
@@ -73,6 +73,7 @@ python3 tools/check-screen-wiring.py app/src/main/java     # every callback is a
 python3 tools/check-state-members.py app/src/main/java     # state.foo exists on that UiState
 python3 tools/check-annotation-targets.py                  # annotations still on a declaration
 python3 tools/check-required-args.py                       # every required parameter supplied
+python3 tools/check-import-hygiene.py                      # no duplicate imports; `by` delegates importable
 tools/syntax-check.sh app/src/main/java                    # parse-level diagnostics only
 ```
 
@@ -88,7 +89,18 @@ check nobody knows works. `check-missing-imports.py` came from `Surface1` shippi
 in `ExerciseDetailScreen`, and before it `LaunchedEffect` in `HomeScreen` and `ScheduleScreen`.
 It takes both source roots at once, so it needs no argument.
 
-`check-state-members.py` is the newest, from Phase 6b: Home's new week strip read
+`check-import-hygiene.py` is the newest, and both halves of it come from build breaks a
+compile audit found in code eleven phases deep that no compiler had ever seen.
+`WorkoutRepository.kt` carried the same import line five times, which reads as harmless
+copy-paste and is a hard K2 failure — `conflicting import: imported name is ambiguous`, once per
+occurrence. And `HomeScreen.kt` had `var startOptionsOpen by rememberSaveable { … }` with
+`getValue` imported but not `setValue`: the delegate desugars to a `setValue` call, the property
+is assigned in two places, and the build fails. That second one is structurally invisible to
+`check-missing-imports.py`, because the token `setValue` never appears in the source at all —
+the compiler synthesizes it. A check driven by the names actually written can never see a name
+that is never written.
+
+`check-state-members.py` came from Phase 6b: Home's new week strip read
 `state.loggedEpochDays` and `HomeUiState` had no such property. Member access was the one error
 class nothing here could see — `check-missing-imports.py` skips dotted names on purpose, since
 they are resolved by a receiver rather than an import. It is checkable at all only because the

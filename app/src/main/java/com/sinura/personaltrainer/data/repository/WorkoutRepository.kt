@@ -11,13 +11,9 @@ import com.sinura.personaltrainer.data.mapper.toSummary
 import com.sinura.personaltrainer.data.local.dao.ExerciseSetRow
 import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
 import com.sinura.personaltrainer.domain.Exercise
-import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
 import com.sinura.personaltrainer.domain.ExerciseHistoryBuilder
-import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
-import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
 import com.sinura.personaltrainer.domain.ExerciseSetEntry
-import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
 import com.sinura.personaltrainer.domain.ExerciseSetRecord
 import com.sinura.personaltrainer.domain.FinishedSessionEdits
 import com.sinura.personaltrainer.domain.IncrementTable

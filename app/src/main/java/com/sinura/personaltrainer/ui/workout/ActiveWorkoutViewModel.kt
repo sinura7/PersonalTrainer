@@ -43,6 +43,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -317,6 +318,29 @@ class ActiveWorkoutViewModel(
         initialValue = RestTimerUiState(),
     )
 
+    /**
+     * The coach's first named lift, as an (exercise, reason) pair, or null when it has nothing
+     * specific to say. Read from the shared insights pipeline rather than recomputed here.
+     *
+     * Declared above [uiState] and not below it because [uiState]'s initializer passes this
+     * flow to `combine` as a direct argument, and a property initializer cannot read a property
+     * that has not run yet: `variable 'suggestedLift' must be initialized`. Being inside a
+     * lambda would have made the forward reference legal; being an argument to one does not.
+     */
+    private val suggestedLift: Flow<Pair<Exercise, String>?> =
+        container.trainingInsights.observe(includeWeekPlan = false)
+            .map { insights ->
+                val card = insights.recommendations.firstOrNull { it.actionExerciseId != null }
+                    ?: return@map null
+                val exercise = container.exerciseRepository.getById(card.actionExerciseId!!)
+                    ?: return@map null
+                exercise to card.title
+            }
+            .catch { thrown ->
+                AppLog.w(TAG, "Reading the suggested lift failed", thrown)
+                emit(null)
+            }
+
     val uiState: StateFlow<ActiveWorkoutUiState> = combine(
         session,
         selectedExerciseId,
@@ -399,7 +423,7 @@ class ActiveWorkoutViewModel(
                     catalog = catalog,
                     // Offering a swap to something already in the session is offering to create
                     // a duplicate, which the repository would refuse anyway.
-                    exclude = state.session.exercises.map { row -> row.exercise.id }.toSet(),
+                    exclude = state.session?.exercises.orEmpty().map { row -> row.exercise.id }.toSet(),
                 )
             }.orEmpty(),
         )
@@ -553,24 +577,6 @@ class ActiveWorkoutViewModel(
             }
         }
     }
-
-    /**
-     * The coach's first named lift, as an (exercise, reason) pair, or null when it has nothing
-     * specific to say. Read from the shared insights pipeline rather than recomputed here.
-     */
-    private val suggestedLift: Flow<Pair<Exercise, String>?> =
-        container.trainingInsights.observe(includeWeekPlan = false)
-            .map { insights ->
-                val card = insights.recommendations.firstOrNull { it.actionExerciseId != null }
-                    ?: return@map null
-                val exercise = container.exerciseRepository.getById(card.actionExerciseId!!)
-                    ?: return@map null
-                exercise to card.title
-            }
-            .catch { thrown ->
-                AppLog.w(TAG, "Reading the suggested lift failed", thrown)
-                emit(null)
-            }
 
     fun requestSwap() {
         val selectedId = selectedExerciseId.value ?: return

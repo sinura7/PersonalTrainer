@@ -1,7 +1,7 @@
 #!/bin/sh
 # tools/preflight.sh — the mechanical half of every phase's definition of done.
 #
-# Runs the eleven static checks, then the JVM tests, and exits nonzero on the
+# Runs the twelve static checks, then the JVM tests, and exits nonzero on the
 # first failure. Run it before every push. It is a pre-flight, not a substitute
 # for `./gradlew testDebugUnitTest` + `assembleDebug` — the Robolectric and
 # instrumented tests only run under Gradle (see docs/DEVELOPMENT.md).
@@ -82,7 +82,8 @@ for c in "check-internal-imports.py app/src/main/java" \
          "check-screen-wiring.py app/src/main/java" \
          "check-state-members.py app/src/main/java" \
          "check-annotation-targets.py" \
-         "check-required-args.py"; do
+         "check-required-args.py" \
+         "check-import-hygiene.py"; do
     step "$c"
     # shellcheck disable=SC2086
     python3 tools/$c || fail "$c"
