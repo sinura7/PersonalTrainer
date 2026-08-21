@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.data.repository.BackupRepository
 import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
 import com.sinura.personaltrainer.data.repository.LocalBackupRepository
+import com.sinura.personaltrainer.data.repository.OnboardingApplier
 import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.ScheduleRepository
@@ -44,6 +45,17 @@ class AppContainer(context: Context) {
     val scheduleRepository: ScheduleRepository = ScheduleRepository(database.scheduleDao())
     val workoutRepository: WorkoutRepository = WorkoutRepository(database, database.workoutDao())
     val preferencesRepository: PreferencesRepository = PreferencesRepository(context)
+
+    /**
+     * The one writer that spans preferences, routines and the schedule together. Constructed
+     * here rather than in the view model because that ordering is a property of the app, not
+     * of a screen.
+     */
+    val onboardingApplier: OnboardingApplier = OnboardingApplier(
+        routineRepository = routineRepository,
+        scheduleRepository = scheduleRepository,
+        preferencesRepository = preferencesRepository,
+    )
     // Exposed so the alarm receiver can read timer state after a process death, before any
     // ViewModel exists.
     val restTimerStatePersistence: RestTimerStatePersistence =

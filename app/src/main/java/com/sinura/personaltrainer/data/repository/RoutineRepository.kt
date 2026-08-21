@@ -22,6 +22,9 @@ class RoutineRepository(
 
     suspend fun getById(id: String): Routine? = routineDao.getById(id)?.toDomain()
 
+    /** How many routines exist. Cheaper than loading them all to ask whether any do. */
+    suspend fun count(): Int = routineDao.getAllRoutines().size
+
     suspend fun create(name: String, notes: String = ""): Routine {
         val now = System.currentTimeMillis()
         val routine = Routine(

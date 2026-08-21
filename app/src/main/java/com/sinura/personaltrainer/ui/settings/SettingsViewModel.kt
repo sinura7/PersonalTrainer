@@ -10,16 +10,20 @@ import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
 import com.sinura.personaltrainer.data.repository.RestoreResult
-import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
-import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.SplitStyle
+import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.runCatchingCancellable
 import java.time.DayOfWeek
+import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,11 +31,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlin.time.Duration.Companion.minutes
 
 data class BackupUiState(
     val accountEmail: String? = null,
@@ -47,6 +49,8 @@ data class BackupUiState(
     val pendingRestore: DriveBackupFile? = null,
     val pendingFileRestore: Uri? = null,
 )
+
+private const val TAG = "PT/SettingsVM"
 
 class SettingsViewModel(application: Application) : AppViewModel(application) {
     val weightUnit: StateFlow<WeightUnit> = container.preferencesRepository.weightUnit
@@ -158,6 +162,21 @@ class SettingsViewModel(application: Application) : AppViewModel(application) {
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = BackupUiState(),
     )
+
+    /**
+     * Sends the lifter back through the guided setup.
+     *
+     * Clearing the flag is the whole mechanism — the gate in the nav host observes it, so the
+     * setup screen replaces the app on the next frame with no navigation involved. Nothing
+     * else is touched: their routines, schedule and history are all still there when they come
+     * out the other side, whether they finish or back out.
+     */
+    fun rerunGuidedSetup() {
+        viewModelScope.launch {
+            runCatchingCancellable { container.preferencesRepository.setOnboardingComplete(false) }
+                .onFailure { AppLog.w(TAG, "Reopening guided setup failed", it) }
+        }
+    }
 
     fun setWeightUnit(unit: WeightUnit) {
         viewModelScope.launch {

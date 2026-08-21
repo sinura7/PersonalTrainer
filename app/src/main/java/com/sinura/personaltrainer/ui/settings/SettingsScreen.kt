@@ -170,6 +170,7 @@ fun SettingsScreen(
                     importLauncher.launch(arrayOf(BackupJson.MIME_TYPE, "text/plain", "*/*"))
                 },
             )
+            PlanSetupSection(onRerun = viewModel::rerunGuidedSetup)
             AboutSection()
         }
     }
@@ -596,6 +597,32 @@ private fun BackupStampRow(
             )
         },
     )
+}
+
+/**
+ * The way back into the guided setup.
+ *
+ * Reachable rather than one-shot because the answers it asks for genuinely change — people
+ * move gyms, drop to three days, come back after a layoff. The caption states what it will and
+ * will not do, because "rebuild my plan" is exactly the phrase someone would expect to
+ * REPLACE what they have, and it does not: nothing here deletes a routine that months of
+ * history point at.
+ */
+@Composable
+private fun PlanSetupSection(onRerun: () -> Unit) {
+    SettingsGroup(
+        title = "Your plan",
+        caption = "Answer the setup questions again to generate a fresh week. Your existing " +
+            "routines and history are kept — new sessions are added alongside them.",
+    ) {
+        GroupedList {
+            InstrumentRow(
+                title = "Rebuild my plan",
+                subtitle = "Six questions, then a preview before anything changes",
+                onClick = onRerun,
+            )
+        }
+    }
 }
 
 @Composable

@@ -43,7 +43,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -72,6 +75,9 @@ import com.sinura.personaltrainer.ui.home.HomeScreen
 import com.sinura.personaltrainer.ui.library.ExerciseLibraryScreen
 import com.sinura.personaltrainer.ui.progress.ProgressScreen
 import com.sinura.personaltrainer.ui.routines.RoutineEditorScreen
+import com.sinura.personaltrainer.ui.onboarding.OnboardingGate
+import com.sinura.personaltrainer.ui.onboarding.OnboardingGateViewModel
+import com.sinura.personaltrainer.ui.onboarding.OnboardingScreen
 import com.sinura.personaltrainer.ui.plan.PlanScreen
 import com.sinura.personaltrainer.ui.settings.SettingsScreen
 import com.sinura.personaltrainer.ui.summary.WorkoutSummaryScreen
@@ -178,9 +184,43 @@ fun PersonalTrainerNav(
     openSessionId: String? = null,
     onOpenSessionConsumed: () -> Unit = {},
     settingsViewModel: SettingsViewModel = viewModel(),
+    gateViewModel: OnboardingGateViewModel = viewModel(),
 ) {
     val weightUnit by settingsViewModel.weightUnit.collectAsStateWithLifecycle()
+    val gate by gateViewModel.gate.collectAsStateWithLifecycle()
+    // Set when setup is left via "I'll build my own", and consumed once the app is up. Held
+    // here rather than passed through the gate because the NavController it needs does not
+    // exist until the app side of the branch is composing.
+    var openEditorOnEntry by rememberSaveable { mutableStateOf(false) }
+
+    when (gate) {
+        // Nothing, deliberately. A default of either side flashes the wrong screen on every
+        // cold start; on a first install that flash is the empty planless Home this phase
+        // exists to stop anyone seeing.
+        OnboardingGate.UNKNOWN -> return
+        OnboardingGate.SETUP -> {
+            OnboardingScreen(
+                // Nothing to do: the gate reads the completion flag directly, so finishing
+                // moves the app on its own. Deliberately NOT clearing openEditorOnEntry here
+                // — "I'll build my own" also completes setup, and its callback would race this
+                // one and lose, dropping the lifter on Home instead of in the editor.
+                onFinished = {},
+                onBuildMyOwn = { openEditorOnEntry = true },
+            )
+            return
+        }
+        OnboardingGate.APP -> Unit
+    }
+
     val navController = rememberNavController()
+    LaunchedEffect(openEditorOnEntry) {
+        if (!openEditorOnEntry) return@LaunchedEffect
+        openEditorOnEntry = false
+        // Straight into a new routine. "I'll build my own" is a statement of intent, and
+        // answering it with the same empty Home the guided path exists to replace would be the
+        // app not listening.
+        navController.navigate(Route.RoutineEditor.create("new"))
+    }
     // Icon and destination have to agree: a flame reads as a streak or a calorie burn to
     // every fitness user alive, and it was labelling a muscle heat map; a book reads as
     // reading, and it was labelling a grid of exercises.

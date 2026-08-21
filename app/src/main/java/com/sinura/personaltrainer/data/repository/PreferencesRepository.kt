@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
@@ -243,6 +244,41 @@ class PreferencesRepository(context: Context) {
         }
     }
 
+    /**
+     * Whether the guided setup has been seen.
+     *
+     * A flag rather than "do they have routines", because those are different questions. A
+     * lifter who deliberately deleted every routine has still been through setup and must not
+     * be dropped back into a questionnaire; someone who skipped setup and built one routine by
+     * hand has still made their choice. Inferring it from data would get both wrong.
+     */
+    val onboardingComplete: Flow<Boolean> = safePreferences
+        .map { prefs -> prefs[ONBOARDING_COMPLETE] ?: false }
+
+    suspend fun setOnboardingComplete(complete: Boolean) {
+        dataStore.edit { prefs -> prefs[ONBOARDING_COMPLETE] = complete }
+    }
+
+    /**
+     * What the lifter weighs, when they have told us.
+     *
+     * Null is a real answer — the setup lets it be skipped — and it means "use the flat
+     * stand-in", which is what [com.sinura.personaltrainer.domain.MuscleLoadCalculator]
+     * already did for every bodyweight set before this existed.
+     */
+    val bodyweightKg: Flow<Double?> = safePreferences
+        .map { prefs -> prefs[BODYWEIGHT_KG]?.takeIf { it > 0.0 } }
+
+    suspend fun setBodyweightKg(kg: Double?) {
+        dataStore.edit { prefs ->
+            if (kg == null || !kg.isFinite() || kg <= 0.0) {
+                prefs.remove(BODYWEIGHT_KG)
+            } else {
+                prefs[BODYWEIGHT_KG] = kg
+            }
+        }
+    }
+
     val lastRestoreAt: Flow<Long?> = safePreferences.map { prefs -> prefs[LAST_RESTORE_AT] }
 
     val lastRestoreName: Flow<String?> = safePreferences.map { prefs -> prefs[LAST_RESTORE_NAME] }
@@ -278,6 +314,8 @@ class PreferencesRepository(context: Context) {
         val TRAINING_GOAL = stringPreferencesKey("training_goal")
         val AVAILABLE_EQUIPMENT = stringSetPreferencesKey("available_equipment")
         val DISMISSED_COLLISIONS = stringSetPreferencesKey("library_collision_dismissed_ids")
+        val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
+        val BODYWEIGHT_KG = doublePreferencesKey("bodyweight_kg")
         val HEAT_WINDOW = stringPreferencesKey("heat_window")
         val TRAINING_DAYS = intPreferencesKey("training_days_per_week")
         val SPLIT_STYLE = stringPreferencesKey("split_style")
