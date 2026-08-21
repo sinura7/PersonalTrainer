@@ -30,3 +30,16 @@ object DayLabel {
         }
     }
 }
+
+/**
+ * Today, as a day number rather than a moment.
+ *
+ * Every "is this day today", "has this day gone" and "was anything logged here" comparison in
+ * the app is a day comparison, and doing them in milliseconds gets the answer wrong twice a day
+ * — once either side of midnight. Moved out of the old Schedule screen so the week strip, the
+ * calendar and the derivation all ask the same question the same way.
+ */
+fun todayEpochDay(
+    nowMs: Long = System.currentTimeMillis(),
+    zone: ZoneId = ZoneId.systemDefault(),
+): Long = Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate().toEpochDay()

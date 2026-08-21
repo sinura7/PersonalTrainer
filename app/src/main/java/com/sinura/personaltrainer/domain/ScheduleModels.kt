@@ -72,6 +72,14 @@ data class SuggestedTrainingDay(
     val reason: String,
     val emphasisMuscles: List<CanonicalMuscle>,
     val confidence: ScheduleConfidence,
+    /**
+     * The stored slot this day came from, or null for a planner proposal.
+     *
+     * This is how any surface tells "you decided this" from "the app is suggesting this"
+     * without a second type or a parallel list. Defaulted so the planner's own construction
+     * sites — which produce proposals — need no change.
+     */
+    val slotId: String? = null,
 )
 
 data class WeeklySchedulePlan(

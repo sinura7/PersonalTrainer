@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer
 
 import android.content.Context
+import kotlinx.coroutines.flow.MutableStateFlow
 import com.sinura.personaltrainer.data.backup.DriveAuthClient
 import com.sinura.personaltrainer.data.backup.DriveRestClient
 import com.sinura.personaltrainer.data.backup.NetworkChecker
@@ -11,6 +12,7 @@ import com.sinura.personaltrainer.data.repository.ExerciseRepository
 import com.sinura.personaltrainer.data.repository.LocalBackupRepository
 import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
+import com.sinura.personaltrainer.data.repository.ScheduleRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.insights.TrainingInsightsSource
 import com.sinura.personaltrainer.timer.RestTimerController
@@ -38,6 +40,8 @@ class AppContainer(context: Context) {
         catalogDao = database.catalogDao(),
     )
     val routineRepository: RoutineRepository = RoutineRepository(database.routineDao())
+    /** The week the user pinned. Nothing else in the app is allowed to write it. */
+    val scheduleRepository: ScheduleRepository = ScheduleRepository(database.scheduleDao())
     val workoutRepository: WorkoutRepository = WorkoutRepository(database, database.workoutDao())
     val preferencesRepository: PreferencesRepository = PreferencesRepository(context)
     // Exposed so the alarm receiver can read timer state after a process death, before any
@@ -68,7 +72,18 @@ class AppContainer(context: Context) {
         routineRepository = routineRepository,
         exerciseRepository = exerciseRepository,
         preferencesRepository = preferencesRepository,
+        scheduleRepository = scheduleRepository,
     )
+
+    /**
+     * A one-shot request to preview a suggested week, handed from Home's empty hero to the Plan
+     * tab. App-scoped state rather than a nav argument or a captured lambda for the usual
+     * reason: the tap and the arrival are separated by a navigation, and an Activity recreated
+     * in between would drop a callback. The Plan tab consumes it exactly once and writes false
+     * back; nothing is persisted by the deep link.
+     */
+    val pendingWeekSuggestion = MutableStateFlow(false)
+
     val startTrainingDay: StartTrainingDay = StartTrainingDay(
         workoutRepository = workoutRepository,
         routineRepository = routineRepository,

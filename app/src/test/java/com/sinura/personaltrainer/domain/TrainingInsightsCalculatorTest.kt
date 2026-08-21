@@ -30,12 +30,14 @@ class TrainingInsightsCalculatorTest {
         preferences: SchedulePreferences = SchedulePreferences.DEFAULT,
         window: HeatWindow = HeatWindow.LAST_7_DAYS,
         includeWeekPlan: Boolean = true,
+        slots: List<ScheduleSlot> = emptyList(),
     ) = TrainingInsightsInput(
         history = history,
         routines = routines,
         exerciseCatalog = catalog,
         hints = hints,
         preferences = preferences,
+        slots = slots,
         unit = WeightUnit.KG,
         window = window,
         nowMs = now,
@@ -152,4 +154,61 @@ class TrainingInsightsCalculatorTest {
         assertFalse(insights.failed(InsightFailure.PROGRESSION))
         assertFalse(insights.failed(InsightFailure.RECOMMENDATIONS))
     }
+
+    // ---- the week is read, not invented ----
+
+    @Test
+    fun weekPlanComesFromPinnedSlotsNotThePlanner() {
+        // With nothing pinned, the week is empty and says so. Before this, the planner ran here
+        // on every emission and produced a full week nobody had asked for, which is why the
+        // plan reshuffled whenever anything was logged.
+        val empty = TrainingInsightsCalculator.compute(input()).weekPlan
+        assertNotNull(empty)
+        assertEquals(7, empty!!.days.size)
+        assertTrue("an unpinned week must be all rest", empty.days.all { it.isRest })
+        assertEquals("No sessions pinned yet.", empty.summary)
+
+        val push = Routine(
+            id = "r-push",
+            name = "Push",
+            notes = "",
+            createdAt = 0L,
+            updatedAt = 0L,
+            exercises = listOf(
+                RoutineExercise(
+                    id = "re-1",
+                    routineId = "r-push",
+                    exercise = Exercise("ex-1", "Bench", "Chest", "", false),
+                    sortOrder = 0,
+                    targetSets = 3,
+                    targetReps = 5,
+                    targetWeightKg = null,
+                    restSeconds = 90,
+                ),
+            ),
+        )
+        val slot = ScheduleSlot(
+            id = "slot-0",
+            position = 0,
+            routineId = "r-push",
+            focusKind = null,
+            anchorDay = DayOfWeek.FRIDAY,
+            createdAt = 0L,
+            updatedAt = 0L,
+        )
+        val pinned = TrainingInsightsCalculator
+            .compute(input(routines = listOf(push), slots = listOf(slot)))
+            .weekPlan
+        assertNotNull(pinned)
+        val friday = pinned!!.days.first { it.dayOfWeek == DayOfWeek.FRIDAY }
+        assertEquals("r-push", friday.routineId)
+        assertEquals("slot-0", friday.slotId)
+        assertEquals("1 pinned · 0 logged this week", pinned.summary)
+        assertEquals(
+            "only the pinned day is a training day",
+            1,
+            pinned.days.count { !it.isRest },
+        )
+    }
+
 }

@@ -10,6 +10,18 @@ object WeeklySchedulePlanner {
     const val THIN_HISTORY_SESSIONS = 3
     private const val RECENT_SESSION_HOURS = 48L
 
+    /**
+     * Proposes a week. It no longer decides one.
+     *
+     * This used to run on every insights emission and its output WAS the plan, which is why
+     * the week reshuffled whenever anything was logged. It is now called from exactly one
+     * place — the Plan tab's "Suggest a week" — and what it produces is a preview that
+     * persists only when the user accepts it.
+     *
+     * [pinnedSlots] is what the user has already decided. Days those slots occupy are echoed
+     * back untouched (carrying their `slotId`) and are never proposed over: a suggestion that
+     * could overwrite a pin is not a suggestion.
+     */
     fun plan(
         preferences: SchedulePreferences,
         snapshot: BodyHeatSnapshot,
@@ -18,11 +30,24 @@ object WeeklySchedulePlanner {
         recentSessions: List<WorkoutSession>,
         nowMs: Long,
         zone: ZoneId = ZoneId.systemDefault(),
+        pinnedSlots: List<ScheduleSlot> = emptyList(),
     ): WeeklySchedulePlan {
         val prefs = preferences.sanitized()
         val today = Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate()
         val weekStart = today.with(TemporalAdjusters.previousOrSame(prefs.weekStart))
         val dates = (0..6).map { weekStart.plusDays(it.toLong()) }
+        val derived = WeekDerivation.derive(
+            slots = pinnedSlots,
+            history = recentSessions,
+            preferences = prefs,
+            nowMs = nowMs,
+            zone = zone,
+        )
+        val pinnedByDay = WeekDerivation
+            .toWeeklySchedulePlan(derived, routines, prefs, nowMs)
+            .days
+            .filterNot { it.isRest }
+            .associateBy { it.epochDay }
         val usableRoutines = routines.filter { it.exercises.isNotEmpty() }
         val finished = recentSessions.filter { it.isFinished }
         val thinHistory = !snapshot.hasAnyWorkingSets || finished.size < THIN_HISTORY_SESSIONS
@@ -37,8 +62,15 @@ object WeeklySchedulePlanner {
         // Which slot (if any) the recovery signal should claim. See recoveryOverrideSlot.
         val recoverySlot = if (recovery) recoveryOverrideSlot(kinds) else null
         val days = dates.mapIndexed { index, date ->
+            val pinned = pinnedByDay[date.toEpochDay()]
             val slot = trainIndices.indexOf(index)
-            if (slot < 0) {
+            // A day the user already owns is echoed, never proposed over. A day already behind
+            // today gets no proposal at all: the planner used to lay a fresh week over the whole
+            // calendar including days that had already gone, so a Thursday plan told you to do
+            // Monday's session on Monday.
+            if (pinned != null) {
+                pinned
+            } else if (slot < 0 || date.isBefore(today)) {
                 restDay(date)
             } else {
                 val rawKind = kinds.getOrElse(slot) { SessionFocusKind.FULL_BODY }
@@ -326,22 +358,42 @@ object WeeklySchedulePlanner {
         return List(count) { cycle[it % cycle.size] }
     }
 
-    private fun arrangeKinds(
+    /**
+     * Keeps the week's first session off the family you trained yesterday, without wrecking the
+     * week to do it.
+     *
+     * The old version swapped the first slot with the first non-clashing one, and could create
+     * the very adjacency it exists to prevent: `[UPPER, LOWER, UPPER]` after an upper session
+     * became `[LOWER, UPPER, UPPER]` — two upper days back to back, produced by the rule meant
+     * to avoid them. A single swap also cannot fix the case it most needs to: `[U, L, U, L]`
+     * has no swap that both starts with LOWER and keeps alternating.
+     *
+     * Rotation can. Rotating the cycle preserves the split's shape — a Push/Pull/Legs week
+     * stays Push/Pull/Legs, just entered at a different point — and a rotation is only accepted
+     * when it starts clear of yesterday's family AND leaves the week no more crowded than it
+     * already was. A week where no rotation qualifies (everything in one family, or the
+     * three-day `[U, L, U]`) is left exactly as it is: churning it trades one adjacency for
+     * another and calls it a fix.
+     */
+    internal fun arrangeKinds(
         kinds: List<SessionFocusKind>,
         lastFocus: SessionFocusKind?,
     ): List<SessionFocusKind> {
         if (kinds.size < 2) return kinds
-        val mutable = kinds.toMutableList()
-        if (lastFocus != null && sameStressFamily(mutable.first(), lastFocus)) {
-            val swapAt = mutable.indexOfFirst { !sameStressFamily(it, lastFocus) }
-            if (swapAt > 0) {
-                val first = mutable[0]
-                mutable[0] = mutable[swapAt]
-                mutable[swapAt] = first
+        if (lastFocus == null || !sameStressFamily(kinds.first(), lastFocus)) return kinds
+        val baseline = adjacentSameFamilyCount(kinds)
+        return (1 until kinds.size)
+            .asSequence()
+            .map { offset -> kinds.drop(offset) + kinds.take(offset) }
+            .firstOrNull { rotation ->
+                !sameStressFamily(rotation.first(), lastFocus) &&
+                    adjacentSameFamilyCount(rotation) <= baseline
             }
-        }
-        return mutable
+            ?: kinds
     }
+
+    private fun adjacentSameFamilyCount(kinds: List<SessionFocusKind>): Int =
+        (1 until kinds.size).count { sameStressFamily(kinds[it - 1], kinds[it]) }
 
     private fun recentFocus(
         sessions: List<WorkoutSession>,
@@ -403,7 +455,7 @@ object WeeklySchedulePlanner {
         }
     }
 
-    private fun compatible(classified: SessionFocusKind, needed: SessionFocusKind): Boolean {
+    internal fun compatible(classified: SessionFocusKind, needed: SessionFocusKind): Boolean {
         if (classified == needed) return true
         return when (needed) {
             SessionFocusKind.UPPER -> classified in setOf(SessionFocusKind.PUSH, SessionFocusKind.PULL)
@@ -438,11 +490,6 @@ object WeeklySchedulePlanner {
         CanonicalMuscle.CALVES,
     )
     private val UPPER_MUSCLES = PUSH_MUSCLES + PULL_MUSCLES
-}
-
-fun SuggestedTrainingDay.matchesLoggedSession(session: WorkoutSession, zone: ZoneId): Boolean {
-    val sessionDay = Instant.ofEpochMilli(session.date).atZone(zone).toLocalDate().toEpochDay()
-    return sessionDay == epochDay && session.isFinished
 }
 
 fun DayOfWeek.shortLabel(): String = name.take(3).lowercase().replaceFirstChar { it.titlecase() }

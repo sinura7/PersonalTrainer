@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.domain.WeeklySchedulePlan
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.workout.DiscardOutcome
 import com.sinura.personaltrainer.workout.StartDayOutcome
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -76,16 +77,63 @@ class HomeViewModel(application: Application) : AppViewModel(application) {
         _navigateToSession.value = null
     }
 
+    /**
+     * The day whose Start was refused because a session is already running.
+     *
+     * Held so the screen can ask, rather than the app deciding: silently opening whatever is in
+     * progress is how tapping Thursday's Pull used to land you in Tuesday's Legs.
+     */
+    private val _blockedByInProgress = MutableStateFlow<BlockedStart?>(null)
+    val blockedByInProgress: StateFlow<BlockedStart?> = _blockedByInProgress.asStateFlow()
+
     fun startSuggestedDay(day: SuggestedTrainingDay) {
+        viewModelScope.launch { start(day) }
+    }
+
+    private suspend fun start(day: SuggestedTrainingDay) {
+        when (val outcome = container.startTrainingDay(day)) {
+            is StartDayOutcome.Open -> {
+                actionError.value = null
+                _navigateToSession.value = outcome.sessionId
+            }
+            is StartDayOutcome.Blocked ->
+                _blockedByInProgress.value = BlockedStart(day = day, sessionId = outcome.inProgressSessionId)
+            is StartDayOutcome.Failed -> actionError.value = outcome.message
+            StartDayOutcome.Ignored -> Unit
+        }
+    }
+
+    fun resumeBlocked() {
+        val blocked = _blockedByInProgress.value ?: return
+        _blockedByInProgress.value = null
+        _navigateToSession.value = blocked.sessionId
+    }
+
+    fun discardBlockedAndStart() {
+        val blocked = _blockedByInProgress.value ?: return
+        _blockedByInProgress.value = null
         viewModelScope.launch {
-            when (val outcome = container.startTrainingDay(day)) {
-                is StartDayOutcome.Open -> {
-                    actionError.value = null
-                    _navigateToSession.value = outcome.sessionId
-                }
-                is StartDayOutcome.Failed -> actionError.value = outcome.message
-                StartDayOutcome.Ignored -> Unit
+            when (val result = container.discardWorkout(blocked.sessionId)) {
+                DiscardOutcome.Discarded -> start(blocked.day)
+                is DiscardOutcome.Failed -> actionError.value = result.message
             }
         }
     }
+
+    fun dismissBlockedStart() {
+        _blockedByInProgress.value = null
+    }
+
+    /**
+     * Arms the Plan tab to preview a suggested week.
+     *
+     * The flag is app-scoped rather than a nav argument because the tap and the arrival are
+     * separated by a navigation; the Plan tab consumes it once. Nothing is persisted by this —
+     * accepting the preview is still the only thing that writes a slot.
+     */
+    fun requestWeekSuggestion() {
+        container.pendingWeekSuggestion.value = true
+    }
+
+    data class BlockedStart(val day: SuggestedTrainingDay, val sessionId: String)
 }

@@ -415,9 +415,9 @@ This is the second most important design surface after Active Workout. Today it 
 | ID | Issue | Priority |
 |---|---|---|
 | C-01 | Planner copy can feel generated / placeholder | P2 |
-| C-02 | Suggested days that point at a **deleted routine** need a rebuild, not a crash or empty start | P1 |
+| C-02 | Suggested days that point at a **deleted routine** need a rebuild, not a crash or empty start **— Closed 21 Aug 2026 (Phase 4). Deleting a routine cascades its schedule slots away and the derived week heals; a pin whose routine survives but is empty now returns an explicit `Failed` naming the routine, instead of silently starting a free workout under its name.** | P1 |
 | C-03 | Starting a day should show the lift picture row | P2 |
-| C-04 | Prefs live in Settings; the week lives on a stack screen. Easy to miss | P2 |
+| C-04 | Prefs live in Settings; the week lives on a stack screen. Easy to miss **— Closed 21 Aug 2026 (Phase 4). The week is a tab (Plan) with the preferences behind its own Tune toggle; Settings keeps the preference card and loses the navigation row.** | P2 |
 
 ### 6.10 History and session detail
 
@@ -447,7 +447,7 @@ This is the second most important design surface after Active Workout. Today it 
 | ID | Issue | Priority |
 |---|---|---|
 | NAV-01 | Five tabs (Home, Body, Routines, Library, History) is a lot for a logging app. Body and History are secondary. Consider Home / Workout / Program (Routines+Library) / You (History+Body+Settings) **— Closed 20 Aug 2026 — adjudicated by the decision recorded in ROADMAP.md § Decisions D1, which the owner signs by circling one option (four tabs Home · Body · Plan · History, recommended; or three tabs Home · Body · Plan with Body absorbing History). Either option demotes Library to a pushed screen and lands the LiveSessionBar as chrome. D1 is the single record of the chosen option. The Home/Workout/Program/You grouping suggested in this row is superseded either way.** | P2 |
-| NAV-02 | Settings and Schedule are stack-only from Home. Fine if Home header is obvious | P2 |
+| NAV-02 | Settings and Schedule are stack-only from Home. Fine if Home header is obvious **— Closed 21 Aug 2026 (Phase 4). Schedule dissolved into the Plan tab; Settings gained a second named home in the Plan header's gear.** | P2 |
 | NAV-03 | Library `?muscle=` navigation with `restoreState = false` can surprise scroll/filter | P2 |
 | NAV-04 | Active workout `launchSingleTop` is correct. Routine editor does **not** use it and shares the `"new"` argument — related to A-02 | P0 |
 | NAV-05 | Deep link from the rest notification is implemented. Overlay tap must use the same `sessionId` extra | P1 |

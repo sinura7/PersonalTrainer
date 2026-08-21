@@ -72,8 +72,7 @@ import com.sinura.personaltrainer.ui.home.HomeScreen
 import com.sinura.personaltrainer.ui.library.ExerciseLibraryScreen
 import com.sinura.personaltrainer.ui.progress.ProgressScreen
 import com.sinura.personaltrainer.ui.routines.RoutineEditorScreen
-import com.sinura.personaltrainer.ui.schedule.ScheduleScreen
-import com.sinura.personaltrainer.ui.routines.RoutinesScreen
+import com.sinura.personaltrainer.ui.plan.PlanScreen
 import com.sinura.personaltrainer.ui.settings.SettingsScreen
 import com.sinura.personaltrainer.ui.summary.WorkoutSummaryScreen
 import com.sinura.personaltrainer.ui.settings.SettingsViewModel
@@ -109,7 +108,6 @@ sealed class Route(val path: String) {
         fun create(sessionId: String): String = "history/$sessionId"
     }
     data object Settings : Route("settings")
-    data object Schedule : Route("schedule")
     data object Progress : Route("progress")
     data object Library : Route("library") {
         fun create(muscle: String? = null): String =
@@ -167,7 +165,7 @@ fun PersonalTrainerNav(
     val tabs = listOf(
         Tab(Route.Home, "Home", Icons.Outlined.Home, Icons.Filled.Home),
         Tab(Route.Progress, "Body", Icons.Outlined.AccessibilityNew, Icons.Filled.AccessibilityNew),
-        Tab(Route.Routines, "Routines", Icons.Outlined.FitnessCenter, Icons.Filled.FitnessCenter),
+        Tab(Route.Routines, "Plan", Icons.Outlined.FitnessCenter, Icons.Filled.FitnessCenter),
         Tab(Route.Library, "Library", Icons.Outlined.GridView, Icons.Filled.GridView),
         Tab(Route.History, "History", Icons.Outlined.History, Icons.Filled.History),
     )
@@ -294,7 +292,7 @@ fun PersonalTrainerNav(
                         onOpenRoutines = { goToTab(Route.Routines.path) },
                         onOpenHistory = { goToTab(Route.History.path) },
                         onOpenProgress = { goToTab(Route.Progress.path) },
-                        onOpenSchedule = { navController.navigate(Route.Schedule.path) },
+                        onOpenPlan = { goToTab(Route.Routines.path) },
                         onOpenLibraryMuscle = { muscle ->
                             navController.navigate(Route.Library.create(muscle)) {
                                 popUpTo(navController.graph.findStartDestination().id) {
@@ -339,29 +337,24 @@ fun PersonalTrainerNav(
                         initialMuscle = entry.arguments?.getString("muscle"),
                     )
                 }
-                composable(Route.Schedule.path) {
-                    ScheduleScreen(
-                        onBack = { navController.popBackStack() },
-                        onWorkoutStarted = { sessionId ->
-                            navController.navigate(Route.ActiveWorkout.create(sessionId)) {
-                                launchSingleTop = true
-                                popUpTo(Route.Schedule.path) { inclusive = true }
-                            }
-                        },
-                        onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
-                    )
-                }
                 composable(Route.Settings.path) {
                     SettingsScreen(
                         onBack = { navController.popBackStack() },
-                        onOpenSchedule = { navController.navigate(Route.Schedule.path) },
                         viewModel = settingsViewModel,
                     )
                 }
                 composable(Route.Routines.path) {
-                    RoutinesScreen(
+                    PlanScreen(
                         onCreateRoutine = { navController.navigate(Route.RoutineEditor.create("new")) },
                         onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
+                        // No popUpTo: the Plan tab stays underneath the workout, matching how
+                        // Home starts one.
+                        onWorkoutStarted = { sessionId ->
+                            navController.navigate(Route.ActiveWorkout.create(sessionId)) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onOpenSettings = { navController.navigate(Route.Settings.path) },
                     )
                 }
                 composable(Route.History.path) {

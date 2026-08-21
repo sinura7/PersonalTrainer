@@ -32,6 +32,7 @@ import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
+import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -41,6 +42,7 @@ import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
+import com.sinura.personaltrainer.ui.components.ResumeOrDiscardDialog
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentRow
@@ -50,8 +52,6 @@ import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SessionLogRow
 import com.sinura.personaltrainer.ui.components.StatTile
 import com.sinura.personaltrainer.ui.progress.dispatchRecommendation
-import com.sinura.personaltrainer.ui.schedule.ThisWeekHomeCard
-import com.sinura.personaltrainer.ui.schedule.todayEpochDay
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Radius
@@ -72,7 +72,7 @@ fun HomeScreen(
     onOpenRoutines: () -> Unit,
     onOpenHistory: () -> Unit,
     onOpenProgress: () -> Unit,
-    onOpenSchedule: () -> Unit,
+    onOpenPlan: () -> Unit,
     onOpenLibraryMuscle: (String?) -> Unit,
     onOpenSession: (String) -> Unit,
     onOpenSettings: () -> Unit,
@@ -85,9 +85,21 @@ fun HomeScreen(
         onResumeWorkout(id)
         viewModel.onSessionNavigationHandled()
     }
+    val blocked by viewModel.blockedByInProgress.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
     val dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM)
     val inProgress = state.inProgress
+
+    // Starting a planned day while another session is live is a question, not something the
+    // app answers on the user's behalf. Composed before the loading return so it survives a
+    // recomposition that briefly reports loading.
+    if (blocked != null) {
+        ResumeOrDiscardDialog(
+            onResume = viewModel::resumeBlocked,
+            onDiscardAndStart = viewModel::discardBlockedAndStart,
+            onDismiss = viewModel::dismissBlockedStart,
+        )
+    }
 
     if (state.isLoading) {
         ScreenLoading()
@@ -132,16 +144,17 @@ fun HomeScreen(
             // session is live the LiveSessionBar is the only surface that returns to it.
             // Home used to answer "where is my workout" three ways — this card, the rest
             // strip, and the hero's own relabelling — none of which existed off this screen.
-            ThisWeekHomeCard(
+            ThisWeekCard(
                 day = todayDay,
                 nextDay = plan?.nextTrainingOnOrAfter(today),
-                thinHistory = plan?.thinHistory == true,
                 loggedToday = state.recentSessions.any { session ->
                     todayEpochDay(session.date) == today
                 },
-                // Always false: the card can no longer render its In-progress/Resume branch.
-                inProgress = false,
-                onOpenSchedule = onOpenSchedule,
+                onOpenPlan = onOpenPlan,
+                onSuggestWeek = {
+                    viewModel.requestWeekSuggestion()
+                    onOpenPlan()
+                },
                 onPrimary = {
                     val target = todayDay?.takeUnless { it.isRest }
                     when {

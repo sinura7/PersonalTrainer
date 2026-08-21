@@ -65,6 +65,7 @@ data class TrainingInsightsInput(
      */
     val hints: List<ProgressionHint>?,
     val preferences: SchedulePreferences,
+    val slots: List<ScheduleSlot> = emptyList(),
     val unit: WeightUnit,
     val window: HeatWindow,
     val nowMs: Long,
@@ -109,18 +110,27 @@ object TrainingInsightsCalculator {
             derived.orEmpty()
         }
 
-        val weekPlan = if (snapshot == null || !input.includeWeekPlan) {
+        // The week is READ here, not invented. The planner used to run on this line, from a
+        // fresh clock, on every emission — which is why the plan reshuffled whenever anything
+        // was logged and nothing the user chose about their own week survived. It is now
+        // derived from stored slots, and it no longer depends on the heat snapshot at all:
+        // a failed snapshot used to blank the plan as collateral.
+        val weekPlan = if (!input.includeWeekPlan) {
             null
         } else {
             recoverWith(TAG, "The weekly schedule plan", null) {
-                WeeklySchedulePlanner.plan(
+                val derived = WeekDerivation.derive(
+                    slots = input.slots,
+                    history = input.history,
                     preferences = input.preferences,
-                    snapshot = snapshot,
-                    recommendations = recommendations,
-                    routines = input.routines,
-                    recentSessions = input.history,
                     nowMs = input.nowMs,
                     zone = input.zone,
+                )
+                WeekDerivation.toWeeklySchedulePlan(
+                    week = derived,
+                    routines = input.routines,
+                    preferences = input.preferences,
+                    nowMs = input.nowMs,
                 )
             }.also { if (it == null) failures += InsightFailure.PLAN }
         }

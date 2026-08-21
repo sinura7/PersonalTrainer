@@ -2,11 +2,13 @@ package com.sinura.personaltrainer.insights
 
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
 import com.sinura.personaltrainer.data.repository.PreferencesRepository
+import com.sinura.personaltrainer.data.repository.ScheduleRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.ScheduleSlot
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.domain.TrainingInsightsCalculator
@@ -42,14 +44,15 @@ class TrainingInsightsSource(
     private val routineRepository: RoutineRepository,
     private val exerciseRepository: ExerciseRepository,
     private val preferencesRepository: PreferencesRepository,
+    private val scheduleRepository: ScheduleRepository,
     private val computeDispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val nowMs: () -> Long = System::currentTimeMillis,
     private val zone: () -> ZoneId = ZoneId::systemDefault,
 ) {
     /**
      * @param window which heat window to summarise; Progress lets the user change it.
-     * @param refresh any extra signal that should force a recompute — Schedule's "regenerate"
-     *   button, whose whole effect is re-running the planner against the current clock.
+     * @param refresh any extra signal that should force a recompute. Nothing regenerates a
+     *   week any more — the plan is stored — so this is now only a manual recompute nudge.
      * @param includeWeekPlan false on surfaces that never render a plan.
      */
     fun observe(
@@ -57,15 +60,20 @@ class TrainingInsightsSource(
         refresh: Flow<Any?> = flowOf(Unit),
         includeWeekPlan: Boolean = true,
     ): Flow<TrainingInsights> = combine(
+        // Six sources, five at a time: combine's typed overloads stop at five, so the slot flow
+        // is folded in around the original group rather than the group being re-shaped.
         combine(
-            workoutRepository.observeHistory(),
-            routineRepository.observeAll(),
-            exerciseRepository.observeAll(),
-            preferencesRepository.schedulePreferences,
-            preferencesRepository.weightUnit,
-        ) { history, routines, exercises, preferences, unit ->
-            Sources(history, routines, exercises.associateBy { it.id }, preferences, unit)
-        },
+            combine(
+                workoutRepository.observeHistory(),
+                routineRepository.observeAll(),
+                exerciseRepository.observeAll(),
+                preferencesRepository.schedulePreferences,
+                preferencesRepository.weightUnit,
+            ) { history, routines, exercises, preferences, unit ->
+                Sources(history, routines, exercises.associateBy { it.id }, preferences, unit)
+            },
+            scheduleRepository.observeSlots(),
+        ) { sources, slots -> sources.copy(slots = slots) },
         window,
         refresh,
     ) { sources, heatWindow, _ ->
@@ -87,6 +95,7 @@ class TrainingInsightsSource(
                 hints = hints,
                 preferences = sources.preferences,
                 unit = sources.unit,
+                slots = sources.slots,
                 window = heatWindow,
                 nowMs = nowMs(),
                 zone = zone(),
@@ -101,5 +110,7 @@ class TrainingInsightsSource(
         val exercises: Map<String, Exercise>,
         val preferences: SchedulePreferences,
         val unit: WeightUnit,
+        /** Defaulted so the inner five-way combine keeps constructing this unchanged. */
+        val slots: List<ScheduleSlot> = emptyList(),
     )
 }

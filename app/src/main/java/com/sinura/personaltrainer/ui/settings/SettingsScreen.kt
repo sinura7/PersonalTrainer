@@ -22,7 +22,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.KeyboardArrowRight
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -62,7 +61,7 @@ import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.RestPresetChips
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
-import com.sinura.personaltrainer.ui.schedule.PreferenceBlock
+import com.sinura.personaltrainer.ui.plan.PreferenceBlock
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -79,7 +78,6 @@ import java.util.Date
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
-    onOpenSchedule: () -> Unit = {},
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val selectedUnit by viewModel.weightUnit.collectAsStateWithLifecycle()
@@ -138,7 +136,6 @@ fun SettingsScreen(
                 onDays = viewModel::setTrainingDays,
                 onSplit = viewModel::setSplitStyle,
                 onWeekStart = viewModel::setWeekStart,
-                onOpenSchedule = onOpenSchedule,
             )
             RestTimerPrefsSection(
                 preferences = restPrefs,
@@ -281,11 +278,13 @@ private fun SchedulePrefsSection(
     onDays: (Int) -> Unit,
     onSplit: (SplitStyle) -> Unit,
     onWeekStart: (DayOfWeek) -> Unit,
-    onOpenSchedule: () -> Unit,
 ) {
     SettingsGroup(
         title = "Schedule",
-        caption = "The planner builds the week itself from your heat map and routines.",
+        // The week itself moved to its own tab. What is left here shapes what a suggestion
+        // looks like, which is a preference; the week is a decision, and decisions belong
+        // where you can see the thing you are deciding about.
+        caption = "Days, split and week start. Pin the week itself on the Plan tab.",
     ) {
         GymCard {
             PreferenceBlock(
@@ -293,20 +292,6 @@ private fun SchedulePrefsSection(
                 onDays = onDays,
                 onSplit = onSplit,
                 onWeekStart = onWeekStart,
-            )
-        }
-        GroupedList {
-            InstrumentRow(
-                title = "This week's plan",
-                subtitle = "Seven days, and what to train on each",
-                onClick = onOpenSchedule,
-                trailing = {
-                    Icon(
-                        Icons.Outlined.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = TextTertiary,
-                    )
-                },
             )
         }
     }

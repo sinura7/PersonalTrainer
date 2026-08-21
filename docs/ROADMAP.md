@@ -174,8 +174,8 @@ Carried forward deliberately, with the phase that will address them.
 | Imbalance advice compares tonnage, not working-set counts | 5 |
 | Progression increment is a global 2.5 kg; LBS users see "+5.5 lbs" | 7 |
 | RPE is stored and backed up but read by nothing | 5 |
-| Planner assigns focus to days already in the past | 4 |
-| `arrangeKinds` can still produce back-to-back same-family days | 4 |
+| Planner assigns focus to days already in the past | ~~4~~ fixed 21 Aug — proposals only for open days ≥ today |
+| `arrangeKinds` can still produce back-to-back same-family days | ~~4~~ fixed 21 Aug — guarded rotation replaces the swap |
 | Toolchain ~20 months stale; release unminified | later (platform) |
 | Exercise imagery and the equipment field it needs | ~~3 (field, done 21 Aug)~~ / 7 (catalog) / 8 (imagery) |
 | Rest-timer sound design; plate calculator; font-scale-2.0 pass | later (platform) |

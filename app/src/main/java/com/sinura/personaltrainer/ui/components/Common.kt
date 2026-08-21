@@ -992,6 +992,8 @@ fun SecondaryGymButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     height: Dp = Metrics.control,
+    /** Lets a destructive alternative wear [Danger] as ink without becoming a solid red slab. */
+    contentColor: Color = TextPrimary,
 ) {
     val view = LocalView.current
     Box(
@@ -1010,7 +1012,7 @@ fun SecondaryGymButton(
         Text(
             text,
             style = InstrumentType.title,
-            color = if (enabled) TextPrimary else TextSecondary,
+            color = if (enabled) contentColor else TextSecondary,
         )
     }
 }

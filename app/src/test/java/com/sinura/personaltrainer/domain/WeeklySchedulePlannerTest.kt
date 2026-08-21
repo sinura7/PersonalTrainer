@@ -11,8 +11,14 @@ import java.time.ZoneOffset
 
 class WeeklySchedulePlannerTest {
     private val zone = ZoneOffset.UTC
-    // Friday 2024-01-05 12:00 UTC — week starting Monday is 2024-01-01
-    private val now = 1_704_456_000_000L
+    // Monday 2024-01-01 12:00 UTC — the first day of its own week.
+    //
+    // This used to be the Friday of the same week, which stopped working when the planner
+    // learned not to propose sessions for days that have already gone: four of the seven days
+    // were behind the clock, so a "4-day week" test saw two proposals. Anchoring the clock to
+    // the week start keeps each test about the thing it is named for — split shape, day count,
+    // recovery override — and leaves the past-day rule to the tests written for it.
+    private val now = 1_704_110_400_000L
 
     @Test
     fun preferenceDefaultsAreFourDayAutoMonday() {
@@ -207,6 +213,118 @@ class WeeklySchedulePlannerTest {
             SessionFocusKind.FULL_BODY,
             WeeklySchedulePlanner.classifyRoutine(routine("3", "Gym", listOf("Chest", "Quads"))),
         )
+    }
+
+    // ---- the planner proposes; it no longer decides ----
+
+    @Test
+    fun plannerNeverProposesPastDays() {
+        // Thursday of the fixture week. The planner used to lay a fresh week over the whole
+        // calendar, so on a Thursday it would still tell you to train on Monday.
+        val thursday = now + days(3)
+        val plan = WeeklySchedulePlanner.plan(
+            preferences = SchedulePreferences(trainingDaysPerWeek = 4),
+            snapshot = hotChestQuietBack(),
+            recommendations = emptyList(),
+            routines = emptyList(),
+            recentSessions = emptyList(),
+            nowMs = thursday,
+            zone = zone,
+        )
+        val todayEpoch = java.time.Instant.ofEpochMilli(thursday).atZone(zone).toLocalDate().toEpochDay()
+        plan.trainingDays.forEach { day ->
+            assertTrue(
+                "proposed a session on a day that has already gone",
+                day.epochDay >= todayEpoch,
+            )
+        }
+    }
+
+    @Test
+    fun plannerProposalsOnlyOnOpenDays() {
+        val pin = ScheduleSlot(
+            id = "slot-0",
+            position = 0,
+            routineId = "r-push",
+            focusKind = null,
+            anchorDay = DayOfWeek.MONDAY,
+            createdAt = 0L,
+            updatedAt = 0L,
+        )
+        val plan = WeeklySchedulePlanner.plan(
+            preferences = SchedulePreferences(trainingDaysPerWeek = 4),
+            snapshot = hotChestQuietBack(),
+            recommendations = emptyList(),
+            routines = listOf(routine("r-push", "Push A", listOf("Chest", "Shoulders", "Triceps"))),
+            recentSessions = emptyList(),
+            nowMs = now,
+            zone = zone,
+            pinnedSlots = listOf(pin),
+        )
+        val monday = plan.days.first()
+        assertEquals("the pin is echoed, not proposed over", "slot-0", monday.slotId)
+        assertEquals("r-push", monday.routineId)
+        val proposals = plan.trainingDays.filter { it.slotId == null }
+        assertTrue("proposals must exist for the rest of the week", proposals.isNotEmpty())
+        assertTrue(
+            "a proposal landed on the pinned day",
+            proposals.none { it.epochDay == monday.epochDay },
+        )
+    }
+
+    // ---- adjacency (audit: the fix could create the adjacency it prevents) ----
+
+    @Test
+    fun arrangeKindsAvoidsSameFamilyAdjacency() {
+        val upperLower = listOf(
+            SessionFocusKind.UPPER, SessionFocusKind.LOWER,
+            SessionFocusKind.UPPER, SessionFocusKind.LOWER,
+        )
+        val arranged = WeeklySchedulePlanner.arrangeKinds(upperLower, SessionFocusKind.UPPER)
+        assertEquals(
+            "rotating is what lets a U/L week start on LOWER and keep alternating",
+            listOf(
+                SessionFocusKind.LOWER, SessionFocusKind.UPPER,
+                SessionFocusKind.LOWER, SessionFocusKind.UPPER,
+            ),
+            arranged,
+        )
+        assertTrue(
+            "no two same-family days in a row",
+            (1 until arranged.size).none { sameFamily(arranged[it - 1], arranged[it]) },
+        )
+    }
+
+    @Test
+    fun arrangeKindsLeavesUnfixableWeeksAlone() {
+        // Everything in one family: no arrangement helps, so churning it is noise.
+        val allUpper = listOf(SessionFocusKind.PUSH, SessionFocusKind.PULL, SessionFocusKind.UPPER)
+        assertEquals(allUpper, WeeklySchedulePlanner.arrangeKinds(allUpper, SessionFocusKind.PUSH))
+
+        // The audit's case. The old rule turned this into [LOWER, UPPER, UPPER] — a new
+        // back-to-back pair, created by the rule meant to prevent one. Leaving it alone is the
+        // better trade: the clash it still carries is against yesterday, not inside the week.
+        val threeDay = listOf(SessionFocusKind.UPPER, SessionFocusKind.LOWER, SessionFocusKind.UPPER)
+        val arranged = WeeklySchedulePlanner.arrangeKinds(threeDay, SessionFocusKind.UPPER)
+        assertEquals(threeDay, arranged)
+        assertTrue(
+            "whatever it returns must not add an in-week adjacency",
+            (1 until arranged.size).none { sameFamily(arranged[it - 1], arranged[it]) },
+        )
+    }
+
+    @Test
+    fun arrangeKindsLeavesAClearWeekUntouched() {
+        // Push/Pull/Legs is a deliberate order. With nothing clashing, it must survive intact.
+        val ppl = listOf(SessionFocusKind.PUSH, SessionFocusKind.PULL, SessionFocusKind.LEGS)
+        assertEquals(ppl, WeeklySchedulePlanner.arrangeKinds(ppl, null))
+        assertEquals(ppl, WeeklySchedulePlanner.arrangeKinds(ppl, SessionFocusKind.LEGS))
+    }
+
+    private fun sameFamily(a: SessionFocusKind, b: SessionFocusKind): Boolean {
+        val upper = setOf(SessionFocusKind.UPPER, SessionFocusKind.PUSH, SessionFocusKind.PULL)
+        val lower = setOf(SessionFocusKind.LOWER, SessionFocusKind.LEGS)
+        return (a in upper && b in upper) || (a in lower && b in lower)
     }
 
     private fun plan(

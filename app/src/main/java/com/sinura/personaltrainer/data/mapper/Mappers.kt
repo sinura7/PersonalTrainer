@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.data.mapper
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
+import com.sinura.personaltrainer.data.local.entity.ScheduleSlotEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
 import com.sinura.personaltrainer.data.local.relation.RoutineWithExercises
 import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
@@ -13,9 +14,13 @@ import com.sinura.personaltrainer.domain.MuscleCredit
 import com.sinura.personaltrainer.domain.MuscleNormalizer
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineExercise
+import com.sinura.personaltrainer.domain.ScheduleSlot
+import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.logging.AppLog
+import java.time.DayOfWeek
 
 /**
  * [credits] is passed in rather than read here: the junction lives in its own table, and a
@@ -142,3 +147,43 @@ fun WorkoutSessionEntity.toSummary(): WorkoutSession = WorkoutSession(
     exercises = emptyList(),
     sets = emptyList(),
 )
+
+/**
+ * A stored slot, or null when the row cannot be trusted.
+ *
+ * Two ways a row can be nonsense: an unrecognised `focusKind` string (written by a build that
+ * knew a kind this one does not, or by a hand-edited backup), and an `anchorDay` outside 0-6.
+ * Neither is worth crashing the week over, and neither is worth guessing at — the slot is
+ * dropped with a log and the derived week simply has one fewer session in it.
+ */
+fun ScheduleSlotEntity.toDomain(): ScheduleSlot? {
+    val kind = focusKind?.let { raw ->
+        SessionFocusKind.entries.firstOrNull { it.name == raw }
+            ?: run {
+                AppLog.w(MAPPER_TAG, "Dropping schedule slot $id: unknown focus kind '$raw'")
+                return null
+            }
+    }
+    if (routineId == null && kind == null) {
+        AppLog.w(MAPPER_TAG, "Dropping schedule slot $id: neither a routine nor a focus")
+        return null
+    }
+    val anchor = anchorDay?.let { day ->
+        DayOfWeek.entries.getOrNull(day)
+            ?: run {
+                AppLog.w(MAPPER_TAG, "Dropping schedule slot $id: anchor day $day is not 0-6")
+                return null
+            }
+    }
+    return ScheduleSlot(
+        id = id,
+        position = position,
+        routineId = routineId,
+        focusKind = kind,
+        anchorDay = anchor,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+    )
+}
+
+private const val MAPPER_TAG = "PT/Mappers"
