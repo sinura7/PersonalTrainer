@@ -27,16 +27,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.MastheadCopy
 import com.sinura.personaltrainer.domain.ProgressionHint
-import com.sinura.personaltrainer.domain.Routine
-import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.domain.featuredSession
 import com.sinura.personaltrainer.domain.nextSessionReason
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.ui.components.GroupedList
-import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.HairlineDivider
@@ -108,6 +106,10 @@ fun HomeScreen(
     val liftCount = todayDay?.routineId?.let { routineId ->
         state.routines.firstOrNull { it.id == routineId }?.exercises?.size
     }
+    val nextDay = plan?.nextTrainingOnOrAfter(today)
+    // The session Home is actually talking about. One derivation, shared by the card's headline
+    // and by the lift list underneath it — see featuredSession.
+    val featured = featuredSession(today = todayDay, next = nextDay)
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -150,10 +152,19 @@ fun HomeScreen(
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
                 // The hero carries Home's only filled button, and it never says Resume: while
                 // a session is live the LiveSessionBar is the only surface that returns to it.
+                // The lifts and the reason describe `featured` — the same day the card's own
+                // headline names — because they are derived from one shared rule rather than
+                // from two that agree until one of them changes.
                 ThisWeekCard(
                     day = todayDay,
-                    nextDay = plan?.nextTrainingOnOrAfter(today),
+                    nextDay = nextDay,
                     loggedToday = loggedToday,
+                    lifts = featured?.routineId
+                        ?.let { id -> state.routines.firstOrNull { it.id == id } }
+                        ?.exercises.orEmpty()
+                        .take(LIFTS_PREVIEWED)
+                        .map { it.exercise.name },
+                    reason = nextSessionReason(featured, state.recommendations),
                     onSuggestWeek = {
                         viewModel.requestWeekSuggestion()
                         onOpenPlan()
@@ -187,20 +198,6 @@ fun HomeScreen(
                     onOpenDay = { onOpenPlan() },
                 )
             }
-        }
-        item {
-            NextSessionCard(
-                day = todayDay,
-                routine = todayDay?.routineId?.let { id -> state.routines.firstOrNull { it.id == id } },
-                reason = nextSessionReason(todayDay, state.recommendations),
-                onClick = {
-                    val target = todayDay?.takeUnless { it.isRest }
-                    when {
-                        inProgress != null || target == null -> startOptionsOpen = true
-                        else -> viewModel.startSuggestedDay(target)
-                    }
-                },
-            )
         }
         if (state.readyToProgress.isNotEmpty()) {
             item {
@@ -350,50 +347,6 @@ private fun ReadyToProgressSection(
                     )
                 }
             }
-        }
-    }
-}
-
-/**
- * What today's session actually is, in one card.
- *
- * Home used to carry two recommendation slots — a heat card with a suggestion inside it, and
- * a second list beneath — which is two answers to one question, competing for the same tap.
- * This is the one: the focus, the lifts it holds, and a single line saying why it is worth
- * doing. Tapping it does what the hero does, because it is describing the same session.
- */
-@Composable
-private fun NextSessionCard(
-    day: SuggestedTrainingDay?,
-    routine: Routine?,
-    reason: String?,
-    onClick: () -> Unit,
-) {
-    GymCard(onClick = onClick) {
-        Kicker("Next session")
-        Text(
-            when {
-                day == null -> "Nothing planned"
-                day.isRest -> "Rest day"
-                else -> day.routineName ?: day.focusTitle
-            },
-            style = InstrumentType.title,
-            color = TextPrimary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        val lifts = routine?.exercises.orEmpty().take(LIFTS_PREVIEWED)
-        if (lifts.isNotEmpty()) {
-            Text(
-                lifts.joinToString(" · ") { it.exercise.name },
-                style = InstrumentType.body,
-                color = TextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        if (reason != null) {
-            Text(reason, style = InstrumentType.caption, color = TextTertiary)
         }
     }
 }

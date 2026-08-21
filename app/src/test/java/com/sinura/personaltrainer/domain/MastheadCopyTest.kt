@@ -253,3 +253,52 @@ class BodyweightLoggingTest {
         assertEquals(100.0 * 5, MuscleLoadCalculator.setVolumeKg(100.0, 5, bodyweightKg = 82.0), 0.001)
     }
 }
+
+/**
+ * Which session Home is talking about.
+ *
+ * One rule, because Home used to have two cards deriving it separately and naming the same
+ * routine twice on one screen.
+ */
+class FeaturedSessionTest {
+    @Test
+    fun todayWinsWhenTodayIsATrainingDay() {
+        val today = day(isRest = false, name = "Push")
+        val next = day(isRest = false, name = "Pull")
+        assertEquals("Push", featuredSession(today = today, next = next)?.routineName)
+    }
+
+    @Test
+    fun aRestDayLooksAhead() {
+        // The card's headline already does this — it says "Next · Wed" and names that session.
+        // The lifts listed under it have to come from the same day, or the card describes one
+        // session and lists another's exercises.
+        val today = day(isRest = true, name = null)
+        val next = day(isRest = false, name = "Pull")
+        assertEquals("Pull", featuredSession(today = today, next = next)?.routineName)
+    }
+
+    @Test
+    fun nothingPlannedIsNull() {
+        assertNull(featuredSession(today = null, next = null))
+        assertNull(featuredSession(today = day(isRest = true, name = null), next = null))
+    }
+
+    @Test
+    fun aFirstRunWithNoWeekStillFindsTheNextSession() {
+        assertEquals("Pull", featuredSession(today = null, next = day(isRest = false, name = "Pull"))?.routineName)
+    }
+
+    private fun day(isRest: Boolean, name: String?): SuggestedTrainingDay = SuggestedTrainingDay(
+        epochDay = 20_000L,
+        dayOfWeek = DayOfWeek.MONDAY,
+        isRest = isRest,
+        focusKind = SessionFocusKind.PUSH,
+        focusTitle = "Push",
+        routineId = name?.let { "r-$it" },
+        routineName = name,
+        reason = "Pinned to your week.",
+        emphasisMuscles = emptyList(),
+        confidence = ScheduleConfidence.HIGH,
+    )
+}

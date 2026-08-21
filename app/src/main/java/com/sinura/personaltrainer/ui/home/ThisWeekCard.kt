@@ -15,6 +15,7 @@ import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
+import com.sinura.personaltrainer.ui.theme.TextTertiary
 
 /**
  * Today's line on Home: what the plan says, and the one button that acts on it.
@@ -30,12 +31,26 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
  * a hunt for the right button. So "Suggest a week" is the primary action when there is no plan,
  * and starting an unplanned workout — which is still perfectly reasonable — steps down to the
  * quieter action beneath it.
+ *
+ * **It absorbed the "Next session" card.** Home used to render this one and then, past the week
+ * strip, a second card naming the same session, with the same routine name in it and a tap
+ * handler byte-identical to this card's button — two answers to one question, the second of
+ * which was only reachable by scrolling past the first. What that card actually contributed was
+ * the lift list and the reason line, so those moved here, where they sit under the headline
+ * they belong to. One card, one tap, more on it than either had alone.
+ *
+ * @param lifts the first few lift names of the session named above, already resolved. Empty
+ * when the day has no routine attached — a proposed focus rather than a pinned session.
+ * @param reason one line on why it is worth doing, from [com.sinura.personaltrainer.domain
+ * .nextSessionReason]. Null when there is nothing worth saying, which is not the same as "".
  */
 @Composable
 fun ThisWeekCard(
     day: SuggestedTrainingDay?,
     nextDay: SuggestedTrainingDay?,
     loggedToday: Boolean,
+    lifts: List<String>,
+    reason: String?,
     onSuggestWeek: () -> Unit,
     onPrimary: () -> Unit,
 ) {
@@ -65,6 +80,18 @@ fun ThisWeekCard(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
+        if (hasPlan && lifts.isNotEmpty()) {
+            Text(
+                lifts.joinToString("  ·  "),
+                style = InstrumentType.body,
+                color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (hasPlan && reason != null) {
+            Text(reason, style = InstrumentType.caption, color = TextTertiary)
+        }
         if (hasPlan) {
             PrimaryGymButton(
                 text = when {

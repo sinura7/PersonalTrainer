@@ -53,6 +53,20 @@ object MastheadCopy {
 }
 
 /**
+ * The one session Home is talking about: today's, or the next one if today is a rest day.
+ *
+ * A single definition because there used to be two cards on Home describing this same day —
+ * a hero and a "Next session" card beneath the week strip — each deriving it for itself, each
+ * with a byte-identical tap handler, and both naming the same routine a few hundred pixels
+ * apart. They are one card now, and this is the rule it and its caller share, so the lifts
+ * listed under a headline are always the lifts of the session that headline names.
+ */
+fun featuredSession(
+    today: SuggestedTrainingDay?,
+    next: SuggestedTrainingDay?,
+): SuggestedTrainingDay? = today?.takeUnless { it.isRest } ?: next
+
+/**
  * One line saying why today's session is worth doing.
  *
  * Prefers the coach when the coach is talking about *this* session — a reason that names the
