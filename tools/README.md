@@ -117,6 +117,37 @@ view model, the view model names the state type. A file mentioning no view model
 skipped rather than guessed at, and the four members every data class gets for free (`copy`,
 `equals`, `hashCode`, `toString`) are never reported.
 
+## `check-required-args.py`
+
+The inverse of `check-named-args.py`: did the call supply everything the declaration requires?
+
+```bash
+python3 tools/check-required-args.py
+```
+
+`check-named-args` asks whether every name you passed exists. That is half the contract, and
+the other half was checked by nothing. Phase 6b removed a composable's whole-card tap by
+deleting the ARGUMENT and leaving the PARAMETER: `ThisWeekCard` went on declaring six required
+parameters while its only call site passed five. All ten other checks reported clean — every
+name that *was* passed existed — and the branch did not compile for three phases.
+
+Deliberately conservative. Matching positional arguments to parameters means resolving
+overloads and trailing-lambda syntax, and being wrong there produces noise on working code, so
+this reports only calls where **every argument is named**, plus a trailing lambda, which by
+Kotlin's rule supplies the last parameter. That costs almost nothing in this codebase, whose
+Compose call sites are named-argument style throughout — which is exactly where a forgotten
+parameter hides, because five named arguments over eight lines make the missing sixth invisible
+to the reader too.
+
+Three parsing rules it needs to get right, each of which produced a wave of false positives
+before it was fixed. Emptiness is judged against the RAW source, because `strip_comments_and_strings`
+blanks a string literal's quotes as well as its content, so `Kicker("Rest")` arrives as
+`Kicker(      )` — a positional argument that looks like an empty argument list. Angle brackets
+nest in a parameter list (generics) but not in an argument list, where `>` is almost always a
+comparison. And a trailing comma leaves a final all-whitespace span that must not be read as a
+positional argument — this codebase puts one on every multi-line call, so getting it wrong made
+the tool skip every call it existed to check.
+
 ## `check-annotation-targets.py`
 
 Finds annotations that are no longer attached to a declaration.
@@ -162,12 +193,12 @@ blanking whole string literals hid the only use of several others.
 ## preflight.sh
 
 `tools/preflight.sh` is the mechanical half of every game-plan phase's definition of done:
-run it before every push. It chains the ten static checks above and then the domain
+run it before every push. It chains the eleven static checks above and then the domain
 suite, exiting non-zero on the first failure.
 
 Three of the checks (`check-named-args`, `check-when-exhaustive`, `check-unused-imports`)
 and `syntax-check.sh` always exit 0, so preflight judges them on their summary line rather
-than their status; the other six exit by finding-count and are judged on that.
+than their status; the other seven exit by finding-count and are judged on that.
 
 The domain tests need a directory of seven jars (see `run-domain-tests.sh`'s header). If
 `$PT_JARS` / `build/test-jars` is absent, preflight assembles it by symlinking jars found in

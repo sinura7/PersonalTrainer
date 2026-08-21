@@ -36,7 +36,6 @@ fun ThisWeekCard(
     day: SuggestedTrainingDay?,
     nextDay: SuggestedTrainingDay?,
     loggedToday: Boolean,
-    onOpenPlan: () -> Unit,
     onSuggestWeek: () -> Unit,
     onPrimary: () -> Unit,
 ) {
@@ -54,7 +53,10 @@ fun ThisWeekCard(
         else -> "No plan yet"
     }
 
-    GymCard(onClick = onOpenPlan) {
+    // No onClick. A whole-card tap that navigated, with a filled Start button inside it, was a
+    // mis-tap trap on the most-pressed control in the app; Phase 6b removed the argument and
+    // left the parameter behind, which is the compile break this deletes.
+    GymCard {
         Kicker(kicker, color = TextSecondary)
         Text(
             headline,
