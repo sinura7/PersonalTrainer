@@ -8,6 +8,7 @@ the actual code and then independently verified line-by-line, so that a fresh ex
 session with no memory of the planning can run a phase from its packet alone.
 
 **Where this directory and HIERARCHY_PLAN.md §4 disagree, this directory wins.**
+[ACTION_PLAN.md](ACTION_PLAN.md) is the consolidated master plan — read that first;
 [REVISED_STRUCTURE.md](REVISED_STRUCTURE.md) records what the critique changed and why;
 [PROTOCOL.md](PROTOCOL.md) is the binding execution protocol every phase follows.
 
