@@ -27,6 +27,7 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +36,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -98,6 +100,11 @@ data class ActiveWorkoutUiState(
     val error: String? = null,
     val finished: Boolean = false,
     val editingSetId: String? = null,
+    /** True while the picker is exchanging a lift rather than adding one. */
+    val swapping: Boolean = false,
+    /** The coach's pick for this session, pinned above the picker's results. */
+    val suggestion: Exercise? = null,
+    val suggestionReason: String? = null,
 ) {
     val isLoading: Boolean get() = loadState == SessionLoadState.LOADING
 }
@@ -132,6 +139,14 @@ class ActiveWorkoutViewModel(
     private val restTotal = MutableStateFlow(90)
     private val searchQuery = MutableStateFlow("")
     private val showPicker = MutableStateFlow(false)
+
+    /**
+     * The session-exercise row the picker is about to replace, or null when it is adding.
+     *
+     * Held here rather than passed through the picker so the sheet stays a plain "choose a
+     * lift" surface; what happens to the choice is this class's business.
+     */
+    private val swapTargetItemId = MutableStateFlow<String?>(null)
     private val notes = MutableStateFlow("")
     private val error = MutableStateFlow<String?>(null)
     private val finished = MutableStateFlow(false)
@@ -346,6 +361,16 @@ class ActiveWorkoutViewModel(
         )
     }.combine(searchQuery.flatMapLatest { container.exerciseRepository.search(it) }) { state, results ->
         state.copy(searchResults = results)
+    }.combine(swapTargetItemId) { state, swapTarget ->
+        state.copy(swapping = swapTarget != null)
+    }.combine(suggestedLift) { state, suggested ->
+        // Never suggest a lift the session already has: the row would offer to add something
+        // that is one chip away on screen.
+        val alreadyPresent = state.session?.exercises?.any { it.exercise.id == suggested?.first?.id } == true
+        state.copy(
+            suggestion = suggested?.first?.takeUnless { alreadyPresent },
+            suggestionReason = suggested?.second?.takeUnless { alreadyPresent },
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -452,6 +477,7 @@ class ActiveWorkoutViewModel(
     }
 
     fun setPickerVisible(visible: Boolean) {
+        if (!visible) swapTargetItemId.value = null
         showPicker.value = visible
         if (!visible) searchQuery.value = ""
     }
@@ -484,9 +510,66 @@ class ActiveWorkoutViewModel(
         }
     }
 
+    /**
+     * The coach's first named lift, as an (exercise, reason) pair, or null when it has nothing
+     * specific to say. Read from the shared insights pipeline rather than recomputed here.
+     */
+    private val suggestedLift: Flow<Pair<Exercise, String>?> =
+        container.trainingInsights.observe(includeWeekPlan = false)
+            .map { insights ->
+                val card = insights.recommendations.firstOrNull { it.actionExerciseId != null }
+                    ?: return@map null
+                val exercise = container.exerciseRepository.getById(card.actionExerciseId!!)
+                    ?: return@map null
+                exercise to card.title
+            }
+            .catch { thrown ->
+                AppLog.w(TAG, "Reading the suggested lift failed", thrown)
+                emit(null)
+            }
+
+    fun requestSwap() {
+        val selectedId = selectedExerciseId.value ?: return
+        val item = session.value?.exercises?.firstOrNull { it.exercise.id == selectedId } ?: return
+        swapTargetItemId.value = item.id
+        searchQuery.value = ""
+        showPicker.value = true
+    }
+
+    fun removeSelectedLift() {
+        val selectedId = selectedExerciseId.value ?: return
+        val item = session.value?.exercises?.firstOrNull { it.exercise.id == selectedId } ?: return
+        viewModelScope.launch {
+            try {
+                container.workoutRepository.removeExerciseFromSession(sessionId, item.id)
+                // Let the session's own rule pick what to show next rather than guessing here.
+                selectedExerciseId.value = null
+                error.value = null
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "removeSelectedLift failed", thrown)
+                error.value = thrown.message?.takeIf { SetLogRules.isUserMessage(it) }
+                    ?: "Could not remove that lift. Try again."
+            }
+        }
+    }
+
     private suspend fun addExerciseInternal(exercise: Exercise) {
         if (sessionId.isBlank()) {
             error.value = "This workout is no longer available."
+            return
+        }
+        swapTargetItemId.value?.let { itemId ->
+            swapTargetItemId.value = null
+            try {
+                container.workoutRepository.swapExerciseInSession(sessionId, itemId, exercise)
+                selectExercise(exercise.id)
+                showPicker.value = false
+                error.value = null
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "swapExerciseInSession failed", thrown)
+                error.value = thrown.message?.takeIf { SetLogRules.isUserMessage(it) }
+                    ?: "Could not swap that lift. Try again."
+            }
             return
         }
         val alreadyAdded = session.value?.exercises?.any { it.exercise.id == exercise.id } == true

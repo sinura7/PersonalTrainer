@@ -125,6 +125,32 @@ interface WorkoutDao {
     ): String?
 
     /**
+     * The last [limit] finished sessions containing this exercise, newest first.
+     *
+     * Same WHERE and ordering as the single-id query above — the RPE rule needs a *run* of
+     * sessions rather than one, and two different definitions of "the last session with this
+     * lift" would eventually disagree about which set the suggestion was made on.
+     */
+    @Query(
+        """
+        SELECT ws.id FROM workout_sessions ws
+        INNER JOIN set_logs sl ON sl.sessionId = ws.id
+        WHERE sl.exerciseId = :exerciseId
+          AND sl.isWarmup = 0
+          AND ws.finishedAt IS NOT NULL
+          AND ws.id != :excludeSessionId
+        GROUP BY ws.id
+        ORDER BY ws.finishedAt DESC
+        LIMIT :limit
+        """,
+    )
+    suspend fun lastFinishedSessionIdsWithExercise(
+        exerciseId: String,
+        excludeSessionId: String,
+        limit: Int,
+    ): List<String>
+
+    /**
      * Every finished working set of one exercise, oldest first, with just enough of its
      * session attached to summarise it.
      *

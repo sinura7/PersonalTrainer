@@ -10,6 +10,30 @@ object MuscleLoadCalculator {
     const val BODYWEIGHT_EQUIVALENT_KG = 40.0
     const val SECONDARY_VOLUME_WEIGHT = 0.4
 
+    /** Where each band starts, in weighted sets per week. Mirrored on [HeatBand]. */
+    const val LOW_MIN_SETS = HeatBand.LOW_MIN_SETS
+    const val PRODUCTIVE_MIN_SETS = HeatBand.PRODUCTIVE_MIN_SETS
+    const val HIGH_MIN_SETS = HeatBand.HIGH_MIN_SETS
+
+    /** Past this, more sets do not make the silhouette any hotter. */
+    const val HIGH_SATURATION_SETS = 30.0
+
+    /**
+     * Where each band sits on the 0..1 ramp `heatColor` paints.
+     *
+     * [FRACTION_LOW] is 0.05 rather than 0.02 on purpose: 0.02 is exactly `heatColor`'s
+     * empty/not-empty cutoff, so a muscle that has just reached the LOW floor would render at
+     * the boundary and read as untrained. [FRACTION_PRODUCTIVE] is where Heat3 sits exactly on
+     * that ramp ((2/3) × 0.98 + 0.02), so the productive band is a flat, recognisable colour
+     * rather than a gradient you have to compare against a legend.
+     */
+    const val FRACTION_LOW = 0.05
+    const val FRACTION_PRODUCTIVE = 0.6733
+    const val FRACTION_HIGH = 1.0
+
+    /** How far back the coach looks, regardless of which window the map is showing. */
+    const val COACH_TRAILING_DAYS = 14L
+
     fun setVolumeKg(weightKg: Double, reps: Int): Double {
         val load = if (weightKg > 0.0) weightKg else BODYWEIGHT_EQUIVALENT_KG
         return load * reps.coerceAtLeast(0)
@@ -47,6 +71,7 @@ object MuscleLoadCalculator {
                         acc.getValue(muscle).recordWindow(
                             sessionId = session.id,
                             volumeKg = volume * weight,
+                            weightedSets = weight,
                             set = set,
                         )
                     }
@@ -54,9 +79,9 @@ object MuscleLoadCalculator {
             }
         }
 
-        val maxVolume = acc.values.maxOfOrNull { it.windowVolumeKg } ?: 0.0
         val loads = CanonicalMuscle.entries.map { muscle ->
             val row = acc.getValue(muscle)
+            val weeklySets = weeklySetsFor(row.windowWeightedSets, window)
             MuscleLoadSummary(
                 muscle = muscle,
                 volumeKg = row.windowVolumeKg,
@@ -64,7 +89,8 @@ object MuscleLoadCalculator {
                 sessionCount = row.windowSessions.size,
                 lastTrainedAtMs = row.lastTrainedAtMs,
                 daysSinceLastTrained = daysSince(row.lastTrainedAtMs, nowMs, zone),
-                heat = normalizeHeat(row.windowVolumeKg, maxVolume),
+                weeklySets = weeklySets,
+                heat = heatFraction(weeklySets),
                 exercises = row.exercises.values
                     .sortedWith(compareByDescending<ExerciseLoadContribution> { it.volumeKg }.thenBy { it.exerciseName })
                     .toList(),
@@ -80,9 +106,111 @@ object MuscleLoadCalculator {
         )
     }
 
-    fun normalizeHeat(volumeKg: Double, maxVolumeKg: Double): Double {
-        if (volumeKg <= 0.0 || maxVolumeKg <= 0.0) return 0.0
-        return (volumeKg / maxVolumeKg).coerceIn(0.0, 1.0)
+    /**
+     * How hot a muscle looks, from how much work it is actually getting.
+     *
+     * This replaces a relative normalisation — volume over the window's maximum — that made
+     * the map answer the wrong question. Under the old rule the hottest muscle was always
+     * fully hot, whatever you had done, and every other muscle's colour moved when it changed.
+     * A week with one hard session and nothing else looked like a week of excellent balance
+     * with one standout; a week of even, adequate training looked flat.
+     *
+     * Now the number means something on its own: below the LOW floor the muscle renders as
+     * untrained, the productive band is a flat recognisable tone, and past it the ramp climbs
+     * to saturation. Two different weeks that got a muscle the same work look the same.
+     */
+    fun heatFraction(weeklySets: Double): Double = when {
+        weeklySets < LOW_MIN_SETS -> 0.0
+        weeklySets < PRODUCTIVE_MIN_SETS -> lerp(
+            from = FRACTION_LOW,
+            to = FRACTION_PRODUCTIVE,
+            t = (weeklySets - LOW_MIN_SETS) / (PRODUCTIVE_MIN_SETS - LOW_MIN_SETS),
+        )
+        weeklySets <= HIGH_MIN_SETS -> FRACTION_PRODUCTIVE
+        weeklySets < HIGH_SATURATION_SETS -> lerp(
+            from = FRACTION_PRODUCTIVE,
+            to = FRACTION_HIGH,
+            t = (weeklySets - HIGH_MIN_SETS) / (HIGH_SATURATION_SETS - HIGH_MIN_SETS),
+        )
+        else -> FRACTION_HIGH
+    }
+
+    /**
+     * A window's weighted-set total, expressed per week.
+     *
+     * The 30-day window is averaged rather than shown raw so the two chips are the same unit:
+     * "18 weighted sets" has to mean the same thing on both, or the bands mean nothing on one
+     * of them. `CURRENT_WEEK` is deliberately NOT scaled up — early in the week it reads low,
+     * which is the honest answer to "this week so far".
+     */
+    fun weeklySetsFor(windowWeightedSets: Double, window: HeatWindow): Double = when (window) {
+        HeatWindow.CURRENT_WEEK -> windowWeightedSets
+        HeatWindow.LAST_30_DAYS -> windowWeightedSets * 7.0 / 30.0
+    }
+
+    private fun lerp(from: Double, to: Double, t: Double): Double =
+        from + (to - from) * t.coerceIn(0.0, 1.0)
+
+    /**
+     * What the coach reasons from, over a fixed trailing window.
+     *
+     * Deliberately NOT the display snapshot. The recommendations used to be computed from
+     * whatever window the user had tapped, so flipping a display chip changed the advice —
+     * the same training, on the same day, produced a different opinion about what to do next
+     * depending on how you were looking at it. Advice that moves when you change the view is
+     * not advice.
+     *
+     * Fourteen days because it is long enough to average out one missed session and short
+     * enough to notice a month of neglect. Recency ([CoachMuscleLoad.daysSinceLastTrained])
+     * still reads all of history, exactly as the display snapshot does: "42 days since a
+     * working set" has to be true, not clipped to the window.
+     *
+     * Cost, stated plainly: one extra O(total sets) pass per insights emission, on the same
+     * background dispatcher as the display snapshot. No caching and no extra queries — the
+     * history is already in memory when this runs.
+     */
+    fun coachBasis(
+        sessions: List<WorkoutSession>,
+        nowMs: Long,
+        zone: ZoneId = ZoneId.systemDefault(),
+        exerciseCatalog: Map<String, Exercise> = emptyMap(),
+    ): CoachBasis {
+        val basisStart = Instant.ofEpochMilli(nowMs).atZone(zone)
+            .minusDays(COACH_TRAILING_DAYS).toInstant().toEpochMilli()
+        val weighted = CanonicalMuscle.entries.associateWith { 0.0 }.toMutableMap()
+        val lastTrained = mutableMapOf<CanonicalMuscle, Long>()
+        var anyWorkingSets = false
+        var basisWorkingSets = false
+
+        sessions.filter { it.isFinished }.forEach { session ->
+            session.sets.filterNot { it.isWarmup }.forEach { set ->
+                anyWorkingSets = true
+                val trainedAt = trainedAtMs(session, set)
+                val credits = creditsFor(set, session, exerciseCatalog)
+                credits.forEach { (muscle, weight) ->
+                    lastTrained[muscle] = max(lastTrained[muscle] ?: 0L, trainedAt)
+                    if (trainedAt >= basisStart && trainedAt <= nowMs) {
+                        basisWorkingSets = true
+                        weighted[muscle] = (weighted[muscle] ?: 0.0) + weight
+                    }
+                }
+            }
+        }
+
+        return CoachBasis(
+            generatedAtMs = nowMs,
+            loads = CanonicalMuscle.entries.associateWith { muscle ->
+                CoachMuscleLoad(
+                    muscle = muscle,
+                    // Fourteen days of weighted sets, expressed per week, so the coach's
+                    // thresholds are the same numbers the map's bands use.
+                    weeklySets = (weighted[muscle] ?: 0.0) * 7.0 / COACH_TRAILING_DAYS,
+                    daysSinceLastTrained = daysSince(lastTrained[muscle], nowMs, zone),
+                )
+            },
+            hasAnyWorkingSets = anyWorkingSets,
+            hasBasisWorkingSets = basisWorkingSets,
+        )
     }
 
     fun daysSince(lastTrainedAtMs: Long?, nowMs: Long, zone: ZoneId = ZoneId.systemDefault()): Int? {
@@ -163,13 +291,20 @@ object MuscleLoadCalculator {
         return merged.map { (muscle, weight) -> muscle to weight }
     }
 
-    private fun trainedAtMs(session: WorkoutSession, set: SetLog): Long {
+    /**
+     * When a set counts as having happened. Internal rather than private because the deload
+     * signal buckets volume by weeks and has to use the same attribution — two different
+     * answers to "what day was this" would put the same set in different weeks.
+     */
+    internal fun trainedAtMs(session: WorkoutSession, set: SetLog): Long {
         val candidates = listOf(set.completedAt, session.date, session.finishedAt ?: 0L, session.startedAt)
         return candidates.firstOrNull { it > 0L } ?: 0L
     }
 
     private class MuscleAccumulator {
         var windowVolumeKg: Double = 0.0
+        /** Sets credited by junction weight: a bench press is 1.0 chest and 0.5 triceps. */
+        var windowWeightedSets: Double = 0.0
         var windowSets: Int = 0
         val windowSessions: MutableSet<String> = linkedSetOf()
         var lastTrainedAtMs: Long? = null
@@ -179,8 +314,9 @@ object MuscleLoadCalculator {
             lastTrainedAtMs = max(lastTrainedAtMs ?: 0L, trainedAt).takeIf { it > 0L }
         }
 
-        fun recordWindow(sessionId: String, volumeKg: Double, set: SetLog) {
+        fun recordWindow(sessionId: String, volumeKg: Double, weightedSets: Double, set: SetLog) {
             windowVolumeKg += volumeKg
+            windowWeightedSets += weightedSets
             windowSets += 1
             windowSessions += sessionId
             val existing = exercises[set.exerciseId]

@@ -66,6 +66,7 @@ data class TrainingInsightsInput(
     val hints: List<ProgressionHint>?,
     val preferences: SchedulePreferences,
     val slots: List<ScheduleSlot> = emptyList(),
+    val coachPrefs: CoachPreferences = CoachPreferences.DEFAULT,
     val unit: WeightUnit,
     val window: HeatWindow,
     val nowMs: Long,
@@ -100,12 +101,35 @@ object TrainingInsightsCalculator {
         }
         if (snapshot == null) failures += InsightFailure.HEAT
 
-        val recommendations: List<TrainingRecommendation> = if (snapshot == null) {
-            emptyList()
-        } else {
-            val derived = recoverWith(TAG, "The training recommendations", null) {
-                RecommendationEngine.recommend(snapshot, hints, input.unit)
-            }
+        // The coach reasons from its own fixed 14-day basis, not from the display snapshot —
+        // so flipping a window chip changes the numbers on the map and nothing about the
+        // advice. It is also independent of the snapshot's success: a failed heat computation
+        // used to blank the recommendations as collateral damage.
+        val recommendations: List<TrainingRecommendation> = recoverWith(
+            TAG,
+            "The training recommendations",
+            null,
+        ) {
+            val basis = MuscleLoadCalculator.coachBasis(
+                sessions = input.history,
+                nowMs = input.nowMs,
+                zone = input.zone,
+                exerciseCatalog = input.exerciseCatalog,
+            )
+            RecommendationEngine.recommend(
+                CoachInputs(
+                    basis = basis,
+                    history = input.history,
+                    routines = input.routines,
+                    hints = hints,
+                    exerciseCatalog = input.exerciseCatalog,
+                    preferences = input.coachPrefs,
+                    unit = input.unit,
+                    nowMs = input.nowMs,
+                    zone = input.zone,
+                ),
+            )
+        }.let { derived ->
             if (derived == null) failures += InsightFailure.RECOMMENDATIONS
             derived.orEmpty()
         }

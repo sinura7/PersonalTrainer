@@ -128,6 +128,12 @@ data class ProgressionHint(
     val targetReps: Int,
     val suggestedWeightKg: Double,
     val action: ProgressionAction,
+    /**
+     * True when the suggestion was downgraded to HOLD because the last two top sets were at
+     * RPE 9 or above. Carried so the in-workout strip can say WHY it is not adding weight —
+     * an unexplained hold reads as the app having forgotten how to count.
+     */
+    val rpeHold: Boolean = false,
 )
 
 enum class ProgressionAction {

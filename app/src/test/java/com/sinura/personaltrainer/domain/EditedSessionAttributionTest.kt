@@ -53,16 +53,16 @@ class EditedSessionAttributionTest {
 
         val thisWeek = MuscleLoadCalculator.snapshot(
             sessions = listOf(edited),
-            window = HeatWindow.LAST_7_DAYS,
+            window = HeatWindow.CURRENT_WEEK,
             nowMs = now,
             zone = zone,
         )
-        // The set was added today, but it happened 20 days ago — a 7-day window must not see it.
+        // The set was added today, but it happened 20 days ago — this week must not see it.
         assertEquals(0.0, thisWeek.load(CanonicalMuscle.CHEST).volumeKg, 0.001)
 
         val lifetime = MuscleLoadCalculator.snapshot(
             sessions = listOf(edited),
-            window = HeatWindow.LAST_7_DAYS,
+            window = HeatWindow.LAST_30_DAYS,
             nowMs = oldFinished,
             zone = zone,
         )

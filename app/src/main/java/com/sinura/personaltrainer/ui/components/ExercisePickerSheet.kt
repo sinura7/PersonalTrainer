@@ -82,6 +82,17 @@ fun ExercisePickerSheet(
     onSelect: (Exercise) -> Unit,
     onCreate: (name: String, muscleGroup: String) -> Unit,
     onDismiss: () -> Unit,
+    title: String = "Add exercise",
+    /**
+     * The coach's pick, pinned above the results.
+     *
+     * One row, not a section: this is the point in the app where a recommendation is most
+     * actionable — you are mid-workout, about to choose something — and it earns exactly one
+     * line for it. Shown only while the search box is empty, so it never sits above results
+     * that contradict what was typed.
+     */
+    suggestion: Exercise? = null,
+    suggestionReason: String? = null,
 ) {
     val needle = query.trim()
     val canCreate = needle.isNotEmpty() && results.none { it.name.equals(needle, ignoreCase = true) }
@@ -107,7 +118,7 @@ fun ExercisePickerSheet(
                     .padding(bottom = Metrics.space3),
                 verticalArrangement = Arrangement.spacedBy(Metrics.space3),
             ) {
-                Text("Add exercise", style = InstrumentType.title, color = TextPrimary)
+                Text(title, style = InstrumentType.title, color = TextPrimary)
                 ExerciseSearchField(
                     value = query,
                     onValueChange = onQueryChange,
@@ -119,6 +130,26 @@ fun ExercisePickerSheet(
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(bottom = Metrics.space7),
             ) {
+                if (suggestion != null && needle.isEmpty()) {
+                    item(key = "suggested") {
+                        Column {
+                            Kicker(
+                                "SUGGESTED",
+                                modifier = Modifier.padding(
+                                    start = Metrics.space4,
+                                    top = Metrics.space3,
+                                    bottom = Metrics.space1,
+                                ),
+                            )
+                            ExerciseRow(
+                                name = suggestion.name,
+                                muscleGroup = suggestionReason ?: suggestion.muscleGroup,
+                                onClick = { onSelect(suggestion) },
+                            )
+                            HairlineDivider()
+                        }
+                    }
+                }
                 if (canCreate) {
                     item(key = "create") {
                         Column {

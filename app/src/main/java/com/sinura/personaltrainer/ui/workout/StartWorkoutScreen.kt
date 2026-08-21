@@ -104,6 +104,21 @@ fun StartWorkoutScreen(
                 }
 
                 if (state.inProgress == null) {
+                    // Phase 6b moves this row into the start-options sheet (surface map).
+                    state.suggestion?.let { lift ->
+                        item(key = "suggested") {
+                            Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
+                                Kicker("SUGGESTED")
+                                GroupedList {
+                                    InstrumentRow(
+                                        title = lift.name,
+                                        subtitle = state.suggestionReason,
+                                        onClick = viewModel::startSuggested,
+                                    )
+                                }
+                            }
+                        }
+                    }
                     if (state.routines.isEmpty()) {
                         item(key = "no-routines") {
                             EmptyState(

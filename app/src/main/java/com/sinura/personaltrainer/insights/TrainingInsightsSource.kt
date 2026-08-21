@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HeatWindow
+import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.ScheduleSlot
 import com.sinura.personaltrainer.domain.SchedulePreferences
@@ -56,7 +57,7 @@ class TrainingInsightsSource(
      * @param includeWeekPlan false on surfaces that never render a plan.
      */
     fun observe(
-        window: Flow<HeatWindow> = flowOf(HeatWindow.LAST_7_DAYS),
+        window: Flow<HeatWindow> = flowOf(HeatWindow.CURRENT_WEEK),
         refresh: Flow<Any?> = flowOf(Unit),
         includeWeekPlan: Boolean = true,
     ): Flow<TrainingInsights> = combine(
@@ -73,7 +74,8 @@ class TrainingInsightsSource(
                 Sources(history, routines, exercises.associateBy { it.id }, preferences, unit)
             },
             scheduleRepository.observeSlots(),
-        ) { sources, slots -> sources.copy(slots = slots) },
+            preferencesRepository.coachPreferences,
+        ) { sources, slots, coachPrefs -> sources.copy(slots = slots, coachPrefs = coachPrefs) },
         window,
         refresh,
     ) { sources, heatWindow, _ ->
@@ -96,6 +98,7 @@ class TrainingInsightsSource(
                 preferences = sources.preferences,
                 unit = sources.unit,
                 slots = sources.slots,
+                coachPrefs = sources.coachPrefs,
                 window = heatWindow,
                 nowMs = nowMs(),
                 zone = zone(),
@@ -112,5 +115,6 @@ class TrainingInsightsSource(
         val unit: WeightUnit,
         /** Defaulted so the inner five-way combine keeps constructing this unchanged. */
         val slots: List<ScheduleSlot> = emptyList(),
+        val coachPrefs: CoachPreferences = CoachPreferences.DEFAULT,
     )
 }

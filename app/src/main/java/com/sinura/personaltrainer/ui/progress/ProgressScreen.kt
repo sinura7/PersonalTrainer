@@ -53,6 +53,7 @@ import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 @Composable
 fun ProgressScreen(
     onOpenLibrary: (String?) -> Unit,
+    onOpenExercise: (String) -> Unit,
     onStartWorkout: () -> Unit,
     onOpenRoutines: () -> Unit,
     viewModel: ProgressViewModel = viewModel(),
@@ -95,7 +96,7 @@ fun ProgressScreen(
             snapshot == null || !snapshot.hasAnyWorkingSets -> {
                 EmptyState(
                     title = "See what you trained",
-                    body = "Working-set volume lights the map for the window you pick.",
+                    body = "Weekly working sets light the map for the window you pick.",
                     actionLabel = "Start workout",
                     onAction = onStartWorkout,
                     modifier = Modifier.padding(Metrics.gutter),
@@ -157,6 +158,7 @@ fun ProgressScreen(
                                     dispatchRecommendation(
                                         recommendation = rec,
                                         onOpenLibrary = onOpenLibrary,
+                                        onOpenExercise = onOpenExercise,
                                         onStartWorkout = onStartWorkout,
                                         onOpenRoutines = onOpenRoutines,
                                         onOpenProgress = { selectedName = rec.actionMuscle?.name },
@@ -257,7 +259,7 @@ private fun MuscleDetailSheet(
             verticalArrangement = Arrangement.spacedBy(Metrics.space4),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-                Kicker("$windowLabel · ${load.band.legendLabel} load")
+                Kicker("$windowLabel · ${load.band.legendLabel}")
                 Text(load.muscle.displayName, style = InstrumentType.display, color = TextPrimary)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space6)) {
@@ -334,13 +336,12 @@ private fun muscleRows(snapshot: BodyHeatSnapshot): List<MuscleLoadSummary> =
  */
 private val HeatWindow.pickerLabel: String
     get() = when (this) {
-        HeatWindow.LAST_7_DAYS -> "7D"
-        HeatWindow.LAST_14_DAYS -> "14D"
         HeatWindow.CURRENT_WEEK -> "THIS WEEK"
+        HeatWindow.LAST_30_DAYS -> "30 DAYS"
     }
 
 /** The window as it reads inside a sentence about training, preposition included. */
 private fun HeatWindow.sentenceLabel(): String = when (this) {
-    HeatWindow.LAST_7_DAYS, HeatWindow.LAST_14_DAYS -> "in the ${label.lowercase()}"
     HeatWindow.CURRENT_WEEK -> "this week"
+    HeatWindow.LAST_30_DAYS -> "in the last 30 days"
 }

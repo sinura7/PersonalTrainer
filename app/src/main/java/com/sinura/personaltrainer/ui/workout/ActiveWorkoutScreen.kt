@@ -27,7 +27,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -76,6 +79,7 @@ import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.toWeightLabel
+import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.GymNoticeBanner
@@ -122,6 +126,7 @@ fun ActiveWorkoutScreen(
     var confirmLeave by rememberSaveable { mutableStateOf(false) }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     var notesOpen by rememberSaveable { mutableStateOf(false) }
+    var confirmRemoveLift by rememberSaveable { mutableStateOf(false) }
     val restNotificationsEnabled = rememberRestNotificationsEnabled()
     val session = state.session
     val selected = session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId }
@@ -361,6 +366,9 @@ fun ActiveWorkoutScreen(
                                     lift = selected,
                                     workingLogged = workingLogged,
                                     unit = unit,
+                                    canEdit = loggedForSelected.isEmpty(),
+                                    onSwap = viewModel::requestSwap,
+                                    onRemove = { confirmRemoveLift = true },
                                 )
                             }
                             state.lastPerformance?.let { last ->
@@ -437,6 +445,9 @@ fun ActiveWorkoutScreen(
             onSelect = viewModel::addExercise,
             onCreate = viewModel::createAndAddExercise,
             onDismiss = { viewModel.setPickerVisible(false) },
+            title = if (state.swapping) "Swap lift" else "Add a lift",
+            suggestion = state.suggestion,
+            suggestionReason = state.suggestionReason,
         )
     }
 
@@ -483,6 +494,22 @@ fun ActiveWorkoutScreen(
                     Text("Stay", style = InstrumentType.bodyStrong, color = TextSecondary)
                 }
             },
+        )
+    }
+
+    if (confirmRemoveLift) {
+        val name = selected?.exercise?.name ?: "this lift"
+        ConfirmActionDialog(
+            title = "Remove $name?",
+            body = "It comes out of this session's plan. Nothing logged is affected — this lift " +
+                "has no sets yet.",
+            confirmLabel = "Remove",
+            destructive = true,
+            onConfirm = {
+                confirmRemoveLift = false
+                viewModel.removeSelectedLift()
+            },
+            onDismiss = { confirmRemoveLift = false },
         )
     }
 
@@ -692,11 +719,56 @@ private fun CurrentLiftHeader(
     lift: SessionExercise,
     workingLogged: Int,
     unit: WeightUnit,
+    canEdit: Boolean,
+    onSwap: () -> Unit,
+    onRemove: () -> Unit,
 ) {
     val targetSets = lift.targetSets.coerceAtLeast(1)
     val targetReps = lift.targetReps.coerceAtLeast(1)
+    var menuOpen by rememberSaveable(lift.id) { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-        Text(lift.exercise.name, style = InstrumentType.display, color = TextPrimary)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                lift.exercise.name,
+                modifier = Modifier.weight(1f),
+                style = InstrumentType.display,
+                color = TextPrimary,
+            )
+            // Only while nothing has been logged against this lift. Once a set exists, the
+            // lift is part of what happened: removing it would delete real work and swapping
+            // it would silently reattribute those sets to a different exercise.
+            if (canEdit) {
+                Box {
+                    IconButton(onClick = { menuOpen = true }) {
+                        Icon(
+                            Icons.Outlined.MoreVert,
+                            contentDescription = "Lift options",
+                            tint = TextSecondary,
+                        )
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = {
+                                Text("Swap lift…", style = InstrumentType.bodyStrong, color = TextPrimary)
+                            },
+                            onClick = {
+                                menuOpen = false
+                                onSwap()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Text("Remove lift", style = InstrumentType.bodyStrong, color = Danger)
+                            },
+                            onClick = {
+                                menuOpen = false
+                                onRemove()
+                            },
+                        )
+                    }
+                }
+            }
+        }
         // Progress as a glyph rather than as a second display numeral. "Set 3 of 5" was set
         // at 28sp, competing with the weight it sits above for the eye's attention while
         // saying much less.
@@ -779,10 +851,12 @@ private fun ProgressionStrip(
     unit: WeightUnit,
     onApply: () -> Unit,
 ) {
-    val reason = when (hint.action) {
-        ProgressionAction.INCREASE -> "Hit target. Add $incrementLabel."
-        ProgressionAction.HOLD -> "Close. Keep ${hint.lastWeightKg.toWeightLabel(unit)}."
-        ProgressionAction.DECREASE -> "Missed target. Drop $incrementLabel."
+    val reason = when {
+        // A hold with no explanation reads as the app having lost count. If RPE is why, say so.
+        hint.rpeHold -> "Top set at RPE 9+. Hold ${hint.lastWeightKg.toWeightLabel(unit)}."
+        hint.action == ProgressionAction.INCREASE -> "Hit target. Add $incrementLabel."
+        hint.action == ProgressionAction.HOLD -> "Close. Keep ${hint.lastWeightKg.toWeightLabel(unit)}."
+        else -> "Missed target. Drop $incrementLabel."
     }
     Row(
         modifier = Modifier

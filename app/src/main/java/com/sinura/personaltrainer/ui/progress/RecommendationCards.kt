@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.RecommendationAction
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.ui.components.GymCard
+import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
@@ -31,6 +32,9 @@ fun RecommendationCard(
     modifier: Modifier = Modifier,
 ) {
     GymCard(onClick = onClick, modifier = modifier) {
+        // The category first, as a word. A stack of cards is skimmable by kind before any of
+        // them is read, and the kind is never carried by colour alone.
+        Kicker(recommendation.kicker)
         Text(recommendation.title, style = InstrumentType.title, color = TextPrimary)
         Text(recommendation.reason, style = InstrumentType.body, color = TextSecondary)
         Row(
@@ -59,6 +63,8 @@ private fun actionLabel(recommendation: TrainingRecommendation): String =
             val muscle = recommendation.actionMuscle ?: CanonicalMuscle.OTHER
             "Find ${muscle.catalogLabel.lowercase()} lifts"
         }
+        RecommendationAction.OPEN_EXERCISE ->
+            recommendation.actionExerciseName?.let { "Open $it" } ?: "Show on the map"
         RecommendationAction.START_WORKOUT -> "Start workout"
         RecommendationAction.OPEN_ROUTINES -> "Open routines"
         RecommendationAction.OPEN_BODY_MAP -> "Show on the map"
@@ -68,6 +74,7 @@ private fun actionLabel(recommendation: TrainingRecommendation): String =
 fun dispatchRecommendation(
     recommendation: TrainingRecommendation,
     onOpenLibrary: (String?) -> Unit,
+    onOpenExercise: (String) -> Unit,
     onStartWorkout: () -> Unit,
     onOpenRoutines: () -> Unit,
     onOpenProgress: () -> Unit,
@@ -75,6 +82,10 @@ fun dispatchRecommendation(
     when (recommendation.action) {
         RecommendationAction.OPEN_LIBRARY_MUSCLE ->
             onOpenLibrary(recommendation.actionMuscle?.catalogLabel ?: CanonicalMuscle.OTHER.catalogLabel)
+        // A card that names a lift opens that lift. Falling back to the muscle filter would
+        // undo the whole point of naming it.
+        RecommendationAction.OPEN_EXERCISE ->
+            recommendation.actionExerciseId?.let(onOpenExercise) ?: onOpenProgress()
         RecommendationAction.START_WORKOUT -> onStartWorkout()
         RecommendationAction.OPEN_ROUTINES -> onOpenRoutines()
         RecommendationAction.OPEN_BODY_MAP -> onOpenProgress()

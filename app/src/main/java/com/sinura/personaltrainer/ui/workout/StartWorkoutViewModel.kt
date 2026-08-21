@@ -4,13 +4,18 @@ import android.app.Application
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.OwnedLiftResolver
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.WorkoutSession
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -20,21 +25,41 @@ data class StartWorkoutUiState(
     val isLoading: Boolean = true,
     val inProgress: WorkoutSession? = null,
     val routines: List<Routine> = emptyList(),
+    /** The coach's named lift, offered as a one-tap start. Null when it has nothing specific. */
+    val suggestion: Exercise? = null,
+    val suggestionReason: String? = null,
     val error: String? = null,
 )
 
 class StartWorkoutViewModel(application: Application) : AppViewModel(application) {
     private val error = MutableStateFlow<String?>(null)
 
+    private val suggestedLift: Flow<Pair<Exercise, String>?> =
+        container.trainingInsights.observe(includeWeekPlan = false)
+            .map { insights ->
+                val card = insights.recommendations.firstOrNull { it.actionExerciseId != null }
+                    ?: return@map null
+                val exercise = container.exerciseRepository.getById(card.actionExerciseId!!)
+                    ?: return@map null
+                exercise to card.title
+            }
+            .catch { thrown ->
+                AppLog.w(TAG, "Reading the suggested lift failed", thrown)
+                emit(null)
+            }
+
     val uiState: StateFlow<StartWorkoutUiState> = combine(
         container.workoutRepository.observeInProgress(),
         container.routineRepository.observeAll(),
+        suggestedLift,
         error,
-    ) { inProgress, routines, err ->
+    ) { inProgress, routines, suggested, err ->
         StartWorkoutUiState(
             isLoading = false,
             inProgress = inProgress,
             routines = routines,
+            suggestion = suggested?.first,
+            suggestionReason = suggested?.second,
             error = err,
         )
     }.stateIn(
@@ -77,6 +102,29 @@ class StartWorkoutViewModel(application: Application) : AppViewModel(application
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "startRoutine failed", thrown)
                 error.value = "Could not start that routine. Try again."
+            }
+        }
+    }
+
+    /**
+     * Starts a free session with the suggested lift already in it.
+     *
+     * The suggestion is only worth pinning here if acting on it is one tap: a row that opened
+     * a picker so you could find the lift it had just named would be a worse version of
+     * scrolling the routines list.
+     */
+    fun startSuggested() {
+        val exercise = uiState.value.suggestion ?: return
+        viewModelScope.launch {
+            try {
+                val focus = OwnedLiftResolver.primaryMuscleOf(exercise)?.displayName
+                val session = container.workoutRepository.startFreeWorkout(focusTitle = focus)
+                container.workoutRepository.addExerciseToSession(session.id, exercise)
+                error.value = null
+                _navigateToSession.value = session.id
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "startSuggested failed", thrown)
+                error.value = "Could not start that session. Try again."
             }
         }
     }

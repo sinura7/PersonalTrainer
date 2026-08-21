@@ -1,174 +1,202 @@
 package com.sinura.personaltrainer.domain
 
+import java.time.ZoneOffset
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.ZoneOffset
 
+/**
+ * The coach, rewritten around three claims.
+ *
+ * It counts sets, not kilograms — a deadlift session and a curl session produce wildly
+ * different tonnage for the same amount of training, so a tonnage ratio told people training
+ * evenly that they were three times out of balance.
+ *
+ * It reasons from a fixed 14 days, never from the display window — advice that changed when
+ * you tapped a chip on the body map made the app look like it was guessing.
+ *
+ * And it names lifts you already own, so "train your hamstrings" becomes something you can act
+ * on without translating it yourself.
+ */
 class RecommendationEngineTest {
     private val zone = ZoneOffset.UTC
     private val now = 1_700_000_000_000L
 
     @Test
     fun emptyHistoryProducesNoRecommendations() {
-        val snap = MuscleLoadCalculator.snapshot(emptyList(), HeatWindow.LAST_7_DAYS, now, zone)
-        assertTrue(RecommendationEngine.recommend(snap, emptyList()).isEmpty())
+        assertTrue(RecommendationEngine.recommend(inputs()).isEmpty())
+    }
+
+    // -----------------------------------------------------------------------
+    // Imbalance, counted in sets
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun imbalanceIsMeasuredInWeightedSetsNotTonnage() {
+        // Ten chest sets against four back sets is a real 2.5x gap...
+        val sets = liftSets("ex-bench", "Bench", "Chest", 10, 100.0) +
+            liftSets("ex-row", "Row", "Back", 4, 80.0)
+        val cards = RecommendationEngine.imbalances(inputs(sets))
+
+        val chestBack = cards.first { it.id == "imbalance-CHEST-BACK" }
+        assertEquals(RecommendationEngine.KICKER_BALANCE, chestBack.kicker)
+        assertEquals("Back is behind Chest", chestBack.title)
+        assertEquals(CanonicalMuscle.BACK, chestBack.actionMuscle)
     }
 
     @Test
-    fun neglectedMuscleUsesDaysSinceLastTrained() {
-        val snap = snapshotWith(
-            set("c", "s1", "ex-bench", "Bench", 100.0, 5, at = now - days(1), muscle = "Chest"),
-            set("b", "s2", "ex-row", "Row", 80.0, 5, at = now - days(9), muscle = "Back"),
-            set("k", "s1", "ex-ohp", "OHP", 40.0, 5, at = now - days(2), muscle = "Shoulders"),
-            set("i", "s1", "ex-curl", "Curl", 20.0, 8, at = now - days(2), muscle = "Biceps"),
-            set("t", "s1", "ex-tri", "Pushdown", 25.0, 8, at = now - days(2), muscle = "Triceps"),
-            set("q", "s1", "ex-squat", "Squat", 80.0, 5, at = now - days(2), muscle = "Quads"),
-            set("h", "s1", "ex-rdl", "RDL", 80.0, 5, at = now - days(2), muscle = "Hamstrings"),
-            set("g", "s1", "ex-ht", "Hip Thrust", 80.0, 5, at = now - days(2), muscle = "Glutes"),
-            set("v", "s1", "ex-calf", "Calf Raise", 40.0, 10, at = now - days(2), muscle = "Calves"),
-            set("o", "s1", "ex-plank", "Plank", 0.0, 20, at = now - days(2), muscle = "Core"),
-        )
-        val recs = RecommendationEngine.neglectedMuscles(snap, suppressUpper = false)
-        assertTrue(recs.any { it.id == "neglect-BACK" && it.title.contains("9 days") })
-        assertTrue(recs.any { it.priority == RecommendationPriority.ATTENTION })
+    fun equalSetsAtWildlyDifferentWeightsAreNotAnImbalance() {
+        // ...and this is the case tonnage got wrong. Same number of sets each; the deadlift
+        // moves five times the weight of the curl, which the old ratio read as neglect.
+        val sets = liftSets("ex-row", "Row", "Back", 8, 150.0) +
+            liftSets("ex-curl", "Curl", "Biceps", 8, 25.0)
+        val cards = RecommendationEngine.imbalances(inputs(sets))
+        assertNull(cards.firstOrNull { it.actionMuscle == CanonicalMuscle.BICEPS })
     }
 
     @Test
-    fun neverTrainedMuscleIsHighPriority() {
-        val snap = snapshotWith(
-            set("c", "s1", "ex-bench", "Bench", 100.0, 5, at = now - days(1), muscle = "Chest"),
-        )
-        val recs = RecommendationEngine.neglectedMuscles(snap, suppressUpper = false)
-        assertTrue(recs.any { it.actionMuscle == CanonicalMuscle.BACK && it.priority == RecommendationPriority.HIGH })
+    fun imbalanceNeedsTheHeavySideToBeDoingRealWork() {
+        // Two sets against zero is not an imbalance; it is a quiet fortnight.
+        val sets = liftSets("ex-bench", "Bench", "Chest", 2, 100.0)
+        assertTrue(RecommendationEngine.imbalances(inputs(sets)).isEmpty())
     }
 
     @Test
-    fun chestBackImbalance() {
-        val snap = snapshotWith(
-            set("c", "s1", "ex-bench", "Bench", 120.0, 5, at = now - days(1), muscle = "Chest"),
-            set("b", "s1", "ex-row", "Row", 40.0, 5, at = now - days(1), muscle = "Back"),
-        )
-        val recs = RecommendationEngine.imbalances(snap)
-        assertEquals(1, recs.size)
-        assertEquals("imbalance-CHEST-BACK", recs.first().id)
-        assertEquals(CanonicalMuscle.BACK, recs.first().actionMuscle)
-        assertTrue(recs.first().title.contains("Chest"))
-        assertTrue(recs.first().title.contains("Back"))
+    fun aZeroSideIsCalledOutExplicitly() {
+        val sets = liftSets("ex-bench", "Bench", "Chest", 12, 100.0)
+        val card = RecommendationEngine.imbalances(inputs(sets))
+            .first { it.actionMuscle == CanonicalMuscle.BACK }
+        assertEquals("No Back work against Chest", card.title)
+        assertTrue(card.reason, card.reason.contains("has none"))
+        assertEquals(RecommendationPriority.HIGH, card.priority)
     }
 
-    @Test
-    fun imbalanceIgnoresTinySamples() {
-        val snap = snapshotWith(
-            set("c", "s1", "ex-bench", "Bench", 20.0, 5, at = now - days(1), muscle = "Chest"),
-            set("b", "s1", "ex-row", "Row", 5.0, 5, at = now - days(1), muscle = "Back"),
-        )
-        assertTrue(RecommendationEngine.imbalances(snap).isEmpty())
-    }
+    // -----------------------------------------------------------------------
+    // Do less
+    // -----------------------------------------------------------------------
 
     @Test
-    fun recoveryWhenUpperIsHotAndLegsAreQuiet() {
-        val snap = snapshotWith(
-            set("c", "s1", "ex-bench", "Bench", 100.0, 5, at = now - days(1), muscle = "Chest"),
-            set("k", "s1", "ex-ohp", "OHP", 90.0, 5, at = now - days(1), muscle = "Shoulders"),
-            set("t", "s1", "ex-tri", "Pushdown", 85.0, 5, at = now - days(1), muscle = "Triceps"),
-            set("q", "s1", "ex-squat", "Squat", 10.0, 5, at = now - days(1), muscle = "Quads"),
-        )
-        val rec = RecommendationEngine.recoverySignal(snap)
-        assertEquals("recovery-upper", rec?.id)
-        assertEquals(RecommendationPriority.HIGH, rec?.priority)
+    fun restSignalFiresOnlyWhenEveryMuscleIsProductive() {
+        val everything = CanonicalMuscle.bodyMapOrder.flatMap { muscle ->
+            liftSets("ex-${muscle.name}", muscle.displayName, muscle.catalogLabel, 24, 60.0)
+        }
+        val card = RecommendationEngine.restSignal(inputs(everything))
+        assertNotNull(card)
+        assertEquals(RecommendationEngine.KICKER_RECOVERY, card!!.kicker)
+        assertEquals("Every muscle is at productive volume", card.title)
+
+        // One muscle short of the floor and the advice is no longer "add nothing".
+        val short = CanonicalMuscle.bodyMapOrder.flatMap { muscle ->
+            val count = if (muscle == CanonicalMuscle.CALVES) 4 else 24
+            liftSets("ex-${muscle.name}", muscle.displayName, muscle.catalogLabel, count, 60.0)
+        }
+        assertNull(RecommendationEngine.restSignal(inputs(short)))
     }
 
-    @Test
-    fun recoverySuppressesUpperNeglect() {
-        val snap = snapshotWith(
-            set("c", "s1", "ex-bench", "Bench", 100.0, 5, at = now - days(1), muscle = "Chest"),
-            set("k", "s1", "ex-ohp", "OHP", 90.0, 5, at = now - days(1), muscle = "Shoulders"),
-            set("t", "s1", "ex-tri", "Pushdown", 85.0, 5, at = now - days(1), muscle = "Triceps"),
-            set("q", "s1", "ex-squat", "Squat", 10.0, 5, at = now - days(1), muscle = "Quads"),
-        )
-        val recs = RecommendationEngine.recommend(snap, emptyList())
-        assertTrue(recs.any { it.id == "recovery-upper" })
-        assertTrue(recs.none { it.id.startsWith("neglect-") && it.actionMuscle?.region == MuscleRegion.UPPER })
-    }
-
-    @Test
-    fun coreGapWhenWindowHasTrainingButNoCore() {
-        val snap = snapshotWith(
-            set("c", "s1", "ex-bench", "Bench", 100.0, 5, at = now - days(1), muscle = "Chest"),
-        )
-        val rec = RecommendationEngine.coreCoverageGap(snap)
-        assertEquals("coverage-core", rec?.id)
-        assertEquals(CanonicalMuscle.CORE, rec?.actionMuscle)
-    }
-
-    @Test
-    fun coreGapSkippedWhenCoreWasTrained() {
-        val snap = snapshotWith(
-            set("c", "s1", "ex-plank", "Plank", 0.0, 30, at = now - days(1), muscle = "Core"),
-        )
-        assertNull(RecommendationEngine.coreCoverageGap(snap))
-    }
-
-    @Test
-    fun progressionListsReadyLifts() {
-        val hints = listOf(
-            ProgressionHint("ex-squat", "Squat", 100.0, 5, 5, 102.5, ProgressionAction.INCREASE),
-            ProgressionHint("ex-bench", "Bench", 80.0, 5, 5, 82.5, ProgressionAction.INCREASE),
-            ProgressionHint("ex-row", "Row", 70.0, 3, 5, 70.0, ProgressionAction.HOLD),
-        )
-        val rec = RecommendationEngine.progressionOpportunity(hints)
-        assertEquals("progression-ready", rec?.id)
-        assertTrue(rec!!.title.contains("Squat"))
-        assertTrue(rec.title.contains("Bench"))
-        assertTrue(rec.title.contains("+2.5 kg"))
-        assertEquals(RecommendationAction.START_WORKOUT, rec.action)
-        val lbs = RecommendationEngine.progressionOpportunity(hints, WeightUnit.LBS)
-        assertTrue(lbs!!.title.contains(WeightUnit.LBS.suffix))
-    }
+    // -----------------------------------------------------------------------
+    // Ranking
+    // -----------------------------------------------------------------------
 
     @Test
     fun recommendCapsAndRanksHighFirst() {
-        val snap = snapshotWith(
-            set("c", "s1", "ex-bench", "Bench", 140.0, 5, at = now - days(1), muscle = "Chest"),
-            set("b", "s1", "ex-row", "Row", 40.0, 5, at = now - days(1), muscle = "Back"),
-        )
+        val sets = liftSets("ex-bench", "Bench", "Chest", 14, 140.0) +
+            liftSets("ex-row", "Row", "Back", 3, 40.0)
         val recs = RecommendationEngine.recommend(
-            snap,
-            listOf(ProgressionHint("ex-bench", "Bench", 140.0, 5, 5, 142.5, ProgressionAction.INCREASE)),
+            inputs(
+                sets = sets,
+                hints = listOf(
+                    ProgressionHint("ex-bench", "Bench", 140.0, 5, 5, 142.5, ProgressionAction.INCREASE),
+                ),
+            ),
         )
         assertTrue(recs.size <= RecommendationEngine.MAX_RESULTS)
-        val priorities = recs.map { it.priority }
-        assertEquals(priorities.sortedByDescending { it.ordinal.let { p -> 2 - p } }, priorities)
-        assertTrue(recs.first().priority == RecommendationPriority.HIGH)
+        assertEquals(RecommendationPriority.HIGH, recs.first().priority)
+        val priorities = recs.map { it.priority.ordinal }
+        assertEquals(priorities.sorted(), priorities)
     }
 
-    private fun snapshotWith(vararg sets: Pair<SetLog, String>): BodyHeatSnapshot {
-        val grouped = sets.groupBy { it.first.sessionId }
-        val sessions = grouped.map { (sessionId, rows) ->
+    @Test
+    fun theGoalReordersButNeverAddsOrRemovesACard() {
+        val sets = liftSets("ex-bench", "Bench", "Chest", 14, 140.0) +
+            liftSets("ex-row", "Row", "Back", 3, 40.0)
+        val hints = listOf(
+            ProgressionHint("ex-bench", "Bench", 140.0, 5, 5, 142.5, ProgressionAction.INCREASE),
+        )
+        val general = RecommendationEngine.recommend(inputs(sets, hints = hints))
+        val strength = RecommendationEngine.recommend(
+            inputs(sets, hints = hints, goal = TrainingGoal.STRENGTH),
+        )
+        val hypertrophy = RecommendationEngine.recommend(
+            inputs(sets, hints = hints, goal = TrainingGoal.HYPERTROPHY),
+        )
+
+        assertEquals(general.map { it.id }.toSet(), strength.map { it.id }.toSet())
+        assertEquals(general.map { it.id }.toSet(), hypertrophy.map { it.id }.toSet())
+        // Strength lifts the progression card above the other INFO-priority cards it ties with.
+        val strengthScore = strength.first { it.id == "progression-ready" }.rankScore
+        val generalScore = general.first { it.id == "progression-ready" }.rankScore
+        assertTrue("strength must weight progression higher", strengthScore > generalScore)
+    }
+
+    // -----------------------------------------------------------------------
+    // Fixtures
+    // -----------------------------------------------------------------------
+
+    private fun inputs(
+        sets: List<Pair<SetLog, String>> = emptyList(),
+        hints: List<ProgressionHint> = emptyList(),
+        goal: TrainingGoal = TrainingGoal.GENERAL,
+        routines: List<Routine> = emptyList(),
+        catalog: Map<String, Exercise> = emptyMap(),
+    ): CoachInputs {
+        val history = sessionsFrom(sets)
+        return CoachInputs(
+            basis = MuscleLoadCalculator.coachBasis(history, now, zone, catalog),
+            history = history,
+            routines = routines,
+            hints = hints,
+            exerciseCatalog = catalog,
+            preferences = CoachPreferences(goal = goal),
+            nowMs = now,
+            zone = zone,
+        )
+    }
+
+    private fun sessionsFrom(sets: List<Pair<SetLog, String>>): List<WorkoutSession> =
+        sets.groupBy { it.first.sessionId }.map { (sessionId, rows) ->
             session(
                 id = sessionId,
                 finishedAt = rows.maxOf { it.first.completedAt },
                 sets = rows.map { it.first },
-                exercises = rows.map { (set, muscle) ->
-                    sessionExercise(set.exerciseId, set.exerciseName, muscle)
-                }.distinctBy { it.exercise.id },
+                exercises = rows
+                    .map { (set, muscle) -> sessionExercise(set.exerciseId, set.exerciseName, muscle) }
+                    .distinctBy { it.exercise.id },
             )
         }
-        return MuscleLoadCalculator.snapshot(sessions, HeatWindow.LAST_7_DAYS, now, zone)
-    }
 
-    private fun set(
-        id: String,
-        sessionId: String,
+    /**
+     * [count] working sets of one lift, spread over the last few days so they all land inside
+     * the coach's trailing window.
+     */
+    private fun liftSets(
         exerciseId: String,
         name: String,
-        weightKg: Double,
-        reps: Int,
-        at: Long,
         muscle: String,
-    ): Pair<SetLog, String> = set(id, sessionId, exerciseId, name, weightKg, reps, false, at) to muscle
+        count: Int,
+        weightKg: Double,
+    ): List<Pair<SetLog, String>> = (0 until count).map { index ->
+        set(
+            id = "$exerciseId-$index",
+            sessionId = "s-$exerciseId",
+            exerciseId = exerciseId,
+            name = name,
+            weightKg = weightKg,
+            reps = 5,
+            at = now - days(1),
+        ) to muscle
+    }
 
     private fun days(count: Long): Long = count * 24L * 60L * 60L * 1000L
 }

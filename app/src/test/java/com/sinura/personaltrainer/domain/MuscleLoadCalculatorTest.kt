@@ -22,7 +22,7 @@ class MuscleLoadCalculatorTest {
             ),
             exercises = listOf(sessionExercise("ex-bench", "Bench", "Chest")),
         )
-        val snap = MuscleLoadCalculator.snapshot(listOf(session), HeatWindow.LAST_7_DAYS, now, zone)
+        val snap = MuscleLoadCalculator.snapshot(listOf(session), HeatWindow.LAST_30_DAYS, now, zone)
         val chest = snap.load(CanonicalMuscle.CHEST)
         assertEquals(500.0, chest.volumeKg, 0.001)
         assertEquals(1, chest.workingSets)
@@ -39,7 +39,7 @@ class MuscleLoadCalculatorTest {
             sets = listOf(set("a", "s1", "ex-pu", "Pull-Up", 0.0, 8, at = now - days(1))),
             exercises = listOf(sessionExercise("ex-pu", "Pull-Up", "Back")),
         )
-        val snap = MuscleLoadCalculator.snapshot(listOf(session), HeatWindow.LAST_7_DAYS, now, zone)
+        val snap = MuscleLoadCalculator.snapshot(listOf(session), HeatWindow.LAST_30_DAYS, now, zone)
         val expected = MuscleLoadCalculator.BODYWEIGHT_EQUIVALENT_KG * 8
         assertEquals(expected, snap.load(CanonicalMuscle.BACK).volumeKg, 0.001)
     }
@@ -54,11 +54,13 @@ class MuscleLoadCalculatorTest {
         )
         val old = session(
             id = "old",
-            finishedAt = now - days(20),
-            sets = listOf(set("o", "old", "ex-squat", "Squat", 140.0, 5, at = now - days(20))),
+            finishedAt = now - days(40),
+            sets = listOf(set("o", "old", "ex-squat", "Squat", 140.0, 5, at = now - days(40))),
             exercises = listOf(sessionExercise("ex-squat", "Squat", "Quads")),
         )
-        val snap = MuscleLoadCalculator.snapshot(listOf(recent, old), HeatWindow.LAST_7_DAYS, now, zone)
+        // A set outside the window is excluded from volume while still counting for
+        // "how long since" — recency reads all of history, not just the window.
+        val snap = MuscleLoadCalculator.snapshot(listOf(recent, old), HeatWindow.LAST_30_DAYS, now, zone)
         val quads = snap.load(CanonicalMuscle.QUADRICEPS)
         assertEquals(400.0, quads.volumeKg, 0.001)
         assertEquals(2, quads.daysSinceLastTrained)
@@ -67,7 +69,10 @@ class MuscleLoadCalculatorTest {
     }
 
     @Test
-    fun heatIsNormalizedToUsersOwnMax() {
+    fun heatIsAbsoluteNotRelativeToTheHardestMuscle() {
+        // One set of each. Under the old relative rule the chest was fully hot for being the
+        // heavier of two, and the back sat at half — a picture of "which did more", not of
+        // "is either enough". Absolutely, one set a week is untrained on both.
         val session = session(
             id = "s1",
             finishedAt = now - days(1),
@@ -80,13 +85,35 @@ class MuscleLoadCalculatorTest {
                 sessionExercise("ex-row", "Row", "Back"),
             ),
         )
-        val snap = MuscleLoadCalculator.snapshot(listOf(session), HeatWindow.LAST_7_DAYS, now, zone)
-        assertEquals(1.0, snap.load(CanonicalMuscle.CHEST).heat, 0.001)
-        assertEquals(0.5, snap.load(CanonicalMuscle.BACK).heat, 0.001)
-        assertEquals(0.0, snap.load(CanonicalMuscle.CORE).heat, 0.001)
-        assertEquals(HeatBand.HIGH, snap.load(CanonicalMuscle.CHEST).band)
-        assertEquals(HeatBand.MODERATE, snap.load(CanonicalMuscle.BACK).band)
-        assertEquals(HeatBand.NONE, snap.load(CanonicalMuscle.CORE).band)
+        val snap = MuscleLoadCalculator.snapshot(listOf(session), HeatWindow.CURRENT_WEEK, now, zone)
+        assertEquals(0.0, snap.load(CanonicalMuscle.CHEST).heat, 0.001)
+        assertEquals(0.0, snap.load(CanonicalMuscle.BACK).heat, 0.001)
+        assertEquals(HeatBand.UNTRAINED, snap.load(CanonicalMuscle.CHEST).band)
+        assertEquals(HeatBand.UNTRAINED, snap.load(CanonicalMuscle.BACK).band)
+        assertEquals(HeatBand.UNTRAINED, snap.load(CanonicalMuscle.CORE).band)
+
+        // …and the hardest-worked muscle no longer drags everything else down: adding a huge
+        // leg day leaves the chest exactly where it was.
+        val legs = session(
+            id = "s2",
+            finishedAt = now - days(1),
+            sets = List(24) { index ->
+                set("l$index", "s2", "ex-squat", "Squat", 200.0, 5, at = now - days(1))
+            },
+            exercises = listOf(sessionExercise("ex-squat", "Squat", "Quads")),
+        )
+        val withLegs = MuscleLoadCalculator.snapshot(
+            listOf(session, legs),
+            HeatWindow.CURRENT_WEEK,
+            now,
+            zone,
+        )
+        assertEquals(
+            snap.load(CanonicalMuscle.CHEST).heat,
+            withLegs.load(CanonicalMuscle.CHEST).heat,
+            0.001,
+        )
+        assertEquals(HeatBand.HIGH, withLegs.load(CanonicalMuscle.QUADRICEPS).band)
     }
 
     @Test
@@ -97,12 +124,13 @@ class MuscleLoadCalculatorTest {
             sets = listOf(set("d", "s1", "ex-dl", "Deadlift", 150.0, 4, at = now - days(1))),
             exercises = listOf(sessionExercise("ex-dl", "Deadlift", "Posterior chain")),
         )
-        val snap = MuscleLoadCalculator.snapshot(listOf(session), HeatWindow.LAST_7_DAYS, now, zone)
+        val snap = MuscleLoadCalculator.snapshot(listOf(session), HeatWindow.LAST_30_DAYS, now, zone)
         val primary = 150.0 * 4
         assertEquals(primary, snap.load(CanonicalMuscle.BACK).volumeKg, 0.001)
         assertEquals(primary * MuscleLoadCalculator.SECONDARY_VOLUME_WEIGHT, snap.load(CanonicalMuscle.HAMSTRINGS).volumeKg, 0.001)
         assertEquals(primary * MuscleLoadCalculator.SECONDARY_VOLUME_WEIGHT, snap.load(CanonicalMuscle.GLUTES).volumeKg, 0.001)
-        assertEquals(1.0, snap.load(CanonicalMuscle.BACK).heat, 0.001)
+        // One set is one set however heavy it was: heat is set count now, not tonnage share.
+        assertEquals(0.0, snap.load(CanonicalMuscle.BACK).heat, 0.001)
     }
 
     @Test
@@ -113,7 +141,7 @@ class MuscleLoadCalculatorTest {
             sets = listOf(set("x", "open", "ex-bench", "Bench", 100.0, 5, at = now)),
             exercises = listOf(sessionExercise("ex-bench", "Bench", "Chest")),
         )
-        val snap = MuscleLoadCalculator.snapshot(listOf(open), HeatWindow.LAST_7_DAYS, now, zone)
+        val snap = MuscleLoadCalculator.snapshot(listOf(open), HeatWindow.LAST_30_DAYS, now, zone)
         assertFalse(snap.hasAnyWorkingSets)
         assertEquals(0.0, snap.load(CanonicalMuscle.CHEST).volumeKg, 0.001)
         assertNull(snap.load(CanonicalMuscle.CHEST).daysSinceLastTrained)
@@ -127,9 +155,11 @@ class MuscleLoadCalculatorTest {
             sets = listOf(set("n", "s1", "ex-neck", "Neck Curl", 20.0, 10, at = now - days(1))),
             exercises = listOf(sessionExercise("ex-neck", "Neck Curl", "")),
         )
-        val snap = MuscleLoadCalculator.snapshot(listOf(session), HeatWindow.LAST_7_DAYS, now, zone)
+        val snap = MuscleLoadCalculator.snapshot(listOf(session), HeatWindow.LAST_30_DAYS, now, zone)
         assertEquals(200.0, snap.load(CanonicalMuscle.OTHER).volumeKg, 0.001)
-        assertEquals(1.0, snap.load(CanonicalMuscle.OTHER).heat, 0.001)
+        // Off-map work is still counted, and one set of it is still one set: the old relative
+        // rule painted this fully hot for being the only thing in the window.
+        assertEquals(0.0, snap.load(CanonicalMuscle.OTHER).heat, 0.001)
     }
 
     @Test
@@ -155,11 +185,48 @@ class MuscleLoadCalculatorTest {
     }
 
     @Test
-    fun normalizeHeatHandlesZeroMax() {
-        assertEquals(0.0, MuscleLoadCalculator.normalizeHeat(10.0, 0.0), 0.0)
-        assertEquals(0.0, MuscleLoadCalculator.normalizeHeat(0.0, 100.0), 0.0)
-        assertEquals(1.0, MuscleLoadCalculator.normalizeHeat(50.0, 50.0), 0.0)
-        assertEquals(0.25, MuscleLoadCalculator.normalizeHeat(25.0, 100.0), 0.0)
+    fun heatFractionIsPiecewiseAndMonotonic() {
+        // The anchors the silhouette's ramp is built around.
+        assertEquals(0.0, MuscleLoadCalculator.heatFraction(0.0), 0.0)
+        assertEquals(0.0, MuscleLoadCalculator.heatFraction(3.99), 0.0)
+        assertEquals(MuscleLoadCalculator.FRACTION_LOW, MuscleLoadCalculator.heatFraction(4.0), 1e-9)
+        assertEquals(
+            MuscleLoadCalculator.FRACTION_PRODUCTIVE,
+            MuscleLoadCalculator.heatFraction(10.0),
+            1e-9,
+        )
+        // Flat across the whole productive band, so "enough" is one recognisable colour.
+        assertEquals(
+            MuscleLoadCalculator.heatFraction(10.0),
+            MuscleLoadCalculator.heatFraction(20.0),
+            1e-9,
+        )
+        assertEquals(1.0, MuscleLoadCalculator.heatFraction(30.0), 1e-9)
+        assertEquals(1.0, MuscleLoadCalculator.heatFraction(100.0), 1e-9)
+
+        var previous = -1.0
+        var sets = 0.0
+        while (sets <= 40.0) {
+            val value = MuscleLoadCalculator.heatFraction(sets)
+            assertTrue("heat must never fall as sets rise (at $sets)", value >= previous)
+            previous = value
+            sets += 0.25
+        }
+    }
+
+    @Test
+    fun thirtyDayWindowIsAveragedToAWeek() {
+        // The two chips have to be the same unit or the bands mean different things on each.
+        assertEquals(
+            10.0,
+            MuscleLoadCalculator.weeklySetsFor(10.0, HeatWindow.CURRENT_WEEK),
+            1e-9,
+        )
+        assertEquals(
+            30.0 * 7.0 / 30.0,
+            MuscleLoadCalculator.weeklySetsFor(30.0, HeatWindow.LAST_30_DAYS),
+            1e-9,
+        )
     }
 
     private fun days(count: Long): Long = count * 24L * 60L * 60L * 1000L

@@ -107,7 +107,18 @@ class WeeklySchedulePlannerTest {
     @Test
     fun imbalancePutsBackEmphasisOnUpperOrPull() {
         val snap = hotChestQuietBack()
-        val recs = RecommendationEngine.recommend(snap, emptyList())
+        val recs = listOf(
+            TrainingRecommendation(
+                id = "imbalance-CHEST-BACK",
+                kicker = RecommendationEngine.KICKER_BALANCE,
+                title = "Back is behind Chest",
+                reason = "test fixture",
+                priority = RecommendationPriority.HIGH,
+                action = RecommendationAction.OPEN_LIBRARY_MUSCLE,
+                actionMuscle = CanonicalMuscle.BACK,
+                rankScore = 50,
+            ),
+        )
         val plan = plan(
             prefs = SchedulePreferences(trainingDaysPerWeek = 4, splitStyle = SplitStyle.UPPER_LOWER),
             snapshot = snap,
@@ -159,7 +170,7 @@ class WeeklySchedulePlannerTest {
 
     @Test
     fun thinHistoryUsesCleanDefaultAndLowConfidence() {
-        val emptySnap = MuscleLoadCalculator.snapshot(emptyList(), HeatWindow.LAST_7_DAYS, now, zone)
+        val emptySnap = MuscleLoadCalculator.snapshot(emptyList(), HeatWindow.LAST_30_DAYS, now, zone)
         val plan = plan(
             prefs = SchedulePreferences(trainingDaysPerWeek = 3, splitStyle = SplitStyle.FULL_BODY),
             snapshot = emptySnap,
@@ -424,6 +435,7 @@ class WeeklySchedulePlannerTest {
 
     private fun recoveryUpper() = TrainingRecommendation(
         id = "recovery-upper",
+        kicker = RecommendationEngine.KICKER_RECOVERY,
         title = "Upper-body load is very high",
         reason = "test fixture",
         priority = RecommendationPriority.HIGH,
@@ -444,7 +456,7 @@ class WeeklySchedulePlannerTest {
                 sessionExercise("ex-row", "Row", "Back"),
             ),
         )
-        return MuscleLoadCalculator.snapshot(listOf(session), HeatWindow.LAST_7_DAYS, now, zone)
+        return MuscleLoadCalculator.snapshot(listOf(session), HeatWindow.LAST_30_DAYS, now, zone)
     }
 
     private fun finished(id: String, at: Long, muscle: String): WorkoutSession = session(

@@ -8,10 +8,14 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.sinura.personaltrainer.domain.CoachPreferences
+import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
+import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.WeightUnit
 import java.time.DayOfWeek
 import kotlinx.coroutines.flow.Flow
@@ -48,6 +52,43 @@ class PreferencesRepository(context: Context) {
         dataStore.edit { prefs ->
             prefs[WEIGHT_UNIT] = unit.storageKey
         }
+    }
+
+    /**
+     * What the coach emphasises, and what the user actually has to lift with.
+     *
+     * Device-local and deliberately outside the backup document: these describe the gym you
+     * walk into, not your training history, and a restore from a phone that lived somewhere
+     * else should not silently tell you that you own a cable machine.
+     */
+    val coachPreferences: Flow<CoachPreferences> = safePreferences
+        .map { prefs ->
+            CoachPreferences(
+                goal = TrainingGoal.fromStorage(prefs[TRAINING_GOAL]),
+                // Empty means "no filtering", never "owns nothing" — see CoachPreferences.
+                availableEquipment = prefs[AVAILABLE_EQUIPMENT].orEmpty(),
+            )
+        }
+
+    suspend fun setTrainingGoal(goal: TrainingGoal) {
+        dataStore.edit { prefs -> prefs[TRAINING_GOAL] = goal.name }
+    }
+
+    suspend fun setAvailableEquipment(equipment: Set<String>) {
+        dataStore.edit { prefs -> prefs[AVAILABLE_EQUIPMENT] = equipment }
+    }
+
+    /**
+     * The window the body map opens on.
+     *
+     * Nothing persisted this before, so the map reset to a default every time the process
+     * died — a preference the user re-expressed on every cold start and the app never learned.
+     */
+    val heatWindow: Flow<HeatWindow> = safePreferences
+        .map { prefs -> HeatWindow.fromStorage(prefs[HEAT_WINDOW]) }
+
+    suspend fun setHeatWindow(window: HeatWindow) {
+        dataStore.edit { prefs -> prefs[HEAT_WINDOW] = window.name }
     }
 
     val schedulePreferences: Flow<SchedulePreferences> = safePreferences
@@ -215,6 +256,9 @@ class PreferencesRepository(context: Context) {
 
     private companion object {
         val WEIGHT_UNIT = stringPreferencesKey("weight_unit")
+        val TRAINING_GOAL = stringPreferencesKey("training_goal")
+        val AVAILABLE_EQUIPMENT = stringSetPreferencesKey("available_equipment")
+        val HEAT_WINDOW = stringPreferencesKey("heat_window")
         val TRAINING_DAYS = intPreferencesKey("training_days_per_week")
         val SPLIT_STYLE = stringPreferencesKey("split_style")
         val WEEK_START = stringPreferencesKey("week_start")

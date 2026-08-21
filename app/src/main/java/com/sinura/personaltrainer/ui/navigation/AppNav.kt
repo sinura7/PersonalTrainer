@@ -302,12 +302,14 @@ fun PersonalTrainerNav(
                                 restoreState = false
                             }
                         },
+                        onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
                         onOpenSession = { navController.navigate(Route.SessionDetail.create(it)) },
                         onOpenSettings = { navController.navigate(Route.Settings.path) },
                     )
                 }
                 composable(Route.Progress.path) {
                     ProgressScreen(
+                        onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
                         onOpenLibrary = { muscle ->
                             navController.navigate(Route.Library.create(muscle)) {
                                 popUpTo(navController.graph.findStartDestination().id) {

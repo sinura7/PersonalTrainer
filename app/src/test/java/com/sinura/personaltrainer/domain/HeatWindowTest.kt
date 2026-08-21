@@ -46,12 +46,12 @@ class HeatWindowTest {
     fun rollingWindowsIgnoreWeekStart() {
         val now = millis(LocalDate.of(2026, 8, 20))
         assertEquals(
-            HeatWindow.LAST_7_DAYS.startMs(now, zone),
-            HeatWindow.LAST_7_DAYS.startMs(now, zone, DayOfWeek.SUNDAY),
+            HeatWindow.LAST_30_DAYS.startMs(now, zone),
+            HeatWindow.LAST_30_DAYS.startMs(now, zone, DayOfWeek.SUNDAY),
         )
         assertEquals(
-            HeatWindow.LAST_14_DAYS.startMs(now, zone),
-            HeatWindow.LAST_14_DAYS.startMs(now, zone, DayOfWeek.FRIDAY),
+            HeatWindow.LAST_30_DAYS.startMs(now, zone),
+            HeatWindow.LAST_30_DAYS.startMs(now, zone, DayOfWeek.FRIDAY),
         )
     }
 
@@ -81,8 +81,8 @@ class HeatWindowTest {
     fun rollingWindowCrossesADstBoundaryWithoutDrift() {
         // 2026-03-08 is the US spring-forward. minusDays must stay calendar-correct.
         val afterDst = LocalDateTime.of(2026, 3, 10, 9, 0).atZone(zone).toInstant().toEpochMilli()
-        val start = HeatWindow.LAST_7_DAYS.startMs(afterDst, zone)
-        val expected = LocalDateTime.of(2026, 3, 3, 9, 0).atZone(zone).toInstant().toEpochMilli()
+        val start = HeatWindow.LAST_30_DAYS.startMs(afterDst, zone)
+        val expected = LocalDateTime.of(2026, 2, 8, 9, 0).atZone(zone).toInstant().toEpochMilli()
         assertEquals(expected, start)
     }
 }

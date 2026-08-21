@@ -19,7 +19,7 @@ class WorkingVolumeAgreementTest {
             exercises = listOf(sessionExercise("ex-pu", "Pull-Up", "Back")),
         )
         val onTheBodyMap = MuscleLoadCalculator
-            .snapshot(listOf(pullUps), HeatWindow.LAST_7_DAYS, at, ZoneOffset.UTC)
+            .snapshot(listOf(pullUps), HeatWindow.LAST_30_DAYS, at, ZoneOffset.UTC)
             .load(CanonicalMuscle.BACK)
             .volumeKg
         // Previously this read 0.0 while the body map read 320.0.

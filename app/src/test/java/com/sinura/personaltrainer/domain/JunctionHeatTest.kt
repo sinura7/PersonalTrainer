@@ -216,7 +216,7 @@ class JunctionHeatTest {
         catalog: Map<String, Exercise>,
     ): BodyHeatSnapshot = MuscleLoadCalculator.snapshot(
         sessions = sessions,
-        window = HeatWindow.LAST_14_DAYS,
+        window = HeatWindow.LAST_30_DAYS,
         nowMs = NOW,
         zone = ZoneOffset.UTC,
         exerciseCatalog = catalog,

@@ -171,9 +171,9 @@ Carried forward deliberately, with the phase that will address them.
 | ViewModels untestable by construction (service-locator `AppViewModel`) — A1 | opportunistic — not a phase |
 | Finished sessions cannot be edited | ~~1~~ fixed 21 Aug — sets, notes, session delete, repeat |
 | Routine editor loses an unsaved rename on back | ~~4~~ fixed 20 Aug |
-| Imbalance advice compares tonnage, not working-set counts | 5 |
+| Imbalance advice compares tonnage, not working-set counts | ~~5~~ fixed 21 Aug — weighted weekly sets |
 | Progression increment is a global 2.5 kg; LBS users see "+5.5 lbs" | 7 |
-| RPE is stored and backed up but read by nothing | 5 |
+| RPE is stored and backed up but read by nothing | ~~5~~ fixed 21 Aug — two top sets at RPE 9+ hold the load |
 | Planner assigns focus to days already in the past | ~~4~~ fixed 21 Aug — proposals only for open days ≥ today |
 | `arrangeKinds` can still produce back-to-back same-family days | ~~4~~ fixed 21 Aug — guarded rotation replaces the swap |
 | Toolchain ~20 months stale; release unminified | later (platform) |
@@ -330,3 +330,30 @@ executes; they do not change what it builds, and nothing here reopens D1–D5.
   `docs/gameplan/SECOND_PASS.md`.
 
 **No signature required; recorded for the record.**
+
+---
+
+## Open follow-up — the deload advice has no affordance
+
+**Raised:** 21 August 2026, by the coach rework (Phase 5). **Owner decision required; does not
+block anything.**
+
+The coach can now detect overreaching — three weeks of rising working volume with flat top-lift
+estimated maxes — and the card it shows ends by telling you to take an easier week. The app has
+no deload concept anywhere: the Plan tab pins routines and focus kinds, nothing scales load, and
+nothing in the plan knows what "lighter" would mean. So the advice is an instruction the app
+cannot help you follow, and "how do I schedule a deload?" is the obvious next question.
+
+The copy currently shipped is **B** below, chosen because it is the only version of the sentence
+the app can stand behind today. Both options remain open:
+
+- **A — a small follow-up phase (~1 executor day, no schema change).** A "Lighter week" marker
+  on the current week, set from Plan's Tune section and stored as one preference key holding the
+  marked week's start day. It shows on the week strip, and the in-workout progression strip
+  suggests holding load rather than adding it. Nothing else changes.
+- **B — accepted non-goal (shipped).** The advice stays informational, worded as something you
+  can act on by logging: *"Weekly volume rose {pct}% over three weeks while top-lift e1RMs did
+  not move. Take an easier week: same lifts, fewer sets."* No affordance is ever built.
+
+If the owner wants A, it becomes a named phase and the copy goes back to
+`"Schedule a lighter week."` at the same time.

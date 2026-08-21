@@ -406,7 +406,7 @@ This is the second most important design surface after Active Workout. Today it 
 |---|---|---|
 | B-01 | Schematic hotspots, not an anatomical illustration. Fine as v1, not “high class” | P2 |
 | B-02 | Empty until history — the tab is a dead end on first launch | P1 |
-| B-03 | Recommendations can still read generic. They should name **lifts you already have** with pictures | P1 |
+| B-03 | Recommendations can still read generic. They should name **lifts you already have** with pictures **— Naming closed 21 Aug 2026 (Phase 5): every muscle-targeted card resolves one lift the owner already has, preferring routines over recent history and filtered by the equipment they say they own, and taps through to that lift. Pictures remain open (Phase 8).** | P1 |
 | B-04 | Home dots + this tab tell the same story twice | P2 |
 | B-05 | Front/back toggle is easy to miss | P2 |
 

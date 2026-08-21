@@ -306,7 +306,7 @@ class WeekDerivationTest {
 
     private fun emptySnapshot(): BodyHeatSnapshot = MuscleLoadCalculator.snapshot(
         sessions = emptyList(),
-        window = HeatWindow.LAST_7_DAYS,
+        window = HeatWindow.LAST_30_DAYS,
         nowMs = millis(MON),
         zone = ZoneOffset.UTC,
     )

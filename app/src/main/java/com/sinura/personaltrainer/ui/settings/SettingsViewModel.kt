@@ -11,8 +11,11 @@ import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
 import com.sinura.personaltrainer.data.repository.RestoreResult
 import com.sinura.personaltrainer.domain.RestTimer
+import com.sinura.personaltrainer.domain.CoachPreferences
+import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
+import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.WeightUnit
 import java.time.DayOfWeek
@@ -22,6 +25,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -67,6 +71,31 @@ class SettingsViewModel(application: Application) : AppViewModel(application) {
                 started = SharingStarted.WhileSubscribed(5_000),
                 initialValue = RestTimerPreferences.DEFAULT,
             )
+
+    val coachPreferences: StateFlow<CoachPreferences> =
+        container.preferencesRepository.coachPreferences
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = CoachPreferences.DEFAULT,
+            )
+
+    fun setTrainingGoal(goal: TrainingGoal) {
+        viewModelScope.launch { container.preferencesRepository.setTrainingGoal(goal) }
+    }
+
+    /**
+     * Toggling equipment off tells the coach not to name lifts you cannot do. An empty set is
+     * "no filtering", so turning the last one back on and off again lands back where it started
+     * rather than silencing every suggestion.
+     */
+    fun toggleEquipment(equipment: EquipmentType) {
+        viewModelScope.launch {
+            val current = container.preferencesRepository.coachPreferences.first().availableEquipment
+            val next = if (equipment.name in current) current - equipment.name else current + equipment.name
+            container.preferencesRepository.setAvailableEquipment(next)
+        }
+    }
 
     private val isBusy = MutableStateFlow(false)
     private val busyLabel = MutableStateFlow<String?>(null)

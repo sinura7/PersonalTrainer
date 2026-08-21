@@ -8,6 +8,8 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -45,8 +47,11 @@ import com.sinura.personaltrainer.BuildConfig
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
 import com.sinura.personaltrainer.domain.DayLabel
+import com.sinura.personaltrainer.domain.CoachPreferences
+import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
+import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
@@ -57,6 +62,7 @@ import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.GymStatusBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
+import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.RestPresetChips
@@ -83,6 +89,7 @@ fun SettingsScreen(
     val selectedUnit by viewModel.weightUnit.collectAsStateWithLifecycle()
     val schedulePrefs by viewModel.schedulePreferences.collectAsStateWithLifecycle()
     val restPrefs by viewModel.restTimerPreferences.collectAsStateWithLifecycle()
+    val coachPrefs by viewModel.coachPreferences.collectAsStateWithLifecycle()
     val backup by viewModel.backupState.collectAsStateWithLifecycle()
     val activity = LocalContext.current.findActivity()
     val dateTimeFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
@@ -136,6 +143,11 @@ fun SettingsScreen(
                 onDays = viewModel::setTrainingDays,
                 onSplit = viewModel::setSplitStyle,
                 onWeekStart = viewModel::setWeekStart,
+            )
+            CoachingSection(
+                preferences = coachPrefs,
+                onGoal = viewModel::setTrainingGoal,
+                onToggleEquipment = viewModel::toggleEquipment,
             )
             RestTimerPrefsSection(
                 preferences = restPrefs,
@@ -293,6 +305,67 @@ private fun SchedulePrefsSection(
                 onSplit = onSplit,
                 onWeekStart = onWeekStart,
             )
+        }
+    }
+}
+
+/**
+ * What the coach emphasises, and what you actually have to lift with.
+ *
+ * Both are inputs to advice rather than to training itself, which is why they live here and
+ * not on the Plan tab: nothing on this card changes a single number in your history, and
+ * changing your goal is not something you do weekly.
+ *
+ * Equipment is opt-OUT. Everything counts as available until you say otherwise, because a
+ * first run that assumed you owned nothing would silently produce a coach that never names a
+ * lift, with nothing on screen to explain the silence.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CoachingSection(
+    preferences: CoachPreferences,
+    onGoal: (TrainingGoal) -> Unit,
+    onToggleEquipment: (EquipmentType) -> Unit,
+) {
+    SettingsGroup(
+        title = "Coaching",
+        caption = "Your goal reorders the suggestions; it never changes what they are. " +
+            "Turning equipment off stops the coach naming lifts you cannot do.",
+    ) {
+        GroupedList(modifier = Modifier.selectableGroup()) {
+            TrainingGoal.entries.forEachIndexed { index, goal ->
+                if (index > 0) HairlineDivider()
+                val selected = preferences.goal == goal
+                InstrumentRow(
+                    title = goal.displayName,
+                    subtitle = goal.blurb,
+                    modifier = Modifier.selectable(
+                        selected = selected,
+                        onClick = { onGoal(goal) },
+                        role = Role.RadioButton,
+                    ),
+                    trailing = {
+                        if (selected) {
+                            Icon(Icons.Outlined.Check, contentDescription = null, tint = Volt)
+                        }
+                    },
+                )
+            }
+        }
+        GymCard {
+            Kicker("Equipment you have")
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+            ) {
+                EquipmentType.entries.forEach { equipment ->
+                    InstrumentChip(
+                        label = equipment.name.lowercase().replaceFirstChar { it.titlecase() },
+                        selected = preferences.allows(equipment),
+                        onClick = { onToggleEquipment(equipment) },
+                    )
+                }
+            }
         }
     }
 }

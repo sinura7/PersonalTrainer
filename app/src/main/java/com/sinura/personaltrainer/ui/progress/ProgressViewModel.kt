@@ -10,12 +10,14 @@ import com.sinura.personaltrainer.domain.TrainingRecommendation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 data class ProgressUiState(
     val isLoading: Boolean = true,
-    val window: HeatWindow = HeatWindow.LAST_7_DAYS,
+    val window: HeatWindow = HeatWindow.CURRENT_WEEK,
     val snapshot: BodyHeatSnapshot? = null,
     val recommendations: List<TrainingRecommendation> = emptyList(),
     /** Fatal: there is no map to draw. The screen replaces its content with a way out. */
@@ -29,7 +31,11 @@ data class ProgressUiState(
 )
 
 class ProgressViewModel(application: Application) : AppViewModel(application) {
-    private val window = MutableStateFlow(HeatWindow.LAST_7_DAYS)
+    /**
+     * Seeded from the stored preference, so the map opens on the window you last chose rather
+     * than resetting to a default every time the process dies.
+     */
+    private val window = MutableStateFlow(HeatWindow.CURRENT_WEEK)
 
     /**
      * Forces a recompute without changing the window.
@@ -69,8 +75,15 @@ class ProgressViewModel(application: Application) : AppViewModel(application) {
             initialValue = ProgressUiState(),
         )
 
+    init {
+        viewModelScope.launch {
+            window.value = container.preferencesRepository.heatWindow.first()
+        }
+    }
+
     fun setWindow(value: HeatWindow) {
         window.value = value
+        viewModelScope.launch { container.preferencesRepository.setHeatWindow(value) }
     }
 
     fun retry() {

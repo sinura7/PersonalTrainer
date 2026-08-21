@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.domain
 
+import java.time.ZoneId
+
 enum class RecommendationPriority {
     HIGH,
     ATTENTION,
@@ -8,33 +10,91 @@ enum class RecommendationPriority {
 
 enum class RecommendationAction {
     OPEN_LIBRARY_MUSCLE,
+    /** Deep-links a named lift the user already owns. See [OwnedLiftResolver]. */
+    OPEN_EXERCISE,
     START_WORKOUT,
     OPEN_ROUTINES,
     OPEN_BODY_MAP,
 }
 
+/**
+ * One piece of advice.
+ *
+ * [kicker] is the ALL-CAPS category label the card leads with — BALANCE, COVERAGE, PROGRESSION,
+ * RECOVERY, LOAD. It exists so a stack of cards can be skimmed by kind before any of them is
+ * read, and so the category is a word rather than a colour.
+ */
 data class TrainingRecommendation(
     val id: String,
+    val kicker: String,
     val title: String,
     val reason: String,
     val priority: RecommendationPriority,
     val action: RecommendationAction? = null,
     val actionMuscle: CanonicalMuscle? = null,
+    val actionExerciseId: String? = null,
+    val actionExerciseName: String? = null,
     val rankScore: Int,
 )
 
+/**
+ * Everything the coach reasons from.
+ *
+ * [basis] is a fixed trailing-14-day window, deliberately NOT the display snapshot: advice
+ * that changed when the user tapped a different chip on the body map was the single worst
+ * thing about the old engine, because it made the app look like it was guessing.
+ */
+data class CoachInputs(
+    val basis: CoachBasis,
+    val history: List<WorkoutSession>,
+    val routines: List<Routine>,
+    val hints: List<ProgressionHint>,
+    val exerciseCatalog: Map<String, Exercise>,
+    val preferences: CoachPreferences = CoachPreferences.DEFAULT,
+    val unit: WeightUnit = WeightUnit.KG,
+    val nowMs: Long,
+    val zone: ZoneId = ZoneId.systemDefault(),
+)
+
+/**
+ * What to do next, and why.
+ *
+ * Three things changed here and they are all about honesty.
+ *
+ * **Imbalance is counted in sets, not tonnage.** A deadlift session and a curl session produce
+ * wildly different kilograms for the same amount of training, so a tonnage ratio said "your
+ * biceps are three times behind your back" to someone training both perfectly evenly. Sets are
+ * the unit training is prescribed in and the unit the fix is expressed in.
+ *
+ * **Nothing quotes the display window.** Every sentence that mentions time says "the last 14
+ * days", because that is what was actually measured.
+ *
+ * **Every muscle card names a lift you own.** "Add hamstring work" is a translation exercise
+ * left to the user; "Add Romanian Deadlift" is an instruction.
+ *
+ * The voice is spec'd, not stylistic: no praise, no first person, no exclamation marks,
+ * numerals rather than number-words. A coach that congratulates you is a coach you stop
+ * reading.
+ */
 object RecommendationEngine {
     const val NEGLECT_DAYS = 7
     const val HIGH_NEGLECT_DAYS = 10
     const val MAX_NEGLECTED = 2
     const val IMBALANCE_RATIO = 2.0
     const val STRONG_IMBALANCE_RATIO = 3.0
-    const val MIN_VOLUME_FOR_IMBALANCE_KG = 250.0
-    const val HIGH_HEAT = 0.8
-    const val LOW_REGION_HEAT = 0.4
-    const val HIGH_UPPER_COUNT = 3
     const val MAX_RESULTS = 5
     const val MAX_PROGRESSION_NAMES = 3
+
+    /** The heavier side must be doing real work before "behind" means anything. */
+    const val MIN_WEEKLY_SETS_FOR_IMBALANCE = 4.0
+
+    const val KICKER_BALANCE = "BALANCE"
+    const val KICKER_COVERAGE = "COVERAGE"
+    const val KICKER_PROGRESSION = "PROGRESSION"
+    const val KICKER_RECOVERY = "RECOVERY"
+    const val KICKER_LOAD = "LOAD"
+
+    private const val BASIS_PHRASE = "the last 14 days"
 
     private val imbalancePairs = listOf(
         CanonicalMuscle.CHEST to CanonicalMuscle.BACK,
@@ -42,206 +102,303 @@ object RecommendationEngine {
         CanonicalMuscle.BICEPS to CanonicalMuscle.TRICEPS,
     )
 
-    fun recommend(
-        snapshot: BodyHeatSnapshot,
-        progression: List<ProgressionHint>,
-        weightUnit: WeightUnit = WeightUnit.KG,
-    ): List<TrainingRecommendation> {
-        if (!snapshot.hasAnyWorkingSets) return emptyList()
+    fun recommend(inputs: CoachInputs): List<TrainingRecommendation> {
+        if (!inputs.basis.hasAnyWorkingSets) return emptyList()
 
-        val recovery = recoverySignal(snapshot)
-        val suppressedUpper = recovery != null
-        val neglected = neglectedMuscles(snapshot, suppressUpper = suppressedUpper)
-        val imbalances = imbalances(snapshot, weightUnit)
-        val progressionRec = progressionOpportunity(progression, weightUnit)
-        val coreGap = coreCoverageGap(snapshot)
-
+        val deload = deloadSignal(inputs)
+        // Both say "do less", so only the more specific one is worth the slot.
+        val rest = if (deload == null) restSignal(inputs) else null
+        val imbalances = imbalances(inputs)
         val suppressedByImbalance = buildSet {
             imbalances.forEach { rec ->
-                rec.actionMuscle?.let { add(it) }
-                rec.actionMuscle?.let { weaker ->
-                    strongerOfPair(snapshot, weaker)?.let { add(it) }
+                rec.actionMuscle?.let { light ->
+                    add(light)
+                    strongerOfPair(inputs.basis, light)?.let { add(it) }
                 }
             }
         }
-
-        val filteredNeglect = neglected.filter { it.actionMuscle !in suppressedByImbalance }
+        val neglected = neglectedMuscles(inputs).filter { it.actionMuscle !in suppressedByImbalance }
 
         return rank(
-            listOfNotNull(recovery) +
+            listOfNotNull(deload, rest) +
                 imbalances +
-                filteredNeglect +
-                listOfNotNull(coreGap) +
-                listOfNotNull(progressionRec),
+                neglected +
+                listOfNotNull(coreCoverageGap(inputs)) +
+                listOfNotNull(progressionOpportunity(inputs)),
+            inputs.preferences.goal,
         )
     }
 
-    internal fun neglectedMuscles(
-        snapshot: BodyHeatSnapshot,
-        suppressUpper: Boolean,
-    ): List<TrainingRecommendation> {
-        return snapshot.mapLoads
-            .filter { load ->
-                if (suppressUpper && load.muscle.region == MuscleRegion.UPPER) return@filter false
-                val days = load.daysSinceLastTrained
-                days == null || days >= NEGLECT_DAYS
-            }
-            .sortedWith(
-                compareByDescending<MuscleLoadSummary> { it.daysSinceLastTrained ?: Int.MAX_VALUE }
-                    .thenBy { it.muscle.displayName },
-            )
-            .take(MAX_NEGLECTED)
-            .map { load ->
-                val days = load.daysSinceLastTrained
-                val high = days == null || days >= HIGH_NEGLECT_DAYS
-                val title = if (days == null) {
-                    "${load.muscle.displayName} has no logged work"
-                } else {
-                    "${load.muscle.displayName} hasn’t been trained in $days days"
-                }
-                val reason = if (days == null) {
-                    "Nothing in history maps to ${load.muscle.displayName}. Add a lift or log a set."
-                } else {
-                    "Last working set was $days days ago. A session here would close the gap."
-                }
-                TrainingRecommendation(
-                    id = "neglect-${load.muscle.name}",
-                    title = title,
-                    reason = reason,
-                    priority = if (high) RecommendationPriority.HIGH else RecommendationPriority.ATTENTION,
-                    action = RecommendationAction.OPEN_LIBRARY_MUSCLE,
-                    actionMuscle = load.muscle,
-                    rankScore = 40 + (days ?: 21).coerceAtMost(21),
-                )
-            }
-    }
+    // -----------------------------------------------------------------------
+    // Do more
+    // -----------------------------------------------------------------------
 
-    internal fun imbalances(
-        snapshot: BodyHeatSnapshot,
-        weightUnit: WeightUnit = WeightUnit.KG,
-    ): List<TrainingRecommendation> {
-        if (!snapshot.hasWindowWorkingSets) return emptyList()
+    internal fun imbalances(inputs: CoachInputs): List<TrainingRecommendation> {
+        if (!inputs.basis.hasBasisWorkingSets) return emptyList()
         return imbalancePairs.mapNotNull { (left, right) ->
-            val a = snapshot.load(left)
-            val b = snapshot.load(right)
-            val high = maxOf(a.volumeKg, b.volumeKg)
-            val low = minOf(a.volumeKg, b.volumeKg)
-            if (high < MIN_VOLUME_FOR_IMBALANCE_KG) return@mapNotNull null
-            if (low <= 0.0) {
-                val missing = if (a.volumeKg <= 0.0) left else right
-                val heavy = if (a.volumeKg <= 0.0) right else left
-                return@mapNotNull TrainingRecommendation(
-                    id = "imbalance-${left.name}-${right.name}",
-                    title = "No ${missing.displayName} vs ${heavy.displayName} this window",
-                    reason = "${heavy.displayName} has ${high.toWeightLabel(weightUnit)} volume and ${missing.displayName} has none.",
+            val a = inputs.basis.load(left)
+            val b = inputs.basis.load(right)
+            val heavy = if (a.weeklySets >= b.weeklySets) a else b
+            val light = if (heavy.muscle == a.muscle) b else a
+            if (heavy.weeklySets < MIN_WEEKLY_SETS_FOR_IMBALANCE) return@mapNotNull null
+
+            val lift = resolveLift(light.muscle, inputs)
+            val id = "imbalance-${left.name}-${right.name}"
+            if (light.weeklySets <= 0.0) {
+                return@mapNotNull card(
+                    id = id,
+                    kicker = KICKER_BALANCE,
+                    title = "No ${light.muscle.displayName} work against ${heavy.muscle.displayName}",
+                    reason = "${heavy.muscle.displayName} has ${sets(heavy.weeklySets)} weighted " +
+                        "sets in $BASIS_PHRASE and ${light.muscle.displayName} has none." +
+                        addSentence(lift),
                     priority = RecommendationPriority.HIGH,
-                    action = RecommendationAction.OPEN_LIBRARY_MUSCLE,
-                    actionMuscle = missing,
+                    muscle = light.muscle,
+                    lift = lift,
                     rankScore = 55,
                 )
             }
-            val ratio = high / low
+            val ratio = heavy.weeklySets / light.weeklySets
             if (ratio < IMBALANCE_RATIO) return@mapNotNull null
-            val heavy = if (a.volumeKg >= b.volumeKg) a.muscle else b.muscle
-            val light = if (heavy == a.muscle) b.muscle else a.muscle
-            TrainingRecommendation(
-                id = "imbalance-${left.name}-${right.name}",
-                title = "${heavy.displayName} volume is much higher than ${light.displayName}",
-                reason = "${heavy.displayName} is ${formatRatio(ratio)}× ${light.displayName} over ${snapshot.window.shortLabel.lowercase()}.",
+            card(
+                id = id,
+                kicker = KICKER_BALANCE,
+                title = "${light.muscle.displayName} is behind ${heavy.muscle.displayName}",
+                reason = "${heavy.muscle.displayName} ${sets(heavy.weeklySets)} weighted sets vs " +
+                    "${light.muscle.displayName} ${sets(light.weeklySets)} in $BASIS_PHRASE " +
+                    "(${formatRatio(ratio)}×)." + addSentence(lift),
                 priority = if (ratio >= STRONG_IMBALANCE_RATIO) {
                     RecommendationPriority.HIGH
                 } else {
                     RecommendationPriority.ATTENTION
                 },
-                action = RecommendationAction.OPEN_LIBRARY_MUSCLE,
-                actionMuscle = light,
+                muscle = light.muscle,
+                lift = lift,
                 rankScore = 30 + (ratio * 8).toInt().coerceAtMost(40),
             )
         }
     }
 
-    internal fun recoverySignal(snapshot: BodyHeatSnapshot): TrainingRecommendation? {
-        if (!snapshot.hasWindowWorkingSets) return null
-        val upperHot = snapshot.mapLoads.count {
-            it.muscle.region == MuscleRegion.UPPER && it.heat >= HIGH_HEAT
-        }
-        if (upperHot < HIGH_UPPER_COUNT) return null
-        val lowerHeat = snapshot.mapLoads
-            .filter { it.muscle.region == MuscleRegion.LOWER }
-            .map { it.heat }
-            .average()
-        if (lowerHeat >= LOW_REGION_HEAT) return null
-        return TrainingRecommendation(
-            id = "recovery-upper",
-            title = "Upper-body load is very high",
-            reason = "Chest, back, and arms are carrying most of the last ${snapshot.window.shortLabel.lowercase()}. Consider lower body or a lighter day.",
-            priority = RecommendationPriority.HIGH,
-            action = RecommendationAction.OPEN_ROUTINES,
-            rankScore = 70,
-        )
-    }
+    internal fun neglectedMuscles(inputs: CoachInputs): List<TrainingRecommendation> =
+        CanonicalMuscle.bodyMapOrder
+            .map { inputs.basis.load(it) }
+            .filter { load ->
+                val days = load.daysSinceLastTrained
+                days == null || days >= NEGLECT_DAYS
+            }
+            .sortedWith(
+                compareByDescending<CoachMuscleLoad> { it.daysSinceLastTrained ?: Int.MAX_VALUE }
+                    .thenBy { it.muscle.displayName },
+            )
+            .take(MAX_NEGLECTED)
+            .map { load ->
+                val days = load.daysSinceLastTrained
+                val lift = resolveLift(load.muscle, inputs)
+                card(
+                    id = "neglect-${load.muscle.name}",
+                    kicker = KICKER_COVERAGE,
+                    title = if (days == null) {
+                        "${load.muscle.displayName} has no logged work"
+                    } else {
+                        "${load.muscle.displayName}: $days days since a working set"
+                    },
+                    reason = if (days == null) {
+                        "Nothing in history maps to ${load.muscle.displayName}." + coversSentence(lift)
+                    } else {
+                        "Last working set was $days days ago." + coversSentence(lift)
+                    },
+                    priority = if (days == null || days >= HIGH_NEGLECT_DAYS) {
+                        RecommendationPriority.HIGH
+                    } else {
+                        RecommendationPriority.ATTENTION
+                    },
+                    muscle = load.muscle,
+                    lift = lift,
+                    rankScore = 40 + (days ?: 21).coerceAtMost(21),
+                )
+            }
 
-    internal fun coreCoverageGap(snapshot: BodyHeatSnapshot): TrainingRecommendation? {
-        if (!snapshot.hasWindowWorkingSets) return null
-        val core = snapshot.load(CanonicalMuscle.CORE)
-        if (core.trainedInWindow) return null
+    internal fun coreCoverageGap(inputs: CoachInputs): TrainingRecommendation? {
+        if (!inputs.basis.hasBasisWorkingSets) return null
+        val core = inputs.basis.load(CanonicalMuscle.CORE)
+        if (core.weeklySets > 0.0) return null
         val days = core.daysSinceLastTrained
         if (days != null && days < NEGLECT_DAYS) return null
-        val windowWord = if (snapshot.window == HeatWindow.CURRENT_WEEK) "this week" else "this window"
-        return TrainingRecommendation(
+        val lift = resolveLift(CanonicalMuscle.CORE, inputs)
+        return card(
             id = "coverage-core",
-            title = "No direct core work $windowWord",
-            reason = "Finished sessions in ${snapshot.window.label.lowercase()} don’t include a core lift.",
+            kicker = KICKER_COVERAGE,
+            title = "No direct core work in $BASIS_PHRASE",
+            reason = "Finished sessions in $BASIS_PHRASE include no core lift." + coversSentence(lift),
             priority = RecommendationPriority.ATTENTION,
-            action = RecommendationAction.OPEN_LIBRARY_MUSCLE,
-            actionMuscle = CanonicalMuscle.CORE,
+            muscle = CanonicalMuscle.CORE,
+            lift = lift,
             rankScore = 22,
         )
     }
 
-    internal fun progressionOpportunity(
-        progression: List<ProgressionHint>,
-        weightUnit: WeightUnit = WeightUnit.KG,
-    ): TrainingRecommendation? {
-        val ready = progression
+    internal fun progressionOpportunity(inputs: CoachInputs): TrainingRecommendation? {
+        val ready = inputs.hints
             .filter { it.action == ProgressionAction.INCREASE }
             .distinctBy { it.exerciseId }
         if (ready.isEmpty()) return null
-        val names = ready.take(MAX_PROGRESSION_NAMES).map { it.exerciseName }
-        val extra = ready.size - names.size
-        val listed = names.joinToString(" and ")
-        val increment = ProgressionCalculator.INCREMENT_KG.toWeightLabel(weightUnit)
-        val title = if (ready.size == 1) {
-            "${names.first()} is ready to progress (+$increment)"
-        } else {
-            val label = if (extra > 0) "$listed and $extra more" else listed
-            "$label are ready to progress (+$increment)"
-        }
+        val first = ready.first()
+        val extra = ready.size - 1
+        val increment = ProgressionCalculator.INCREMENT_KG.toWeightLabel(inputs.unit)
         return TrainingRecommendation(
             id = "progression-ready",
-            title = title,
-            reason = "Last working set hit the target reps. Next session, add $increment.",
+            kicker = KICKER_PROGRESSION,
+            title = if (extra > 0) {
+                "${first.exerciseName} and $extra more: ready to progress"
+            } else {
+                "${first.exerciseName}: ready to progress"
+            },
+            reason = "Top set ${first.lastWeightKg.toWeightLabel(inputs.unit)}×${first.lastReps} " +
+                "hit target. Next session add $increment.",
             priority = RecommendationPriority.INFO,
-            action = RecommendationAction.START_WORKOUT,
+            action = RecommendationAction.OPEN_EXERCISE,
+            actionExerciseId = first.exerciseId,
+            actionExerciseName = first.exerciseName,
             rankScore = 18 + ready.size.coerceAtMost(5),
         )
     }
 
-    private fun rank(items: List<TrainingRecommendation>): List<TrainingRecommendation> {
-        return items
-            .distinctBy { it.id }
-            .sortedWith(
-                compareByDescending<TrainingRecommendation> { it.priority.rank }
-                    .thenByDescending { it.rankScore }
-                    .thenBy { it.title },
-            )
-            .take(MAX_RESULTS)
+    // -----------------------------------------------------------------------
+    // Do less
+    // -----------------------------------------------------------------------
+
+    /**
+     * Everything is at productive volume, so the honest advice is to add nothing.
+     *
+     * The old engine had no way to say this. Its only "do less" rule fired on an upper-body
+     * heat imbalance and told you to train legs — advice to do MORE, wearing the costume of
+     * restraint — and it read relative heat, so it could fire on a week of almost no training.
+     */
+    internal fun restSignal(inputs: CoachInputs): TrainingRecommendation? {
+        if (!inputs.basis.hasBasisWorkingSets) return null
+        val allProductive = CanonicalMuscle.bodyMapOrder.all { muscle ->
+            inputs.basis.load(muscle).band >= HeatBand.PRODUCTIVE
+        }
+        if (!allProductive) return null
+        return TrainingRecommendation(
+            id = "rest-all-productive",
+            kicker = KICKER_RECOVERY,
+            title = "Every muscle is at productive volume",
+            reason = "All mapped muscles are at 10+ weighted sets per week over $BASIS_PHRASE. " +
+                "Nothing needs adding.",
+            priority = RecommendationPriority.HIGH,
+            rankScore = 72,
+        )
     }
 
-    private fun strongerOfPair(snapshot: BodyHeatSnapshot, weaker: CanonicalMuscle): CanonicalMuscle? {
+    internal fun deloadSignal(inputs: CoachInputs): TrainingRecommendation? {
+        val finding = DeloadSignal.detect(inputs.history, inputs.nowMs, inputs.zone) ?: return null
+        return TrainingRecommendation(
+            id = "deload-volume-flat-strength",
+            kicker = KICKER_LOAD,
+            title = "Volume up 3 weeks, e1RM flat",
+            reason = "Weekly volume rose ${finding.volumeRisePercent}% over three weeks while " +
+                "top-lift e1RMs did not move. Take an easier week: same lifts, fewer sets.",
+            priority = RecommendationPriority.HIGH,
+            rankScore = 75,
+        )
+    }
+
+    // -----------------------------------------------------------------------
+    // Plumbing
+    // -----------------------------------------------------------------------
+
+    private fun card(
+        id: String,
+        kicker: String,
+        title: String,
+        reason: String,
+        priority: RecommendationPriority,
+        muscle: CanonicalMuscle,
+        lift: Exercise?,
+        rankScore: Int,
+    ): TrainingRecommendation = TrainingRecommendation(
+        id = id,
+        kicker = kicker,
+        title = title,
+        reason = reason,
+        priority = priority,
+        // A named lift is a deep link; without one the card falls back to the muscle filter,
+        // which is still useful and is at least honest about knowing less.
+        action = if (lift != null) {
+            RecommendationAction.OPEN_EXERCISE
+        } else {
+            RecommendationAction.OPEN_LIBRARY_MUSCLE
+        },
+        actionMuscle = muscle,
+        actionExerciseId = lift?.id,
+        actionExerciseName = lift?.name,
+        rankScore = rankScore,
+    )
+
+    private fun resolveLift(muscle: CanonicalMuscle, inputs: CoachInputs): Exercise? =
+        OwnedLiftResolver.resolve(
+            muscle = muscle,
+            routines = inputs.routines,
+            history = inputs.history,
+            exerciseCatalog = inputs.exerciseCatalog,
+            preferences = inputs.preferences,
+            nowMs = inputs.nowMs,
+        )
+
+    private fun addSentence(lift: Exercise?): String =
+        if (lift == null) "" else " Add ${lift.name}."
+
+    private fun coversSentence(lift: Exercise?): String =
+        if (lift == null) "" else " ${lift.name} covers it."
+
+    /**
+     * The goal reorders; it never adds or removes a card. A rule that only fires for one goal
+     * is a rule that is wrong for the other two.
+     */
+    private fun goalBonus(recommendation: TrainingRecommendation, goal: TrainingGoal): Int =
+        when (goal) {
+            TrainingGoal.STRENGTH -> when {
+                recommendation.id == "progression-ready" -> 10
+                recommendation.id.startsWith("deload") -> 10
+                else -> 0
+            }
+            TrainingGoal.HYPERTROPHY -> when {
+                recommendation.id.startsWith("imbalance") -> 10
+                recommendation.id.startsWith("neglect") -> 10
+                recommendation.id == "coverage-core" -> 10
+                else -> 0
+            }
+            TrainingGoal.GENERAL -> 0
+        }
+
+    private fun rank(
+        items: List<TrainingRecommendation>,
+        goal: TrainingGoal,
+    ): List<TrainingRecommendation> = items
+        .distinctBy { it.id }
+        .map { it.copy(rankScore = it.rankScore + goalBonus(it, goal)) }
+        .sortedWith(
+            compareByDescending<TrainingRecommendation> { it.priority.rank }
+                .thenByDescending { it.rankScore }
+                .thenBy { it.title },
+        )
+        .take(MAX_RESULTS)
+
+    private fun strongerOfPair(basis: CoachBasis, weaker: CanonicalMuscle): CanonicalMuscle? {
         val pair = imbalancePairs.firstOrNull { it.first == weaker || it.second == weaker } ?: return null
         val other = if (pair.first == weaker) pair.second else pair.first
-        return if (snapshot.load(other).volumeKg > snapshot.load(weaker).volumeKg) other else null
+        return if (basis.load(other).weeklySets > basis.load(weaker).weeklySets) other else null
+    }
+
+    /** Weighted sets read as whole numbers unless the fraction actually matters. */
+    internal fun sets(value: Double): String {
+        val rounded = kotlin.math.round(value * 10.0) / 10.0
+        return if (kotlin.math.abs(rounded - kotlin.math.round(rounded)) < 0.05) {
+            kotlin.math.round(rounded).toInt().toString()
+        } else {
+            rounded.toString()
+        }
     }
 
     private fun formatRatio(ratio: Double): String {

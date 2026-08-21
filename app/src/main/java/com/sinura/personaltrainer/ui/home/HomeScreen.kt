@@ -74,6 +74,7 @@ fun HomeScreen(
     onOpenProgress: () -> Unit,
     onOpenPlan: () -> Unit,
     onOpenLibraryMuscle: (String?) -> Unit,
+    onOpenExercise: (String) -> Unit,
     onOpenSession: (String) -> Unit,
     onOpenSettings: () -> Unit,
     viewModel: HomeViewModel = viewModel(),
@@ -176,6 +177,7 @@ fun HomeScreen(
                     dispatchRecommendation(
                         recommendation = rec,
                         onOpenLibrary = onOpenLibraryMuscle,
+                        onOpenExercise = onOpenExercise,
                         onStartWorkout = onStartWorkout,
                         onOpenRoutines = onOpenRoutines,
                         onOpenProgress = onOpenProgress,
@@ -382,7 +384,7 @@ private fun TrainingBalanceCard(
                     color = TextSecondary,
                 )
             } else {
-                Kicker(snapshotHighlights?.window?.label ?: "Last 7 days")
+                Kicker(snapshotHighlights?.window?.label ?: "This week")
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(Metrics.space1),

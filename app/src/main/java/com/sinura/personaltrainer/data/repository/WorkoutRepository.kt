@@ -19,11 +19,14 @@ import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.PersonalRecords
 import com.sinura.personaltrainer.domain.ProgressionBasis
 import com.sinura.personaltrainer.domain.ProgressionCalculator
+import com.sinura.personaltrainer.domain.ProgressionBasis
 import com.sinura.personaltrainer.domain.ProgressionHint
+import com.sinura.personaltrainer.domain.RpeModifier
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.FinishedSessionEdits
 import com.sinura.personaltrainer.domain.SessionActivity
 import com.sinura.personaltrainer.domain.RepeatSessionPlan
+import com.sinura.personaltrainer.domain.SessionEditRules
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.WorkingSetCandidate
 import com.sinura.personaltrainer.domain.WorkoutSession
@@ -209,8 +212,64 @@ class WorkoutRepository(
         )
     }
 
-    suspend fun removeExerciseFromSession(itemId: String) {
-        workoutDao.deleteSessionExercise(itemId)
+    /**
+     * Takes a lift out of a live session, provided nothing has been logged against it.
+     *
+     * This method existed with no guards and no callers at all — a one-liner that would happily
+     * delete a lift out from under sets that were already recorded against it. The guards are
+     * in [SessionEditRules] so they are testable, and the whole thing runs in a transaction so
+     * the check and the delete cannot be separated by a set landing between them.
+     */
+    suspend fun removeExerciseFromSession(sessionId: String, itemId: String) {
+        database.withTransaction {
+            val current = workoutDao.getSession(sessionId) ?: error(SessionEditRules.ITEM_MISSING)
+            val item = current.exercises.firstOrNull { it.item.id == itemId }
+            val refusal = SessionEditRules.refusalForRemove(
+                sessionFinished = current.session.finishedAt != null,
+                itemExists = item != null,
+                loggedSetCount = current.sets.count { it.set.exerciseId == item?.item?.exerciseId },
+            )
+            if (refusal != null) error(refusal)
+            workoutDao.deleteSessionExercise(itemId)
+        }
+    }
+
+    /**
+     * Exchanges one lift for another in the same position.
+     *
+     * The plan travels and the log does not: sortOrder, target sets, target reps and rest all
+     * carry over so the session keeps its shape, while `targetWeightKg` is dropped because a
+     * weight chosen for a different lift is meaningless on this one — the progression prefill
+     * will suggest a real number instead.
+     */
+    suspend fun swapExerciseInSession(sessionId: String, itemId: String, replacement: Exercise) {
+        database.withTransaction {
+            val current = workoutDao.getSession(sessionId) ?: error(SessionEditRules.ITEM_MISSING)
+            val item = current.exercises.firstOrNull { it.item.id == itemId }
+            val refusal = SessionEditRules.refusalForSwap(
+                sessionFinished = current.session.finishedAt != null,
+                itemExists = item != null,
+                loggedSetCount = current.sets.count { it.set.exerciseId == item?.item?.exerciseId },
+                replacementAlreadyPresent = current.exercises.any {
+                    it.item.exerciseId == replacement.id
+                },
+            )
+            if (refusal != null) error(refusal)
+            val existing = item!!.item
+            workoutDao.deleteSessionExercise(itemId)
+            workoutDao.upsertSessionExercise(
+                SessionExerciseEntity(
+                    id = UUID.randomUUID().toString(),
+                    sessionId = sessionId,
+                    exerciseId = replacement.id,
+                    sortOrder = existing.sortOrder,
+                    targetSets = existing.targetSets,
+                    targetReps = existing.targetReps,
+                    targetWeightKg = null,
+                    restSeconds = existing.restSeconds,
+                ),
+            )
+        }
     }
 
     suspend fun logSet(
@@ -448,13 +507,41 @@ class WorkoutRepository(
         val resolvedTarget = targetReps.takeIf { it > 0 }
             ?: workoutDao.lastTargetReps(exerciseId)
             ?: topSet.reps
-        return ProgressionCalculator.hint(
+        val hint = ProgressionCalculator.hint(
             exerciseId = exerciseId,
             exerciseName = exerciseName,
             lastWeightKg = topSet.weightKg,
             lastWorkingReps = topSet.reps,
             targetReps = resolvedTarget,
         )
+        // Hitting the target reps at RPE 9 and hitting them at RPE 6 are the same event to the
+        // calculator, and only one of them means "ready for more".
+        return RpeModifier.apply(hint, recentTopSetRpes(exerciseId, excludeSessionId))
+    }
+
+    /**
+     * The top set's RPE for each of the last few finished sessions containing this lift,
+     * newest first. Null entries mean "not recorded", which the rule treats as unknown rather
+     * than as easy.
+     */
+    private suspend fun recentTopSetRpes(
+        exerciseId: String,
+        excludeSessionId: String,
+    ): List<Int?> {
+        val sessionIds = workoutDao.lastFinishedSessionIdsWithExercise(
+            exerciseId = exerciseId,
+            excludeSessionId = excludeSessionId,
+            limit = RpeModifier.RPE_HOLD_SESSIONS,
+        )
+        return sessionIds.map { sessionId ->
+            val sets = workoutDao.workingSetsForExerciseInSession(sessionId, exerciseId)
+            val top = ProgressionBasis.topWorkingSet(
+                sets.map { WorkingSetCandidate(it.weightKg, it.reps, it.completedAt) },
+            ) ?: return@map null
+            sets.firstOrNull {
+                it.weightKg == top.weightKg && it.reps == top.reps && it.completedAt == top.completedAt
+            }?.rpe
+        }
     }
 
     /**
@@ -600,8 +687,15 @@ class WorkoutRepository(
                         lastWorkingReps = topSet.reps,
                         targetReps = item.targetReps,
                     )
-                    if (hint.action == ProgressionAction.INCREASE) {
-                        hints += hint
+                    // The RPE rule downgrades a grinding lift to HOLD, which drops it out of
+                    // this list automatically — "ready to progress" must not name a lift the
+                    // in-workout strip is simultaneously telling you to hold.
+                    val adjusted = RpeModifier.apply(
+                        hint,
+                        recentTopSetRpes(item.exercise.id, excludeSessionId = ""),
+                    )
+                    if (adjusted.action == ProgressionAction.INCREASE) {
+                        hints += adjusted
                     }
                 }
             }
