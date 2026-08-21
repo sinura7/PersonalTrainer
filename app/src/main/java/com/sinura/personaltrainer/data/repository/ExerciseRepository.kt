@@ -7,8 +7,11 @@ import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.data.local.entity.ExerciseMuscleEntity
 import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toEntity
+import com.sinura.personaltrainer.domain.CatalogMeta
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.ExerciseOrdering
 import com.sinura.personaltrainer.domain.ExerciseUsage
+import com.sinura.personaltrainer.domain.LikeEscaper
 import com.sinura.personaltrainer.domain.MuscleCredit
 import com.sinura.personaltrainer.domain.MuscleNormalizer
 import java.util.UUID
@@ -56,17 +59,58 @@ class ExerciseRepository(
             rows.map { it.toDomain(byExercise[it.id].orEmpty()) }
         }.orLogAndFallback("the exercise catalog", emptyList())
 
+    /**
+     * Name, muscle group, or nickname.
+     *
+     * Two things happen here that the DAO cannot do alone. The query is escaped, because `%`
+     * and `_` are LIKE wildcards and a lifter typing `100%` meant it literally. And the SQL
+     * hits are unioned with alias hits from [CatalogMeta], because nobody types "Overhead
+     * Press" when they mean OHP and no substring of the stored name will ever match it.
+     *
+     * The alias pass reads the whole catalog, which is fine at 98 rows and would not be at
+     * 10,000 — at that point the terms belong in an FTS table. Said here so the decision is
+     * visible rather than discovered.
+     */
     fun search(query: String): Flow<List<Exercise>> {
         val trimmed = query.trim()
         return if (trimmed.isEmpty()) {
             observeAll()
         } else {
-            combine(exerciseDao.search(trimmed), catalogDao.observeAllCredits()) { rows, credits ->
+            combine(
+                exerciseDao.search(LikeEscaper.escape(trimmed)),
+                exerciseDao.observeAll(),
+                catalogDao.observeAllCredits(),
+            ) { likeHits, all, credits ->
                 val byExercise = credits.groupByExercise()
-                rows.map { it.toDomain(byExercise[it.id].orEmpty()) }
+                val aliasHits = all.filter { CatalogMeta.matchesSearchTerms(trimmed, it.id) }
+                (likeHits + aliasHits)
+                    .distinctBy { it.id }
+                    .map { it.toDomain(byExercise[it.id].orEmpty()) }
+                    .let(ExerciseOrdering::catalogOrder)
             }.orLogAndFallback("exercise search", emptyList())
         }
     }
+
+    /**
+     * Customs sharing a name with a built-in, for the Library's "needs attention" section.
+     *
+     * Derived on every read rather than stored: a stored flag would have to be cleared when the
+     * custom is renamed, and a flag nobody remembers to clear is worse than no flag.
+     */
+    fun observeNameCollisions(): Flow<List<Exercise>> =
+        combine(
+            exerciseDao.observeBuiltInCollisions(),
+            catalogDao.observeAllCredits(),
+        ) { rows, credits ->
+            val byExercise = credits.groupByExercise()
+            rows.map { it.toDomain(byExercise[it.id].orEmpty()) }
+        }.orLogAndFallback("name collisions", emptyList())
+
+    /** When each lift was last logged, for the picker's recency order. */
+    fun observeLastLogged(): Flow<Map<String, Long>> =
+        workoutDao.observeLastLogged()
+            .map { rows -> rows.associate { it.exerciseId to it.lastLoggedAt } }
+            .orLogAndFallback("recent lifts", emptyMap())
 
     suspend fun getById(id: String): Exercise? =
         exerciseDao.getById(id)?.toDomain(catalogDao.creditsFor(id).toCredits())

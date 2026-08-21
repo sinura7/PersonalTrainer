@@ -16,15 +16,42 @@ interface ExerciseDao {
     @Query("SELECT * FROM exercises ORDER BY id")
     suspend fun getAll(): List<ExerciseEntity>
 
+    /**
+     * Name/muscle substring search.
+     *
+     * `ESCAPE '\'` is not optional: without it `%` and `_` in the user's own typing are LIKE
+     * wildcards, so searching for `100%` silently returned everything beginning with 100 rather
+     * than nothing. Callers must pass the query through [com.sinura.personaltrainer.domain.LikeEscaper]
+     * — the escape clause and the escaping are two halves of one fix and neither works alone.
+     */
     @Query(
         """
         SELECT * FROM exercises
-        WHERE name LIKE '%' || :query || '%'
-           OR muscleGroup LIKE '%' || :query || '%'
+        WHERE name LIKE '%' || :query || '%' ESCAPE '\'
+           OR muscleGroup LIKE '%' || :query || '%' ESCAPE '\'
         ORDER BY name COLLATE NOCASE
         """,
     )
     fun search(query: String): Flow<List<ExerciseEntity>>
+
+    /**
+     * Every custom whose name collides with a built-in's.
+     *
+     * The seeder deliberately inserts built-ins without resolving collisions — it must never
+     * rename or delete something the owner made — so the collision survives as data, and this
+     * is where the Library reads it to offer the choice.
+     */
+    @Query(
+        """
+        SELECT c.* FROM exercises c
+        WHERE c.isCustom = 1 AND EXISTS (
+            SELECT 1 FROM exercises b
+            WHERE b.isCustom = 0 AND b.nameKey = c.nameKey AND b.id != c.id
+        )
+        ORDER BY c.name COLLATE NOCASE
+        """,
+    )
+    fun observeBuiltInCollisions(): Flow<List<ExerciseEntity>>
 
     @Query("SELECT * FROM exercises WHERE id = :id")
     suspend fun getById(id: String): ExerciseEntity?

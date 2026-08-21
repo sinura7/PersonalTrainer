@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
+import com.sinura.personaltrainer.data.local.entity.ExerciseRecencyRow
 import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
@@ -236,6 +237,16 @@ interface WorkoutDao {
 
     @Query("SELECT * FROM set_logs ORDER BY id")
     suspend fun getAllSets(): List<SetLogEntity>
+
+    /**
+     * When each lift was last logged, for the picker's recency order.
+     *
+     * An aggregate rather than reading the sessions and folding them in Kotlin: the picker is
+     * opened mid-workout and only needs one number per exercise, while the sessions themselves
+     * are the largest thing in the database. `set_logs` is already indexed on `exerciseId`.
+     */
+    @Query("SELECT exerciseId AS exerciseId, MAX(completedAt) AS lastLoggedAt FROM set_logs GROUP BY exerciseId")
+    fun observeLastLogged(): Flow<List<ExerciseRecencyRow>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun replaceSessions(items: List<WorkoutSessionEntity>)

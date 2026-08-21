@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SeedMetaEntity
 import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.domain.DefaultExercises
+import com.sinura.personaltrainer.domain.MuscleNormalizer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -66,7 +67,7 @@ class DbMaintenanceTest {
             database.catalogDao().getAllCredits()
                 .sortedWith(compareBy({ it.exerciseId }, { it.muscleKey })),
         )
-        assertEquals(37, firstExercises.size)
+        assertEquals(98, firstExercises.size)
     }
 
     @Test
@@ -157,6 +158,59 @@ class DbMaintenanceTest {
         // The v1 derivation, written down: primary at 1.0, each derived secondary at 0.4.
         assertEquals(mapOf("back" to 1.0, "hamstrings" to 0.4, "glutes" to 0.4), credits)
         assertEquals("good morning", database.exerciseDao().getById("ex-custom-goodmorning")!!.nameKey)
+    }
+
+    @Test
+    fun bumpingTheCatalogVersionAddsTheNewBatchAndLeavesCustomsAlone() = runBlocking {
+        // The upgrade path this phase actually ships on: a phone sitting at the v2 catalog
+        // (37 built-ins) that installs a build carrying v4 (98). The seeder has never had to
+        // add rows to a populated table before — v3 was the first batch to do it — so the
+        // claims worth pinning are that the new rows arrive, the old ones are not duplicated,
+        // and the owner's own lifts are untouched by a catalog they are not part of.
+        //
+        // The v2-era table is built directly rather than seeded-then-pruned: this is the row
+        // set the previous release actually left on disk.
+        database.exerciseDao().insertAll(
+            DefaultExercises.catalog().take(37).map { seed ->
+                ExerciseEntity(
+                    id = seed.id, name = seed.name, muscleGroup = seed.muscleGroup, notes = "",
+                    isCustom = false, equipment = seed.equipment.name,
+                    loadType = seed.loadType.name, movementKey = seed.movementKey,
+                    imageKey = null, nameKey = MuscleNormalizer.nameKeyOf(seed.name),
+                )
+            },
+        )
+        database.catalogDao().upsertSeedMeta(SeedMetaEntity(id = 1, catalogVersion = 2))
+        database.exerciseDao().insert(
+            ExerciseEntity(
+                id = "custom-1", name = "My Own Lift", muscleGroup = "Chest", notes = "keep this",
+                isCustom = true, equipment = null, loadType = null, movementKey = null,
+                imageKey = null, nameKey = "my own lift",
+            ),
+        )
+
+        maintenance.seedCatalog()
+
+        val all = database.exerciseDao().getAll()
+        assertEquals("98 built-ins plus the custom", 99, all.size)
+        assertEquals(98, all.count { !it.isCustom })
+        assertEquals("ids must stay unique across a bump", all.size, all.map { it.id }.toSet().size)
+        assertEquals(
+            "the stored version must catch up",
+            DefaultExercises.CATALOG_VERSION,
+            database.catalogDao().getSeedMeta()?.catalogVersion,
+        )
+
+        val survivor = all.single { it.id == "custom-1" }
+        assertEquals("keep this", survivor.notes)
+        assertTrue(survivor.isCustom)
+
+        // A batch-3 row is present, which is the whole point of the bump.
+        assertNotNull(all.firstOrNull { it.id == "ex-hip-abduction-machine" })
+
+        // And a second run changes nothing.
+        maintenance.seedCatalog()
+        assertEquals(99, database.exerciseDao().getAll().size)
     }
 
     @Test
