@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.sinura.personaltrainer.domain.BlockArchive
 import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.OnboardingAnswers
@@ -236,6 +237,7 @@ class PreferencesRepository(context: Context) {
         onboardingComplete: Boolean,
         dismissedCollisionIds: Set<String>,
         block: TrainingBlock?,
+        pastBlocks: List<TrainingBlock>,
     ) {
         val cleanSchedule = schedule.sanitized()
         val cleanRest = rest.sanitized()
@@ -271,6 +273,11 @@ class PreferencesRepository(context: Context) {
             } else {
                 prefs[BLOCK_START] = block.startEpochDay
                 prefs[BLOCK_WEEKS] = block.weeks
+            }
+            if (pastBlocks.isEmpty()) {
+                prefs.remove(PAST_BLOCKS)
+            } else {
+                prefs[PAST_BLOCKS] = BlockArchive.encode(pastBlocks)
             }
         }
     }
@@ -345,6 +352,41 @@ class PreferencesRepository(context: Context) {
             )
         }
 
+    /**
+     * The blocks already finished, oldest first. Boundaries only — see [BlockArchive].
+     */
+    val pastBlocks: Flow<List<TrainingBlock>> = safePreferences
+        .map { prefs -> BlockArchive.decode(prefs[PAST_BLOCKS]) }
+
+    /**
+     * Make [next] the current block, keeping the one it replaces if it was finished.
+     *
+     * One method rather than an archive call beside every set, because the rule about *which*
+     * blocks are worth keeping belongs in one place: a block you finished is a result, and a
+     * block you abandoned half way through by re-running setup is not. Both callers — the
+     * "start the next twelve" button and the guided setup — go through here.
+     */
+    suspend fun beginBlock(next: TrainingBlock, todayEpochDay: Long) {
+        dataStore.edit { prefs ->
+            val current = prefs[BLOCK_START]?.let { start ->
+                TrainingBlock(start, prefs[BLOCK_WEEKS] ?: TrainingBlock.DEFAULT_WEEKS)
+            }
+            if (current != null && current.isCompleteOn(todayEpochDay)) {
+                prefs[PAST_BLOCKS] = BlockArchive.encode(
+                    BlockArchive.archive(BlockArchive.decode(prefs[PAST_BLOCKS]), current),
+                )
+            }
+            prefs[BLOCK_START] = next.startEpochDay
+            prefs[BLOCK_WEEKS] = next.weeks
+        }
+    }
+
+    /**
+     * Set or clear the current block, leaving the archive alone.
+     *
+     * The plain setter. Anything that *replaces* one block with another goes through
+     * [beginBlock], which is where the rule about keeping a finished block lives.
+     */
     suspend fun setTrainingBlock(block: TrainingBlock?) {
         dataStore.edit { prefs ->
             if (block == null) {
@@ -396,6 +438,7 @@ class PreferencesRepository(context: Context) {
         val BODYWEIGHT_KG = doublePreferencesKey("bodyweight_kg")
         val BLOCK_START = longPreferencesKey("block_start_epoch_day")
         val BLOCK_WEEKS = intPreferencesKey("block_weeks")
+        val PAST_BLOCKS = stringPreferencesKey("past_blocks")
         val HEAT_WINDOW = stringPreferencesKey("heat_window")
         val TRAINING_DAYS = intPreferencesKey("training_days_per_week")
         val SPLIT_STYLE = stringPreferencesKey("split_style")

@@ -9,6 +9,11 @@ import com.sinura.personaltrainer.domain.SessionMonthGroup
 import com.sinura.personaltrainer.domain.TrainingCalendarBuilder
 import com.sinura.personaltrainer.domain.groupSessionsByMonth
 import com.sinura.personaltrainer.domain.prSummary
+import com.sinura.personaltrainer.domain.BlockReview
+import com.sinura.personaltrainer.domain.BlockReviewBuilder
+import com.sinura.personaltrainer.domain.SchedulePreferences
+import com.sinura.personaltrainer.domain.TrainingBlock
+import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.TrainingMonth
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.logging.AppLog
@@ -35,6 +40,21 @@ data class HistoryUiState(
     val records: List<PrSummaryRow> = emptyList(),
     val calendar: TrainingMonth = TrainingMonth(month = YearMonth.now()),
     val weekStart: DayOfWeek = DayOfWeek.MONDAY,
+    /** Blocks already finished, newest first. Empty until one has been. */
+    val pastBlocks: List<FinishedBlock> = emptyList(),
+)
+
+/**
+ * A finished block and what it came to.
+ *
+ * The review is rebuilt from the session history each time rather than stored: the archive
+ * keeps two numbers per block, and every session those numbers span is still in the database.
+ * A stored summary would be a second source of truth that went stale the moment an old session
+ * was edited — and editing an old session is a thing this app deliberately allows.
+ */
+data class FinishedBlock(
+    val block: TrainingBlock,
+    val review: BlockReview,
 )
 
 class HistoryViewModel(application: Application) : AppViewModel(application) {
@@ -60,9 +80,14 @@ class HistoryViewModel(application: Application) : AppViewModel(application) {
 
     val uiState: StateFlow<HistoryUiState> = combine(
         container.workoutRepository.observeHistory(),
-        container.preferencesRepository.schedulePreferences,
+        combine(
+            container.preferencesRepository.schedulePreferences,
+            container.preferencesRepository.pastBlocks,
+            container.preferencesRepository.weightUnit,
+        ) { preferences, blocks, unit -> Settings(preferences, blocks, unit) },
         visibleMonth,
-    ) { sessions, preferences, month ->
+    ) { sessions, settings, month ->
+        val preferences = settings.preferences
         HistoryUiState(
             isLoading = false,
             sessions = sessions,
@@ -77,6 +102,22 @@ class HistoryViewModel(application: Application) : AppViewModel(application) {
                 weekStart = preferences.weekStart,
             ),
             weekStart = preferences.weekStart,
+            // Newest first: the block you just finished is the one you want to read.
+            pastBlocks = settings.blocks
+                .asReversed()
+                .map { block ->
+                    FinishedBlock(
+                        block = block,
+                        review = BlockReviewBuilder.build(
+                            block = block,
+                            sessions = sessions,
+                            unit = settings.unit,
+                            zone = ZoneId.systemDefault(),
+                        ),
+                    )
+                }
+                // A block with nothing logged in it is a date range, not a result.
+                .filterNot { it.review.isEmpty },
         )
     }
         .flowOn(Dispatchers.Default)
@@ -137,6 +178,12 @@ class HistoryViewModel(application: Application) : AppViewModel(application) {
     fun onErrorShown() {
         _error.value = null
     }
+
+    private data class Settings(
+        val preferences: SchedulePreferences,
+        val blocks: List<TrainingBlock>,
+        val unit: WeightUnit,
+    )
 }
 
 private const val TAG = "PT/HistoryViewModel"

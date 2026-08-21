@@ -216,6 +216,7 @@ object BackupJson {
             dismissedCollisionIds = prefs.stringList("dismissedCollisionIds"),
             blockStartEpochDay = prefs.longOrNull("blockStartEpochDay"),
             blockWeeks = prefs.int("blockWeeks", 12),
+            pastBlocks = prefs.string("pastBlocks", ""),
         )
     }
 

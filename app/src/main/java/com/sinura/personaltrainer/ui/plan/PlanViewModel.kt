@@ -349,8 +349,12 @@ class PlanViewModel(application: Application) : AppViewModel(application) {
     fun startNextBlock() {
         write("Couldn't start a new block. Try again.") {
             val weekStart = container.preferencesRepository.schedulePreferences.first().weekStart
-            container.preferencesRepository.setTrainingBlock(
-                TrainingBlock.startingIn(today = LocalDate.now(), weekStart = weekStart),
+            // beginBlock keeps the block being replaced when it was finished. It always is
+            // here — this is only reachable from the completed state — but the rule lives in
+            // one place rather than being asserted at each caller.
+            container.preferencesRepository.beginBlock(
+                next = TrainingBlock.startingIn(today = LocalDate.now(), weekStart = weekStart),
+                todayEpochDay = todayEpochDay(),
             )
         }
     }

@@ -71,9 +71,12 @@ class OnboardingApplier(
             preferencesRepository.setAvailableEquipment(coach.availableEquipment)
             preferencesRepository.setBodyweightKg(clean.bodyweightKg)
             // The block starts the moment a plan is accepted, not the moment the app was
-            // installed: what is being counted is twelve weeks of *this* programme.
-            preferencesRepository.setTrainingBlock(
-                TrainingBlock.startingIn(today = today, weekStart = weekStart),
+            // installed: what is being counted is twelve weeks of *this* programme. beginBlock
+            // keeps the one this replaces if it had finished — re-running setup the week after
+            // a block ends should not lose the block that ended.
+            preferencesRepository.beginBlock(
+                next = TrainingBlock.startingIn(today = today, weekStart = weekStart),
+                todayEpochDay = today.toEpochDay(),
             )
 
             val byId = catalog.associateBy { it.id }

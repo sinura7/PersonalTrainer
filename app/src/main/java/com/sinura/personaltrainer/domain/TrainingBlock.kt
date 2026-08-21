@@ -66,6 +66,8 @@ data class TrainingBlock(
 
     companion object {
         const val DEFAULT_WEEKS = 12
+        /** Roughly three years of blocks. Past this the list is an archive nobody scrolls. */
+        const val MAX_KEPT = 12
         const val MIN_WEEKS = 4
         const val MAX_WEEKS = 24
         private const val DAYS_IN_WEEK = 7L
@@ -87,4 +89,55 @@ data class TrainingBlock(
             weeks = weeks.coerceIn(MIN_WEEKS, MAX_WEEKS),
         )
     }
+}
+
+/**
+ * The blocks you have finished, as boundaries rather than as summaries.
+ *
+ * A finished block is two numbers — when it started and how long it ran — and every session it
+ * contained is still in the database, so its review can be rebuilt from those two numbers on
+ * demand. Storing the computed summary instead would be a second source of truth about work the
+ * database already holds, and it would go stale the moment an old session was edited.
+ *
+ * Encoded by hand into one preference string for the same reason [CatalogCollision] is: the
+ * shape is a pair of numbers, and a serializer dependency for that is one more thing that can
+ * be configured wrong. Tolerant on the way in — a malformed entry is dropped, never thrown,
+ * because a corrupted archive must not be able to stop the app knowing what week it is on.
+ */
+object BlockArchive {
+    private const val ENTRY = ","
+    private const val FIELD = ":"
+
+    fun encode(blocks: List<TrainingBlock>): String = blocks
+        .sortedBy { it.startEpochDay }
+        .takeLast(TrainingBlock.MAX_KEPT)
+        .joinToString(ENTRY) { "${it.startEpochDay}$FIELD${it.weeks}" }
+
+    fun decode(raw: String?): List<TrainingBlock> {
+        if (raw.isNullOrBlank()) return emptyList()
+        return raw.split(ENTRY).mapNotNull { entry ->
+            val parts = entry.split(FIELD)
+            if (parts.size != 2) return@mapNotNull null
+            val start = parts[0].trim().toLongOrNull() ?: return@mapNotNull null
+            val weeks = parts[1].trim().toIntOrNull() ?: return@mapNotNull null
+            if (weeks < TrainingBlock.MIN_WEEKS || weeks > TrainingBlock.MAX_WEEKS) {
+                return@mapNotNull null
+            }
+            TrainingBlock(startEpochDay = start, weeks = weeks)
+        }
+            .distinctBy { it.startEpochDay }
+            .sortedBy { it.startEpochDay }
+    }
+
+    /**
+     * Add [finished] to [existing], newest kept, oldest dropped past the cap.
+     *
+     * Deduplicated by start day so archiving the same block twice — a double tap, a restore
+     * landing on top of a local archive — cannot list it twice.
+     */
+    fun archive(existing: List<TrainingBlock>, finished: TrainingBlock): List<TrainingBlock> =
+        (existing + finished)
+            .distinctBy { it.startEpochDay }
+            .sortedBy { it.startEpochDay }
+            .takeLast(TrainingBlock.MAX_KEPT)
 }

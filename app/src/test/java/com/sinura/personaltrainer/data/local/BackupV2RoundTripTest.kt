@@ -14,6 +14,9 @@ import com.sinura.personaltrainer.data.repository.LocalBackupRepository
 import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.domain.DefaultExercises
 import com.sinura.personaltrainer.domain.HeatWindow
+import com.sinura.personaltrainer.domain.CoachPreferences
+import com.sinura.personaltrainer.domain.RestTimerPreferences
+import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -175,6 +178,46 @@ class BackupV2RoundTripTest {
         val restored = preferences.trainingBlock.first()!!
         assertEquals(20_318L, restored.startEpochDay)
         assertEquals(12, restored.weeks)
+    }
+
+    @Test
+    fun finishedBlocksTravelWithTheBackup() {
+        // Three years of finished blocks is a record of what you did. A new phone that lost it
+        // would show a lifter with a full history their first ever block.
+        maintenance.seedCatalog()
+        seedUserData()
+        preferences.beginBlock(TrainingBlock(startEpochDay = 20_000L, weeks = 12), 20_000L)
+        // Begun on a day past its end, so the one it replaces counts as finished and is kept.
+        preferences.beginBlock(TrainingBlock(startEpochDay = 20_084L, weeks = 12), 20_084L)
+        assertEquals(listOf(20_000L), preferences.pastBlocks.first().map { it.startEpochDay })
+
+        val json = BackupJson.encode(local.createSnapshot())
+        preferences.setRestoredPreferences(
+            unit = WeightUnit.KG,
+            schedule = SchedulePreferences(),
+            rest = RestTimerPreferences(),
+            coach = CoachPreferences(),
+            heatWindow = HeatWindow.CURRENT_WEEK,
+            bodyweightKg = null,
+            onboardingComplete = false,
+            dismissedCollisionIds = emptySet(),
+            block = null,
+            pastBlocks = emptyList(),
+        )
+        assertTrue(preferences.pastBlocks.first().isEmpty())
+
+        restore(json)
+
+        assertEquals(listOf(20_000L), preferences.pastBlocks.first().map { it.startEpochDay })
+    }
+
+    @Test
+    fun anUnfinishedBlockIsNotArchivedWhenItIsReplaced() {
+        // Re-running setup half way through a block discards it. A block you abandoned is not
+        // a result, and listing it beside blocks you finished would make the list meaningless.
+        preferences.beginBlock(TrainingBlock(startEpochDay = 20_000L, weeks = 12), 20_000L)
+        preferences.beginBlock(TrainingBlock(startEpochDay = 20_030L, weeks = 12), 20_030L)
+        assertTrue(preferences.pastBlocks.first().isEmpty())
     }
 
     @Test

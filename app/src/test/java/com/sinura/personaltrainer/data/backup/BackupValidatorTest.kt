@@ -277,11 +277,26 @@ class BackupValidatorTest {
                 weightUnit = "kg",
                 blockStartEpochDay = 20_318L,
                 blockWeeks = 12,
+                pastBlocks = "20150:12,20234:12",
             ),
         )
         val decoded = BackupJson.decode(BackupJson.encode(original)).preferences
         assertEquals(20_318L, decoded.blockStartEpochDay)
         assertEquals(12, decoded.blockWeeks)
+        assertEquals("20150:12,20234:12", decoded.pastBlocks)
+    }
+
+    @Test
+    fun anUnreadableArchiveCostsTheArchiveAndNothingElse() {
+        // Finished blocks are a record of what you did, not a thing the app needs to run. A
+        // corrupted archive must never be able to fail a restore that carries real training.
+        val decoded = BackupJson.decode(
+            """{"version": 2, "app": "personal-trainer",
+                "preferences": {"weightUnit": "kg", "pastBlocks": {"nested": true},
+                                "blockStartEpochDay": 20318}}""",
+        )
+        assertEquals("", decoded.preferences.pastBlocks)
+        assertEquals(20_318L, decoded.preferences.blockStartEpochDay)
     }
 
     @Test

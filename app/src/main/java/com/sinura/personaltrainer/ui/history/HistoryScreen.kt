@@ -6,10 +6,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -29,15 +31,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.PrSummaryRow
+import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GroupedList
+import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentRow
@@ -52,6 +57,9 @@ import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.theme.Surface3
 import com.sinura.personaltrainer.ui.theme.TextPrimary
+import com.sinura.personaltrainer.ui.theme.TextSecondary
+import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.workout.StartOptionsSheet
 import java.text.DateFormat
@@ -193,6 +201,20 @@ fun HistoryScreen(
                                 }
                             }
                         }
+                        if (state.pastBlocks.isNotEmpty()) {
+                            item(key = "blocks-header") {
+                                GymSectionHeader(
+                                    "Blocks",
+                                    modifier = Modifier.padding(
+                                        top = Metrics.sectionGap,
+                                        bottom = Metrics.kickerGap,
+                                    ),
+                                )
+                            }
+                            items(state.pastBlocks, key = { it.block.startEpochDay }) { finished ->
+                                FinishedBlockCard(finished = finished, unit = unit)
+                            }
+                        }
                         if (state.records.isNotEmpty()) {
                             item(key = "records-header") {
                                 GymSectionHeader(
@@ -322,6 +344,81 @@ private fun DaySessionsSheet(
 }
 
 /**
+ * A block you finished, and what it came to.
+ *
+ * Rebuilt from the sessions it spans rather than read from a stored summary, so editing an old
+ * workout corrects the block it belonged to instead of leaving a number that used to be true.
+ *
+ * The movers are why anyone scrolls this far. Four numbers say how much you did; the movers say
+ * what came of it, which is the only part that distinguishes one block from the next.
+ */
+@Composable
+private fun FinishedBlockCard(finished: FinishedBlock, unit: WeightUnit) {
+    val review = finished.review
+    val span = remember(finished.block) {
+        val start = LocalDate.ofEpochDay(finished.block.startEpochDay)
+        val end = LocalDate.ofEpochDay(finished.block.endExclusiveEpochDay - 1)
+        "${BLOCK_MONTH.format(start)} – ${BLOCK_MONTH.format(end)}"
+    }
+    GymCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Kicker("${review.weeks} weeks")
+            Text(span, style = InstrumentType.caption, color = TextTertiary)
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space5),
+        ) {
+            MetricCluster(
+                value = review.daysTrained.toString(),
+                label = "days",
+                horizontalAlignment = Alignment.Start,
+            )
+            MetricCluster(
+                value = review.workingSets.toString(),
+                label = "sets",
+                horizontalAlignment = Alignment.Start,
+            )
+            val column = SetCopy.workColumn(review.work, unit)
+            MetricCluster(
+                value = column.value,
+                label = column.label,
+                horizontalAlignment = Alignment.Start,
+            )
+            MetricCluster(
+                value = review.recordsBroken.toString(),
+                label = "PRs",
+                horizontalAlignment = Alignment.Start,
+            )
+        }
+        review.movers.forEach { mover ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    mover.exerciseName,
+                    modifier = Modifier.weight(1f),
+                    style = InstrumentType.body,
+                    color = TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    "${mover.fromLabel}  →  ${mover.toLabel}",
+                    style = InstrumentType.numeralSm,
+                    color = Volt,
+                )
+            }
+        }
+    }
+}
+
+/**
  * A standing record: which lift, what it was, and when.
  *
  * The kind is spelled out rather than implied by the number, because "120 kg" and "120 kg
@@ -366,3 +463,6 @@ private fun groupedRowShape(index: Int, count: Int): Shape = when {
     index == count - 1 -> RoundedCornerShape(bottomStart = Radius.sm, bottomEnd = Radius.sm)
     else -> RectangleShape
 }
+
+/** Month and year: a block spans months, and the day it started on is not the point. */
+private val BLOCK_MONTH: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM yyyy")

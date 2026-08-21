@@ -85,6 +85,14 @@ data class BackupPreferences(
      */
     val blockStartEpochDay: Long? = null,
     val blockWeeks: Int = 12,
+    /**
+     * Finished blocks, as "start:weeks" pairs — see BlockArchive.
+     *
+     * A string rather than a list of objects because that is what it is stored as, and because
+     * a backup field that needs its own nested shape is a backup field that needs its own
+     * version gate. Unreadable content decodes to no blocks, never to a failed restore.
+     */
+    val pastBlocks: String = "",
 )
 
 /**
