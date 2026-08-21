@@ -141,8 +141,9 @@ adb logcat --pid=$(adb shell pidof com.sinura.personaltrainer)
 
 ## Committing
 
-Trunk-based: commit to `main`, push, let CI verify. Branch only when work spans several
-sessions or you want CI to vet it before it lands.
+Branch-per-phase: work lands on `claude/phase-<n>-<slug>` branches, one PR per phase,
+merged by the owner — see `docs/gameplan/PROTOCOL.md`. (`main` was empty of app code
+until 20 Aug 2026; do not trust older claims of trunk-based flow.)
 
 Write commit messages that explain **why**, not what — the diff already says what. The
 existing history is the model to follow.

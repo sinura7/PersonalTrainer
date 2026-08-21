@@ -56,7 +56,7 @@ These are not optional polish. They are part of the product.
 | **R-02** | **Library contains images** for every built-in lift; custom lifts can attach or inherit a placeholder | Library cards are title + muscle chip + buttons | P1 |
 | **R-03** | Rest timer plays a **completion sound** that means “next set starts now” | Generic system notification ringtone via `RestTimerAlerts`, skipped if ringer is silent | P1 |
 | **R-04** | **Last 5 seconds tick** as a warning | Not implemented. No in-app or service tick | P1 |
-| **R-05** | Rest timer **hovering popup on the phone home screen** so remaining time is visible without opening the app | Foreground notification + chronometer only. No overlay / bubble / widget | P1 |
+| **R-05** | Rest timer **hovering popup on the phone home screen** so remaining time is visible without opening the app | Foreground notification + chronometer only. No overlay / bubble / widget **— Superseded — see §10.2 banner; the notification + last-5s ticks are the home-screen presence.** | P1 |
 | **R-06** | Rest timer **must not go negative** | Domain clock clamps to `0`. System notification `Chronometer` countdown can overshoot after `setWhen` is in the past. Users see negatives | **P0** |
 | **R-07** | **Delete a routine, then create one, must not crash** | Editor auto-inserts `"Untitled routine"` on `routine/new`, `leave()` deletes the empty stub, ViewModel can keep a deleted id. Reported crash on recreate | **P0** |
 | **R-08** | Routines include **machines** as a real format (not just free-weight names in a text list) | Catalog mixes “Leg Press” / “Lat Pulldown” as names only. No equipment type, no machine grouping, no machine card design | P1 |
@@ -339,7 +339,7 @@ Images on the lift switcher. Rest becomes a full-screen-feeling card only while 
 | T-04 | Silent ringer skips sound entirely. Offer a workout override (media/alarm stream) with an explicit setting, default off | P1 |
 | T-05 | Vibration is only on complete. Add tick pulses on 5–1 | P1 |
 | T-06 | Notification Chronometer can go negative (A-03) | P0 |
-| T-07 | No overlay / bubble on the launcher (R-05). See §8 | P1 |
+| T-07 | No overlay / bubble on the launcher (R-05). See §8 **— Superseded — see §10.2 banner.** | P1 |
 | T-08 | Home rest card and in-workout card can disagree for a frame (different collectors) | P2 |
 | T-09 | Presets are only 60/90/120. Need 30s (accessories) and 180s (heavy compounds) | P2 |
 | T-10 | Custom parse is good (`90` / `1:30`). Dialog chrome is generic | P2 |
@@ -437,7 +437,7 @@ This is the second most important design surface after Active Workout. Today it 
 |---|---|---|
 | N-01 | Rest sound/vibrate toggles exist; no preview button (“play complete cue”) | P1 |
 | N-02 | No last-5s tick toggle (will need one) | P1 |
-| N-03 | No overlay permission row (will need one) | P1 |
+| N-03 | No overlay permission row (will need one) **— Superseded — no overlay permission row will be added; see §10.2 banner.** | P1 |
 | N-04 | Backup is solid conceptually. Restore needs a brutal confirm (it already should; verify copy) | P1 |
 | N-05 | Units explanation is clear. Good. Keep it | — |
 | N-06 | About / version is enough. No gym profile (bodyweight, plates available) yet — needed for plate math and bodyweight lifts | P2 |
@@ -446,7 +446,7 @@ This is the second most important design surface after Active Workout. Today it 
 
 | ID | Issue | Priority |
 |---|---|---|
-| NAV-01 | Five tabs (Home, Body, Routines, Library, History) is a lot for a logging app. Body and History are secondary. Consider Home / Workout / Program (Routines+Library) / You (History+Body+Settings) | P2 |
+| NAV-01 | Five tabs (Home, Body, Routines, Library, History) is a lot for a logging app. Body and History are secondary. Consider Home / Workout / Program (Routines+Library) / You (History+Body+Settings) **— Closed 20 Aug 2026 — adjudicated by the decision recorded in ROADMAP.md § Decisions D1, which the owner signs by circling one option (four tabs Home · Body · Plan · History, recommended; or three tabs Home · Body · Plan with Body absorbing History). Either option demotes Library to a pushed screen and lands the LiveSessionBar as chrome. D1 is the single record of the chosen option. The Home/Workout/Program/You grouping suggested in this row is superseded either way.** | P2 |
 | NAV-02 | Settings and Schedule are stack-only from Home. Fine if Home header is obvious | P2 |
 | NAV-03 | Library `?muscle=` navigation with `restoreState = false` can surprise scroll/filter | P2 |
 | NAV-04 | Active workout `launchSingleTop` is correct. Routine editor does **not** use it and shares the `"new"` argument — related to A-02 | P0 |
@@ -475,7 +475,7 @@ That is why everything looks like text.
 | `loadType` | `EXTERNAL` / `BODYWEIGHT` / `ASSISTED` / `STACK` — drives 0 kg rules and UI |
 | `defaultRestSeconds` | Per lift, not only per routine line |
 
-`RoutineExercise` should store equipment override (same lift on machine vs barbell is a different card).
+~~`RoutineExercise` should store equipment override~~ **Superseded 20 Aug 2026 (D4 cut list):** an equipment variant is its own catalog row with its own history and PRs, grouped by `movementKey`; no per-routine override column will exist.
 
 Backup JSON must version these fields. Old backups stay valid.
 
@@ -563,6 +563,11 @@ Settings:
 Play ticks from the **foreground service** so they continue when the activity is stopped. In-app clock can mirror for when the screen is on.
 
 ### 10.2 Hovering popup on the home screen (R-05)
+
+> **Superseded 20 Aug 2026.** ROADMAP Phase 6 records the decision **not** to build the
+> overlay bubble, and D4 reaffirms it. The FGS notification (non-negative, fixed under
+> A-03) plus the last-5s ticks are the glanceable rest surface. This section is retained
+> as the analysis that informed the decision; do not implement it.
 
 **Wanted:** glanceable rest while the launcher is showing.
 
@@ -681,6 +686,13 @@ Do not start these until the floor loop is beautiful and reliable:
 - Supersets, circuits, EMOM
 - Plate calculator (P2 — high value, after images)
 - Gym-level machine brand models
+- LLM / chat "AI trainer" — reaffirmed 20 Aug 2026 (D4). The coach is the rule engine,
+  made honest and specific; it works offline.
+- Muscle-head-level granularity ("front head of the triceps"). Weighted primary/secondary
+  credit is the honest ceiling of set-log data; a later sub-group split for delts and back
+  only is the recorded maybe.
+- Day and year heat windows. The decision-relevant horizons are This week and Last 30
+  days, on absolute weekly-set bands (game-plan Phase 5).
 
 Wear and a plate calculator will matter. They are not the current hole. Images, machines, timer sound/tick/overlay, resume, and “delete routine / create” are.
 
@@ -708,7 +720,7 @@ Wear and a plate calculator will matter. They are not the current hole. Images, 
 
 11. Custom complete sound + last-5s ticks + haptics (R-03, R-04).
 12. Settings: preview, tick toggle, play-over-silent.
-13. Optional overlay bubble + permission row (R-05).
+13. ~~Optional overlay bubble + permission row (R-05)~~ **Cut 20 Aug 2026 (D4); see §10.2 banner. Nothing replaces it in this wave.**
 14. Collapse idle rest card; invert leave-dialog defaults.
 15. Samsung / battery copy in-app.
 
@@ -736,7 +748,7 @@ Wear and a plate calculator will matter. They are not the current hole. Images, 
 
 The app is not done when features exist. It is done when:
 
-- A new user can start a free workout, **see squat as a picture**, log a set, pocket the phone, **hear ticks at 5**, **see the clock on the launcher** (overlay or at least a non-negative notification), and come back to the **same lift and sets**.
+- A new user can start a free workout, **see squat as a picture**, log a set, pocket the phone, **hear ticks at 5**, **see the clock in the notification shade** (non-negative, always), and come back to the **same lift and sets**.
 - They can delete a routine and immediately create another without a crash or an “Untitled routine” leftover.
 - A machine-day routine looks like machines, not a paragraph of names.
 - Every component is simple: few actions, large type, one picture, one primary button.

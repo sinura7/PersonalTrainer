@@ -217,9 +217,12 @@ one. This phase does not touch `docs/HIERARCHY_PLAN.md`.
 
 **(a) Close NAV-01** (line 449). Amend the Issue cell to end with:
 
-> **Closed 20 Aug 2026 — decision recorded in ROADMAP.md § Decisions D1: three tabs
-> Home · Body · Plan + LiveSessionBar (four-tab fallback recorded there). The
-> Home/Workout/Program/You grouping suggested here is superseded.**
+> **Closed 20 Aug 2026 — adjudicated by the decision recorded in ROADMAP.md § Decisions
+> D1, which the owner signs by circling one option (four tabs Home · Body · Plan · History,
+> recommended; or three tabs Home · Body · Plan with Body absorbing History). Either option
+> demotes Library to a pushed screen and lands the LiveSessionBar as chrome. Do not restate
+> the chosen option here — D1 is the single record of it. The Home/Workout/Program/You
+> grouping suggested in this row is superseded either way.**
 
 **(b) Supersede the §7 RoutineExercise row** (line 478). Replace the sentence
 "`RoutineExercise` should store equipment override (same lift on machine vs barbell is a

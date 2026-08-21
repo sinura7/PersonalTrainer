@@ -88,13 +88,12 @@ Everything here is a read over the existing schema, so none of it waited on the 
 
 ## Phase 4 — Schema v2 · **next**
 
-`equipment`, `loadType`, `imageKey`, canonical muscles with secondary credit, versioned
-catalog seeding, UNIQUE constraints, transaction sweep. One reviewed migration, delivered
-with its `MigrationTestHelper` suite. Unblocks bodyweight lifts, machines and imagery.
-
-Now unblocked: the v1 baseline it migrates *from* is committed. Six carried-forward items
-below are folded into this phase rather than patched separately, because each of them is
-waiting on a field this migration adds or on the test harness it brings with it.
+> Superseded 20 Aug 2026. The monolithic Phase 4 bundled the migration with behaviour
+> changes this roadmap itself said deserved their own change (see the Phase 3 note above on
+> editable sessions). It is split and re-ordered value-first across the game plan below: the
+> migration core is game-plan Phase 3; the test substrate and session hygiene ship first
+> (Phases 2 then 1); the catalog and imagery ship last (Phases 7/8). Execution rules:
+> `docs/gameplan/PROTOCOL.md`.
 
 ## Phase 5 — The physical product · **done, verified on device**
 
@@ -133,24 +132,188 @@ full **accessibility pass at font scale 2.0**.
 Glance rest-timer widget, Health Connect, bodyweight log, CSV import from Strong/Hevy.
 Recorded decisions **not** to build: overlay bubble, Wear OS app.
 
+## The game plan — 20 Aug 2026
+
+Phase numbers below are game-plan numbers, independent of the historical phases above.
+Full packets live in `docs/gameplan/`; the execution protocol is
+`docs/gameplan/PROTOCOL.md`. Phases land in order; each closes only on owner sign-off.
+
+**Phase numbers are identifiers, not sequence** — the execution order is 0, 2, 1, 3, 4, 5,
+6a, 6b, 7, 8 (ten PRs), and the table is in that order.
+
+| Order | Phase | One line | Executor-days | Owner-days |
+|---|---|---|---|---|
+| 1st | **0 — Decisions & doctrine** | Docs only: ROADMAP/DESIGN_AUDIT restructure, IA adjudication, schedule-semantics sign-off, surface map, cut list, branch ground truth. **BLOCKING checkpoint.** | 0.5–1 | 0.5–1 |
+| 2nd | **2 — Test substrate** | androidTest scaffold + deps, Robolectric JVM lane hosting MigrationTestHelper, smoke migration test vs `schemas/1.json`, `tools/preflight.sh`, connectedAndroidTest runbook. | 1–2 | 0.5 |
+| 3rd | **1 — Session hygiene (packets 1A + 1B)** | One branch `claude/phase-1-session-hygiene`, one PR, one owner evening. **1A:** FinishWorkout/DiscardWorkout use cases, LiveSessionBar, zero-set discard-only policy, 4-hour stale nudge (in-app), RestRemainingStrip deleted, one-live-affordance gate. **1B (on top of a green 1A gate):** editable finished sessions (completedAt preserved), guarded session delete, repeat-last-session, delete-set undo. | 5–7 | 1–1.5 |
+| 4th | **3 — Schema v2 migration** | ONE additive migration (equipment/loadType/movementKey/imageKey/nameKey, exercise_muscles, seed_meta, schedule_slots from D2), versioned seeding behind the maintenance mutex, batch-1 catalog (the 37, keyed on the Phase 7 family vocabulary from the start) + review artifact, Backup v2 + round trip, pre-open raw DB copy, rehearsal runbook, junction-first heat. | 3–5 | 1–2 |
+| 5th | **4 — Plan tab & the pinned week** | Reconciliation rules as pure Kotlin first (from D2), ScheduleRepository owns the persisted week (sixth insights source), planner demoted to proposing fills, `insights.weekPlan` rewired, Plan tab built inside whichever tab bar D1 settles on, pushed ScheduleScreen deleted, ThisWeekHomeCard extracted, planner fixes. | 4–6 | 0.5–1 |
+| 6th | **5 — Honest heat & coach** | Absolute weekly-set bands, windows → THIS_WEEK + LAST_30_DAYS, coach on trailing 14 days, RPE, imbalance by weighted sets, per surface map. | 4–5 | 0.5–1 |
+| 7th | **6a — Tab consolidation + Body absorbs History** | Tab bar per D1, Body gains calendar + month-grouped sessions + PRs, nine-site nav retarget checklist, `isTabRoute` shim deleted. Size L, honestly. | 4–5 | 1–1.5 |
+| 8th | **6b — Home "Today" rework** | Masthead string table, week strip on the persisted week, ONE next-session module, start-options sheet replaces StartWorkout interstitial. Separate device pass from 6a. | 2–3 | 0.5–1 |
+| 9th | **7 — Catalog to ~98 + Library UX** | Staged seed bumps, family grouping on the movementKey vocabulary, equipment chips, canonical-key muscle filter end-to-end, skip-and-surface collisions, increment table. | 4–5 | staged review |
+| 10th | **8 — Imagery** *(optional — deferrable indefinitely; nothing depends on it)* | Compose-drawn composed thumbnails (DrawScope + Heat tokens, no VectorDrawable XML), ≤2 MB APK delta. Line-art commission: non-committal appendix only. | 2–4 | 0.5–1 |
+
+**A1 (the DI seam) is not a phase.** It is an opportunistic refactor, hard 2-day
+timebox, undertaken only if instrumented ViewModel tests are ever scheduled. Nothing
+gates on it. (Supersedes the "Do it with Phase 4" note at Phase 2's outstanding item.)
+
 ---
 
 ## Known open items
 
-Carried forward deliberately, with the phase that will address them:
+Carried forward deliberately, with the phase that will address them.
+**Phase numbers refer to the game plan.**
 
 | Item | Phase |
 |---|---|
-| No instrumented tests; repositories, DAOs, ViewModels, screens untested | 4 |
-| ViewModels untestable by construction (service-locator `AppViewModel`) — A1 | 4 |
-| Finished sessions cannot be edited | 4 |
+| No instrumented tests; repositories, DAOs, ViewModels, screens untested | 2 |
+| ViewModels untestable by construction (service-locator `AppViewModel`) — A1 | opportunistic — not a phase |
+| Finished sessions cannot be edited | 1 |
 | Routine editor loses an unsaved rename on back | ~~4~~ fixed 20 Aug |
-| Imbalance advice compares tonnage, not working-set counts | 4 |
-| Progression increment is a global 2.5 kg; LBS users see "+5.5 lbs" | 4 |
-| RPE is stored and backed up but read by nothing | 4 |
+| Imbalance advice compares tonnage, not working-set counts | 5 |
+| Progression increment is a global 2.5 kg; LBS users see "+5.5 lbs" | 7 |
+| RPE is stored and backed up but read by nothing | 5 |
 | Planner assigns focus to days already in the past | 4 |
 | `arrangeKinds` can still produce back-to-back same-family days | 4 |
-| Toolchain ~20 months stale; release unminified | 6 |
-| Exercise imagery and the equipment field it needs | 4 |
-| Rest-timer sound design; plate calculator; font-scale-2.0 pass | 6 |
-| No scheduled auto-backup (manual + prompted only) | 6 |
+| Toolchain ~20 months stale; release unminified | later (platform) |
+| Exercise imagery and the equipment field it needs | 3 (field) / 7 (catalog) / 8 (imagery) |
+| Rest-timer sound design; plate calculator; font-scale-2.0 pass | later (platform) |
+| No scheduled auto-backup (manual + prompted only) | later (platform) |
+
+---
+
+## Decisions
+
+Signed decisions that later phases build on. A decision is binding once the owner's
+initials and date appear on its Signed line. Executors verify with
+`grep -c "Signed:" docs/ROADMAP.md` before starting any phase.
+
+### D1 — Information architecture
+
+The app ships five tabs (`AppNav.kt:157-163`: Home, Body, Routines, Library, History).
+DESIGN_AUDIT NAV-01 calls five a lot; UI_REDESIGN §6 records a three-tab target that
+Phase 5 deferred. This decision closes the contradiction. **Circle one option and sign.**
+
+**What both options give you, whichever you circle.** Library stops being a tab and
+lives on as a pushed screen — entered from Plan, from recommendation cards, and from the
+muscle detail sheet; every pushed route survives. Routines folds into the new **Plan**
+tab, so the week and the routines that fill it are one place instead of a tab plus an
+orphaned screen in Settings. The **LiveSessionBar** (a docked strip whenever a session is
+live — elapsed, sets, rest countdown, tap to resume) lands as chrome, not a tab, and
+becomes the **only** live-session affordance anywhere. And the history work lands either
+way: sessions grouped by month, a sheet when a day holds more than one session, and a
+personal-records row.
+
+**Option A (recommended): four tabs — Home · Body · Plan · History.** History keeps its
+tab. The calendar and the session log stay exactly one tap away, Body stays
+silhouette-first, and Phase 6a is the tab-bar rewrite plus the nav retargets — Body does
+not absorb History. What it costs you: a fourth tab in the bar, and "what has my training
+done" is answered in two related places rather than one.
+
+**Option B: three tabs — Home · Body · Plan — plus the LiveSessionBar.** This is the
+recorded target IA of UI_REDESIGN §6: the reflection tab keeps the name **Body**, leads
+with the silhouette, and *absorbs* History — the calendar and session log move under the
+body map, making Body the single "what has my training done" surface instead of two thin
+ones. What it costs you: the largest single piece of nav work in the plan, and the reach
+described below.
+
+**Why the recommendation flipped to four tabs (new evidence, 21 Aug 2026).** When the
+merged Body screen was specced in full, the session log came out **five sections deep** —
+window picker, silhouette, muscle rows, calendar, coach cards, and only then the session
+list, with personal records under it. At the same time the Home rebuild deletes Home's
+"Recent" list in **both** branches, and the only scroll anchor built into the merged
+screen targets the **calendar**, not the session list. Net effect if you circle B: "what
+did I do last session" goes from one tap today to a tab change plus a long scroll. Four
+tabs keeps every win listed above and drops only the large merge — and it is closer to
+what you originally asked for.
+
+**Three tabs is still a legitimate choice.** If you circle B, two mitigations become
+mandatory and are built in the same phases, not deferred: (i) a `section=sessions` scroll
+anchor on Body alongside the `section=calendar` one, so anything that means "show me my
+log" lands on the log; and (ii) a single **"Last session"** link row on Home. That row is
+a link, not a recommendation surface, so the D3 surface map is untouched by it.
+
+Either choice closes NAV-01. There is no keep-five option: leaving the contradiction open
+means doing the nav work twice.
+
+**Chosen option: ____   Signed: ____ (initials, date)**
+
+### D2 — Schedule semantics
+
+Spec: `docs/gameplan/SCHEDULE_SEMANTICS.md`. Phase 3 derives the `schedule_slots` DDL
+from this signed spec; Phase 4 implements the derivation. Read the five worked examples
+and ask of each: "is this what I'd expect my week to do?" Rule 6 (a missed day does *not*
+carry into next week) is the one deliberately open question — strike it and initial the
+margin if you want carry-over instead; the DDL is unaffected either way.
+
+**Signed: ____ (initials, date)**
+
+### D3 — Recommendation surfaces
+
+Recommendations appear on exactly four surfaces, and nowhere else. **Home:** one "next
+session" module — today's plan and the top recommendation composed into a single card
+with a one-line reason; never two recommendation slots. **Body:** the full explanation
+cards. **The start-options sheet** and **the in-workout add-exercise sheet:** action
+surfaces, one pinned suggestion each. Phases 5 and 6b both conform to this map; any
+executor adding a fifth surface is wrong.
+
+### D4 — Cut list
+
+Cut, recorded 20 Aug 2026. None of these may reappear in a packet without a new signed
+decision here.
+
+- **LLM / chat coach** — breaches DESIGN_AUDIT §15 and offline-first; the rule engine is
+  the coach.
+- **Muscle-head-level granularity** — not derivable from set logs; weighted
+  primary/secondary credit is the ceiling.
+- **Day and year heat windows** — windows are This week + Last 30 days (Phase 5).
+- **Per-routine equipment override** — a variant is its own catalog row (`movementKey`
+  family); DESIGN_AUDIT §7's row is superseded.
+- **The FK re-pointing custom-merge tool** — collisions are skip-and-surface: the seeder
+  always inserts the built-in and flags the collision; a "needs attention" row in Library
+  lets the owner rename their custom or keep both. History FKs are never rewritten.
+- **The line-art commission ($1.5–4k)** — imagery is Compose-drawn composed thumbnails
+  (Phase 8); the commission survives only as a non-committal appendix there.
+- **A1 as a phase** — opportunistic, 2-day timebox, gates nothing.
+- **The rest overlay bubble** — reaffirming Phase 6 above; DESIGN_AUDIT §10.2 now carries
+  the superseding banner.
+
+### D5 — Branch ground truth
+
+`main` holds only the initial commit; the entire app history lives on
+`claude/app-hierarchy-navigation-cjzigo`, which is many dozens of commits ahead and still
+growing (the executor states the exact count from `git rev-list --count main..HEAD` in the
+PR body rather than freezing a number in this doc). Resolution (owner chooses at the
+checkpoint): **(recommended)** merge that branch into `main` via this phase's PR, or
+record branch-as-trunk here. Thereafter: branch-per-phase `claude/phase-<n>-<slug>`, one
+PR per phase, owner merges, no phase starts before the previous PR lands
+(`docs/gameplan/PROTOCOL.md` §2–§3).
+
+**Chosen: ____   Signed: ____ (initials, date)**
+
+### D6 — Second-pass amendments *(informational)*
+
+Recorded 21 Aug 2026, after the second-pass adversarial audit (six independent auditors,
+every finding evidence-verified against the repo). These amend **how** the game plan
+executes; they do not change what it builds, and nothing here reopens D1–D5.
+
+- **Execution order changes; phase numbers do not.** Phase numbers are identifiers, not
+  sequence. The order is **0 (Decisions) → 2 (Test substrate) → 1 (Session hygiene) →
+  3 (Schema v2) → 4 (Plan tab) → 5 (Heat & coach) → 6a (Tabs + Body) → 6b (Home) →
+  7 (Catalog) → 8 (Imagery, optional)**. Phase 2 is the phase that ships
+  `tools/preflight.sh` and the Robolectric lane, so running it first (a) keeps Phase 2's
+  verified gate literals true rather than stale, (b) gives Phase 1's gates a working
+  domain-test lane instead of a command that exits non-zero on a cold clone, and (c)
+  gives Phase 1's repository writes — restore-set, repeat-session,
+  delete-finished-session — a Robolectric lane they otherwise lack. The cost is that
+  session hygiene reaches your phone roughly one to two executor-days later.
+- **Phases 1a and 1b merge into one phase: "Phase 1 — Session hygiene."** One branch
+  `claude/phase-1-session-hygiene`, one PR, one combined owner evening. Both packets go
+  to the same executor session and are executed in order — 1a in full with its gate
+  green, then 1b on top. 1b's gate greps re-assert 1a's invariants, so the sequence
+  self-verifies. Saves one owner evening; no safety is lost.
+- **The full second-pass findings and the rest of this reconciliation:**
+  `docs/gameplan/SECOND_PASS.md`.
+
+**No signature required; recorded for the record.**
