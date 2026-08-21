@@ -179,6 +179,13 @@ Dark mode is the gym mode and should be designed first. Current dark surface (`#
 
 There are no exercise assets, no empty-state illustrations, no branded mark beyond `ic_launcher_foreground`. A strength app without lift pictures will always feel like a spreadsheet.
 
+**Partly closed, Phase 8 (21 Aug).** Every lift now has a picture: a body figure with its
+trained muscles lit and an equipment badge, on picker rows, library rows, the detail header and
+the in-workout chips. It is *drawn*, not shipped — Compose `DrawScope` against the Heat and
+outline tokens — so there are still no exercise **assets**, and there never need to be. What
+this row asked for beyond that is still open: **empty-state illustrations** and a **branded
+mark** are untouched and unowned by any phase.
+
 ### D-05 — Motion language is missing  [P2]
 
 No rest-ring animation, no tick pulse on last 5s, no settle on log-set, no chip selection motion. `BodyMap` color-lerps; that is the only motion. Add a short spec: 120–180ms standard, 80ms tick, 240ms rest-complete. Never block input on animation.

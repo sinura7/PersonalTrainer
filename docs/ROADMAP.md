@@ -127,6 +127,10 @@ Not done here: **exercise imagery** and the equipment field it needs, which belo
 Phase 4 schema change; **rest-as-instrument sound design**; the **plate calculator**; and a
 full **accessibility pass at font scale 2.0**.
 
+*Amended 21 Aug:* the equipment field shipped in Phase 3 and the imagery in Phase 8 — composed
+in Compose rather than commissioned, so the line-art budget was never spent. The other three
+are still not done and are still unowned by any phase.
+
 ## Phase 6 — Platform *later*
 
 Glance rest-timer widget, Health Connect, bodyweight log, CSV import from Strong/Hevy.
@@ -152,7 +156,7 @@ Full packets live in `docs/gameplan/`; the execution protocol is
 | 7th | **6a — Tab consolidation** ✅ 21 Aug | Ran **Branch A** per signed D1: four tabs (Home · Body · Plan · History), Library demoted to a pushed route with a back arrow, `isTabRoute` and the `restoreState = false` hacks deleted. The history work landed in History in place — month grouping with pinned headers, a sheet for multi-session days, a Records section. Body was not restructured. | 4–5 | 1–1.5 |
 | 8th | **6b — Home "Today" rework** ✅ 21 Aug | Masthead states today rather than the app's name (`MastheadCopy`, pure and tested). The week strip is now one composable shared with Plan, not a Home-only copy. ONE next-session module: the balance card, the heat tile and the recent-activity list are gone. The StartWorkout interstitial is deleted — `StartOptionsSheet` is a modal every entry point opens, so the live bar stays the only live-session affordance. | 2–3 | 0.5–1 |
 | 9th | **7 — Catalog to ~98 + Library UX** ✅ 21 Aug | Catalog at **98** built-ins across two seed bumps (v3, v4), every per-bucket count matching plan. Library groups into 39 movement families with equipment chips; the muscle filter reads junction credits, so it finally includes secondary-credit lifts, and the route carries a canonical enum rather than display text. Collisions surface as rename-or-keep-both — no merge tool, no FK rewriting. One increment table replaced three disagreeing ones: the "+5.5 lbs" defect is dead and bodyweight lifts are told to add a rep. Per-loadType add defaults replaced the universal 3×5/90s. Swap-equipment in both the routine editor and the live session. **Open: the bodyweight-storage decision in the hand-back §7.** | 4–5 | staged review |
-| 10th | **8 — Imagery** *(optional — deferrable indefinitely; nothing depends on it)* | Compose-drawn composed thumbnails (DrawScope + Heat tokens, no VectorDrawable XML), ≤2 MB APK delta. Line-art commission: non-committal appendix only. | 2–4 | 0.5–1 |
+| 10th | **8 — Imagery** ✅ 21 Aug *(was optional; run anyway)* | Compose-drawn thumbnails: a body figure with the trained muscles lit from a **fixed** Heat3 (identity, not the owner's live band) plus an equipment badge, on picker rows, library rows, the 56dp detail header and — glyph only — the in-workout chips. The anatomy moved to `ui/components/FigureArt.kt` as a verified pure move; all 233 coordinates are character-identical, so the Body tab is untouched. Zero assets, zero `res/` additions. **Outstanding, owner-side: the release-APK measurement and the glyph verdicts.** | 2–4 | 0.5–1 |
 
 **A1 (the DI seam) is not a phase.** It is an opportunistic refactor, hard 2-day
 timebox, undertaken only if instrumented ViewModel tests are ever scheduled. Nothing
@@ -177,7 +181,7 @@ Carried forward deliberately, with the phase that will address them.
 | Planner assigns focus to days already in the past | ~~4~~ fixed 21 Aug — proposals only for open days ≥ today |
 | `arrangeKinds` can still produce back-to-back same-family days | ~~4~~ fixed 21 Aug — guarded rotation replaces the swap |
 | Toolchain ~20 months stale; release unminified | later (platform) |
-| Exercise imagery and the equipment field it needs | ~~3 (field, done 21 Aug)~~ / 7 (catalog) / 8 (imagery) |
+| Exercise imagery and the equipment field it needs | ~~3 (field)~~ / ~~7 (catalog)~~ / ~~8 (imagery)~~ — all done 21 Aug |
 | Rest-timer sound design; plate calculator; font-scale-2.0 pass | later (platform) |
 | No scheduled auto-backup (manual + prompted only) | later (platform) |
 
