@@ -37,7 +37,7 @@ data class SeedExercise(
  * re-keyed later on data that has already migrated.
  */
 object DefaultExercises {
-    const val CATALOG_VERSION = 3
+    const val CATALOG_VERSION = 4
 
     /**
      * The family vocabulary. Batch 1 shipped 23 families and batch 2 adds three; a later batch
@@ -52,6 +52,10 @@ object DefaultExercises {
         "curl", "triceps-extension", "plank", "leg-raise", "crunch",
         // Batch 2 (v3).
         "dip", "pullover", "shrug",
+        // Batch 3 (v4): the lower-body and core families batch 1 had no room for.
+        "step-up", "good-morning", "back-extension", "kettlebell-swing", "hip-abduction",
+        "glute-kickback", "pull-through", "nordic-curl", "sit-up", "rollout", "twist",
+        "dead-bug", "carry",
     )
 
     fun catalog(): List<SeedExercise> = CATALOG
@@ -412,6 +416,148 @@ object DefaultExercises {
             id = "ex-bench-dip", name = "Bench Dip", muscleGroup = "Triceps",
             equipment = EquipmentType.BODYWEIGHT, loadType = LoadType.BODYWEIGHT, movementKey = "dip",
             primary = "triceps", secondaries = listOf("chest" to 0.50, "shoulders" to 0.25),
+        ),
+
+        // --- Batch 3 (v4): lower body and core. 28 rows, completing the curated 98.
+        seed(
+            id = "ex-hack-squat", name = "Hack Squat", muscleGroup = "Quads",
+            equipment = EquipmentType.MACHINE, loadType = LoadType.EXTERNAL, movementKey = "squat",
+            primary = "quadriceps", secondaries = listOf("glutes" to 0.50),
+        ),
+        seed(
+            id = "ex-smith-machine-squat", name = "Smith Machine Squat", muscleGroup = "Quads",
+            equipment = EquipmentType.SMITH, loadType = LoadType.EXTERNAL, movementKey = "squat",
+            primary = "quadriceps", secondaries = listOf("glutes" to 0.50),
+        ),
+        seed(
+            id = "ex-reverse-lunge", name = "Reverse Lunge", muscleGroup = "Quads",
+            equipment = EquipmentType.DUMBBELL, loadType = LoadType.EXTERNAL, movementKey = "lunge",
+            primary = "quadriceps", secondaries = listOf("glutes" to 0.50, "hamstrings" to 0.25),
+        ),
+        seed(
+            id = "ex-dumbbell-step-up", name = "Dumbbell Step-Up", muscleGroup = "Quads",
+            equipment = EquipmentType.DUMBBELL, loadType = LoadType.EXTERNAL, movementKey = "step-up",
+            primary = "quadriceps", secondaries = listOf("glutes" to 0.50),
+        ),
+        seed(
+            id = "ex-bodyweight-squat", name = "Bodyweight Squat", muscleGroup = "Quads",
+            equipment = EquipmentType.BODYWEIGHT, loadType = LoadType.BODYWEIGHT, movementKey = "squat",
+            primary = "quadriceps", secondaries = listOf("glutes" to 0.50),
+        ),
+        seed(
+            id = "ex-sumo-deadlift", name = "Sumo Deadlift", muscleGroup = "Glutes",
+            equipment = EquipmentType.BARBELL, loadType = LoadType.EXTERNAL, movementKey = "deadlift",
+            primary = "glutes", secondaries = listOf("back" to 0.50, "quadriceps" to 0.50),
+        ),
+        seed(
+            id = "ex-kettlebell-swing", name = "Kettlebell Swing", muscleGroup = "Glutes",
+            equipment = EquipmentType.KETTLEBELL, loadType = LoadType.EXTERNAL, movementKey = "kettlebell-swing",
+            primary = "glutes", secondaries = listOf("hamstrings" to 0.50, "back" to 0.25),
+        ),
+        seed(
+            id = "ex-back-extension", name = "Back Extension", muscleGroup = "Back",
+            equipment = EquipmentType.BODYWEIGHT, loadType = LoadType.BODYWEIGHT_PLUS, movementKey = "back-extension",
+            primary = "back", secondaries = listOf("glutes" to 0.50, "hamstrings" to 0.50),
+        ),
+        seed(
+            id = "ex-seated-leg-curl", name = "Seated Leg Curl", muscleGroup = "Hamstrings",
+            equipment = EquipmentType.MACHINE, loadType = LoadType.STACK, movementKey = "leg-curl",
+            primary = "hamstrings", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-dumbbell-romanian-deadlift", name = "Dumbbell Romanian Deadlift", muscleGroup = "Hamstrings",
+            equipment = EquipmentType.DUMBBELL, loadType = LoadType.EXTERNAL, movementKey = "romanian-deadlift",
+            primary = "hamstrings", secondaries = listOf("glutes" to 0.50, "back" to 0.25),
+        ),
+        seed(
+            id = "ex-single-leg-romanian-deadlift", name = "Single-Leg Romanian Deadlift", muscleGroup = "Hamstrings",
+            equipment = EquipmentType.DUMBBELL, loadType = LoadType.EXTERNAL, movementKey = "romanian-deadlift",
+            primary = "hamstrings", secondaries = listOf("glutes" to 0.50, "core" to 0.25),
+        ),
+        seed(
+            id = "ex-good-morning", name = "Good Morning", muscleGroup = "Hamstrings",
+            equipment = EquipmentType.BARBELL, loadType = LoadType.EXTERNAL, movementKey = "good-morning",
+            primary = "hamstrings", secondaries = listOf("glutes" to 0.50, "back" to 0.50),
+        ),
+        seed(
+            id = "ex-nordic-ham-curl", name = "Nordic Ham Curl", muscleGroup = "Hamstrings",
+            equipment = EquipmentType.BODYWEIGHT, loadType = LoadType.BODYWEIGHT, movementKey = "nordic-curl",
+            primary = "hamstrings", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-barbell-glute-bridge", name = "Barbell Glute Bridge", muscleGroup = "Glutes",
+            equipment = EquipmentType.BARBELL, loadType = LoadType.EXTERNAL, movementKey = "hip-thrust",
+            primary = "glutes", secondaries = listOf("hamstrings" to 0.25),
+        ),
+        seed(
+            id = "ex-machine-hip-thrust", name = "Machine Hip Thrust", muscleGroup = "Glutes",
+            equipment = EquipmentType.MACHINE, loadType = LoadType.STACK, movementKey = "hip-thrust",
+            primary = "glutes", secondaries = listOf("hamstrings" to 0.25),
+        ),
+        seed(
+            id = "ex-hip-abduction-machine", name = "Hip Abduction Machine", muscleGroup = "Glutes",
+            equipment = EquipmentType.MACHINE, loadType = LoadType.STACK, movementKey = "hip-abduction",
+            primary = "glutes", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-cable-kickback", name = "Cable Kickback", muscleGroup = "Glutes",
+            equipment = EquipmentType.CABLE, loadType = LoadType.STACK, movementKey = "glute-kickback",
+            primary = "glutes", secondaries = listOf("hamstrings" to 0.25),
+        ),
+        seed(
+            id = "ex-cable-pull-through", name = "Cable Pull-Through", muscleGroup = "Glutes",
+            equipment = EquipmentType.CABLE, loadType = LoadType.STACK, movementKey = "pull-through",
+            primary = "glutes", secondaries = listOf("hamstrings" to 0.50),
+        ),
+        seed(
+            id = "ex-seated-calf-raise", name = "Seated Calf Raise", muscleGroup = "Calves",
+            equipment = EquipmentType.MACHINE, loadType = LoadType.STACK, movementKey = "calf-raise",
+            primary = "calves", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-leg-press-calf-raise", name = "Leg Press Calf Raise", muscleGroup = "Calves",
+            equipment = EquipmentType.MACHINE, loadType = LoadType.EXTERNAL, movementKey = "calf-raise",
+            primary = "calves", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-single-leg-calf-raise", name = "Single-Leg Calf Raise", muscleGroup = "Calves",
+            equipment = EquipmentType.BODYWEIGHT, loadType = LoadType.BODYWEIGHT_PLUS, movementKey = "calf-raise",
+            primary = "calves", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-machine-crunch", name = "Machine Crunch", muscleGroup = "Core",
+            equipment = EquipmentType.MACHINE, loadType = LoadType.STACK, movementKey = "crunch",
+            primary = "core", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-decline-sit-up", name = "Decline Sit-Up", muscleGroup = "Core",
+            equipment = EquipmentType.BODYWEIGHT, loadType = LoadType.BODYWEIGHT_PLUS, movementKey = "sit-up",
+            primary = "core", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-side-plank", name = "Side Plank", muscleGroup = "Core",
+            equipment = EquipmentType.BODYWEIGHT, loadType = LoadType.BODYWEIGHT, movementKey = "plank",
+            primary = "core", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-ab-wheel-rollout", name = "Ab Wheel Rollout", muscleGroup = "Core",
+            equipment = EquipmentType.OTHER, loadType = LoadType.BODYWEIGHT, movementKey = "rollout",
+            primary = "core", secondaries = listOf("shoulders" to 0.25),
+        ),
+        seed(
+            id = "ex-dead-bug", name = "Dead Bug", muscleGroup = "Core",
+            equipment = EquipmentType.BODYWEIGHT, loadType = LoadType.BODYWEIGHT, movementKey = "dead-bug",
+            primary = "core", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-russian-twist", name = "Russian Twist", muscleGroup = "Core",
+            equipment = EquipmentType.DUMBBELL, loadType = LoadType.BODYWEIGHT_PLUS, movementKey = "twist",
+            primary = "core", secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-farmer-s-carry", name = "Farmer's Carry", muscleGroup = "Core",
+            equipment = EquipmentType.DUMBBELL, loadType = LoadType.EXTERNAL, movementKey = "carry",
+            primary = "core", secondaries = listOf("back" to 0.25),
         ),
     )
 

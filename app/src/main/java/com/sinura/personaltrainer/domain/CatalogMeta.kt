@@ -94,6 +94,34 @@ object CatalogMeta {
         meta("ex-machine-triceps-extension", 450, emptySet()),   // Machine Triceps Extension
         meta("ex-diamond-push-up", 455, setOf("close grip pushup")),   // Diamond Push-Up
         meta("ex-bench-dip", 460, emptySet()),   // Bench Dip
+        meta("ex-hack-squat", 500, emptySet()),   // Hack Squat
+        meta("ex-smith-machine-squat", 505, setOf("smith squat")),   // Smith Machine Squat
+        meta("ex-reverse-lunge", 510, emptySet()),   // Reverse Lunge
+        meta("ex-dumbbell-step-up", 515, setOf("step up")),   // Dumbbell Step-Up
+        meta("ex-bodyweight-squat", 520, setOf("air squat")),   // Bodyweight Squat
+        meta("ex-sumo-deadlift", 525, setOf("sumo")),   // Sumo Deadlift
+        meta("ex-kettlebell-swing", 530, setOf("kb swing")),   // Kettlebell Swing
+        meta("ex-back-extension", 535, setOf("hyperextension")),   // Back Extension
+        meta("ex-seated-leg-curl", 540, emptySet()),   // Seated Leg Curl
+        meta("ex-dumbbell-romanian-deadlift", 545, setOf("db rdl")),   // Dumbbell Romanian Deadlift
+        meta("ex-single-leg-romanian-deadlift", 550, setOf("single leg rdl")),   // Single-Leg Romanian Deadlift
+        meta("ex-good-morning", 555, emptySet()),   // Good Morning
+        meta("ex-nordic-ham-curl", 560, setOf("nordic curl")),   // Nordic Ham Curl
+        meta("ex-barbell-glute-bridge", 565, setOf("glute bridge")),   // Barbell Glute Bridge
+        meta("ex-machine-hip-thrust", 570, emptySet()),   // Machine Hip Thrust
+        meta("ex-hip-abduction-machine", 575, setOf("abductor")),   // Hip Abduction Machine
+        meta("ex-cable-kickback", 580, setOf("glute kickback")),   // Cable Kickback
+        meta("ex-cable-pull-through", 585, setOf("pull through")),   // Cable Pull-Through
+        meta("ex-seated-calf-raise", 590, emptySet()),   // Seated Calf Raise
+        meta("ex-leg-press-calf-raise", 595, setOf("calf press")),   // Leg Press Calf Raise
+        meta("ex-single-leg-calf-raise", 600, emptySet()),   // Single-Leg Calf Raise
+        meta("ex-machine-crunch", 605, setOf("ab machine")),   // Machine Crunch
+        meta("ex-decline-sit-up", 610, setOf("situp")),   // Decline Sit-Up
+        meta("ex-side-plank", 615, emptySet()),   // Side Plank
+        meta("ex-ab-wheel-rollout", 620, setOf("ab rollout")),   // Ab Wheel Rollout
+        meta("ex-dead-bug", 625, setOf("deadbug")),   // Dead Bug
+        meta("ex-russian-twist", 630, emptySet()),   // Russian Twist
+        meta("ex-farmer-s-carry", 635, setOf("farmers walk", "farmer walk")),   // Farmer's Carry
     )
 
     /** Display order among built-ins; customs sort last. */

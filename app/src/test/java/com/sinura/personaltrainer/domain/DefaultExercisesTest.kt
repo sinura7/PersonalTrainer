@@ -15,10 +15,10 @@ import org.junit.Test
 class DefaultExercisesTest {
 
     @Test
-    fun catalogHasExactly70EntriesAtVersion3() {
-        // Batch 1 (37) + batch 2 (33). Batch 3 takes this to 98 at version 4.
-        assertEquals(70, DefaultExercises.catalog().size)
-        assertEquals(3, DefaultExercises.CATALOG_VERSION)
+    fun catalogHasExactly98EntriesAtVersion4() {
+        // Batch 1 (37) + batch 2 (33) + batch 3 (28). This is the curated target.
+        assertEquals(98, DefaultExercises.catalog().size)
+        assertEquals(4, DefaultExercises.CATALOG_VERSION)
     }
 
     @Test
@@ -164,11 +164,11 @@ class DefaultExercisesTest {
             "ex-close-grip-bench-press", "ex-plank", "ex-hanging-leg-raise", "ex-cable-crunch",
         )
 
-        /** The plan's per-bucket totals at this catalog version. Batch 3 raises them to 98. */
+        /** The plan's per-bucket totals for the finished 98-lift catalog. */
         val BUCKET_COUNTS = mapOf(
-            "Chest" to 12, "Back" to 15, "Hinge" to 2, "Shoulders" to 11, "Biceps" to 8,
-            "Triceps" to 8, "Quads" to 7, "Hamstrings" to 2, "Glutes" to 1, "Calves" to 1,
-            "Core" to 3,
+            "Chest" to 12, "Back" to 15, "Hinge" to 5, "Shoulders" to 11, "Biceps" to 8,
+            "Triceps" to 8, "Quads" to 12, "Hamstrings" to 7, "Glutes" to 6, "Calves" to 4,
+            "Core" to 10,
         )
 
         val BUCKETS: Map<String, List<String>> = mapOf(
@@ -187,7 +187,10 @@ class DefaultExercisesTest {
                 "ex-barbell-shrug", "ex-dumbbell-shrug",
             ),
             // Hinge is a curation bucket, not a muscle: its lifts credit back and glutes.
-            "Hinge" to listOf("ex-conventional-deadlift", "ex-trap-bar-deadlift"),
+            "Hinge" to listOf(
+                "ex-conventional-deadlift", "ex-trap-bar-deadlift",
+                "ex-sumo-deadlift", "ex-kettlebell-swing", "ex-back-extension",
+            ),
             "Shoulders" to listOf(
                 "ex-overhead-press", "ex-seated-dumbbell-press", "ex-lateral-raise", "ex-face-pull",
                 "ex-push-press", "ex-arnold-press", "ex-machine-shoulder-press",
@@ -207,11 +210,28 @@ class DefaultExercisesTest {
             "Quads" to listOf(
                 "ex-barbell-back-squat", "ex-front-squat", "ex-goblet-squat",
                 "ex-bulgarian-split-squat", "ex-walking-lunge", "ex-leg-press", "ex-leg-extension",
+                "ex-hack-squat", "ex-smith-machine-squat", "ex-reverse-lunge",
+                "ex-dumbbell-step-up", "ex-bodyweight-squat",
             ),
-            "Hamstrings" to listOf("ex-romanian-deadlift", "ex-leg-curl"),
-            "Glutes" to listOf("ex-hip-thrust"),
-            "Calves" to listOf("ex-standing-calf-raise"),
-            "Core" to listOf("ex-plank", "ex-hanging-leg-raise", "ex-cable-crunch"),
+            "Hamstrings" to listOf(
+                "ex-romanian-deadlift", "ex-leg-curl",
+                "ex-seated-leg-curl", "ex-dumbbell-romanian-deadlift",
+                "ex-single-leg-romanian-deadlift", "ex-good-morning", "ex-nordic-ham-curl",
+            ),
+            "Glutes" to listOf(
+                "ex-hip-thrust",
+                "ex-barbell-glute-bridge", "ex-machine-hip-thrust", "ex-hip-abduction-machine",
+                "ex-cable-kickback", "ex-cable-pull-through",
+            ),
+            "Calves" to listOf(
+                "ex-standing-calf-raise",
+                "ex-seated-calf-raise", "ex-leg-press-calf-raise", "ex-single-leg-calf-raise",
+            ),
+            "Core" to listOf(
+                "ex-plank", "ex-hanging-leg-raise", "ex-cable-crunch",
+                "ex-machine-crunch", "ex-decline-sit-up", "ex-side-plank", "ex-ab-wheel-rollout",
+                "ex-dead-bug", "ex-russian-twist", "ex-farmer-s-carry",
+            ),
         )
     }
 }
