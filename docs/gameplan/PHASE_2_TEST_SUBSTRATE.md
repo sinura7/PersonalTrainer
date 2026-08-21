@@ -489,11 +489,18 @@ The phase closes only on owner sign-off of §8, per docs/gameplan/PROTOCOL.md.
 
 All on your computer and an emulator. Your phone is not involved and must not be.
 
+**Host note — the owner's machine is Windows/PowerShell.** Run Gradle as
+`.\gradlew.bat <task>` from the repository root (`./gradlew` is the POSIX script and will
+not run in PowerShell). Run the `tools/` shell scripts from Git Bash, or as
+`& "C:\Program Files\Git\bin\bash.exe" tools/preflight.sh`. **Step 2 is expected to fail
+on this host and that is not a defect** — see the note on it. Full detail:
+`docs/DEVELOPMENT.md` § On Windows.
+
 1. Pull the phase branch (or the merged PR) and open the project in Android Studio; let Gradle sync finish. It downloads a handful of new test-only libraries — network required.
-2. In the terminal at the project root, run `./gradlew testDebugUnitTest`. First run downloads a large one-time Robolectric artifact (~100 MB); let it finish. **Observe**: `BUILD SUCCESSFUL`, and in the report it opens (or at `app/build/reports/tests/testDebugUnitTest/index.html`) a green row for `SchemaV1BaselineTest`, zero failures anywhere.
+2. In the terminal at the project root, run `.\gradlew.bat testDebugUnitTest`. **On Windows, expect `SchemaV1BaselineTest` to fail** — Robolectric falls back to legacy SQLite there, which cannot validate the schema honestly. That is a host limitation, not a broken test; step 4 is the lane that counts. Record the result and move on. (On macOS/Linux this step is expected green.) First run downloads a large one-time Robolectric artifact (~100 MB); let it finish. **Observe**: `BUILD SUCCESSFUL`, and in the report it opens (or at `app/build/reports/tests/testDebugUnitTest/index.html`) a green row for `SchemaV1BaselineTest`, zero failures anywhere.
 3. In Android Studio: Device Manager → start any emulator with API 26 or newer (create one if none exists — defaults are fine). Wait for it to reach the home screen.
-4. Run `./gradlew connectedDebugAndroidTest`. **Observe**: `BUILD SUCCESSFUL`, and at `app/build/reports/androidTests/connected/` a report showing **2 tests, 0 failures** (`InstrumentationSmokeTest`, `SchemaV1BaselineDeviceTest`). If it says no connected devices, the emulator isn't running — go back to step 3. Do NOT plug in your phone for this: the test build cannot install next to your real app, and it must never replace it.
-5. Run `tools/preflight.sh`. **Observe**: a series of check sections, then `OK (188 tests)`, then the final line `preflight: OK`.
+4. Run `.\gradlew.bat connectedDebugAndroidTest`. **This is the step that matters on this host — it is the migration lane Phase 3 will be gated on.** **Observe**: `BUILD SUCCESSFUL`, and at `app/build/reports/androidTests/connected/` a report showing **2 tests, 0 failures** (`InstrumentationSmokeTest`, `SchemaV1BaselineDeviceTest`). If it says no connected devices, the emulator isn't running — go back to step 3. Do NOT plug in your phone for this: the test build cannot install next to your real app, and it must never replace it.
+5. Run `tools/preflight.sh` from Git Bash (optional on this host — the executor runs it before every push; re-running it locally is a convenience, not a gate). **Observe**: a series of check sections, then `OK (188 tests)`, then the final line `preflight: OK`.
 6. Paste the three outputs (steps 2, 4, 5) into the PR and approve it. Standing errand, no deadline, gates nothing: CI has still never run — the fix is yours alone (add a payment method / raise the $0 spending limit, or make the repo public, or attach a self-hosted runner; docs/DEVELOPMENT.md "Continuous integration"). The day you do, both CI jobs start running on every push with no further changes.
 
 ## 9. Estimates

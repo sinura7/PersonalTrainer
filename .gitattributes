@@ -1,0 +1,19 @@
+# Line endings. Without this, a Windows clone can check out the shell scripts with CRLF,
+# and `#!/bin/sh\r` fails with "bad interpreter" even under Git Bash or WSL — a failure
+# whose message points nowhere near the real cause.
+
+# Shell scripts and the Gradle wrapper must stay LF.
+*.sh        text eol=lf
+gradlew     text eol=lf
+
+# Windows batch files must stay CRLF.
+*.bat       text eol=crlf
+gradlew.bat text eol=crlf
+
+# Never line-ending-convert binaries.
+*.ttf   binary
+*.png   binary
+*.jar   binary
+*.apk   binary
+*.webp  binary
+*.keystore binary

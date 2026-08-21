@@ -174,3 +174,38 @@ an Android SDK, and CI has never run.
 That is exactly why Phase 2 now runs first (D-A): the plan's largest unverified assumption
 is retired on the first evening, in the cheapest phase, before any code phase depends on
 it.
+
+---
+
+## Addendum — 21 Aug 2026: the Windows risk is confirmed, not hypothetical
+
+The second pass recorded one **new risk**: Robolectric falls back to legacy SQLite on
+Windows hosts, where `PRAGMA table_info` cannot express composite primary keys, so Room
+schema validation fails falsely for entities that have one — exactly what Phase 3's
+`exercise_muscles` uses. It was written as a contingency.
+
+**It is now a fact.** The owner's machine is Windows/PowerShell, discovered when the
+Phase-2 owner gate was first run. What it changes:
+
+- **The JVM/Robolectric lane cannot gate any migration work on this project.** A red
+  `SchemaV1BaselineTest` or `Migration1To2Test` on this host proves nothing about the
+  schema. Phase 3's gate is amended: `connectedDebugAndroidTest` on an emulator is
+  **required**, not optional, and is the migration lane of record. JVM-lane results are
+  informational.
+- **The `tools/` scripts need Git Bash or WSL**; they are `#!/bin/sh` and cannot run in
+  PowerShell. They remain the *executor's* pre-push gate, so this never blocks a phase —
+  the owner's gate is Gradle plus the device checklist.
+- **Gradle is `.\gradlew.bat`**, not `./gradlew`.
+- **`.gitattributes` added.** Without it a Windows clone can check out the shell scripts
+  with CRLF, and `#!/bin/sh\r` fails as "bad interpreter" — a failure whose message points
+  nowhere near its cause. The attributes pin `*.sh` and `gradlew` to LF and `*.bat` to
+  CRLF, and mark the binary assets so they are never converted.
+
+Optional upgrades that would restore the fast lane, neither of them blocking: WSL2 (clone
+into the Linux filesystem, run the JVM lane there), or unblocking CI (ubuntu runners get
+the JVM lane free on every push).
+
+Recorded because it is the clearest vindication of the second pass's method: the finding
+came from verifying an external mechanism against primary sources rather than from
+anything visible in this repository, and it arrived one phase before it would have cost a
+migration.

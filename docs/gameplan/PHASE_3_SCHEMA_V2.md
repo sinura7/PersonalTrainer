@@ -812,9 +812,19 @@ Named tests that must exist and pass (grep-audit the PR against this list):
 Owner-side gate (phase does not close without ALL of): the rehearsal runbook executed with
 every step-8/step-10 check passing; the catalog review artifact signed off (corrections, if
 any, applied to the WI-3 table and re-rendered); the heat-diff judged acceptable on the
-rehearsal emulator; the real-phone upgrade checklist completed. Optionally (owner's
-machine): `./gradlew connectedDebugAndroidTest` per the Phase-2 runbook as the device-truth
-migration lane.
+rehearsal emulator; the real-phone upgrade checklist completed; and — **required, not
+optional, because the owner's host is Windows** — `.\gradlew.bat connectedDebugAndroidTest`
+green per the Phase-2 runbook.
+
+**Lane precedence on this project (settled by the host, 21 Aug 2026).** The owner's machine
+is Windows, where Robolectric falls back to legacy SQLite and cannot validate a schema with
+a composite primary key — which `exercise_muscles` has. The JVM lane therefore **cannot
+gate this phase**: a red `Migration1To2Test` there proves nothing, and a green one proves
+little. The **emulator lane is the migration lane**, and the migration suite must be green
+there before this phase closes. Write the migration tests so they run in both lanes (same
+source, `androidTest` twin where the packet names one), and report JVM-lane results as
+informational. If the owner ever adds WSL2 or unblocks CI, the JVM lane returns as the fast
+pre-check — it never becomes the gate on a Windows host.
 
 ## 8. Owner device checklist
 

@@ -121,7 +121,8 @@ Two lanes exist for anything Room touches:
   necessary, never sufficient. **This lane requires a macOS or Linux host**: on
   Windows Robolectric falls back to legacy SQLite (3.7.10), whose `PRAGMA table_info`
   cannot express composite primary keys, so Room schema validation fails falsely for
-  entities with compound primary keys. On Windows, use the device lane only.
+  entities with compound primary keys. On Windows, use the device lane only — **this
+  project's owner is on Windows, so that is the standing case here; see § On Windows.**
 - **Device lane (truth)**: `app/src/androidTest`, run with
 
   ```bash
@@ -139,6 +140,55 @@ Migration tests must pass in both lanes before a schema change ships.
 
 Repositories, ViewModels and Compose screens remain unverified by automation — see
 [ROADMAP.md](ROADMAP.md).
+
+## On Windows
+
+The owner's machine is Windows/PowerShell, so the commands in this file need translating —
+and one lane is not available at all.
+
+**Gradle.** From the repository root (not your home directory):
+
+```powershell
+cd path\to\PersonalTrainer
+.\gradlew.bat testDebugUnitTest
+.\gradlew.bat connectedDebugAndroidTest
+.\gradlew.bat assembleDebug
+```
+
+`./gradlew` is the POSIX script and will not run in PowerShell; `.\gradlew.bat` is the
+Windows wrapper. Both are committed.
+
+**The `tools/` scripts** (`preflight.sh`, `run-domain-tests.sh`, `syntax-check.sh`) are
+`#!/bin/sh` and cannot run in PowerShell. Use Git Bash, which ships with Git for Windows:
+
+```powershell
+& "C:\Program Files\Git\bin\bash.exe" tools/preflight.sh
+```
+
+or open Git Bash in the repo folder and run `tools/preflight.sh` directly. They also need
+`python3` on PATH. These scripts are the *executor's* pre-push gate; the owner's gate is the
+Gradle commands above plus the on-device checklist, so a missing Git Bash never blocks a
+phase — it only means preflight is run by the executor rather than re-run locally.
+
+**The JVM/Robolectric migration lane does not work here, and that is not a bug.**
+Robolectric defaults to NATIVE SQLite everywhere except Windows, where it falls back to
+LEGACY (SQLite 3.7.10). LEGACY's `PRAGMA table_info` cannot express composite primary keys,
+so Room schema validation fails *falsely* for entities that have one — and Phase 3 adds
+exactly such an entity (`exercise_muscles`, `PRIMARY KEY(exerciseId, muscleKey)`). A red
+`SchemaV1BaselineTest` on this machine therefore proves nothing about the schema.
+
+Consequences, in order of cost:
+
+1. **The emulator lane is the migration lane** (`.\gradlew.bat connectedDebugAndroidTest`).
+   It runs real Android SQLite, it already works on Windows, and it is the truth check
+   regardless of host. Phase 3's migration suite is gated on it.
+2. **Optional: WSL2** restores the JVM lane — clone into the Linux filesystem and run
+   `./gradlew testDebugUnitTest` there. Worth it only if the fast lane is missed.
+3. **Optional: CI**, once the billing block is lifted, runs ubuntu and gets the JVM lane
+   for free on every push.
+
+Nothing in the plan depends on the JVM lane existing on this machine; the packets name the
+emulator lane as the truth check precisely so this substitution is legal.
 
 ## Things that will bite you
 
