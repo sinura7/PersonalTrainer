@@ -391,18 +391,18 @@ This is the second most important design surface after Active Workout. Today it 
 
 ### 6.7 Library
 
-| ID | Issue | Priority |
-|---|---|---|
-| L-01 | **No images** (R-02). This is the catalog. It must look like a gym wall chart | P1 |
-| L-02 | Cards are dense admin (Custom/Built-in, Add to routine, edit, delete) | P1 |
-| L-03 | Muscle chips only. Need **equipment chips**: Barbell, Dumbbell, Cable, Machine, Smith, Bodyweight | P1 |
-| L-04 | Built-in notes are empty. No setup cues, no machine instructions | P2 |
-| L-05 | Add-to-routine dialog is a list of text buttons, defaults 3×5 with no preview | P1 |
-| L-06 | Creating a routine from this dialog dumps you into the broken `routine/new` path (A-02) | P0 |
-| L-07 | Search + chips + FAB is standard. Grid of pictured tiles would match R-01/R-02 | P1 |
-| L-08 | Custom-only edit/delete is correct. Built-ins still need a detail page (image, muscles, equipment, last weight) | P1 |
-| L-09 | “Other” muscle on blank create is a junk bucket | P2 |
-| L-10 | Catalog is ~38 lifts and missing common machines (leg press variants, hack squat, pec deck, seated row machine, hip abduction, preacher, etc.) | P1 |
+| ID | Issue | Priority | Status |
+|---|---|---|---|
+| L-01 | **No images** (R-02). This is the catalog. It must look like a gym wall chart | P1 | ⏳ Phase 8, optional. The 40dp slot is reserved and `imageKey` ships null |
+| L-02 | Cards are dense admin (Custom/Built-in, Add to routine, edit, delete) | P1 | ✅ the row carries one action; edit and delete moved behind an overflow |
+| L-03 | Muscle chips only. Need **equipment chips**: Barbell, Dumbbell, Cable, Machine, Smith, Bodyweight | P1 | ✅ 7 — a second chip row, AND-combining with the muscle row |
+| L-04 | Built-in notes are empty. No setup cues, no machine instructions | P2 | ❌ not done. The packet made cues explicitly optional and never blocking; 98 rows of authored coaching text is its own piece of work |
+| L-05 | Add-to-routine dialog is a list of text buttons, defaults 3×5 with no preview | P1 | ⚠️ 7 — the defaults now fit the lift (`AddDefaults`). The dialog itself is unchanged and still previews nothing |
+| L-06 | Creating a routine from this dialog dumps you into the broken `routine/new` path (A-02) | P0 | ✅ the path itself was repaired earlier — `RoutineEditorPolicy` drops the `new` sentinel instead of inserting eagerly, and the editor has an explicit MISSING phase. Not re-verified on device in Phase 7 |
+| L-07 | Search + chips + FAB is standard. Grid of pictured tiles would match R-01/R-02 | P1 | ⚠️ 7 — search and filtering now scale to 98 (escaped LIKE, nicknames, family grouping, equipment chips). The pictured **grid** is Phase 8 |
+| L-08 | Custom-only edit/delete is correct. Built-ins still need a detail page (image, muscles, equipment, last weight) | P1 | ✅ every lift opens its detail page; the image is Phase 8 |
+| L-09 | “Other” muscle on blank create is a junk bucket | P2 | ❌ not done. Picker-created customs still default to a blank group |
+| L-10 | Catalog is ~38 lifts and missing common machines (leg press variants, hack squat, pec deck, seated row machine, hip abduction, preacher, etc.) | P1 | ✅ 7 — 98 lifts. Every machine named here ships: hack squat, leg press calf raise, pec deck, machine seated row, hip abduction, preacher curl |
 
 ### 6.8 Body map
 
