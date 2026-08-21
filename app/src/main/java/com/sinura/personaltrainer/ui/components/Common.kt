@@ -844,6 +844,11 @@ fun InstrumentChip(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * A small glyph before the label. Defaults to nothing, so every existing chip in the app
+     * is untouched — the in-workout lift switcher is the only caller that fills it.
+     */
+    leading: (@Composable () -> Unit)? = null,
 ) {
     val view = LocalView.current
     // VoltDim, not solid Volt: the palette declares this token as "selected chips, active
@@ -879,13 +884,19 @@ fun InstrumentChip(
             .padding(horizontal = Metrics.space4),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            label,
-            style = InstrumentType.bodyStrong,
-            // Volt ink on the dim fill: Pit ink was only legible against a solid accent.
-            color = if (selected) Volt else TextSecondary,
-            maxLines = 1,
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
+            leading?.invoke()
+            Text(
+                label,
+                style = InstrumentType.bodyStrong,
+                // Volt ink on the dim fill: Pit ink was only legible against a solid accent.
+                color = if (selected) Volt else TextSecondary,
+                maxLines = 1,
+            )
+        }
     }
 }
 

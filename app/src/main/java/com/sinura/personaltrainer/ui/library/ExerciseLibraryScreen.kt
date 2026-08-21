@@ -467,8 +467,7 @@ private fun LibraryRow(
     onOverflow: () -> Unit,
 ) {
     ExerciseRow(
-        name = exercise.name,
-        muscleGroup = exercise.muscleGroup,
+        exercise = exercise,
         onClick = onOpen,
         // Equipment is the thing that distinguishes eight bench presses from each other, so it
         // is what the tag says. "Custom" still wins on the user's own lifts: which of these is

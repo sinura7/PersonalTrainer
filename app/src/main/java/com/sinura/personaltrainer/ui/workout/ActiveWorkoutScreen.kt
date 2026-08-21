@@ -80,6 +80,7 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
+import com.sinura.personaltrainer.ui.components.EquipmentGlyphIcon
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.GymNoticeBanner
 import com.sinura.personaltrainer.ui.components.InstrumentChip
@@ -92,6 +93,7 @@ import com.sinura.personaltrainer.ui.components.RestDock
 import com.sinura.personaltrainer.ui.components.RestIdleRow
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SetEntryPanel
+import com.sinura.personaltrainer.ui.components.glyphFor
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.HairlineStrong
@@ -704,6 +706,11 @@ private fun LiftSwitcher(
                 selected = item.exercise.id == selectedExerciseId,
                 onClick = { onSelect(item.exercise.id) },
                 modifier = Modifier.animateItem(),
+                // The glyph only — a body silhouette is unreadable at chip height. TextSecondary
+                // in both states, selected or not: the equipment is metadata you glance at, and
+                // tinting it with the selection would make it compete with the label that
+                // actually says which lift you are on.
+                leading = { EquipmentGlyphIcon(glyphFor(item.exercise.equipment)) },
             )
         }
         item(key = "add-lift") {

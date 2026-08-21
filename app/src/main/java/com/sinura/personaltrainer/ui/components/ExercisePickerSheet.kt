@@ -154,8 +154,7 @@ fun ExercisePickerSheet(
                     items(siblings, key = { "sibling-${it.id}" }) { sibling ->
                         Column {
                             ExerciseRow(
-                                name = sibling.name,
-                                muscleGroup = sibling.muscleGroup,
+                                exercise = sibling,
                                 onClick = { onSelect(sibling) },
                                 tag = sibling.equipment.label,
                             )
@@ -175,9 +174,9 @@ fun ExercisePickerSheet(
                                 ),
                             )
                             ExerciseRow(
-                                name = suggestion.name,
-                                muscleGroup = suggestionReason ?: suggestion.muscleGroup,
+                                exercise = suggestion,
                                 onClick = { onSelect(suggestion) },
+                                subtitle = suggestionReason,
                             )
                             HairlineDivider()
                         }
@@ -208,8 +207,7 @@ fun ExercisePickerSheet(
                     itemsIndexed(results, key = { _, exercise -> exercise.id }) { index, exercise ->
                         Column(modifier = Modifier.animateItem()) {
                             ExerciseRow(
-                                name = exercise.name,
-                                muscleGroup = exercise.muscleGroup,
+                                exercise = exercise,
                                 onClick = { onSelect(exercise) },
                                 tag = exercise.equipment.label,
                             )
@@ -223,18 +221,27 @@ fun ExercisePickerSheet(
 }
 
 /**
- * One lift in a list: image slot, name, muscle group, and whatever the surface does to it.
+ * One lift in a list: thumbnail, name, muscle group, and whatever the surface does to it.
+ *
+ * Takes the [Exercise] rather than a name and a group string, because the thumbnail needs the
+ * equipment and the muscle credits too — and every call site already had the object in hand.
+ * Passing three fields where one would do is how a row ends up unable to draw its own picture.
  *
  * [trailing] is a slot so the library can hang its actions here without the picker growing
  * a set of buttons it has no use for.
  */
 @Composable
 fun ExerciseRow(
-    name: String,
-    muscleGroup: String,
+    exercise: Exercise,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     tag: String? = null,
+    /**
+     * Overrides the muscle-group subtitle. Exactly one caller uses it — the coach's pinned
+     * suggestion, which says WHY it is suggested rather than what it trains, and would be a
+     * worse row if it repeated the group the rows below it already show.
+     */
+    subtitle: String? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
     Row(
@@ -251,13 +258,13 @@ fun ExerciseRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
     ) {
-        ExerciseThumb(name)
+        ExerciseThumb(exercise)
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(Metrics.space1),
         ) {
             Text(
-                name,
+                exercise.name,
                 style = InstrumentType.title,
                 color = TextPrimary,
                 maxLines = 1,
@@ -268,7 +275,7 @@ fun ExerciseRow(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    muscleGroup,
+                    subtitle ?: exercise.muscleGroup,
                     modifier = Modifier.weight(1f, fill = false),
                     style = InstrumentType.caption,
                     color = TextSecondary,
@@ -340,32 +347,6 @@ fun ExerciseSearchField(
     }
 }
 
-/**
- * The 40dp slot every exercise row leads with.
- *
- * The catalog has no imagery yet — it is the audit's first requirement — so reserving the
- * slot now means the rows do not have to be laid out twice. Until then it carries the
- * lift's initial, which at least gives the eye something to run down a long list.
- */
-@Composable
-private fun ExerciseThumb(name: String) {
-    val shape = RoundedCornerShape(Radius.xs)
-    Box(
-        modifier = Modifier
-            .size(THUMB_SIZE)
-            .clip(shape)
-            .background(Surface1)
-            .border(Metrics.hairline, Hairline, shape),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            name.trim().take(1).uppercase(),
-            style = InstrumentType.title,
-            color = TextTertiary,
-        )
-    }
-}
-
 /** The one accented row in the sheet, and only when what was typed matches nothing. */
 @Composable
 private fun CreateExerciseRow(name: String, onClick: () -> Unit) {
@@ -381,7 +362,7 @@ private fun CreateExerciseRow(name: String, onClick: () -> Unit) {
     ) {
         Box(
             modifier = Modifier
-                .size(THUMB_SIZE)
+                .size(ThumbSize.row)
                 .clip(shape)
                 .background(Surface1)
                 .border(Metrics.hairline, Volt, shape),
@@ -419,4 +400,3 @@ private fun InstrumentTag(label: String) {
 
 /** Enough of the screen that the catalog is the sheet, with the scrim still legible above it. */
 private const val SHEET_HEIGHT_SHARE = 0.9f
-private val THUMB_SIZE = 40.dp

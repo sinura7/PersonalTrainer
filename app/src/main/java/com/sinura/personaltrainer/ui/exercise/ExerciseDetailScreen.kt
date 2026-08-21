@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.DayLabel
+import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
 import com.sinura.personaltrainer.domain.PersonalRecord
 import com.sinura.personaltrainer.domain.PersonalRecordKind
@@ -41,6 +42,7 @@ import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.EmptyState
+import com.sinura.personaltrainer.ui.components.ExerciseThumb
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.HairlineDivider
@@ -50,6 +52,7 @@ import com.sinura.personaltrainer.ui.components.LabelledTrend
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.StatTile
+import com.sinura.personaltrainer.ui.components.ThumbSize
 import com.sinura.personaltrainer.ui.theme.GoldContainer
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -110,7 +113,11 @@ fun ExerciseDetailScreen(
             .fillMaxSize()
             .background(Pit),
     ) {
-        ExerciseDetailHeader(name = state.exercise?.name ?: "Exercise", onBack = onBack)
+        ExerciseDetailHeader(
+            name = state.exercise?.name ?: "Exercise",
+            exercise = state.exercise,
+            onBack = onBack,
+        )
 
         when {
             state.isLoading -> ScreenLoading()
@@ -253,7 +260,12 @@ fun ExerciseDetailScreen(
 }
 
 @Composable
-private fun ExerciseDetailHeader(name: String, onBack: () -> Unit) {
+private fun ExerciseDetailHeader(
+    name: String,
+    /** Null while loading, or when the lift has been deleted from under this screen. */
+    exercise: Exercise?,
+    onBack: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -266,6 +278,15 @@ private fun ExerciseDetailHeader(name: String, onBack: () -> Unit) {
                 Icons.AutoMirrored.Outlined.ArrowBack,
                 contentDescription = "Back",
                 tint = TextSecondary,
+            )
+        }
+        // Absent rather than a blank square while loading: a placeholder that appears and then
+        // becomes something else is a layout shift on the first thing the eye lands on.
+        if (exercise != null) {
+            ExerciseThumb(
+                exercise = exercise,
+                modifier = Modifier.padding(end = Metrics.space3),
+                size = ThumbSize.header,
             )
         }
         Text(

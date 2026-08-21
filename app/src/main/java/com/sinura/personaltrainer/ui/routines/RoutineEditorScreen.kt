@@ -566,8 +566,7 @@ private fun SwapExerciseSheet(
                 itemsIndexed(siblings, key = { _, exercise -> exercise.id }) { index, exercise ->
                     Column {
                         ExerciseRow(
-                            name = exercise.name,
-                            muscleGroup = exercise.muscleGroup,
+                            exercise = exercise,
                             onClick = { onSelect(exercise) },
                             tag = exercise.equipment.label,
                         )
