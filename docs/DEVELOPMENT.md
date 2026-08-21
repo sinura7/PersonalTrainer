@@ -52,8 +52,15 @@ In Android Studio: right-click `app/src/test` → **Run 'Tests'**. From the term
 These are plain JVM tests — no emulator, a few seconds. Run them before every commit; CI
 runs them again on push.
 
-Two static checks in `tools/` cover the gap when you cannot build — they are a pre-flight,
-not a substitute for `./gradlew assembleDebug`:
+Run everything mechanical with one command — the eight static checks plus the domain
+suite, which is what every game-plan phase gates on:
+
+```bash
+tools/preflight.sh
+```
+
+The individual checks in `tools/` cover the gap when you cannot build — they are a
+pre-flight, not a substitute for `./gradlew assembleDebug`:
 
 ```bash
 python3 tools/check-named-args.py app/src/main/java        # named args vs. declarations
@@ -104,8 +111,34 @@ free on any repository; the default $0 spending limit is what stops the job, so 
 has ever been billed. Until one of those is chosen, nothing in CI verifies anything, and
 **Android Studio is the only thing that has ever compiled this app.**
 
-There are no instrumented (`androidTest`) tests yet. Room DAOs, repositories, ViewModels and
-Compose screens are therefore **unverified by automation** — see [ROADMAP.md](ROADMAP.md).
+## Instrumented tests
+
+Two lanes exist for anything Room touches:
+
+- **JVM lane (primary)**: Robolectric tests under `app/src/test` (e.g.
+  `SchemaV1BaselineTest`) run inside `./gradlew testDebugUnitTest` — no device.
+  Robolectric bundles its own SQLite, which is not the phone's; green here is
+  necessary, never sufficient. **This lane requires a macOS or Linux host**: on
+  Windows Robolectric falls back to legacy SQLite (3.7.10), whose `PRAGMA table_info`
+  cannot express composite primary keys, so Room schema validation fails falsely for
+  entities with compound primary keys. On Windows, use the device lane only.
+- **Device lane (truth)**: `app/src/androidTest`, run with
+
+  ```bash
+  ./gradlew connectedDebugAndroidTest
+  ```
+
+  against a **running API 26+ emulator** (Device Manager → start one first).
+  Expected: `BUILD SUCCESSFUL` and a green report at
+  `app/build/reports/androidTests/connected/`. **Never point this at the phone**:
+  the debug test APK shares the release applicationId and cannot install next to
+  the real app (see First run) — and uninstalling the release app to make room
+  would delete your training history.
+
+Migration tests must pass in both lanes before a schema change ships.
+
+Repositories, ViewModels and Compose screens remain unverified by automation — see
+[ROADMAP.md](ROADMAP.md).
 
 ## Things that will bite you
 

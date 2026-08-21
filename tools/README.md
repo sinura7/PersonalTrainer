@@ -94,3 +94,22 @@ offsets — and, importantly, while preserving `${...}` template interpolations,
 code. Both mistakes it now avoids were made first: treating a preceding dot as proof an import
 was unused (extensions are always called that way) reported 228 live imports as dead, and
 blanking whole string literals hid the only use of several others.
+
+## preflight.sh
+
+`tools/preflight.sh` is the mechanical half of every game-plan phase's definition of done:
+run it before every push. It chains the eight static checks above and then the domain
+suite, exiting non-zero on the first failure.
+
+Three of the checks (`check-named-args`, `check-when-exhaustive`, `check-unused-imports`)
+and `syntax-check.sh` always exit 0, so preflight judges them on their summary line rather
+than their status; the other four exit by finding-count and are judged on that.
+
+The domain tests need a directory of seven jars (see `run-domain-tests.sh`'s header). If
+`$PT_JARS` / `build/test-jars` is absent, preflight assembles it by symlinking jars found in
+the Gradle module cache, the wrapper distributions, or a Gradle distribution's `lib/`. If no
+jars can be found anywhere it falls back to `./gradlew testDebugUnitTest`, and if Gradle
+cannot run either it fails loudly — it never silently skips the tests.
+
+It is a pre-flight, not a substitute for `./gradlew testDebugUnitTest assembleDebug`: the
+Robolectric and instrumented tests only run under Gradle (see `docs/DEVELOPMENT.md`).

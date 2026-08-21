@@ -285,8 +285,8 @@ JARS="${PT_JARS:-build/test-jars}"
 bootstrap_jars() {
     dest="$1"
     roots=""
-    for r in "${GRADLE_USER_HOME:-$HOME/.gradle}/caches/modules-2" \\
-             "${GRADLE_USER_HOME:-$HOME/.gradle}/wrapper/dists" \\
+    for r in "${GRADLE_USER_HOME:-$HOME/.gradle}/caches/modules-2" \
+             "${GRADLE_USER_HOME:-$HOME/.gradle}/wrapper/dists" \
              /opt/gradle-*/lib; do
         [ -d "$r" ] && roots="$roots $r"
     done
@@ -299,8 +299,8 @@ bootstrap_jars() {
     mkdir -p "$dest"
     # Kotlin jars must be 2.x: a 1.9 compiler from an old Gradle distribution
     # cannot be trusted to compile this project's Kotlin 2.0 sources.
-    for pat in 'kotlin-compiler-embeddable-2*.jar' 'kotlin-stdlib-2*.jar' \\
-               'kotlinx-coroutines-core-jvm-*.jar' 'junit-4*.jar' \\
+    for pat in 'kotlin-compiler-embeddable-2*.jar' 'kotlin-stdlib-2*.jar' \
+               'kotlinx-coroutines-core-jvm-*.jar' 'junit-4*.jar' \
                'hamcrest-core-*.jar' 'trove4j-*.jar' 'annotations-*.jar'; do
         jar=""
         for r in $roots; do
@@ -323,9 +323,9 @@ fi
 export PT_JARS="$JARS"   # syntax-check.sh and run-domain-tests.sh both read this
 
 # --- static checks judged by exit code ----------------------------------------
-for c in "check-internal-imports.py app/src/main/java" \\
-         "check-missing-imports.py" \\
-         "check-design-tokens.py app/src/main/java" \\
+for c in "check-internal-imports.py app/src/main/java" \
+         "check-missing-imports.py" \
+         "check-design-tokens.py app/src/main/java" \
          "check-screen-wiring.py app/src/main/java"; do
     step "$c"
     # shellcheck disable=SC2086
@@ -340,13 +340,13 @@ summary() {
     printf '%s\n' "$out" | tail -1
     printf '%s\n' "$out" | grep -qF "$want" || { printf '%s\n' "$out"; fail "$label"; }
 }
-summary "check-named-args (main)" "0 mismatch(es)" \\
+summary "check-named-args (main)" "0 mismatch(es)" \
     python3 tools/check-named-args.py app/src/main/java
-summary "check-named-args (test)" "0 mismatch(es)" \\
+summary "check-named-args (test)" "0 mismatch(es)" \
     python3 tools/check-named-args.py app/src/test/java
-summary "check-when-exhaustive" "0 non-exhaustive" \\
+summary "check-when-exhaustive" "0 non-exhaustive" \
     python3 tools/check-when-exhaustive.py app/src/main/java
-summary "check-unused-imports" "0 unused import(s)" \\
+summary "check-unused-imports" "0 unused import(s)" \
     python3 tools/check-unused-imports.py app/src/main/java
 
 # syntax-check.sh exits 0 even on findings, and legitimately skips when no

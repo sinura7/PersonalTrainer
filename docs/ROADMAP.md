@@ -237,7 +237,15 @@ a link, not a recommendation surface, so the D3 surface map is untouched by it.
 Either choice closes NAV-01. There is no keep-five option: leaving the contradiction open
 means doing the nav work twice.
 
-**Chosen option: ____   Signed: ____ (initials, date)**
+**Chosen option: A — four tabs (Home · Body · Plan · History).**
+**Signed: repo owner, 21 Aug 2026.**
+
+Consequence for execution: Phase 6a runs **Branch A** — History keeps its tab, the
+month grouping / multi-session-day sheet / PR row land in `HistoryScreen` and
+`HistoryViewModel` in place, and Body is not restructured. Phase 6b's calendar chip is a
+plain tab jump to History; the `Route.Progress` section-anchor work and the "Last
+session" row on Home are **not built** (they were Option B's mitigations). Executors of
+6a/6b take Branch A and never blend branches.
 
 ### D2 — Schedule semantics
 
@@ -247,7 +255,9 @@ and ask of each: "is this what I'd expect my week to do?" Rule 6 (a missed day d
 carry into next week) is the one deliberately open question — strike it and initial the
 margin if you want carry-over instead; the DDL is unaffected either way.
 
-**Signed: ____ (initials, date)**
+**Signed: repo owner, 21 Aug 2026. Rule 6 KEPT as written** — a missed day does not
+carry into the next week; the cycle restarts at the week boundary and nothing is owed.
+Phase 4's `weekRolloverResetsSatisfaction` test pins exactly this behaviour.
 
 ### D3 — Recommendation surfaces
 
@@ -290,7 +300,10 @@ record branch-as-trunk here. Thereafter: branch-per-phase `claude/phase-<n>-<slu
 PR per phase, owner merges, no phase starts before the previous PR lands
 (`docs/gameplan/PROTOCOL.md` §2–§3).
 
-**Chosen: ____   Signed: ____ (initials, date)**
+**Chosen: provisional — branch-as-trunk.** Work continues on
+`claude/app-hierarchy-navigation-cjzigo`; the sessions executing these phases are bound
+to it and cannot push elsewhere. Merging into `main` remains available and is still the
+recommendation. **Not yet signed** — decide at any phase boundary; nothing blocks on it.
 
 ### D6 — Second-pass amendments *(informational)*
 

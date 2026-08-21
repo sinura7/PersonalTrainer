@@ -34,11 +34,22 @@ android {
         versionCode = appVersionCode
         versionName = appVersionName
         setProperty("archivesBaseName", "PersonalTrainer-$appVersionName")
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     sourceSets {
-        // Lets a future MigrationTestHelper read the exported schemas as test assets.
+        // Lets MigrationTestHelper read the exported schemas as test assets.
         getByName("androidTest").assets.srcDir("$projectDir/schemas")
+        // Same substrate for the JVM (Robolectric) migration lane.
+        getByName("test").assets.srcDir("$projectDir/schemas")
+    }
+
+    testOptions {
+        unitTests {
+            // Robolectric: serves the app's (and test source set's) assets —
+            // MigrationTestHelper reads app/schemas from there.
+            isIncludeAndroidResources = true
+        }
     }
 
     signingConfigs {
@@ -141,4 +152,12 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.rules)
+    androidTestImplementation(libs.androidx.room.testing)
 }
