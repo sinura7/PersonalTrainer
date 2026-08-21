@@ -101,6 +101,10 @@ fun HomeScreen(
     // Read from the full logged-day set, not the three-session stat feed: a fourth session
     // today would otherwise push today's own entry out of the window the masthead reads.
     val loggedToday = today in state.loggedEpochDays
+    // "Nothing is planned" and "today is a planned rest day" are different sentences, and the
+    // derivation cannot tell them apart on its own — an unpinned day and a rest day are the
+    // same object.
+    val hasPlan = plan?.days?.any { !it.isRest } == true
     val liftCount = todayDay?.routineId?.let { routineId ->
         state.routines.firstOrNull { it.id == routineId }?.exercises?.size
     }
@@ -126,6 +130,7 @@ fun HomeScreen(
                         day = todayDay,
                         loggedToday = loggedToday,
                         liftCount = liftCount,
+                        hasPlan = hasPlan,
                     ),
                     onOpenSettings = onOpenSettings,
                 )

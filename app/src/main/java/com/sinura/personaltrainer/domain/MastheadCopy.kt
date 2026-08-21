@@ -25,8 +25,15 @@ object MastheadCopy {
         day: SuggestedTrainingDay?,
         loggedToday: Boolean,
         liftCount: Int?,
+        hasPlan: Boolean = true,
     ): String {
         if (loggedToday) return "TRAINED TODAY"
+        // Before the plan question, because the week derivation ALWAYS returns seven days and
+        // fills every unpinned one with a rest day. So a brand-new install — no slots, no
+        // routines, nothing — produced a non-null day whose isRest was true, and the largest
+        // type on the first screen a new user ever sees read REST DAY. The app opened by
+        // telling them not to train. The `day == null` branch below could never fire.
+        if (!hasPlan) return "READY TO TRAIN"
         if (day == null) return "READY TO TRAIN"
         if (day.isRest) return "REST DAY"
         val noun = nounFor(day.focusKind)

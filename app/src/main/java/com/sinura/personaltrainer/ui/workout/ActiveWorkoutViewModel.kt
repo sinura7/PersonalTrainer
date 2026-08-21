@@ -666,10 +666,17 @@ class ActiveWorkoutViewModel(
             return
         }
         val current = draft.value
+        // The same rule the repository enforces, run early so the refusal lands on the field
+        // the user is looking at rather than as a thrown error after the tap.
+        val loadType = session.value?.exercises
+            ?.firstOrNull { it.exercise.id == exerciseId }
+            ?.exercise
+            ?.loadType
         val invalid = SetLogRules.validate(
             weightKg = current.weightKg,
             reps = current.reps,
             isWarmup = current.isWarmup,
+            loadType = loadType,
         )
         if (invalid != null) {
             error.value = invalid

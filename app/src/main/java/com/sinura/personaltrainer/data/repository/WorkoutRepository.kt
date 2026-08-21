@@ -9,10 +9,15 @@ import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
 import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toSummary
 import com.sinura.personaltrainer.data.local.dao.ExerciseSetRow
+import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
 import com.sinura.personaltrainer.domain.ExerciseHistoryBuilder
+import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
+import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
 import com.sinura.personaltrainer.domain.ExerciseSetEntry
+import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
 import com.sinura.personaltrainer.domain.ExerciseSetRecord
 import com.sinura.personaltrainer.domain.FinishedSessionEdits
 import com.sinura.personaltrainer.domain.IncrementTable
@@ -296,7 +301,7 @@ class WorkoutRepository(
             error("This workout is already finished.")
         }
         if (reps < 1) error("Reps must be at least 1.")
-        val violation = SetLogRules.validate(weightKg, reps, isWarmup)
+        val violation = SetLogRules.validate(weightKg, reps, isWarmup, loadTypeOf(current, exerciseId))
         if (violation != null) error(violation)
         val nextNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
         val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else 0.0
@@ -339,7 +344,12 @@ class WorkoutRepository(
         // so the set keeps the day it happened on and its place in the exercise — which is
         // what stops an edit from re-dating a personal record or heating the wrong week.
         if (reps < 1) error("Reps must be at least 1.")
-        val violation = SetLogRules.validate(weightKg, reps, isWarmup)
+        val violation = SetLogRules.validate(
+            weightKg,
+            reps,
+            isWarmup,
+            loadTypeOf(workoutDao.getSession(current.sessionId), current.exerciseId),
+        )
         if (violation != null) error(violation)
         val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else current.weightKg
         workoutDao.updateSet(
@@ -430,7 +440,7 @@ class WorkoutRepository(
         val session = current.session
         val finishedAt = session.finishedAt ?: error("This workout is still in progress.")
         if (reps < 1) error("Reps must be at least 1.")
-        val violation = SetLogRules.validate(weightKg, reps, isWarmup)
+        val violation = SetLogRules.validate(weightKg, reps, isWarmup, loadTypeOf(current, exerciseId))
         if (violation != null) error(violation)
         val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else 0.0
         val nextNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
@@ -496,6 +506,19 @@ class WorkoutRepository(
             ),
         )
     }
+
+    /**
+     * How a lift in this session is loaded, for the zero-weight rule.
+     *
+     * Read off the session relation the caller already loaded rather than a fresh query: the
+     * lift is right there, and a second round trip to learn something already in hand is how a
+     * validation check becomes a reason not to validate. Null when the session or the lift is
+     * gone, which [SetLogRules] treats as externally loaded — the stricter reading.
+     */
+    private fun loadTypeOf(session: SessionWithDetails?, exerciseId: String): LoadType? =
+        session?.exercises
+            ?.firstOrNull { it.item.exerciseId == exerciseId }
+            ?.let { LoadType.fromStorage(it.exercise.loadType) }
 
     suspend fun discardSession(sessionId: String) {
         workoutDao.deleteSession(sessionId)

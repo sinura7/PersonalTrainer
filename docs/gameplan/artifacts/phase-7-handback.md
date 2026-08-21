@@ -159,6 +159,13 @@ by the answer.**
   and e1RM math reads it for `BODYWEIGHT` and `BODYWEIGHT_PLUS` lifts, so effective load =
   bodyweight + added. It is a small phase of its own and not a smuggled-in extra, because it
   **changes computed history for sessions already logged** — that is a decision, not a refactor.
+
+  > **Resolved 21 Aug — A, in a narrower form than written above.** Asking for bodyweight as an
+  > onboarding question settles the disposition. Shipped: `setVolumeKg` takes an optional
+  > `bodyweightKg` that **replaces the 40 kg stand-in** rather than adding to the bar weight,
+  > defaulted to null so no surface silently re-values history it was not handed the figure for.
+  > e1RM is deliberately untouched — extrapolating a one-rep max from bodyweight is a separate
+  > claim, and this only ever needed to make one number honest.
 - **B — explicit non-goal.** Bodyweight lifts are counted by sets and reps forever. Volume and
   e1RM render blank rather than zero for `BODYWEIGHT` rows, and this line stays on the record so
   it can be re-read later.

@@ -149,3 +149,107 @@ class NextSessionReasonTest {
         rankScore = 50,
     )
 }
+
+/**
+ * The two fixes that make a brand-new install truthful: what the masthead says before there is
+ * a plan, and whether a bodyweight lift can be logged at all.
+ */
+class ColdStartCopyTest {
+    private fun restDay(): SuggestedTrainingDay = SuggestedTrainingDay(
+        epochDay = 20_000L,
+        dayOfWeek = DayOfWeek.MONDAY,
+        isRest = true,
+        focusKind = SessionFocusKind.RECOVERY,
+        focusTitle = "Rest",
+        routineId = null,
+        routineName = null,
+        reason = "No session pinned.",
+        emphasisMuscles = emptyList(),
+        confidence = ScheduleConfidence.LOW,
+    )
+
+    @Test
+    fun aFreshInstallIsReadyToTrainNotResting() {
+        // The derivation always returns seven days and fills every unpinned one with a rest
+        // day, so a fresh install DOES have a non-null day and it IS a rest day. Without the
+        // hasPlan signal the first screen a new user sees reads REST DAY.
+        val emptyWeekDay = restDay()
+        assertEquals(
+            "READY TO TRAIN",
+            MastheadCopy.headline(emptyWeekDay, loggedToday = false, liftCount = null, hasPlan = false),
+        )
+    }
+
+    @Test
+    fun aPlannedRestDayStillSaysRestDay() {
+        assertEquals(
+            "REST DAY",
+            MastheadCopy.headline(restDay(), loggedToday = false, liftCount = null, hasPlan = true),
+        )
+    }
+
+    @Test
+    fun havingTrainedOutranksHavingNoPlan() {
+        assertEquals(
+            "TRAINED TODAY",
+            MastheadCopy.headline(null, loggedToday = true, liftCount = null, hasPlan = false),
+        )
+    }
+}
+
+class BodyweightLoggingTest {
+    @Test
+    fun aPushUpCanBeLoggedAtZero() {
+        assertNull(SetLogRules.validate(0.0, 12, isWarmup = false, loadType = LoadType.BODYWEIGHT))
+    }
+
+    @Test
+    fun anUnweightedPullUpCanBeLoggedAtZero() {
+        // BODYWEIGHT_PLUS *can* take added load; it does not have to.
+        assertNull(SetLogRules.validate(0.0, 8, isWarmup = false, loadType = LoadType.BODYWEIGHT_PLUS))
+        assertNull(SetLogRules.validate(0.0, 8, isWarmup = false, loadType = LoadType.ASSISTED))
+    }
+
+    @Test
+    fun aBarbellSetAtZeroIsStillRefused() {
+        // The rule still earns its keep where it was right: 0 kg on a loaded lift is a typo.
+        assertEquals(
+            SetLogRules.ZERO_WORKING_WEIGHT,
+            SetLogRules.validate(0.0, 5, isWarmup = false, loadType = LoadType.EXTERNAL),
+        )
+        assertEquals(
+            SetLogRules.ZERO_WORKING_WEIGHT,
+            SetLogRules.validate(0.0, 5, isWarmup = false, loadType = LoadType.STACK),
+        )
+    }
+
+    @Test
+    fun anUnknownLoadTypeTakesTheStricterReading() {
+        assertEquals(
+            SetLogRules.ZERO_WORKING_WEIGHT,
+            SetLogRules.validate(0.0, 5, isWarmup = false, loadType = null),
+        )
+    }
+
+    @Test
+    fun everyBodyweightLiftInTheCatalogCanBeLogged() {
+        // 18 of the 98 are loaded by bodyweight. Not one of them may be unrecordable.
+        val blocked = DefaultExercises.catalog()
+            .filter { SetLogRules.requiresWeight(it.loadType) }
+            .filter { it.equipment == EquipmentType.BODYWEIGHT }
+            .map { it.id }
+        assertEquals(emptyList<String>(), blocked)
+    }
+
+    @Test
+    fun theLiftersOwnWeightReplacesTheStandIn() {
+        // A zero-weight set is worth what they actually weigh, once they have said.
+        assertEquals(40.0 * 10, MuscleLoadCalculator.setVolumeKg(0.0, 10), 0.001)
+        assertEquals(82.0 * 10, MuscleLoadCalculator.setVolumeKg(0.0, 10, bodyweightKg = 82.0), 0.001)
+        // Nonsense never displaces the stand-in.
+        assertEquals(40.0 * 10, MuscleLoadCalculator.setVolumeKg(0.0, 10, bodyweightKg = 0.0), 0.001)
+        assertEquals(40.0 * 10, MuscleLoadCalculator.setVolumeKg(0.0, 10, bodyweightKg = -5.0), 0.001)
+        // And a loaded set is untouched by it.
+        assertEquals(100.0 * 5, MuscleLoadCalculator.setVolumeKg(100.0, 5, bodyweightKg = 82.0), 0.001)
+    }
+}

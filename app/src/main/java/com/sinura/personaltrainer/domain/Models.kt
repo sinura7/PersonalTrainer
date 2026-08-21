@@ -87,9 +87,14 @@ data class WorkoutSession(
      * session therefore read "0 kg" on History and lit up the body map — one app, two answers
      * to "how much did I lift".
      */
-    fun workingVolumeKg(): Double = sets
+    /**
+     * @param bodyweightKg see [MuscleLoadCalculator.setVolumeKg]. Defaulted rather than
+     * required so every existing caller keeps exactly the number it showed before; the
+     * surfaces that know the lifter's weight opt in by passing it.
+     */
+    fun workingVolumeKg(bodyweightKg: Double? = null): Double = sets
         .filterNot { it.isWarmup }
-        .sumOf { MuscleLoadCalculator.setVolumeKg(it.weightKg, it.reps) }
+        .sumOf { MuscleLoadCalculator.setVolumeKg(it.weightKg, it.reps, bodyweightKg) }
 
     fun setsFor(exerciseId: String): List<SetLog> =
         sets.filter { it.exerciseId == exerciseId }.sortedBy { it.setNumber }

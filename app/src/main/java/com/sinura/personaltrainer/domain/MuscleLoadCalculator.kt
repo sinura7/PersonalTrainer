@@ -34,10 +34,20 @@ object MuscleLoadCalculator {
     /** How far back the coach looks, regardless of which window the map is showing. */
     const val COACH_TRAILING_DAYS = 14L
 
-    fun setVolumeKg(weightKg: Double, reps: Int): Double {
-        val load = if (weightKg > 0.0) weightKg else BODYWEIGHT_EQUIVALENT_KG
+    /**
+     * @param bodyweightKg the lifter's own weight, when they have told us. A zero-weight set
+     * is a bodyweight set, and it is worth what they actually weigh — [BODYWEIGHT_EQUIVALENT_KG]
+     * is only the stand-in used until they say. Passing null keeps the stand-in, so no surface
+     * silently re-values history it was not given the figure for.
+     */
+    fun setVolumeKg(weightKg: Double, reps: Int, bodyweightKg: Double? = null): Double {
+        val load = if (weightKg > 0.0) weightKg else bodyweightOrDefault(bodyweightKg)
         return load * reps.coerceAtLeast(0)
     }
+
+    /** The lifter's weight if it is known and sane, otherwise the flat stand-in. */
+    fun bodyweightOrDefault(bodyweightKg: Double?): Double =
+        bodyweightKg?.takeIf { it.isFinite() && it > 0.0 } ?: BODYWEIGHT_EQUIVALENT_KG
 
     fun snapshot(
         sessions: List<WorkoutSession>,
