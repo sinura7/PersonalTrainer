@@ -15,21 +15,35 @@ object ProgressionCalculator {
      * type and on the unit the lifter reads, and neither is knowable from a weight and a rep
      * count. [IncrementTable] is the single source; this takes its answer.
      */
+    /**
+     * @param weightMeaning what the stored weight IS for this lift. Required, not defaulted,
+     * because getting it wrong inverts the whole suggestion — see below.
+     */
     fun suggestWeightKg(
         lastWeightKg: Double,
         lastWorkingReps: Int,
         targetReps: Int,
         stepKg: Double?,
+        weightMeaning: WeightMeaning,
     ): Double {
         // No step means nothing to add. Holding the weight is the honest suggestion; the
         // ACTION still reads INCREASE, and the caller renders that as "add a rep".
         if (stepKg == null) return lastWeightKg.coerceAtLeast(0.0)
         val shortfall = targetReps - lastWorkingReps
-        val delta = when {
+        // How much HARDER the next session should be. A step on a bar and a step on an
+        // assistance stack are the same intent expressed by opposite numbers.
+        val harder = when {
             shortfall <= 0 -> stepKg
             shortfall <= 2 -> 0.0
             else -> -stepKg
         }
+        // Assistance is weight taken OFF the lifter, so less of it is the harder set. Without
+        // this the machine rewarded hitting your target reps by offering more help — and
+        // answered three missed reps by taking help away, making a lift you were already
+        // failing harder still. Both directions were exactly backwards.
+        val delta = if (weightMeaning == WeightMeaning.ASSISTANCE) -harder else harder
+        // Floored at zero, which for an assisted lift is the point of the machine: no
+        // assistance left is the first unassisted rep.
         return ((lastWeightKg + delta).coerceAtLeast(0.0))
     }
 
@@ -60,7 +74,13 @@ object ProgressionCalculator {
             lastWeightKg = lastWeightKg,
             lastReps = lastWorkingReps,
             targetReps = targetReps,
-            suggestedWeightKg = suggestWeightKg(lastWeightKg, lastWorkingReps, targetReps, stepKg),
+            suggestedWeightKg = suggestWeightKg(
+                lastWeightKg = lastWeightKg,
+                lastWorkingReps = lastWorkingReps,
+                targetReps = targetReps,
+                stepKg = stepKg,
+                weightMeaning = LoadClass.of(loadType).weightMeaning,
+            ),
             action = action(lastWorkingReps, targetReps),
             loadType = loadType,
         )
