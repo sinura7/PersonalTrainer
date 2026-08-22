@@ -12,6 +12,7 @@ import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
 import com.sinura.personaltrainer.data.repository.RestoreResult
+import com.sinura.personaltrainer.domain.BackupPrompt
 import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.RestTimer
@@ -54,6 +55,8 @@ data class BackupUiState(
     val pendingFileRestore: Uri? = null,
     /** Restore would wipe the live session. Say so before the tap, not after the refuse. */
     val sessionLive: Boolean = false,
+    /** No stamp, or older than 14 days. Caption nags; Export stays the tap. */
+    val backupStale: Boolean = true,
 )
 
 private const val TAG = "PT/SettingsVM"
@@ -202,6 +205,7 @@ class SettingsViewModel @JvmOverloads constructor(
             pendingRestore = flags.pendingRestore,
             pendingFileRestore = fileRestore,
             sessionLive = live != null,
+            backupStale = BackupPrompt.isStale(meta.lastAt, System.currentTimeMillis()),
         )
     }.stateIn(
         scope = viewModelScope,
