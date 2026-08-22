@@ -147,6 +147,8 @@ fun RoutineEditorScreen(
                     EmptyState(
                         title = "Add your first lift",
                         body = "Targets stay on the routine. Start it from Home when you’re in the gym.",
+                        actionLabel = "Add a lift",
+                        onAction = { viewModel.setPickerVisible(true) },
                         compact = true,
                         modifier = Modifier.padding(top = Metrics.space4),
                     )
@@ -181,14 +183,16 @@ fun RoutineEditorScreen(
                     )
                 }
             }
-            // One quiet action, after the program rather than ahead of it.
-            item(key = "add") {
-                SecondaryGymButton(
-                    text = "Add exercise",
-                    onClick = { viewModel.setPickerVisible(true) },
-                    modifier = Modifier.padding(top = Metrics.space2),
-                    height = Metrics.touchMin,
-                )
+            if (exercises.isNotEmpty()) {
+                // Quiet, after the program. The empty state's filled action is the first add.
+                item(key = "add") {
+                    SecondaryGymButton(
+                        text = "Add a lift",
+                        onClick = { viewModel.setPickerVisible(true) },
+                        modifier = Modifier.padding(top = Metrics.space2),
+                        height = Metrics.touchMin,
+                    )
+                }
             }
             item(key = "notes") {
                 NotesBlock(

@@ -1,11 +1,13 @@
 package com.sinura.personaltrainer.ui.home
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.shortLabel
 import com.sinura.personaltrainer.ui.components.GymCard
@@ -43,6 +45,9 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
  * when the day has no routine attached — a proposed focus rather than a pinned session.
  * @param reason one line on why it is worth doing, from [com.sinura.personaltrainer.domain
  * .nextSessionReason]. Null when there is nothing worth saying, which is not the same as "".
+ * @param sessionLive when a workout is already running. The card still names the plan; it
+ * does not offer to start or return. The live bar is the only way back — a Start button
+ * here would either lie (it cannot start) or become a second Resume.
  */
 @Composable
 fun ThisWeekCard(
@@ -51,6 +56,7 @@ fun ThisWeekCard(
     loggedToday: Boolean,
     lifts: List<String>,
     reason: String?,
+    sessionLive: Boolean,
     onSuggestWeek: () -> Unit,
     onPrimary: () -> Unit,
 ) {
@@ -92,17 +98,7 @@ fun ThisWeekCard(
         if (hasPlan && reason != null) {
             Text(reason, style = InstrumentType.caption, color = TextTertiary)
         }
-        if (hasPlan) {
-            PrimaryGymButton(
-                text = when {
-                    trainingToday != null && loggedToday -> "Train again"
-                    trainingToday != null -> "Start this session"
-                    else -> "Start a workout"
-                },
-                onClick = onPrimary,
-                modifier = Modifier.padding(top = Metrics.space1),
-            )
-        } else {
+        if (!hasPlan) {
             Text(
                 "Pin your week in Plan, or let the app propose one.",
                 style = InstrumentType.caption,
@@ -113,8 +109,31 @@ fun ThisWeekCard(
                 onClick = onSuggestWeek,
                 modifier = Modifier.padding(top = Metrics.space1),
             )
-            TextButton(onClick = onPrimary) {
-                Text("Start a workout", style = InstrumentType.bodyStrong, color = TextSecondary)
+            if (!sessionLive) {
+                TextButton(onClick = onPrimary) {
+                    Text("Start a workout", style = InstrumentType.bodyStrong, color = TextSecondary)
+                }
+            }
+        } else if (!sessionLive && trainingToday != null && !loggedToday) {
+            // The only volt on Home: today is planned and has not been trained yet.
+            PrimaryGymButton(
+                text = "Start this session",
+                onClick = onPrimary,
+                modifier = Modifier.padding(top = Metrics.space1),
+            )
+        } else if (!sessionLive) {
+            // Rest day, or already trained: the masthead already said that. A second filled
+            // Start reads as "it did not save" or "ignore rest". The sheet is still one tap.
+            TextButton(
+                onClick = onPrimary,
+                modifier = Modifier.padding(top = Metrics.space1),
+                contentPadding = PaddingValues(0.dp),
+            ) {
+                Text(
+                    if (loggedToday) "Start another" else "Start anyway",
+                    style = InstrumentType.bodyStrong,
+                    color = TextSecondary,
+                )
             }
         }
     }

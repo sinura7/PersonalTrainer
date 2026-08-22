@@ -156,7 +156,7 @@ private fun RoutinePicker(routines: List<Routine>, onPick: (String) -> Unit) {
         Kicker("Routines")
         if (routines.isEmpty()) {
             Text(
-                "You have no routines yet. Create one below and it will show up here.",
+                "Create a routine on this tab first, then pin it here.",
                 style = InstrumentType.caption,
                 color = TextSecondary,
             )

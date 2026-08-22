@@ -161,6 +161,7 @@ fun HomeScreen(
                     day = todayDay,
                     nextDay = nextDay,
                     loggedToday = loggedToday,
+                    sessionLive = inProgress != null,
                     lifts = featured?.routineId
                         ?.let { id -> state.routines.firstOrNull { it.id == id } }
                         ?.exercises.orEmpty()

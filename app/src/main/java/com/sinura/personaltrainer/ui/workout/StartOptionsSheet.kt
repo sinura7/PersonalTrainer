@@ -14,13 +14,17 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
+import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
@@ -35,7 +39,6 @@ import com.sinura.personaltrainer.ui.theme.Surface3
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
-import com.sinura.personaltrainer.ui.theme.Volt
 
 /**
  * Everything you can start, when today's plan is not what you want.
@@ -65,6 +68,7 @@ fun StartOptionsSheet(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val navigateToSession by viewModel.navigateToSession.collectAsStateWithLifecycle()
     val inProgress = state.inProgress
+    var confirmDiscard by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(navigateToSession) {
         val target = navigateToSession ?: return@LaunchedEffect
@@ -88,6 +92,8 @@ fun StartOptionsSheet(
             if (inProgress != null) {
                 Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
                     Kicker("Session in progress")
+                    // They opened Start on purpose. Sending them to dismiss and find the bar
+                    // is a treasure hunt; this button is the answer they came for.
                     PrimaryGymButton(
                         text = "Go to session",
                         onClick = {
@@ -96,12 +102,12 @@ fun StartOptionsSheet(
                         },
                     )
                     Text(
-                        "Finish or discard the current session before starting another.",
+                        "Finish or discard this session before starting another.",
                         style = InstrumentType.body,
                         color = TextSecondary,
                     )
                     TextButton(
-                        onClick = { viewModel.discardInProgress() },
+                        onClick = { confirmDiscard = true },
                         contentPadding = PaddingValues(0.dp),
                     ) {
                         Text("Discard it", style = InstrumentType.bodyStrong, color = Danger)
@@ -112,16 +118,16 @@ fun StartOptionsSheet(
 
             if (todayDay != null && onStartToday != null && !todayDay.isRest) {
                 Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
-                    Kicker("TODAY")
-                    GroupedList {
-                        InstrumentRow(
-                            title = todayDay.routineName ?: todayDay.focusTitle,
-                            subtitle = todayDay.reason,
-                            onClick = {
-                                onDismiss()
-                                onStartToday()
-                            },
-                        )
+                    Kicker("Today")
+                    PrimaryGymButton(
+                        text = "Start ${todayDay.routineName ?: todayDay.focusTitle}",
+                        onClick = {
+                            onDismiss()
+                            onStartToday()
+                        },
+                    )
+                    todayDay.reason.takeIf { it.isNotBlank() }?.let { reason ->
+                        Text(reason, style = InstrumentType.caption, color = TextTertiary)
                     }
                 }
             }
@@ -156,6 +162,26 @@ fun StartOptionsSheet(
 
             FreeWorkoutAction(onStart = viewModel::startFree)
         }
+    }
+
+    if (confirmDiscard && inProgress != null) {
+        val loggedSets = inProgress.sets.size
+        ConfirmActionDialog(
+            title = "Discard this workout?",
+            body = if (loggedSets > 0) {
+                "This deletes the session and its $loggedSets logged " +
+                    (if (loggedSets == 1) "set" else "sets") + ". This cannot be undone."
+            } else {
+                "This deletes the session. This cannot be undone."
+            },
+            confirmLabel = "Discard",
+            destructive = true,
+            onConfirm = {
+                confirmDiscard = false
+                viewModel.discardInProgress()
+            },
+            onDismiss = { confirmDiscard = false },
+        )
     }
 }
 
@@ -199,7 +225,9 @@ private fun RoutineRow(routine: Routine, onStart: () -> Unit) {
 private fun FreeWorkoutAction(onStart: () -> Unit, modifier: Modifier = Modifier) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
         TextButton(onClick = onStart, contentPadding = PaddingValues(0.dp)) {
-            Text("Free workout", style = InstrumentType.bodyStrong, color = Volt)
+            // Quiet on purpose. Today's plan is the filled start when it is here; a second
+            // volt next to it reads as two answers to the same tap.
+            Text("Free workout", style = InstrumentType.bodyStrong, color = TextSecondary)
         }
         Text(
             "No plan. Add lifts as you go.",

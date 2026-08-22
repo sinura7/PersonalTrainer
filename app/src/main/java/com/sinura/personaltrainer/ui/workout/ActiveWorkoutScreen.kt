@@ -279,6 +279,7 @@ fun ActiveWorkoutScreen(
                         "Nothing was lost from your history.",
                     actionLabel = "Back to home",
                     onAction = onExit,
+                    compact = true,
                     modifier = Modifier.padding(padding).padding(Metrics.gutter),
                 )
             }
@@ -339,6 +340,7 @@ fun ActiveWorkoutScreen(
                                     body = "Pick the first exercise, then log weight and reps.",
                                     actionLabel = "Add a lift",
                                     onAction = { viewModel.setPickerVisible(true) },
+                                    compact = true,
                                 )
                             }
                         } else if (selected == null) {
@@ -348,6 +350,7 @@ fun ActiveWorkoutScreen(
                                     body = "Choose one above to keep logging.",
                                     actionLabel = "Add a lift",
                                     onAction = { viewModel.setPickerVisible(true) },
+                                    compact = true,
                                 )
                             }
                             if (session.sets.isNotEmpty()) {
@@ -479,7 +482,8 @@ fun ActiveWorkoutScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
                     Text(
-                        "Your sets and rest timer keep running. Pick this session back up from Home.",
+                        "Your sets and rest keep running. The bar at the bottom of any other " +
+                            "screen brings you back — or tap the rest notification.",
                         style = InstrumentType.body,
                         color = TextSecondary,
                     )

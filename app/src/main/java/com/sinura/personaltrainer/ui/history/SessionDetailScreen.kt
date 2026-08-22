@@ -215,6 +215,8 @@ fun SessionDetailScreen(
                     EmptyState(
                         title = "Session not found",
                         body = "This workout is no longer on this phone.",
+                        actionLabel = "Back",
+                        onAction = onBack,
                         modifier = Modifier.padding(Metrics.gutter),
                     )
                 }
@@ -356,7 +358,7 @@ fun SessionDetailScreen(
         ConfirmActionDialog(
             title = "Session in progress",
             body = "Finish or discard the current session before starting another.",
-            confirmLabel = "Resume workout",
+            confirmLabel = "Go to session",
             onConfirm = viewModel::resumeBlockedSession,
             onDismiss = viewModel::dismissBlockedRepeat,
         )

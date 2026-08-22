@@ -69,7 +69,7 @@ private fun actionLabel(recommendation: TrainingRecommendation): String =
         }
         RecommendationAction.OPEN_EXERCISE ->
             recommendation.actionExerciseName?.let { "Open $it" } ?: "Show on the map"
-        RecommendationAction.START_WORKOUT -> "Start workout"
+        RecommendationAction.START_WORKOUT -> "Start a workout"
         RecommendationAction.OPEN_ROUTINES -> "Open routines"
         RecommendationAction.OPEN_BODY_MAP -> "Show on the map"
         null -> "Show on the map"

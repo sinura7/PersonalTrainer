@@ -23,7 +23,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.PlaylistAdd
+import androidx.compose.material.icons.automirrored.outlined.PlaylistAdd
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -84,8 +84,8 @@ fun ExerciseLibraryScreen(
     // Held as an id rather than the row's own boolean so the sheet survives a rotation, and
     // so it closes by itself if the lift underneath it is deleted.
     var overflowExerciseId by rememberSaveable { mutableStateOf<String?>(null) }
-    LaunchedEffect(initialMuscle) {
-        if (initialMuscle != null) viewModel.applyMuscleFilter(initialMuscle)
+    LaunchedEffect(Unit) {
+        viewModel.seedMuscleFromRoute(initialMuscle)
     }
 
     Scaffold(
@@ -476,7 +476,7 @@ private fun LibraryRow(
     ) {
         IconButton(onClick = onAddToRoutine) {
             Icon(
-                Icons.Outlined.PlaylistAdd,
+                Icons.AutoMirrored.Outlined.PlaylistAdd,
                 contentDescription = "Add ${exercise.name} to a routine",
                 tint = TextSecondary,
             )
@@ -578,7 +578,7 @@ private fun AddToRoutineSheet(
                     if (routines.isEmpty()) {
                         "No routines yet. Create one first, then add this lift."
                     } else {
-                        "Lands in the routine at 3 × 5, editable there."
+                        "Lands with this lift’s usual sets, reps and rest — editable on the routine."
                     },
                     style = InstrumentType.body,
                     color = TextSecondary,

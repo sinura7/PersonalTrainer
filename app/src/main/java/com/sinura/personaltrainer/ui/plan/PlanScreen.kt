@@ -331,9 +331,26 @@ fun PlanScreen(
             }
 
             if (state.proposals.isEmpty()) {
-                item(key = "suggest") {
-                    TextButton(onClick = viewModel::suggestFills) {
-                        Text("Suggest a week", style = InstrumentType.bodyStrong, color = TextSecondary)
+                val hasOpenDay = week?.days?.any { it.epochDay >= today && it.isRest } == true
+                val hasPins = week?.days?.any { !it.isRest } == true
+                if (hasOpenDay) {
+                    item(key = "suggest") {
+                        // Empty week: this is the recovery, same words and weight as Home.
+                        // Week with pins: quiet — filling holes is not the page's one act.
+                        if (!hasPins) {
+                            PrimaryGymButton(
+                                text = "Suggest a week",
+                                onClick = viewModel::suggestFills,
+                            )
+                        } else {
+                            TextButton(onClick = viewModel::suggestFills) {
+                                Text(
+                                    "Suggest a week",
+                                    style = InstrumentType.bodyStrong,
+                                    color = TextSecondary,
+                                )
+                            }
+                        }
                     }
                 }
             } else {
@@ -341,11 +358,11 @@ fun PlanScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
                         Kicker("Suggested")
                         Text(
-                            "Nothing is saved until you accept it.",
+                            "Nothing is pinned until you confirm.",
                             style = InstrumentType.caption,
                             color = TextSecondary,
                         )
-                        PrimaryGymButton(text = "Accept fills", onClick = viewModel::acceptFills)
+                        PrimaryGymButton(text = "Use this week", onClick = viewModel::acceptFills)
                         TextButton(onClick = viewModel::dismissFills) {
                             Text("Dismiss", style = InstrumentType.bodyStrong, color = TextSecondary)
                         }
@@ -490,7 +507,9 @@ private fun PlanHeader(
         }
         if (canCreate) {
             TextButton(onClick = onCreate) {
-                Text("New", style = InstrumentType.bodyStrong, color = Volt)
+                // Quiet on purpose. Empty-state "Create a routine" is the volt create;
+                // New here must not compete with "Use this week" or today's Start on Home.
+                Text("New", style = InstrumentType.bodyStrong, color = TextSecondary)
             }
         }
         // Settings' named second home. It used to be reachable only from Home, which made it a
