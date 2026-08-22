@@ -266,5 +266,48 @@ class RecommendationEngineTest {
         assertTrue(rec(action = RecommendationAction.OPEN_LIBRARY_MUSCLE).hasDestination)
         assertTrue(rec(action = RecommendationAction.START_WORKOUT).hasDestination)
         assertTrue(rec(action = RecommendationAction.OPEN_ROUTINES).hasDestination)
+        assertTrue(rec(action = RecommendationAction.MARK_LIGHTER_WEEK).hasDestination)
+    }
+
+    @Test
+    fun theDeloadCardMarksThisWeek() {
+        // Rising volume, flat e1RM — the same shape DeloadSignalTest already locks.
+        val perWeek = listOf(9, 6, 4)
+        val history = perWeek.flatMapIndexed { weekIndex, sets ->
+            (0 until sets).map { setIndex ->
+                val at = now - weekIndex * days(7) - setIndex * 3_600_000L - 3_600_000L
+                session(
+                    id = "w$weekIndex-$setIndex",
+                    finishedAt = at,
+                    date = at,
+                    sets = listOf(
+                        set(
+                            id = "w$weekIndex-$setIndex-0",
+                            sessionId = "w$weekIndex-$setIndex",
+                            exerciseId = "ex-squat",
+                            name = "Squat",
+                            weightKg = 100.0,
+                            reps = 5,
+                            at = at,
+                        ),
+                    ),
+                    exercises = listOf(sessionExercise("ex-squat", "Squat", "Quads")),
+                )
+            }
+        }
+        val card = RecommendationEngine.deloadSignal(
+            CoachInputs(
+                basis = MuscleLoadCalculator.coachBasis(history, now, zone, emptyMap()),
+                history = history,
+                routines = emptyList(),
+                hints = emptyList(),
+                exerciseCatalog = emptyMap(),
+                nowMs = now,
+                zone = zone,
+            ),
+        )
+        assertNotNull(card)
+        assertEquals(RecommendationAction.MARK_LIGHTER_WEEK, card!!.action)
+        assertTrue(card.hasDestination)
     }
 }

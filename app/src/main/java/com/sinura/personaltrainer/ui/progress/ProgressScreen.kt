@@ -167,6 +167,7 @@ fun ProgressScreen(
                                         onStartOptions = { startOptionsOpen = true },
                                         onOpenRoutines = onOpenRoutines,
                                         onOpenProgress = { selectedName = rec.actionMuscle?.name },
+                                        onMarkLighterWeek = viewModel::markLighterWeek,
                                     )
                                 },
                                 modifier = Modifier.animateItem(),

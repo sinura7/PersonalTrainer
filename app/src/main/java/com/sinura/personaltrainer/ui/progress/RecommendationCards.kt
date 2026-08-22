@@ -72,6 +72,7 @@ private fun actionLabel(recommendation: TrainingRecommendation): String =
         RecommendationAction.START_WORKOUT -> "Start a workout"
         RecommendationAction.OPEN_ROUTINES -> "Open routines"
         RecommendationAction.OPEN_BODY_MAP -> "Show on the map"
+        RecommendationAction.MARK_LIGHTER_WEEK -> "Mark this week lighter"
         null -> "Show on the map"
     }
 
@@ -83,6 +84,7 @@ fun dispatchRecommendation(
     onStartOptions: () -> Unit,
     onOpenRoutines: () -> Unit,
     onOpenProgress: () -> Unit,
+    onMarkLighterWeek: () -> Unit = {},
 ) {
     // Belt and braces with the card, which does not make a destination-less recommendation
     // clickable in the first place. Without this the fall-through below would reach
@@ -100,6 +102,7 @@ fun dispatchRecommendation(
         RecommendationAction.START_WORKOUT -> onStartOptions()
         RecommendationAction.OPEN_ROUTINES -> onOpenRoutines()
         RecommendationAction.OPEN_BODY_MAP -> onOpenProgress()
+        RecommendationAction.MARK_LIGHTER_WEEK -> onMarkLighterWeek()
         null -> onOpenProgress()
     }
 }
