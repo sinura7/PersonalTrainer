@@ -190,15 +190,15 @@ advances. Shared `applicationId` stays later (signed). Packets from this baselin
 
 | Item | Severity | Packet |
 |---|---|---|
-| Snapshot retry can copy v2 into the v1 rollback folder | P0 | this / `cursor/snapshot-rollback-b87f` |
+| Snapshot retry can copy v2 into the v1 rollback folder | P0 | [#17](https://github.com/sinura7/PersonalTrainer/pull/17) |
 | Snapshot treats any dest directory as success | P1 | same |
-| Rest timer `apply()` can lose disk state before the alarm | P1 | next |
-| `preflight.sh` links Robolectric annotations / junit | P1 | next |
-| CI `on.push` still lists `main`, not `trunk` | P1 | next (token may need Studio) |
-| Suggest stays up on a fully pinned week | P2 | next |
-| Planner still listens for deleted `recovery-upper` | P2 | next |
-| Setup preview has no catalog-empty error | P3 | next |
-| `DEVELOPMENT.md` still says `2.json` is uncommitted | P2 | next |
+| Rest timer `apply()` can lose disk state before the alarm | P1 | [#18](https://github.com/sinura7/PersonalTrainer/pull/18) |
+| `preflight.sh` links Robolectric annotations / junit | P1 | [#19](https://github.com/sinura7/PersonalTrainer/pull/19) |
+| CI `on.push` still lists `main`, not `trunk` | P1 | Studio — token has no workflow scope |
+| Suggest stays up on a fully pinned week | P2 | [#20](https://github.com/sinura7/PersonalTrainer/pull/20) |
+| Planner still listens for deleted `recovery-upper` | P2 | [#21](https://github.com/sinura7/PersonalTrainer/pull/21) |
+| Setup preview has no catalog-empty error | P3 | [#22](https://github.com/sinura7/PersonalTrainer/pull/22) |
+| `DEVELOPMENT.md` still says `2.json` is uncommitted | P2 | [#23](https://github.com/sinura7/PersonalTrainer/pull/23) |
 
 ---
 
