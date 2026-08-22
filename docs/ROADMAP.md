@@ -155,7 +155,7 @@ Full packets live in `docs/archive/gameplan/`; the execution protocol is
 | 6th | **5 — Honest heat & coach** | Absolute weekly-set bands, windows → THIS_WEEK + LAST_30_DAYS, coach on trailing 14 days, RPE, imbalance by weighted sets, per surface map. | 4–5 | 0.5–1 |
 | 7th | **6a — Tab consolidation** ✅ 21 Aug | Ran **Branch A** per signed D1: four tabs (Home · Body · Plan · History), Library demoted to a pushed route with a back arrow, `isTabRoute` and the `restoreState = false` hacks deleted. The history work landed in History in place — month grouping with pinned headers, a sheet for multi-session days, a Records section. Body was not restructured. | 4–5 | 1–1.5 |
 | 8th | **6b — Home "Today" rework** ✅ 21 Aug | Masthead states today rather than the app's name (`MastheadCopy`, pure and tested). The week strip is now one composable shared with Plan, not a Home-only copy. ONE next-session module: the balance card, the heat tile and the recent-activity list are gone. The StartWorkout interstitial is deleted — `StartOptionsSheet` is a modal every entry point opens, so the live bar stays the only live-session affordance. | 2–3 | 0.5–1 |
-| 9th | **7 — Catalog to ~98 + Library UX** ✅ 21 Aug | Catalog at **98** built-ins across two seed bumps (v3, v4), every per-bucket count matching plan. Library groups into 39 movement families with equipment chips; the muscle filter reads junction credits, so it finally includes secondary-credit lifts, and the route carries a canonical enum rather than display text. Collisions surface as rename-or-keep-both — no merge tool, no FK rewriting. One increment table replaced three disagreeing ones: the "+5.5 lbs" defect is dead and bodyweight lifts are told to add a rep. Per-loadType add defaults replaced the universal 3×5/90s. Swap-equipment in both the routine editor and the live session. **Open: the bodyweight-storage decision in the hand-back §7.** | 4–5 | staged review |
+| 9th | **7 — Catalog to ~98 + Library UX** ✅ 21 Aug | Catalog at **98** built-ins across two seed bumps (v3, v4), every per-bucket count matching plan. Library groups into 39 movement families with equipment chips; the muscle filter reads junction credits, so it finally includes secondary-credit lifts, and the route carries a canonical enum rather than display text. Collisions surface as rename-or-keep-both — no merge tool, no FK rewriting. One increment table replaced three disagreeing ones: the "+5.5 lbs" defect is dead and bodyweight lifts are told to add a rep. Per-loadType add defaults replaced the universal 3×5/90s. Swap-equipment in both the routine editor and the live session. Bodyweight leftover is closed: Settings log + `SetWork` split (reps vs added kg), not a 40 kg fiction. | 4–5 | staged review |
 | 10th | **8 — Imagery** ✅ 21 Aug *(was optional; run anyway)* | Compose-drawn thumbnails: a body figure with the trained muscles lit from a **fixed** Heat3 (identity, not the owner's live band) plus an equipment badge, on picker rows, library rows, the 56dp detail header and — glyph only — the in-workout chips. The anatomy moved to `ui/components/FigureArt.kt` as a verified pure move; all 233 coordinates are character-identical, so the Body tab is untouched. Zero assets, zero `res/` additions. **Outstanding, owner-side: the release-APK measurement and the glyph verdicts.** | 2–4 | 0.5–1 |
 
 | 11th | **9 — The guided setup** ✅ 21 Aug *(not in the original plan)* | Came out of a UX audit of the finished ten phases, which found every screen assumed a lifter who already had routines and a pinned week — and a fresh install had neither. Six questions, one per screen, then a preview of the real week with the real lifts, then one button. The split is derived, never asked. Nothing is written until "Use this plan", and re-running it from Settings deletes nothing. Also closed four defects on the cold-start path, including a **compile break that had been on the branch for three phases**. | 2–3 | 0.5 |
@@ -181,6 +181,11 @@ Home / Plan / setup ViewModel JVM tests; debug is
 `com.sinura.personaltrainer.debug`. Phone gates remain the owner's
 (unpin+replay, Tune+HOLD, two icons). Packets, gates, won'ts:
 [JOB3_ACTION_PLAN.md](JOB3_ACTION_PLAN.md).
+
+**Job 4 (next).** The coach keeps its word: the deload card marks this
+week; Home offers replay when routines exist; Settings / History /
+Progress JVM contracts; two honesty captions. Packets, gates, won'ts:
+[JOB4_ACTION_PLAN.md](JOB4_ACTION_PLAN.md).
 
 **Review baseline (22 Aug 2026).** Full-tree audit after Job 2 landed on `trunk`.
 No open PRs. Q4 onboarding ANR on the cloud emulator is environment — `setPlace`
@@ -212,7 +217,7 @@ Carried forward deliberately, with the phase that will address them.
 | Finished sessions cannot be edited | ~~1~~ fixed 21 Aug — sets, notes, session delete, repeat |
 | Routine editor loses an unsaved rename on back | ~~4~~ fixed 20 Aug |
 | Imbalance advice compares tonnage, not working-set counts | ~~5~~ fixed 21 Aug — weighted weekly sets |
-| Progression increment is a global 2.5 kg; LBS users see "+5.5 lbs" | 7 |
+| ~~Progression increment is a global 2.5 kg; LBS users see "+5.5 lbs"~~ | ~~7~~ done 21 Aug — `IncrementTable.STEP_LBS` is 5 lbs; storage is `STEP_LBS_IN_KG` |
 | RPE is stored and backed up but read by nothing | ~~5~~ fixed 21 Aug — two top sets at RPE 9+ hold the load |
 | Planner assigns focus to days already in the past | ~~4~~ fixed 21 Aug — proposals only for open days ≥ today |
 | `arrangeKinds` can still produce back-to-back same-family days | ~~4~~ fixed 21 Aug — guarded rotation replaces the swap |
