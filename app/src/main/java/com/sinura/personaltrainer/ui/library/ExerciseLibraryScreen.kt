@@ -46,6 +46,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.LibraryFamily
@@ -578,7 +579,7 @@ private fun AddToRoutineSheet(
                     if (routines.isEmpty()) {
                         "No routines yet. Create one first, then add this lift."
                     } else {
-                        "Lands with this lift’s usual sets, reps and rest — editable on the routine."
+                        AddDefaults.landingCopy(exercise)
                     },
                     style = InstrumentType.body,
                     color = TextSecondary,

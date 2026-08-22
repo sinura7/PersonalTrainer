@@ -27,7 +27,10 @@ data class TargetDefaults(
     val sets: Int,
     val reps: Int,
     val restSeconds: Int,
-)
+) {
+    /** The line the add-to-routine sheet shows before anything is written. */
+    fun previewLine(): String = "$sets × $reps · ${RestTimer.formatClock(restSeconds)}"
+}
 
 /**
  * What a lift's targets should start at, given what kind of lift it is.
@@ -53,6 +56,15 @@ object AddDefaults {
 
     fun forExercise(exercise: Exercise, role: LiftRole = LiftRole.PRIMARY): TargetDefaults =
         forExercise(exercise.loadType, isCompound(exercise), role)
+
+    /**
+     * What the add-to-routine sheet says this lift will land as.
+     *
+     * The old sentence named no numbers. "3 × 5" as a universal line was a lie after
+     * per-lift defaults shipped. This is the actual row [forExercise] will write.
+     */
+    fun landingCopy(exercise: Exercise): String =
+        "Lands at ${forExercise(exercise).previewLine()} — editable on the routine."
 
     fun forExercise(
         loadType: LoadType?,
