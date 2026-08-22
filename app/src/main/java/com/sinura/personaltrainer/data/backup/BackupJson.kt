@@ -236,6 +236,9 @@ object BackupJson {
             blockWeeks = prefs.int("blockWeeks", 12),
             pastBlocks = prefs.string("pastBlocks", ""),
             bodyweightLog = prefs.string("bodyweightLog", ""),
+            trainingAge = prefs.string("trainingAge", ""),
+            preferredDays = prefs.stringList("preferredDays"),
+            trainingPlace = prefs.string("trainingPlace", ""),
         )
     }
 

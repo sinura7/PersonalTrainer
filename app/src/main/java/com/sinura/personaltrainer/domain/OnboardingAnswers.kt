@@ -113,5 +113,50 @@ data class OnboardingAnswers(
         /** Wide enough for any adult, narrow enough to catch a slipped decimal point. */
         const val MIN_BODYWEIGHT_KG = 30.0
         const val MAX_BODYWEIGHT_KG = 300.0
+
+        /**
+         * Rebuild the answers from what is already on the phone.
+         *
+         * Replay of an empty week must not re-ask the questionnaire. Days, goal, emphasis and
+         * bodyweight already live in preferences; age, preferred days and place join them in
+         * Job 3. Callers that only have equipment (an older install, a v1 backup) pass
+         * [inferPlace] for [place].
+         */
+        fun fromStored(
+            trainingAge: TrainingAge,
+            daysPerWeek: Int,
+            preferredDays: Set<DayOfWeek>,
+            place: TrainingPlace,
+            goal: TrainingGoal,
+            emphasis: TrainingEmphasis,
+            bodyweightKg: Double?,
+        ): OnboardingAnswers = OnboardingAnswers(
+            trainingAge = trainingAge,
+            daysPerWeek = daysPerWeek,
+            preferredDays = preferredDays,
+            place = place,
+            goal = goal,
+            emphasis = emphasis,
+            bodyweightKg = bodyweightKg,
+        ).sanitized()
+
+        /**
+         * Best-effort place from the kit filter. Empty means "no filtering" in
+         * [CoachPreferences], which is how a full gym is stored — not "owns nothing".
+         */
+        fun inferPlace(availableEquipment: Set<String>): TrainingPlace {
+            if (availableEquipment.isEmpty()) return TrainingPlace.FULL_GYM
+            val types = availableEquipment.mapNotNull { raw ->
+                EquipmentType.entries.firstOrNull { it.name.equals(raw, ignoreCase = true) }
+            }.toSet()
+            if (types.isEmpty()) return TrainingPlace.FULL_GYM
+            val bodyweight = TrainingPlace.BODYWEIGHT_ONLY.equipment
+            val home = TrainingPlace.HOME_DUMBBELLS.equipment
+            return when {
+                types.all { it in bodyweight } -> TrainingPlace.BODYWEIGHT_ONLY
+                types.all { it in home } -> TrainingPlace.HOME_DUMBBELLS
+                else -> TrainingPlace.FULL_GYM
+            }
+        }
     }
 }

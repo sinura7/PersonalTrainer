@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
+import com.sinura.personaltrainer.domain.ExistingLayoutMatcher
 import com.sinura.personaltrainer.domain.InsightFailure
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.RoutineGenerator
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SplitStyle
@@ -18,6 +20,7 @@ import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.domain.TrainingInsights
+import com.sinura.personaltrainer.domain.WeekTwoCopy
 import com.sinura.personaltrainer.domain.WeeklySchedulePlan
 import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
 import com.sinura.personaltrainer.domain.WorkoutSession
@@ -252,6 +255,55 @@ class PlanViewModel @JvmOverloads constructor(
 
     fun dismissFills() {
         proposals.value = emptyList()
+    }
+
+    /**
+     * Rebuilds the setup layout on the routines already on the phone.
+     *
+     * Writes nothing. Matching is name-then-kind; [acceptFills] is still the only pin. A
+     * Settings rebuild is the wrong tool here — it would create a second copy of every
+     * session they already train.
+     */
+    fun replayStoredAnswers() {
+        viewModelScope.launch {
+            val current = insights.value ?: insights.first { it != null } ?: return@launch
+            val week = current.weekPlan
+            if (week == null) {
+                actionError.value = WeekTwoCopy.MATCH_FAILED
+                return@launch
+            }
+            val answers = runCatchingCancellable {
+                container.preferencesRepository.storedOnboardingAnswers()
+            }.getOrElse { thrown ->
+                AppLog.w(TAG, "Reading stored answers failed", thrown)
+                actionError.value = WeekTwoCopy.MATCH_FAILED
+                return@launch
+            }
+            val catalog = runCatchingCancellable {
+                container.exerciseRepository.observeAll().first()
+            }.getOrElse { thrown ->
+                AppLog.w(TAG, "Reading the catalog for replay failed", thrown)
+                emptyList()
+            }
+            val matched = withContext(Dispatchers.Default) {
+                val blueprint = RoutineGenerator.generate(
+                    answers = answers,
+                    catalog = catalog,
+                    weekStart = week.preferences.weekStart,
+                )
+                ExistingLayoutMatcher.match(
+                    blueprint = blueprint,
+                    existing = current.routines,
+                    weekStartEpochDay = week.weekStartEpochDay,
+                )
+            }
+            if (matched.isEmpty()) {
+                actionError.value = WeekTwoCopy.MATCH_FAILED
+                return@launch
+            }
+            proposals.value = matched
+            actionError.value = null
+        }
     }
 
     // -----------------------------------------------------------------------

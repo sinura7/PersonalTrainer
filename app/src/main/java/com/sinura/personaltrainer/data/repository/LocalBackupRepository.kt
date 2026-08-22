@@ -30,13 +30,17 @@ import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.MuscleNormalizer
+import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
+import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
+import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
+import java.time.DayOfWeek
 import kotlinx.coroutines.flow.first
 import java.io.File
 
@@ -132,6 +136,11 @@ class LocalBackupRepository(
                 blockWeeks = block?.weeks ?: TrainingBlock.DEFAULT_WEEKS,
                 pastBlocks = BlockArchive.encode(pastBlocks),
                 bodyweightLog = BodyweightLog.encode(bodyweightLog),
+                trainingAge = preferencesRepository.trainingAge.first().name,
+                preferredDays = preferencesRepository.preferredDays.first()
+                    .map { it.name }
+                    .sorted(),
+                trainingPlace = preferencesRepository.trainingPlace.first()?.name.orEmpty(),
             ),
             exercises = exercises.map {
                 BackupExercise(
@@ -415,6 +424,17 @@ class LocalBackupRepository(
                 },
                 pastBlocks = BlockArchive.decode(document.preferences.pastBlocks),
                 bodyweightLog = BodyweightLog.decode(document.preferences.bodyweightLog),
+                trainingAge = TrainingAge.fromStorage(
+                    document.preferences.trainingAge.takeIf { it.isNotBlank() },
+                ),
+                preferredDays = document.preferences.preferredDays.mapNotNull { raw ->
+                    DayOfWeek.entries.firstOrNull { it.name.equals(raw, ignoreCase = true) }
+                }.toSet(),
+                trainingPlace = document.preferences.trainingPlace.takeIf { it.isNotBlank() }
+                    ?.let { TrainingPlace.fromStorage(it) }
+                    ?: OnboardingAnswers.inferPlace(
+                        document.preferences.availableEquipment.toSet(),
+                    ),
             )
             true
         } catch (_: Exception) {

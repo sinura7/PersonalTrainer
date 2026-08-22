@@ -17,10 +17,13 @@ import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
+import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
+import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
+import java.time.DayOfWeek
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -211,6 +214,9 @@ class BackupV2RoundTripTest {
             block = null,
             pastBlocks = emptyList(),
             bodyweightLog = emptyList(),
+            trainingAge = TrainingAge.NEW,
+            preferredDays = emptySet(),
+            trainingPlace = TrainingPlace.FULL_GYM,
         )
         assertTrue(preferences.pastBlocks.first().isEmpty())
 
@@ -238,6 +244,29 @@ class BackupV2RoundTripTest {
         restore(V1_FIXTURE)
 
         assertNull(preferences.trainingBlock.first())
+    }
+
+    @Test
+    fun setupAnswersThatUsedToDieAtAcceptTravelWithTheBackup() = runBlocking {
+        maintenance.seedCatalog()
+        seedUserData()
+        preferences.setTrainingAge(TrainingAge.EXPERIENCED)
+        preferences.setPreferredDays(setOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY))
+        preferences.setTrainingPlace(TrainingPlace.HOME_DUMBBELLS)
+
+        val json = BackupJson.encode(local.createSnapshot())
+        preferences.setTrainingAge(TrainingAge.NEW)
+        preferences.setPreferredDays(emptySet())
+        preferences.setTrainingPlace(TrainingPlace.FULL_GYM)
+
+        restore(json)
+
+        assertEquals(TrainingAge.EXPERIENCED, preferences.trainingAge.first())
+        assertEquals(
+            setOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY),
+            preferences.preferredDays.first(),
+        )
+        assertEquals(TrainingPlace.HOME_DUMBBELLS, preferences.trainingPlace.first())
     }
 
     @Test

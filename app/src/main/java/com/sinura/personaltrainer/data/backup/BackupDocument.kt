@@ -96,6 +96,13 @@ data class BackupPreferences(
     val pastBlocks: String = "",
     /** Weigh-ins as "epochDay:kg" pairs — see BodyweightLog. Unreadable content decodes to none. */
     val bodyweightLog: String = "",
+    /**
+     * The three setup answers that used to die at accept. Empty string / empty list means
+     * "this file predates them" — restore infers, it does not fail.
+     */
+    val trainingAge: String = "",
+    val preferredDays: List<String> = emptyList(),
+    val trainingPlace: String = "",
 )
 
 /**
