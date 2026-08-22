@@ -125,7 +125,7 @@ that is a better floor move than stuffing jumps into a Push template.
 
 ## Packets
 
-### P0 — Imagery: one body, both sides · **next** (this PR · phone pending)
+### P0 — Imagery: one body, both sides · **done** (code on `trunk` · phone pending)
 
 **Goal.** Front, back, thumbs, empty mark, and the launcher language read as
 the same figure. High quality still means **plates**, not a photograph and not
@@ -369,12 +369,17 @@ After each packet that ships UI:
 6. **Suggest remaps days, it does not regenerate lifts.** Emphasis changes
    which open days Suggest fills. Athletic templates apply when you generate
    a week (setup / re-run). A Settings goal change does not rewrite routines.
+7. **Week two with pins is already done.** Rule 6 resets satisfaction, not
+   slots. The remaining hole — empty week, routines still present — is Job 3.
+   Do not reopen this file for it.
 
 ---
 
 ## Verification
 
-- [x] `./gradlew testDebugUnitTest` — 647 tests, 0 failures (P0)
+- [x] `./gradlew testDebugUnitTest` — 671 tests, 0 failures (merged `trunk`, 22 Aug 2026)
 - [x] `./gradlew assembleDebug`
 - [x] This file updated if we left the written line
-- [ ] Phone gate for the packet that just shipped (P0: Body flip + Library thumbs + empty mark)
+- [ ] Phone gates P0–P4 (owner, at home). Code is on `trunk`.
+
+What comes after this file: [JOB3_ACTION_PLAN.md](JOB3_ACTION_PLAN.md).

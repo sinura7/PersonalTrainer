@@ -138,7 +138,9 @@ and pinned Done.
 
 **Floor findings**
 
-- Empty week: volt “Suggest a week” (same words as Home).
+- Empty week, **no routines**: volt “Suggest a week” (same words as Home).
+- Empty week, **routines exist**: volt “Use my answers again” (Job 3 / P1).
+  Quiet Suggest stays the heat/planner path. One filled button.
 - Week with pins: quiet Suggest. Fully pinned: **hidden**
   *(a button that produces an empty preview is a dead control)*.
 - Confirm is **“Use this week”**. ~~Accept fills~~ — fills is planner jargon.
@@ -227,8 +229,10 @@ and the screen says so *before* the tap, not only after the repository refuses.
 ## Do not open
 
 Plate calculator · rest *sound* design · font-scale 2.0 · scheduled backup ·
-deload decision UI · Room v3 · emulator instrumented tests on the real applicationId ·
+Room v3 · emulator instrumented tests on the real applicationId ·
 package rename · Drive folder rename · 5th tab · LLM trainer.
+
+Deload decision UI was deferred here. It is Job 3 / P2 (ROADMAP option A).
 
 ---
 
@@ -260,4 +264,4 @@ Record every deviation here. Oldest stay; do not delete.
 - [ ] Phone: the page gate, plus any floor finding shipped this turn
 - [ ] This file updated if we left the written plan
 
-Last JVM gate: 644 tests, 0 failures (22 Aug 2026, remaining pages). Phone gates still need the owner.
+Last JVM gate: 671 tests, 0 failures (merged `trunk`, 22 Aug 2026). Phone gates still need the owner. Job 3 living plan: [JOB3_ACTION_PLAN.md](JOB3_ACTION_PLAN.md).

@@ -168,21 +168,18 @@ SQLite. ViewModel and screen instrumented tests are still unscheduled.
 **UX page pass (22 Aug 2026).** The screens already exist. The work was making each
 one tell the truth and offer one act. Living plan: [UX_PAGE_PASS.md](UX_PAGE_PASS.md).
 
-**Job 2 (next).** Daily logging is mature. The remaining product is: no workout in
-mind → short path → the app builds the week. Packets, gates, and the imagery rewrite
-that starts it: [JOB2_ACTION_PLAN.md](JOB2_ACTION_PLAN.md). P0 (this PR) is the
-shared-structure figure so Body, thumbs, and the mark read as one person.
+**Job 2 · code-done on `trunk` (22 Aug 2026).** Daily logging is mature. No
+workout in mind → short path → the app builds the week. P0–P4 are on `trunk`
+(shared-structure figure, emphasis, Athletic, preview copy, later fills /
+Suggest honours emphasis). Phone gates remain the owner's.
+[JOB2_ACTION_PLAN.md](JOB2_ACTION_PLAN.md). P5 sex waits for a real sentence.
+P6 catalog is won't — families already exist.
 
-**Job 2 / P1 — emphasis.** Upper / lower / balanced is a real lever on the generated
-week and on Suggest. Stored as a preference, default Balanced.
-
-**Job 2 / P2+P3 — athletic (this branch).** Athletic is a fourth goal: different
-families (hinge, carry, lunge, step-up, swing), upper/lower rather than PPL at
-five days, and a preview a stranger can read. No second catalog. No Room v3.
-
-**Job 2 / P4 — after week one.** Settings → Your plan says the re-run adds a block
-and does not delete history. Suggest already passes current emphasis; pins stay
-owned. Athletic templates apply on generate, not by rewriting a pinned week.
+**Job 3 (next).** The week continues: replay stored answers on an empty week
+without creating routines; lighter-week marker (option A below); ViewModel
+JVM tests; debug `applicationIdSuffix`. Pins already survive Monday — week
+two with pins is not a feature. Packets, gates, won'ts:
+[JOB3_ACTION_PLAN.md](JOB3_ACTION_PLAN.md).
 
 **Review baseline (22 Aug 2026).** Full-tree audit after Job 2 landed on `trunk`.
 No open PRs. Q4 onboarding ANR on the cloud emulator is environment — `setPlace`
@@ -411,5 +408,6 @@ the app can stand behind today. Both options remain open:
   can act on by logging: *"Weekly volume rose {pct}% over three weeks while top-lift e1RMs did
   not move. Take an easier week: same lifts, fewer sets."* No affordance is ever built.
 
-If the owner wants A, it becomes a named phase and the copy goes back to
-`"Schedule a lighter week."` at the same time.
+**Chosen: A.** Named as Job 3 / P2 in [JOB3_ACTION_PLAN.md](JOB3_ACTION_PLAN.md).
+Copy reverts to `"Schedule a lighter week."` in that packet. Stack after
+replay (P1) — same Plan / prefs files.
