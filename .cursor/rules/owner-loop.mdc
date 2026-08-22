@@ -1,0 +1,52 @@
+---
+description: Owner loop — trunk, packets, no file overlap while Studio is away
+alwaysApply: true
+---
+
+# Owner loop
+
+Allen develops from Cursor on the web when Android Studio is not around.
+Phone checks happen later, at home. That is the expected loop, not a
+blockage. Keep shipping unblocked. Do not sit idle waiting for Studio.
+
+## Shipping line
+
+- `trunk` is the only shipping branch. `main` is gone. Do not recreate it.
+- One packet, one branch off current `trunk`, one PR into `trunk`.
+- Branch names: `cursor/<short-slug>-b87f`.
+- JVM (`./gradlew testDebugUnitTest` + `assembleDebug`) is the push gate.
+  A green PR may sit. The phone is the merge gate.
+- After merge, the owner pulls `origin/trunk` in Studio — not a leftover
+  local branch.
+
+## Continue while Studio is away
+
+Start the next packet as soon as the current one is pushed and the JVM
+gate is green. Do not wait for a phone check to cut the next branch.
+
+## No accidental overlap
+
+Before cutting a branch, list every path already changed on an **open**
+PR against `trunk`.
+
+- None of those paths are needed → cut from `trunk`. Independent. Phone
+  check and merge in any order.
+- A path is already owned → **stack** on that PR's branch. Do not start
+  a second edit of the same file from `trunk`.
+- `docs/ROADMAP.md` is the one file every packet is allowed to touch in
+  a few lines. Last merge wins. Do not use that exception for Kotlin.
+
+A stacked PR includes the packets under it. Say so in the body. Merge
+the tip only — not each layer as if they were strangers.
+
+## Phone check
+
+Checkout the PR branch in Studio. Judge that build. Never run
+`connectedDebugAndroidTest` on the real `applicationId` (shared with
+release; real history).
+
+## Still not these jobs
+
+Plate calculator, rest-sound design, font-scale 2.0, Room v3, a fifth
+tab, an LLM, package or Drive-folder rename. A waiting PR is not
+permission to open a different job.
