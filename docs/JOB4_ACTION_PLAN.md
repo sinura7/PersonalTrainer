@@ -165,7 +165,7 @@ this week's start.
 
 ---
 
-### P2 — Home replay when routines exist · **next** (this PR)
+### P2 — Home replay when routines exist · **done** (merged · phone pending)
 
 **Goal.** Empty week + routines on the phone → Home's volt is
 **Use my answers again**. Quiet Suggest. Same confirm on Plan
@@ -198,7 +198,7 @@ Empty + no routines → Suggest. Confirm still `acceptFills`.
 
 ---
 
-### P3 — ViewModel contracts that users already rely on · **after P2**
+### P3 — ViewModel contracts that users already rely on · **next** (this PR)
 
 **Goal.** Settings / History / Progress cannot regress the live-session
 and lighter-week contracts without a red test.
@@ -210,7 +210,7 @@ and lighter-week contracts without a red test.
 2. `HistoryViewModelTest` — `repeatSession` while live surfaces the
    blocked state (not a silent resume).
 3. `ProgressViewModelTest` — `markLighterWeek()` writes this week's
-   start day.
+   start day. Already on `trunk` from P1; this packet adds the other two.
 
 House style from Job 3 / P3: `runBlocking` +
 `UnconfinedTestDispatcher` + `@Config(application = Application::class)`
@@ -310,7 +310,7 @@ Do not deviate into sex, catalog seed, Room v3, or plate calculator.
 ## Verification
 
 - [x] This file written; ROADMAP strike; UX pointer
-- [ ] P1 JVM + assemble (phone: card tap HOLDs)
+- [x] P1 JVM + assemble (phone: card tap HOLDs)
 - [x] P2 JVM + assemble (phone: Home replay)
 - [ ] P3 three ViewModel test classes, 0 failures
 - [ ] P4 two captions

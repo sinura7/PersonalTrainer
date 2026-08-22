@@ -182,8 +182,9 @@ Home / Plan / setup ViewModel JVM tests; debug is
 (unpin+replay, Tune+HOLD, two icons). Packets, gates, won'ts:
 [JOB3_ACTION_PLAN.md](JOB3_ACTION_PLAN.md).
 
-**Job 4 (in flight).** The deload card marks this week (phone pending).
-Next: Home replay when routines exist. Packets, gates, won'ts:
+**Job 4 (in flight).** Deload card marks this week; Home replay when
+routines exist (phone pending). Next: Settings / History / Progress JVM
+contracts. Packets, gates, won'ts:
 [JOB4_ACTION_PLAN.md](JOB4_ACTION_PLAN.md).
 
 **Review baseline (22 Aug 2026).** Full-tree audit after Job 2 landed on `trunk`.
@@ -211,7 +212,7 @@ Carried forward deliberately, with the phase that will address them.
 
 | Item | Phase |
 |---|---|
-| Instrumented tests cover migrations plus `WorkoutRepository` / `ScheduleRepository`; remaining ViewModels and screens still untested (Home / Plan / setup have JVM tests in Job 3 / P3) | later — opportunistic |
+| Instrumented tests cover migrations plus `WorkoutRepository` / `ScheduleRepository`; remaining ViewModels and screens still untested (Home / Plan / setup / Settings / History / Progress have JVM tests) | later — opportunistic |
 | ~~ViewModels untestable by construction (service-locator `AppViewModel`) — A1~~ | ~~opportunistic~~ done 22 Aug 2026 — constructor-injected `AppDependencies` |
 | Finished sessions cannot be edited | ~~1~~ fixed 21 Aug — sets, notes, session delete, repeat |
 | Routine editor loses an unsaved rename on back | ~~4~~ fixed 20 Aug |
