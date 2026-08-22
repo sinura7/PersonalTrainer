@@ -176,6 +176,10 @@ week and on Suggest. Stored as a preference, default Balanced.
 families (hinge, carry, lunge, step-up, swing), upper/lower rather than PPL at
 five days, and a preview a stranger can read. No second catalog. No Room v3.
 
+**Job 2 / P4 — after week one.** Settings → Your plan says the re-run adds a block
+and does not delete history. Suggest already passes current emphasis; pins stay
+owned. Athletic templates apply on generate, not by rewriting a pinned week.
+
 ---
 
 ## Known open items
