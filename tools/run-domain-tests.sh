@@ -99,6 +99,8 @@ interface SharedPreferences {
         fun putString(key: String, value: String?): Editor
         fun clear(): Editor
         fun apply()
+        /** Synchronous flush. Rest-timer persistence uses this so the alarm cannot outrun disk. */
+        fun commit(): Boolean
     }
 }
 STUB
@@ -116,7 +118,11 @@ TESTS=app/src/test/java/com/sinura/personaltrainer
 # its test directory below runnable; the two lists move together.
 EXTRA_MAIN="$SRC/workout/WorkoutDraftCache.kt $SRC/workout/WorkoutDraftRecovery.kt \
             $SRC/timer/RestTimerStore.kt $SRC/timer/RestTimerStatePersistence.kt"
-EXTRA_TESTS="$TESTS/util $TESTS/workout $TESTS/timer"
+# Timer tests are named: RestTimerStatePersistenceTest is Robolectric and cannot
+# compile against these stubs. Keep it out of this lane; Gradle still runs it.
+EXTRA_TESTS="$TESTS/util $TESTS/workout \
+             $TESTS/timer/RestTimerStoreTest.kt \
+             $TESTS/timer/RestTimerRehydratorTest.kt"
 
 echo "Compiling domain sources..."
 # shellcheck disable=SC2086
