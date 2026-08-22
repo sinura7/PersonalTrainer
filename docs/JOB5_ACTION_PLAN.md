@@ -277,7 +277,7 @@ Restyling the stack. A second type scale.
 
 ---
 
-### P5 — Prompted backup, not a silent clock · **done** (this PR · phone pending)
+### P5 — Prompted backup, not a silent clock · **done** (this PR · 727 JVM · phone pending)
 
 **Goal.** Settings says when the last backup is old, *before* they
 need the file. Restore and live-session rules do not change.
@@ -396,6 +396,6 @@ P1 is a GitHub Actions page, not a phone.
 - [x] P2 one cue, existing toggle (713 JVM)
 - [x] P3 plates + type-in hint + pounds default (719 JVM)
 - [x] P4 log loop at font 2.0 (722 JVM)
-- [x] P5 stale-backup prompt (this PR)
+- [x] P5 stale-backup prompt (727 JVM)
 - [ ] Phone gates still the owner's
 - [ ] Six won'ts still won't

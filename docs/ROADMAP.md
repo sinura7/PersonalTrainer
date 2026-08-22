@@ -189,11 +189,11 @@ the tap. Phone gates remain the owner's (card+HOLD, Home replay,
 Backup/Finish copy). Packets, gates, won'ts:
 [JOB4_ACTION_PLAN.md](JOB4_ACTION_PLAN.md).
 
-**Job 5 (in flight).** Plan, rest cue, plates, type-in, pounds
-default, and font-scale 2.0 are on `trunk`. Next: prompted backup
-when the last file is older than 14 days. CI `trunk` is Studio.
-Room v3, fifth tab, LLM, rename, sex, and catalog seed stay signed
-won't. Packets, gates, won'ts:
+**Job 5 · code-done on `trunk` except CI `trunk` (Studio).** Rest
+cue, plates, type-in, pounds default, font-scale 2.0, and prompted
+backup are on `trunk`. Phone gates remain the owner's. P1 (`ci.yml`
+lists `trunk`) is Studio. Room v3, fifth tab, LLM, rename, sex, and
+catalog seed stay signed won't. Packets, gates, won'ts:
 [JOB5_ACTION_PLAN.md](JOB5_ACTION_PLAN.md).
 
 **Review baseline (22 Aug 2026).** Full-tree audit after Job 2 landed on `trunk`.
