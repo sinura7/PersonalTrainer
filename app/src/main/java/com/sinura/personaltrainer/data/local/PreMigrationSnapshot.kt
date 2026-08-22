@@ -58,9 +58,11 @@ object PreMigrationSnapshot {
         }
 
         val destination = File(context.filesDir, "pre-migration/v1")
-        if (destination.exists()) {
+        if (destination.isDirectory) {
             // An earlier run copied the file and died before writing the marker. The copy on
             // disk is the pre-v2 one; taking it again now would capture a migrated file.
+            // A regular file at this path is a failed earlier attempt, not a copy — leave
+            // the marker unset so the next launch retries.
             prefs.edit().putInt(KEY_LAST_OPENED_SCHEMA, TARGET_SCHEMA).apply()
             return
         }
