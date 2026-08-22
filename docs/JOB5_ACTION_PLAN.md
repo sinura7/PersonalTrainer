@@ -184,7 +184,7 @@ idle on P2 waiting for it.
 
 ---
 
-### P2 — Rest done is a Temper cue · **next** (this PR)
+### P2 — Rest done is a Temper cue · **done** (this PR · phone pending)
 
 **Goal.** Sound-on plays a bundled cue. Sound-off is still silence.
 Silent ringer is still silence. The notification channel stays silent.
@@ -369,7 +369,7 @@ P1 is a GitHub Actions page, not a phone.
 
 - [x] This file written; ROADMAP / UX / owner-loop retarget
 - [ ] P1 `ci.yml` lists `trunk`
-- [ ] P2 one cue, existing toggle
+- [x] P2 one cue, existing toggle (713 JVM)
 - [ ] P3 `PlateMath` + caption on loaded lifts
 - [ ] P4 log loop at font 2.0
 - [ ] P5 stale-backup prompt
