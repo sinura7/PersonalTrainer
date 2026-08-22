@@ -1,9 +1,11 @@
-# Personal Trainer
+# Temper
 
 [![CI](https://github.com/sinura7/PersonalTrainer/actions/workflows/ci.yml/badge.svg)](https://github.com/sinura7/PersonalTrainer/actions/workflows/ci.yml)
 
-Local-first strength tracker for Android, built for one person's training. Workouts stay on
-the device (Room). Weights are stored in kilograms and can be shown as kg or lbs.
+Local-first strength tracker for Android, built for one person's training. The launcher
+name is **Temper**. Package and `applicationId` stay `com.sinura.personaltrainer` so
+installs and Room history keep their identity. Workouts stay on the device (Room).
+Weights are stored in kilograms and can be shown as kg or lbs.
 
 The Play Store is not required: build and install from Android Studio, or sideload a signed
 APK and let Obtainium watch GitHub Releases.

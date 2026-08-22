@@ -1,6 +1,6 @@
 # Setup and release
 
-Personal Trainer is a **sideload APK**. The Play Store is not required to install, update, back up, or restore. Training works offline. Google Drive is optional and only used when you sign in from Settings.
+Temper is a **sideload APK**. The Play Store is not required to install, update, back up, or restore. Training works offline. Google Drive is optional and only used when you sign in from Settings.
 
 This is a standard single APK (`com.sinura.personaltrainer`). It is suitable for Obtainium.
 
@@ -65,14 +65,14 @@ Backup/restore talks to Drive with the `drive.file` scope. You must create an An
 ### Create the Cloud project
 
 1. Open [Google Cloud Console](https://console.cloud.google.com/).
-2. Create a project (any name, e.g. `Personal Trainer`).
+2. Create a project (any name, e.g. `Temper`).
 3. APIs & Services → Library → enable **Google Drive API**.
 
 ### OAuth consent screen
 
 1. APIs & Services → OAuth consent screen.
 2. User type: **External**.
-3. App name: `Personal Trainer`. Support email: your Gmail.
+3. App name: `Temper`. Support email: your Gmail.
 4. Scopes: add `https://www.googleapis.com/auth/drive.file` (or finish the wizard and add it under Data Access).
 5. Test users: add the Google account you will sign in with on the phone.
 6. Publishing status can stay in **Testing** for personal use.
@@ -193,15 +193,15 @@ The rest timer is a **foreground service** with an ongoing notification. It keep
 
 The first time you open an active workout, Android asks for notification permission. Allow it so remaining time stays visible in the shade and you get the “Rest done” alert.
 
-Settings → Apps → Personal Trainer → Notifications → Rest timer / Rest complete should stay on.
+Settings → Apps → Temper → Notifications → Rest timer / Rest complete should stay on.
 
 ### Battery (Samsung and other OEMs)
 
 Aggressive battery savers can still pause background work. For reliable rest between sets:
 
-1. Settings → Apps → Personal Trainer → Battery
+1. Settings → Apps → Temper → Battery
 2. Choose **Unrestricted** (not Optimized or Restricted)
 
-On some Samsung builds the path is Settings → Battery → Background usage limits, then remove Personal Trainer from sleeping / deep-sleeping apps.
+On some Samsung builds the path is Settings → Battery → Background usage limits, then remove Temper from sleeping / deep-sleeping apps.
 
 You do not need a lock-screen overlay. The notification chronometer is the always-visible indicator.

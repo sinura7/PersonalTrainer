@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Temper mark: geometric front torso, steel on pit, one Heat3 plate.
+     Foreground is the approved figure with the pit keyed out. The solid field
+     is this background plate so every launcher mask still reads as #07090B. -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@color/ic_launcher_background" />
     <foreground android:drawable="@drawable/ic_launcher_foreground" />

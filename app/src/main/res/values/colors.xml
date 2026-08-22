@@ -1,5 +1,5 @@
 <resources>
-    <!-- Volt on the pit, matching Color.kt. -->
+    <!-- Pit field under the Temper torso. Matches Color.kt Pit. Volt stays out of the mark. -->
     <color name="ic_launcher_background">#07090B</color>
     <!-- Painted before the first Compose frame. Must match Color.kt Pit, the window colour
          of the app's one (dark) theme. -->
