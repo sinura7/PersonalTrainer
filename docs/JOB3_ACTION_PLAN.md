@@ -10,9 +10,9 @@ Status: **done** · **next** · *later* · **won't**
 
 ## What this is
 
-Job 1 is logging. Job 2 is first-week generation. Both are **code-done on
-`trunk`**. Job 2's phone gates are still the owner's — that is expected, not a
-blockage.
+Job 1 is logging. Job 2 is first-week generation. Job 3 is the week
+continuing. All three are **code-done on `trunk`**. Phone gates are still
+the owner's — that is expected, not a blockage.
 
 Job 3 is what happens **after** the first accepted week, without asking the six
 questions again, without inventing a second program, and without opening the
@@ -420,7 +420,7 @@ real id. Restyling. A fake that reimplements `WeekDerivation`.
 
 ---
 
-### P4 — Debug `applicationIdSuffix` · **next** (this PR · phone: two icons)
+### P4 — Debug `applicationIdSuffix` · **done** (merged · phone: two icons)
 
 **Goal.** Debug and release are separate apps. Experimenting cannot open the
 real history.
