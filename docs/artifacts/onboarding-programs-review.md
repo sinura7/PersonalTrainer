@@ -1663,3 +1663,55 @@ Lift order is compounds first — the lift that asks most of you should meet you
 | 5 | Plank | Bodyweight | 3 × 12 | 60s |
 | 6 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
 
+## Emphasis
+
+Same answers (on and off, 4 days, a full gym, general), then Upper vs Lower. Balanced is the row already printed above.
+
+### On and off · 4 days · General · Upper body → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days (Upper / Lower Body / Upper / Upper)
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 5 | 150s |
+| 2 | Barbell Row | Barbell | 3 × 5 | 150s |
+| 3 | Overhead Press | Barbell | 3 × 8 | 90s |
+| 4 | Lat Pulldown | Cable | 3 × 12 | 60s |
+| 5 | Barbell Curl | Barbell | 3 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Back Squat | Barbell | 3 × 5 | 150s |
+| 2 | Romanian Deadlift | Barbell | 3 × 5 | 150s |
+| 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
+| 4 | Leg Curl | Machine | 3 × 12 | 60s |
+| 5 | Standing Calf Raise | Machine | 3 × 12 | 60s |
+
+### On and off · 4 days · General · Lower body → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days (Upper / Lower Body / Lower Body / Lower Body)
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 5 | 150s |
+| 2 | Barbell Row | Barbell | 3 × 5 | 150s |
+| 3 | Overhead Press | Barbell | 3 × 8 | 90s |
+| 4 | Lat Pulldown | Cable | 3 × 12 | 60s |
+| 5 | Barbell Curl | Barbell | 3 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Back Squat | Barbell | 3 × 5 | 150s |
+| 2 | Romanian Deadlift | Barbell | 3 × 5 | 150s |
+| 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
+| 4 | Leg Curl | Machine | 3 × 12 | 60s |
+| 5 | Standing Calf Raise | Machine | 3 × 12 | 60s |
+
