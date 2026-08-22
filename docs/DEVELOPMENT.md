@@ -266,14 +266,11 @@ emulator lane as the truth check precisely so this substitution is legal.
 `app/schemas/…/<n>.json`. Never add `fallbackToDestructiveMigration` — it silently erases
 the training history this app exists to accumulate.
 
-> **`2.json` is not committed yet.** Room writes the exported schema during a real Gradle
-> build, and no build has run since the v2 entities landed. Until
-> `./gradlew :app:assembleDebug` on a machine with the Android SDK produces it and it is
-> committed, `Migration1To2Test` fails with a missing-schema error and the hand-written
-> `MIGRATION_1_2` SQL has not been diffed against Room's own expectation. That diff is
-> step 0 of `docs/MIGRATION_REHEARSAL.md` and is the gate on the migration,
-> not a formality: Room validates the live schema at open, and a mismatch as small as a
-> quoted default is a permanent crash loop on a phone with no destructive fallback.
+> **`2.json` is committed.** `app/schemas/com.sinura.personaltrainer.data.local.TrainerDatabase/2.json`
+> is the Room-generated v2 baseline (`identityHash` `3eedd530…`). Do not hand-edit it.
+> A later version still requires a real `./gradlew :app:assembleDebug` so Room can write
+> `<n>.json` — inventing an identityHash is a crash loop on a phone with no destructive
+> fallback. See `docs/MIGRATION_REHEARSAL.md`.
 
 **The rest timer cannot be tested with the screen on.** Its whole job is firing while the
 phone sleeps. Verify with the screen off and the phone untouched; force Doze with
