@@ -132,9 +132,13 @@ class RecommendationEngineTest {
         val hypertrophy = RecommendationEngine.recommend(
             inputs(sets, hints = hints, goal = TrainingGoal.HYPERTROPHY),
         )
+        val athletic = RecommendationEngine.recommend(
+            inputs(sets, hints = hints, goal = TrainingGoal.ATHLETIC),
+        )
 
         assertEquals(general.map { it.id }.toSet(), strength.map { it.id }.toSet())
         assertEquals(general.map { it.id }.toSet(), hypertrophy.map { it.id }.toSet())
+        assertEquals(general.map { it.id }.toSet(), athletic.map { it.id }.toSet())
         // Strength lifts the progression card above the other INFO-priority cards it ties with.
         val strengthScore = strength.first { it.id == "progression-ready" }.rankScore
         val generalScore = general.first { it.id == "progression-ready" }.rankScore

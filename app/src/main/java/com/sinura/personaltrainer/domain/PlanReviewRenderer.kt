@@ -6,7 +6,7 @@ package com.sinura.personaltrainer.domain
  * The catalog got one of these in Phase 3 and it was the only reason 98 rows of authored
  * judgment could be reviewed at all. This is the same bet on a harder problem: which lifts go
  * in a session, in what order, at what sets and reps is a training opinion, and an opinion
- * nobody can see is an opinion nobody can disagree with. There are 135 reachable combinations;
+ * nobody can see is an opinion nobody can disagree with. There are 180 reachable combinations;
  * reading them on a phone one screen at a time is not review.
  *
  * Golden-file tested against the committed artifact, so the document and the generator cannot

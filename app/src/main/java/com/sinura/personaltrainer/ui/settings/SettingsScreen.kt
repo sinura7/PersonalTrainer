@@ -366,9 +366,9 @@ private fun CoachingSection(
     }
     SettingsGroup(
         title = "Coaching",
-        caption = "Your goal reorders the suggestions; it never changes what they are. " +
-            "Emphasis changes the next week you generate or Suggest — not days you already pinned. " +
-            "Turning equipment off stops the coach naming lifts you cannot do.",
+        caption = "Athletic and emphasis change the next week you generate or Suggest — " +
+            "not days you already pinned. The coach's cards stay the same set; strength and " +
+            "muscle only reorder them. Turning equipment off stops the coach naming lifts you cannot do.",
     ) {
         GroupedList(modifier = Modifier.selectableGroup()) {
             TrainingGoal.entries.forEachIndexed { index, goal ->

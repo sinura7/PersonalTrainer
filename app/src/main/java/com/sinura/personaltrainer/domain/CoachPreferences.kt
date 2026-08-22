@@ -12,6 +12,7 @@ package com.sinura.personaltrainer.domain
 enum class TrainingGoal(val displayName: String, val blurb: String) {
     STRENGTH("Strength", "Progression and load first"),
     HYPERTROPHY("Muscle", "Volume and balance first"),
+    ATHLETIC("Athletic", "Power, unilateral work, less isolation"),
     GENERAL("General", "No emphasis"),
     ;
 

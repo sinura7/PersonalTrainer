@@ -25,6 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.BlueprintRoutine
 import com.sinura.personaltrainer.domain.OnboardingAnswers
+import com.sinura.personaltrainer.domain.OnboardingPreviewCopy
 import com.sinura.personaltrainer.domain.PlanBlueprint
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.TrainingAge
@@ -141,7 +142,7 @@ fun OnboardingScreen(
                 )
                 OnboardingStep.GOAL -> ChoiceStep(
                     title = "What are you training for?",
-                    blurb = "Changes what the coach mentions first. You can change it any time.",
+                    blurb = "This changes the lifts in the week, and what the coach mentions first.",
                     options = TrainingGoal.entries.map { goal ->
                         Choice(goal.displayName, goal.blurb, goal == state.answers.goal) {
                             viewModel.setGoal(goal)
@@ -359,20 +360,20 @@ private fun PreviewStep(
             QuestionTitle(
                 "Here's your block",
                 plan?.let {
-                    val emphasis = state.answers.emphasis
-                    val emphasisBit = if (emphasis == TrainingEmphasis.BALANCED) {
-                        ""
-                    } else {
-                        " · ${emphasis.displayName} emphasis"
-                    }
-                    "${TrainingBlock.DEFAULT_WEEKS} weeks of ${it.splitStyle.displayName} · " +
-                        "${it.trainingDayCount} days a week$emphasisBit · ${it.liftCount} lifts. " +
-                        "This is week one; change anything you like once it's in."
+                    "${OnboardingPreviewCopy.headline(state.answers, it)}. " +
+                        "${TrainingBlock.DEFAULT_WEEKS} weeks of ${it.splitStyle.displayName}."
                 } ?: "Building it…",
             )
         }
         if (plan != null) {
             item { WeekLine(plan) }
+            item {
+                Text(
+                    OnboardingPreviewCopy.FOOTER,
+                    style = InstrumentType.caption,
+                    color = TextTertiary,
+                )
+            }
             items(plan.routines, key = { it.key }) { routine ->
                 RoutineCard(routine)
             }
@@ -392,7 +393,7 @@ private fun PreviewStep(
         item {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
                 PrimaryGymButton(
-                    text = if (state.applying) "Building…" else "Start this block",
+                    text = if (state.applying) "Building…" else "Use this plan",
                     onClick = onApply,
                     enabled = plan != null && !state.applying,
                 )
@@ -404,25 +405,11 @@ private fun PreviewStep(
 
 @Composable
 private fun WeekLine(plan: PlanBlueprint) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
-    ) {
-        plan.days.forEach { day ->
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(Metrics.space1),
-            ) {
-                Kicker(day.dayOfWeek.shortLabel().take(1))
-                Text(
-                    plan.routineFor(day)?.name ?: "Rest",
-                    style = InstrumentType.caption,
-                    color = if (day.isRest) TextTertiary else TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+    GroupedList {
+        plan.days.forEachIndexed { index, day ->
+            if (index > 0) HairlineDivider()
+            val (title, subtitle) = OnboardingPreviewCopy.dayLine(day, plan.routineFor(day))
+            InstrumentRow(title = title, subtitle = subtitle)
         }
     }
 }

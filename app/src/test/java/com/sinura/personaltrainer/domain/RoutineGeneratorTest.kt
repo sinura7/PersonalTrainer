@@ -47,7 +47,7 @@ class RoutineGeneratorTest {
 
     @Test
     fun everyCombinationProducesAFullSessionForEveryRoutine() {
-        // The exhaustive sweep. 3 training ages x 5 day counts x 3 places x 3 goals = 135
+        // The exhaustive sweep. 3 training ages x 5 day counts x 3 places x 4 goals = 180
         // programs, and not one of them may ship a short session.
         var checked = 0
         TrainingAge.entries.forEach { age ->
@@ -70,7 +70,7 @@ class RoutineGeneratorTest {
                 }
             }
         }
-        assertEquals(135, checked)
+        assertEquals(180, checked)
     }
 
     @Test
@@ -310,6 +310,87 @@ class RoutineGeneratorTest {
         assertEquals(TrainingEmphasis.BALANCED, TrainingEmphasis.fromStorage("NOPE"))
     }
 
+    @Test
+    fun athleticDiffersFromMuscleOnTheFirstDay() {
+        val muscle = RoutineGenerator.generate(
+            answers(age = TrainingAge.NEW, days = 4, goal = TrainingGoal.HYPERTROPHY),
+            catalog,
+        )
+        val athletic = RoutineGenerator.generate(
+            answers(age = TrainingAge.NEW, days = 4, goal = TrainingGoal.ATHLETIC),
+            catalog,
+        )
+        val muscleFirst = muscle.routineFor(muscle.days.first { !it.isRest })!!
+        val athleticFirst = athletic.routineFor(athletic.days.first { !it.isRest })!!
+        val muscleFamilies = muscleFirst.lifts.map { it.family() }.toSet()
+        val athleticFamilies = athleticFirst.lifts.map { it.family() }.toSet()
+        assertTrue(
+            "Athletic first day $athleticFamilies vs Muscle $muscleFamilies",
+            (muscleFamilies - athleticFamilies).size + (athleticFamilies - muscleFamilies).size >= 2,
+        )
+    }
+
+    @Test
+    fun athleticBodyweightStillFillsAFullBodyDay() {
+        val plan = RoutineGenerator.generate(
+            answers(
+                age = TrainingAge.NEW,
+                days = 3,
+                place = TrainingPlace.BODYWEIGHT_ONLY,
+                goal = TrainingGoal.ATHLETIC,
+            ),
+            catalog,
+        )
+        plan.routines.forEach { routine ->
+            assertTrue("${routine.name} is short", routine.lifts.size >= 4)
+            routine.lifts.forEach { lift ->
+                assertTrue(lift.equipment in TrainingPlace.BODYWEIGHT_ONLY.equipment)
+            }
+        }
+    }
+
+    @Test
+    fun homeDumbbellAthleticNeverEmitsABarbell() {
+        val plan = RoutineGenerator.generate(
+            answers(
+                age = TrainingAge.NEW,
+                days = 4,
+                place = TrainingPlace.HOME_DUMBBELLS,
+                goal = TrainingGoal.ATHLETIC,
+            ),
+            catalog,
+        )
+        val illegal = plan.routines.flatMap { it.lifts }
+            .filterNot { it.equipment in TrainingPlace.HOME_DUMBBELLS.equipment }
+        assertEquals(emptyList<BlueprintLift>(), illegal)
+    }
+
+    @Test
+    fun unknownGoalFallsBackToGeneral() {
+        assertEquals(TrainingGoal.GENERAL, TrainingGoal.fromStorage(null))
+        assertEquals(TrainingGoal.GENERAL, TrainingGoal.fromStorage("NOPE"))
+    }
+
+    @Test
+    fun previewHeadlineNamesTheAnswersAStrangerCanRead() {
+        val answers = answers(
+            days = 4,
+            place = TrainingPlace.HOME_DUMBBELLS,
+            goal = TrainingGoal.ATHLETIC,
+            emphasis = TrainingEmphasis.UPPER,
+        )
+        val plan = RoutineGenerator.generate(answers, catalog)
+        assertEquals(
+            "4 days · Upper body emphasis · Athletic · Dumbbells at home",
+            OnboardingPreviewCopy.headline(answers, plan),
+        )
+        val rest = plan.days.first { it.isRest }
+        assertEquals("Rest", OnboardingPreviewCopy.dayLine(rest, null).second)
+    }
+
+    private fun BlueprintLift.family(): String =
+        catalog.first { it.id == exerciseId }.movementKey.orEmpty()
+
     private fun PlanBlueprint.trainingKinds(): List<SessionFocusKind> =
         days.filterNot { it.isRest }.map { day -> routineFor(day)!!.focusKind }
 
@@ -374,6 +455,17 @@ class SplitDerivationTest {
             SplitStyle.UPPER_LOWER,
             SplitDerivation.forAnswers(answers(TrainingAge.EXPERIENCED, 6, TrainingGoal.STRENGTH)),
         )
+    }
+
+    @Test
+    fun athleticIsNotPushPullLegsAtFiveDays() {
+        listOf(TrainingAge.NEW, TrainingAge.RETURNING, TrainingAge.EXPERIENCED).forEach { age ->
+            assertTrue(
+                "$age athletic at 5 days was PPL",
+                SplitDerivation.forAnswers(answers(age, 5, TrainingGoal.ATHLETIC))
+                    != SplitStyle.PUSH_PULL_LEGS,
+            )
+        }
     }
 
     @Test

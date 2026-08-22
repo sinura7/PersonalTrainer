@@ -36,10 +36,11 @@ object SplitDerivation {
 
             days == 4 -> SplitStyle.UPPER_LOWER
 
-            // Five or six days, and enough training behind them to use it. Strength is the tie
-            // break the other way: heavier work wants fewer, bigger sessions and more rest
-            // between them than a six-way split leaves room for.
-            answers.goal == TrainingGoal.STRENGTH -> SplitStyle.UPPER_LOWER
+            // Five or six days, and enough training behind them to use it. Strength and
+            // athletic both want fewer, bigger sessions: heavier work and unilateral work
+            // recover worse across a six-way split than upper/lower does.
+            answers.goal == TrainingGoal.STRENGTH ||
+                answers.goal == TrainingGoal.ATHLETIC -> SplitStyle.UPPER_LOWER
             else -> SplitStyle.PUSH_PULL_LEGS
         }
     }

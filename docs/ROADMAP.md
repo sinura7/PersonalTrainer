@@ -169,9 +169,12 @@ SQLite. ViewModel and screen instrumented tests are still unscheduled.
 making each one tell the truth and offer one act. Living plan, including every time
 we left the written line for a clearer floor idea: [UX_PAGE_PASS.md](UX_PAGE_PASS.md).
 
-**Job 2 / P1 — emphasis (this branch).** Upper / lower / balanced is a real lever on
-the generated week and on Suggest. Stored as a preference, default Balanced, so
-existing installs do not change. Pins stay owned. Phone check when Studio is back.
+**Job 2 / P1 — emphasis.** Upper / lower / balanced is a real lever on the generated
+week and on Suggest. Stored as a preference, default Balanced.
+
+**Job 2 / P2+P3 — athletic (this branch).** Athletic is a fourth goal: different
+families (hinge, carry, lunge, step-up, swing), upper/lower rather than PPL at
+five days, and a preview a stranger can read. No second catalog. No Room v3.
 
 ---
 
