@@ -89,6 +89,8 @@ private fun InstrumentTokensPreview() {
     PersonalTrainerTheme {
         Gallery("Instrument tokens") {
             Swatch("Pit", Pit)
+            Swatch("Steel", Steel)
+            Swatch("SteelDim", SteelDim)
             Swatch("Surface1", Surface1)
             Swatch("Surface2", Surface2)
             Swatch("Surface3", Surface3)

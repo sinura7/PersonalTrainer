@@ -72,6 +72,7 @@ import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.NumberEntryDialog
 import com.sinura.personaltrainer.ui.components.RestPresetChips
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
+import com.sinura.personaltrainer.ui.components.TemperMark
 import com.sinura.personaltrainer.ui.plan.PreferenceBlock
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -693,23 +694,26 @@ private fun PlanSetupSection(onRerun: () -> Unit) {
 
 @Composable
 private fun AboutSection() {
-    SettingsGroup(
-        title = "About",
-        caption = "Install or update the APK yourself, or let Obtainium watch GitHub Releases. " +
-            "The Play Store is not required.",
-    ) {
-        GroupedList {
-            InstrumentRow(
-                title = "Version",
-                trailing = {
-                    Text(
-                        "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
-                        style = InstrumentType.numeralSm,
-                        color = TextPrimary,
-                        maxLines = 1,
-                    )
-                },
-            )
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
+        TemperMark(size = 64.dp)
+        SettingsGroup(
+            title = "About",
+            caption = "Install or update the APK yourself, or let Obtainium watch GitHub Releases. " +
+                "The Play Store is not required.",
+        ) {
+            GroupedList {
+                InstrumentRow(
+                    title = "Version",
+                    trailing = {
+                        Text(
+                            "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                            style = InstrumentType.numeralSm,
+                            color = TextPrimary,
+                            maxLines = 1,
+                        )
+                    },
+                )
+            }
         }
     }
 }

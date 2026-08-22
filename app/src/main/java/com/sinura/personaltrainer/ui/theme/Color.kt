@@ -50,6 +50,15 @@ val HairlineStrong = Color(0x24FFFFFF)
 val OutlineSolid = Color(0xFF39434A)
 val OutlineSolidVariant = Color(0xFF1E2429)
 
+/**
+ * The Temper plate. Lifted from the launcher mark so every drawn figure, glyph and empty
+ * state is the same steel the icon sits in — not a second grey invented per surface.
+ */
+val Steel = Color(0xFF5B5B5A)
+
+/** Head, neck, feet: present so the figure reads as a body, quieter than the working plates. */
+val SteelDim = Color(0xFF3E4042)
+
 // ---------------------------------------------------------------------------
 // Text
 // ---------------------------------------------------------------------------

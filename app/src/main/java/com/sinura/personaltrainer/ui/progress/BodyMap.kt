@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -44,13 +43,14 @@ import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
-import com.sinura.personaltrainer.ui.components.drawFigure
+import com.sinura.personaltrainer.ui.components.drawTemperFigure
 import com.sinura.personaltrainer.ui.components.hotspotsFor
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.HairlineStrong
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.Radius
+import com.sinura.personaltrainer.ui.theme.SteelDim
 import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.theme.SurfacePressed
 import com.sinura.personaltrainer.ui.theme.TextTertiary
@@ -105,19 +105,22 @@ fun BodyMapCard(
             ) {
                 val figureWidth = maxWidth
                 val figureHeight = maxHeight
-                Canvas(modifier = Modifier.fillMaxSize()) { drawFigure(view) }
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    drawTemperFigure(
+                        view = view,
+                        fill = { plate ->
+                            plate.muscle?.let { heatColor(snapshot.load(it).heat) } ?: SteelDim
+                        },
+                        selected = selected,
+                        selectedStroke = Volt,
+                        edge = HairlineStrong,
+                    )
+                }
                 hotspotsFor(view).forEach { spot ->
-                    // Keyed, so switching views does not hand a plate the colour animation of
-                    // whichever plate happened to occupy its index in the other view.
+                    // Invisible tap targets. The plate fill lives on the canvas so the
+                    // geometry can stay polygonal; these boxes only have to be hittable.
                     key(spot.muscle, spot.left) {
                         val load = snapshot.load(spot.muscle)
-                        val fill by animateColorAsState(
-                            targetValue = heatColor(load.heat),
-                            animationSpec = tween(durationMillis = Motion.BASE, easing = Motion.Standard),
-                            label = "heat-${spot.muscle.name}",
-                        )
-                        val isSelected = selected == spot.muscle
-                        val shape = RoundedCornerShape(Radius.xs)
                         Box(
                             modifier = Modifier
                                 .offset(
@@ -127,13 +130,6 @@ fun BodyMapCard(
                                 .size(
                                     width = figureWidth * spot.width,
                                     height = figureHeight * spot.height,
-                                )
-                                .clip(shape)
-                                .background(fill)
-                                .border(
-                                    width = if (isSelected) Metrics.emphasisBorder else Metrics.hairline,
-                                    color = if (isSelected) Volt else HairlineStrong,
-                                    shape = shape,
                                 )
                                 .semantics {
                                     contentDescription =
@@ -183,8 +179,7 @@ private fun LegendSwatch(label: String, color: Color) {
     ) {
         Box(
             modifier = Modifier
-                .size(LEGEND_DOT)
-                .clip(CircleShape)
+                .size(width = LEGEND_DOT, height = LEGEND_DOT)
                 .background(color),
         )
         Kicker(label, color = TextTertiary)
@@ -221,7 +216,6 @@ fun MuscleHeatRow(
             Box(
                 modifier = Modifier
                     .size(width = HEAT_SWATCH_WIDTH, height = HEAT_SWATCH_HEIGHT)
-                    .clip(RoundedCornerShape(Radius.xs))
                     .background(fill)
                     .semantics { contentDescription = "${load.band.legendLabel} load" },
             )
