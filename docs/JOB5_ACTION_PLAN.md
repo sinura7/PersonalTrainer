@@ -137,7 +137,7 @@ here before any of them grows a packet.
 
 ## Packets
 
-### P0 — Plan + unbind the leftover list · **next** (this PR)
+### P0 — Plan + unbind the leftover list · **done** (merged)
 
 **Goal.** A stranger can name which cut-list items Job 5 owns and which
 stay signed. The next packet is allowed to touch rest / plates / type /
@@ -184,7 +184,7 @@ idle on P2 waiting for it.
 
 ---
 
-### P2 — Rest done is a Temper cue · **after P0**
+### P2 — Rest done is a Temper cue · **next** (this PR)
 
 **Goal.** Sound-on plays a bundled cue. Sound-off is still silence.
 Silent ringer is still silence. The notification channel stays silent.
