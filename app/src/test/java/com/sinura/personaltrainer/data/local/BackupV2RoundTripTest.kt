@@ -100,11 +100,11 @@ class BackupV2RoundTripTest {
 
         restore(V1_FIXTURE)
 
-        // The built-ins come back at 37 with their v2 fields, even though the file described
-        // none of them: reconciliation is what re-derives the catalog this build ships.
+        // The built-ins come back at whatever this build ships, even though the file described
+        // none of them: reconciliation is what re-derives the catalog.
         val exercises = database.exerciseDao().getAll()
-        assertEquals(38, exercises.size)
-        assertEquals(37, exercises.count { !it.isCustom })
+        assertEquals(DefaultExercises.catalog().size + 1, exercises.size)
+        assertEquals(DefaultExercises.catalog().size, exercises.count { !it.isCustom })
         val squat = database.exerciseDao().getById("ex-barbell-back-squat")!!
         assertEquals("BARBELL", squat.equipment)
         assertEquals("squat", squat.movementKey)

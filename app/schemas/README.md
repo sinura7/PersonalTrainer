@@ -23,6 +23,10 @@ part of the same commit as its migration:
 ```bash
 ./gradlew :app:kspDebugKotlin
 git add app/schemas/
+# Robolectric reads debug assets, not this folder. Release APKs do not include the copy.
+cp app/schemas/com.sinura.personaltrainer.data.local.TrainerDatabase/*.json \
+   app/src/debug/assets/com.sinura.personaltrainer.data.local.TrainerDatabase/
+git add app/src/debug/assets/
 ```
 
 ## Rules
@@ -31,3 +35,8 @@ git add app/schemas/
 2. Never delete an old version's file — migrations are validated against it.
 3. A schema change is not done until its `<version>.json` and its migration test are
    committed together.
+4. After a new `<version>.json` is generated, copy it into
+   `app/src/debug/assets/com.sinura.personaltrainer.data.local.TrainerDatabase/`.
+   AGP 8 does not package `sourceSets.test.assets.srcDir("schemas")` into the
+   Robolectric APK. Debug assets are what `MigrationTestHelper` sees on the JVM.
+   They do not ship in a release APK.

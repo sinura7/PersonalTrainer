@@ -202,10 +202,13 @@ class BackupValidatorTest {
     fun survivesAFullEncodeDecodeValidateRoundTrip() {
         val original = sample()
         val parsed = BackupJson.decode(BackupJson.encode(original))
-        // encode() sorts collections by id, so normalise both sides before comparing.
-        assertEquals(original.copy(exercises = original.exercises.sortedBy { it.id }), parsed)
+        // encode() sorts by id. decode() also derives junction credits when the document
+        // carried none, so the round trip is not a field-for-field identity on a hand-built
+        // sample — the sessions and sets must come back untouched, and the result must validate.
+        assertEquals(original.exercises.sortedBy { it.id }.map { it.id }, parsed.exercises.map { it.id })
         assertEquals(original.sessionExercises, parsed.sessionExercises)
         assertEquals(original.setLogs, parsed.setLogs)
+        assertTrue(parsed.exerciseMuscles.isNotEmpty())
         assertTrue(BackupValidator.validate(parsed, localHasData = true) is BackupValidation.Valid)
     }
 

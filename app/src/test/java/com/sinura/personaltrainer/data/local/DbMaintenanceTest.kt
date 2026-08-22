@@ -136,7 +136,7 @@ class DbMaintenanceTest {
         database.catalogDao().upsertSeedMeta(SeedMetaEntity(id = 1, catalogVersion = 0))
         maintenance.seedCatalog()
 
-        assertEquals(38, database.exerciseDao().getAll().size)
+        assertEquals(DefaultExercises.catalog().size + 1, database.exerciseDao().getAll().size)
         assertNotNull(database.exerciseDao().getById("ex-custom-sled"))
     }
 
@@ -244,7 +244,7 @@ class DbMaintenanceTest {
         }
         jobs.awaitAll()
 
-        assertEquals(37, database.exerciseDao().getAll().size)
+        assertEquals(DefaultExercises.catalog().size, database.exerciseDao().getAll().size)
         val credits = database.catalogDao().getAllCredits()
         assertEquals(
             "no duplicate junction rows",
