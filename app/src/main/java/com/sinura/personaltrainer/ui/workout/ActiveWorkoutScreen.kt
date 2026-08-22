@@ -55,6 +55,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationManagerCompat
@@ -648,6 +649,17 @@ private fun WorkoutHeader(
                     color = if (canFinish) TextPrimary else TextTertiary,
                 )
             }
+        }
+        if (!canFinish) {
+            Text(
+                "Log a set to finish.",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(end = Metrics.space4),
+                style = InstrumentType.caption,
+                color = TextTertiary,
+                textAlign = TextAlign.End,
+            )
         }
         Row(
             modifier = Modifier

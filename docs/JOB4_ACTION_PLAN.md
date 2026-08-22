@@ -198,7 +198,7 @@ Empty + no routines → Suggest. Confirm still `acceptFills`.
 
 ---
 
-### P3 — ViewModel contracts that users already rely on · **next** (this PR)
+### P3 — ViewModel contracts that users already rely on · **done** (merged)
 
 **Goal.** Settings / History / Progress cannot regress the live-session
 and lighter-week contracts without a red test.
@@ -223,7 +223,7 @@ release. A fake that reimplements `WeekDerivation`.
 
 ---
 
-### P4 — Two sentences that stop a dead control · **after P3**
+### P4 — Two sentences that stop a dead control · **next** (this PR)
 
 **Goal.** The file and the Finish button tell the truth before the tap.
 
@@ -312,6 +312,6 @@ Do not deviate into sex, catalog seed, Room v3, or plate calculator.
 - [x] This file written; ROADMAP strike; UX pointer
 - [x] P1 JVM + assemble (phone: card tap HOLDs)
 - [x] P2 JVM + assemble (phone: Home replay)
-- [ ] P3 three ViewModel test classes, 0 failures
+- [x] P3 three ViewModel test classes, 0 failures (706 JVM)
 - [ ] P4 two captions
 - [ ] Phone gates still the owner's

@@ -552,7 +552,8 @@ private fun BackupRestoreSection(
     SettingsGroup(
         title = "Backup",
         caption = "Training always works offline — a backup is only read when you ask for one. " +
-            "The file path needs no Google account, and still works if sign-in ever breaks.",
+            "The file path needs no Google account, and still works if sign-in ever breaks. " +
+            "An in-progress workout is left out of the file.",
     ) {
         GroupedList {
             BackupStampRow(
