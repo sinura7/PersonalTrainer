@@ -78,6 +78,7 @@ import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.domain.SetLog
+import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutCopy
@@ -414,6 +415,7 @@ fun ActiveWorkoutScreen(
                                     // pull-up gets a box labelled "added"; an assisted machine
                                     // one labelled "assist".
                                     loadClass = LoadClass.of(selected?.exercise?.loadType),
+                                    plated = selected?.exercise?.equipment == EquipmentType.BARBELL,
                                 )
                             }
                             item(key = "secondary") {

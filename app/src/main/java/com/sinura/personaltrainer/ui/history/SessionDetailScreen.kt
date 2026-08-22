@@ -42,11 +42,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.WeightMeaning
 import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.SetLog
+import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -288,7 +290,7 @@ fun SessionDetailScreen(
     }
 
     val editing = editingSetId?.let { id -> session?.sets?.firstOrNull { it.id == id } }
-    if (editing != null) {
+    if (editing != null && session != null) {
         SetEditSheet(
             exerciseName = editing.exerciseName,
             initial = editing,
@@ -307,6 +309,8 @@ fun SessionDetailScreen(
                 viewModel.deleteSet(editing.id)
             },
             onDismiss = { editingSetId = null },
+            loadClass = session.loadClassOf(editing.exerciseId),
+            plated = session.isBarbell(editing.exerciseId),
         )
     }
 
@@ -335,6 +339,8 @@ fun SessionDetailScreen(
             onDismiss = { addingToExerciseId = null },
             prefillWeightKg = previous?.weightKg ?: 0.0,
             prefillReps = previous?.reps ?: DEFAULT_ADD_REPS,
+            loadClass = session.loadClassOf(adding),
+            plated = session.isBarbell(adding),
         )
     }
 
@@ -540,6 +546,9 @@ private fun SetRow(set: SetLog, unit: WeightUnit, loadClass: LoadClass, onEdit: 
         }
     }
 }
+
+private fun WorkoutSession.isBarbell(exerciseId: String): Boolean =
+    exercises.any { it.exercise.id == exerciseId && it.exercise.equipment == EquipmentType.BARBELL }
 
 private const val DEFAULT_ADD_REPS = 5
 private val WEIGHT_COLUMN = 88.dp

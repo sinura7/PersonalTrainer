@@ -48,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
@@ -58,6 +59,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -67,6 +69,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.withFrameNanos
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.NumericEntry
+import com.sinura.personaltrainer.domain.PlateMath
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.WeightConverter
@@ -87,6 +90,7 @@ import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.SurfacePressed
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
+import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.VoltDim
 import com.sinura.personaltrainer.ui.theme.Warn
@@ -203,8 +207,8 @@ fun ConfirmActionDialog(
  * actually done — off the bottom of the screen. Side by side they fit in roughly a third of
  * that, and the two values a lifter is deciding between sit in one glance.
  *
- * The interaction model underneath is unchanged, because it was already right: nudge with
- * the plates, tap the number to type when the nudge is too far.
+ * Nudge with the plates, or tap the number to type when the nudge is too far. The numeral
+ * is the field — a hint and an underline sit under it so typing is not a hidden gesture.
  *
  * **How many wells appear depends on the lift.** A push-up has no weight to enter, so it gets
  * one well and reps fill the panel: a labelled empty weight box is an invitation to put a
@@ -222,6 +226,8 @@ fun SetEntryPanel(
     modifier: Modifier = Modifier,
     unit: WeightUnit = LocalWeightUnit.current,
     loadClass: LoadClass = LoadClass.LOADED,
+    /** Barbell only. A stack or a dumbbell has no Olympic bar to read out. */
+    plated: Boolean = false,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -234,6 +240,7 @@ fun SetEntryPanel(
                 modifier = Modifier.weight(1f),
                 unit = unit,
                 meaning = loadClass.weightMeaning,
+                plated = plated && loadClass.weightMeaning == WeightMeaning.LIFTED,
             )
         }
         RepsStepper(
@@ -252,12 +259,14 @@ fun WeightStepper(
     unit: WeightUnit = LocalWeightUnit.current,
     /** What this number is a measurement of. See [LoadClass.weightMeaning]. */
     meaning: WeightMeaning = WeightMeaning.LIFTED,
+    plated: Boolean = false,
 ) {
     val displayNumber = WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(valueKg, unit))
     // Steppers are for nudging a number, not setting one: 20 kg to 140 kg is 48 taps at the
     // 2.5 kg step. Typing is the escape hatch, and the number itself is the obvious target.
     var typing by rememberSaveable { mutableStateOf(false) }
     val label = meaning.fieldLabel
+    val plates = if (plated) PlateMath.load(valueKg, unit)?.caption() else null
 
     NumeralWell(
         label = label.lowercase(),
@@ -269,6 +278,8 @@ fun WeightStepper(
         incrementLabel = "+${unit.stepLabel}",
         onDecrement = { onWeightKgChange(WeightConverter.incrementKg(valueKg, unit, -1)) },
         onIncrement = { onWeightKgChange(WeightConverter.incrementKg(valueKg, unit, 1)) },
+        typeHint = "Tap the number to type",
+        plateCaption = plates,
         modifier = modifier,
     )
 
@@ -310,6 +321,7 @@ fun RepsStepper(
         incrementLabel = "+1",
         onDecrement = { onAdjust(-1) },
         onIncrement = { onAdjust(1) },
+        typeHint = "Tap the number to type",
         modifier = modifier,
     )
 
@@ -342,6 +354,8 @@ private fun NumeralWell(
     incrementLabel: String,
     onDecrement: () -> Unit,
     onIncrement: () -> Unit,
+    typeHint: String? = null,
+    plateCaption: String? = null,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -359,6 +373,15 @@ private fun NumeralWell(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(Radius.sm))
                 .clickable(onClick = onType, onClickLabel = typeLabel)
+                .drawBehind {
+                    val inset = size.width * 0.18f
+                    drawLine(
+                        color = HairlineStrong,
+                        start = Offset(inset, size.height),
+                        end = Offset(size.width - inset, size.height),
+                        strokeWidth = Metrics.hairline.toPx(),
+                    )
+                }
                 .padding(vertical = Metrics.space1),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.Bottom,
@@ -385,9 +408,25 @@ private fun NumeralWell(
                 )
             }
         }
+        if (typeHint != null) {
+            Text(
+                typeHint,
+                style = InstrumentType.caption,
+                color = TextTertiary,
+                textAlign = TextAlign.Center,
+            )
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
             StepperButton(label = decrementLabel, onClick = onDecrement, modifier = Modifier.weight(1f))
             StepperButton(label = incrementLabel, onClick = onIncrement, modifier = Modifier.weight(1f))
+        }
+        if (plateCaption != null) {
+            Text(
+                plateCaption,
+                style = InstrumentType.caption,
+                color = TextSecondary,
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }

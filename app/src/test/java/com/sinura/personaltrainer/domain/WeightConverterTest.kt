@@ -60,8 +60,9 @@ class WeightConverterTest {
     }
 
     @Test
-    fun defaultUnitIsKilograms() {
-        assertEquals(WeightUnit.KG, WeightUnit.fromStorage(null))
+    fun defaultUnitIsPounds() {
+        assertEquals(WeightUnit.LBS, WeightUnit.fromStorage(null))
+        assertEquals(WeightUnit.LBS, WeightUnit.fromStorage("nope"))
         assertEquals(WeightUnit.KG, WeightUnit.fromStorage("kg"))
         assertEquals(WeightUnit.LBS, WeightUnit.fromStorage("lbs"))
     }

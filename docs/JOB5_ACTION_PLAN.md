@@ -28,9 +28,9 @@ the unlocking sentence written here first, not a surprise PR.
 
 The gym-floor sentence for the owned pile:
 
-> The rest cue is whoever's notification tone. The bar is a number with
-> no plates. Large type will clip the log. Backup happens when they
-> remember. CI still watches a branch that is gone.
+> The rest cue is Temper. The bar names its plates. Large type will
+> clip the log. Backup happens when they remember. CI still watches a
+> branch that is gone.
 
 That is the whole product. Everything below is how we do it without a
 fifth tab, without Room v3, and without a chat coach.
@@ -184,7 +184,7 @@ idle on P2 waiting for it.
 
 ---
 
-### P2 — Rest done is a Temper cue · **done** (this PR · phone pending)
+### P2 — Rest done is a Temper cue · **done** (merged · phone pending)
 
 **Goal.** Sound-on plays a bundled cue. Sound-off is still silence.
 Silent ringer is still silence. The notification channel stays silent.
@@ -209,33 +209,42 @@ if the phone wants it). Changing vibration. A new notification channel.
 
 ---
 
-### P3 — Plates under the numeral · **after P2**
+### P3 — Plates, type-in, pounds default · **done** (this PR · phone pending)
 
-**Goal.** A loaded lift's weight stepper can say how the bar is made
-without opening a new screen.
+**Goal.** A barbell's weight stepper can say how the bar is made, the
+number can be typed, and a first run thinks in pounds.
 
 **Work**
 
 ```
-PlateMath.load(targetKg, barKg, unit) → plates per side
+PlateMath.load(targetKg, unit) → plates per side
 ```
 
-- Default bars: 20 kg / 45 lb. Stored as `bar_weight_kg` in DataStore
-  (additive backup field). Settings row to change it.
-- Standard plates match `IncrementTable` (the gym we already claimed).
-- Caption under `WeightStepper` when `LoadClass.LOADED`. Hidden for
-  bodyweight, stack, assisted.
-- Same attach on `SetEditSheet`. One composable.
+- Default bars: 20 kg / 45 lb. Unit-default only — no `bar_weight_kg`
+  key, no Settings bar row, no backup field.
+- Standard plates: kg `25,20,15,10,5,2.5,1.25`; lbs `45,35,25,10,5,2.5`.
+- Caption under `WeightStepper` when the lift is a barbell *and*
+  `WeightMeaning.LIFTED`. Hidden for dumbbells, stacks, bodyweight,
+  assist. `LoadClass.LOADED` includes STACK — do not use it alone.
+- Same attach on live log and `SetEditSheet`. One composable.
+- Type-in was already the numeral tap (`NumberEntryDialog`). This
+  packet makes it obvious: underline + "Tap the number to type".
+  No second button.
+- `WeightUnit.fromStorage(null)` is **LBS**. Settings lists pounds
+  first; kilograms stays the other radio. Storage is still kg.
+  Existing `"kg"` prefs and backups stay kg.
 
 **Tests.** Pure `PlateMath` — kg and lb, leftover that cannot be plated,
-zero / bar-only. `IncrementAndDefaultsTest` stays the owner of steps.
+bar-only, below the bar. `WeightConverterTest.defaultUnitIsPounds`.
+Missing backup `weightUnit` decodes as `"lbs"`.
+`IncrementAndDefaultsTest` stays the owner of steps.
 
-**Gate.** JVM + assemble. Phone: 100 kg / 20 kg bar → the line names
-the sides. Switch to lb. Bodyweight lift: no line.
+**Gate.** JVM + assemble. Phone: 225 lb squat names two 45s a side;
+switch to kg; a push-up stays quiet. Tap the numeral, type a weight.
 
 **Won't.** A new screen. A fifth-tab calculator. Changing `weightKg`
-storage. Replacing `IncrementTable`. Collar weight. Bumper vs iron
-as a second catalog.
+storage. Replacing `IncrementTable`. A DataStore bar-weight key.
+Collar weight. Bumper vs iron as a second catalog.
 
 ---
 
@@ -362,6 +371,16 @@ P1 is a GitHub Actions page, not a phone.
    manual matches ROADMAP and Job 4's caption.
 6. **CI `main` is a docs-and-Studio packet.** The agent token cannot
    land it. P2 does not wait.
+7. **No Settings bar weight.** 20 kg / 45 lb is the gym we already
+   claimed. A DataStore key would force `setRestoredPreferences` and a
+   backup field for a number nobody has asked to change yet.
+8. **`LoadClass.LOADED` is the wrong plate gate.** It includes STACK.
+   Caption only on `EquipmentType.BARBELL` + lifted weight.
+9. **Type-in already existed.** The defect was discoverability, not a
+   missing keyboard. Underline + caption, not a second control.
+10. **Pounds is the default.** Missing / unknown storage is LBS.
+    Kilograms is the Settings option. Files that already say `"kg"`
+    stay kg.
 
 ---
 
@@ -370,7 +389,7 @@ P1 is a GitHub Actions page, not a phone.
 - [x] This file written; ROADMAP / UX / owner-loop retarget
 - [ ] P1 `ci.yml` lists `trunk`
 - [x] P2 one cue, existing toggle (713 JVM)
-- [ ] P3 `PlateMath` + caption on loaded lifts
+- [x] P3 plates + type-in hint + pounds default (this PR)
 - [ ] P4 log loop at font 2.0
 - [ ] P5 stale-backup prompt
 - [ ] Phone gates still the owner's

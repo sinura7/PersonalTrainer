@@ -217,7 +217,7 @@ object BackupJson {
         // whole decode — and with it the restore — down with it. One bad field now costs that
         // field alone.
         return BackupPreferences(
-            weightUnit = prefs.string("weightUnit", "kg"),
+            weightUnit = prefs.string("weightUnit", "lbs"),
             trainingDaysPerWeek = prefs.int("trainingDaysPerWeek", 4),
             splitStyle = prefs.string("splitStyle", "auto"),
             weekStart = prefs.string("weekStart", "MONDAY"),

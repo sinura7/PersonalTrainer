@@ -128,6 +128,14 @@ class BackupJsonTest {
     )
 
     @Test
+    fun missingWeightUnitDefaultsToPounds() {
+        val parsed = BackupJson.decode(
+            """{"version": 1, "app": "personal-trainer", "preferences": {}}""",
+        )
+        assertEquals("lbs", parsed.preferences.weightUnit)
+    }
+
+    @Test
     fun missingSchedulePreferencesUseDefaults() {
         val parsed = BackupJson.decode(
             """{"version": 1, "app": "personal-trainer", "preferences": {"weightUnit": "kg"}}""",

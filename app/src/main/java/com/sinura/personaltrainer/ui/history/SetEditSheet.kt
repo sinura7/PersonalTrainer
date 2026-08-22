@@ -17,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.ui.components.InstrumentChip
@@ -56,6 +57,8 @@ fun SetEditSheet(
     onDismiss: () -> Unit,
     prefillWeightKg: Double = 0.0,
     prefillReps: Int = DEFAULT_REPS,
+    loadClass: LoadClass = LoadClass.LOADED,
+    plated: Boolean = false,
 ) {
     // Keyed on the set being edited: the sheet is one composable serving every row, so without
     // the key, opening set 2 after set 1 would show set 1's numbers.
@@ -87,6 +90,8 @@ fun SetEditSheet(
                 reps = reps,
                 onWeightKgChange = { weightKg = it },
                 onRepsAdjust = { delta -> reps = (reps + delta).coerceIn(1, NumericEntry.MAX_REPS) },
+                loadClass = loadClass,
+                plated = plated,
             )
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
                 Kicker("Effort")

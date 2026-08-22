@@ -66,7 +66,7 @@ class SettingsViewModel @JvmOverloads constructor(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = WeightUnit.KG,
+            initialValue = WeightUnit.LBS,
         )
 
     val schedulePreferences: StateFlow<SchedulePreferences> =
