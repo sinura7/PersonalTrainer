@@ -160,7 +160,8 @@ and pinned Done.
 - “Add exercise” vs “Add a lift” — the workout and the picker already say lift.
 - A Save that does not write targets (already removed; do not bring it back).
 
-**Won't.** Start / Resume. A second Save. A plate calculator.
+**Won't.** Start / Resume. A second Save. A plate *screen* — Job 5 / P3
+is a caption under the numeral, not a new route.
 
 ### 7 — Library / Exercise detail · **done** (this pass)
 
@@ -223,15 +224,19 @@ and the screen says so *before* the tap, not only after the repository refuses.
 - Backup copy that implies today’s unfinished session is in the file.
 - Guided setup re-run that deletes history (it must not).
 
-**Won't.** Scheduled auto-backup. Renaming the Drive folder. Room v3.
+**Won't.** Silent WorkManager Drive upload. Renaming the Drive folder.
+Room v3. Job 5 / P5 is a stale-backup prompt, still a tap.
 
 ---
 
 ## Do not open
 
-Plate calculator · rest *sound* design · font-scale 2.0 · scheduled backup ·
 Room v3 · emulator instrumented tests on the real applicationId ·
 package rename · Drive folder rename · 5th tab · LLM trainer.
+
+Plate calculator, rest *sound* design, font-scale 2.0, and prompted
+backup are Job 5 — living plan [JOB5_ACTION_PLAN.md](JOB5_ACTION_PLAN.md).
+They are no longer "do not open." They are not this file's pages either.
 
 Deload decision UI was deferred here. The Tune chip is Job 3 / P2
 (ROADMAP option A). The Body card tap that actually marks the week is
@@ -268,4 +273,4 @@ Record every deviation here. Oldest stay; do not delete.
 - [ ] Phone: the page gate, plus any floor finding shipped this turn
 - [ ] This file updated if we left the written plan
 
-Last JVM gate: 706 tests, 0 failures (merged `trunk`, 22 Aug 2026). Phone gates still need the owner. Job 4 is code-done: [JOB4_ACTION_PLAN.md](JOB4_ACTION_PLAN.md).
+Last JVM gate: 706 tests, 0 failures (merged `trunk`, 22 Aug 2026). Phone gates still need the owner. Job 4 is code-done: [JOB4_ACTION_PLAN.md](JOB4_ACTION_PLAN.md). Job 5 plan: [JOB5_ACTION_PLAN.md](JOB5_ACTION_PLAN.md).

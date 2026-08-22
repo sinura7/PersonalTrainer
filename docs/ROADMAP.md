@@ -189,6 +189,12 @@ the tap. Phone gates remain the owner's (card+HOLD, Home replay,
 Backup/Finish copy). Packets, gates, won'ts:
 [JOB4_ACTION_PLAN.md](JOB4_ACTION_PLAN.md).
 
+**Job 5 (plan).** Owns the leftover platform pile: CI `trunk`, rest
+cue, plates under the numeral, font-scale 2.0 on the log loop,
+prompted backup. Room v3, fifth tab, LLM, package / Drive rename,
+Job 2 P5 sex, and catalog seed stay signed won't. Packets, gates,
+won'ts: [JOB5_ACTION_PLAN.md](JOB5_ACTION_PLAN.md).
+
 **Review baseline (22 Aug 2026).** Full-tree audit after Job 2 landed on `trunk`.
 No open PRs. Q4 onboarding ANR on the cloud emulator is environment — `setPlace`
 advances. Debug is now `.debug` (Job 3 / P4). Packets from this baseline:
@@ -225,8 +231,8 @@ Carried forward deliberately, with the phase that will address them.
 | `arrangeKinds` can still produce back-to-back same-family days | ~~4~~ fixed 21 Aug — guarded rotation replaces the swap |
 | Toolchain ~20 months stale; release unminified | later (platform) |
 | Exercise imagery and the equipment field it needs | ~~3 (field)~~ / ~~7 (catalog)~~ / ~~8 (imagery)~~ — all done 21 Aug |
-| Rest-timer sound design; plate calculator; font-scale-2.0 pass | later (platform) |
-| No scheduled auto-backup (manual + prompted only) | later (platform) |
+| Rest-timer sound design; plate calculator; font-scale-2.0 pass | Job 5 / P2–P4 |
+| No scheduled auto-backup (manual + prompted only) | Job 5 / P5 — prompted, not WorkManager |
 
 ---
 
