@@ -15,6 +15,8 @@ enum class RecommendationAction {
     START_WORKOUT,
     OPEN_ROUTINES,
     OPEN_BODY_MAP,
+    /** Writes the Job 3 lighter-week marker. The destination is the mark, not a screen. */
+    MARK_LIGHTER_WEEK,
 }
 
 /**
@@ -39,11 +41,11 @@ data class TrainingRecommendation(
     /**
      * Whether tapping this card can actually take the user somewhere.
      *
-     * Not every piece of advice has a destination, and two of them never did: "every muscle is
-     * at productive volume" and "take an easier week" are complete as sentences and carry no
-     * action and no muscle. Both still rendered a Volt "Show on the map →", and the tap
-     * resolved to `selectedName = actionMuscle?.name` — null — so the one thing the card did
-     * was *clear* the map selection the user had made. A promise, and then the opposite of it.
+     * Not every piece of advice has a destination. "Every muscle is at productive volume"
+     * is complete as a sentence and carries no action. It used to render a Volt
+     * "Show on the map →" whose tap cleared the selection. The deload card is the
+     * exception that gained a real destination in Job 4: [RecommendationAction.MARK_LIGHTER_WEEK]
+     * writes the week marker; it does not open the silhouette.
      *
      * The card reads this to decide whether to draw a call to action at all. Advice with
      * nowhere to go is still worth showing; it is the arrow that has to go.
@@ -53,6 +55,7 @@ data class TrainingRecommendation(
             RecommendationAction.OPEN_LIBRARY_MUSCLE,
             RecommendationAction.START_WORKOUT,
             RecommendationAction.OPEN_ROUTINES,
+            RecommendationAction.MARK_LIGHTER_WEEK,
             -> true
             // Falls back to the body map when the lift is unresolved, so either is enough.
             RecommendationAction.OPEN_EXERCISE -> actionExerciseId != null || actionMuscle != null
@@ -322,6 +325,7 @@ object RecommendationEngine {
             reason = "Weekly working sets rose ${finding.setRisePercent}% over three weeks while " +
                 "top-lift e1RMs did not move. Schedule a lighter week.",
             priority = RecommendationPriority.HIGH,
+            action = RecommendationAction.MARK_LIGHTER_WEEK,
             rankScore = 75,
         )
     }

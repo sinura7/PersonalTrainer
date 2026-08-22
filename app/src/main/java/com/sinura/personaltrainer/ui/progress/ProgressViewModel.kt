@@ -8,7 +8,9 @@ import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.InsightFailure
+import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.TrainingRecommendation
+import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -93,5 +95,19 @@ class ProgressViewModel @JvmOverloads constructor(
 
     fun retry() {
         refreshAt.value = System.currentTimeMillis()
+    }
+
+    /**
+     * Marks this calendar week lighter. The same write as Plan's Tune chip.
+     *
+     * Body observes insights without a week plan, so the start day is computed from
+     * today and the stored week-start — not from `insights.weekPlan`.
+     */
+    fun markLighterWeek() {
+        viewModelScope.launch {
+            val weekStart = container.preferencesRepository.schedulePreferences.first().weekStart
+            val start = LighterWeek.weekStartEpochDay(today = LocalDate.now(), weekStart = weekStart)
+            container.preferencesRepository.setLighterWeekStartEpochDay(start)
+        }
     }
 }

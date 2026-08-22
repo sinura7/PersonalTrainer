@@ -107,7 +107,7 @@ routines stays Suggest — there is nothing to replay.
 
 ## Packets
 
-### P0 — Plan + stale ROADMAP · **next** (this PR)
+### P0 — Plan + stale ROADMAP · **done** (merged)
 
 **Goal.** A stranger can name the four remaining packets. ROADMAP stops
 claiming "+5.5 lbs" is open.
@@ -129,7 +129,7 @@ claiming "+5.5 lbs" is open.
 
 ---
 
-### P1 — Deload card marks this week · **after P0**
+### P1 — Deload card marks this week · **next** (this PR)
 
 **Goal.** Body card `deload-volume-flat-strength` is tappable. The tap
 writes the same key Tune writes. Sets are not scaled.
@@ -309,7 +309,7 @@ Do not deviate into sex, catalog seed, Room v3, or plate calculator.
 
 ## Verification
 
-- [ ] This file written; ROADMAP strike; UX pointer
+- [x] This file written; ROADMAP strike; UX pointer
 - [ ] P1 JVM + assemble (phone: card tap HOLDs)
 - [ ] P2 JVM + assemble (phone: Home replay)
 - [ ] P3 three ViewModel test classes, 0 failures
