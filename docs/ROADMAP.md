@@ -196,6 +196,11 @@ lists `trunk`) is Studio. Room v3, fifth tab, LLM, rename, sex, and
 catalog seed stay signed won't. Packets, gates, won'ts:
 [JOB5_ACTION_PLAN.md](JOB5_ACTION_PLAN.md).
 
+**Job 6 (in flight).** Regroup. The product is the four-tab logger.
+Next work is phone truth, CI `trunk`, and week-verb language — not
+another feature pile. Packets, gates, won'ts:
+[JOB6_REGROUP.md](JOB6_REGROUP.md).
+
 **Review baseline (22 Aug 2026).** Full-tree audit after Job 2 landed on `trunk`.
 No open PRs. Q4 onboarding ANR on the cloud emulator is environment — `setPlace`
 advances. Debug is now `.debug` (Job 3 / P4). Packets from this baseline:
@@ -232,8 +237,8 @@ Carried forward deliberately, with the phase that will address them.
 | `arrangeKinds` can still produce back-to-back same-family days | ~~4~~ fixed 21 Aug — guarded rotation replaces the swap |
 | Toolchain ~20 months stale; release unminified | later (platform) |
 | Exercise imagery and the equipment field it needs | ~~3 (field)~~ / ~~7 (catalog)~~ / ~~8 (imagery)~~ — all done 21 Aug |
-| Rest-timer sound design; plate calculator; font-scale-2.0 pass | Job 5 / P2–P4 |
-| No scheduled auto-backup (manual + prompted only) | Job 5 / P5 — prompted, not WorkManager |
+| ~~Rest-timer sound design; plate calculator; font-scale-2.0 pass~~ | ~~Job 5 / P2–P4~~ done 22 Aug — cue, plates, type-in, 2.0 layout |
+| ~~No scheduled auto-backup (manual + prompted only)~~ | ~~Job 5 / P5~~ done 22 Aug — 14-day caption nag, not WorkManager |
 
 ---
 
@@ -245,9 +250,11 @@ initials and date appear on its Signed line. Executors verify with
 
 ### D1 — Information architecture
 
-The app ships five tabs (`AppNav.kt:157-163`: Home, Body, Routines, Library, History).
-DESIGN_AUDIT NAV-01 calls five a lot; UI_REDESIGN §6 records a three-tab target that
-Phase 5 deferred. This decision closes the contradiction. **Circle one option and sign.**
+The app ships **four tabs** (Home · Body · Plan · History). Library is a
+pushed route. DESIGN_AUDIT NAV-01 called five a lot; that sentence is
+stale — Routines folded into Plan and Library left the bar. UI_REDESIGN
+§6 recorded a three-tab target that Phase 5 deferred. This decision
+closes the contradiction. **Circle one option and sign.**
 
 **What both options give you, whichever you circle.** Library stops being a tab and
 lives on as a pushed screen — entered from Plan, from recommendation cards, and from the

@@ -235,8 +235,8 @@ Room v3 · emulator instrumented tests on the real applicationId ·
 package rename · Drive folder rename · 5th tab · LLM trainer.
 
 Plate calculator, rest *sound* design, font-scale 2.0, and prompted
-backup are Job 5 — living plan [JOB5_ACTION_PLAN.md](JOB5_ACTION_PLAN.md).
-They are no longer "do not open." They are not this file's pages either.
+backup shipped as Job 5. Next is polish and intuition, not new pages:
+[JOB6_REGROUP.md](JOB6_REGROUP.md).
 
 Deload decision UI was deferred here. The Tune chip is Job 3 / P2
 (ROADMAP option A). The Body card tap that actually marks the week is
@@ -273,4 +273,4 @@ Record every deviation here. Oldest stay; do not delete.
 - [ ] Phone: the page gate, plus any floor finding shipped this turn
 - [ ] This file updated if we left the written plan
 
-Last JVM gate: 706 tests, 0 failures (merged `trunk`, 22 Aug 2026). Phone gates still need the owner. Job 4 is code-done: [JOB4_ACTION_PLAN.md](JOB4_ACTION_PLAN.md). Job 5 plan: [JOB5_ACTION_PLAN.md](JOB5_ACTION_PLAN.md).
+Last JVM gate: 727 tests, 0 failures (merged `trunk`, 22 Aug 2026). Phone gates still need the owner. Job 5 is code-done except CI `trunk`. Job 6 regroup: [JOB6_REGROUP.md](JOB6_REGROUP.md).

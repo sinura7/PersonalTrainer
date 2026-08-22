@@ -28,9 +28,9 @@ the unlocking sentence written here first, not a surprise PR.
 
 The gym-floor sentence for the owned pile:
 
-> The rest cue is Temper. The bar names its plates. Large type will
-> clip the log. Backup happens when they remember. CI still watches a
-> branch that is gone.
+> The rest cue is Temper. The bar names its plates. Large type still
+> logs. Settings nags when the backup is old. CI still watches a
+> branch that is gone. Phone gates remain the owner's.
 
 That is the whole product. Everything below is how we do it without a
 fifth tab, without Room v3, and without a chat coach.
@@ -43,13 +43,11 @@ fifth tab, without Room v3, and without a chat coach.
    `LocalWeightUnit`. `IncrementTable` already thinks in plates
    (2.5 kg / side, 2.5 lb / side). There is no bar weight, no per-side
    table, no loadable-weight field. Figure "plates" are Temper art.
-2. **Rest sound already works as a toggle.** `RestTimerPreferences.soundEnabled`
-   → `RestTimerAlerts.playSound` plays `RingtoneManager.TYPE_NOTIFICATION`.
-   The done channel is silent on purpose (`rest_timer_done_v2`). There is
-   no `res/raw` cue. "Design" is a Temper sound, not a second toggle.
+2. **Rest sound is a Temper cue.** `RestTimerAlerts.playSound` plays
+   `res/raw/rest_done.ogg`. Existing Sound toggle. Silent ringer stays
+   silent. The done channel is silent on purpose (`rest_timer_done_v2`).
 3. **Typography is `InstrumentType` in `sp`.** No `fontScale` clamp.
-   `SetEntryPanel` already worries about `102.5` at 1.0×. Tab bar, RestDock,
-   and `maxLines = 1` headers will clip first.
+   `LogLoopScale` stacks the wells from 1.6. Touch floors are `heightIn`.
 4. **Room is version 2.** `2.json` is committed. Identity hash
    `3eedd5301f0344b7802f5d0da2f68b3e`. Nothing in Jobs 2–4 needs a
    column. Lighter week, emphasis, age, place, preferred days, bodyweight
@@ -277,7 +275,7 @@ Restyling the stack. A second type scale.
 
 ---
 
-### P5 — Prompted backup, not a silent clock · **done** (this PR · 727 JVM · phone pending)
+### P5 — Prompted backup, not a silent clock · **done** (merged · 727 JVM · phone pending)
 
 **Goal.** Settings says when the last backup is old, *before* they
 need the file. Restore and live-session rules do not change.
