@@ -6,15 +6,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.Exercise
@@ -69,6 +72,40 @@ private fun sample(equipment: EquipmentType, primary: CanonicalMuscle): Exercise
             MuscleCredit(MuscleNormalizer.keyOf(secondary), 0.5),
         ),
     )
+}
+
+@Preview(name = "Tab marks", widthDp = 420, heightDp = 180)
+@Composable
+private fun TabMarksPreview() {
+    PersonalTrainerTheme {
+        GalleryFrame("Temper tab marks — 24dp, as the bar draws them") {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space6),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                listOf(
+                    "Home" to TemperIcons.Home,
+                    "Body" to TemperIcons.Body,
+                    "Plan" to TemperIcons.Plan,
+                    "History" to TemperIcons.History,
+                ).forEach { (label, icon) ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+                    ) {
+                        Icon(
+                            icon,
+                            contentDescription = null,
+                            tint = TextSecondary,
+                            modifier = Modifier.size(ThumbSize.chipGlyph + Metrics.space1),
+                        )
+                        Text(label, style = InstrumentType.caption, color = TextTertiary)
+                    }
+                }
+            }
+            TemperMark(size = 72.dp)
+        }
+    }
 }
 
 @Preview(name = "Equipment glyphs", widthDp = 420, heightDp = 420)

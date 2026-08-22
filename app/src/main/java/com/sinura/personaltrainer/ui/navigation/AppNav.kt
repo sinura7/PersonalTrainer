@@ -28,15 +28,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessibilityNew
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.outlined.AccessibilityNew
-import androidx.compose.material.icons.outlined.FitnessCenter
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -68,6 +59,7 @@ import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.MuscleNormalizer
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.history.HistoryScreen
 import com.sinura.personaltrainer.ui.exercise.ExerciseDetailScreen
 import com.sinura.personaltrainer.ui.history.SessionDetailScreen
@@ -135,7 +127,6 @@ private data class Tab(
     val route: Route,
     val label: String,
     val icon: ImageVector,
-    val selectedIcon: ImageVector,
 ) {
     /**
      * What a destination's registered route must equal for this tab to be selected.
@@ -228,18 +219,17 @@ fun PersonalTrainerNav(
         // app not listening.
         navController.navigate(Route.RoutineEditor.create("new"))
     }
-    // Icon and destination have to agree: a flame reads as a streak or a calorie burn to
-    // every fitness user alive, and it was labelling a muscle heat map; a book reads as
-    // reading, and it was labelling a grid of exercises.
+    // Temper plates, not Material house/person/dumbbell/clock. The selected tab is volt
+    // through tint; the drawings themselves stay monochrome so heat never sits on the chrome.
     val tabs = listOf(
-        Tab(Route.Home, "Home", Icons.Outlined.Home, Icons.Filled.Home),
-        Tab(Route.Progress, "Body", Icons.Outlined.AccessibilityNew, Icons.Filled.AccessibilityNew),
-        Tab(Route.Routines, "Plan", Icons.Outlined.FitnessCenter, Icons.Filled.FitnessCenter),
+        Tab(Route.Home, "Home", TemperIcons.Home),
+        Tab(Route.Progress, "Body", TemperIcons.Body),
+        Tab(Route.Routines, "Plan", TemperIcons.Plan),
         // Library is not a tab. It is a catalog you visit to answer a question — "what could I
         // do for hamstrings" — and it was holding a fifth of the bottom bar for something
         // nobody navigates to as a destination. Every path that used to reach it as a tab now
         // pushes it with the filter already applied, which is how it was actually being used.
-        Tab(Route.History, "History", Icons.Outlined.History, Icons.Filled.History),
+        Tab(Route.History, "History", TemperIcons.History),
     )
     val liveBarViewModel: LiveSessionBarViewModel = viewModel()
     val liveSession by liveBarViewModel.uiState.collectAsStateWithLifecycle()
@@ -600,7 +590,7 @@ private fun NavTab(
                 .background(tick, CircleShape),
         )
         Icon(
-            if (selected) tab.selectedIcon else tab.icon,
+            tab.icon,
             // The label below is the accessible name; describing the icon too would announce
             // every tab twice.
             contentDescription = null,

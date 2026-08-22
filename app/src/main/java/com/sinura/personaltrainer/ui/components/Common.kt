@@ -107,6 +107,9 @@ fun EmptyState(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
+        if (!compact) {
+            TemperMark(size = TemperMarkSize)
+        }
         Text(
             title,
             style = if (compact) InstrumentType.title else InstrumentType.display,

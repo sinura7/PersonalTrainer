@@ -10,14 +10,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -29,6 +26,8 @@ import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.Heat3
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Radius
+import com.sinura.personaltrainer.ui.theme.Steel
+import com.sinura.personaltrainer.ui.theme.SteelDim
 import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.TextSecondary
@@ -173,32 +172,19 @@ fun ExerciseThumb(
                 height = figureHeight,
             ),
         ) {
-            // detail = false: at ~21dp wide a hairline sternum rule is sub-pixel, and drawing
-            // it puts grey mush over the muscle colour instead of anatomy.
-            drawFigure(view, detail = false)
-            hotspotsFor(view).forEach { spot ->
-                val colour = when {
-                    spot.muscle == primary -> Heat3
-                    spot.muscle in secondaries -> Heat3.copy(alpha = SECONDARY_ALPHA)
-                    else -> null
-                }
-                // A secondary whose plates live only on the other view has no region here and
-                // is simply skipped. Mirroring it onto this side would draw a muscle where the
-                // lift does not train one.
-                if (colour != null) {
-                    // Both axes read from this canvas, which IS the figure box every hotspot
-                    // fraction is expressed against — the same contract the Body tab uses.
-                    drawRoundRect(
-                        color = colour,
-                        topLeft = Offset(this.size.width * spot.left, this.size.height * spot.top),
-                        size = Size(
-                            width = this.size.width * spot.width,
-                            height = this.size.height * spot.height,
-                        ),
-                        cornerRadius = CornerRadius(Radius.xs.toPx() * PLATE_RADIUS_SHARE),
-                    )
-                }
-            }
+            // Same plates as the Body tab and the launcher. A secondary whose plates live
+            // only on the other view has no region here and stays steel.
+            drawTemperFigure(
+                view = view,
+                fill = { plate ->
+                    when {
+                        plate.muscle == null -> SteelDim
+                        plate.muscle == primary -> Heat3
+                        plate.muscle in secondaries -> Heat3.copy(alpha = SECONDARY_ALPHA)
+                        else -> Steel
+                    }
+                },
+            )
         }
         // The badge overlaps the figure on purpose — a badge in its own gutter would cost the
         // figure a third of a 40dp square, and the equipment is the second thing you read,
@@ -251,114 +237,93 @@ fun EquipmentGlyphIcon(
  * The nine drawings, in a unit square.
  *
  * Every coordinate is a fraction, so one set of numbers serves the 20dp chip glyph and the
- * 18dp badge alike. Stroke only, in [TextSecondary], with no accent anywhere: the thumbnail
- * is metadata, and the volt budget belongs to the one thing on a screen that is a decision.
+ * 18dp badge alike. Filled plates, same language as the figure: no stroke-only stick
+ * figures, no accent. The volt budget belongs to the one thing on a screen that is a decision.
  */
 private fun DrawScope.drawGlyph(glyph: EquipmentGlyph, tint: Color) {
-    val stroke = Metrics.hairline.toPx() * GLYPH_STROKE_SCALE
-
     fun x(f: Float) = size.width * f
     fun y(f: Float) = size.height * f
 
-    fun line(x1: Float, y1: Float, x2: Float, y2: Float) {
-        drawLine(tint, Offset(x(x1), y(y1)), Offset(x(x2), y(y2)), stroke, StrokeCap.Round)
-    }
-
-    /** A plate, drawn as a short thick stroke rather than a rect so it reads at 8dp. */
-    fun plate(atX: Float, height: Float) {
-        line(atX, 0.5f - height / 2f, atX, 0.5f + height / 2f)
-    }
-
-    fun circle(cx: Float, cy: Float, r: Float) {
-        drawCircle(tint, radius = x(r), center = Offset(x(cx), y(cy)), style = Stroke(stroke))
-    }
-
-    fun bar(left: Float, top: Float, right: Float, bottom: Float) {
+    fun slab(left: Float, top: Float, right: Float, bottom: Float) {
         drawRect(
             color = tint,
             topLeft = Offset(x(left), y(top)),
             size = Size(x(right - left), y(bottom - top)),
-            style = Stroke(stroke),
         )
+    }
+
+    fun poly(vararg xy: Float) {
+        val path = Path().apply {
+            moveTo(x(xy[0]), y(xy[1]))
+            var i = 2
+            while (i < xy.size) {
+                lineTo(x(xy[i]), y(xy[i + 1]))
+                i += 2
+            }
+            close()
+        }
+        drawPath(path, tint)
     }
 
     when (glyph) {
         EquipmentGlyph.BARBELL -> {
-            line(0.05f, 0.5f, 0.95f, 0.5f)
-            plate(0.20f, 0.52f)
-            plate(0.28f, 0.36f)
-            plate(0.72f, 0.36f)
-            plate(0.80f, 0.52f)
+            slab(0.06f, 0.46f, 0.94f, 0.54f)
+            slab(0.16f, 0.22f, 0.26f, 0.78f)
+            slab(0.28f, 0.32f, 0.36f, 0.68f)
+            slab(0.64f, 0.32f, 0.72f, 0.68f)
+            slab(0.74f, 0.22f, 0.84f, 0.78f)
         }
 
         EquipmentGlyph.DUMBBELL -> {
-            line(0.32f, 0.5f, 0.68f, 0.5f)
-            plate(0.24f, 0.44f)
-            plate(0.76f, 0.44f)
+            slab(0.30f, 0.46f, 0.70f, 0.54f)
+            slab(0.16f, 0.28f, 0.32f, 0.72f)
+            slab(0.68f, 0.28f, 0.84f, 0.72f)
         }
 
         EquipmentGlyph.MACHINE -> {
-            line(0.5f, 0.10f, 0.5f, 0.34f)
-            var top = 0.36f
-            repeat(4) {
-                bar(0.30f, top, 0.70f, top + 0.08f)
-                top += 0.12f
-            }
+            slab(0.46f, 0.08f, 0.54f, 0.30f)
+            slab(0.28f, 0.32f, 0.72f, 0.46f)
+            slab(0.28f, 0.50f, 0.72f, 0.64f)
+            slab(0.28f, 0.68f, 0.72f, 0.82f)
         }
 
         EquipmentGlyph.CABLE -> {
-            circle(0.5f, 0.20f, 0.11f)
-            line(0.56f, 0.28f, 0.72f, 0.60f)
-            bar(0.60f, 0.60f, 0.86f, 0.74f)
+            poly(0.38f, 0.08f, 0.62f, 0.08f, 0.62f, 0.28f, 0.38f, 0.28f)
+            slab(0.46f, 0.28f, 0.54f, 0.58f)
+            slab(0.36f, 0.58f, 0.78f, 0.76f)
         }
 
         EquipmentGlyph.SMITH -> {
-            line(0.22f, 0.08f, 0.22f, 0.92f)
-            line(0.78f, 0.08f, 0.78f, 0.92f)
-            line(0.10f, 0.55f, 0.90f, 0.55f)
-            line(0.22f, 0.55f, 0.28f, 0.49f)
-            line(0.78f, 0.55f, 0.84f, 0.49f)
+            slab(0.16f, 0.08f, 0.26f, 0.92f)
+            slab(0.74f, 0.08f, 0.84f, 0.92f)
+            slab(0.10f, 0.46f, 0.90f, 0.58f)
         }
 
         EquipmentGlyph.KETTLEBELL -> {
-            circle(0.5f, 0.62f, 0.24f)
-            val handle = Path().apply {
-                moveTo(x(0.32f), y(0.48f))
-                cubicTo(x(0.34f), y(0.16f), x(0.66f), y(0.16f), x(0.68f), y(0.48f))
-            }
-            drawPath(handle, tint, style = Stroke(stroke, cap = StrokeCap.Round))
+            slab(0.34f, 0.12f, 0.66f, 0.22f)
+            slab(0.30f, 0.22f, 0.40f, 0.42f)
+            slab(0.60f, 0.22f, 0.70f, 0.42f)
+            poly(0.26f, 0.42f, 0.74f, 0.42f, 0.80f, 0.86f, 0.20f, 0.86f)
         }
 
         EquipmentGlyph.BAND -> {
-            circle(0.5f, 0.44f, 0.28f)
-            line(0.38f, 0.66f, 0.62f, 0.88f)
-            line(0.62f, 0.66f, 0.38f, 0.88f)
+            poly(0.22f, 0.18f, 0.78f, 0.18f, 0.70f, 0.36f, 0.30f, 0.36f)
+            poly(0.22f, 0.42f, 0.78f, 0.42f, 0.70f, 0.60f, 0.30f, 0.60f)
+            slab(0.44f, 0.60f, 0.56f, 0.86f)
         }
 
         EquipmentGlyph.BODYWEIGHT -> {
-            circle(0.5f, 0.18f, 0.10f)
-            line(0.5f, 0.30f, 0.5f, 0.58f)
-            line(0.5f, 0.38f, 0.28f, 0.52f)
-            line(0.5f, 0.38f, 0.72f, 0.52f)
-            line(0.5f, 0.58f, 0.34f, 0.88f)
-            line(0.5f, 0.58f, 0.66f, 0.88f)
+            slab(0.40f, 0.06f, 0.60f, 0.18f)
+            poly(0.18f, 0.20f, 0.82f, 0.20f, 0.74f, 0.48f, 0.26f, 0.48f)
+            slab(0.28f, 0.52f, 0.46f, 0.92f)
+            slab(0.54f, 0.52f, 0.72f, 0.92f)
         }
 
         EquipmentGlyph.OTHER -> {
-            val diamond = Path().apply {
-                moveTo(x(0.5f), y(0.12f))
-                lineTo(x(0.88f), y(0.5f))
-                lineTo(x(0.5f), y(0.88f))
-                lineTo(x(0.12f), y(0.5f))
-                close()
-            }
-            drawPath(diamond, tint, style = Stroke(stroke, cap = StrokeCap.Round))
+            poly(0.50f, 0.10f, 0.88f, 0.50f, 0.50f, 0.90f, 0.12f, 0.50f)
         }
     }
 }
-
-/** The plates are softened, not square, but less than a card is — they are anatomy, not UI. */
-private const val PLATE_RADIUS_SHARE = 0.5f
 
 /** A secondary muscle is present, not equal — visible without competing with the primary. */
 private const val SECONDARY_ALPHA = 0.4f
@@ -366,6 +331,3 @@ private const val SECONDARY_ALPHA = 0.4f
 /** Badge edge as a share of the thumb edge, and the glyph's share of the badge. */
 private const val BADGE_SHARE = 0.45f
 private const val BADGE_GLYPH_SHARE = 0.70f
-
-/** A hairline is right for a 200dp figure and invisible for an 8dp glyph. */
-private const val GLYPH_STROKE_SCALE = 1.5f

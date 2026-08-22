@@ -1,35 +1,29 @@
 package com.sinura.personaltrainer.ui.components
 
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import com.sinura.personaltrainer.domain.CanonicalMuscle
+import com.sinura.personaltrainer.ui.theme.HairlineStrong
 import com.sinura.personaltrainer.ui.theme.Metrics
-import com.sinura.personaltrainer.ui.theme.OutlineSolid
-import com.sinura.personaltrainer.ui.theme.OutlineSolidVariant
-import com.sinura.personaltrainer.ui.theme.Radius
+import com.sinura.personaltrainer.ui.theme.Steel
+import com.sinura.personaltrainer.ui.theme.SteelDim
+import com.sinura.personaltrainer.ui.theme.Volt
 
 /**
- * The body figure, and the plate geometry that lands muscles on it.
+ * The Temper figure: polygonal plates with a hairline gap, the same language as the launcher.
  *
- * Lifted out of the Body tab because it is now drawn in two places at two very different
- * sizes: the full map, and a 40dp thumbnail on every exercise row. Leaving it in `BodyMap.kt`
- * would have meant either a UI screen importing from another UI screen, or a second copy of
- * the anatomy that agrees with the first only until one of them is edited.
- *
- * This is a pure move. Every coordinate is what the Body tab shipped with; the only addition
- * is [drawFigure]'s `detail` parameter, which the tab passes as its previous behaviour.
+ * One geometry serves the Body tab, the 40dp thumbnails, the empty-state mark and the
+ * monochrome notification silhouette. A muscle is a plate (or a pair); lighting it is a
+ * fill, not a second set of coordinates.
  */
 enum class BodyView(val label: String) {
     FRONT("Front"),
     BACK("Back"),
 }
 
-/** A muscle plate, as a fraction of the figure box — never of the screen. See [FIGURE_ASPECT]. */
+/** Axis-aligned tap target for a plate. Fractions of the figure box — see [FIGURE_ASPECT]. */
 internal data class BodyHotspot(
     val muscle: CanonicalMuscle,
     val left: Float,
@@ -38,130 +32,19 @@ internal data class BodyHotspot(
     val height: Float,
 )
 
-/**
- * The body, drawn as a wireframe rather than as two slabs.
- *
- * Front and back genuinely differ: the plates split around a sternum on one and a spine on
- * the other, and the details between them — clavicles against trapezius, kneecaps against
- * knee creases, toes against heels — change with the view. The toggle used to redraw the
- * identical pair of rectangles, so nothing on screen confirmed that it had done anything.
- */
-internal fun DrawScope.drawFigure(view: BodyView, detail: Boolean = true) {
-    // [detail] off is for the 40dp thumbnails, where the figure is ~21dp wide and a hairline
-    // sternum rule or a 0.03-radius kneecap lands well under a pixel — drawn, they are grey
-    // mush over the muscle colour rather than anatomy. Slabs, blobs and torso survive at that
-    // size and are what makes the front and back readably different. The Body tab passes true
-    // and renders exactly as it always has.
-    // Opaque, not the outline colour at an alpha: the parts of the figure overlap where they
-    // join, and a translucent fill would draw every one of those joins as a bright seam.
-    val body = OutlineSolidVariant
-    val detailColour = OutlineSolid
-    val hair = Metrics.hairline.toPx()
-    val limb = CornerRadius(Radius.sm.toPx())
-
-    fun px(fraction: Float) = size.width * fraction
-    fun py(fraction: Float) = size.height * fraction
-
-    fun slab(left: Float, top: Float, right: Float, bottom: Float) {
-        drawRoundRect(
-            color = body,
-            topLeft = Offset(px(left), py(top)),
-            size = Size(px(right - left), py(bottom - top)),
-            cornerRadius = limb,
-        )
+/** One steel plate. [muscle] is null for structure (head, neck, feet) that never takes heat. */
+internal data class BodyPlate(
+    val muscle: CanonicalMuscle?,
+    val points: List<Pair<Float, Float>>,
+) {
+    init {
+        require(points.size >= 3) { "A plate needs three corners" }
     }
 
-    fun blob(left: Float, top: Float, right: Float, bottom: Float) {
-        drawOval(
-            color = body,
-            topLeft = Offset(px(left), py(top)),
-            size = Size(px(right - left), py(bottom - top)),
-        )
-    }
-
-    fun rule(fromX: Float, fromY: Float, toX: Float, toY: Float, weight: Float = 1f) {
-        drawLine(
-            color = detailColour,
-            start = Offset(px(fromX), py(fromY)),
-            end = Offset(px(toX), py(toY)),
-            strokeWidth = hair * weight,
-            cap = StrokeCap.Round,
-        )
-    }
-
-    val torso = Path().apply {
-        moveTo(px(0.278f), py(0.188f))
-        lineTo(px(0.345f), py(0.158f))
-        lineTo(px(0.655f), py(0.158f))
-        lineTo(px(0.722f), py(0.188f))
-        lineTo(px(0.706f), py(0.300f))
-        lineTo(px(0.652f), py(0.395f))
-        lineTo(px(0.674f), py(0.452f))
-        lineTo(px(0.702f), py(0.522f))
-        lineTo(px(0.298f), py(0.522f))
-        lineTo(px(0.326f), py(0.452f))
-        lineTo(px(0.348f), py(0.395f))
-        lineTo(px(0.294f), py(0.300f))
-        close()
-    }
-    drawPath(path = torso, color = body)
-
-    blob(0.420f, 0.008f, 0.580f, 0.112f)
-    slab(0.458f, 0.095f, 0.542f, 0.180f)
-    slab(0.126f, 0.192f, 0.282f, 0.382f)
-    slab(0.718f, 0.192f, 0.874f, 0.382f)
-    slab(0.142f, 0.372f, 0.268f, 0.552f)
-    slab(0.732f, 0.372f, 0.858f, 0.552f)
-    slab(0.300f, 0.500f, 0.462f, 0.748f)
-    slab(0.538f, 0.500f, 0.700f, 0.748f)
-    slab(0.316f, 0.734f, 0.446f, 0.958f)
-    slab(0.554f, 0.734f, 0.684f, 0.958f)
-
-    when (view) {
-        BodyView.FRONT -> {
-            blob(0.146f, 0.540f, 0.262f, 0.606f)
-            blob(0.738f, 0.540f, 0.854f, 0.606f)
-            blob(0.288f, 0.940f, 0.474f, 0.996f)
-            blob(0.526f, 0.940f, 0.712f, 0.996f)
-            if (detail) {
-                rule(0.396f, 0.204f, 0.500f, 0.226f)
-                rule(0.604f, 0.204f, 0.500f, 0.226f)
-                rule(0.500f, 0.232f, 0.500f, 0.500f)
-                drawCircle(
-                    color = detailColour,
-                    radius = px(0.030f),
-                    center = Offset(px(0.381f), py(0.742f)),
-                    style = Stroke(width = hair),
-                )
-                drawCircle(
-                    color = detailColour,
-                    radius = px(0.030f),
-                    center = Offset(px(0.619f), py(0.742f)),
-                    style = Stroke(width = hair),
-                )
-            }
-        }
-
-        BodyView.BACK -> {
-            slab(0.152f, 0.546f, 0.256f, 0.600f)
-            slab(0.744f, 0.546f, 0.848f, 0.600f)
-            slab(0.320f, 0.946f, 0.442f, 0.996f)
-            slab(0.558f, 0.946f, 0.680f, 0.996f)
-            if (detail) {
-                rule(0.500f, 0.176f, 0.372f, 0.230f)
-                rule(0.500f, 0.176f, 0.628f, 0.230f)
-                rule(0.500f, 0.172f, 0.500f, 0.520f, weight = 2f)
-                VERTEBRAE.forEach { at -> rule(0.484f, at, 0.516f, at) }
-                rule(0.330f, 0.744f, 0.432f, 0.744f)
-                rule(0.568f, 0.744f, 0.670f, 0.744f)
-            }
-        }
-    }
-}
-
-internal fun hotspotsFor(view: BodyView): List<BodyHotspot> = when (view) {
-    BodyView.FRONT -> FRONT_HOTSPOTS
-    BodyView.BACK -> BACK_HOTSPOTS
+    val left: Float get() = points.minOf { it.first }
+    val top: Float get() = points.minOf { it.second }
+    val right: Float get() = points.maxOf { it.first }
+    val bottom: Float get() = points.maxOf { it.second }
 }
 
 /**
@@ -173,33 +56,201 @@ internal fun hotspotsFor(view: BodyView): List<BodyHotspot> = when (view) {
  */
 internal const val FIGURE_ASPECT = 0.52f
 
-internal val FRONT_HOTSPOTS = listOf(
-    BodyHotspot(CanonicalMuscle.SHOULDERS, 0.176f, 0.186f, 0.150f, 0.080f),
-    BodyHotspot(CanonicalMuscle.SHOULDERS, 0.674f, 0.186f, 0.150f, 0.080f),
-    BodyHotspot(CanonicalMuscle.CHEST, 0.334f, 0.226f, 0.140f, 0.100f),
-    BodyHotspot(CanonicalMuscle.CHEST, 0.526f, 0.226f, 0.140f, 0.100f),
-    BodyHotspot(CanonicalMuscle.BICEPS, 0.126f, 0.272f, 0.156f, 0.120f),
-    BodyHotspot(CanonicalMuscle.BICEPS, 0.718f, 0.272f, 0.156f, 0.120f),
-    BodyHotspot(CanonicalMuscle.CORE, 0.386f, 0.344f, 0.228f, 0.140f),
-    BodyHotspot(CanonicalMuscle.QUADRICEPS, 0.300f, 0.524f, 0.162f, 0.200f),
-    BodyHotspot(CanonicalMuscle.QUADRICEPS, 0.538f, 0.524f, 0.162f, 0.200f),
-    BodyHotspot(CanonicalMuscle.CALVES, 0.316f, 0.762f, 0.130f, 0.176f),
-    BodyHotspot(CanonicalMuscle.CALVES, 0.554f, 0.762f, 0.130f, 0.176f),
+internal fun platesFor(view: BodyView): List<BodyPlate> = when (view) {
+    BodyView.FRONT -> FRONT_PLATES
+    BodyView.BACK -> BACK_PLATES
+}
+
+internal fun hotspotsFor(view: BodyView): List<BodyHotspot> =
+    platesFor(view).mapNotNull { plate ->
+        val muscle = plate.muscle ?: return@mapNotNull null
+        BodyHotspot(
+            muscle = muscle,
+            left = plate.left,
+            top = plate.top,
+            width = plate.right - plate.left,
+            height = plate.bottom - plate.top,
+        )
+    }
+
+/**
+ * Draw every plate of [view].
+ *
+ * [fill] is per plate so a thumbnail can light one muscle at Heat3 while the Body tab
+ * paints the weekly ramp, without a second copy of the geometry.
+ */
+internal fun DrawScope.drawTemperFigure(
+    view: BodyView,
+    fill: (BodyPlate) -> Color,
+    selected: CanonicalMuscle? = null,
+    selectedStroke: Color = Volt,
+    edge: Color? = null,
+) {
+    val hair = Metrics.hairline.toPx()
+    platesFor(view).forEach { plate ->
+        val path = plate.toPath(size.width, size.height)
+        drawPath(path = path, color = fill(plate))
+        if (edge != null) {
+            drawPath(path = path, color = edge, style = Stroke(width = hair))
+        }
+        if (selected != null && plate.muscle == selected) {
+            drawPath(
+                path = path,
+                color = selectedStroke,
+                style = Stroke(width = Metrics.emphasisBorder.toPx()),
+            )
+        }
+    }
+}
+
+/**
+ * Unlit steel figure. [detail] is kept so existing callers do not change; the plates carry
+ * the anatomy now, so the old sternum/spine hairlines are gone.
+ */
+internal fun DrawScope.drawFigure(view: BodyView, detail: Boolean = true) {
+    drawTemperFigure(
+        view = view,
+        fill = { plate -> if (plate.muscle == null) SteelDim else Steel },
+        edge = if (detail) HairlineStrong else null,
+    )
+}
+
+/** The launcher pose: front torso, one Heat3 plate — the viewer's-right pec. */
+internal fun BodyPlate.isTemperAccent(): Boolean =
+    muscle == CanonicalMuscle.CHEST && left > 0.5f
+
+private fun BodyPlate.toPath(width: Float, height: Float): Path = Path().apply {
+    val first = points.first()
+    moveTo(first.first * width, first.second * height)
+    for (i in 1 until points.size) {
+        val point = points[i]
+        lineTo(point.first * width, point.second * height)
+    }
+    close()
+}
+
+private fun plate(muscle: CanonicalMuscle?, vararg xy: Float): BodyPlate {
+    require(xy.size >= 6 && xy.size % 2 == 0)
+    val points = ArrayList<Pair<Float, Float>>(xy.size / 2)
+    var i = 0
+    while (i < xy.size) {
+        points.add(xy[i] to xy[i + 1])
+        i += 2
+    }
+    return BodyPlate(muscle, points)
+}
+
+/*
+ * Coordinates are fractions of the figure box. Gaps between neighbours are deliberate —
+ * that is the Temper seam, the same void that sits between the launcher plates.
+ */
+
+private val FRONT_PLATES = listOf(
+    plate(null, 0.418f, 0.012f, 0.582f, 0.012f, 0.574f, 0.086f, 0.426f, 0.086f),
+    plate(null, 0.448f, 0.092f, 0.552f, 0.092f, 0.552f, 0.148f, 0.448f, 0.148f),
+    plate(
+        CanonicalMuscle.SHOULDERS,
+        0.078f, 0.168f, 0.318f, 0.152f, 0.300f, 0.248f, 0.062f, 0.286f,
+    ),
+    plate(
+        CanonicalMuscle.SHOULDERS,
+        0.682f, 0.152f, 0.922f, 0.168f, 0.938f, 0.286f, 0.700f, 0.248f,
+    ),
+    plate(
+        CanonicalMuscle.CHEST,
+        0.324f, 0.156f, 0.492f, 0.168f, 0.492f, 0.292f, 0.286f, 0.274f, 0.306f, 0.196f,
+    ),
+    plate(
+        CanonicalMuscle.CHEST,
+        0.508f, 0.168f, 0.676f, 0.156f, 0.694f, 0.196f, 0.714f, 0.274f, 0.508f, 0.292f,
+    ),
+    plate(
+        CanonicalMuscle.BICEPS,
+        0.058f, 0.298f, 0.248f, 0.286f, 0.236f, 0.448f, 0.074f, 0.468f,
+    ),
+    plate(
+        CanonicalMuscle.BICEPS,
+        0.752f, 0.286f, 0.942f, 0.298f, 0.926f, 0.468f, 0.764f, 0.448f,
+    ),
+    plate(
+        CanonicalMuscle.CORE,
+        0.368f, 0.304f, 0.632f, 0.304f, 0.662f, 0.384f, 0.632f, 0.456f, 0.368f, 0.456f, 0.338f, 0.384f,
+    ),
+    plate(CanonicalMuscle.CORE, 0.286f, 0.312f, 0.354f, 0.328f, 0.348f, 0.400f, 0.272f, 0.392f),
+    plate(CanonicalMuscle.CORE, 0.646f, 0.328f, 0.714f, 0.312f, 0.728f, 0.392f, 0.652f, 0.400f),
+    plate(CanonicalMuscle.CORE, 0.276f, 0.408f, 0.352f, 0.416f, 0.360f, 0.488f, 0.270f, 0.476f),
+    plate(CanonicalMuscle.CORE, 0.648f, 0.416f, 0.724f, 0.408f, 0.730f, 0.476f, 0.640f, 0.488f),
+    plate(
+        CanonicalMuscle.QUADRICEPS,
+        0.292f, 0.504f, 0.484f, 0.504f, 0.468f, 0.728f, 0.308f, 0.746f,
+    ),
+    plate(
+        CanonicalMuscle.QUADRICEPS,
+        0.516f, 0.504f, 0.708f, 0.504f, 0.692f, 0.746f, 0.532f, 0.728f,
+    ),
+    plate(
+        CanonicalMuscle.CALVES,
+        0.312f, 0.760f, 0.464f, 0.758f, 0.450f, 0.952f, 0.324f, 0.968f,
+    ),
+    plate(
+        CanonicalMuscle.CALVES,
+        0.536f, 0.758f, 0.688f, 0.760f, 0.676f, 0.968f, 0.550f, 0.952f,
+    ),
+    plate(null, 0.300f, 0.972f, 0.456f, 0.958f, 0.470f, 0.996f, 0.286f, 0.996f),
+    plate(null, 0.544f, 0.958f, 0.700f, 0.972f, 0.714f, 0.996f, 0.530f, 0.996f),
 )
 
-internal val BACK_HOTSPOTS = listOf(
-    BodyHotspot(CanonicalMuscle.SHOULDERS, 0.176f, 0.186f, 0.150f, 0.080f),
-    BodyHotspot(CanonicalMuscle.SHOULDERS, 0.674f, 0.186f, 0.150f, 0.080f),
-    BodyHotspot(CanonicalMuscle.BACK, 0.334f, 0.226f, 0.146f, 0.170f),
-    BodyHotspot(CanonicalMuscle.BACK, 0.520f, 0.226f, 0.146f, 0.170f),
-    BodyHotspot(CanonicalMuscle.TRICEPS, 0.126f, 0.272f, 0.156f, 0.120f),
-    BodyHotspot(CanonicalMuscle.TRICEPS, 0.718f, 0.272f, 0.156f, 0.120f),
-    BodyHotspot(CanonicalMuscle.GLUTES, 0.330f, 0.420f, 0.150f, 0.096f),
-    BodyHotspot(CanonicalMuscle.GLUTES, 0.520f, 0.420f, 0.150f, 0.096f),
-    BodyHotspot(CanonicalMuscle.HAMSTRINGS, 0.300f, 0.540f, 0.162f, 0.186f),
-    BodyHotspot(CanonicalMuscle.HAMSTRINGS, 0.538f, 0.540f, 0.162f, 0.186f),
-    BodyHotspot(CanonicalMuscle.CALVES, 0.316f, 0.762f, 0.130f, 0.176f),
-    BodyHotspot(CanonicalMuscle.CALVES, 0.554f, 0.762f, 0.130f, 0.176f),
+private val BACK_PLATES = listOf(
+    plate(null, 0.418f, 0.012f, 0.582f, 0.012f, 0.574f, 0.086f, 0.426f, 0.086f),
+    plate(null, 0.448f, 0.092f, 0.552f, 0.092f, 0.552f, 0.148f, 0.448f, 0.148f),
+    plate(
+        CanonicalMuscle.SHOULDERS,
+        0.078f, 0.168f, 0.318f, 0.152f, 0.300f, 0.248f, 0.062f, 0.286f,
+    ),
+    plate(
+        CanonicalMuscle.SHOULDERS,
+        0.682f, 0.152f, 0.922f, 0.168f, 0.938f, 0.286f, 0.700f, 0.248f,
+    ),
+    plate(
+        CanonicalMuscle.BACK,
+        0.324f, 0.156f, 0.492f, 0.168f, 0.492f, 0.392f, 0.300f, 0.408f, 0.306f, 0.196f,
+    ),
+    plate(
+        CanonicalMuscle.BACK,
+        0.508f, 0.168f, 0.676f, 0.156f, 0.694f, 0.196f, 0.700f, 0.408f, 0.508f, 0.392f,
+    ),
+    plate(
+        CanonicalMuscle.TRICEPS,
+        0.058f, 0.298f, 0.248f, 0.286f, 0.236f, 0.448f, 0.074f, 0.468f,
+    ),
+    plate(
+        CanonicalMuscle.TRICEPS,
+        0.752f, 0.286f, 0.942f, 0.298f, 0.926f, 0.468f, 0.764f, 0.448f,
+    ),
+    plate(
+        CanonicalMuscle.GLUTES,
+        0.304f, 0.416f, 0.492f, 0.400f, 0.492f, 0.508f, 0.300f, 0.516f,
+    ),
+    plate(
+        CanonicalMuscle.GLUTES,
+        0.508f, 0.400f, 0.696f, 0.416f, 0.700f, 0.516f, 0.508f, 0.508f,
+    ),
+    plate(
+        CanonicalMuscle.HAMSTRINGS,
+        0.292f, 0.524f, 0.484f, 0.524f, 0.468f, 0.736f, 0.308f, 0.752f,
+    ),
+    plate(
+        CanonicalMuscle.HAMSTRINGS,
+        0.516f, 0.524f, 0.708f, 0.524f, 0.692f, 0.752f, 0.532f, 0.736f,
+    ),
+    plate(
+        CanonicalMuscle.CALVES,
+        0.312f, 0.760f, 0.464f, 0.758f, 0.450f, 0.952f, 0.324f, 0.968f,
+    ),
+    plate(
+        CanonicalMuscle.CALVES,
+        0.536f, 0.758f, 0.688f, 0.760f, 0.676f, 0.968f, 0.550f, 0.952f,
+    ),
+    plate(null, 0.300f, 0.972f, 0.456f, 0.958f, 0.470f, 0.996f, 0.286f, 0.996f),
+    plate(null, 0.544f, 0.958f, 0.700f, 0.972f, 0.714f, 0.996f, 0.530f, 0.996f),
 )
-
-private val VERTEBRAE = listOf(0.250f, 0.310f, 0.370f, 0.440f, 0.500f)

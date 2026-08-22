@@ -56,6 +56,7 @@ import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.ExerciseRow
+import com.sinura.personaltrainer.ui.components.ExerciseThumb
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
@@ -374,9 +375,10 @@ private fun RoutineExerciseCard(
     GymCard(modifier = modifier) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            ExerciseThumb(exercise = item.exercise)
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     item.exercise.name,
