@@ -32,54 +32,54 @@ class AppContainer(context: Context) : AppDependencies {
      * One lock over every wholesale rewrite of the catalog. The startup seed and a restore both
      * pass through here, so they queue instead of racing each other across the same tables.
      */
-    val dbMaintenance: DbMaintenance = DbMaintenance(database)
+    override val dbMaintenance: DbMaintenance = DbMaintenance(database)
 
-    val exerciseRepository: ExerciseRepository = ExerciseRepository(
+    override val exerciseRepository: ExerciseRepository = ExerciseRepository(
         exerciseDao = database.exerciseDao(),
         routineDao = database.routineDao(),
         workoutDao = database.workoutDao(),
         catalogDao = database.catalogDao(),
     )
-    val routineRepository: RoutineRepository = RoutineRepository(database.routineDao())
+    override val routineRepository: RoutineRepository = RoutineRepository(database.routineDao())
     /** The week the user pinned. Nothing else in the app is allowed to write it. */
-    val scheduleRepository: ScheduleRepository = ScheduleRepository(database.scheduleDao())
-    val workoutRepository: WorkoutRepository = WorkoutRepository(database, database.workoutDao())
-    val preferencesRepository: PreferencesRepository = PreferencesRepository(context)
+    override val scheduleRepository: ScheduleRepository = ScheduleRepository(database.scheduleDao())
+    override val workoutRepository: WorkoutRepository = WorkoutRepository(database, database.workoutDao())
+    override val preferencesRepository: PreferencesRepository = PreferencesRepository(context)
 
     /**
      * The one writer that spans preferences, routines and the schedule together. Constructed
      * here rather than in the view model because that ordering is a property of the app, not
      * of a screen.
      */
-    val onboardingApplier: OnboardingApplier = OnboardingApplier(
+    override val onboardingApplier: OnboardingApplier = OnboardingApplier(
         routineRepository = routineRepository,
         scheduleRepository = scheduleRepository,
         preferencesRepository = preferencesRepository,
     )
     // Exposed so the alarm receiver can read timer state after a process death, before any
     // ViewModel exists.
-    val restTimerStatePersistence: RestTimerStatePersistence =
+    override val restTimerStatePersistence: RestTimerStatePersistence =
         SharedPrefsRestTimerStatePersistence(context)
-    val restTimerStore: RestTimerStore = RestTimerStore(restTimerStatePersistence)
-    val restTimerController: RestTimerController =
+    override val restTimerStore: RestTimerStore = RestTimerStore(restTimerStatePersistence)
+    override val restTimerController: RestTimerController =
         RestTimerController(context, restTimerStore, restTimerStatePersistence)
-    val workoutDraftCache: WorkoutDraftCache = WorkoutDraftCache()
+    override val workoutDraftCache: WorkoutDraftCache = WorkoutDraftCache()
 
     // Every finish and every discard in the app routes through these two, so no surface can
     // end a workout while leaving a rest timer running or a draft pointing at a dead session.
-    val finishWorkout: FinishWorkout = FinishWorkout(
+    override val finishWorkout: FinishWorkout = FinishWorkout(
         workoutRepository = workoutRepository,
         restTimer = restTimerController,
         draftCache = workoutDraftCache,
     )
-    val discardWorkout: DiscardWorkout = DiscardWorkout(
+    override val discardWorkout: DiscardWorkout = DiscardWorkout(
         workoutRepository = workoutRepository,
         restTimer = restTimerController,
         draftCache = workoutDraftCache,
     )
 
     /** One analytics pipeline behind Home, Schedule and Progress. */
-    val trainingInsights: TrainingInsightsSource = TrainingInsightsSource(
+    override val trainingInsights: TrainingInsightsSource = TrainingInsightsSource(
         workoutRepository = workoutRepository,
         routineRepository = routineRepository,
         exerciseRepository = exerciseRepository,
@@ -94,13 +94,13 @@ class AppContainer(context: Context) : AppDependencies {
      * in between would drop a callback. The Plan tab consumes it exactly once and writes false
      * back; nothing is persisted by the deep link.
      */
-    val pendingWeekSuggestion = MutableStateFlow(false)
+    override val pendingWeekSuggestion = MutableStateFlow(false)
 
-    val startTrainingDay: StartTrainingDay = StartTrainingDay(
+    override val startTrainingDay: StartTrainingDay = StartTrainingDay(
         workoutRepository = workoutRepository,
         routineRepository = routineRepository,
     )
-    val backupRepository: BackupRepository = BackupRepository(
+    override val backupRepository: BackupRepository = BackupRepository(
         localBackupRepository = LocalBackupRepository(
             database = database,
             preferencesRepository = preferencesRepository,
