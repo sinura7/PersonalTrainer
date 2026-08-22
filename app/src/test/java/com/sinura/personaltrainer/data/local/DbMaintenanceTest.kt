@@ -14,6 +14,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -255,4 +256,48 @@ class DbMaintenanceTest {
             database.catalogDao().getSeedMeta()!!.catalogVersion,
         )
     }
+
+    @Test
+    fun builtInIdHeldByACustomExerciseIsNeverOverwritten() = runBlocking {
+        // The restore case: a document written against an older catalog carries a custom
+        // exercise whose id a later catalog has since claimed for a built-in. One id, one row,
+        // and the seeder is about to walk over it.
+        val seed = DefaultExercises.catalog().single { it.id == "ex-barbell-back-squat" }
+        database.exerciseDao().insert(
+            ExerciseEntity(
+                id = seed.id,
+                name = "Allen's Own Squat",
+                muscleGroup = "Legs",
+                notes = "belt above 100",
+                isCustom = true,
+            ),
+        )
+
+        maintenance.seedCatalog()
+
+        val row = database.exerciseDao().getById(seed.id)!!
+        // Everything the user chose is still theirs. Before the isCustom guard, copy() replaced
+        // all five of these with the built-in's values.
+        assertEquals("Allen's Own Squat", row.name)
+        assertEquals("Legs", row.muscleGroup)
+        assertEquals("belt above 100", row.notes)
+        assertTrue("the row must still claim to be the user's", row.isCustom)
+        assertNotEquals(seed.name, row.name)
+
+        // It is still reconciled as a custom row: nameKey normalized from ITS name, not the
+        // built-in's, and credits derived from the muscle group the user picked.
+        assertEquals(MuscleNormalizer.nameKeyOf("Allen's Own Squat"), row.nameKey)
+        assertEquals(
+            MuscleNormalizer.deriveCredits("Legs")
+                .map { it.muscleKey to it.weight }
+                .sortedBy { it.first },
+            database.catalogDao().creditsFor(seed.id)
+                .map { it.muscleKey to it.weight }
+                .sortedBy { it.first },
+        )
+
+        // And the built-in it displaced was not inserted alongside it under the same id.
+        assertEquals(1, database.exerciseDao().getAll().count { it.id == seed.id })
+    }
+
 }

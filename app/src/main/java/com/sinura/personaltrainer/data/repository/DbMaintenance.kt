@@ -81,8 +81,21 @@ class DbMaintenance(private val database: TrainerDatabase) {
             val builtIns = DefaultExercises.catalog()
 
             builtIns.forEach { seed ->
-                val nameKey = MuscleNormalizer.nameKeyOf(seed.name)
                 val current = existing[seed.id]
+                // A row that says it is the user's is never rewritten from the catalog, even
+                // when it sits on an id this build ships. `detectCollisions` below already
+                // settles that the column is what a row IS; the seed pass has to agree with it.
+                // Without this the copy() beneath would take a custom exercise's name,
+                // muscleGroup, equipment, loadType and nameKey and replace them with the
+                // built-in's — and because the two share one id there is no second row, so
+                // `detectCollisions` finds nothing to flag and the loss is silent. A restore
+                // is how this happens: the document carries a custom row on an id that a later
+                // catalog has since claimed.
+                if (current != null && current.isCustom) {
+                    AppLog.w(TAG, "Built-in id ${seed.id} is held by a custom exercise; left alone")
+                    return@forEach
+                }
+                val nameKey = MuscleNormalizer.nameKeyOf(seed.name)
                 val row = current?.copy(
                     name = seed.name,
                     muscleGroup = seed.muscleGroup,
@@ -112,13 +125,20 @@ class DbMaintenance(private val database: TrainerDatabase) {
                 catalogDao.replaceCreditsFor(seed.id, seed.credits.toRows(seed.id))
             }
 
-            // Everything that is not a built-in: rewrite the nameKey through the one function,
-            // and give it credits if it has none. An exercise that already has credits is left
-            // exactly as it is — those came from a backup or from a later phase's editor.
+            // Everything the pass above did not write: rewrite the nameKey through the one
+            // function, and give it credits if it has none. An exercise that already has
+            // credits is left exactly as it is — those came from a backup or from a later
+            // phase's editor.
+            //
+            // `|| it.isCustom` is what catches the row the loop above skipped. It is a custom
+            // exercise sitting on a built-in id, so it is in `builtInIds` and would otherwise
+            // fall through both passes and end up the one row in the table with no normalized
+            // nameKey and no junction credits — which is also what `detectCollisions` needs in
+            // order to see it at all.
             val builtInIds = builtIns.map { it.id }.toSet()
             val withCredits = catalogDao.exerciseIdsWithCredits().toSet()
             exerciseDao.getAll()
-                .filter { it.id !in builtInIds }
+                .filter { it.id !in builtInIds || it.isCustom }
                 .forEach { custom ->
                     val nameKey = MuscleNormalizer.nameKeyOf(custom.name)
                     if (custom.nameKey != nameKey) {
