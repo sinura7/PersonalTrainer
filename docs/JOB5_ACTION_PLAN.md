@@ -248,7 +248,7 @@ Collar weight. Bumper vs iron as a second catalog.
 
 ---
 
-### P4 — Font scale 2.0 on the log loop · **done** (this PR · phone pending)
+### P4 — Font scale 2.0 on the log loop · **done** (this PR · 722 JVM · phone pending)
 
 **Goal.** The session can still be logged at the largest system font.
 We do not "fix" it by clamping the whole app to 1.3.
@@ -392,7 +392,7 @@ P1 is a GitHub Actions page, not a phone.
 - [ ] P1 `ci.yml` lists `trunk`
 - [x] P2 one cue, existing toggle (713 JVM)
 - [x] P3 plates + type-in hint + pounds default (719 JVM)
-- [x] P4 log loop at font 2.0 (this PR)
+- [x] P4 log loop at font 2.0 (722 JVM)
 - [ ] P5 stale-backup prompt
 - [ ] Phone gates still the owner's
 - [ ] Six won'ts still won't
