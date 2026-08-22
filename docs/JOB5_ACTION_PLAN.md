@@ -40,9 +40,9 @@ fifth tab, without Room v3, and without a chat coach.
 ## What is already true (do not rediscover)
 
 1. **Weights are kg in Room.** `SetLogEntity.weightKg`. Display is
-   `LocalWeightUnit`. `IncrementTable` already thinks in plates
-   (2.5 kg / side, 2.5 lb / side). There is no bar weight, no per-side
-   table, no loadable-weight field. Figure "plates" are Temper art.
+   `LocalWeightUnit`. `IncrementTable` steps 2.5 kg / 5 lbs. There is
+   no Settings bar weight. Figure "plates" on the body map are Temper
+   art; barbell captions are `PlateMath`.
 2. **Rest sound is a Temper cue.** `RestTimerAlerts.playSound` plays
    `res/raw/rest_done.ogg`. Existing Sound toggle. Silent ringer stays
    silent. The done channel is silent on purpose (`rest_timer_done_v2`).
@@ -54,7 +54,8 @@ fifth tab, without Room v3, and without a chat coach.
    log — all DataStore. Catalog growth is `CATALOG_VERSION` (now **5**,
    **101** built-ins), not a schema bump.
 5. **Four tabs.** Home · Body · Plan · History. Library is a pushed
-   route. D1 signed; ROADMAP's leftover "five tabs" line is stale.
+   route. D1 signed; the leftover "five tabs" opening sentence is
+   struck.
 6. **The coach is `RecommendationEngine`.** Offline. Drive is the only
    network. D4 cut the LLM.
 7. **Identity is frozen.** Release id `com.sinura.personaltrainer`. Debug
