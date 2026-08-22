@@ -52,10 +52,11 @@ private val RAIL_HEIGHT = 24.dp
  * The one live-session surface in the app.
  *
  * Docked above the tab bar whenever a session is in progress, on every screen except the
- * workout itself, its summary, and the start picker. While it is visible no other surface
- * may offer to resume, finish or discard — the app used to answer "where is my workout" in
- * three different places, each with its own quirks, and none of them present once the user
- * had navigated away.
+ * workout itself and its summary. Stays visible behind [com.sinura.personaltrainer.ui.workout
+ * .StartOptionsSheet] — that sheet offers “Go to session”, not a second Resume. While the
+ * bar is visible no other surface may offer to resume, finish or discard — the app used to
+ * answer "where is my workout" in three different places, each with its own quirks, and
+ * none of them present once the user had navigated away.
  *
  * @param applyNavInsets true on routes where the tab bar is hidden, so the bar owns the
  *   gesture-navigation inset instead of sitting under it.

@@ -102,7 +102,7 @@ fun ProgressScreen(
                 EmptyState(
                     title = "See what you trained",
                     body = "Weekly working sets light the map for the window you pick.",
-                    actionLabel = "Start workout",
+                    actionLabel = "Start a workout",
                     onAction = { startOptionsOpen = true },
                     modifier = Modifier.padding(Metrics.gutter),
                 )

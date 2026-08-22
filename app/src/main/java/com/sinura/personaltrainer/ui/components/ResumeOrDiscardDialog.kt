@@ -45,7 +45,7 @@ fun ResumeOrDiscardDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
-                PrimaryGymButton(text = "Resume that workout", onClick = onResume)
+                PrimaryGymButton(text = "Go to that session", onClick = onResume)
                 DangerGymButton(text = "Discard it and start this", onClick = onDiscardAndStart)
             }
         },

@@ -125,7 +125,7 @@ fun HistoryScreen(
                     EmptyState(
                         title = "No sessions yet",
                         body = "Finish a workout and it lands here.",
-                        actionLabel = "Start workout",
+                        actionLabel = "Start a workout",
                         onAction = { startOptionsOpen = true },
                         modifier = Modifier
                             .fillMaxSize()
@@ -280,12 +280,12 @@ fun HistoryScreen(
     }
 
     if (blockedRepeat != null) {
-        // Verbatim the copy Start workout uses for the same situation. Two different
-        // explanations of one rule is how a rule stops reading as a rule.
+        // Same sentence as StartOptions and session detail. Two explanations of one
+        // rule is how a rule stops reading as a rule.
         ConfirmActionDialog(
             title = "Session in progress",
             body = "Finish or discard the current session before starting another.",
-            confirmLabel = "Resume workout",
+            confirmLabel = "Go to session",
             onConfirm = viewModel::resumeBlockedSession,
             onDismiss = viewModel::dismissBlockedRepeat,
         )
