@@ -38,13 +38,17 @@ class SharedPrefsRestTimerStatePersistence(context: Context) : RestTimerStatePer
         .getSharedPreferences("rest_timer_state", Context.MODE_PRIVATE)
 
     override fun save(state: PersistedRestTimer) {
+        // commit(), not apply(): the alarm is scheduled on the next line of
+        // RestTimerController.start(), and RestTimerAlarmReceiver treats a missing
+        // disk row as "already completed". An unflushed apply() plus a process
+        // kill is a silent missed rest.
         prefs.edit()
             .putLong(KEY_ENDS_AT_ELAPSED, state.endsAtElapsedRealtime)
             .putInt(KEY_TOTAL_SECONDS, state.totalSeconds)
             .putString(KEY_SESSION_ID, state.sessionId)
             .putLong(KEY_BOOT_MARKER, state.bootMarker)
             .putLong(KEY_ENDS_AT_WALL, state.endsAtWallClockMillis)
-            .apply()
+            .commit()
     }
 
     override fun load(): PersistedRestTimer? {
@@ -59,7 +63,7 @@ class SharedPrefsRestTimerStatePersistence(context: Context) : RestTimerStatePer
     }
 
     override fun clear() {
-        prefs.edit().clear().apply()
+        prefs.edit().clear().commit()
     }
 
     private companion object {
