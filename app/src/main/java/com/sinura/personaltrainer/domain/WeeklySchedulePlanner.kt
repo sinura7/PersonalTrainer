@@ -31,6 +31,7 @@ object WeeklySchedulePlanner {
         nowMs: Long,
         zone: ZoneId = ZoneId.systemDefault(),
         pinnedSlots: List<ScheduleSlot> = emptyList(),
+        emphasis: TrainingEmphasis = TrainingEmphasis.BALANCED,
     ): WeeklySchedulePlan {
         val prefs = preferences.sanitized()
         val today = Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate()
@@ -54,7 +55,7 @@ object WeeklySchedulePlanner {
         val resolved = resolveSplit(prefs, usableRoutines)
         val trainIndices = trainingDayIndices(prefs.trainingDaysPerWeek)
         val kinds = arrangeKinds(
-            kinds = slotKinds(resolved, prefs.trainingDaysPerWeek, usableRoutines),
+            kinds = slotKinds(resolved, prefs.trainingDaysPerWeek, usableRoutines, emphasis),
             lastFocus = recentFocus(finished, nowMs, zone),
         )
         val usedRoutineIds = linkedSetOf<String>()
@@ -156,15 +157,17 @@ object WeeklySchedulePlanner {
         style: SplitStyle,
         trainingDays: Int,
         routines: List<Routine>,
+        emphasis: TrainingEmphasis = TrainingEmphasis.BALANCED,
     ): List<SessionFocusKind> {
         val count = trainingDays.coerceIn(SchedulePreferences.MIN_DAYS, SchedulePreferences.MAX_DAYS)
-        return when (style) {
+        val base = when (style) {
             SplitStyle.CUSTOM -> customKinds(count, routines)
             SplitStyle.FULL_BODY -> List(count) { SessionFocusKind.FULL_BODY }
             SplitStyle.UPPER_LOWER -> upperLowerKinds(count)
             SplitStyle.PUSH_PULL_LEGS -> pplKinds(count)
             SplitStyle.AUTO -> slotKinds(SplitStyle.UPPER_LOWER, count, routines)
         }
+        return EmphasisLayout.apply(base, emphasis)
     }
 
     internal fun classifyRoutine(routine: Routine): SessionFocusKind {

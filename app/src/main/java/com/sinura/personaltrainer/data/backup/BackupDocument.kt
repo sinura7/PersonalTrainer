@@ -59,6 +59,7 @@ data class BackupPreferences(
     val restVibrationEnabled: Boolean = true,
     val defaultRestSeconds: Int = 90,
     val trainingGoal: String = "GENERAL",
+    val trainingEmphasis: String = "BALANCED",
     val availableEquipment: List<String> = emptyList(),
     val heatWindow: String = "CURRENT_WEEK",
     /** Null is a real value: it means "never told us", not "weighs nothing". */

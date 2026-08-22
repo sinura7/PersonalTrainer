@@ -60,6 +60,10 @@ enum class SessionFocusKind(
     LEGS("Legs", MuscleRegion.LOWER),
     FULL_BODY("Full Body", null),
     RECOVERY("Recovery lean", null),
+    ;
+
+    val isUpperFamily: Boolean get() = regionHint == MuscleRegion.UPPER
+    val isLowerFamily: Boolean get() = regionHint == MuscleRegion.LOWER
 }
 
 enum class ScheduleConfidence {

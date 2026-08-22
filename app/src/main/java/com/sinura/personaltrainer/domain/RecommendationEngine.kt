@@ -376,7 +376,7 @@ object RecommendationEngine {
 
     /**
      * The goal reorders; it never adds or removes a card. A rule that only fires for one goal
-     * is a rule that is wrong for the other two.
+     * is a rule that is wrong for the others. Athletic changes the generated week, not this list.
      */
     private fun goalBonus(recommendation: TrainingRecommendation, goal: TrainingGoal): Int =
         when (goal) {
@@ -391,6 +391,7 @@ object RecommendationEngine {
                 recommendation.id == "coverage-core" -> 10
                 else -> 0
             }
+            TrainingGoal.ATHLETIC -> 0
             TrainingGoal.GENERAL -> 0
         }
 

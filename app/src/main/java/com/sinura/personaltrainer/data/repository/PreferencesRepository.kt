@@ -21,6 +21,7 @@ import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.TrainingBlock
+import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.WeightUnit
 import java.time.DayOfWeek
@@ -76,11 +77,16 @@ class PreferencesRepository(context: Context) {
                 goal = TrainingGoal.fromStorage(prefs[TRAINING_GOAL]),
                 // Empty means "no filtering", never "owns nothing" — see CoachPreferences.
                 availableEquipment = prefs[AVAILABLE_EQUIPMENT].orEmpty(),
+                emphasis = TrainingEmphasis.fromStorage(prefs[TRAINING_EMPHASIS]),
             )
         }
 
     suspend fun setTrainingGoal(goal: TrainingGoal) {
         dataStore.edit { prefs -> prefs[TRAINING_GOAL] = goal.name }
+    }
+
+    suspend fun setTrainingEmphasis(emphasis: TrainingEmphasis) {
+        dataStore.edit { prefs -> prefs[TRAINING_EMPHASIS] = emphasis.name }
     }
 
     suspend fun setAvailableEquipment(equipment: Set<String>) {
@@ -261,6 +267,7 @@ class PreferencesRepository(context: Context) {
             // either: one phone's transient preset has no business landing on another.
             prefs.remove(REST_LAST_PRESET)
             prefs[TRAINING_GOAL] = coach.goal.name
+            prefs[TRAINING_EMPHASIS] = coach.emphasis.name
             prefs[AVAILABLE_EQUIPMENT] = coach.availableEquipment
             prefs[HEAT_WINDOW] = heatWindow.name
             if (cleanBodyweight == null) {
@@ -472,6 +479,7 @@ class PreferencesRepository(context: Context) {
     private companion object {
         val WEIGHT_UNIT = stringPreferencesKey("weight_unit")
         val TRAINING_GOAL = stringPreferencesKey("training_goal")
+        val TRAINING_EMPHASIS = stringPreferencesKey("training_emphasis")
         val AVAILABLE_EQUIPMENT = stringSetPreferencesKey("available_equipment")
         val DISMISSED_COLLISIONS = stringSetPreferencesKey("library_collision_dismissed_ids")
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")

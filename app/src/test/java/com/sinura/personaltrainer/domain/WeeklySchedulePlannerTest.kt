@@ -252,6 +252,63 @@ class WeeklySchedulePlannerTest {
     }
 
     @Test
+    fun fourDayUpperEmphasisIsMajorityUpperAndKeepsALowerDay() {
+        val kinds = WeeklySchedulePlanner.slotKinds(
+            style = SplitStyle.UPPER_LOWER,
+            trainingDays = 4,
+            routines = emptyList(),
+            emphasis = TrainingEmphasis.UPPER,
+        )
+        assertEquals(
+            listOf(
+                SessionFocusKind.UPPER,
+                SessionFocusKind.LOWER,
+                SessionFocusKind.UPPER,
+                SessionFocusKind.UPPER,
+            ),
+            kinds,
+        )
+    }
+
+    @Test
+    fun planHonoursEmphasisAndLeavesPinsAlone() {
+        val pin = ScheduleSlot(
+            id = "slot-0",
+            position = 0,
+            routineId = "r-push",
+            focusKind = null,
+            anchorDay = DayOfWeek.MONDAY,
+            createdAt = 0L,
+            updatedAt = 0L,
+        )
+        val plan = WeeklySchedulePlanner.plan(
+            preferences = SchedulePreferences(trainingDaysPerWeek = 4, splitStyle = SplitStyle.UPPER_LOWER),
+            snapshot = hotChestQuietBack(),
+            recommendations = emptyList(),
+            routines = listOf(routine("r-push", "Push A", listOf("Chest", "Shoulders", "Triceps"))),
+            recentSessions = staleSessions(),
+            nowMs = now,
+            zone = zone,
+            pinnedSlots = listOf(pin),
+            emphasis = TrainingEmphasis.UPPER,
+        )
+        val monday = plan.days.first()
+        assertEquals("the pin is echoed, not rewritten by emphasis", "slot-0", monday.slotId)
+        assertEquals("r-push", monday.routineId)
+        val proposals = plan.days.filter { it.slotId == null && !it.isRest }
+        assertTrue("open days still get a suggestion", proposals.isNotEmpty())
+        assertTrue(
+            "a proposal landed on the pinned day",
+            proposals.none { it.epochDay == monday.epochDay },
+        )
+        assertTrue(
+            "open days follow the new emphasis",
+            proposals.count { it.focusKind.isUpperFamily } >
+                proposals.count { it.focusKind.isLowerFamily },
+        )
+    }
+
+    @Test
     fun plannerProposalsOnlyOnOpenDays() {
         val pin = ScheduleSlot(
             id = "slot-0",

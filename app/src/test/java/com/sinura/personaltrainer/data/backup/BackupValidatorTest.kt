@@ -238,6 +238,7 @@ class BackupValidatorTest {
                 restVibrationEnabled = false,
                 defaultRestSeconds = 150,
                 trainingGoal = "STRENGTH",
+                trainingEmphasis = "UPPER",
                 availableEquipment = listOf("BARBELL", "DUMBBELL"),
                 heatWindow = "LAST_30_DAYS",
                 bodyweightKg = 82.5,
@@ -263,6 +264,7 @@ class BackupValidatorTest {
         )
         assertEquals(120, decoded.preferences.defaultRestSeconds)
         assertEquals("GENERAL", decoded.preferences.trainingGoal)
+        assertEquals("BALANCED", decoded.preferences.trainingEmphasis)
         assertEquals("CURRENT_WEEK", decoded.preferences.heatWindow)
         assertEquals(emptyList<String>(), decoded.preferences.availableEquipment)
         assertEquals(emptyList<String>(), decoded.preferences.dismissedCollisionIds)

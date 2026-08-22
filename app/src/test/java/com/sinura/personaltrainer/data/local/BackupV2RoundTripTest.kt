@@ -18,6 +18,7 @@ import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.TrainingBlock
+import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.WeightUnit
 import kotlinx.coroutines.flow.first
@@ -135,6 +136,7 @@ class BackupV2RoundTripTest {
         seedUserData()
         preferences.setWeightUnit(WeightUnit.LBS)
         preferences.setTrainingGoal(TrainingGoal.STRENGTH)
+        preferences.setTrainingEmphasis(TrainingEmphasis.UPPER)
         preferences.setAvailableEquipment(setOf("BARBELL", "DUMBBELL"))
         preferences.setHeatWindow(HeatWindow.LAST_30_DAYS)
         preferences.recordBodyweight(82.5, 20_000L)
@@ -145,6 +147,7 @@ class BackupV2RoundTripTest {
 
         preferences.setWeightUnit(WeightUnit.KG)
         preferences.setTrainingGoal(TrainingGoal.HYPERTROPHY)
+        preferences.setTrainingEmphasis(TrainingEmphasis.LOWER)
         preferences.setAvailableEquipment(setOf("CABLE"))
         preferences.setHeatWindow(HeatWindow.CURRENT_WEEK)
         preferences.recordBodyweight(60.0, 20_100L)
@@ -155,6 +158,7 @@ class BackupV2RoundTripTest {
         assertEquals(WeightUnit.LBS, preferences.weightUnit.first())
         val coach = preferences.coachPreferences.first()
         assertEquals(TrainingGoal.STRENGTH, coach.goal)
+        assertEquals(TrainingEmphasis.UPPER, coach.emphasis)
         assertEquals(setOf("BARBELL", "DUMBBELL"), coach.availableEquipment)
         assertEquals(HeatWindow.LAST_30_DAYS, preferences.heatWindow.first())
         assertEquals(82.5, preferences.bodyweightKg.first()!!, 0.001)

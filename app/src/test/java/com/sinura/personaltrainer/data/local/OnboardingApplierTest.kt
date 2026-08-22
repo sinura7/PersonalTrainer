@@ -13,6 +13,7 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.RoutineGenerator
 import com.sinura.personaltrainer.domain.TrainingAge
+import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingPlace
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -152,6 +153,14 @@ class OnboardingApplierTest {
         val input = answers(place = TrainingPlace.FULL_GYM)
         applier.apply(input, RoutineGenerator.generate(input, catalog), catalog, WEEK_START, TODAY)
         assertEquals(emptySet<String>(), preferences.coachPreferences.first().availableEquipment)
+        assertEquals(TrainingEmphasis.BALANCED, preferences.coachPreferences.first().emphasis)
+    }
+
+    @Test
+    fun emphasisLandsInPreferencesWithoutRewritingTheWeekShapeHere() = runBlocking {
+        val input = answers(days = 4).copy(emphasis = TrainingEmphasis.UPPER)
+        applier.apply(input, RoutineGenerator.generate(input, catalog), catalog, WEEK_START, TODAY)
+        assertEquals(TrainingEmphasis.UPPER, preferences.coachPreferences.first().emphasis)
     }
 
     @Test

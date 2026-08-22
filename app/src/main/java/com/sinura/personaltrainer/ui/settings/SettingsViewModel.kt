@@ -18,6 +18,7 @@ import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
+import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -125,6 +126,10 @@ class SettingsViewModel @JvmOverloads constructor(
 
     fun setTrainingGoal(goal: TrainingGoal) {
         viewModelScope.launch { container.preferencesRepository.setTrainingGoal(goal) }
+    }
+
+    fun setTrainingEmphasis(emphasis: TrainingEmphasis) {
+        viewModelScope.launch { container.preferencesRepository.setTrainingEmphasis(emphasis) }
     }
 
     /**

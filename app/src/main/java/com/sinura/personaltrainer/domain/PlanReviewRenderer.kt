@@ -6,7 +6,7 @@ package com.sinura.personaltrainer.domain
  * The catalog got one of these in Phase 3 and it was the only reason 98 rows of authored
  * judgment could be reviewed at all. This is the same bet on a harder problem: which lifts go
  * in a session, in what order, at what sets and reps is a training opinion, and an opinion
- * nobody can see is an opinion nobody can disagree with. There are 135 reachable combinations;
+ * nobody can see is an opinion nobody can disagree with. There are 180 reachable combinations;
  * reading them on a phone one screen at a time is not review.
  *
  * Golden-file tested against the committed artifact, so the document and the generator cannot
@@ -60,7 +60,62 @@ object PlanReviewRenderer {
                 }
             }
         }
+        appendEmphasis(out, catalog)
         return out.toString()
+    }
+
+    /**
+     * Balanced already appears above. These two rows exist so a reviewer can see that
+     * emphasis actually changes the week, without tripling the 135-program matrix.
+     */
+    private fun appendEmphasis(out: StringBuilder, catalog: List<Exercise>) {
+        out.appendLine("## Emphasis")
+        out.appendLine()
+        out.appendLine(
+            "Same answers (on and off, 4 days, a full gym, general), then Upper vs Lower. " +
+                "Balanced is the row already printed above.",
+        )
+        out.appendLine()
+        listOf(TrainingEmphasis.UPPER, TrainingEmphasis.LOWER).forEach { emphasis ->
+            val answers = OnboardingAnswers(
+                trainingAge = TrainingAge.RETURNING,
+                daysPerWeek = 4,
+                place = TrainingPlace.FULL_GYM,
+                goal = TrainingGoal.GENERAL,
+                emphasis = emphasis,
+            )
+            val plan = RoutineGenerator.generate(answers, catalog)
+            out.appendLine(
+                "### ${answers.trainingAge.displayName} · 4 days · ${answers.goal.displayName} · " +
+                    "${emphasis.displayName} → ${plan.splitStyle.displayName}",
+            )
+            out.appendLine()
+            val week = plan.days.joinToString(" ") { day ->
+                val label = day.dayOfWeek.shortLabel()
+                if (day.isRest) "_${label}_" else "**$label**"
+            }
+            val kinds = plan.days.mapNotNull { day ->
+                if (day.isRest) null else plan.routineFor(day)?.focusKind?.label
+            }
+            out.appendLine(
+                "$week — ${plan.trainingDayCount} training days (${kinds.joinToString(" / ")})",
+            )
+            out.appendLine()
+            plan.routines.forEach { routine ->
+                out.appendLine("**${routine.name}**")
+                out.appendLine()
+                out.appendLine("| # | Lift | Equipment | Sets × Reps | Rest |")
+                out.appendLine("|---|---|---|---|---|")
+                routine.lifts.forEachIndexed { index, lift ->
+                    val targets = lift.targets
+                    out.appendLine(
+                        "| ${index + 1} | ${lift.name} | ${lift.equipment.label} | " +
+                            "${targets.sets} × ${targets.reps} | ${targets.restSeconds}s |",
+                    )
+                }
+                out.appendLine()
+            }
+        }
     }
 
     private fun appendPlan(

@@ -65,7 +65,7 @@ enum class TrainingPlace(val displayName: String, val blurb: String) {
 /**
  * Everything the guided setup asks, and nothing it does not.
  *
- * Six fields. Each one changes the plan that comes out the other side; a question whose answer
+ * Seven fields. Each one changes the plan that comes out the other side; a question whose answer
  * changes nothing is a screen the user pays for and gets nothing back. Height and body type
  * were both proposed and both cut for exactly that reason — nothing in a strength app consumes
  * a height, and somatotype does not predict how anyone responds to training.
@@ -81,6 +81,7 @@ data class OnboardingAnswers(
     val preferredDays: Set<DayOfWeek> = emptySet(),
     val place: TrainingPlace = TrainingPlace.FULL_GYM,
     val goal: TrainingGoal = TrainingGoal.GENERAL,
+    val emphasis: TrainingEmphasis = TrainingEmphasis.BALANCED,
     /** Null when skipped. Replaces the flat stand-in in bodyweight-set volume. */
     val bodyweightKg: Double? = null,
 ) {
@@ -98,6 +99,7 @@ data class OnboardingAnswers(
         } else {
             place.equipment.map { it.name }.toSet()
         },
+        emphasis = emphasis,
     )
 
     fun schedulePreferences(weekStart: DayOfWeek = DayOfWeek.MONDAY): SchedulePreferences =

@@ -51,9 +51,11 @@ import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.DayLabel
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.NumericEntry
+import com.sinura.personaltrainer.domain.PlanSetupCopy
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
+import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -156,6 +158,7 @@ fun SettingsScreen(
                 bodyweightKg = bodyweightKg,
                 unit = selectedUnit,
                 onGoal = viewModel::setTrainingGoal,
+                onEmphasis = viewModel::setTrainingEmphasis,
                 onToggleEquipment = viewModel::toggleEquipment,
                 onRecordBodyweight = viewModel::recordBodyweight,
                 onClearBodyweight = viewModel::clearBodyweight,
@@ -339,6 +342,7 @@ private fun CoachingSection(
     bodyweightKg: Double?,
     unit: WeightUnit,
     onGoal: (TrainingGoal) -> Unit,
+    onEmphasis: (TrainingEmphasis) -> Unit,
     onToggleEquipment: (EquipmentType) -> Unit,
     onRecordBodyweight: (Double) -> Unit,
     onClearBodyweight: () -> Unit,
@@ -363,7 +367,9 @@ private fun CoachingSection(
     }
     SettingsGroup(
         title = "Coaching",
-        caption = "Your goal reorders the suggestions; it never changes what they are. " +
+        caption = "Emphasis changes which days Suggest fills. Athletic changes the lifts in " +
+            "the next week you generate. Neither rewrites days you already pinned. The " +
+            "coach's cards stay the same set; strength and muscle only reorder them. " +
             "Turning equipment off stops the coach naming lifts you cannot do.",
     ) {
         GroupedList(modifier = Modifier.selectableGroup()) {
@@ -376,6 +382,26 @@ private fun CoachingSection(
                     modifier = Modifier.selectable(
                         selected = selected,
                         onClick = { onGoal(goal) },
+                        role = Role.RadioButton,
+                    ),
+                    trailing = {
+                        if (selected) {
+                            Icon(Icons.Outlined.Check, contentDescription = null, tint = Volt)
+                        }
+                    },
+                )
+            }
+        }
+        GroupedList(modifier = Modifier.selectableGroup()) {
+            TrainingEmphasis.entries.forEachIndexed { index, emphasis ->
+                if (index > 0) HairlineDivider()
+                val selected = preferences.emphasis == emphasis
+                InstrumentRow(
+                    title = emphasis.displayName,
+                    subtitle = emphasis.blurb,
+                    modifier = Modifier.selectable(
+                        selected = selected,
+                        onClick = { onEmphasis(emphasis) },
                         role = Role.RadioButton,
                     ),
                     trailing = {
@@ -693,13 +719,12 @@ private fun BackupStampRow(
 private fun PlanSetupSection(onRerun: () -> Unit) {
     SettingsGroup(
         title = "Your plan",
-        caption = "Answer the setup questions again to generate a fresh week. Your existing " +
-            "routines and history are kept — new sessions are added alongside them.",
+        caption = PlanSetupCopy.CAPTION,
     ) {
         GroupedList {
             InstrumentRow(
-                title = "Rebuild my plan",
-                subtitle = "Six questions, then a preview before anything changes",
+                title = PlanSetupCopy.ROW_TITLE,
+                subtitle = PlanSetupCopy.ROW_SUBTITLE,
                 onClick = onRerun,
             )
         }

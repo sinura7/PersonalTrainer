@@ -225,6 +225,7 @@ object BackupJson {
             restVibrationEnabled = prefs.bool("restVibrationEnabled", true),
             defaultRestSeconds = prefs.int("defaultRestSeconds", 90),
             trainingGoal = prefs.string("trainingGoal", "GENERAL"),
+            trainingEmphasis = prefs.string("trainingEmphasis", "BALANCED"),
             availableEquipment = prefs.stringList("availableEquipment"),
             heatWindow = prefs.string("heatWindow", "CURRENT_WEEK"),
             // Absent and null both mean "not told", which is a different thing from zero.
