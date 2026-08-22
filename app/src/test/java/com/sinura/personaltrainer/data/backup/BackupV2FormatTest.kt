@@ -60,6 +60,10 @@ class BackupV2FormatTest {
         )
         assertEquals(emptyList<BackupExerciseMuscle>(), parsed.exerciseMuscles)
         assertEquals(emptyList<BackupScheduleSlot>(), parsed.scheduleSlots)
+        // Job 3 fields: an older file must not fail decode. Empty means "infer".
+        assertEquals("", parsed.preferences.trainingAge)
+        assertEquals(emptyList<String>(), parsed.preferences.preferredDays)
+        assertEquals("", parsed.preferences.trainingPlace)
     }
 
     @Test

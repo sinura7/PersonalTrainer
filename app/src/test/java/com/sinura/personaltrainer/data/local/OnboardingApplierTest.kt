@@ -146,6 +146,8 @@ class OnboardingApplierTest {
         val equipment = preferences.coachPreferences.first().availableEquipment
         assertTrue(equipment.isNotEmpty())
         assertTrue("BARBELL" !in equipment)
+        assertEquals(TrainingAge.RETURNING, preferences.trainingAge.first())
+        assertEquals(TrainingPlace.HOME_DUMBBELLS, preferences.trainingPlace.first())
     }
 
     @Test
@@ -169,6 +171,7 @@ class OnboardingApplierTest {
         val input = answers(days = 3, preferred = picked)
         applier.apply(input, RoutineGenerator.generate(input, catalog), catalog, WEEK_START, TODAY)
         assertEquals(picked, schedule.slots().mapNotNull { it.anchorDay }.toSet())
+        assertEquals(picked, preferences.preferredDays.first())
     }
 
     @Test

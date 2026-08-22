@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.WeekTwoCopy
 import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
 import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
@@ -339,9 +340,33 @@ fun PlanScreen(
                     ),
                 ) == true
                 val hasPins = week?.days?.any { !it.isRest } == true
-                if (hasOpenDay) {
+                val hasRoutines = state.routines.isNotEmpty()
+                if (!hasPins && hasRoutines) {
+                    item(key = "replay") {
+                        // Empty week with programs already here: replay is the recovery.
+                        // Suggest stays, quiet — heat-shaped fills are the other path.
+                        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                            PrimaryGymButton(
+                                text = WeekTwoCopy.VOLT,
+                                onClick = viewModel::replayStoredAnswers,
+                            )
+                            Text(
+                                WeekTwoCopy.CAPTION,
+                                style = InstrumentType.caption,
+                                color = TextSecondary,
+                            )
+                            TextButton(onClick = viewModel::suggestFills) {
+                                Text(
+                                    "Suggest a week",
+                                    style = InstrumentType.bodyStrong,
+                                    color = TextSecondary,
+                                )
+                            }
+                        }
+                    }
+                } else if (hasOpenDay) {
                     item(key = "suggest") {
-                        // Empty week: this is the recovery, same words and weight as Home.
+                        // Empty week, no routines: same words and weight as Home.
                         // Week with pins: quiet — filling holes is not the page's one act.
                         if (!hasPins) {
                             PrimaryGymButton(

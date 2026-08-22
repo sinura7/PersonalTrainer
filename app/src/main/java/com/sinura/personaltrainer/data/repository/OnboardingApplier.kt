@@ -70,6 +70,12 @@ class OnboardingApplier(
             preferencesRepository.setTrainingGoal(coach.goal)
             preferencesRepository.setTrainingEmphasis(coach.emphasis)
             preferencesRepository.setAvailableEquipment(coach.availableEquipment)
+            // Age, preferred days and place used to die at accept. Replay of an empty week
+            // has to reconstruct the questionnaire from what is already stored — without
+            // these three it can only guess NEW / spaced days / inferPlace.
+            preferencesRepository.setTrainingAge(clean.trainingAge)
+            preferencesRepository.setPreferredDays(clean.preferredDays)
+            preferencesRepository.setTrainingPlace(clean.place)
             // Recorded as a weigh-in, not just stored: it is the opening reading of the block
             // being started on the next line, and the block review compares against it.
             clean.bodyweightKg?.let { kg ->

@@ -168,7 +168,7 @@ packets and what they must not do.
 
 ---
 
-### P1 — Replay stored answers (empty week) · **next**
+### P1 — Replay stored answers (empty week) · **next** (this PR · phone pending)
 
 **Goal.** Empty week + routines exist → one tap rebuilds the setup layout on
 the routines they already have. Nothing is created. Nothing is deleted.

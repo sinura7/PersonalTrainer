@@ -20,9 +20,11 @@ import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
+import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
+import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
 import java.time.DayOfWeek
 import kotlinx.coroutines.flow.Flow
@@ -91,6 +93,60 @@ class PreferencesRepository(context: Context) {
 
     suspend fun setAvailableEquipment(equipment: Set<String>) {
         dataStore.edit { prefs -> prefs[AVAILABLE_EQUIPMENT] = equipment }
+    }
+
+    val trainingAge: Flow<TrainingAge> = safePreferences
+        .map { prefs -> TrainingAge.fromStorage(prefs[TRAINING_AGE]) }
+
+    suspend fun setTrainingAge(age: TrainingAge) {
+        dataStore.edit { prefs -> prefs[TRAINING_AGE] = age.name }
+    }
+
+    val preferredDays: Flow<Set<DayOfWeek>> = safePreferences
+        .map { prefs -> preferredDaysFrom(prefs[PREFERRED_DAYS]) }
+
+    suspend fun setPreferredDays(days: Set<DayOfWeek>) {
+        dataStore.edit { prefs -> prefs[PREFERRED_DAYS] = days.map { it.name }.toSet() }
+    }
+
+    /**
+     * Null means the key was never written — an install from before Job 3, or a restore of
+     * a file that predates the field. Readers call [OnboardingAnswers.inferPlace] in that
+     * case rather than pretending everyone trains in a full gym.
+     */
+    val trainingPlace: Flow<TrainingPlace?> = safePreferences
+        .map { prefs -> prefs[TRAINING_PLACE]?.let { TrainingPlace.fromStorage(it) } }
+
+    suspend fun setTrainingPlace(place: TrainingPlace) {
+        dataStore.edit { prefs -> prefs[TRAINING_PLACE] = place.name }
+    }
+
+    /**
+     * The questionnaire, reconstructed from what is already stored.
+     *
+     * One snapshot so a replay tap cannot mix a just-changed goal with yesterday's days.
+     */
+    suspend fun storedOnboardingAnswers(): OnboardingAnswers {
+        val prefs = safePreferences.first()
+        val coach = CoachPreferences(
+            goal = TrainingGoal.fromStorage(prefs[TRAINING_GOAL]),
+            availableEquipment = prefs[AVAILABLE_EQUIPMENT].orEmpty(),
+            emphasis = TrainingEmphasis.fromStorage(prefs[TRAINING_EMPHASIS]),
+        )
+        val place = prefs[TRAINING_PLACE]?.let { TrainingPlace.fromStorage(it) }
+            ?: OnboardingAnswers.inferPlace(coach.availableEquipment)
+        val bodyweight = prefs[BODYWEIGHT_KG]?.takeIf {
+            it.isFinite() && it in OnboardingAnswers.MIN_BODYWEIGHT_KG..OnboardingAnswers.MAX_BODYWEIGHT_KG
+        }
+        return OnboardingAnswers.fromStored(
+            trainingAge = TrainingAge.fromStorage(prefs[TRAINING_AGE]),
+            daysPerWeek = prefs[TRAINING_DAYS] ?: SchedulePreferences.DEFAULT_DAYS,
+            preferredDays = preferredDaysFrom(prefs[PREFERRED_DAYS]),
+            place = place,
+            goal = coach.goal,
+            emphasis = coach.emphasis,
+            bodyweightKg = bodyweight,
+        )
     }
 
     /**
@@ -247,6 +303,9 @@ class PreferencesRepository(context: Context) {
         dismissedCollisionIds: Set<String>,
         block: TrainingBlock?,
         pastBlocks: List<TrainingBlock>,
+        trainingAge: TrainingAge,
+        preferredDays: Set<DayOfWeek>,
+        trainingPlace: TrainingPlace,
     ) {
         val cleanSchedule = schedule.sanitized()
         val cleanRest = rest.sanitized()
@@ -294,6 +353,9 @@ class PreferencesRepository(context: Context) {
             } else {
                 prefs[PAST_BLOCKS] = BlockArchive.encode(pastBlocks)
             }
+            prefs[TRAINING_AGE] = trainingAge.name
+            prefs[PREFERRED_DAYS] = preferredDays.map { it.name }.toSet()
+            prefs[TRAINING_PLACE] = trainingPlace.name
         }
     }
 
@@ -502,5 +564,13 @@ class PreferencesRepository(context: Context) {
         val LAST_BACKUP_NAME = stringPreferencesKey("last_backup_name")
         val LAST_RESTORE_AT = longPreferencesKey("last_restore_at")
         val LAST_RESTORE_NAME = stringPreferencesKey("last_restore_name")
+        val TRAINING_AGE = stringPreferencesKey("training_age")
+        val PREFERRED_DAYS = stringSetPreferencesKey("preferred_days")
+        val TRAINING_PLACE = stringPreferencesKey("training_place")
+
+        fun preferredDaysFrom(raw: Set<String>?): Set<DayOfWeek> =
+            raw.orEmpty().mapNotNull { name ->
+                DayOfWeek.entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
+            }.toSet()
     }
 }
