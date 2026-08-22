@@ -125,7 +125,7 @@ that is a better floor move than stuffing jumps into a Push template.
 
 ## Packets
 
-### P0 — Imagery: one body, both sides · **next** (this PR)
+### P0 — Imagery: one body, both sides · **next** (this PR · phone pending)
 
 **Goal.** Front, back, thumbs, empty mark, and the launcher language read as
 the same figure. High quality still means **plates**, not a photograph and not
@@ -160,7 +160,7 @@ reviews).
 
 ---
 
-### P1 — Emphasis (upper / lower / balanced) · *later* (after P0)
+### P1 — Emphasis (upper / lower / balanced) · **done** (code in #12 / #13 · phone pending)
 
 **Goal.** “I care about the upper body” is a real lever. It changes the week
 you see.
@@ -204,7 +204,7 @@ fixture for the same other answers.
 
 ---
 
-### P2 — Athletic as a fourth goal · *later* (after P1)
+### P2 — Athletic as a fourth goal · **done** (code in #13 · phone pending)
 
 **Goal.** “I train for sport” is not “I train for size.” The preview’s lifts
 change.
@@ -236,7 +236,7 @@ the sport.”
 
 ---
 
-### P3 — Preview that explains itself · *later* (after P2)
+### P3 — Preview that explains itself · **done** (code in #13 · phone pending)
 
 **Goal.** The lifter can see *why* Tuesday is Upper before they accept.
 
@@ -254,7 +254,7 @@ accepting without opening a routine.
 
 ---
 
-### P4 — Job 2 after week one · *later* (after P3)
+### P4 — Job 2 after week one · **done** (code in #13 · phone pending)
 
 **Goal.** The builder is not only a first-run screen.
 
@@ -263,9 +263,9 @@ accepting without opening a routine.
 - Plan tab empty week already has volt Suggest. Keep it.
 - Settings re-run setup already exists. Add a line: “This adds a new block. It
   does not delete history.”
-- When Suggest runs, pass current `CoachPreferences` (goal, kit, emphasis)
-  into the planner/generator so a later fill matches the person, not a
-  default ghost.
+- When Suggest runs, pass current emphasis into the planner so a later fill
+  matches the person, not a default ghost. Athletic / kit change the **next
+  generated** week (setup re-run), not a Suggest rewrite of existing routines.
 - Do not auto-reshape a pinned week because they changed emphasis in
   Settings. Pins are owned. Suggest is the offer.
 
@@ -290,14 +290,14 @@ hormone lecture.
 
 ---
 
-### P6 — Catalog depth for the new templates · *later*
+### P6 — Catalog depth for the new templates · **won't** (for now)
 
 **Goal.** Athletic and emphasis do not resolve to the same five lifts for
 every home-gym user.
 
-**Work.** Only after P2: audit `FALLBACKS` and home-dumbbell coverage for
-carry, lunge, hinge, step-up. Add built-ins only through the existing seed
-bump process (versioned seed, review artifact, no hand-edited schema).
+**Work.** Audited during P2. The families were already in the catalog. Do not
+add a seed bump for a hole that is not there. If a later Athletic week
+collapses to five lifts for a real home-gym user, reopen this packet.
 
 **Gate.** Bodyweight-only + Athletic still produces ≥ 4 lifts on a full-body
 day. Home-dumbbells + UPPER does not emit a barbell-only family with no
@@ -363,6 +363,12 @@ After each packet that ships UI:
 3. **Imagery before generator depth.** The body is how the program is seen.
    Shared structure plates beat two independently-tuned silhouettes.
 4. **Pins stay owned.** A preference change is not a rewrite of the week.
+5. **P6 is not needed yet.** `carry`, `step-up`, and `kettlebell-swing` are
+   already in the catalog. Bodyweight Athletic still fills ≥ 4 lifts; home
+   dumbbells never emit a barbell-only family with no alternate.
+6. **Suggest remaps days, it does not regenerate lifts.** Emphasis changes
+   which open days Suggest fills. Athletic templates apply when you generate
+   a week (setup / re-run). A Settings goal change does not rewrite routines.
 
 ---
 
