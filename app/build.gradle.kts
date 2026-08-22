@@ -66,6 +66,10 @@ android {
     buildTypes {
         debug {
             // Debug signing stays on the default debug keystore.
+            // A different id so Run ▶ cannot open the release history. The next
+            // debug install is a new app; uninstall the old debug (same id as
+            // release, debug-signed) when you see two Temper icons.
+            applicationIdSuffix = ".debug"
         }
         release {
             isMinifyEnabled = false

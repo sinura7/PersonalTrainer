@@ -42,8 +42,9 @@ the tip only — not each layer as if they were strangers.
 ## Phone check
 
 Checkout the PR branch in Studio. Judge that build. Never run
-`connectedDebugAndroidTest` on the real `applicationId` (shared with
-release; real history).
+`connectedDebugAndroidTest` on the release `applicationId`. Debug is
+`com.sinura.personaltrainer.debug` — a separate app. The connected suite
+targets that id. Use the emulator, not the gym-floor phone.
 
 ## Still not these jobs
 

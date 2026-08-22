@@ -16,7 +16,8 @@ Status: **done** · **next** · *later* · **won't**
 2. A page is done when its **gate** is true on a phone, not when the code looks finished.
 3. Architecture already exists. Prefer a targeted fix over a rewrite.
 4. After every page: `./gradlew testDebugUnitTest`, `assembleDebug`, commit, push, update the PR.
-5. Do not run `connectedDebugAndroidTest` against the owner's phone (shared `applicationId`).
+5. Do not run `connectedDebugAndroidTest` against the gym-floor phone. That
+   lane targets `com.sinura.personaltrainer.debug` (Job 3 / P4). Use the emulator.
 
 When you find a better idea, record it here in the same turn you ship it. The next
 agent (or the same one tomorrow) should be able to read this file and know both

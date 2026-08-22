@@ -175,15 +175,15 @@ Suggest honours emphasis). Phone gates remain the owner's.
 [JOB2_ACTION_PLAN.md](JOB2_ACTION_PLAN.md). P5 sex waits for a real sentence.
 P6 catalog is won't — families already exist.
 
-**Job 3 (in flight).** Replay stored answers and the lighter-week marker are
-on `trunk` (phone pending). Next: ViewModel JVM tests for Home / Plan /
-setup, then debug `applicationIdSuffix`. Pins already survive Monday — week
-two with pins is not a feature. Packets, gates, won'ts:
+**Job 3 (in flight).** Replay, lighter week, and Home / Plan / setup
+ViewModel JVM tests are on `trunk` (phone pending). Last packet: debug
+`applicationIdSuffix` — the next debug install is a new app. Pins already
+survive Monday — week two with pins is not a feature. Packets, gates, won'ts:
 [JOB3_ACTION_PLAN.md](JOB3_ACTION_PLAN.md).
 
 **Review baseline (22 Aug 2026).** Full-tree audit after Job 2 landed on `trunk`.
 No open PRs. Q4 onboarding ANR on the cloud emulator is environment — `setPlace`
-advances. Shared `applicationId` stays later (signed). Packets from this baseline:
+advances. Debug `applicationIdSuffix` is Job 3 / P4 (this packet). Packets from this baseline:
 
 | Item | Severity | Packet |
 |---|---|---|
