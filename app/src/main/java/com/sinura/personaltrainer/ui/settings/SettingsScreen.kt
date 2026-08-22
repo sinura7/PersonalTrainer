@@ -51,6 +51,7 @@ import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.DayLabel
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.NumericEntry
+import com.sinura.personaltrainer.domain.PlanSetupCopy
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
@@ -717,13 +718,12 @@ private fun BackupStampRow(
 private fun PlanSetupSection(onRerun: () -> Unit) {
     SettingsGroup(
         title = "Your plan",
-        caption = "Answer the setup questions again to generate a fresh week. Your existing " +
-            "routines and history are kept — new sessions are added alongside them.",
+        caption = PlanSetupCopy.CAPTION,
     ) {
         GroupedList {
             InstrumentRow(
-                title = "Rebuild my plan",
-                subtitle = "Seven questions, then a preview before anything changes",
+                title = PlanSetupCopy.ROW_TITLE,
+                subtitle = PlanSetupCopy.ROW_SUBTITLE,
                 onClick = onRerun,
             )
         }
