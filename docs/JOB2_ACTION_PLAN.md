@@ -368,7 +368,7 @@ After each packet that ships UI:
 
 ## Verification
 
-- [ ] `./gradlew testDebugUnitTest`
-- [ ] `./gradlew assembleDebug`
-- [ ] This file updated if we left the written line
-- [ ] Phone gate for the packet that just shipped
+- [x] `./gradlew testDebugUnitTest` — 647 tests, 0 failures (P0)
+- [x] `./gradlew assembleDebug`
+- [x] This file updated if we left the written line
+- [ ] Phone gate for the packet that just shipped (P0: Body flip + Library thumbs + empty mark)

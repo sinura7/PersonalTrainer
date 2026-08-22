@@ -239,7 +239,7 @@ private val FRONT_WORKING: List<BodyPlate> = listOf(
     ),
     plate(CanonicalMuscle.CORE, 0.378f, 0.316f, 0.622f, 0.316f, 0.632f, 0.378f, 0.368f, 0.378f),
     plate(CanonicalMuscle.CORE, 0.368f, 0.386f, 0.632f, 0.386f, 0.638f, 0.448f, 0.362f, 0.448f),
-    plate(CanonicalMuscle.CORE, 0.362f, 0.456f, 0.638f, 0.456f, 0.618f, 0.508f, 0.382f, 0.508f),
+    plate(CanonicalMuscle.CORE, 0.358f, 0.456f, 0.642f, 0.456f, 0.618f, 0.508f, 0.382f, 0.508f),
     plate(CanonicalMuscle.CORE, 0.278f, 0.318f, 0.360f, 0.328f, 0.354f, 0.390f, 0.268f, 0.382f),
     plate(CanonicalMuscle.CORE, 0.722f, 0.318f, 0.640f, 0.328f, 0.646f, 0.390f, 0.732f, 0.382f),
     plate(CanonicalMuscle.CORE, 0.268f, 0.398f, 0.352f, 0.406f, 0.362f, 0.478f, 0.262f, 0.468f),
