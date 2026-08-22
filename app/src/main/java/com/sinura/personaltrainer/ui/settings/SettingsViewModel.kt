@@ -5,7 +5,9 @@ import android.app.Application
 import android.content.IntentSender
 import android.net.Uri
 import androidx.lifecycle.viewModelScope
+import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
@@ -53,7 +55,10 @@ data class BackupUiState(
 
 private const val TAG = "PT/SettingsVM"
 
-class SettingsViewModel(application: Application) : AppViewModel(application) {
+class SettingsViewModel @JvmOverloads constructor(
+    application: Application,
+    container: AppDependencies = application.appContainer(),
+) : AppViewModel(application, container) {
     val weightUnit: StateFlow<WeightUnit> = container.preferencesRepository.weightUnit
         .stateIn(
             scope = viewModelScope,

@@ -57,6 +57,7 @@ import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.CustomRestDialog
 import com.sinura.personaltrainer.ui.components.GroupedList

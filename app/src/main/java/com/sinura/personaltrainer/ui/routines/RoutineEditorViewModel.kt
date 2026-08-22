@@ -5,7 +5,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
+import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
 import com.sinura.personaltrainer.domain.EditorPhase
@@ -60,10 +62,11 @@ data class RoutineEditorUiState(
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class RoutineEditorViewModel(
+class RoutineEditorViewModel @JvmOverloads constructor(
     application: Application,
     savedStateHandle: SavedStateHandle,
-) : AppViewModel(application) {
+    container: AppDependencies = application.appContainer(),
+) : AppViewModel(application, container) {
     private val incomingId: String? = RoutineEditorPolicy.incomingId(
         savedStateHandle.get<String>("routineId"),
     )

@@ -58,10 +58,10 @@ Then the state-graph work the audit called for:
 - **A3** — prefill left the `uiState` chain, which it was both an output of and an input
   to; actions read hot `StateFlow`s instead of a `WhileSubscribed` projection.
 
-> **Outstanding: A1**, the DI seam. `AppViewModel` is still a service locator over a
-> concrete `AppContainer`, so ViewModels cannot be constructed in a test. Deferred
-> deliberately: the refactor touches every screen and its only payoff is testability that
-> cannot be exercised until there is an instrumented-test harness. Do it with Phase 4.
+> **A1 closed 22 Aug 2026.** ViewModels take `AppDependencies` in the constructor.
+> Production still resolves the graph from `AppContainer` via `@JvmOverloads` so the
+> default `viewModel()` factory is unchanged. Tests construct a ViewModel with a fake
+> graph instead of reaching through `Application`.
 
 ---
 
@@ -160,9 +160,10 @@ Full packets live in `docs/archive/gameplan/`; the execution protocol is
 
 | 11th | **9 — The guided setup** ✅ 21 Aug *(not in the original plan)* | Came out of a UX audit of the finished ten phases, which found every screen assumed a lifter who already had routines and a pinned week — and a fresh install had neither. Six questions, one per screen, then a preview of the real week with the real lifts, then one button. The split is derived, never asked. Nothing is written until "Use this plan", and re-running it from Settings deletes nothing. Also closed four defects on the cold-start path, including a **compile break that had been on the branch for three phases**. | 2–3 | 0.5 |
 
-**A1 (the DI seam) is not a phase.** It is an opportunistic refactor, hard 2-day
-timebox, undertaken only if instrumented ViewModel tests are ever scheduled. Nothing
-gates on it. (Supersedes the "Do it with Phase 4" note at Phase 2's outstanding item.)
+**A1 (the DI seam) landed 22 Aug 2026** as the opportunistic refactor this note always
+was — not a phase. ViewModels are constructor-injected with `AppDependencies`.
+`WorkoutRepository` and `ScheduleRepository` now have `androidTest` coverage on real
+SQLite. ViewModel and screen instrumented tests are still unscheduled.
 
 ---
 
@@ -173,8 +174,8 @@ Carried forward deliberately, with the phase that will address them.
 
 | Item | Phase |
 |---|---|
-| No instrumented tests; repositories, DAOs, ViewModels, screens untested | 2 |
-| ViewModels untestable by construction (service-locator `AppViewModel`) — A1 | opportunistic — not a phase |
+| Instrumented tests cover migrations plus `WorkoutRepository` / `ScheduleRepository`; DAOs, ViewModels and screens still untested | later — opportunistic |
+| ~~ViewModels untestable by construction (service-locator `AppViewModel`) — A1~~ | ~~opportunistic~~ done 22 Aug 2026 — constructor-injected `AppDependencies` |
 | Finished sessions cannot be edited | ~~1~~ fixed 21 Aug — sets, notes, session delete, repeat |
 | Routine editor loses an unsaved rename on back | ~~4~~ fixed 20 Aug |
 | Imbalance advice compares tonnage, not working-set counts | ~~5~~ fixed 21 Aug — weighted weekly sets |

@@ -2,7 +2,9 @@ package com.sinura.personaltrainer.ui.progress
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
+import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.InsightFailure
@@ -30,7 +32,10 @@ data class ProgressUiState(
     val notice: String? = null,
 )
 
-class ProgressViewModel(application: Application) : AppViewModel(application) {
+class ProgressViewModel @JvmOverloads constructor(
+    application: Application,
+    container: AppDependencies = application.appContainer(),
+) : AppViewModel(application, container) {
     /**
      * Seeded from the stored preference, so the map opens on the window you last chose rather
      * than resetting to a default every time the process dies.

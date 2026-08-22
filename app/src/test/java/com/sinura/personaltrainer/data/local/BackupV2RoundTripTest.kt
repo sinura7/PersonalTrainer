@@ -166,7 +166,7 @@ class BackupV2RoundTripTest {
     }
 
     @Test
-    fun aRestoreKeepsYouWhereYouWereInYourBlock() {
+    fun aRestoreKeepsYouWhereYouWereInYourBlock() = runBlocking {
         // A block is a horizon and a review date. Losing it on a restore would put a lifter
         // back at week one of nothing with eleven weeks of the work already behind them.
         maintenance.seedCatalog()
@@ -184,7 +184,7 @@ class BackupV2RoundTripTest {
     }
 
     @Test
-    fun finishedBlocksTravelWithTheBackup() {
+    fun finishedBlocksTravelWithTheBackup() = runBlocking {
         // Three years of finished blocks is a record of what you did. A new phone that lost it
         // would show a lifter with a full history their first ever block.
         maintenance.seedCatalog()
@@ -216,7 +216,7 @@ class BackupV2RoundTripTest {
     }
 
     @Test
-    fun anUnfinishedBlockIsNotArchivedWhenItIsReplaced() {
+    fun anUnfinishedBlockIsNotArchivedWhenItIsReplaced() = runBlocking {
         // Re-running setup half way through a block discards it. A block you abandoned is not
         // a result, and listing it beside blocks you finished would make the list meaningless.
         preferences.beginBlock(TrainingBlock(startEpochDay = 20_000L, weeks = 12), 20_000L)
@@ -225,7 +225,7 @@ class BackupV2RoundTripTest {
     }
 
     @Test
-    fun restoringABackupWithNoBlockLeavesYouInNone() {
+    fun restoringABackupWithNoBlockLeavesYouInNone() = runBlocking {
         // Null is a real answer: someone who built their routines by hand never started a
         // block, and an implied one would invent a milestone they never set.
         preferences.setTrainingBlock(TrainingBlock(startEpochDay = 20_500L, weeks = 8))

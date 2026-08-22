@@ -3,7 +3,9 @@ package com.sinura.personaltrainer.ui.summary
 import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.WorkoutSummary
 import com.sinura.personaltrainer.domain.WorkoutSummaryBuilder
 import com.sinura.personaltrainer.logging.AppLog
@@ -31,10 +33,11 @@ data class WorkoutSummaryUiState(
  * behind it walks each lift's whole history — re-running that on every unrelated database
  * write would be pure waste.
  */
-class WorkoutSummaryViewModel(
+class WorkoutSummaryViewModel @JvmOverloads constructor(
     application: Application,
     savedStateHandle: SavedStateHandle,
-) : AppViewModel(application) {
+    container: AppDependencies = application.appContainer(),
+) : AppViewModel(application, container) {
     private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
 
     private val _uiState = MutableStateFlow(WorkoutSummaryUiState())

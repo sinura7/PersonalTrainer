@@ -2,7 +2,9 @@ package com.sinura.personaltrainer.ui.onboarding
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
+import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.appContainer
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -25,7 +27,10 @@ enum class OnboardingGate {
  * planless screen this whole phase exists to stop anyone seeing. Defaulting to SETUP would be
  * worse still, flashing a questionnaire at everybody who already finished it.
  */
-class OnboardingGateViewModel(application: Application) : AppViewModel(application) {
+class OnboardingGateViewModel @JvmOverloads constructor(
+    application: Application,
+    container: AppDependencies = application.appContainer(),
+) : AppViewModel(application, container) {
     val gate: StateFlow<OnboardingGate> = container.preferencesRepository.onboardingComplete
         .map { complete -> if (complete) OnboardingGate.APP else OnboardingGate.SETUP }
         .stateIn(
