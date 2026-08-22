@@ -209,7 +209,7 @@ if the phone wants it). Changing vibration. A new notification channel.
 
 ---
 
-### P3 — Plates, type-in, pounds default · **done** (this PR · phone pending)
+### P3 — Plates, type-in, pounds default · **done** (this PR · 719 JVM · phone pending)
 
 **Goal.** A barbell's weight stepper can say how the bar is made, the
 number can be typed, and a first run thinks in pounds.
@@ -389,7 +389,7 @@ P1 is a GitHub Actions page, not a phone.
 - [x] This file written; ROADMAP / UX / owner-loop retarget
 - [ ] P1 `ci.yml` lists `trunk`
 - [x] P2 one cue, existing toggle (713 JVM)
-- [x] P3 plates + type-in hint + pounds default (this PR)
+- [x] P3 plates + type-in hint + pounds default (719 JVM)
 - [ ] P4 log loop at font 2.0
 - [ ] P5 stale-backup prompt
 - [ ] Phone gates still the owner's
