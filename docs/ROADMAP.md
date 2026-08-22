@@ -182,10 +182,11 @@ Home / Plan / setup ViewModel JVM tests; debug is
 (unpin+replay, Tune+HOLD, two icons). Packets, gates, won'ts:
 [JOB3_ACTION_PLAN.md](JOB3_ACTION_PLAN.md).
 
-**Job 4 (in flight).** Deload card marks this week; Home replay when
-routines exist (phone pending). Settings / History / Progress JVM
-contracts are on `trunk`. Next: backup caption + Finish helper.
-Packets, gates, won'ts:
+**Job 4 · code-done on `trunk` (22 Aug 2026).** Deload card marks this
+week; Home replay when routines exist; Settings / History / Progress
+JVM contracts; Backup caption and Finish helper tell the truth before
+the tap. Phone gates remain the owner's (card+HOLD, Home replay,
+Backup/Finish copy). Packets, gates, won'ts:
 [JOB4_ACTION_PLAN.md](JOB4_ACTION_PLAN.md).
 
 **Review baseline (22 Aug 2026).** Full-tree audit after Job 2 landed on `trunk`.

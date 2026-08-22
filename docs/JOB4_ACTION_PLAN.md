@@ -10,8 +10,9 @@ Status: **done** · **next** · *later* · **won't**
 
 ## What this is
 
-Jobs 1–3 are **code-done on `trunk`**. The week can be generated, replayed,
-and marked lighter. Phone gates are still the owner's.
+Jobs 1–4 are **code-done on `trunk`**. The week can be generated, replayed,
+and marked lighter. The card tap marks it. Home replay matches Plan.
+Phone gates are still the owner's.
 
 Job 4 is the honesty pass those packets left open. The coach can already
 see overreaching. The Tune chip can already mark the week. Home can already
@@ -223,7 +224,7 @@ release. A fake that reimplements `WeekDerivation`.
 
 ---
 
-### P4 — Two sentences that stop a dead control · **next** (this PR)
+### P4 — Two sentences that stop a dead control · **done** (merged · phone pending)
 
 **Goal.** The file and the Finish button tell the truth before the tap.
 
@@ -304,6 +305,8 @@ Do not deviate into sex, catalog seed, Room v3, or plate calculator.
    ROADMAP was stale.
 5. **Progress has no weekPlan.** Mark from today + `weekStart`. Do not
    turn the planner on for Body.
+6. **`preferencesDataStore` is a process singleton.** A unique `filesDir`
+   is not enough. Fake graphs need their own `PreferenceDataStoreFactory`.
 
 ---
 
@@ -313,5 +316,5 @@ Do not deviate into sex, catalog seed, Room v3, or plate calculator.
 - [x] P1 JVM + assemble (phone: card tap HOLDs)
 - [x] P2 JVM + assemble (phone: Home replay)
 - [x] P3 three ViewModel test classes, 0 failures (706 JVM)
-- [ ] P4 two captions
+- [x] P4 two captions (phone: Backup + Finish helper)
 - [ ] Phone gates still the owner's
