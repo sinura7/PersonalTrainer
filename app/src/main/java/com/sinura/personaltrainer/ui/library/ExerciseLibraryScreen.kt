@@ -23,7 +23,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.PlaylistAdd
+import androidx.compose.material.icons.automirrored.outlined.PlaylistAdd
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -476,7 +476,7 @@ private fun LibraryRow(
     ) {
         IconButton(onClick = onAddToRoutine) {
             Icon(
-                Icons.Outlined.PlaylistAdd,
+                Icons.AutoMirrored.Outlined.PlaylistAdd,
                 contentDescription = "Add ${exercise.name} to a routine",
                 tint = TextSecondary,
             )
