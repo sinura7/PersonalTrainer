@@ -34,6 +34,7 @@ import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.TrainingBlock
+import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.WeightUnit
 import kotlinx.coroutines.flow.first
@@ -119,6 +120,7 @@ class LocalBackupRepository(
                 restVibrationEnabled = rest.vibrationEnabled,
                 defaultRestSeconds = rest.defaultRestSeconds,
                 trainingGoal = coach.goal.name,
+                trainingEmphasis = coach.emphasis.name,
                 availableEquipment = coach.availableEquipment.sorted(),
                 heatWindow = heatWindow.name,
                 bodyweightKg = bodyweightKg,
@@ -402,6 +404,7 @@ class LocalBackupRepository(
                 coach = CoachPreferences(
                     goal = TrainingGoal.fromStorage(document.preferences.trainingGoal),
                     availableEquipment = document.preferences.availableEquipment.toSet(),
+                    emphasis = TrainingEmphasis.fromStorage(document.preferences.trainingEmphasis),
                 ),
                 heatWindow = HeatWindow.fromStorage(document.preferences.heatWindow),
                 bodyweightKg = document.preferences.bodyweightKg,

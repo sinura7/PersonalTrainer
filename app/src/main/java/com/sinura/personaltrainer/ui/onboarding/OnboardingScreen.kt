@@ -29,6 +29,7 @@ import com.sinura.personaltrainer.domain.PlanBlueprint
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingBlock
+import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightConverter
@@ -51,7 +52,7 @@ import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import java.time.DayOfWeek
 
 /**
- * The guided setup: six questions, then the actual week.
+ * The guided setup: seven questions, then the actual week.
  *
  * The screen this app was missing. Everything else assumed a lifter who already had routines
  * and a pinned week; a new install had neither, no way to get them but a blank routine editor,
@@ -59,7 +60,7 @@ import java.time.DayOfWeek
  *
  * Three rules it holds to, all of them the owner's brief rather than convention:
  *
- * - **One question per screen.** Six short decisions read as progress; one form with six fields
+ * - **One question per screen.** Seven short decisions read as progress; one form with seven fields
  *   reads as work.
  * - **Every question changes the plan.** Height and body type were both proposed and both cut —
  *   nothing in a strength app consumes a height, and somatotype does not predict how anyone
@@ -144,6 +145,15 @@ fun OnboardingScreen(
                     options = TrainingGoal.entries.map { goal ->
                         Choice(goal.displayName, goal.blurb, goal == state.answers.goal) {
                             viewModel.setGoal(goal)
+                        }
+                    },
+                )
+                OnboardingStep.EMPHASIS -> ChoiceStep(
+                    title = "Where do you want the work?",
+                    blurb = "This changes the week you see. Rest days stay rest days.",
+                    options = TrainingEmphasis.entries.map { emphasis ->
+                        Choice(emphasis.displayName, emphasis.blurb, emphasis == state.answers.emphasis) {
+                            viewModel.setEmphasis(emphasis)
                         }
                     },
                 )
@@ -324,7 +334,7 @@ private fun ForkStep(onGuided: () -> Unit, onOwn: () -> Unit) {
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
             Text("Let's get you training", style = InstrumentType.display, color = TextPrimary)
             Text(
-                "Six quick questions and you'll have a week of sessions, with the lifts already in them.",
+                "Seven quick questions and you'll have a week of sessions, with the lifts already in them.",
                 style = InstrumentType.body,
                 color = TextSecondary,
             )
@@ -349,8 +359,14 @@ private fun PreviewStep(
             QuestionTitle(
                 "Here's your block",
                 plan?.let {
+                    val emphasis = state.answers.emphasis
+                    val emphasisBit = if (emphasis == TrainingEmphasis.BALANCED) {
+                        ""
+                    } else {
+                        " · ${emphasis.displayName} emphasis"
+                    }
                     "${TrainingBlock.DEFAULT_WEEKS} weeks of ${it.splitStyle.displayName} · " +
-                        "${it.trainingDayCount} days a week · ${it.liftCount} lifts. " +
+                        "${it.trainingDayCount} days a week$emphasisBit · ${it.liftCount} lifts. " +
                         "This is week one; change anything you like once it's in."
                 } ?: "Building it…",
             )

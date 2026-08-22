@@ -22,6 +22,25 @@ enum class TrainingGoal(val displayName: String, val blurb: String) {
 }
 
 /**
+ * Where the work should land.
+ *
+ * Not a different split and not a different catalog. [EmphasisLayout] rearranges the
+ * week’s session kinds, and the generator remixed one full-body slot. Default
+ * [BALANCED] is today’s behaviour, so existing installs do not change.
+ */
+enum class TrainingEmphasis(val displayName: String, val blurb: String) {
+    BALANCED("Balanced", "Upper and lower stay in the same proportion"),
+    UPPER("Upper body", "More pressing and pulling. Legs stay in the week."),
+    LOWER("Lower body", "More squat and hinge work. Upper stays in the week."),
+    ;
+
+    companion object {
+        fun fromStorage(raw: String?): TrainingEmphasis =
+            entries.firstOrNull { it.name == raw } ?: BALANCED
+    }
+}
+
+/**
  * @param availableEquipment storage names of [EquipmentType]. **Empty means no filtering** —
  * not "no equipment". A first-run default of "you own nothing" would silently stop the coach
  * naming any lift at all, and the user would have no way to know why.
@@ -29,6 +48,7 @@ enum class TrainingGoal(val displayName: String, val blurb: String) {
 data class CoachPreferences(
     val goal: TrainingGoal = TrainingGoal.GENERAL,
     val availableEquipment: Set<String> = emptySet(),
+    val emphasis: TrainingEmphasis = TrainingEmphasis.BALANCED,
 ) {
     fun allows(equipment: EquipmentType): Boolean =
         availableEquipment.isEmpty() || equipment.name in availableEquipment

@@ -157,7 +157,12 @@ object RoutineGenerator {
     ): PlanBlueprint {
         val clean = answers.sanitized()
         val split = SplitDerivation.forAnswers(clean)
-        val kinds = WeeklySchedulePlanner.slotKinds(split, clean.daysPerWeek, routines = emptyList())
+        val kinds = WeeklySchedulePlanner.slotKinds(
+            split,
+            clean.daysPerWeek,
+            routines = emptyList(),
+            emphasis = clean.emphasis,
+        )
         val allowed = catalog.filter { it.equipment in clean.place.equipment }
 
         val routines = buildRoutines(kinds, split, clean, allowed)
@@ -191,7 +196,12 @@ object RoutineGenerator {
                     key = key,
                     name = "Full Body ${'A' + index}",
                     focusKind = SessionFocusKind.FULL_BODY,
-                    lifts = fill(template, FALLBACKS.getValue(SessionFocusKind.FULL_BODY), liftsPerSession, allowed),
+                    lifts = fill(
+                        remixFullBody(template, answers.emphasis),
+                        FALLBACKS.getValue(SessionFocusKind.FULL_BODY),
+                        liftsPerSession,
+                        allowed,
+                    ),
                 )
             }
         }
@@ -258,6 +268,31 @@ object RoutineGenerator {
         }
     }
 
+    /**
+     * Full-body weeks do not steal a whole day. Emphasis swaps one lower-priority slot
+     * so the opener — squat or hinge — never leaves the session.
+     */
+    private fun remixFullBody(
+        template: List<Slot>,
+        emphasis: TrainingEmphasis,
+    ): List<Slot> {
+        if (emphasis == TrainingEmphasis.BALANCED) return template
+        val start = 1
+        val index = when (emphasis) {
+            TrainingEmphasis.UPPER ->
+                template.indices.lastOrNull { it >= start && isLowerFamily(template[it].families.first()) }
+            TrainingEmphasis.LOWER ->
+                template.indices.lastOrNull { it >= start && isUpperFamily(template[it].families.first()) }
+            TrainingEmphasis.BALANCED -> null
+        } ?: return template
+        val replacement = when (emphasis) {
+            TrainingEmphasis.UPPER -> slot("overhead-press", "row", "bench-press", "pull-up")
+            TrainingEmphasis.LOWER -> slot("lunge", "hip-thrust", "step-up", "leg-press")
+            TrainingEmphasis.BALANCED -> template[index]
+        }
+        return template.toMutableList().also { it[index] = replacement }
+    }
+
     /** The catalog's own idea of the best lift in a family — the order the library shows. */
     private fun bestIn(family: String, allowed: List<Exercise>, exclude: Set<String>): Exercise? =
         allowed
@@ -321,4 +356,44 @@ object RoutineGenerator {
      * here opens with — a big lower or push movement and its opposite.
      */
     private const val PRIMARY_LIFTS_PER_SESSION = 2
+
+    private fun isLowerFamily(family: String): Boolean = family in LOWER_FAMILIES
+
+    private fun isUpperFamily(family: String): Boolean = family in UPPER_FAMILIES
+
+    private val LOWER_FAMILIES = setOf(
+        "squat",
+        "lunge",
+        "leg-press",
+        "calf-raise",
+        "hip-thrust",
+        "back-extension",
+        "leg-raise",
+        "romanian-deadlift",
+        "deadlift",
+        "nordic-curl",
+        "good-morning",
+        "step-up",
+        "glute-kickback",
+        "hip-abduction",
+        "leg-curl",
+        "kettlebell-swing",
+    )
+
+    private val UPPER_FAMILIES = setOf(
+        "bench-press",
+        "push-up",
+        "dip",
+        "overhead-press",
+        "lateral-raise",
+        "chest-fly",
+        "triceps-extension",
+        "rear-delt",
+        "row",
+        "pull-up",
+        "pulldown",
+        "curl",
+        "shrug",
+        "pullover",
+    )
 }

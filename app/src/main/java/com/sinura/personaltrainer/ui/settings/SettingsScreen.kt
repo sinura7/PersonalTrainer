@@ -54,6 +54,7 @@ import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
+import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -156,6 +157,7 @@ fun SettingsScreen(
                 bodyweightKg = bodyweightKg,
                 unit = selectedUnit,
                 onGoal = viewModel::setTrainingGoal,
+                onEmphasis = viewModel::setTrainingEmphasis,
                 onToggleEquipment = viewModel::toggleEquipment,
                 onRecordBodyweight = viewModel::recordBodyweight,
                 onClearBodyweight = viewModel::clearBodyweight,
@@ -339,6 +341,7 @@ private fun CoachingSection(
     bodyweightKg: Double?,
     unit: WeightUnit,
     onGoal: (TrainingGoal) -> Unit,
+    onEmphasis: (TrainingEmphasis) -> Unit,
     onToggleEquipment: (EquipmentType) -> Unit,
     onRecordBodyweight: (Double) -> Unit,
     onClearBodyweight: () -> Unit,
@@ -364,6 +367,7 @@ private fun CoachingSection(
     SettingsGroup(
         title = "Coaching",
         caption = "Your goal reorders the suggestions; it never changes what they are. " +
+            "Emphasis changes the next week you generate or Suggest — not days you already pinned. " +
             "Turning equipment off stops the coach naming lifts you cannot do.",
     ) {
         GroupedList(modifier = Modifier.selectableGroup()) {
@@ -376,6 +380,26 @@ private fun CoachingSection(
                     modifier = Modifier.selectable(
                         selected = selected,
                         onClick = { onGoal(goal) },
+                        role = Role.RadioButton,
+                    ),
+                    trailing = {
+                        if (selected) {
+                            Icon(Icons.Outlined.Check, contentDescription = null, tint = Volt)
+                        }
+                    },
+                )
+            }
+        }
+        GroupedList(modifier = Modifier.selectableGroup()) {
+            TrainingEmphasis.entries.forEachIndexed { index, emphasis ->
+                if (index > 0) HairlineDivider()
+                val selected = preferences.emphasis == emphasis
+                InstrumentRow(
+                    title = emphasis.displayName,
+                    subtitle = emphasis.blurb,
+                    modifier = Modifier.selectable(
+                        selected = selected,
+                        onClick = { onEmphasis(emphasis) },
                         role = Role.RadioButton,
                     ),
                     trailing = {
@@ -699,7 +723,7 @@ private fun PlanSetupSection(onRerun: () -> Unit) {
         GroupedList {
             InstrumentRow(
                 title = "Rebuild my plan",
-                subtitle = "Six questions, then a preview before anything changes",
+                subtitle = "Seven questions, then a preview before anything changes",
                 onClick = onRerun,
             )
         }

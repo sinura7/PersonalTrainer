@@ -34,6 +34,7 @@ class RoutineGeneratorTest {
         days: Int = 4,
         place: TrainingPlace = TrainingPlace.FULL_GYM,
         goal: TrainingGoal = TrainingGoal.GENERAL,
+        emphasis: TrainingEmphasis = TrainingEmphasis.BALANCED,
         preferred: Set<DayOfWeek> = emptySet(),
     ) = OnboardingAnswers(
         trainingAge = age,
@@ -41,6 +42,7 @@ class RoutineGeneratorTest {
         preferredDays = preferred,
         place = place,
         goal = goal,
+        emphasis = emphasis,
     )
 
     @Test
@@ -238,6 +240,90 @@ class RoutineGeneratorTest {
         plan.routines.forEach { routine ->
             assertTrue("a sparse catalog must not invent lifts", routine.lifts.size <= onlyPushUps.size)
         }
+    }
+
+    @Test
+    fun balancedEmphasisMatchesTheUnemphasisedPlan() {
+        val plain = RoutineGenerator.generate(answers(days = 4), catalog)
+        val balanced = RoutineGenerator.generate(
+            answers(days = 4, emphasis = TrainingEmphasis.BALANCED),
+            catalog,
+        )
+        assertEquals(plain, balanced)
+    }
+
+    @Test
+    fun fourDayUpperIsMajorityUpperAndKeepsALegDay() {
+        val plan = RoutineGenerator.generate(
+            answers(days = 4, emphasis = TrainingEmphasis.UPPER),
+            catalog,
+        )
+        val kinds = plan.trainingKinds()
+        assertTrue("upper days: $kinds", kinds.count { it.isUpperFamily } > kinds.count { it.isLowerFamily })
+        assertTrue("lost the leg day: $kinds", kinds.any { it.isLowerFamily })
+        assertEquals(4, kinds.size)
+    }
+
+    @Test
+    fun fourDayLowerIsMajorityLowerAndKeepsAnUpperDay() {
+        val plan = RoutineGenerator.generate(
+            answers(days = 4, emphasis = TrainingEmphasis.LOWER),
+            catalog,
+        )
+        val kinds = plan.trainingKinds()
+        assertTrue("lower days: $kinds", kinds.count { it.isLowerFamily } > kinds.count { it.isUpperFamily })
+        assertTrue("lost the upper day: $kinds", kinds.any { it.isUpperFamily })
+        plan.routines.filter { it.focusKind.isLowerFamily }.forEach { routine ->
+            assertTrue(
+                "${routine.name} dropped the squat/hinge opener",
+                routine.lifts.first().isSquatOrHinge(),
+            )
+        }
+    }
+
+    @Test
+    fun threeDayUpperSwapsASlotWithoutStealingTheOpenerOrARestDay() {
+        val picked = setOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY, DayOfWeek.SATURDAY)
+        val balanced = RoutineGenerator.generate(answers(days = 3, preferred = picked), catalog)
+        val upper = RoutineGenerator.generate(
+            answers(days = 3, preferred = picked, emphasis = TrainingEmphasis.UPPER),
+            catalog,
+        )
+        assertEquals(SplitStyle.FULL_BODY, upper.splitStyle)
+        assertEquals(
+            balanced.days.map { it.dayOfWeek to it.isRest },
+            upper.days.map { it.dayOfWeek to it.isRest },
+        )
+        assertEquals(picked, upper.days.filterNot { it.isRest }.map { it.dayOfWeek }.toSet())
+        val balancedA = balanced.routines.first()
+        val upperA = upper.routines.first()
+        assertEquals(balancedA.lifts.first().exerciseId, upperA.lifts.first().exerciseId)
+        assertTrue(
+            "upper emphasis left the full-body session unchanged",
+            balancedA.lifts.map { it.exerciseId } != upperA.lifts.map { it.exerciseId },
+        )
+    }
+
+    @Test
+    fun unknownEmphasisFallsBackToBalanced() {
+        assertEquals(TrainingEmphasis.BALANCED, TrainingEmphasis.fromStorage(null))
+        assertEquals(TrainingEmphasis.BALANCED, TrainingEmphasis.fromStorage("NOPE"))
+    }
+
+    private fun PlanBlueprint.trainingKinds(): List<SessionFocusKind> =
+        days.filterNot { it.isRest }.map { day -> routineFor(day)!!.focusKind }
+
+    private fun BlueprintLift.isSquatOrHinge(): Boolean {
+        val key = catalog.first { it.id == exerciseId }.movementKey
+        return key in setOf(
+            "squat",
+            "deadlift",
+            "romanian-deadlift",
+            "leg-press",
+            "lunge",
+            "good-morning",
+            "kettlebell-swing",
+        )
     }
 }
 

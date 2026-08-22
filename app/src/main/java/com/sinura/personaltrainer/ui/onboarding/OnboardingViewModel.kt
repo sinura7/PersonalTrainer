@@ -12,6 +12,7 @@ import com.sinura.personaltrainer.domain.PlanBlueprint
 import com.sinura.personaltrainer.domain.RoutineGenerator
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.TrainingAge
+import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.logging.AppLog
@@ -43,6 +44,7 @@ enum class OnboardingStep {
     WHICH_DAYS,
     PLACE,
     GOAL,
+    EMPHASIS,
     BODYWEIGHT,
     PREVIEW,
     ;
@@ -204,6 +206,8 @@ class OnboardingViewModel @JvmOverloads constructor(
     fun setPlace(value: TrainingPlace) = advance { it.copy(place = value) }
 
     fun setGoal(value: TrainingGoal) = advance { it.copy(goal = value) }
+
+    fun setEmphasis(value: TrainingEmphasis) = advance { it.copy(emphasis = value) }
 
     fun setBodyweight(kg: Double?) = update { it.copy(bodyweightKg = kg) }
 

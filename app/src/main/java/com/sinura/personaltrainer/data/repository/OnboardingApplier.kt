@@ -68,6 +68,7 @@ class OnboardingApplier(
             preferencesRepository.setSplitStyle(schedule.splitStyle)
             val coach = clean.coachPreferences()
             preferencesRepository.setTrainingGoal(coach.goal)
+            preferencesRepository.setTrainingEmphasis(coach.emphasis)
             preferencesRepository.setAvailableEquipment(coach.availableEquipment)
             // Recorded as a weigh-in, not just stored: it is the opening reading of the block
             // being started on the next line, and the block review compares against it.

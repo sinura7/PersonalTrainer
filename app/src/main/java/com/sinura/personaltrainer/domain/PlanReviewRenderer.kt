@@ -60,7 +60,62 @@ object PlanReviewRenderer {
                 }
             }
         }
+        appendEmphasis(out, catalog)
         return out.toString()
+    }
+
+    /**
+     * Balanced already appears above. These two rows exist so a reviewer can see that
+     * emphasis actually changes the week, without tripling the 135-program matrix.
+     */
+    private fun appendEmphasis(out: StringBuilder, catalog: List<Exercise>) {
+        out.appendLine("## Emphasis")
+        out.appendLine()
+        out.appendLine(
+            "Same answers (on and off, 4 days, a full gym, general), then Upper vs Lower. " +
+                "Balanced is the row already printed above.",
+        )
+        out.appendLine()
+        listOf(TrainingEmphasis.UPPER, TrainingEmphasis.LOWER).forEach { emphasis ->
+            val answers = OnboardingAnswers(
+                trainingAge = TrainingAge.RETURNING,
+                daysPerWeek = 4,
+                place = TrainingPlace.FULL_GYM,
+                goal = TrainingGoal.GENERAL,
+                emphasis = emphasis,
+            )
+            val plan = RoutineGenerator.generate(answers, catalog)
+            out.appendLine(
+                "### ${answers.trainingAge.displayName} · 4 days · ${answers.goal.displayName} · " +
+                    "${emphasis.displayName} → ${plan.splitStyle.displayName}",
+            )
+            out.appendLine()
+            val week = plan.days.joinToString(" ") { day ->
+                val label = day.dayOfWeek.shortLabel()
+                if (day.isRest) "_${label}_" else "**$label**"
+            }
+            val kinds = plan.days.mapNotNull { day ->
+                if (day.isRest) null else plan.routineFor(day)?.focusKind?.label
+            }
+            out.appendLine(
+                "$week — ${plan.trainingDayCount} training days (${kinds.joinToString(" / ")})",
+            )
+            out.appendLine()
+            plan.routines.forEach { routine ->
+                out.appendLine("**${routine.name}**")
+                out.appendLine()
+                out.appendLine("| # | Lift | Equipment | Sets × Reps | Rest |")
+                out.appendLine("|---|---|---|---|---|")
+                routine.lifts.forEachIndexed { index, lift ->
+                    val targets = lift.targets
+                    out.appendLine(
+                        "| ${index + 1} | ${lift.name} | ${lift.equipment.label} | " +
+                            "${targets.sets} × ${targets.reps} | ${targets.restSeconds}s |",
+                    )
+                }
+                out.appendLine()
+            }
+        }
     }
 
     private fun appendPlan(

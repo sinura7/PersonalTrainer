@@ -169,6 +169,10 @@ SQLite. ViewModel and screen instrumented tests are still unscheduled.
 making each one tell the truth and offer one act. Living plan, including every time
 we left the written line for a clearer floor idea: [UX_PAGE_PASS.md](UX_PAGE_PASS.md).
 
+**Job 2 / P1 — emphasis (this branch).** Upper / lower / balanced is a real lever on
+the generated week and on Suggest. Stored as a preference, default Balanced, so
+existing installs do not change. Pins stay owned. Phone check when Studio is back.
+
 ---
 
 ## Known open items

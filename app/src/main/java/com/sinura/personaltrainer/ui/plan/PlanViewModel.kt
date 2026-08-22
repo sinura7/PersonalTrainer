@@ -216,6 +216,7 @@ class PlanViewModel @JvmOverloads constructor(
                 return@launch
             }
             val preferences = container.preferencesRepository.schedulePreferences.first()
+            val emphasis = container.preferencesRepository.coachPreferences.first().emphasis
             val slots = runCatchingCancellable { container.scheduleRepository.slots() }
                 .getOrElse { thrown ->
                     AppLog.w(TAG, "Reading the pinned slots failed", thrown)
@@ -230,6 +231,7 @@ class PlanViewModel @JvmOverloads constructor(
                     recentSessions = current.history,
                     nowMs = System.currentTimeMillis(),
                     pinnedSlots = slots,
+                    emphasis = emphasis,
                 )
             }
             // Only the days the planner invented. Echoed pins carry a slotId and are already
