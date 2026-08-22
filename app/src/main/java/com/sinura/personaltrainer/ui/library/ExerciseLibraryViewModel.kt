@@ -18,6 +18,7 @@ import com.sinura.personaltrainer.domain.ExerciseUsage
 import com.sinura.personaltrainer.domain.LibraryFamily
 import com.sinura.personaltrainer.domain.LibraryFilter
 import com.sinura.personaltrainer.domain.LibraryGrouping
+import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.Routine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -31,7 +32,7 @@ private const val TAG = "PT/LibraryVM"
 data class ExerciseEditorDraft(
     val id: String? = null,
     val name: String = "",
-    val muscleGroup: String = "Other",
+    val muscleGroup: String = "",
     val notes: String = "",
 )
 
@@ -204,7 +205,7 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
     }
 
     fun openCreate() {
-        editor.value = ExerciseEditorDraft()
+        editor.value = ExerciseEditorDraft(muscleGroup = MuscleGroups.forNewDraft(selectedMuscle.value))
         error.value = null
     }
 
@@ -237,6 +238,10 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
             error.value = "Give this exercise a name."
             return
         }
+        if (MuscleGroups.resolved(draft.muscleGroup) == null) {
+            error.value = MuscleGroups.MISSING_MESSAGE
+            return
+        }
         viewModelScope.launch {
             try {
                 val result = if (draft.id == null) {
@@ -256,10 +261,17 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
                         error.value = DUPLICATE_NAME_MESSAGE
                         return@launch
                     }
-                    else -> {
+                    is SaveExerciseResult.MissingMuscle -> {
+                        error.value = MuscleGroups.MISSING_MESSAGE
+                        return@launch
+                    }
+                    is SaveExerciseResult.Saved -> {
                         message.value = if (draft.id == null) "Created $name." else "Updated $name."
                         editor.value = null
                         error.value = null
+                    }
+                    null -> {
+                        error.value = "Could not save that exercise. Try again."
                     }
                 }
             } catch (thrown: Exception) {

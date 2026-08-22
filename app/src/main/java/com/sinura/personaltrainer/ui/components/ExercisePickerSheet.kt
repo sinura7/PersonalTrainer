@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,6 +33,10 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +46,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -70,9 +76,8 @@ import com.sinura.personaltrainer.ui.theme.Volt
  * the screen, the search stays pinned to the top, and everything below it is catalog.
  *
  * Creating is not chrome any more: it appears as a single row above the results, only when
- * what has been typed matches nothing. Its muscle group is left blank deliberately — the
- * repository classifies a blank as "Other", and the library editor is where a lift's
- * classification is actually chosen, with the whole catalog of groups in front of you.
+ * what has been typed matches nothing. The muscle chips sit on that row — not a permanent
+ * field at the top — because a blank group used to become "Other" and never heat a plate.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -184,8 +189,18 @@ fun ExercisePickerSheet(
                 }
                 if (canCreate) {
                     item(key = "create") {
+                        var group by rememberSaveable(needle) { mutableStateOf("") }
                         Column {
-                            CreateExerciseRow(name = needle, onClick = { onCreate(needle, "") })
+                            CreateExerciseRow(
+                                name = needle,
+                                muscleGroup = group,
+                                onMuscle = { group = it },
+                                onClick = {
+                                    if (MuscleGroups.resolved(group) != null) {
+                                        onCreate(needle, group)
+                                    }
+                                },
+                            )
                             HairlineDivider()
                         }
                     }
@@ -349,39 +364,79 @@ fun ExerciseSearchField(
 
 /** The one accented row in the sheet, and only when what was typed matches nothing. */
 @Composable
-private fun CreateExerciseRow(name: String, onClick: () -> Unit) {
+private fun CreateExerciseRow(
+    name: String,
+    muscleGroup: String,
+    onMuscle: (String) -> Unit,
+    onClick: () -> Unit,
+) {
     val shape = RoundedCornerShape(Radius.xs)
-    Row(
+    val ready = MuscleGroups.resolved(muscleGroup) != null
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = Metrics.rowMin)
-            .clickable(onClick = onClick)
-            .padding(horizontal = Metrics.gutter, vertical = Metrics.space3),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+            .padding(vertical = Metrics.space3),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space3),
     ) {
-        Box(
-            modifier = Modifier
-                .size(ThumbSize.row)
-                .clip(shape)
-                .background(Surface1)
-                .border(Metrics.hairline, Volt, shape),
-            contentAlignment = Alignment.Center,
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = Metrics.gutter),
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
         ) {
-            Icon(Icons.Outlined.Add, contentDescription = null, tint = Volt)
+            items(MuscleGroups.chips, key = { it }) { group ->
+                InstrumentChip(
+                    label = group,
+                    selected = group.equals(muscleGroup, ignoreCase = true),
+                    onClick = { onMuscle(group) },
+                )
+            }
+            item(key = "other") {
+                InstrumentChip(
+                    label = MuscleGroups.OTHER,
+                    selected = MuscleGroups.otherSelected(muscleGroup),
+                    onClick = { onMuscle(MuscleGroups.OTHER) },
+                )
+            }
         }
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = Metrics.rowMin)
+                .clickable(enabled = ready, onClick = onClick)
+                .padding(horizontal = Metrics.gutter),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
         ) {
-            Text(
-                "Create \"$name\"",
-                style = InstrumentType.title,
-                color = Volt,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text("Adds it as a custom lift", style = InstrumentType.caption, color = TextSecondary)
+            Box(
+                modifier = Modifier
+                    .size(ThumbSize.row)
+                    .clip(shape)
+                    .background(Surface1)
+                    .border(Metrics.hairline, if (ready) Volt else Hairline, shape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.Add,
+                    contentDescription = null,
+                    tint = if (ready) Volt else TextTertiary,
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+            ) {
+                Text(
+                    "Create \"$name\"",
+                    style = InstrumentType.title,
+                    color = if (ready) Volt else TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    if (ready) "Adds a custom ${muscleGroup.trim()} lift" else MuscleGroups.MISSING_MESSAGE,
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                )
+            }
         }
     }
 }

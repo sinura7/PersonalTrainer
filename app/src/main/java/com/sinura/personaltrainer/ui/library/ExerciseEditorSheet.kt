@@ -46,13 +46,14 @@ fun ExerciseEditorSheet(
     onDismiss: () -> Unit,
 ) {
     val groups = muscleOptions.ifEmpty { MuscleGroups.catalog }
-    val chips = groups.filterNot { it.equals(OTHER_GROUP, ignoreCase = true) }
+    val chips = groups.filterNot { it.equals(MuscleGroups.OTHER, ignoreCase = true) }
     val chosen = chips.firstOrNull { it.equals(draft.muscleGroup, ignoreCase = true) }
     var typingGroup by rememberSaveable { mutableStateOf(false) }
     // A group no chip can express — imported, or typed before the catalog knew it — has to
     // show its own value, or editing that lift would silently reclassify it.
     val showGroupField = typingGroup ||
-        (chosen == null && draft.muscleGroup.isNotBlank() && !draft.muscleGroup.equals(OTHER_GROUP, ignoreCase = true))
+        (chosen == null && draft.muscleGroup.isNotBlank() &&
+            !draft.muscleGroup.equals(MuscleGroups.OTHER, ignoreCase = true))
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -91,14 +92,16 @@ fun ExerciseEditorSheet(
                     }
                     item(key = "other") {
                         InstrumentChip(
-                            label = OTHER_GROUP,
-                            selected = chosen == null,
+                            label = MuscleGroups.OTHER,
+                            selected = typingGroup || MuscleGroups.otherSelected(draft.muscleGroup),
                             onClick = {
                                 typingGroup = true
-                                // "Other" means none of these, so a value that came from a chip —
-                                // or the default the draft opens with — gives way to an empty field.
-                                if (chosen != null || draft.muscleGroup.equals(OTHER_GROUP, ignoreCase = true)) {
-                                    onDraftChange(draft.copy(muscleGroup = ""))
+                                // Other is an explicit choice, not the empty default. The field
+                                // opens so a more specific name can replace it.
+                                if (chosen != null || draft.muscleGroup.isBlank() ||
+                                    draft.muscleGroup.equals(MuscleGroups.OTHER, ignoreCase = true)
+                                ) {
+                                    onDraftChange(draft.copy(muscleGroup = MuscleGroups.OTHER))
                                 }
                             },
                         )
@@ -129,5 +132,3 @@ fun ExerciseEditorSheet(
         }
     }
 }
-
-private const val OTHER_GROUP = "Other"
