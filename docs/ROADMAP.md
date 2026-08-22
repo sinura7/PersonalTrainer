@@ -165,9 +165,13 @@ was — not a phase. ViewModels are constructor-injected with `AppDependencies`.
 `WorkoutRepository` and `ScheduleRepository` now have `androidTest` coverage on real
 SQLite. ViewModel and screen instrumented tests are still unscheduled.
 
-**UX page pass (22 Aug 2026, in progress).** The screens already exist. The work is
-making each one tell the truth and offer one act. Living plan, including every time
-we left the written line for a clearer floor idea: [UX_PAGE_PASS.md](UX_PAGE_PASS.md).
+**UX page pass (22 Aug 2026).** The screens already exist. The work was making each
+one tell the truth and offer one act. Living plan: [UX_PAGE_PASS.md](UX_PAGE_PASS.md).
+
+**Job 2 (next).** Daily logging is mature. The remaining product is: no workout in
+mind → short path → the app builds the week. Packets, gates, and the imagery rewrite
+that starts it: [JOB2_ACTION_PLAN.md](JOB2_ACTION_PLAN.md). P0 (this PR) is the
+shared-structure figure so Body, thumbs, and the mark read as one person.
 
 **Job 2 / P1 — emphasis.** Upper / lower / balanced is a real lever on the generated
 week and on Suggest. Stored as a preference, default Balanced.
