@@ -164,7 +164,7 @@ If you add a file to `data/backup/` that has no Android imports, add it to the l
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs the unit tests, lint and `assembleDebug` on every push to
-`main` and to `claude/**` and `cursor/**` branches, and uploads the test reports, the
+`trunk` and to `claude/**` and `cursor/**` branches, and uploads the test reports, the
 generated Room schemas and a debug APK.
 
 **It has never successfully run.** Every attempt so far fails about three seconds in, with
@@ -300,11 +300,26 @@ adb logcat --pid=$(adb shell pidof com.sinura.personaltrainer)
 `am kill` is the honest test for "phone sat in my pocket and the OS reclaimed the app".
 `force-stop` is a user-initiated kill and legitimately discards saved state.
 
+## Owner loop
+
+This is how the project actually moves. Cursor on the web writes the packet.
+Android Studio at home is the phone check. They are not the same evening.
+
+- **`trunk` is shipping.** There is no `main`. After a merge, Studio does
+  `git checkout trunk` then `git pull origin trunk`.
+- **A packet may sit.** Green JVM (`./gradlew testDebugUnitTest` and
+  `assembleDebug`) is enough to open the PR and start the next packet.
+  The phone is what merges it, not what unblocks the next branch.
+- **No two open PRs edit the same Kotlin file.** If the next packet needs a
+  file an open PR already owns, it is stacked on that branch. Independent
+  packets cut from current `trunk`. A stack merges at the tip only.
+- **Test the PR branch**, not whatever Studio last had open. Never run
+  `connectedDebugAndroidTest` on the real `applicationId`.
+
+Agents load the same rules from `.cursor/rules/owner-loop.mdc`.
+
 ## Committing
 
-Branch-per-phase: work lands on `claude/phase-<n>-<slug>` branches, one PR per phase,
-merged by the owner — see `docs/archive/gameplan/PROTOCOL.md`. (`main` was empty of app code
-until 20 Aug 2026; do not trust older claims of trunk-based flow.)
-
-Write commit messages that explain **why**, not what — the diff already says what. The
-existing history is the model to follow.
+One packet, one `cursor/<slug>-b87f` branch, one PR into `trunk`. Write
+commit messages that explain **why**, not what — the diff already says what.
+The existing history is the model to follow.
