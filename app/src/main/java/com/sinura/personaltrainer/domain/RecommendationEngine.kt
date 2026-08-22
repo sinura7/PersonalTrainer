@@ -320,7 +320,7 @@ object RecommendationEngine {
             kicker = KICKER_LOAD,
             title = "Sets up 3 weeks, e1RM flat",
             reason = "Weekly working sets rose ${finding.setRisePercent}% over three weeks while " +
-                "top-lift e1RMs did not move. Take an easier week: same lifts, fewer sets.",
+                "top-lift e1RMs did not move. Schedule a lighter week.",
             priority = RecommendationPriority.HIGH,
             rankScore = 75,
         )

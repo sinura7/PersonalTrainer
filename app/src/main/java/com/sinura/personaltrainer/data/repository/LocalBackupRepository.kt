@@ -141,6 +141,7 @@ class LocalBackupRepository(
                     .map { it.name }
                     .sorted(),
                 trainingPlace = preferencesRepository.trainingPlace.first()?.name.orEmpty(),
+                lighterWeekStartEpochDay = preferencesRepository.lighterWeekStartEpochDay.first(),
             ),
             exercises = exercises.map {
                 BackupExercise(
@@ -435,6 +436,7 @@ class LocalBackupRepository(
                     ?: OnboardingAnswers.inferPlace(
                         document.preferences.availableEquipment.toSet(),
                     ),
+                lighterWeekStartEpochDay = document.preferences.lighterWeekStartEpochDay,
             )
             true
         } catch (_: Exception) {

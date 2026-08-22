@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.MastheadCopy
 import com.sinura.personaltrainer.domain.ProgressionHint
@@ -52,6 +53,7 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.workout.StartOptionsSheet
 import java.time.LocalDate
@@ -204,15 +206,24 @@ fun HomeScreen(
         }
         if (plan != null) {
             item {
-                // The same composable Plan renders, fed from the same derived week — not a
-                // Home-only variant that agrees by convention until one of them changes.
-                WeekStrip(
-                    days = plan.days,
-                    proposals = emptyMap(),
-                    loggedEpochDays = state.loggedEpochDays,
-                    today = today,
-                    onOpenDay = { onOpenPlan() },
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+                    // The same composable Plan renders, fed from the same derived week — not a
+                    // Home-only variant that agrees by convention until one of them changes.
+                    WeekStrip(
+                        days = plan.days,
+                        proposals = emptyMap(),
+                        loggedEpochDays = state.loggedEpochDays,
+                        today = today,
+                        onOpenDay = { onOpenPlan() },
+                    )
+                    if (state.lighterWeek) {
+                        Text(
+                            LighterWeek.CAPTION,
+                            style = InstrumentType.caption,
+                            color = Volt,
+                        )
+                    }
+                }
             }
         }
         if (state.readyToProgress.isNotEmpty()) {

@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
@@ -31,6 +32,8 @@ fun PreferenceBlock(
     onDays: (Int) -> Unit,
     onSplit: (SplitStyle) -> Unit,
     onWeekStart: (DayOfWeek) -> Unit,
+    lighterWeek: Boolean = false,
+    onLighterWeek: ((Boolean) -> Unit)? = null,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space5)) {
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
@@ -72,6 +75,21 @@ fun PreferenceBlock(
                         onClick = { onWeekStart(day) },
                     )
                 }
+            }
+        }
+        if (onLighterWeek != null) {
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
+                GymSectionHeader("This week", compact = true)
+                InstrumentChip(
+                    label = LighterWeek.TUNE_LABEL,
+                    selected = lighterWeek,
+                    onClick = { onLighterWeek(!lighterWeek) },
+                )
+                Text(
+                    "Same lifts. The bar does not climb.",
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                )
             }
         }
     }

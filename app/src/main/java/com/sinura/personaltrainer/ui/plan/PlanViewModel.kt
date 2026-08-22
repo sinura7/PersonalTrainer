@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.ExistingLayoutMatcher
 import com.sinura.personaltrainer.domain.InsightFailure
+import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineGenerator
 import com.sinura.personaltrainer.domain.SchedulePreferences
@@ -64,6 +65,8 @@ data class PlanUiState(
      * still going would invite reading a mid-block number as a result.
      */
     val blockReview: BlockReview? = null,
+    /** True when this calendar week is the marked lighter week. */
+    val lighterWeek: Boolean = false,
     val error: String? = null,
 )
 
@@ -98,8 +101,13 @@ class PlanViewModel @JvmOverloads constructor(
             container.preferencesRepository.schedulePreferences,
             container.preferencesRepository.trainingBlock,
             container.preferencesRepository.weightUnit,
-            container.preferencesRepository.bodyweightLog,
-        ) { preferences, block, unit, log -> SettingsAndBlock(preferences, block, unit, log) },
+            combine(
+                container.preferencesRepository.bodyweightLog,
+                container.preferencesRepository.lighterWeekStartEpochDay,
+            ) { log, lighterStart -> log to lighterStart },
+        ) { preferences, block, unit, logAndLighter ->
+            SettingsAndBlock(preferences, block, unit, logAndLighter.first, logAndLighter.second)
+        },
         proposals,
         actionError,
     ) { current, inProgress, settings, previewed, error ->
@@ -128,6 +136,10 @@ class PlanViewModel @JvmOverloads constructor(
                         bodyweightLog = settings.bodyweightLog,
                     )
                 },
+            lighterWeek = LighterWeek.isCurrent(
+                settings.lighterWeekStart,
+                current.weekPlan?.weekStartEpochDay,
+            ),
             error = error ?: when {
                 current.failed(InsightFailure.PLAN) ->
                     "Couldn’t read this week’s plan. Your pins are safe — try again."
@@ -374,6 +386,17 @@ class PlanViewModel @JvmOverloads constructor(
         viewModelScope.launch { container.preferencesRepository.setWeekStart(day) }
     }
 
+    fun setLighterWeek(enabled: Boolean) {
+        viewModelScope.launch {
+            val start = insights.value?.weekPlan?.weekStartEpochDay
+                ?: uiState.value.week?.weekStartEpochDay
+                ?: return@launch
+            container.preferencesRepository.setLighterWeekStartEpochDay(
+                if (enabled) start else null,
+            )
+        }
+    }
+
     fun onErrorShown() {
         actionError.value = null
     }
@@ -419,5 +442,6 @@ class PlanViewModel @JvmOverloads constructor(
         val block: TrainingBlock?,
         val unit: WeightUnit,
         val bodyweightLog: List<BodyweightEntry>,
+        val lighterWeekStart: Long?,
     )
 }
