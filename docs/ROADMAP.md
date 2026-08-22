@@ -183,8 +183,9 @@ Home / Plan / setup ViewModel JVM tests; debug is
 [JOB3_ACTION_PLAN.md](JOB3_ACTION_PLAN.md).
 
 **Job 4 (in flight).** Deload card marks this week; Home replay when
-routines exist (phone pending). Next: Settings / History / Progress JVM
-contracts. Packets, gates, won'ts:
+routines exist (phone pending). Settings / History / Progress JVM
+contracts are on `trunk`. Next: backup caption + Finish helper.
+Packets, gates, won'ts:
 [JOB4_ACTION_PLAN.md](JOB4_ACTION_PLAN.md).
 
 **Review baseline (22 Aug 2026).** Full-tree audit after Job 2 landed on `trunk`.
