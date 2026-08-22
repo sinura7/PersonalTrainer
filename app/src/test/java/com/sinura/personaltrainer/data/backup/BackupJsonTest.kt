@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.data.backup
 
+import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.LoadType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -212,4 +214,67 @@ class BackupJsonTest {
             ),
         )
     }
+
+    @Test
+    fun readsABackupWrittenByTheOtherLineage() {
+        // That lineage stored lowercase keys and had its own name for a belted bodyweight
+        // lift. Both spellings reach the validator, which matches on the enum name, so before
+        // canonicalization a document like this was refused whole — not one field of it.
+        val parsed = BackupJson.decode(
+            """
+            {"version": 2, "exercises": [
+              {"id": "a", "name": "Barbell Row", "muscleGroup": "Back", "notes": "",
+               "isCustom": false, "equipment": "barbell", "loadType": "external"},
+              {"id": "b", "name": "Weighted Dip", "muscleGroup": "Chest", "notes": "",
+               "isCustom": false, "equipment": "bodyweight", "loadType": "weighted_bodyweight"}
+            ]}
+            """.trimIndent(),
+        )
+
+        val row = parsed.exercises.associateBy { it.id }
+        assertEquals(EquipmentType.BARBELL.name, row.getValue("a").equipment)
+        assertEquals(LoadType.EXTERNAL.name, row.getValue("a").loadType)
+        assertEquals(EquipmentType.BODYWEIGHT.name, row.getValue("b").equipment)
+        // The rename, which is the case a plain uppercase() would miss. Landing on EXTERNAL
+        // here would make every belt-less set on this lift fail SetLogRules.
+        assertEquals(LoadType.BODYWEIGHT_PLUS.name, row.getValue("b").loadType)
+
+        val result = BackupValidator.validate(parsed, localHasData = true)
+        assertTrue(result.toString(), result is BackupValidation.Valid)
+    }
+
+    @Test
+    fun unrecognizedEquipmentIsPassedThroughSoTheValidatorStillRefusesIt() {
+        // Canonicalization must not become a laundry: junk stays junk, and the validator is
+        // still the thing that says no.
+        val parsed = BackupJson.decode(
+            """
+            {"version": 2, "exercises": [
+              {"id": "a", "name": "Mystery", "muscleGroup": "Back", "notes": "",
+               "isCustom": false, "equipment": "trebuchet", "loadType": "external"}
+            ]}
+            """.trimIndent(),
+        )
+        assertEquals("trebuchet", parsed.exercises.single().equipment)
+        val result = BackupValidator.validate(parsed, localHasData = true)
+        assertTrue(result.toString(), result is BackupValidation.Invalid)
+        assertTrue((result as BackupValidation.Invalid).reason.contains("equipment"))
+    }
+
+    @Test
+    fun aV2DocumentWithNoCreditsStillGetsThemDerived() {
+        // The precedence bug: `version == 1 || empty && version < 2` could never fire its
+        // second test, so a v2 document carrying no junction rows derived nothing.
+        val parsed = BackupJson.decode(
+            """
+            {"version": 2, "exercises": [
+              {"id": "a", "name": "Barbell Row", "muscleGroup": "Back", "notes": "",
+               "isCustom": false, "equipment": "BARBELL", "loadType": "EXTERNAL"}
+            ], "exerciseMuscles": []}
+            """.trimIndent(),
+        )
+        assertTrue("credits must be derived, not left empty", parsed.exerciseMuscles.isNotEmpty())
+        assertTrue(parsed.exerciseMuscles.all { it.exerciseId == "a" })
+    }
+
 }

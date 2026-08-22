@@ -153,15 +153,32 @@ object BackupJson {
                 muscleGroup = text(exercise.muscleGroup),
                 notes = text(exercise.notes),
                 isCustom = exercise.isCustom,
+                // Canonicalized, not merely defaulted. A document written by the other lineage
+                // of this app spells these lowercase ("barbell", "weighted_bodyweight") and the
+                // validator matches on the enum name, so without this pass every backup that
+                // lineage ever wrote is refused outright — the whole restore, not the field.
+                // An unrecognized value is deliberately passed through unchanged so the
+                // validator still refuses it and still names it.
                 equipment = exercise.equipment?.takeIf { it.isNotBlank() }
+                    ?.let { raw -> EquipmentType.fromLegacyStorage(raw)?.name ?: raw }
                     ?: EquipmentType.OTHER.name,
                 loadType = exercise.loadType?.takeIf { it.isNotBlank() }
+                    ?.let { raw -> LoadType.fromLegacyStorage(raw)?.name ?: raw }
                     ?: LoadType.EXTERNAL.name,
                 movementKey = exercise.movementKey,
                 imageKey = exercise.imageKey,
             )
         }
-        val credits = if (version == 1 || exerciseMuscles.isEmpty() && version < CURRENT_VERSION) {
+        // Parenthesized deliberately. Written without them, `&&` binds tighter than `||` and
+        // this read as `version == 1 || (exerciseMuscles.isEmpty() && version < 2)` — and since
+        // decode() has already refused anything below 1, `version < 2` IS `version == 1`. The
+        // second test could never contribute a case the first had not already taken, so a v2
+        // document carrying no credits fell through to the else branch with none derived.
+        // The restore epilogue happens to repair that (reconcileCatalogLocked derives credits
+        // for anything lacking them), so this was a trap rather than live data loss — but the
+        // expression did not mean what it said, and the next caller of normalized() would not
+        // have had an epilogue to save it.
+        val credits = if (version == 1 || exerciseMuscles.isEmpty()) {
             exercises.flatMap { exercise ->
                 MuscleNormalizer.deriveCredits(exercise.muscleGroup).map { credit ->
                     BackupExerciseMuscle(
