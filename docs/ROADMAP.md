@@ -175,9 +175,9 @@ Suggest honours emphasis). Phone gates remain the owner's.
 [JOB2_ACTION_PLAN.md](JOB2_ACTION_PLAN.md). P5 sex waits for a real sentence.
 P6 catalog is won't — families already exist.
 
-**Job 3 (next).** The week continues: replay stored answers on an empty week
-without creating routines; lighter-week marker (option A below); ViewModel
-JVM tests; debug `applicationIdSuffix`. Pins already survive Monday — week
+**Job 3 (in flight).** Replay stored answers and the lighter-week marker are
+on `trunk` (phone pending). Next: ViewModel JVM tests for Home / Plan /
+setup, then debug `applicationIdSuffix`. Pins already survive Monday — week
 two with pins is not a feature. Packets, gates, won'ts:
 [JOB3_ACTION_PLAN.md](JOB3_ACTION_PLAN.md).
 
@@ -206,7 +206,7 @@ Carried forward deliberately, with the phase that will address them.
 
 | Item | Phase |
 |---|---|
-| Instrumented tests cover migrations plus `WorkoutRepository` / `ScheduleRepository`; DAOs, ViewModels and screens still untested | later — opportunistic |
+| Instrumented tests cover migrations plus `WorkoutRepository` / `ScheduleRepository`; remaining ViewModels and screens still untested (Home / Plan / setup have JVM tests in Job 3 / P3) | later — opportunistic |
 | ~~ViewModels untestable by construction (service-locator `AppViewModel`) — A1~~ | ~~opportunistic~~ done 22 Aug 2026 — constructor-injected `AppDependencies` |
 | Finished sessions cannot be edited | ~~1~~ fixed 21 Aug — sets, notes, session delete, repeat |
 | Routine editor loses an unsaved rename on back | ~~4~~ fixed 20 Aug |

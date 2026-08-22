@@ -55,7 +55,7 @@ class TrainingInsightsSource(
     private val computeDispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val nowMs: () -> Long = System::currentTimeMillis,
     private val zone: () -> ZoneId = ZoneId::systemDefault,
-) {
+) : TrainingInsightsPublisher {
     /**
      * One computation for every screen that wants the default view of it.
      *
@@ -76,7 +76,7 @@ class TrainingInsightsSource(
      * with the same numbers, instead of waiting on a pipeline to tell it something the screen
      * next to it already knew.
      */
-    fun observeShared(includeWeekPlan: Boolean = true): Flow<TrainingInsights> =
+    override fun observeShared(includeWeekPlan: Boolean): Flow<TrainingInsights> =
         if (includeWeekPlan) sharedWithPlan else sharedWithoutPlan
 
     private val sharedScope = CoroutineScope(SupervisorJob() + computeDispatcher)
@@ -99,10 +99,10 @@ class TrainingInsightsSource(
      *   week any more — the plan is stored — so this is now only a manual recompute nudge.
      * @param includeWeekPlan false on surfaces that never render a plan.
      */
-    fun observe(
-        window: Flow<HeatWindow> = flowOf(HeatWindow.CURRENT_WEEK),
-        refresh: Flow<Any?> = flowOf(Unit),
-        includeWeekPlan: Boolean = true,
+    override fun observe(
+        window: Flow<HeatWindow>,
+        refresh: Flow<Any?>,
+        includeWeekPlan: Boolean,
     ): Flow<TrainingInsights> = combine(
         // Six sources, five at a time: combine's typed overloads stop at five, so the slot flow
         // is folded in around the original group rather than the group being re-shaped.

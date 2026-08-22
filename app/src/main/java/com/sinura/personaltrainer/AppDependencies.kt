@@ -8,7 +8,7 @@ import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.ScheduleRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
-import com.sinura.personaltrainer.insights.TrainingInsightsSource
+import com.sinura.personaltrainer.insights.TrainingInsightsPublisher
 import com.sinura.personaltrainer.timer.RestTimerController
 import com.sinura.personaltrainer.timer.RestTimerStatePersistence
 import com.sinura.personaltrainer.timer.RestTimerStore
@@ -39,7 +39,7 @@ interface AppDependencies {
     val workoutDraftCache: WorkoutDraftCache
     val finishWorkout: FinishWorkout
     val discardWorkout: DiscardWorkout
-    val trainingInsights: TrainingInsightsSource
+    val trainingInsights: TrainingInsightsPublisher
     val pendingWeekSuggestion: MutableStateFlow<Boolean>
     val startTrainingDay: StartTrainingDay
     val backupRepository: BackupRepository
