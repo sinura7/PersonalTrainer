@@ -28,6 +28,10 @@ class PreMigrationSnapshotTest {
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
+        // Other Robolectric tests open Room on this same applicationId. deleteDatabase
+        // closes that connection; deleting the files alone leaves a live handle that
+        // can rewrite personal_trainer.db after we plant the text stand-in.
+        context.deleteDatabase(DB_NAME)
         context.getSharedPreferences(PreMigrationSnapshot.PREFS_NAME, Context.MODE_PRIVATE)
             .edit().clear().commit()
         copyDir().deleteRecursively()
