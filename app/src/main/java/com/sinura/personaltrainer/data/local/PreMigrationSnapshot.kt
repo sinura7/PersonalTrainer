@@ -1,6 +1,8 @@
 package com.sinura.personaltrainer.data.local
 
 import android.content.Context
+import android.content.SharedPreferences
+import android.database.sqlite.SQLiteDatabase
 import com.sinura.personaltrainer.logging.AppLog
 import java.io.File
 
@@ -24,6 +26,9 @@ import java.io.File
  * 3. **It never overwrites.** The copy is taken once, at the last moment the file was still
  *    v1, and kept forever. A "refresh the backup" pass would eventually overwrite the v1 copy
  *    with a v2 one and quietly delete the only thing worth having.
+ * 4. **It never copies a migrated file.** If the first attempt failed and Room then opened
+ *    the live database, a later launch must not write that v2 file into `pre-migration/v1`.
+ *    An incomplete copy is retried only while `user_version` is still 1.
  *
  * It also never throws. A phone that cannot be opened because its rollback copy failed is
  * strictly worse than a phone with no rollback copy: on failure the marker is left unwritten
@@ -53,17 +58,30 @@ object PreMigrationSnapshot {
         val source = context.getDatabasePath(DB_NAME)
         if (!source.exists()) {
             // Fresh install: there is no v1 database to preserve, and never will be.
-            prefs.edit().putInt(KEY_LAST_OPENED_SCHEMA, TARGET_SCHEMA).apply()
+            writeMarker(prefs)
             return
         }
 
         val destination = File(context.filesDir, "pre-migration/v1")
+        val sourceParent = source.parentFile
+        val alreadyMigrated = userVersion(source).let { it != null && it >= TARGET_SCHEMA }
+
         if (destination.isDirectory) {
-            // An earlier run copied the file and died before writing the marker. The copy on
-            // disk is the pre-v2 one; taking it again now would capture a migrated file.
-            // A regular file at this path is a failed earlier attempt, not a copy — leave
-            // the marker unset so the next launch retries.
-            prefs.edit().putInt(KEY_LAST_OPENED_SCHEMA, TARGET_SCHEMA).apply()
+            // An earlier run copied something and died before writing the marker.
+            // A complete copy is the pre-v2 file and must be kept. An incomplete copy
+            // can be retried only while the live file is still v1 — recopying after
+            // Room has migrated would write v2 into the only rollback path.
+            if (snapshotComplete(sourceParent, destination) || alreadyMigrated) {
+                writeMarker(prefs)
+                return
+            }
+            destination.deleteRecursively()
+        }
+
+        if (alreadyMigrated) {
+            // Missed the window. Never write a v2 file into the v1 rollback folder.
+            writeMarker(prefs)
+            AppLog.w(TAG, "Live database is already schema $TARGET_SCHEMA; skipped v1 rollback copy")
             return
         }
 
@@ -72,17 +90,49 @@ object PreMigrationSnapshot {
                 error("Could not create ${destination.absolutePath}")
             }
             SIDECARS.forEach { suffix ->
-                val file = File(source.parentFile, DB_NAME + suffix)
+                val file = File(sourceParent, DB_NAME + suffix)
                 if (file.exists()) {
                     file.copyTo(File(destination, DB_NAME + suffix), overwrite = false)
                 }
             }
-            prefs.edit().putInt(KEY_LAST_OPENED_SCHEMA, TARGET_SCHEMA).apply()
+            writeMarker(prefs)
             AppLog.d(TAG, "Pre-migration copy written to ${destination.absolutePath}")
         } catch (error: Exception) {
             // Marker deliberately left unwritten so the next launch tries again. Opening the
-            // app matters more than having the copy.
+            // app matters more than having the copy — but the retry must refuse a v2 source.
             AppLog.e(TAG, "Pre-migration copy failed; continuing without it", error)
         }
     }
+
+    /**
+     * SQLite `user_version`, or null when the file is missing or is not a database
+     * (the unit tests write plain text stand-ins).
+     */
+    internal fun userVersion(file: File): Int? {
+        if (!file.exists() || file.length() < SQLITE_HEADER_BYTES) return null
+        return try {
+            SQLiteDatabase.openDatabase(file.absolutePath, null, SQLiteDatabase.OPEN_READONLY)
+                .use { it.version }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun snapshotComplete(sourceParent: File?, destination: File): Boolean {
+        val main = File(destination, DB_NAME)
+        if (!main.exists() || main.length() == 0L) return false
+        SIDECARS.filter { it.isNotEmpty() }.forEach { suffix ->
+            val sourceSidecar = File(sourceParent, DB_NAME + suffix)
+            if (sourceSidecar.exists() && !File(destination, DB_NAME + suffix).exists()) {
+                return false
+            }
+        }
+        return true
+    }
+
+    private fun writeMarker(prefs: SharedPreferences) {
+        prefs.edit().putInt(KEY_LAST_OPENED_SCHEMA, TARGET_SCHEMA).commit()
+    }
+
+    private const val SQLITE_HEADER_BYTES = 100L
 }
