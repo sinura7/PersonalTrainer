@@ -201,6 +201,10 @@ fun ProgressScreen(
                 unit = unit,
                 windowLabel = state.window.label,
                 onDismiss = { selectedName = null },
+                onOpenExercise = { exerciseId ->
+                    selectedName = null
+                    onOpenExercise(exerciseId)
+                },
                 onFindLifts = {
                     selectedName = null
                     onOpenLibrary(muscle)
@@ -253,6 +257,7 @@ private fun MuscleDetailSheet(
     unit: WeightUnit,
     windowLabel: String,
     onDismiss: () -> Unit,
+    onOpenExercise: (String) -> Unit,
     onFindLifts: () -> Unit,
 ) {
     ModalBottomSheet(
@@ -314,7 +319,10 @@ private fun MuscleDetailSheet(
                 GroupedList {
                     load.exercises.forEachIndexed { index, exercise ->
                         if (index > 0) HairlineDivider()
-                        InstrumentRow(title = exercise.exerciseName) {
+                        InstrumentRow(
+                            title = exercise.exerciseName,
+                            onClick = { onOpenExercise(exercise.exerciseId) },
+                        ) {
                             MetricCluster(value = exercise.workingSets.toString(), label = "sets")
                             val column = SetCopy.workColumn(exercise.work, unit)
                             MetricCluster(value = column.value, label = column.label)

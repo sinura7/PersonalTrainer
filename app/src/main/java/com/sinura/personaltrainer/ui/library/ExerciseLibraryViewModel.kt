@@ -168,9 +168,21 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
         selectedEquipment.value = if (selectedEquipment.value == equipment) null else equipment
     }
 
-    /** Set from the navigation argument; unlike a chip tap it never toggles off. */
-    fun applyMuscleFilter(muscle: CanonicalMuscle?) {
-        selectedMuscle.value = muscle
+    /**
+     * Seeded once from the route, the first time this ViewModel exists.
+     *
+     * Library leaves composition when a lift is opened. Re-applying the Body muscle on
+     * every recomposition would put back a filter the user had already cleared, which is
+     * the opposite of "the filter survives the hop". A later arrival (Plan → Library with
+     * no muscle, then Body → Library with one) is a new back-stack entry and a new
+     * ViewModel, so it seeds cleanly.
+     */
+    private var routeMuscleSeeded = false
+
+    fun seedMuscleFromRoute(muscle: CanonicalMuscle?) {
+        if (routeMuscleSeeded) return
+        routeMuscleSeeded = true
+        if (muscle != null) selectedMuscle.value = muscle
     }
 
     fun toggleFamily(movementKey: String) {

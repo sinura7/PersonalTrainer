@@ -51,6 +51,8 @@ data class BackupUiState(
     val error: String? = null,
     val pendingRestore: DriveBackupFile? = null,
     val pendingFileRestore: Uri? = null,
+    /** Restore would wipe the live session. Say so before the tap, not after the refuse. */
+    val sessionLive: Boolean = false,
 )
 
 private const val TAG = "PT/SettingsVM"
@@ -179,7 +181,8 @@ class SettingsViewModel @JvmOverloads constructor(
         },
         pendingFileRestore,
         backups,
-    ) { meta, flags, fileRestore, files ->
+        container.workoutRepository.observeInProgress(),
+    ) { meta, flags, fileRestore, files, live ->
         BackupUiState(
             accountEmail = meta.email,
             lastBackupAt = meta.lastAt,
@@ -193,6 +196,7 @@ class SettingsViewModel @JvmOverloads constructor(
             error = flags.error,
             pendingRestore = flags.pendingRestore,
             pendingFileRestore = fileRestore,
+            sessionLive = live != null,
         )
     }.stateIn(
         scope = viewModelScope,

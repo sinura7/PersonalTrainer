@@ -571,18 +571,32 @@ private fun BackupRestoreSection(
         }
         state.error?.let { GymErrorBanner(it) }
 
+        if (state.sessionLive) {
+            Text(
+                "Finish or discard the live session before restoring. A restore would " +
+                    "delete the workout you are standing in.",
+                style = InstrumentType.caption,
+                color = Warn,
+            )
+        }
+
         GymSectionHeader("Backup file", compact = true)
         SecondaryGymButton(
             text = "Export to file",
             onClick = onExportFile,
             enabled = !state.isBusy,
         )
+        val restoreBlocked = state.isBusy || state.sessionLive
         GroupedList {
             InstrumentRow(
                 title = "Import from file",
-                subtitle = "Replaces everything on this phone",
-                onClick = if (state.isBusy) null else onImportFile,
-                trailing = { DangerAction("Replace", enabled = !state.isBusy) },
+                subtitle = if (state.sessionLive) {
+                    "Finish the live session first"
+                } else {
+                    "Replaces everything on this phone"
+                },
+                onClick = if (restoreBlocked) null else onImportFile,
+                trailing = { DangerAction("Replace", enabled = !restoreBlocked) },
             )
         }
 
@@ -624,8 +638,8 @@ private fun BackupRestoreSection(
                         subtitle = file.modifiedAtMillis
                             .takeIf { it > 0 }
                             ?.let { dateTimeFormat.format(Date(it)) },
-                        onClick = if (state.isBusy) null else ({ onRestore(file) }),
-                        trailing = { DangerAction("Restore", enabled = !state.isBusy) },
+                        onClick = if (restoreBlocked) null else ({ onRestore(file) }),
+                        trailing = { DangerAction("Restore", enabled = !restoreBlocked) },
                     )
                 }
             }
