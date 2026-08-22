@@ -2,9 +2,13 @@ package com.sinura.personaltrainer
 
 import android.content.Context
 import android.content.ContextWrapper
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import com.sinura.personaltrainer.data.backup.DriveAuthClient
 import com.sinura.personaltrainer.data.backup.DriveRestClient
@@ -58,8 +62,14 @@ class FakeAppDependencies(
     override val scheduleRepository: ScheduleRepository = ScheduleRepository(database.scheduleDao())
     override val workoutRepository: WorkoutRepository =
         WorkoutRepository(database, database.workoutDao())
+    private val prefsContext = IsolatedAppContext(context.applicationContext)
+    private val prefsScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val prefsStore = PreferenceDataStoreFactory.create(
+        scope = prefsScope,
+        produceFile = { File(prefsContext.filesDir, "datastore/user_settings.preferences_pb") },
+    )
     override val preferencesRepository: PreferencesRepository =
-        PreferencesRepository(IsolatedAppContext(context.applicationContext))
+        PreferencesRepository(prefsContext, prefsStore)
     override val onboardingApplier: OnboardingApplier = OnboardingApplier(
         routineRepository = routineRepository,
         scheduleRepository = scheduleRepository,
@@ -111,6 +121,7 @@ class FakeAppDependencies(
 
     fun close() {
         database.close()
+        prefsScope.cancel()
     }
 }
 
@@ -120,9 +131,9 @@ fun ViewModel.clearForTest() {
 }
 
 /**
- * Each fake graph gets its own DataStore file. Sharing `user_settings` across
- * Robolectric tests hangs `edit()` / `first()` once two [PreferencesRepository]
- * instances have opened the same Application file.
+ * Each fake graph gets its own DataStore file *and* its own
+ * [PreferenceDataStoreFactory] instance. A unique `filesDir` is not enough:
+ * [androidx.datastore.preferences.preferencesDataStore] is a process singleton.
  */
 private class IsolatedAppContext(base: Context) : ContextWrapper(base) {
     private val root = File(base.cacheDir, "fake-prefs-${System.nanoTime()}").also { it.mkdirs() }

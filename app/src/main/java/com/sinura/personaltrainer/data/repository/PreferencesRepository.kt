@@ -37,8 +37,16 @@ private val Context.userSettingsDataStore: DataStore<Preferences> by preferences
     name = "user_settings",
 )
 
-class PreferencesRepository(context: Context) {
-    private val dataStore = context.applicationContext.userSettingsDataStore
+class PreferencesRepository(
+    context: Context,
+    /**
+     * Tests pass a private store. The [preferencesDataStore] delegate is a process
+     * singleton — a unique `filesDir` alone still shares `user_settings` and hangs
+     * `edit()` / `first()` once another Robolectric test has opened it.
+     */
+    dataStore: DataStore<Preferences> = context.applicationContext.userSettingsDataStore,
+) {
+    private val dataStore = dataStore
 
     /**
      * The preferences stream with the one guard every reader needs: a corrupted or unreadable
