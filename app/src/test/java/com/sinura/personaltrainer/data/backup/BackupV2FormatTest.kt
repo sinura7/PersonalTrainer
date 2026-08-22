@@ -64,6 +64,7 @@ class BackupV2FormatTest {
         assertEquals("", parsed.preferences.trainingAge)
         assertEquals(emptyList<String>(), parsed.preferences.preferredDays)
         assertEquals("", parsed.preferences.trainingPlace)
+        assertEquals(null, parsed.preferences.lighterWeekStartEpochDay)
     }
 
     @Test

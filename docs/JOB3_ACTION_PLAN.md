@@ -293,7 +293,7 @@ Do **not** pin inside the replay call. `acceptFills` is the write.
 
 ---
 
-### P2 — Lighter week (ROADMAP option A) · *after P1*
+### P2 — Lighter week (ROADMAP option A) · **next** (this PR · phone pending)
 
 **Goal.** The coach's overreach card becomes an instruction the app can help
 follow. Same lifts. The bar does not climb this week.

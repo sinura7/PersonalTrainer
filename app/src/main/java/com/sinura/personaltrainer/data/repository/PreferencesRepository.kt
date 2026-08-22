@@ -122,6 +122,25 @@ class PreferencesRepository(context: Context) {
     }
 
     /**
+     * The week-start epoch day marked lighter, or null when none is.
+     *
+     * A past value is inert: readers compare it to this week's start. Clearing is writing
+     * null, not deleting a row that no longer matches.
+     */
+    val lighterWeekStartEpochDay: Flow<Long?> = safePreferences
+        .map { prefs -> prefs[LIGHTER_WEEK_START] }
+
+    suspend fun setLighterWeekStartEpochDay(epochDay: Long?) {
+        dataStore.edit { prefs ->
+            if (epochDay == null) {
+                prefs.remove(LIGHTER_WEEK_START)
+            } else {
+                prefs[LIGHTER_WEEK_START] = epochDay
+            }
+        }
+    }
+
+    /**
      * The questionnaire, reconstructed from what is already stored.
      *
      * One snapshot so a replay tap cannot mix a just-changed goal with yesterday's days.
@@ -306,6 +325,7 @@ class PreferencesRepository(context: Context) {
         trainingAge: TrainingAge,
         preferredDays: Set<DayOfWeek>,
         trainingPlace: TrainingPlace,
+        lighterWeekStartEpochDay: Long?,
     ) {
         val cleanSchedule = schedule.sanitized()
         val cleanRest = rest.sanitized()
@@ -356,6 +376,11 @@ class PreferencesRepository(context: Context) {
             prefs[TRAINING_AGE] = trainingAge.name
             prefs[PREFERRED_DAYS] = preferredDays.map { it.name }.toSet()
             prefs[TRAINING_PLACE] = trainingPlace.name
+            if (lighterWeekStartEpochDay == null) {
+                prefs.remove(LIGHTER_WEEK_START)
+            } else {
+                prefs[LIGHTER_WEEK_START] = lighterWeekStartEpochDay
+            }
         }
     }
 
@@ -567,6 +592,7 @@ class PreferencesRepository(context: Context) {
         val TRAINING_AGE = stringPreferencesKey("training_age")
         val PREFERRED_DAYS = stringSetPreferencesKey("preferred_days")
         val TRAINING_PLACE = stringPreferencesKey("training_place")
+        val LIGHTER_WEEK_START = longPreferencesKey("lighter_week_start_epoch_day")
 
         fun preferredDaysFrom(raw: Set<String>?): Set<DayOfWeek> =
             raw.orEmpty().mapNotNull { name ->

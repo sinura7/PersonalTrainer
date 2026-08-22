@@ -27,6 +27,7 @@ import com.sinura.personaltrainer.domain.ProgressionCalculator
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RepeatSessionPlan
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.LighterWeekModifier
 import com.sinura.personaltrainer.domain.RpeModifier
 import com.sinura.personaltrainer.domain.SessionActivity
 import com.sinura.personaltrainer.domain.SessionEditRules
@@ -545,6 +546,7 @@ class WorkoutRepository(
         excludeSessionId: String,
         loadType: LoadType?,
         unit: WeightUnit,
+        lighterWeek: Boolean = false,
     ): ProgressionHint? {
         val topSet = topSetOfLastSession(exerciseId, excludeSessionId) ?: return null
         val resolvedTarget = targetReps.takeIf { it > 0 }
@@ -564,7 +566,8 @@ class WorkoutRepository(
         )
         // Hitting the target reps at RPE 9 and hitting them at RPE 6 are the same event to the
         // calculator, and only one of them means "ready for more".
-        return RpeModifier.apply(hint, recentTopSetRpes(exerciseId, excludeSessionId))
+        val afterRpe = RpeModifier.apply(hint, recentTopSetRpes(exerciseId, excludeSessionId))
+        return LighterWeekModifier.apply(afterRpe, lighterWeek)
     }
 
     /**
@@ -728,6 +731,7 @@ class WorkoutRepository(
     suspend fun readyForProgression(
         routines: List<Routine>,
         unit: WeightUnit,
+        lighterWeek: Boolean = false,
     ): List<ProgressionHint> {
         val seen = linkedSetOf<String>()
         val hints = mutableListOf<ProgressionHint>()
@@ -747,9 +751,12 @@ class WorkoutRepository(
                     // The RPE rule downgrades a grinding lift to HOLD, which drops it out of
                     // this list automatically — "ready to progress" must not name a lift the
                     // in-workout strip is simultaneously telling you to hold.
-                    val adjusted = RpeModifier.apply(
-                        hint,
-                        recentTopSetRpes(item.exercise.id, excludeSessionId = ""),
+                    val adjusted = LighterWeekModifier.apply(
+                        RpeModifier.apply(
+                            hint,
+                            recentTopSetRpes(item.exercise.id, excludeSessionId = ""),
+                        ),
+                        lighterWeek,
                     )
                     if (adjusted.action == ProgressionAction.INCREASE) {
                         hints += adjusted

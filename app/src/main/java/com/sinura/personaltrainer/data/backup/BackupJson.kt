@@ -239,6 +239,7 @@ object BackupJson {
             trainingAge = prefs.string("trainingAge", ""),
             preferredDays = prefs.stringList("preferredDays"),
             trainingPlace = prefs.string("trainingPlace", ""),
+            lighterWeekStartEpochDay = prefs.longOrNull("lighterWeekStartEpochDay"),
         )
     }
 

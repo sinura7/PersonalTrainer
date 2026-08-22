@@ -17,6 +17,8 @@ object ProgressionCopy {
         val step = IncrementTable.stepLabel(hint.loadType ?: LoadType.EXTERNAL, unit)
         val assisted = hint.isAssisted
         return when {
+            // Lighter week is why they opened the session this way. Prefer it over RPE.
+            hint.lighterHold -> "Lighter week. Keep ${hint.weightLabel(unit)}."
             // A hold with no explanation reads as the app having lost count. If RPE is why, say so.
             hint.rpeHold -> "Top set at RPE 9+. Hold ${hint.weightLabel(unit)}."
             // Nothing to add: the honest instruction is a rep, and it is the SAME sentence the

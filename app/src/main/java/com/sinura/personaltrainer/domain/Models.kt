@@ -191,6 +191,12 @@ data class ProgressionHint(
      */
     val rpeHold: Boolean = false,
     /**
+     * True when the suggestion was held because this week is marked lighter.
+     * The strip names that reason first — an unexplained hold during a deload
+     * reads as the app having forgotten how to count.
+     */
+    val lighterHold: Boolean = false,
+    /**
      * How this lift is loaded, so the copy can match it.
      *
      * A domain field, not a column — the repository knows the exercise when it builds the hint.

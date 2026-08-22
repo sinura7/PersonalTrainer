@@ -6,6 +6,7 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
+import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
@@ -45,6 +46,7 @@ data class HomeUiState(
     val loggedEpochDays: Set<Long> = emptySet(),
     /** The block this week belongs to, or null when the lifter is not in one. */
     val block: TrainingBlock? = null,
+    val lighterWeek: Boolean = false,
     val error: String? = null,
 )
 
@@ -58,8 +60,11 @@ class HomeViewModel @JvmOverloads constructor(
         container.trainingInsights.observeShared(),
         container.workoutRepository.observeInProgress(),
         actionError,
-        container.preferencesRepository.trainingBlock,
-    ) { insights, inProgress, error, block ->
+        combine(
+            container.preferencesRepository.trainingBlock,
+            container.preferencesRepository.lighterWeekStartEpochDay,
+        ) { block, lighterStart -> block to lighterStart },
+    ) { insights, inProgress, error, blockAndLighter ->
         HomeUiState(
             isLoading = false,
             inProgress = inProgress,
@@ -77,7 +82,11 @@ class HomeViewModel @JvmOverloads constructor(
                 .filter { it.isFinished }
                 .map { todayEpochDay(it.date) }
                 .toSet(),
-            block = block,
+            block = blockAndLighter.first,
+            lighterWeek = LighterWeek.isCurrent(
+                blockAndLighter.second,
+                insights.weekPlan?.weekStartEpochDay,
+            ),
             error = error,
         )
     }

@@ -217,6 +217,16 @@ class ProgressionCopyTest {
     }
 
     @Test
+    fun aLighterWeekHoldExplainsItselfFirst() {
+        val strip = ProgressionCopy.stripReason(
+            hint(LoadType.EXTERNAL, ProgressionAction.HOLD, rpeHold = true)
+                .copy(lighterHold = true, suggestedWeightKg = 100.0),
+            WeightUnit.KG,
+        )
+        assertEquals("Lighter week. Keep 100 kg.", strip)
+    }
+
+    @Test
     fun anRpeHoldExplainsItself() {
         val strip = ProgressionCopy.stripReason(
             hint(LoadType.EXTERNAL, ProgressionAction.HOLD, rpeHold = true),

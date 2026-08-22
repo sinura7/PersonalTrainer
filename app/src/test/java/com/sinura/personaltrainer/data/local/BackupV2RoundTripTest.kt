@@ -217,6 +217,7 @@ class BackupV2RoundTripTest {
             trainingAge = TrainingAge.NEW,
             preferredDays = emptySet(),
             trainingPlace = TrainingPlace.FULL_GYM,
+            lighterWeekStartEpochDay = null,
         )
         assertTrue(preferences.pastBlocks.first().isEmpty())
 
@@ -244,6 +245,21 @@ class BackupV2RoundTripTest {
         restore(V1_FIXTURE)
 
         assertNull(preferences.trainingBlock.first())
+    }
+
+    @Test
+    fun aLighterWeekMarkTravelsWithTheBackup() = runBlocking {
+        maintenance.seedCatalog()
+        seedUserData()
+        preferences.setLighterWeekStartEpochDay(20_318L)
+
+        val json = BackupJson.encode(local.createSnapshot())
+        preferences.setLighterWeekStartEpochDay(null)
+        assertEquals(null, preferences.lighterWeekStartEpochDay.first())
+
+        restore(json)
+
+        assertEquals(20_318L, preferences.lighterWeekStartEpochDay.first())
     }
 
     @Test

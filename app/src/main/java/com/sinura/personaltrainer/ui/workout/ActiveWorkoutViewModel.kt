@@ -16,6 +16,7 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseOrdering
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
 import com.sinura.personaltrainer.domain.LibraryGrouping
+import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.ProgressionHint
@@ -50,6 +51,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 private const val TAG = "PT/ActiveWorkoutVM"
 
@@ -481,6 +483,12 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         val targetReps = planned?.targetReps ?: 5
         val rest = planned?.restSeconds?.takeIf { it > 0 } ?: 90
         restTotal.value = rest
+        val schedule = container.preferencesRepository.schedulePreferences.first()
+        val thisWeek = LighterWeek.weekStartEpochDay(LocalDate.now(), schedule.weekStart)
+        val lighter = LighterWeek.isCurrent(
+            container.preferencesRepository.lighterWeekStartEpochDay.first(),
+            thisWeek,
+        )
         val progression = container.workoutRepository.progressionFor(
             exerciseId = exerciseId,
             exerciseName = planned?.exercise?.name ?: "",
@@ -490,6 +498,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             // Read once here rather than collected: the hint is computed at the moment a lift
             // opens, and a unit change mid-set recomputes it on the next open anyway.
             unit = container.preferencesRepository.weightUnit.first(),
+            lighterWeek = lighter,
         )
         hint.value = progression
         lastPerformance.value = container.workoutRepository.lastPerformance(exerciseId, sessionId)

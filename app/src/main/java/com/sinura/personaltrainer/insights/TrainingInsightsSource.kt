@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.CoachPreferences
+import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.ScheduleSlot
 import com.sinura.personaltrainer.domain.SchedulePreferences
@@ -18,6 +19,7 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
+import java.time.Instant
 import java.time.ZoneId
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -115,8 +117,19 @@ class TrainingInsightsSource(
                 Sources(history, routines, exercises.associateBy { it.id }, preferences, unit)
             },
             scheduleRepository.observeSlots(),
-            preferencesRepository.coachPreferences,
-        ) { sources, slots, coachPrefs -> sources.copy(slots = slots, coachPrefs = coachPrefs) },
+            combine(
+                preferencesRepository.coachPreferences,
+                preferencesRepository.lighterWeekStartEpochDay,
+            ) { coachPrefs, marked -> coachPrefs to marked },
+        ) { sources, slots, coachAndMarked ->
+            val today = Instant.ofEpochMilli(nowMs()).atZone(zone()).toLocalDate()
+            val thisWeek = LighterWeek.weekStartEpochDay(today, sources.preferences.weekStart)
+            sources.copy(
+                slots = slots,
+                coachPrefs = coachAndMarked.first,
+                lighterWeek = LighterWeek.isCurrent(coachAndMarked.second, thisWeek),
+            )
+        },
         window,
         refresh,
     ) { sources, heatWindow, _ ->
@@ -125,7 +138,11 @@ class TrainingInsightsSource(
         // Null, not emptyList: "the query failed" and "nothing is ready to progress" render
         // very differently, and the old code collapsed them into the same empty section.
         val hints = runCatchingCancellable {
-            workoutRepository.readyForProgression(sources.routines, sources.unit)
+            workoutRepository.readyForProgression(
+                sources.routines,
+                sources.unit,
+                lighterWeek = sources.lighterWeek,
+            )
         }.getOrElse { thrown ->
             AppLog.w(TAG, "Reading the progression hints failed", thrown)
             null
@@ -162,5 +179,6 @@ class TrainingInsightsSource(
         /** Defaulted so the inner five-way combine keeps constructing this unchanged. */
         val slots: List<ScheduleSlot> = emptyList(),
         val coachPrefs: CoachPreferences = CoachPreferences.DEFAULT,
+        val lighterWeek: Boolean = false,
     )
 }

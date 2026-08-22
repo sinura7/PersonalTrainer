@@ -103,6 +103,8 @@ data class BackupPreferences(
     val trainingAge: String = "",
     val preferredDays: List<String> = emptyList(),
     val trainingPlace: String = "",
+    /** Null means no lighter week is marked. A past value is inert to readers. */
+    val lighterWeekStartEpochDay: Long? = null,
 )
 
 /**

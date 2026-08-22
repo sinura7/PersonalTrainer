@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.WeekTwoCopy
 import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
@@ -317,7 +318,16 @@ fun PlanScreen(
                     )
                 }
                 item(key = "summary") {
-                    Text(week.summary, style = InstrumentType.caption, color = TextTertiary)
+                    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+                        if (state.lighterWeek) {
+                            Text(
+                                LighterWeek.CAPTION,
+                                style = InstrumentType.caption,
+                                color = Volt,
+                            )
+                        }
+                        Text(week.summary, style = InstrumentType.caption, color = TextTertiary)
+                    }
                 }
             }
 
@@ -328,6 +338,8 @@ fun PlanScreen(
                         onDays = viewModel::setTrainingDays,
                         onSplit = viewModel::setSplit,
                         onWeekStart = viewModel::setWeekStart,
+                        lighterWeek = state.lighterWeek,
+                        onLighterWeek = viewModel::setLighterWeek,
                     )
                 }
             }
