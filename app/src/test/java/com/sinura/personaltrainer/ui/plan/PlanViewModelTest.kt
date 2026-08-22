@@ -29,6 +29,7 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -133,6 +134,34 @@ class PlanViewModelTest {
         assertTrue(proposals.isNotEmpty())
         assertTrue(proposals.all { it.routineId in setOf(upper.id, lower.id) })
         assertTrue(proposals.all { it.slotId == null })
+    }
+
+    @Test
+    fun pendingAnswerReplayReplaysWithoutCreating() = runBlocking {
+        val insights = MutableStateFlow(TrainingInsights())
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps.dbMaintenance.seedCatalog()
+        val upper = deps.routineRepository.create(name = "Upper")
+        val lower = deps.routineRepository.create(name = "Lower Body")
+        val before = deps.routineRepository.count()
+        deps.preferencesRepository.setTrainingAge(TrainingAge.RETURNING)
+        deps.preferencesRepository.setPreferredDays(emptySet())
+        deps.preferencesRepository.setTrainingPlace(TrainingPlace.FULL_GYM)
+        deps.preferencesRepository.setTrainingDaysPerWeek(4)
+        insights.value = TrainingInsights(
+            routines = listOf(upper, lower),
+            weekPlan = emptyWeek(),
+        )
+        deps.pendingAnswerReplay.value = true
+
+        viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        val proposals = withTimeout(5_000) {
+            viewModel!!.uiState.first { it.proposals.isNotEmpty() || it.error != null }.proposals
+        }
+        assertEquals(before, deps.routineRepository.count())
+        assertTrue(proposals.isNotEmpty())
+        assertTrue(proposals.all { it.routineId in setOf(upper.id, lower.id) })
+        assertFalse(deps.pendingAnswerReplay.value)
     }
 
     private fun emptyHeat() = BodyHeatSnapshot(

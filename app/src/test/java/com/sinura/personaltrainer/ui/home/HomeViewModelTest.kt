@@ -20,6 +20,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -81,6 +82,15 @@ class HomeViewModelTest {
 
         val state = viewModel!!.uiState.first { !it.isLoading }
         assertEquals(listOf("progression-ready"), state.recommendations.map { it.id })
+    }
+
+    @Test
+    fun requestAnswerReplayArmsPlanOnce() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        assertFalse(deps.pendingAnswerReplay.value)
+        viewModel!!.requestAnswerReplay()
+        assertTrue(deps.pendingAnswerReplay.value)
     }
 
     private fun hint() = ProgressionHint(

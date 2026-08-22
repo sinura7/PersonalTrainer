@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer
 
 import android.content.Context
+import android.content.ContextWrapper
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
@@ -57,7 +58,8 @@ class FakeAppDependencies(
     override val scheduleRepository: ScheduleRepository = ScheduleRepository(database.scheduleDao())
     override val workoutRepository: WorkoutRepository =
         WorkoutRepository(database, database.workoutDao())
-    override val preferencesRepository: PreferencesRepository = PreferencesRepository(context)
+    override val preferencesRepository: PreferencesRepository =
+        PreferencesRepository(IsolatedAppContext(context.applicationContext))
     override val onboardingApplier: OnboardingApplier = OnboardingApplier(
         routineRepository = routineRepository,
         scheduleRepository = scheduleRepository,
@@ -88,6 +90,7 @@ class FakeAppDependencies(
         ): Flow<TrainingInsights> = insights
     }
     override val pendingWeekSuggestion = MutableStateFlow(false)
+    override val pendingAnswerReplay = MutableStateFlow(false)
     override val startTrainingDay: StartTrainingDay = StartTrainingDay(
         workoutRepository = workoutRepository,
         routineRepository = routineRepository,
@@ -114,4 +117,17 @@ class FakeAppDependencies(
 /** Cancels [viewModelScope] so collectors do not outlive the test. */
 fun ViewModel.clearForTest() {
     viewModelScope.cancel()
+}
+
+/**
+ * Each fake graph gets its own DataStore file. Sharing `user_settings` across
+ * Robolectric tests hangs `edit()` / `first()` once two [PreferencesRepository]
+ * instances have opened the same Application file.
+ */
+private class IsolatedAppContext(base: Context) : ContextWrapper(base) {
+    private val root = File(base.cacheDir, "fake-prefs-${System.nanoTime()}").also { it.mkdirs() }
+
+    override fun getApplicationContext(): Context = this
+
+    override fun getFilesDir(): File = File(root, "files").also { it.mkdirs() }
 }

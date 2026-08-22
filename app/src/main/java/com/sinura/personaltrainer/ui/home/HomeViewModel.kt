@@ -173,5 +173,15 @@ class HomeViewModel @JvmOverloads constructor(
         container.pendingWeekSuggestion.value = true
     }
 
+    /**
+     * Arms the Plan tab to replay stored answers on the routines already here.
+     *
+     * Same idiom as [requestWeekSuggestion]: the tap and the arrival are a navigation
+     * apart. Accepting the preview is still the only write.
+     */
+    fun requestAnswerReplay() {
+        container.pendingAnswerReplay.value = true
+    }
+
     data class BlockedStart(val day: SuggestedTrainingDay, val sessionId: String)
 }

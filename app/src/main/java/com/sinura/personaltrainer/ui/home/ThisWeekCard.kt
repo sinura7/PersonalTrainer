@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
+import com.sinura.personaltrainer.domain.WeekTwoCopy
 import com.sinura.personaltrainer.domain.shortLabel
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -29,10 +30,9 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
  *
  * **The empty state is the important one.** The plan is stored now rather than generated, so
  * the first thing anyone sees after updating is a week with nothing in it. That is honest, and
- * it is also a cliff: recovery from it has to be one tap from here, not a tab hunt followed by
- * a hunt for the right button. So "Suggest a week" is the primary action when there is no plan,
- * and starting an unplanned workout — which is still perfectly reasonable — steps down to the
- * quieter action beneath it.
+ * it is also a cliff: recovery from it has to be one tap from here. When routines already
+ * exist, that tap is replay — the same volt as Plan. Suggest stays, quiet, as the heat path.
+ * When there are no routines, Suggest is the volt: there is nothing to replay.
  *
  * **It absorbed the "Next session" card.** Home used to render this one and then, past the week
  * strip, a second card naming the same session, with the same routine name in it and a tap
@@ -57,7 +57,9 @@ fun ThisWeekCard(
     lifts: List<String>,
     reason: String?,
     sessionLive: Boolean,
+    hasRoutines: Boolean,
     onSuggestWeek: () -> Unit,
+    onReplayAnswers: () -> Unit,
     onPrimary: () -> Unit,
 ) {
     val trainingToday = day?.takeUnless { it.isRest }
@@ -99,16 +101,32 @@ fun ThisWeekCard(
             Text(reason, style = InstrumentType.caption, color = TextTertiary)
         }
         if (!hasPlan) {
-            Text(
-                "Pin your week in Plan, or let the app propose one.",
-                style = InstrumentType.caption,
-                color = TextSecondary,
-            )
-            PrimaryGymButton(
-                text = "Suggest a week",
-                onClick = onSuggestWeek,
-                modifier = Modifier.padding(top = Metrics.space1),
-            )
+            if (hasRoutines) {
+                Text(
+                    WeekTwoCopy.CAPTION,
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                )
+                PrimaryGymButton(
+                    text = WeekTwoCopy.VOLT,
+                    onClick = onReplayAnswers,
+                    modifier = Modifier.padding(top = Metrics.space1),
+                )
+                TextButton(onClick = onSuggestWeek) {
+                    Text("Suggest a week", style = InstrumentType.bodyStrong, color = TextSecondary)
+                }
+            } else {
+                Text(
+                    "Pin your week in Plan, or let the app propose one.",
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                )
+                PrimaryGymButton(
+                    text = "Suggest a week",
+                    onClick = onSuggestWeek,
+                    modifier = Modifier.padding(top = Metrics.space1),
+                )
+            }
             if (!sessionLive) {
                 TextButton(onClick = onPrimary) {
                     Text("Start a workout", style = InstrumentType.bodyStrong, color = TextSecondary)

@@ -175,6 +175,13 @@ class PlanViewModel @JvmOverloads constructor(
                 suggestFills()
             }
         }
+        viewModelScope.launch {
+            container.pendingAnswerReplay.collect { pending ->
+                if (!pending) return@collect
+                container.pendingAnswerReplay.value = false
+                replayStoredAnswers()
+            }
+        }
     }
 
     // -----------------------------------------------------------------------
