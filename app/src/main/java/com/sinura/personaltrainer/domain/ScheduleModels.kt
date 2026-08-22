@@ -108,4 +108,16 @@ data class WeeklySchedulePlan(
 
     fun nextTrainingOnOrAfter(epochDay: Long): SuggestedTrainingDay? =
         days.firstOrNull { !it.isRest && it.epochDay >= epochDay }
+
+    /**
+     * Whether "Suggest a week" would invent a day.
+     *
+     * Unpinned days render as rest. Suggest only fills the training-day indices that
+     * are still open and not already behind [todayEpochDay]. A fully pinned week
+     * still has rest days — those must not keep the button alive.
+     */
+    fun hasOpenTrainingSlot(todayEpochDay: Long, trainingDayIndices: Collection<Int>): Boolean =
+        days.withIndex().any { (index, day) ->
+            day.epochDay >= todayEpochDay && day.slotId == null && index in trainingDayIndices
+        }
 }
