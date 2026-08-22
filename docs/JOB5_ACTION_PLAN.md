@@ -248,7 +248,7 @@ Collar weight. Bumper vs iron as a second catalog.
 
 ---
 
-### P4 — Font scale 2.0 on the log loop · **done** (this PR · 722 JVM · phone pending)
+### P4 — Font scale 2.0 on the log loop · **done** (merged · 722 JVM · phone pending)
 
 **Goal.** The session can still be logged at the largest system font.
 We do not "fix" it by clamping the whole app to 1.3.
@@ -277,20 +277,23 @@ Restyling the stack. A second type scale.
 
 ---
 
-### P5 — Prompted backup, not a silent clock · **after P4**
+### P5 — Prompted backup, not a silent clock · **done** (this PR · phone pending)
 
 **Goal.** Settings says when the last backup is old, *before* they
 need the file. Restore and live-session rules do not change.
 
 **Work**
 
-- Stale = no `lastBackupAt`, or older than 14 days.
-- Caption / banner on the Backup group. Export and Drive stay the taps.
-- The file still excludes the live session (Job 4 / P4 already says so).
+- `BackupPrompt.isStale`: no `lastBackupAt`, or 14 days or older.
+- Caption on the Backup group leads with the nag when stale. Export
+  and Drive stay the taps. Not a filled button.
+- Last-backup stamp wears Warn when stale (already did for Never).
+- The file still excludes the live session (Job 4 already says so).
 
-**Gate.** JVM: a repository or ViewModel test that `lastBackupAt` older
-than 14 days surfaces the prompt flag. assemble. Phone: wipe the stamp
-(or wait) — Settings nags. After Export, the nag is gone.
+**Gate.** JVM: `BackupPromptTest` plus Settings ViewModel — a stamp
+older than 14 days sets `backupStale`; a fresh stamp clears it.
+assemble. Phone: wipe the stamp — Settings nags. After Export, the
+nag is gone.
 
 **Won't.** `WorkManager` periodic Drive upload. Backup at process start.
 Requiring a Google account. Putting the live session in the file.
@@ -393,6 +396,6 @@ P1 is a GitHub Actions page, not a phone.
 - [x] P2 one cue, existing toggle (713 JVM)
 - [x] P3 plates + type-in hint + pounds default (719 JVM)
 - [x] P4 log loop at font 2.0 (722 JVM)
-- [ ] P5 stale-backup prompt
+- [x] P5 stale-backup prompt (this PR)
 - [ ] Phone gates still the owner's
 - [ ] Six won'ts still won't

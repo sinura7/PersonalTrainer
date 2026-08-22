@@ -47,6 +47,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.BuildConfig
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
+import com.sinura.personaltrainer.domain.BackupPrompt
 import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.DayLabel
 import com.sinura.personaltrainer.domain.EquipmentType
@@ -551,9 +552,7 @@ private fun BackupRestoreSection(
     }
     SettingsGroup(
         title = "Backup",
-        caption = "Training always works offline — a backup is only read when you ask for one. " +
-            "The file path needs no Google account, and still works if sign-in ever breaks. " +
-            "An in-progress workout is left out of the file.",
+        caption = BackupPrompt.caption(state.backupStale),
     ) {
         GroupedList {
             BackupStampRow(
@@ -561,6 +560,7 @@ private fun BackupRestoreSection(
                 atMillis = state.lastBackupAt,
                 name = state.lastBackupName,
                 dateTimeFormat = dateTimeFormat,
+                stale = state.backupStale,
             )
             // Restores are tracked separately: a restore is not a backup, and saying so here used
             // to mute the only nag that gets the user to actually make one.
@@ -687,6 +687,7 @@ private fun BackupStampRow(
     atMillis: Long?,
     name: String?,
     dateTimeFormat: DateFormat,
+    stale: Boolean = atMillis == null,
 ) {
     val stamp = remember(atMillis) {
         atMillis?.let { at ->
@@ -700,7 +701,7 @@ private fun BackupStampRow(
             Text(
                 stamp ?: "Never",
                 style = InstrumentType.numeralSm,
-                color = if (stamp == null) Warn else TextPrimary,
+                color = if (stale) Warn else TextPrimary,
                 maxLines = 1,
             )
         },

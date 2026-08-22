@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearForTest
+import com.sinura.personaltrainer.domain.BackupPrompt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -59,5 +60,25 @@ class SettingsViewModelTest {
             viewModel!!.backupState.first { it.sessionLive }
         }
         assertTrue(live.sessionLive)
+    }
+
+    @Test
+    fun backupOlderThanFourteenDaysSurfacesThePrompt() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        val now = System.currentTimeMillis()
+        deps.preferencesRepository.setLastBackup(
+            "personal-trainer-backup-old.json",
+            now - BackupPrompt.STALE_AFTER_MS - 1_000L,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+
+        val stale = withTimeout(5_000) { viewModel!!.backupState.first { it.lastBackupAt != null } }
+        assertTrue(stale.backupStale)
+
+        deps.preferencesRepository.setLastBackup("personal-trainer-backup-now.json", now)
+        val fresh = withTimeout(5_000) {
+            viewModel!!.backupState.first { it.lastBackupAt == now }
+        }
+        assertFalse(fresh.backupStale)
     }
 }
