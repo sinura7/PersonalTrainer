@@ -233,7 +233,10 @@ Plate calculator · rest *sound* design · font-scale 2.0 · scheduled backup ·
 Room v3 · emulator instrumented tests on the real applicationId ·
 package rename · Drive folder rename · 5th tab · LLM trainer.
 
-Deload decision UI was deferred here. It is Job 3 / P2 (ROADMAP option A).
+Deload decision UI was deferred here. The Tune chip is Job 3 / P2
+(ROADMAP option A). The Body card tap that actually marks the week is
+Job 4 / P1. Home empty-week volt becomes replay when routines exist
+(Job 4 / P2).
 
 ---
 
@@ -265,4 +268,4 @@ Record every deviation here. Oldest stay; do not delete.
 - [ ] Phone: the page gate, plus any floor finding shipped this turn
 - [ ] This file updated if we left the written plan
 
-Last JVM gate: 671 tests, 0 failures (merged `trunk`, 22 Aug 2026). Phone gates still need the owner. Job 3 living plan: [JOB3_ACTION_PLAN.md](JOB3_ACTION_PLAN.md).
+Last JVM gate: 700 tests, 0 failures (merged `trunk`, 22 Aug 2026). Phone gates still need the owner. Job 4 living plan: [JOB4_ACTION_PLAN.md](JOB4_ACTION_PLAN.md).
