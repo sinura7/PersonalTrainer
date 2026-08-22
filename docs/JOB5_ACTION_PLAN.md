@@ -209,7 +209,7 @@ if the phone wants it). Changing vibration. A new notification channel.
 
 ---
 
-### P3 — Plates, type-in, pounds default · **done** (this PR · 719 JVM · phone pending)
+### P3 — Plates, type-in, pounds default · **done** (merged · 719 JVM · phone pending)
 
 **Goal.** A barbell's weight stepper can say how the bar is made, the
 number can be typed, and a first run thinks in pounds.
@@ -248,26 +248,26 @@ Collar weight. Bumper vs iron as a second catalog.
 
 ---
 
-### P4 — Font scale 2.0 on the log loop · **after P3**
+### P4 — Font scale 2.0 on the log loop · **done** (this PR · 722 JVM · phone pending)
 
 **Goal.** The session can still be logged at the largest system font.
 We do not "fix" it by clamping the whole app to 1.3.
 
 **Work**
 
-Audit, in this order:
+- `LogLoopScale.stackEntryWells` from 1.6: weight and reps stack instead
+  of sitting half-width. The numeral they are about to log is never
+  ellipsised (`maxLines = 2`).
+- Touch floors become `heightIn`: stepper plates, rest controls, chips,
+  log button, tab bar.
+- Workout header metrics share the row. Finish helper already wraps.
+- Rest clock keeps the ring and yields the remaining width.
+- Four tabs stay four. The bar grows; labels stay kickers.
+- Plan header actions drop to a second row at the same scale. Home
+  masthead gains a third headline line. Week strip already `heightIn`.
 
-1. `SetEntryPanel` / `WeightStepper` / `NumeralWell`
-2. Active workout header + Finish helper
-3. RestDock
-4. Bottom tab bar
-5. Plan week strip / Home masthead
-
-Wrap where a row can wrap. Raise `heightIn` where `rowMin` clips.
-Ellipsis only on names, never on the numeral they are about to log.
-
-**Tests.** No golden screenshots. Prefer a density/fontScale
-composition test on the entry panel if one can be honest on the JVM.
+**Tests.** `LogLoopScaleTest` — 1.3 stays side-by-side, 2.0 stacks.
+No golden screenshots. No new Compose test dependency.
 
 **Gate.** assemble + JVM. Phone: Settings → largest font. Log a set.
 Tabs still labelled. Finish helper still readable.
@@ -381,6 +381,8 @@ P1 is a GitHub Actions page, not a phone.
 10. **Pounds is the default.** Missing / unknown storage is LBS.
     Kilograms is the Settings option. Files that already say `"kg"`
     stay kg.
+11. **2.0 is layout, not a second type scale.** Stack the wells from
+    1.6. Grow `heightIn`. Never clamp `fontScale`.
 
 ---
 
@@ -390,7 +392,7 @@ P1 is a GitHub Actions page, not a phone.
 - [ ] P1 `ci.yml` lists `trunk`
 - [x] P2 one cue, existing toggle (713 JVM)
 - [x] P3 plates + type-in hint + pounds default (719 JVM)
-- [ ] P4 log loop at font 2.0
+- [x] P4 log loop at font 2.0 (722 JVM)
 - [ ] P5 stale-backup prompt
 - [ ] Phone gates still the owner's
 - [ ] Six won'ts still won't

@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -59,6 +60,7 @@ import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.WeekStrip
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.TextPrimary
@@ -518,7 +520,8 @@ private fun PlanHeader(
     onOpenLibrary: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-    Row(
+    val stacked = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(Pit)
@@ -528,37 +531,62 @@ private fun PlanHeader(
                 top = Metrics.space2,
                 bottom = Metrics.space3,
             ),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            "Plan",
-            modifier = Modifier.weight(1f),
-            style = InstrumentType.display,
-            color = TextPrimary,
-        )
-        TextButton(onClick = onToggleTune) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                if (tuning) "Done" else "Tune",
-                style = InstrumentType.bodyStrong,
-                color = if (tuning) Volt else TextSecondary,
+                "Plan",
+                modifier = Modifier.weight(1f),
+                style = InstrumentType.display,
+                color = TextPrimary,
             )
-        }
-        // Library's unfiltered door, now that it is not a tab. It belongs beside the routines
-        // it feeds: everywhere else you reach Library, you arrive already filtered.
-        TextButton(onClick = onOpenLibrary) {
-            Text("Library", style = InstrumentType.bodyStrong, color = TextSecondary)
-        }
-        if (canCreate) {
-            TextButton(onClick = onCreate) {
-                // Quiet on purpose. Empty-state "Create a routine" is the volt create;
-                // New here must not compete with "Use this week" or today's Start on Home.
-                Text("New", style = InstrumentType.bodyStrong, color = TextSecondary)
+            if (!stacked) {
+                PlanHeaderActions(
+                    tuning = tuning,
+                    canCreate = canCreate,
+                    onToggleTune = onToggleTune,
+                    onCreate = onCreate,
+                    onOpenLibrary = onOpenLibrary,
+                )
+            }
+            IconButton(onClick = onOpenSettings) {
+                Icon(Icons.Outlined.Settings, contentDescription = "Settings", tint = TextSecondary)
             }
         }
-        // Settings' named second home. It used to be reachable only from Home, which made it a
-        // stack screen with no obvious way back to the thing you were configuring.
-        IconButton(onClick = onOpenSettings) {
-            Icon(Icons.Outlined.Settings, contentDescription = "Settings", tint = TextSecondary)
+        if (stacked) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                PlanHeaderActions(
+                    tuning = tuning,
+                    canCreate = canCreate,
+                    onToggleTune = onToggleTune,
+                    onCreate = onCreate,
+                    onOpenLibrary = onOpenLibrary,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlanHeaderActions(
+    tuning: Boolean,
+    canCreate: Boolean,
+    onToggleTune: () -> Unit,
+    onCreate: () -> Unit,
+    onOpenLibrary: () -> Unit,
+) {
+    TextButton(onClick = onToggleTune) {
+        Text(
+            if (tuning) "Done" else "Tune",
+            style = InstrumentType.bodyStrong,
+            color = if (tuning) Volt else TextSecondary,
+        )
+    }
+    TextButton(onClick = onOpenLibrary) {
+        Text("Library", style = InstrumentType.bodyStrong, color = TextSecondary)
+    }
+    if (canCreate) {
+        TextButton(onClick = onCreate) {
+            Text("New", style = InstrumentType.bodyStrong, color = TextSecondary)
         }
     }
 }

@@ -189,12 +189,11 @@ the tap. Phone gates remain the owner's (card+HOLD, Home replay,
 Backup/Finish copy). Packets, gates, won'ts:
 [JOB4_ACTION_PLAN.md](JOB4_ACTION_PLAN.md).
 
-**Job 5 (in flight).** Plan and rest cue are on `trunk`. Next: plates
-under the barbell numeral, type-in made obvious, pounds the default
-(kg stays in Settings). Then font 2.0, prompted backup. CI `trunk` is
-Studio. Room v3, fifth tab, LLM, rename, sex, and catalog seed stay
-signed won't. Packets, gates, won'ts:
-[JOB5_ACTION_PLAN.md](JOB5_ACTION_PLAN.md).
+**Job 5 (in flight).** Plan, rest cue, plates, type-in, and pounds
+default are on `trunk`. Next: font-scale 2.0 on the log loop, then
+prompted backup. CI `trunk` is Studio. Room v3, fifth tab, LLM,
+rename, sex, and catalog seed stay signed won't. Packets, gates,
+won'ts: [JOB5_ACTION_PLAN.md](JOB5_ACTION_PLAN.md).
 
 **Review baseline (22 Aug 2026).** Full-tree audit after Job 2 landed on `trunk`.
 No open PRs. Q4 onboarding ANR on the cloud emulator is environment — `setPlace`

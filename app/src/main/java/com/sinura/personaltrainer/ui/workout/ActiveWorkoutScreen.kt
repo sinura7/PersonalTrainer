@@ -667,23 +667,26 @@ private fun WorkoutHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = Metrics.space2),
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space6),
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
         ) {
             MetricCluster(
                 value = RestTimer.formatClock(elapsedSeconds),
                 label = "elapsed",
                 horizontalAlignment = Alignment.Start,
+                modifier = Modifier.weight(1f),
             )
             MetricCluster(
                 value = workingSets.toString(),
                 label = "sets",
                 horizontalAlignment = Alignment.Start,
+                modifier = Modifier.weight(1f),
             )
             val column = SetCopy.workColumn(work, unit)
             MetricCluster(
                 value = column.value,
                 label = column.label,
                 horizontalAlignment = Alignment.Start,
+                modifier = Modifier.weight(1f),
             )
         }
     }
@@ -780,6 +783,7 @@ private fun CurrentLiftHeader(
                 modifier = Modifier.weight(1f),
                 style = InstrumentType.display,
                 color = TextPrimary,
+                maxLines = 3,
             )
             // Only while nothing has been logged against this lift. Once a set exists, the
             // lift is part of what happened: removing it would delete real work and swapping
