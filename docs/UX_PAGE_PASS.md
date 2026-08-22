@@ -268,4 +268,4 @@ Record every deviation here. Oldest stay; do not delete.
 - [ ] Phone: the page gate, plus any floor finding shipped this turn
 - [ ] This file updated if we left the written plan
 
-Last JVM gate: 700 tests, 0 failures (merged `trunk`, 22 Aug 2026). Phone gates still need the owner. Job 4 living plan: [JOB4_ACTION_PLAN.md](JOB4_ACTION_PLAN.md).
+Last JVM gate: 706 tests, 0 failures (merged `trunk`, 22 Aug 2026). Phone gates still need the owner. Job 4 is code-done: [JOB4_ACTION_PLAN.md](JOB4_ACTION_PLAN.md).
