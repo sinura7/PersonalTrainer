@@ -48,6 +48,10 @@ TOP_DECL_RE = re.compile(
     re.M,
 )
 OBJECT_BODY_RE = re.compile(r"\bobject\s+(\w+)\s*\{")
+ENUM_BODY_RE = re.compile(r"\benum\s+class\s+(\w+)[^{]*\{")
+# An enum entry is a bare capitalised name at the head of the body, optionally with a
+# constructor call or a body of its own: `CHEST(`, `CHEST,`, `CHEST {`, `CHEST ;`.
+ENUM_ENTRY_RE = re.compile(r"^\s*([A-Z][A-Z0-9_]*)\s*(?:\(|,|;|\{|$)", re.M)
 MEMBER_DECL_RE = re.compile(
     r"^\s*(?:@\w+(?:\([^)]*\))?\s*)*"
     r"(?:public\s+|internal\s+|private\s+|const\s+|override\s+|open\s+|inline\s+|suspend\s+|lateinit\s+)*"
@@ -72,6 +76,8 @@ def balanced_body(src: str, open_index: int) -> str:
 def main() -> int:
     by_package: dict[str, set[str]] = {}
     object_members: dict[str, set[str]] = {}
+    # Fully qualified type name -> its members, for `import package.Type.MEMBER`.
+    type_members: dict[str, set[str]] = {}
     sources: list[tuple[str, str]] = []
 
     for path in kotlin_files(ROOT):
@@ -86,8 +92,16 @@ def main() -> int:
         names = by_package.setdefault(package, set())
         for decl in TOP_DECL_RE.finditer(src):
             names.add(decl.group(1))
-        # Enum entries are referenced as Type.ENTRY, which the member pass does not check,
-        # but the enum type itself must be importable.
+        # `import a.b.SomeEnum.ENTRY` is legal Kotlin and resolves to a member of the type,
+        # not to a top-level declaration, so the import pass below needs the entries indexed.
+        for enum in ENUM_BODY_RE.finditer(src):
+            body = balanced_body(src, enum.end() - 1)
+            entries = type_members.setdefault(f"{package}.{enum.group(1)}", set())
+            head = body.split(";", 1)[0]
+            entries.update(ENUM_ENTRY_RE.findall(head))
+            for decl in MEMBER_DECL_RE.finditer(body):
+                entries.add(decl.group(1))
+
         for obj in OBJECT_BODY_RE.finditer(src):
             body = balanced_body(src, obj.end() - 1)
             members = object_members.setdefault(obj.group(1), set())
@@ -103,9 +117,18 @@ def main() -> int:
                 continue
             package, _, name = fqn.rpartition(".")
             known = by_package.get(package)
+            if known is not None and name in known:
+                continue
+            # Not a top-level name. It may be a member import — `package.Type.MEMBER` — which
+            # is how enum entries and object members are pulled in. Resolve against the type.
+            members = type_members.get(package)
+            if members is not None:
+                if name not in members:
+                    problems.append(f"{path}: import {fqn} — '{name}' is not a member of {package}")
+                continue
             if known is None:
                 problems.append(f"{path}: import {fqn} — no such package in this source root")
-            elif name not in known:
+            else:
                 problems.append(f"{path}: import {fqn} — '{name}' is not declared in {package}")
 
         for obj in TOKEN_OBJECTS:
