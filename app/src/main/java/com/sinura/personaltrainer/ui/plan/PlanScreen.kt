@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
 import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
@@ -331,7 +332,12 @@ fun PlanScreen(
             }
 
             if (state.proposals.isEmpty()) {
-                val hasOpenDay = week?.days?.any { it.epochDay >= today && it.isRest } == true
+                val hasOpenDay = week?.hasOpenTrainingSlot(
+                    todayEpochDay = today,
+                    trainingDayIndices = WeeklySchedulePlanner.trainingDayIndices(
+                        state.preferences.trainingDaysPerWeek,
+                    ),
+                ) == true
                 val hasPins = week?.days?.any { !it.isRest } == true
                 if (hasOpenDay) {
                     item(key = "suggest") {
