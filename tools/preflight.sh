@@ -36,23 +36,39 @@ bootstrap_jars() {
     fi
     [ -n "$roots" ] || return 1
     mkdir -p "$dest"
+    # Each line is "filename-glob [optional path fragment]". The path fragment
+    # keeps Robolectric's annotations-4.14.1.jar and junit-4.14.1.jar from
+    # winning the sort: those packages do not contain
+    # org.jetbrains.annotations.NotNull, and the domain-test lane then dies
+    # with NoClassDefFoundError on the first Kotlin file that uses it.
     # Kotlin jars must be 2.x: a 1.9 compiler from an old Gradle distribution
     # cannot be trusted to compile this project's Kotlin 2.0 sources.
-    for pat in 'kotlin-compiler-embeddable-2*.jar' 'kotlin-stdlib-2*.jar' \
-               'kotlinx-coroutines-core-jvm-*.jar' 'junit-4*.jar' \
-               'hamcrest-core-*.jar' 'trove4j-*.jar' 'annotations-*.jar'; do
+    find_jar() {
+        pat="$1"
+        must="${2:-}"
         jar=""
         for r in $roots; do
-            jar="$(find "$r" -name "$pat" 2>/dev/null | sort | tail -1)"
+            if [ -n "$must" ]; then
+                jar="$(find "$r" -path "*$must*" -name "$pat" 2>/dev/null | sort | tail -1)"
+            else
+                jar="$(find "$r" -name "$pat" 2>/dev/null | sort | tail -1)"
+            fi
             [ -n "$jar" ] && break
         done
         if [ -z "$jar" ]; then
-            echo "preflight: could not find $pat — removing partial $dest" >&2
+            echo "preflight: could not find $pat${must:+ ($must)} — removing partial $dest" >&2
             rm -rf "$dest"
             return 1
         fi
         ln -sf "$jar" "$dest/"
-    done
+    }
+    find_jar 'kotlin-compiler-embeddable-2*.jar' || return 1
+    find_jar 'kotlin-stdlib-2*.jar' || return 1
+    find_jar 'kotlinx-coroutines-core-jvm-*.jar' || return 1
+    find_jar 'junit-4*.jar' 'junit/junit/' || return 1
+    find_jar 'hamcrest-core-*.jar' || return 1
+    find_jar 'trove4j-*.jar' || return 1
+    find_jar 'annotations-*.jar' 'org.jetbrains/annotations/' || return 1
     # Optional: absence disables the backup lane but must not fail the bootstrap,
     # so this runs as its own loop rather than being added to the list above.
     for pat in 'gson-2*.jar'; do
@@ -70,7 +86,23 @@ bootstrap_jars() {
     echo "preflight: assembled test jars in $dest"
 }
 
-if [ -z "$(find "$JARS" -name '*.jar' 2>/dev/null | head -1)" ]; then
+jars_usable() {
+    [ -n "$(find "$JARS" -name '*.jar' 2>/dev/null | head -1)" ] || return 1
+    # A previous bootstrap could have linked Robolectric's annotations jar.
+    # Rebuild rather than compile against a package that has no NotNull.
+    for f in "$JARS"/annotations-*.jar; do
+        [ -e "$f" ] || return 1
+        target="$(readlink -f "$f" 2>/dev/null || readlink "$f" || echo "$f")"
+        case "$target" in
+            *org.jetbrains/annotations*) return 0 ;;
+        esac
+        return 1
+    done
+    return 1
+}
+
+if ! jars_usable; then
+    rm -rf "$JARS"
     bootstrap_jars "$JARS" || echo "preflight: no jar directory; will fall back to Gradle for tests" >&2
 fi
 export PT_JARS="$JARS"   # syntax-check.sh and run-domain-tests.sh both read this
