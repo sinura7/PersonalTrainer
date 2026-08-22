@@ -133,6 +133,22 @@ class AddDefaultsTest {
     }
 
     @Test
+    fun landingCopyNamesThisLiftNotAUniversalThreeByFive() {
+        assertEquals("3 × 5 · 2:30", TargetDefaults(3, 5, 150).previewLine())
+        assertEquals("3 × 12 · 1:00", TargetDefaults(3, 12, 60).previewLine())
+        val squat = lift(LoadType.EXTERNAL, 0.5)
+        assertEquals(
+            "Lands at 3 × 5 · 2:30 — editable on the routine.",
+            AddDefaults.landingCopy(squat),
+        )
+        val raise = lift(LoadType.STACK, 0.0)
+        assertEquals(
+            "Lands at 3 × 12 · 1:00 — editable on the routine.",
+            AddDefaults.landingCopy(raise),
+        )
+    }
+
+    @Test
     fun anUnknownLoadTypeTakesTheIsolationFallback() {
         // A custom the user typed in. Too many reps at too little rest is a bad set; too few
         // reps at too much rest is a wasted afternoon — so the fallback errs toward isolation.

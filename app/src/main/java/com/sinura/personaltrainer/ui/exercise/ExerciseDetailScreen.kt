@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.DayLabel
@@ -310,6 +311,7 @@ fun ExerciseDetailScreen(
     if (routinePickerOpen) {
         RoutinePickerSheet(
             exerciseName = state.exercise?.name.orEmpty(),
+            landing = state.exercise?.let { AddDefaults.landingCopy(it) },
             routines = state.routines,
             onDismiss = { routinePickerOpen = false },
             onPick = { routineId ->
@@ -332,6 +334,7 @@ fun ExerciseDetailScreen(
 @Composable
 private fun RoutinePickerSheet(
     exerciseName: String,
+    landing: String?,
     routines: List<RoutineMembership>,
     onDismiss: () -> Unit,
     onPick: (String) -> Unit,
@@ -373,7 +376,7 @@ private fun RoutinePickerSheet(
                 }
             }
             Text(
-                "Sets, reps and rest start from this lift's defaults. Change them in the routine.",
+                landing ?: "Sets, reps and rest start from this lift's defaults. Change them in the routine.",
                 style = InstrumentType.caption,
                 color = TextTertiary,
             )
