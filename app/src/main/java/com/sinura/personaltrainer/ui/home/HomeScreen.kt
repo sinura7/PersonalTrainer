@@ -164,6 +164,7 @@ fun HomeScreen(
                     nextDay = nextDay,
                     loggedToday = loggedToday,
                     sessionLive = inProgress != null,
+                    hasRoutines = state.routines.isNotEmpty(),
                     lifts = featured?.routineId
                         ?.let { id -> state.routines.firstOrNull { it.id == id } }
                         ?.exercises.orEmpty()
@@ -172,6 +173,10 @@ fun HomeScreen(
                     reason = nextSessionReason(featured, state.recommendations),
                     onSuggestWeek = {
                         viewModel.requestWeekSuggestion()
+                        onOpenPlan()
+                    },
+                    onReplayAnswers = {
+                        viewModel.requestAnswerReplay()
                         onOpenPlan()
                     },
                     onPrimary = {

@@ -96,6 +96,8 @@ class AppContainer(context: Context) : AppDependencies {
      */
     override val pendingWeekSuggestion = MutableStateFlow(false)
 
+    override val pendingAnswerReplay = MutableStateFlow(false)
+
     override val startTrainingDay: StartTrainingDay = StartTrainingDay(
         workoutRepository = workoutRepository,
         routineRepository = routineRepository,

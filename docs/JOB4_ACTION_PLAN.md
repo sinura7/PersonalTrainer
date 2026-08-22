@@ -129,7 +129,7 @@ claiming "+5.5 lbs" is open.
 
 ---
 
-### P1 — Deload card marks this week · **next** (this PR)
+### P1 — Deload card marks this week · **done** (merged · phone pending)
 
 **Goal.** Body card `deload-volume-flat-strength` is tappable. The tap
 writes the same key Tune writes. Sets are not scaled.
@@ -165,7 +165,7 @@ this week's start.
 
 ---
 
-### P2 — Home replay when routines exist · **after P1**
+### P2 — Home replay when routines exist · **next** (this PR)
 
 **Goal.** Empty week + routines on the phone → Home's volt is
 **Use my answers again**. Quiet Suggest. Same confirm on Plan
@@ -311,7 +311,7 @@ Do not deviate into sex, catalog seed, Room v3, or plate calculator.
 
 - [x] This file written; ROADMAP strike; UX pointer
 - [ ] P1 JVM + assemble (phone: card tap HOLDs)
-- [ ] P2 JVM + assemble (phone: Home replay)
+- [x] P2 JVM + assemble (phone: Home replay)
 - [ ] P3 three ViewModel test classes, 0 failures
 - [ ] P4 two captions
 - [ ] Phone gates still the owner's

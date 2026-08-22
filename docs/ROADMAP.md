@@ -182,9 +182,8 @@ Home / Plan / setup ViewModel JVM tests; debug is
 (unpin+replay, Tune+HOLD, two icons). Packets, gates, won'ts:
 [JOB3_ACTION_PLAN.md](JOB3_ACTION_PLAN.md).
 
-**Job 4 (next).** The coach keeps its word: the deload card marks this
-week; Home offers replay when routines exist; Settings / History /
-Progress JVM contracts; two honesty captions. Packets, gates, won'ts:
+**Job 4 (in flight).** The deload card marks this week (phone pending).
+Next: Home replay when routines exist. Packets, gates, won'ts:
 [JOB4_ACTION_PLAN.md](JOB4_ACTION_PLAN.md).
 
 **Review baseline (22 Aug 2026).** Full-tree audit after Job 2 landed on `trunk`.

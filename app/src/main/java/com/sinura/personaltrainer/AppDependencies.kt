@@ -41,6 +41,8 @@ interface AppDependencies {
     val discardWorkout: DiscardWorkout
     val trainingInsights: TrainingInsightsPublisher
     val pendingWeekSuggestion: MutableStateFlow<Boolean>
+    /** Home arms this; Plan consumes it once and runs [com.sinura.personaltrainer.ui.plan.PlanViewModel.replayStoredAnswers]. */
+    val pendingAnswerReplay: MutableStateFlow<Boolean>
     val startTrainingDay: StartTrainingDay
     val backupRepository: BackupRepository
 }
