@@ -11,11 +11,18 @@ assumes you are building and installing from it.
 4. Press **Run ▶**. That is the whole deployment path for day-to-day work — a debug build
    signed with Android Studio's debug key, installed straight to the device.
 
-Debug and release are **separate installs with different signing keys**. A debug build will
-not overwrite your real, release-signed app, and vice versa — which is exactly what you
-want, because it means experimenting cannot touch your real training history. They keep
-separate databases only if the applicationId differs; it does not here, so installing one
-over the other requires an uninstall. Use the emulator for anything risky.
+Debug and release are **separate apps**. Debug is `com.sinura.personaltrainer.debug`.
+Release stays `com.sinura.personaltrainer`. Different signing keys, different
+databases, different icons.
+
+**The next debug Run ▶ is a new install.** It will not open, overwrite, or even
+see the release history. The new icon is labelled **Temper Debug**. Release
+stays **Temper**. You will have two icons. If an *old* debug is still on the
+phone (debug-signed, but living on the release id), uninstall that one — not
+the release app. Android already refused to let release and that old debug
+coexist, so if you already have release on the phone you only gain the new
+debug icon beside it. Do not uninstall release to "make room." There is
+nothing to make room for.
 
 ## Project layout
 
@@ -199,10 +206,10 @@ Two lanes exist for anything Room touches:
 
   against a **running API 26+ emulator** (Device Manager → start one first).
   Expected: `BUILD SUCCESSFUL` and a green report at
-  `app/build/reports/androidTests/connected/`. **Never point this at the phone**:
-  the debug test APK shares the release applicationId and cannot install next to
-  the real app (see First run) — and uninstalling the release app to make room
-  would delete your training history.
+  `app/build/reports/androidTests/connected/`. This lane now installs on
+  `com.sinura.personaltrainer.debug`, so it can sit beside release. **Still
+  never point it at the gym-floor phone** — use the emulator. Do not run it
+  against the release `applicationId`.
 
 Migration tests must pass in both lanes before a schema change ships.
 
@@ -311,7 +318,8 @@ Android Studio at home is the phone check. They are not the same evening.
   file an open PR already owns, it is stacked on that branch. Independent
   packets cut from current `trunk`. A stack merges at the tip only.
 - **Test the PR branch**, not whatever Studio last had open. Never run
-  `connectedDebugAndroidTest` on the real `applicationId`.
+  `connectedDebugAndroidTest` on the release `applicationId`. The connected
+  suite targets `.debug`, which is the point.
 
 Agents load the same rules from `.cursor/rules/owner-loop.mdc`.
 

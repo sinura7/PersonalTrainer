@@ -68,10 +68,8 @@ These are floor facts. A packet that fights them is the wrong packet.
    week. Do not put two filled buttons on Plan.
 9. **Room stays version 2.** Additive preferences and backup fields only.
    Never `fallbackToDestructiveMigration`. Never invent a `3.json`.
-10. **Debug and release share `applicationId` today.** Installing one over the
-    other requires uninstall and can see the real history. `DEVELOPMENT.md`
-    already tells the truth. The suffix is a signed rail, not a generator
-    packet.
+10. **Debug is `com.sinura.personaltrainer.debug`.** Release id is unchanged.
+    The next debug install is a new app. `DEVELOPMENT.md` says so at the top.
 
 ---
 
@@ -373,7 +371,7 @@ prefs restore.
 
 ---
 
-### P3 — ViewModel JVM tests · **next** (this PR)
+### P3 — ViewModel JVM tests · **done** (merged)
 
 **Goal.** The A1 seam earns its keep. Home, Plan, and setup cannot regress
 their one job without a red test.
@@ -422,7 +420,7 @@ real id. Restyling. A fake that reimplements `WeekDerivation`.
 
 ---
 
-### P4 — Debug `applicationIdSuffix` · *after P3, Gradle open*
+### P4 — Debug `applicationIdSuffix` · **next** (this PR · phone: two icons)
 
 **Goal.** Debug and release are separate apps. Experimenting cannot open the
 real history.
@@ -441,7 +439,9 @@ Do **not** run `connectedDebugAndroidTest` on the real `applicationId`
 after this — the connected suite targets debug, which will be the suffix
 id. That is the point.
 
-**Files.** `app/build.gradle.kts`, `docs/DEVELOPMENT.md`. Nothing else.
+**Files.** `app/build.gradle.kts`, `app/src/debug/res/values/strings.xml`
+(launcher name **Temper Debug** so the two icons are not the same word),
+`docs/DEVELOPMENT.md`. Living-plan status lines only besides those.
 
 **Gate.** `assembleDebug` produces `applicationId`
 `com.sinura.personaltrainer.debug`. Release id unchanged. JVM suite green
@@ -541,5 +541,5 @@ After each packet that ships UI:
 - [x] P1 JVM + assemble (phone: replay empty week)
 - [x] P2 JVM + assemble (phone: lighter week HOLD)
 - [x] P3 three ViewModel test classes, 0 failures (700 JVM)
-- [ ] P4 debug suffix; DEVELOPMENT tells the truth
+- [x] P4 debug suffix; DEVELOPMENT tells the truth (phone: two icons)
 - [ ] Phone gates still the owner's
