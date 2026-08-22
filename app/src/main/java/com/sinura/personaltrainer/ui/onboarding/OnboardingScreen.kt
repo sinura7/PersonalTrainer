@@ -100,7 +100,12 @@ fun OnboardingScreen(
                 state = state,
                 onBack = { if (!viewModel.back()) onFinished() },
             )
-            state.error?.let { GymErrorBanner(it) }
+            state.error?.let { message ->
+                GymErrorBanner(
+                    message,
+                    onRetry = if (state.preview == null) viewModel::retryCatalog else null,
+                )
+            }
 
             when (state.step) {
                 OnboardingStep.FORK -> ForkStep(
@@ -362,7 +367,7 @@ private fun PreviewStep(
                 plan?.let {
                     "${OnboardingPreviewCopy.headline(state.answers, it)}. " +
                         "${TrainingBlock.DEFAULT_WEEKS} weeks of ${it.splitStyle.displayName}."
-                } ?: "Building it…",
+                } ?: (state.error ?: "Building it…"),
             )
         }
         if (plan != null) {
