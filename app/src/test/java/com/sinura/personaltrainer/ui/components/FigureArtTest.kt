@@ -58,4 +58,36 @@ class FigureArtTest {
             assertEquals(plated, spotted)
         }
     }
+
+    @Test
+    fun frontAndBackShareTheSameStructurePlates() {
+        assertTrue(platesFor(BodyView.FRONT).containsAll(FIGURE_SHARED_STRUCTURE))
+        assertTrue(platesFor(BodyView.BACK).containsAll(FIGURE_SHARED_STRUCTURE))
+        assertEquals(
+            platesFor(BodyView.FRONT).take(FIGURE_SHARED_STRUCTURE.size),
+            platesFor(BodyView.BACK).take(FIGURE_SHARED_STRUCTURE.size),
+        )
+    }
+
+    @Test
+    fun bicepsAndTricepsShareTheArmSilhouette() {
+        val biceps = platesFor(BodyView.FRONT).filter { it.muscle == CanonicalMuscle.BICEPS }
+        val triceps = platesFor(BodyView.BACK).filter { it.muscle == CanonicalMuscle.TRICEPS }
+        assertEquals(biceps.map { it.points }, triceps.map { it.points })
+    }
+
+    @Test
+    fun sameMuscleHotspotsDoNotShareALeftEdge() {
+        // BodyMap keys tap targets by (muscle, left). Two plates of one muscle
+        // with the same left would collapse into one Box.
+        BodyView.entries.forEach { view ->
+            hotspotsFor(view).groupBy { it.muscle }.forEach { (muscle, spots) ->
+                assertEquals(
+                    "$view $muscle has overlapping tap keys",
+                    spots.size,
+                    spots.map { it.left }.toSet().size,
+                )
+            }
+        }
+    }
 }

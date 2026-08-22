@@ -17,6 +17,10 @@ import com.sinura.personaltrainer.ui.theme.Volt
  * One geometry serves the Body tab, the 40dp thumbnails, the empty-state mark and the
  * monochrome notification silhouette. A muscle is a plate (or a pair); lighting it is a
  * fill, not a second set of coordinates.
+ *
+ * Front and back share one structure list — head, neck, delts, forearms, hands, calves,
+ * feet — so flipping the view cannot drift the silhouette. Working plates are the only
+ * thing that changes.
  */
 enum class BodyView(val label: String) {
     FRONT("Front"),
@@ -57,8 +61,8 @@ internal data class BodyPlate(
 internal const val FIGURE_ASPECT = 0.52f
 
 internal fun platesFor(view: BodyView): List<BodyPlate> = when (view) {
-    BodyView.FRONT -> FRONT_PLATES
-    BodyView.BACK -> BACK_PLATES
+    BodyView.FRONT -> FIGURE_SHARED_STRUCTURE + FRONT_WORKING
+    BodyView.BACK -> FIGURE_SHARED_STRUCTURE + BACK_WORKING
 }
 
 internal fun hotspotsFor(view: BodyView): List<BodyHotspot> =
@@ -143,114 +147,198 @@ private fun plate(muscle: CanonicalMuscle?, vararg xy: Float): BodyPlate {
 /*
  * Coordinates are fractions of the figure box. Gaps between neighbours are deliberate —
  * that is the Temper seam, the same void that sits between the launcher plates.
+ *
+ * FIGURE_SHARED_STRUCTURE is the contract that front and back are the same person.
+ * Do not fork those numbers in the working lists.
  */
 
-private val FRONT_PLATES = listOf(
-    plate(null, 0.418f, 0.012f, 0.582f, 0.012f, 0.574f, 0.086f, 0.426f, 0.086f),
-    plate(null, 0.448f, 0.092f, 0.552f, 0.092f, 0.552f, 0.148f, 0.448f, 0.148f),
+internal val FIGURE_SHARED_STRUCTURE: List<BodyPlate> = listOf(
+    // Skull — rounded, not a box.
+    plate(
+        null,
+        0.438f, 0.010f, 0.562f, 0.010f,
+        0.586f, 0.032f, 0.590f, 0.058f,
+        0.572f, 0.088f, 0.428f, 0.088f,
+        0.410f, 0.058f, 0.414f, 0.032f,
+    ),
+    plate(null, 0.456f, 0.092f, 0.544f, 0.092f, 0.552f, 0.146f, 0.448f, 0.146f),
+    // Delts — same outer cap on both views.
     plate(
         CanonicalMuscle.SHOULDERS,
-        0.078f, 0.168f, 0.318f, 0.152f, 0.300f, 0.248f, 0.062f, 0.286f,
+        0.088f, 0.162f, 0.228f, 0.148f, 0.312f, 0.154f,
+        0.308f, 0.206f, 0.268f, 0.258f, 0.148f, 0.278f,
+        0.068f, 0.248f, 0.062f, 0.198f,
     ),
     plate(
         CanonicalMuscle.SHOULDERS,
-        0.682f, 0.152f, 0.922f, 0.168f, 0.938f, 0.286f, 0.700f, 0.248f,
+        0.912f, 0.162f, 0.772f, 0.148f, 0.688f, 0.154f,
+        0.692f, 0.206f, 0.732f, 0.258f, 0.852f, 0.278f,
+        0.932f, 0.248f, 0.938f, 0.198f,
+    ),
+    // Forearms and hands — structure, never heat. Completes the arm the working
+    // biceps / triceps plates start.
+    plate(
+        null,
+        0.056f, 0.428f, 0.208f, 0.412f, 0.198f, 0.528f,
+        0.088f, 0.548f, 0.042f, 0.488f,
     ),
     plate(
-        CanonicalMuscle.CHEST,
-        0.324f, 0.156f, 0.492f, 0.168f, 0.492f, 0.292f, 0.286f, 0.274f, 0.306f, 0.196f,
+        null,
+        0.944f, 0.428f, 0.792f, 0.412f, 0.802f, 0.528f,
+        0.912f, 0.548f, 0.958f, 0.488f,
     ),
     plate(
-        CanonicalMuscle.CHEST,
-        0.508f, 0.168f, 0.676f, 0.156f, 0.694f, 0.196f, 0.714f, 0.274f, 0.508f, 0.292f,
+        null,
+        0.046f, 0.552f, 0.188f, 0.538f, 0.178f, 0.608f,
+        0.108f, 0.628f, 0.038f, 0.588f,
     ),
     plate(
-        CanonicalMuscle.BICEPS,
-        0.058f, 0.298f, 0.248f, 0.286f, 0.236f, 0.448f, 0.074f, 0.468f,
+        null,
+        0.954f, 0.552f, 0.812f, 0.538f, 0.822f, 0.608f,
+        0.892f, 0.628f, 0.962f, 0.588f,
     ),
+    // Calves — gastroc diamond, identical both sides of the flip.
     plate(
-        CanonicalMuscle.BICEPS,
-        0.752f, 0.286f, 0.942f, 0.298f, 0.926f, 0.468f, 0.764f, 0.448f,
-    ),
-    plate(
-        CanonicalMuscle.CORE,
-        0.368f, 0.304f, 0.632f, 0.304f, 0.662f, 0.384f, 0.632f, 0.456f, 0.368f, 0.456f, 0.338f, 0.384f,
-    ),
-    plate(CanonicalMuscle.CORE, 0.286f, 0.312f, 0.354f, 0.328f, 0.348f, 0.400f, 0.272f, 0.392f),
-    plate(CanonicalMuscle.CORE, 0.646f, 0.328f, 0.714f, 0.312f, 0.728f, 0.392f, 0.652f, 0.400f),
-    plate(CanonicalMuscle.CORE, 0.276f, 0.408f, 0.352f, 0.416f, 0.360f, 0.488f, 0.270f, 0.476f),
-    plate(CanonicalMuscle.CORE, 0.648f, 0.416f, 0.724f, 0.408f, 0.730f, 0.476f, 0.640f, 0.488f),
-    plate(
-        CanonicalMuscle.QUADRICEPS,
-        0.292f, 0.504f, 0.484f, 0.504f, 0.468f, 0.728f, 0.308f, 0.746f,
-    ),
-    plate(
-        CanonicalMuscle.QUADRICEPS,
-        0.516f, 0.504f, 0.708f, 0.504f, 0.692f, 0.746f, 0.532f, 0.728f,
+        CanonicalMuscle.CALVES,
+        0.308f, 0.762f, 0.458f, 0.756f, 0.448f, 0.888f,
+        0.398f, 0.952f, 0.328f, 0.968f, 0.298f, 0.868f,
     ),
     plate(
         CanonicalMuscle.CALVES,
-        0.312f, 0.760f, 0.464f, 0.758f, 0.450f, 0.952f, 0.324f, 0.968f,
+        0.692f, 0.762f, 0.542f, 0.756f, 0.552f, 0.888f,
+        0.602f, 0.952f, 0.672f, 0.968f, 0.702f, 0.868f,
     ),
-    plate(
-        CanonicalMuscle.CALVES,
-        0.536f, 0.758f, 0.688f, 0.760f, 0.676f, 0.968f, 0.550f, 0.952f,
-    ),
-    plate(null, 0.300f, 0.972f, 0.456f, 0.958f, 0.470f, 0.996f, 0.286f, 0.996f),
-    plate(null, 0.544f, 0.958f, 0.700f, 0.972f, 0.714f, 0.996f, 0.530f, 0.996f),
+    plate(null, 0.292f, 0.972f, 0.448f, 0.958f, 0.478f, 0.996f, 0.278f, 0.996f),
+    plate(null, 0.708f, 0.972f, 0.552f, 0.958f, 0.522f, 0.996f, 0.722f, 0.996f),
 )
 
-private val BACK_PLATES = listOf(
-    plate(null, 0.418f, 0.012f, 0.582f, 0.012f, 0.574f, 0.086f, 0.426f, 0.086f),
-    plate(null, 0.448f, 0.092f, 0.552f, 0.092f, 0.552f, 0.148f, 0.448f, 0.148f),
+private val FRONT_WORKING: List<BodyPlate> = listOf(
+    // Pecs. Viewer-right (left > 0.5) is the one Temper accent.
     plate(
-        CanonicalMuscle.SHOULDERS,
-        0.078f, 0.168f, 0.318f, 0.152f, 0.300f, 0.248f, 0.062f, 0.286f,
+        CanonicalMuscle.CHEST,
+        0.318f, 0.156f, 0.492f, 0.164f, 0.492f, 0.288f,
+        0.428f, 0.308f, 0.318f, 0.292f, 0.288f, 0.248f,
+        0.298f, 0.192f,
     ),
     plate(
-        CanonicalMuscle.SHOULDERS,
-        0.682f, 0.152f, 0.922f, 0.168f, 0.938f, 0.286f, 0.700f, 0.248f,
+        CanonicalMuscle.CHEST,
+        0.508f, 0.164f, 0.682f, 0.156f, 0.702f, 0.192f,
+        0.712f, 0.248f, 0.682f, 0.292f, 0.572f, 0.308f,
+        0.508f, 0.288f,
+    ),
+    // Upper arm — same silhouette as the back's triceps.
+    plate(
+        CanonicalMuscle.BICEPS,
+        0.068f, 0.268f, 0.228f, 0.258f, 0.248f, 0.318f,
+        0.228f, 0.398f, 0.088f, 0.418f, 0.052f, 0.348f,
+    ),
+    plate(
+        CanonicalMuscle.BICEPS,
+        0.932f, 0.268f, 0.772f, 0.258f, 0.752f, 0.318f,
+        0.772f, 0.398f, 0.912f, 0.418f, 0.948f, 0.348f,
+    ),
+    plate(CanonicalMuscle.CORE, 0.378f, 0.316f, 0.622f, 0.316f, 0.632f, 0.378f, 0.368f, 0.378f),
+    plate(CanonicalMuscle.CORE, 0.368f, 0.386f, 0.632f, 0.386f, 0.638f, 0.448f, 0.362f, 0.448f),
+    plate(CanonicalMuscle.CORE, 0.362f, 0.456f, 0.638f, 0.456f, 0.618f, 0.508f, 0.382f, 0.508f),
+    plate(CanonicalMuscle.CORE, 0.278f, 0.318f, 0.360f, 0.328f, 0.354f, 0.390f, 0.268f, 0.382f),
+    plate(CanonicalMuscle.CORE, 0.722f, 0.318f, 0.640f, 0.328f, 0.646f, 0.390f, 0.732f, 0.382f),
+    plate(CanonicalMuscle.CORE, 0.268f, 0.398f, 0.352f, 0.406f, 0.362f, 0.478f, 0.262f, 0.468f),
+    plate(CanonicalMuscle.CORE, 0.732f, 0.398f, 0.648f, 0.406f, 0.638f, 0.478f, 0.738f, 0.468f),
+    plate(
+        CanonicalMuscle.QUADRICEPS,
+        0.288f, 0.518f, 0.398f, 0.512f, 0.388f, 0.738f,
+        0.308f, 0.752f, 0.272f, 0.628f,
+    ),
+    plate(
+        CanonicalMuscle.QUADRICEPS,
+        0.406f, 0.512f, 0.492f, 0.518f, 0.484f, 0.728f, 0.396f, 0.738f,
+    ),
+    plate(
+        CanonicalMuscle.QUADRICEPS,
+        0.712f, 0.518f, 0.602f, 0.512f, 0.612f, 0.738f,
+        0.692f, 0.752f, 0.728f, 0.628f,
+    ),
+    plate(
+        CanonicalMuscle.QUADRICEPS,
+        0.594f, 0.512f, 0.508f, 0.518f, 0.516f, 0.728f, 0.604f, 0.738f,
+    ),
+)
+
+private val BACK_WORKING: List<BodyPlate> = listOf(
+    // Traps.
+    plate(
+        CanonicalMuscle.BACK,
+        0.318f, 0.152f, 0.682f, 0.152f, 0.658f, 0.218f,
+        0.500f, 0.232f, 0.342f, 0.218f,
+    ),
+    // Lats.
+    plate(
+        CanonicalMuscle.BACK,
+        0.248f, 0.198f, 0.368f, 0.218f, 0.428f, 0.368f,
+        0.348f, 0.418f, 0.238f, 0.328f, 0.228f, 0.248f,
     ),
     plate(
         CanonicalMuscle.BACK,
-        0.324f, 0.156f, 0.492f, 0.168f, 0.492f, 0.392f, 0.300f, 0.408f, 0.306f, 0.196f,
+        0.752f, 0.198f, 0.632f, 0.218f, 0.572f, 0.368f,
+        0.652f, 0.418f, 0.762f, 0.328f, 0.772f, 0.248f,
+    ),
+    // Mid-back / rhomboids, then erectors.
+    plate(
+        CanonicalMuscle.BACK,
+        0.436f, 0.228f, 0.564f, 0.228f, 0.556f, 0.368f,
+        0.500f, 0.388f, 0.444f, 0.368f,
     ),
     plate(
         CanonicalMuscle.BACK,
-        0.508f, 0.168f, 0.676f, 0.156f, 0.694f, 0.196f, 0.700f, 0.408f, 0.508f, 0.392f,
+        0.398f, 0.378f, 0.602f, 0.378f, 0.588f, 0.488f, 0.412f, 0.488f,
+    ),
+    // Upper arm — same silhouette as the front's biceps.
+    plate(
+        CanonicalMuscle.TRICEPS,
+        0.068f, 0.268f, 0.228f, 0.258f, 0.248f, 0.318f,
+        0.228f, 0.398f, 0.088f, 0.418f, 0.052f, 0.348f,
     ),
     plate(
         CanonicalMuscle.TRICEPS,
-        0.058f, 0.298f, 0.248f, 0.286f, 0.236f, 0.448f, 0.074f, 0.468f,
-    ),
-    plate(
-        CanonicalMuscle.TRICEPS,
-        0.752f, 0.286f, 0.942f, 0.298f, 0.926f, 0.468f, 0.764f, 0.448f,
+        0.932f, 0.268f, 0.772f, 0.258f, 0.752f, 0.318f,
+        0.772f, 0.398f, 0.912f, 0.418f, 0.948f, 0.348f,
     ),
     plate(
         CanonicalMuscle.GLUTES,
-        0.304f, 0.416f, 0.492f, 0.400f, 0.492f, 0.508f, 0.300f, 0.516f,
+        0.308f, 0.492f, 0.492f, 0.482f, 0.492f, 0.568f,
+        0.418f, 0.588f, 0.300f, 0.558f,
     ),
     plate(
         CanonicalMuscle.GLUTES,
-        0.508f, 0.400f, 0.696f, 0.416f, 0.700f, 0.516f, 0.508f, 0.508f,
+        0.692f, 0.492f, 0.508f, 0.482f, 0.508f, 0.568f,
+        0.582f, 0.588f, 0.700f, 0.558f,
+    ),
+    plate(
+        CanonicalMuscle.GLUTES,
+        0.296f, 0.562f, 0.418f, 0.588f, 0.492f, 0.572f,
+        0.484f, 0.618f, 0.308f, 0.608f,
+    ),
+    plate(
+        CanonicalMuscle.GLUTES,
+        0.704f, 0.562f, 0.582f, 0.588f, 0.504f, 0.572f,
+        0.516f, 0.618f, 0.692f, 0.608f,
     ),
     plate(
         CanonicalMuscle.HAMSTRINGS,
-        0.292f, 0.524f, 0.484f, 0.524f, 0.468f, 0.736f, 0.308f, 0.752f,
+        0.288f, 0.626f, 0.398f, 0.620f, 0.388f, 0.748f,
+        0.308f, 0.758f, 0.272f, 0.688f,
     ),
     plate(
         CanonicalMuscle.HAMSTRINGS,
-        0.516f, 0.524f, 0.708f, 0.524f, 0.692f, 0.752f, 0.532f, 0.736f,
+        0.406f, 0.620f, 0.492f, 0.626f, 0.484f, 0.738f, 0.396f, 0.748f,
     ),
     plate(
-        CanonicalMuscle.CALVES,
-        0.312f, 0.760f, 0.464f, 0.758f, 0.450f, 0.952f, 0.324f, 0.968f,
+        CanonicalMuscle.HAMSTRINGS,
+        0.712f, 0.626f, 0.602f, 0.620f, 0.612f, 0.748f,
+        0.692f, 0.758f, 0.728f, 0.688f,
     ),
     plate(
-        CanonicalMuscle.CALVES,
-        0.536f, 0.758f, 0.688f, 0.760f, 0.676f, 0.968f, 0.550f, 0.952f,
+        CanonicalMuscle.HAMSTRINGS,
+        0.594f, 0.620f, 0.508f, 0.626f, 0.516f, 0.738f, 0.604f, 0.748f,
     ),
-    plate(null, 0.300f, 0.972f, 0.456f, 0.958f, 0.470f, 0.996f, 0.286f, 0.996f),
-    plate(null, 0.544f, 0.958f, 0.700f, 0.972f, 0.714f, 0.996f, 0.530f, 0.996f),
 )
