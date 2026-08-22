@@ -269,7 +269,7 @@ the training history this app exists to accumulate.
 > `./gradlew :app:assembleDebug` on a machine with the Android SDK produces it and it is
 > committed, `Migration1To2Test` fails with a missing-schema error and the hand-written
 > `MIGRATION_1_2` SQL has not been diffed against Room's own expectation. That diff is
-> step 0 of `docs/gameplan/artifacts/phase-3-rehearsal.md` and is the gate on the migration,
+> step 0 of `docs/MIGRATION_REHEARSAL.md` and is the gate on the migration,
 > not a formality: Room validates the live schema at open, and a mismatch as small as a
 > quoted default is a permanent crash loop on a phone with no destructive fallback.
 
@@ -301,7 +301,7 @@ adb logcat --pid=$(adb shell pidof com.sinura.personaltrainer)
 ## Committing
 
 Branch-per-phase: work lands on `claude/phase-<n>-<slug>` branches, one PR per phase,
-merged by the owner — see `docs/gameplan/PROTOCOL.md`. (`main` was empty of app code
+merged by the owner — see `docs/archive/gameplan/PROTOCOL.md`. (`main` was empty of app code
 until 20 Aug 2026; do not trust older claims of trunk-based flow.)
 
 Write commit messages that explain **why**, not what — the diff already says what. The

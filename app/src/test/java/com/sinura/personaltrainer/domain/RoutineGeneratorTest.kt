@@ -318,12 +318,12 @@ class PlanReviewArtifactTest {
         val expected = PlanReviewRenderer.render()
         val name = PlanReviewRenderer.artifactName()
         val file = listOf(
-            java.io.File("../docs/gameplan/artifacts/$name"),
-            java.io.File("docs/gameplan/artifacts/$name"),
+            java.io.File("../docs/artifacts/$name"),
+            java.io.File("docs/artifacts/$name"),
         ).firstOrNull { it.exists() }
         assertNotNull("$name is not committed", file)
         assertEquals(
-            "Re-render docs/gameplan/artifacts/$name with tools/render-artifacts.sh",
+            "Re-render docs/artifacts/$name with tools/render-artifacts.sh",
             expected,
             file!!.readText(),
         )

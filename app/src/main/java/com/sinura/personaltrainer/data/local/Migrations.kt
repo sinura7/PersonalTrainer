@@ -23,8 +23,20 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  * and builds their junction rows.
  *
  * The DEFAULT clauses below must match the `@ColumnInfo(defaultValue = ...)` annotations on the
- * entities byte-for-byte, or Room's `validateMigrations` fails on the default-value diff. The
- * committed `2.json` is the arbiter — its createSql is copied here, not reasoned about.
+ * entities byte-for-byte, or Room's `validateMigrations` fails on the default-value diff.
+ *
+ * A NOTE ON WHAT VERIFIES THAT, because the sentence here used to overstate it: it said the
+ * committed `2.json` was the arbiter and that its createSql had been copied here rather than
+ * reasoned about. There is no committed `2.json`. `app/schemas/` holds `1.json` only, so every
+ * clause below — the quoting of 'OTHER' and 'EXTERNAL' especially — was in fact reasoned about,
+ * and has never been checked against anything a compiler emitted.
+ *
+ * Generating it is the first thing to do on a machine with the SDK: `./gradlew
+ * :app:kspDebugKotlin` writes `2.json`, and diffing its `exercises` createSql against these
+ * ALTER TABLE statements settles the default-value question from the artifact instead of from
+ * memory. Until then this file is an argument, not a verified migration — and a fresh install
+ * will not tell you either way, because it builds the table from Room's own createSql and never
+ * runs a line of this.
  */
 val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {

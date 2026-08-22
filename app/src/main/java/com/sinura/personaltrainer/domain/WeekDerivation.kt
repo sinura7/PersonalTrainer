@@ -58,7 +58,7 @@ data class DerivedWeek(
  * function of (slots, history, preferences, now) and nothing here writes: the same inputs
  * always give the same week, and a week that has drifted is drift you can point at.
  *
- * The rules below are the ones signed in `docs/gameplan/SCHEDULE_SEMANTICS.md`. Where the
+ * The rules below are the ones signed in `docs/SCHEDULE_SEMANTICS.md`. Where the
  * Phase-4 packet's restatement disagreed with the signed document, the signed document wins —
  * see [placeUnsatisfied] for the one place that matters.
  */

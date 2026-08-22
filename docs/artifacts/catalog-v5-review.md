@@ -10,7 +10,7 @@ Generated from `DefaultExercises.catalog()` at catalog version 5. Do not edit th
 - Every `movementKey` comes from the closed family vocabulary; ids are frozen and never re-slugged.
 - `v1 muscleGroup` is unchanged from v1 and survives as display text; the `Gained` column is what v2 added.
 
-**To correct a judgment call** — an equipment type, a primary, a secondary weight — edit the table in `docs/gameplan/PHASE_3_SCHEMA_V2.md`, apply it to `DefaultExercises.kt`, and re-render. Corrections are cheap now and expensive once they are on a phone.
+**To correct a judgment call** — an equipment type, a primary, a secondary weight — edit the table in `docs/archive/gameplan/PHASE_3_SCHEMA_V2.md`, apply it to `DefaultExercises.kt`, and re-render. Corrections are cheap now and expensive once they are on a phone.
 
 ## back-extension (1)
 

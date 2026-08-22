@@ -93,7 +93,7 @@ Everything here is a read over the existing schema, so none of it waited on the 
 > editable sessions). It is split and re-ordered value-first across the game plan below: the
 > migration core is game-plan Phase 3; the test substrate and session hygiene ship first
 > (Phases 2 then 1); the catalog and imagery ship last (Phases 7/8). Execution rules:
-> `docs/gameplan/PROTOCOL.md`.
+> `docs/archive/gameplan/PROTOCOL.md`.
 
 ## Phase 5 — The physical product · **done, verified on device**
 
@@ -139,8 +139,8 @@ Recorded decisions **not** to build: overlay bubble, Wear OS app.
 ## The game plan — 20 Aug 2026
 
 Phase numbers below are game-plan numbers, independent of the historical phases above.
-Full packets live in `docs/gameplan/`; the execution protocol is
-`docs/gameplan/PROTOCOL.md`. Phases land in order; each closes only on owner sign-off.
+Full packets live in `docs/archive/gameplan/`; the execution protocol is
+`docs/archive/gameplan/PROTOCOL.md`. Phases land in order; each closes only on owner sign-off.
 
 **Phase numbers are identifiers, not sequence** — the execution order is 0, 2, 1, 3, 4, 5,
 6a, 6b, 7, 8 (ten PRs), and the table is in that order.
@@ -255,7 +255,7 @@ session" row on Home are **not built** (they were Option B's mitigations). Execu
 
 ### D2 — Schedule semantics
 
-Spec: `docs/gameplan/SCHEDULE_SEMANTICS.md`. Phase 3 derives the `schedule_slots` DDL
+Spec: `docs/SCHEDULE_SEMANTICS.md`. Phase 3 derives the `schedule_slots` DDL
 from this signed spec; Phase 4 implements the derivation. Read the five worked examples
 and ask of each: "is this what I'd expect my week to do?" Rule 6 (a missed day does *not*
 carry into next week) is the one deliberately open question — strike it and initial the
@@ -297,19 +297,33 @@ decision here.
 
 ### D5 — Branch ground truth
 
-`main` holds only the initial commit; the entire app history lives on
-`claude/app-hierarchy-navigation-cjzigo`, which is many dozens of commits ahead and still
-growing (the executor states the exact count from `git rev-list --count main..HEAD` in the
-PR body rather than freezing a number in this doc). Resolution (owner chooses at the
-checkpoint): **(recommended)** merge that branch into `main` via this phase's PR, or
-record branch-as-trunk here. Thereafter: branch-per-phase `claude/phase-<n>-<slug>`, one
-PR per phase, owner merges, no phase starts before the previous PR lands
-(`docs/gameplan/PROTOCOL.md` §2–§3).
+**Corrected 22 Aug 2026.** This decision was recorded on a false premise. It said `main`
+held only the initial commit; `git rev-list --count main` was 52, and 50 of those are the
+shared ancestry this branch is built on. The sessions that wrote D5 could see their own
+branch and inferred the rest. Since branch-as-trunk is the conclusion this whole plan
+rests on, it is worth being exact about what was actually true.
 
-**Chosen: provisional — branch-as-trunk.** Work continues on
-`claude/app-hierarchy-navigation-cjzigo`; the sessions executing these phases are bound
-to it and cannot push elsewhere. Merging into `main` remains available and is still the
-recommendation. **Not yet signed** — decide at any phase boundary; nothing blocks on it.
+What was true: the two lineages forked at `319c5f5` on 20 Aug. `main` then took two
+commits of its own — a schema v2 adding `equipment`, `load_type` and `secondary_muscles`
+as nullable snake_case columns, and a committed Room-generated `2.json` baseline for
+them. This branch took 52, including its own schema v2: camelCase columns with SQL
+defaults, plus `exercise_muscles`, `schedule_slots` and `seed_meta`. Both declare
+`version = 2`, and they are not the same schema.
+
+**Chosen: branch-as-trunk — and for a reason the original entry did not have.** Not
+because `main` is empty. Because the two cannot be merged: `main`'s
+`domain/ExerciseTaxonomy.kt` and this branch's `domain/ExerciseTraits.kt` each declare
+`enum class LoadType` in the same package, and both are one-sided additions, so git
+reports no conflict and Kotlin fails with `Redeclaration: LoadType`. A merge produces a
+tree that looks clean and cannot compile. Recovery cost decides the direction: everything
+unique to `main` is ~2,060 lines and its one irreplaceable artifact regenerates from a
+single Gradle task; this branch is ~34,800 lines that no command reproduces.
+
+`main`'s tip is preserved before it is overwritten, and the five things worth keeping from
+it are grafted individually rather than merged — see the consolidation commits following
+`36ac45a`. Thereafter: branch-per-phase `claude/phase-<n>-<slug>`, one PR per phase, owner
+merges, no phase starts before the previous PR lands
+(`docs/archive/gameplan/PROTOCOL.md` §2–§3).
 
 ### D6 — Second-pass amendments *(informational)*
 
@@ -333,7 +347,7 @@ executes; they do not change what it builds, and nothing here reopens D1–D5.
   green, then 1b on top. 1b's gate greps re-assert 1a's invariants, so the sequence
   self-verifies. Saves one owner evening; no safety is lost.
 - **The full second-pass findings and the rest of this reconciliation:**
-  `docs/gameplan/SECOND_PASS.md`.
+  `docs/archive/gameplan/SECOND_PASS.md`.
 
 **No signature required; recorded for the record.**
 

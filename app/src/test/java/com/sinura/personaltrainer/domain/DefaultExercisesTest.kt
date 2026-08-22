@@ -290,12 +290,12 @@ class CatalogReviewArtifactTest {
         val expected = CatalogReviewRenderer.render()
         val name = CatalogReviewRenderer.artifactName()
         val file = listOf(
-            File("../docs/gameplan/artifacts/$name"),
-            File("docs/gameplan/artifacts/$name"),
+            File("../docs/artifacts/$name"),
+            File("docs/artifacts/$name"),
         ).firstOrNull { it.exists() }
         assertTrue("$name is not committed", file != null)
         assertEquals(
-            "Re-render docs/gameplan/artifacts/$name from CatalogReviewRenderer",
+            "Re-render docs/artifacts/$name from CatalogReviewRenderer",
             expected,
             file!!.readText(),
         )

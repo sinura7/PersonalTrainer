@@ -55,7 +55,7 @@ import java.io.File
 
 fun main() {
     fun write(name: String, body: String) {
-        val file = File("docs/gameplan/artifacts/$name")
+        val file = File("docs/artifacts/$name")
         file.parentFile.mkdirs()
         file.writeText(body)
         println("wrote ${file.path}")

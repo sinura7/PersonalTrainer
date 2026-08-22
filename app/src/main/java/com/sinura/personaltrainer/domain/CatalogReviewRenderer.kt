@@ -45,7 +45,7 @@ object CatalogReviewRenderer {
         builder.appendLine()
         builder.appendLine(
             "**To correct a judgment call** — an equipment type, a primary, a secondary weight " +
-                "— edit the table in `docs/gameplan/PHASE_3_SCHEMA_V2.md`, apply it to " +
+                "— edit the table in `docs/archive/gameplan/PHASE_3_SCHEMA_V2.md`, apply it to " +
                 "`DefaultExercises.kt`, and re-render. Corrections are cheap now and expensive " +
                 "once they are on a phone.",
         )

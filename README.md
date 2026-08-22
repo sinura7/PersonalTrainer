@@ -31,7 +31,10 @@ need no configuration.
 | [docs/ROADMAP.md](docs/ROADMAP.md) | what is built, what is next |
 | [docs/AUDIT.md](docs/AUDIT.md) | the code review this roadmap came from |
 | [docs/HIERARCHY_PLAN.md](docs/HIERARCHY_PLAN.md) | audit of the five-tab hierarchy proposal and the recommended plan |
-| [docs/gameplan/](docs/gameplan/README.md) | the executable game plan: protocol + one verified spec packet per phase |
+| [docs/SCHEDULE_SEMANTICS.md](docs/SCHEDULE_SEMANTICS.md) | the signed schedule-slot model: what a pinned day means |
+| [docs/MIGRATION_REHEARSAL.md](docs/MIGRATION_REHEARSAL.md) | **the v1 to v2 runbook — read before installing over real history** |
+| [docs/artifacts/](docs/artifacts/) | generated review artifacts; the tests fail if these drift from the code |
+| [docs/archive/gameplan/](docs/archive/gameplan/README.md) | *archived* — the phase packets this app was built from |
 | [docs/DESIGN_AUDIT.md](docs/DESIGN_AUDIT.md) | the product/design bar, screen by screen |
 
 ## What it does
