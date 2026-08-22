@@ -16,6 +16,7 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseOrdering
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
 import com.sinura.personaltrainer.domain.LibraryGrouping
+import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RestTimer
@@ -572,6 +573,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             try {
                 when (val result = container.exerciseRepository.createCustom(name, muscleGroup)) {
                     is SaveExerciseResult.DuplicateName -> error.value = DUPLICATE_NAME_MESSAGE
+                    is SaveExerciseResult.MissingMuscle ->
+                        error.value = MuscleGroups.MISSING_MESSAGE
                     is SaveExerciseResult.Saved -> addExerciseInternal(result.exercise)
                 }
             } catch (thrown: Exception) {

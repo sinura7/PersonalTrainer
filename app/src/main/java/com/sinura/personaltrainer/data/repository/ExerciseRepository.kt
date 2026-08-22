@@ -13,6 +13,7 @@ import com.sinura.personaltrainer.domain.ExerciseOrdering
 import com.sinura.personaltrainer.domain.ExerciseUsage
 import com.sinura.personaltrainer.domain.LikeEscaper
 import com.sinura.personaltrainer.domain.MuscleCredit
+import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.MuscleNormalizer
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
@@ -25,12 +26,13 @@ import kotlinx.coroutines.flow.map
  * A sealed result rather than a thrown exception or a silent overwrite: two lifts with the same
  * name is not an error the app can recover from on the user's behalf — the sets they log next
  * would go to whichever row a query happened to return first — but it is also not a crash. The
- * three screens that create or rename an exercise surface [DuplicateName] through the error
- * channel they already have.
+ * three screens that create or rename an exercise surface [DuplicateName] and
+ * [MissingMuscle] through the error channel they already have.
  */
 sealed class SaveExerciseResult {
     data class Saved(val exercise: Exercise) : SaveExerciseResult()
     data class DuplicateName(val existing: Exercise) : SaveExerciseResult()
+    data object MissingMuscle : SaveExerciseResult()
 }
 
 sealed class DeleteExerciseResult {
@@ -137,7 +139,8 @@ class ExerciseRepository(
         exerciseDao.getByNameKey(nameKey)?.let { clash ->
             return SaveExerciseResult.DuplicateName(clash.toDomain())
         }
-        val group = muscleGroup.trim().ifBlank { "Other" }
+        val group = MuscleGroups.resolved(muscleGroup)
+            ?: return SaveExerciseResult.MissingMuscle
         val exercise = Exercise(
             id = "ex-custom-${UUID.randomUUID()}",
             name = trimmedName,

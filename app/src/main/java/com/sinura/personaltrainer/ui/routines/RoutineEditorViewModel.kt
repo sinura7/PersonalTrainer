@@ -13,6 +13,7 @@ import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
 import com.sinura.personaltrainer.domain.EditorPhase
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.LibraryGrouping
+import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineEditorLoad
 import com.sinura.personaltrainer.domain.RoutineEditorPolicy
@@ -409,6 +410,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             try {
                 when (val result = container.exerciseRepository.createCustom(customName, muscleGroup)) {
                     is SaveExerciseResult.DuplicateName -> error.value = DUPLICATE_NAME_MESSAGE
+                    is SaveExerciseResult.MissingMuscle -> error.value = MuscleGroups.MISSING_MESSAGE
                     is SaveExerciseResult.Saved ->
                         addExercise(result.exercise, targetSets, targetReps, targetWeightKg, restSeconds)
                 }

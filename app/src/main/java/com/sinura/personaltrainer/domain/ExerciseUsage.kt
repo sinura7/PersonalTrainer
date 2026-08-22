@@ -24,6 +24,9 @@ data class ExerciseUsage(
 }
 
 object MuscleGroups {
+    const val OTHER = "Other"
+    const val MISSING_MESSAGE = "Pick a muscle."
+
     val catalog: List<String> = listOf(
         "Quads",
         "Hamstrings",
@@ -37,8 +40,25 @@ object MuscleGroups {
         "Biceps",
         "Triceps",
         "Core",
-        "Other",
+        OTHER,
     )
+
+    val chips: List<String> = catalog.filterNot { it.equals(OTHER, ignoreCase = true) }
+
+    /**
+     * A custom lift needs a group. Blank used to become [OTHER] in the repository,
+     * so a picker-created lift was a junk bucket until someone noticed.
+     */
+    fun resolved(raw: String): String? = raw.trim().takeIf { it.isNotEmpty() }
+
+    /** Seed a new draft from the library filter, or leave it empty so no chip is pre-selected. */
+    fun forNewDraft(seed: CanonicalMuscle?): String = seed?.catalogLabel.orEmpty()
+
+    fun otherSelected(muscleGroup: String): Boolean {
+        val trimmed = muscleGroup.trim()
+        if (trimmed.isEmpty()) return false
+        return chips.none { it.equals(trimmed, ignoreCase = true) }
+    }
 
     fun presentIn(exercises: List<Exercise>): List<String> {
         val used = exercises.map { it.muscleGroup.trim() }.filter { it.isNotEmpty() }.toSet()
