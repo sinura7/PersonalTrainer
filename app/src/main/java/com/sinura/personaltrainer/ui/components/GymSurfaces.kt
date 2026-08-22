@@ -223,7 +223,7 @@ fun MetricCluster(
                 modifier = Modifier.alignByBaseline(),
                 style = valueStyle,
                 color = valueColor,
-                maxLines = 1,
+                maxLines = 2,
             )
             if (unit != null) {
                 Text(

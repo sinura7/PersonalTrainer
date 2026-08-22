@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
@@ -56,6 +57,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -80,6 +82,7 @@ import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.HairlineStrong
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.Pit
@@ -229,25 +232,49 @@ fun SetEntryPanel(
     /** Barbell only. A stack or a dumbbell has no Olympic bar to read out. */
     plated: Boolean = false,
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-    ) {
-        if (loadClass.weightMeaning != WeightMeaning.NONE) {
-            WeightStepper(
-                valueKg = weightKg,
-                onWeightKgChange = onWeightKgChange,
-                modifier = Modifier.weight(1f),
-                unit = unit,
-                meaning = loadClass.weightMeaning,
-                plated = plated && loadClass.weightMeaning == WeightMeaning.LIFTED,
+    val stack = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
+    if (stack) {
+        Column(
+            modifier = modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
+            if (loadClass.weightMeaning != WeightMeaning.NONE) {
+                WeightStepper(
+                    valueKg = weightKg,
+                    onWeightKgChange = onWeightKgChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    unit = unit,
+                    meaning = loadClass.weightMeaning,
+                    plated = plated && loadClass.weightMeaning == WeightMeaning.LIFTED,
+                )
+            }
+            RepsStepper(
+                value = reps,
+                onAdjust = onRepsAdjust,
+                modifier = Modifier.fillMaxWidth(),
             )
         }
-        RepsStepper(
-            value = reps,
-            onAdjust = onRepsAdjust,
-            modifier = Modifier.weight(1f),
-        )
+    } else {
+        Row(
+            modifier = modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
+            if (loadClass.weightMeaning != WeightMeaning.NONE) {
+                WeightStepper(
+                    valueKg = weightKg,
+                    onWeightKgChange = onWeightKgChange,
+                    modifier = Modifier.weight(1f),
+                    unit = unit,
+                    meaning = loadClass.weightMeaning,
+                    plated = plated && loadClass.weightMeaning == WeightMeaning.LIFTED,
+                )
+            }
+            RepsStepper(
+                value = reps,
+                onAdjust = onRepsAdjust,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 
@@ -395,7 +422,7 @@ private fun NumeralWell(
                 // entry panel is the worst possible place to lose a digit.
                 style = InstrumentType.numeralLg,
                 color = TextPrimary,
-                maxLines = 1,
+                maxLines = 2,
             )
             if (unit != null) {
                 Text(
@@ -485,7 +512,7 @@ fun StepperButton(
 
     Box(
         modifier = modifier
-            .height(Metrics.commit)
+            .heightIn(min = Metrics.commit)
             .clip(RoundedCornerShape(Radius.sm))
             .background(background)
             .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.sm))
@@ -503,7 +530,14 @@ fun StepperButton(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, style = InstrumentType.numeralMd, color = TextPrimary, maxLines = 1)
+        Text(
+            label,
+            modifier = Modifier.padding(horizontal = Metrics.space2, vertical = Metrics.space2),
+            style = InstrumentType.numeralMd,
+            color = TextPrimary,
+            maxLines = 2,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
@@ -685,13 +719,16 @@ fun RestDock(
                 accent = accent,
                 showClock = false,
             )
-            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+            ) {
                 Kicker(if (justFinished) "Back to the bar" else "Rest", color = accent)
                 Text(
                     RestTimer.formatClock(if (justFinished) 0 else safeRemaining),
                     style = InstrumentType.numeralXl,
                     color = TextPrimary,
-                    maxLines = 1,
+                    maxLines = 2,
                 )
             }
         }
@@ -846,7 +883,7 @@ private fun RestControl(
     val view = LocalView.current
     Box(
         modifier = modifier
-            .height(Metrics.control)
+            .heightIn(min = Metrics.control)
             .clip(RoundedCornerShape(Radius.sm))
             .background(if (emphasised) Volt else Surface2)
             .then(
@@ -860,8 +897,11 @@ private fun RestControl(
     ) {
         Text(
             label,
+            modifier = Modifier.padding(horizontal = Metrics.space2, vertical = Metrics.space2),
             style = InstrumentType.bodyStrong,
             color = if (emphasised) Pit else TextPrimary,
+            maxLines = 2,
+            textAlign = TextAlign.Center,
         )
     }
 }
@@ -927,7 +967,7 @@ fun InstrumentChip(
     )
     Box(
         modifier = modifier
-            .height(Metrics.touchMin)
+            .heightIn(min = Metrics.touchMin)
             .clip(RoundedCornerShape(Radius.xs))
             .background(background)
             .border(
@@ -959,7 +999,7 @@ fun InstrumentChip(
                 style = InstrumentType.bodyStrong,
                 // Volt ink on the dim fill: Pit ink was only legible against a solid accent.
                 color = if (selected) Volt else TextSecondary,
-                maxLines = 1,
+                maxLines = 2,
             )
         }
     }
@@ -1048,7 +1088,7 @@ fun PrimaryGymButton(
         enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
-            .height(height),
+            .heightIn(min = height),
         shape = RoundedCornerShape(Radius.md),
         colors = ButtonDefaults.buttonColors(
             containerColor = Volt,
@@ -1057,7 +1097,13 @@ fun PrimaryGymButton(
             disabledContentColor = TextSecondary,
         ),
     ) {
-        Text(text, style = InstrumentType.title, color = if (enabled) Pit else TextSecondary)
+        Text(
+            text,
+            style = InstrumentType.title,
+            color = if (enabled) Pit else TextSecondary,
+            maxLines = 2,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
@@ -1075,7 +1121,7 @@ fun SecondaryGymButton(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(height)
+            .heightIn(min = height)
             .clip(RoundedCornerShape(Radius.md))
             .background(Surface2)
             .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.md))
@@ -1087,8 +1133,11 @@ fun SecondaryGymButton(
     ) {
         Text(
             text,
+            modifier = Modifier.padding(horizontal = Metrics.space3, vertical = Metrics.space2),
             style = InstrumentType.title,
             color = if (enabled) contentColor else TextSecondary,
+            maxLines = 2,
+            textAlign = TextAlign.Center,
         )
     }
 }

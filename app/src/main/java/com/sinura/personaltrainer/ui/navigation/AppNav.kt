@@ -19,9 +19,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -527,7 +526,7 @@ private fun InstrumentNavBar(
                 // The inset sits below the row rather than inside it, so the 64dp of touch
                 // target survives on a phone with gesture navigation.
                 .navigationBarsPadding()
-                .height(NAV_BAR_HEIGHT),
+                .heightIn(min = NAV_BAR_HEIGHT),
         ) {
             tabs.forEach { tab ->
                 NavTab(
@@ -569,7 +568,7 @@ private fun NavTab(
 
     Column(
         modifier = modifier
-            .fillMaxHeight()
+            .heightIn(min = NAV_BAR_HEIGHT)
             .background(background)
             .selectable(
                 selected = selected,
