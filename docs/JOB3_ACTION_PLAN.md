@@ -144,7 +144,7 @@ app), not because it is hard.
 
 ## Packets
 
-### P0 — Job 2 settled on paper · **done** (this PR)
+### P0 — Job 2 settled on paper · **done** (merged)
 
 **Goal.** The living docs tell the truth about what is on `trunk` and what
 Job 3 is, so the next packet does not reopen Athletic or invent a week-two
@@ -168,7 +168,7 @@ packets and what they must not do.
 
 ---
 
-### P1 — Replay stored answers (empty week) · **next** (this PR · phone pending)
+### P1 — Replay stored answers (empty week) · **done** (merged · phone pending)
 
 **Goal.** Empty week + routines exist → one tap rebuilds the setup layout on
 the routines they already have. Nothing is created. Nothing is deleted.
@@ -293,7 +293,7 @@ Do **not** pin inside the replay call. `acceptFills` is the write.
 
 ---
 
-### P2 — Lighter week (ROADMAP option A) · **next** (this PR · phone pending)
+### P2 — Lighter week (ROADMAP option A) · **done** (merged · phone pending)
 
 **Goal.** The coach's overreach card becomes an instruction the app can help
 follow. Same lifts. The bar does not climb this week.
@@ -373,7 +373,7 @@ prefs restore.
 
 ---
 
-### P3 — ViewModel JVM tests · *after P2*
+### P3 — ViewModel JVM tests · **next** (this PR)
 
 **Goal.** The A1 seam earns its keep. Home, Plan, and setup cannot regress
 their one job without a red test.
@@ -405,8 +405,14 @@ completion, not a new architecture.
    count changes). Catalog-empty error path still surfaces
    `CATALOG_MISSING_MESSAGE` on retry-fail.
 
-Robolectric + `runTest`. Application-only constructors stay for the default
-factory (`AppViewModelSeamTest` already locks that).
+Robolectric + `runBlocking`. `PlanViewModel.uiState` is `flowOn(Dispatchers.Default)`,
+so `runTest` + virtual `withTimeout` fires immediately. House style for these
+three: `Dispatchers.setMain(UnconfinedTestDispatcher())` and a **real**
+`withTimeout(5_000)` on `uiState.first`. Do not close the in-memory database
+to force `retryCatalog` to fail — Room hangs on `observeAll().first()`.
+
+Application-only constructors stay for the default factory
+(`AppViewModelSeamTest` already locks that).
 
 **Gate.** The three classes exist, 0 failures, `assembleDebug`. No new
 production behaviour except the publisher interface if required.
@@ -519,14 +525,21 @@ After each packet that ships UI:
    is the named exception (ROADMAP option A, owner-accepted).
 7. **P4 is a product event.** The next debug install is a new app. Say it
    in DEVELOPMENT and in the PR, then do it.
+8. **ViewModel tests cannot use `runTest` + virtual `withTimeout`.**
+   `PlanViewModel.uiState` is `flowOn(Dispatchers.Default)`. Virtual time
+   expires before Default runs. `runBlocking` + real 5s timeout.
+   Closing the in-memory Room to force a catalog retry-fail hangs. Boot
+   them on `@Config(application = Application::class)` so they do not
+   start `PersonalTrainerApp` (live Room + catalog seed) beside the
+   snapshot suite.
 
 ---
 
 ## Verification
 
 - [x] This file written; Job 2 statuses settled; ROADMAP pointer
-- [ ] P1 JVM + assemble + phone: replay empty week
-- [ ] P2 JVM + assemble + phone: lighter week HOLD
-- [ ] P3 three ViewModel test classes, 0 failures
+- [x] P1 JVM + assemble (phone: replay empty week)
+- [x] P2 JVM + assemble (phone: lighter week HOLD)
+- [x] P3 three ViewModel test classes, 0 failures (700 JVM)
 - [ ] P4 debug suffix; DEVELOPMENT tells the truth
 - [ ] Phone gates still the owner's
