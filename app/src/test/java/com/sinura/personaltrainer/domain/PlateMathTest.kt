@@ -6,9 +6,9 @@ import org.junit.Test
 
 class PlateMathTest {
     @Test
-    fun twoTwentyFivesASideOnAKilogramBar() {
+    fun hundredKilosUsesTheLargestPlatesThatFit() {
         val load = PlateMath.load(100.0, WeightUnit.KG)!!
-        assertEquals("20 kg bar + 2×20 / side", load.caption())
+        assertEquals("20 kg bar + 1×25 + 1×15 / side", load.caption())
     }
 
     @Test
