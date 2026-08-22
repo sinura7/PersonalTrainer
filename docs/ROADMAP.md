@@ -189,10 +189,11 @@ the tap. Phone gates remain the owner's (card+HOLD, Home replay,
 Backup/Finish copy). Packets, gates, won'ts:
 [JOB4_ACTION_PLAN.md](JOB4_ACTION_PLAN.md).
 
-**Job 5 (in flight).** Plan is on `trunk`. Next: rest done is a Temper
-cue (existing Sound toggle). Then plates, font 2.0, prompted backup.
-CI `trunk` is Studio. Room v3, fifth tab, LLM, rename, sex, and catalog
-seed stay signed won't. Packets, gates, won'ts:
+**Job 5 (in flight).** Plan and rest cue are on `trunk`. Next: plates
+under the barbell numeral, type-in made obvious, pounds the default
+(kg stays in Settings). Then font 2.0, prompted backup. CI `trunk` is
+Studio. Room v3, fifth tab, LLM, rename, sex, and catalog seed stay
+signed won't. Packets, gates, won'ts:
 [JOB5_ACTION_PLAN.md](JOB5_ACTION_PLAN.md).
 
 **Review baseline (22 Aug 2026).** Full-tree audit after Job 2 landed on `trunk`.

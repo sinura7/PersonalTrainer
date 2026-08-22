@@ -274,11 +274,11 @@ private fun WeightUnitsSection(
 ) {
     SettingsGroup(
         title = "Weight",
-        caption = "Everything is stored in kilograms whichever you pick. This changes only how " +
-            "weights are shown and entered — on Home, in workouts, and in history.",
+        caption = "Pounds is the default. Kilograms is an option. Everything is still stored " +
+            "in kilograms — this only changes how weights are shown and entered.",
     ) {
         GroupedList(modifier = Modifier.selectableGroup()) {
-            WeightUnit.entries.forEachIndexed { index, unit ->
+            listOf(WeightUnit.LBS, WeightUnit.KG).forEachIndexed { index, unit ->
                 if (index > 0) HairlineDivider()
                 val selected = selectedUnit == unit
                 InstrumentRow(

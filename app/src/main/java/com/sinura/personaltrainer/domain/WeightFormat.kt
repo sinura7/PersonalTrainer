@@ -44,8 +44,9 @@ enum class WeightUnit(
         get() = WeightConverter.formatDisplayNumber(step)
 
     companion object {
+        /** Missing or unknown storage is pounds. Kilograms is a Settings choice. */
         fun fromStorage(value: String?): WeightUnit =
-            entries.firstOrNull { it.storageKey.equals(value, ignoreCase = true) } ?: KG
+            entries.firstOrNull { it.storageKey.equals(value, ignoreCase = true) } ?: LBS
     }
 }
 
