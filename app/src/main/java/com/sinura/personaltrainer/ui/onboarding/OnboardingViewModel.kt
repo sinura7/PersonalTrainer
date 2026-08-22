@@ -25,10 +25,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 private const val TAG = "PT/OnboardingVM"
+
+internal const val CATALOG_MISSING_MESSAGE =
+    "Couldn't load the lift catalog. Try again, or build your own."
 
 /**
  * The questions, in order.
@@ -176,6 +180,34 @@ class OnboardingViewModel @JvmOverloads constructor(
         val index = OnboardingStep.entries.indexOf(step.value)
         if (index < OnboardingStep.entries.lastIndex) {
             step.value = OnboardingStep.entries[index + 1]
+            if (step.value == OnboardingStep.PREVIEW && catalog.value.isEmpty()) {
+                retryCatalog()
+            }
+        }
+    }
+
+    /**
+     * Re-runs the catalog seed and waits for Room to emit what it now holds.
+     *
+     * Setup can open before Application finishes seeding. That is normal, and
+     * collecting `observeAll()` fills the preview when the rows arrive. A seed
+     * that failed is not normal: the preview stays null and "Use this plan"
+     * stays disabled. This is the recovery — not a timeout that guesses.
+     */
+    fun retryCatalog() {
+        viewModelScope.launch {
+            error.value = null
+            val seeded = runCatchingCancellable {
+                container.dbMaintenance.seedCatalog()
+                container.exerciseRepository.observeAll().first()
+            }
+            seeded.onSuccess { exercises ->
+                catalog.value = exercises
+                if (exercises.isEmpty()) error.value = CATALOG_MISSING_MESSAGE
+            }.onFailure { thrown ->
+                AppLog.w(TAG, "Retrying the catalog seed failed", thrown)
+                error.value = CATALOG_MISSING_MESSAGE
+            }
         }
     }
 
