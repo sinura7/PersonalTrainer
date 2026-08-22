@@ -67,7 +67,7 @@ class DbMaintenanceTest {
             database.catalogDao().getAllCredits()
                 .sortedWith(compareBy({ it.exerciseId }, { it.muscleKey })),
         )
-        assertEquals(98, firstExercises.size)
+        assertEquals(DefaultExercises.catalog().size, firstExercises.size)
     }
 
     @Test
@@ -184,7 +184,7 @@ class DbMaintenanceTest {
         database.exerciseDao().insert(
             ExerciseEntity(
                 id = "custom-1", name = "My Own Lift", muscleGroup = "Chest", notes = "keep this",
-                isCustom = true, equipment = null, loadType = null, movementKey = null,
+                isCustom = true, equipment = "OTHER", loadType = "EXTERNAL", movementKey = null,
                 imageKey = null, nameKey = "my own lift",
             ),
         )
@@ -192,8 +192,12 @@ class DbMaintenanceTest {
         maintenance.seedCatalog()
 
         val all = database.exerciseDao().getAll()
-        assertEquals("98 built-ins plus the custom", 99, all.size)
-        assertEquals(98, all.count { !it.isCustom })
+        assertEquals(
+            "every built-in plus the custom",
+            DefaultExercises.catalog().size + 1,
+            all.size,
+        )
+        assertEquals(DefaultExercises.catalog().size, all.count { !it.isCustom })
         assertEquals("ids must stay unique across a bump", all.size, all.map { it.id }.toSet().size)
         assertEquals(
             "the stored version must catch up",
@@ -210,7 +214,10 @@ class DbMaintenanceTest {
 
         // And a second run changes nothing.
         maintenance.seedCatalog()
-        assertEquals(99, database.exerciseDao().getAll().size)
+        assertEquals(
+            DefaultExercises.catalog().size + 1,
+            database.exerciseDao().getAll().size,
+        )
     }
 
     @Test
