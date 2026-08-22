@@ -37,8 +37,9 @@ Two rules keep this navigable:
 
 - **`domain/` stays pure Kotlin.** No `android.*` imports. That is what makes it testable
   without a device, and most of the test suite lives there.
-- **ViewModels talk to repositories, never to DAOs.** Dependencies come from `AppContainer`
-  (manual DI, no Hilt) via `PersonalTrainerApp`.
+- **ViewModels talk to repositories, never to DAOs.** Dependencies are constructor-injected
+  `AppDependencies`. `AppContainer` is the production graph, resolved by the default
+  `viewModel()` factory; tests pass a fake graph instead. No Hilt.
 
 ## Running tests
 
@@ -205,8 +206,9 @@ Two lanes exist for anything Room touches:
 
 Migration tests must pass in both lanes before a schema change ships.
 
-Repositories, ViewModels and Compose screens remain unverified by automation — see
-[ROADMAP.md](ROADMAP.md).
+`WorkoutRepository` and `ScheduleRepository` have instrumented tests on real SQLite
+(`app/src/androidTest/.../data/repository/`). ViewModels and Compose screens remain
+unverified by automation — see [ROADMAP.md](ROADMAP.md).
 
 ## On Windows
 

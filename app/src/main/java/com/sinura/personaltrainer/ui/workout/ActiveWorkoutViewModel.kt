@@ -5,7 +5,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
+import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
@@ -136,10 +138,11 @@ data class RestTimerUiState(
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class ActiveWorkoutViewModel(
+class ActiveWorkoutViewModel @JvmOverloads constructor(
     application: Application,
     savedStateHandle: SavedStateHandle,
-) : AppViewModel(application) {
+    container: AppDependencies = application.appContainer(),
+) : AppViewModel(application, container) {
     private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
     private val draftCache = container.workoutDraftCache
     private val savedDraft = SavedStateWorkoutDraft(savedStateHandle)

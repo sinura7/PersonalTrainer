@@ -3,7 +3,9 @@ package com.sinura.personaltrainer.ui.workout
 import android.app.Application
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.OwnedLiftResolver
@@ -42,7 +44,10 @@ data class StartOptionsUiState(
  * changed is that it opens over the screen you were already on, so the common case (start
  * today's plan) skips it entirely and everything else is one tap deeper rather than one screen.
  */
-class StartOptionsViewModel(application: Application) : AppViewModel(application) {
+class StartOptionsViewModel @JvmOverloads constructor(
+    application: Application,
+    container: AppDependencies = application.appContainer(),
+) : AppViewModel(application, container) {
     private val error = MutableStateFlow<String?>(null)
 
     private val suggestedLift: Flow<Pair<Exercise, String>?> =

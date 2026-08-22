@@ -3,7 +3,9 @@ package com.sinura.personaltrainer.ui.history
 import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.repository.RepeatOutcome
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.domain.SetLogRules
@@ -42,10 +44,11 @@ data class SessionDetailUiState(
  * the screen can change is what a lifter can get wrong; what it cannot change is when any of
  * it happened.
  */
-class SessionDetailViewModel(
+class SessionDetailViewModel @JvmOverloads constructor(
     application: Application,
     savedStateHandle: SavedStateHandle,
-) : AppViewModel(application) {
+    container: AppDependencies = application.appContainer(),
+) : AppViewModel(application, container) {
     private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
 
     private val session: StateFlow<SessionLoad> = container.workoutRepository.observeSession(sessionId)

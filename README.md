@@ -85,9 +85,10 @@ workout          in-progress workout draft (memory + saved state)
 ui/home, ui/progress, ui/schedule, ui/routines, ui/workout, ui/history, ui/library, ui/settings
 ```
 
-ViewModels talk to repositories, never to DAOs. No Hilt — `PersonalTrainerApp` holds an
-`AppContainer`. `domain/` has no `android.*` imports, which is why most of the test suite
-runs on the JVM in seconds. More in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+ViewModels talk to repositories, never to DAOs. No Hilt — ViewModels take `AppDependencies`
+in the constructor; `AppContainer` is the production graph. `domain/` has no `android.*`
+imports, which is why most of the test suite runs on the JVM in seconds. More in
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ## Requirements
 

@@ -3,7 +3,9 @@ package com.sinura.personaltrainer.ui.library
 import android.app.Application
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.data.repository.DeleteExerciseResult
 import com.sinura.personaltrainer.domain.AddDefaults
@@ -67,7 +69,10 @@ data class ExerciseLibraryUiState(
         get() = query.isBlank() && selectedMuscle == null && selectedEquipment == null
 }
 
-class ExerciseLibraryViewModel(application: Application) : AppViewModel(application) {
+class ExerciseLibraryViewModel @JvmOverloads constructor(
+    application: Application,
+    container: AppDependencies = application.appContainer(),
+) : AppViewModel(application, container) {
     private val query = MutableStateFlow("")
     private val selectedMuscle = MutableStateFlow<CanonicalMuscle?>(null)
     private val selectedEquipment = MutableStateFlow<EquipmentType?>(null)

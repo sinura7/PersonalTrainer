@@ -2,7 +2,9 @@ package com.sinura.personaltrainer.ui.navigation
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
+import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.LiveSessionRules
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.workout.DiscardOutcome
@@ -43,7 +45,10 @@ data class LiveSessionBarUiState(
  * Nothing here is accumulated: elapsed is re-derived from wall clock on every tick, so
  * backgrounding, process death and a clock change cannot desynchronise it.
  */
-class LiveSessionBarViewModel(application: Application) : AppViewModel(application) {
+class LiveSessionBarViewModel @JvmOverloads constructor(
+    application: Application,
+    container: AppDependencies = application.appContainer(),
+) : AppViewModel(application, container) {
 
     private val ticker = flow {
         while (true) {

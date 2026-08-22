@@ -2,7 +2,9 @@ package com.sinura.personaltrainer.ui.history
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
+import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.repository.RepeatOutcome
 import com.sinura.personaltrainer.domain.PrSummaryRow
 import com.sinura.personaltrainer.domain.SessionMonthGroup
@@ -58,7 +60,10 @@ data class FinishedBlock(
     val review: BlockReview,
 )
 
-class HistoryViewModel(application: Application) : AppViewModel(application) {
+class HistoryViewModel @JvmOverloads constructor(
+    application: Application,
+    container: AppDependencies = application.appContainer(),
+) : AppViewModel(application, container) {
     /**
      * Which month the calendar is showing. Held in the ViewModel rather than the composition so
      * paging back through a year survives rotation and process death.

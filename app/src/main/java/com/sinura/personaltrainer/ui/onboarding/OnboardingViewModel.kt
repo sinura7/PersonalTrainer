@@ -2,7 +2,9 @@ package com.sinura.personaltrainer.ui.onboarding
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
+import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.repository.ApplyPlanResult
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.OnboardingAnswers
@@ -73,7 +75,10 @@ data class OnboardingUiState(
  * writes anything until "Use this plan" — so backing out of setup leaves an app that is exactly
  * as it was, and the lifter can see the actual lifts before a single routine exists.
  */
-class OnboardingViewModel(application: Application) : AppViewModel(application) {
+class OnboardingViewModel @JvmOverloads constructor(
+    application: Application,
+    container: AppDependencies = application.appContainer(),
+) : AppViewModel(application, container) {
     private val step = MutableStateFlow(OnboardingStep.FORK)
     private val answers = MutableStateFlow(OnboardingAnswers())
     private val applying = MutableStateFlow(false)

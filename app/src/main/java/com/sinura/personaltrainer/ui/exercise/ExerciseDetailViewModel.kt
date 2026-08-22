@@ -3,7 +3,9 @@ package com.sinura.personaltrainer.ui.exercise
 import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseHistory
@@ -49,10 +51,11 @@ data class RoutineMembership(
     val alreadyHolds: Boolean,
 )
 
-class ExerciseDetailViewModel(
+class ExerciseDetailViewModel @JvmOverloads constructor(
     application: Application,
     savedStateHandle: SavedStateHandle,
-) : AppViewModel(application) {
+    container: AppDependencies = application.appContainer(),
+) : AppViewModel(application, container) {
     private val exerciseId: String = savedStateHandle.get<String>("exerciseId").orEmpty()
 
     /**

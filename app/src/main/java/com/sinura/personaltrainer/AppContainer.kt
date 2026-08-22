@@ -25,7 +25,7 @@ import com.sinura.personaltrainer.workout.FinishWorkout
 import com.sinura.personaltrainer.workout.StartTrainingDay
 import com.sinura.personaltrainer.workout.WorkoutDraftCache
 
-class AppContainer(context: Context) {
+class AppContainer(context: Context) : AppDependencies {
     private val database: TrainerDatabase = TrainerDatabase.create(context)
 
     /**

@@ -2,7 +2,9 @@ package com.sinura.personaltrainer.ui.plan
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
+import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.InsightFailure
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SchedulePreferences
@@ -72,7 +74,10 @@ data class PlanUiState(
  * whenever you logged anything. Here a suggestion is visibly a suggestion until you accept it,
  * and accepting it is the only thing in the class that writes a slot.
  */
-class PlanViewModel(application: Application) : AppViewModel(application) {
+class PlanViewModel @JvmOverloads constructor(
+    application: Application,
+    container: AppDependencies = application.appContainer(),
+) : AppViewModel(application, container) {
     private val actionError = MutableStateFlow<String?>(null)
     private val proposals = MutableStateFlow<List<SuggestedTrainingDay>>(emptyList())
 

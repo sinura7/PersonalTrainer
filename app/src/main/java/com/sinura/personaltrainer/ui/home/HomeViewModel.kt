@@ -2,7 +2,9 @@ package com.sinura.personaltrainer.ui.home
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
+import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.Routine
@@ -46,7 +48,10 @@ data class HomeUiState(
     val error: String? = null,
 )
 
-class HomeViewModel(application: Application) : AppViewModel(application) {
+class HomeViewModel @JvmOverloads constructor(
+    application: Application,
+    container: AppDependencies = application.appContainer(),
+) : AppViewModel(application, container) {
     private val actionError = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<HomeUiState> = combine(
