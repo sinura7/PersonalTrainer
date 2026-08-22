@@ -184,6 +184,22 @@ five days, and a preview a stranger can read. No second catalog. No Room v3.
 and does not delete history. Suggest already passes current emphasis; pins stay
 owned. Athletic templates apply on generate, not by rewriting a pinned week.
 
+**Review baseline (22 Aug 2026).** Full-tree audit after Job 2 landed on `trunk`.
+No open PRs. Q4 onboarding ANR on the cloud emulator is environment — `setPlace`
+advances. Shared `applicationId` stays later (signed). Packets from this baseline:
+
+| Item | Severity | Packet |
+|---|---|---|
+| Snapshot retry can copy v2 into the v1 rollback folder | P0 | this / `cursor/snapshot-rollback-b87f` |
+| Snapshot treats any dest directory as success | P1 | same |
+| Rest timer `apply()` can lose disk state before the alarm | P1 | next |
+| `preflight.sh` links Robolectric annotations / junit | P1 | next |
+| CI `on.push` still lists `main`, not `trunk` | P1 | next (token may need Studio) |
+| Suggest stays up on a fully pinned week | P2 | next |
+| Planner still listens for deleted `recovery-upper` | P2 | next |
+| Setup preview has no catalog-empty error | P3 | next |
+| `DEVELOPMENT.md` still says `2.json` is uncommitted | P2 | next |
+
 ---
 
 ## Known open items

@@ -1,10 +1,12 @@
 package com.sinura.personaltrainer.data.local
 
 import android.content.Context
+import android.database.sqlite.SQLiteDatabase
 import androidx.test.core.app.ApplicationProvider
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -83,6 +85,49 @@ class PreMigrationSnapshotTest {
         assertTrue(blocker.isFile)
     }
 
+    @Test
+    fun incompleteCopyIsRetriedWhileSourceIsStillV1() {
+        writeDatabase(main = "v1-main", wal = "v1-wal", shm = null)
+        copyDir().mkdirs()
+        File(copyDir(), DB_NAME).writeText("partial")
+
+        PreMigrationSnapshot.ensure(context)
+
+        assertEquals("v1-main", File(copyDir(), DB_NAME).readText())
+        assertEquals("v1-wal", File(copyDir(), "$DB_NAME-wal").readText())
+        assertEquals(marker(), PreMigrationSnapshot.TARGET_SCHEMA)
+    }
+
+    @Test
+    fun alreadyMigratedSourceIsNeverCopiedAsV1Rollback() {
+        writeSqlite(userVersion = 2)
+
+        PreMigrationSnapshot.ensure(context)
+
+        assertFalse("a v2 live file must not become the v1 rollback", copyDir().exists())
+        assertEquals(marker(), PreMigrationSnapshot.TARGET_SCHEMA)
+    }
+
+    @Test
+    fun incompleteCopyIsNotReplacedByAlreadyMigratedSource() {
+        copyDir().mkdirs()
+        File(copyDir(), DB_NAME).writeText("v1-partial")
+        writeSqlite(userVersion = 2)
+        File(context.getDatabasePath(DB_NAME).parentFile, "$DB_NAME-wal").writeText("v2-wal")
+
+        PreMigrationSnapshot.ensure(context)
+
+        assertEquals("v1-partial", File(copyDir(), DB_NAME).readText())
+        assertFalse(File(copyDir(), "$DB_NAME-wal").exists())
+        assertEquals(marker(), PreMigrationSnapshot.TARGET_SCHEMA)
+    }
+
+    @Test
+    fun textStandInIsNotReadAsASchemaVersion() {
+        writeDatabase(main = "v1-main", wal = null, shm = null)
+        assertNull(PreMigrationSnapshot.userVersion(context.getDatabasePath(DB_NAME)))
+    }
+
     private fun marker(): Int =
         context.getSharedPreferences(PreMigrationSnapshot.PREFS_NAME, Context.MODE_PRIVATE)
             .getInt(PreMigrationSnapshot.KEY_LAST_OPENED_SCHEMA, 0)
@@ -102,6 +147,16 @@ class PreMigrationSnapshotTest {
         val shmFile = File(target.parentFile, "$DB_NAME-shm")
         if (wal != null) walFile.writeText(wal) else walFile.delete()
         if (shm != null) shmFile.writeText(shm) else shmFile.delete()
+    }
+
+    private fun writeSqlite(userVersion: Int) {
+        val target = context.getDatabasePath(DB_NAME)
+        target.parentFile?.mkdirs()
+        File(target.parentFile, "$DB_NAME-wal").delete()
+        File(target.parentFile, "$DB_NAME-shm").delete()
+        SQLiteDatabase.openOrCreateDatabase(target, null).use { db ->
+            db.version = userVersion
+        }
     }
 
     private companion object {
