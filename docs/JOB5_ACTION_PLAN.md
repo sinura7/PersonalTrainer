@@ -137,7 +137,7 @@ here before any of them grows a packet.
 
 ## Packets
 
-### P0 — Plan + unbind the leftover list · **next** (this PR)
+### P0 — Plan + unbind the leftover list · **done** (merged)
 
 **Goal.** A stranger can name which cut-list items Job 5 owns and which
 stay signed. The next packet is allowed to touch rest / plates / type /
@@ -184,7 +184,7 @@ idle on P2 waiting for it.
 
 ---
 
-### P2 — Rest done is a Temper cue · **after P0**
+### P2 — Rest done is a Temper cue · **done** (this PR · phone pending)
 
 **Goal.** Sound-on plays a bundled cue. Sound-off is still silence.
 Silent ringer is still silence. The notification channel stays silent.
@@ -369,7 +369,7 @@ P1 is a GitHub Actions page, not a phone.
 
 - [x] This file written; ROADMAP / UX / owner-loop retarget
 - [ ] P1 `ci.yml` lists `trunk`
-- [ ] P2 one cue, existing toggle
+- [x] P2 one cue, existing toggle (713 JVM)
 - [ ] P3 `PlateMath` + caption on loaded lifts
 - [ ] P4 log loop at font 2.0
 - [ ] P5 stale-backup prompt
