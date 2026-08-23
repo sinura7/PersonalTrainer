@@ -29,8 +29,8 @@ the unlocking sentence written here first, not a surprise PR.
 The gym-floor sentence for the owned pile:
 
 > The rest cue is Temper. The bar names its plates. Large type still
-> logs. Settings nags when the backup is old. CI still watches a
-> branch that is gone. Phone gates remain the owner's.
+> logs. Settings nags when the backup is old. Phone gates remain
+> the owner's. We test on Cursor and live on Studio.
 
 That is the whole product. Everything below is how we do it without a
 fifth tab, without Room v3, and without a chat coach.
@@ -68,10 +68,9 @@ fifth tab, without Room v3, and without a chat coach.
    the catalog. Reopen only if a real home-gym week collapses.
 10. **Backup is a tap.** No WorkManager. Snapshot already drops the live
     session. Pre-migration copy is not a scheduled backup.
-11. **CI `on.push` lists `main`, not `trunk`.** Feature `cursor/**`
-    branches still build. A push to `trunk` alone does not. The cloud
-    token cannot edit `.github/workflows/`. That packet is Studio, or
-    a PAT with `workflow` scope.
+11. **`ci.yml` lists `trunk`.** P1 landed (`db787f5`). GitHub-hosted
+    runners are not a test lane. Do not ask the owner to lift
+    billing or open a red X. Cursor + Studio are the path.
 
 ---
 
@@ -159,27 +158,11 @@ no workflow scope).
 
 ---
 
-### P1 — CI listens for `trunk` · **after P0** (Studio or workflow-scoped PAT)
+### P1 — CI listens for `trunk` · **done** (`db787f5`)
 
-**Goal.** A push to `trunk` runs the same verify job a `cursor/**` push
-already runs.
-
-**Work**
-
-`.github/workflows/ci.yml`:
-
-- `on.push.branches` includes `trunk`. Drop `main` (the branch is gone;
-  do not recreate it).
-- Concurrency comments that say "main" say `trunk`.
-
-**Gate.** A commit on `trunk` shows the verify workflow. PRs still run.
-
-**Won't.** Enabling `instrumented-smoke` as a merge gate. Recreating
-`main`. Touching `release.yml` unless it has the same lie.
-
-**Note.** Cloud agent tokens cannot update workflow files. Owner does
-this in Studio, or the next agent with `workflow` scope. Do not sit
-idle on P2 waiting for it.
+`on.push.branches` is `[trunk, 'claude/**', 'cursor/**']`. Closed.
+Hosted runners are not how we test. Do not reopen as a billing
+errand.
 
 ---
 
@@ -321,12 +304,8 @@ packet header, then code. Not the other way around.
 ## Suggested order (and when to deviate)
 
 ```
-P0 docs (this file, ROADMAP, UX, owner-loop)
-  → P1 CI trunk (Studio; do not block P2 on it)
-    → P2 rest cue
-      → P3 plates under the numeral
-        → P4 font-scale 2.0 on the log loop
-          → P5 prompted backup
+P0–P5 are on trunk. Phone gates remain.
+Do not open a CI / billing / runner packet.
 ```
 
 Deviate if:
@@ -356,7 +335,7 @@ ships:
 - P4: largest font, log a working set, read the Finish helper.
 - P5: stale stamp nags; after Export it does not.
 
-P1 is a GitHub Actions page, not a phone.
+P1 is closed. Do not treat a GitHub red X as a phone gate.
 
 ---
 
@@ -371,8 +350,8 @@ P1 is a GitHub Actions page, not a phone.
 4. **Clamping fontScale is a lie.** The log has to work at 2.0.
 5. **Scheduled Drive upload is the wrong backup packet.** Prompted +
    manual matches ROADMAP and Job 4's caption.
-6. **CI `main` is a docs-and-Studio packet.** The agent token cannot
-   land it. P2 does not wait.
+6. **P1 landed.** `ci.yml` lists `trunk`. We do not use GitHub
+   runners. Do not mention billing.
 7. **No Settings bar weight.** 20 kg / 45 lb is the gym we already
    claimed. A DataStore key would force `setRestoredPreferences` and a
    backup field for a number nobody has asked to change yet.
@@ -391,7 +370,7 @@ P1 is a GitHub Actions page, not a phone.
 ## Verification
 
 - [x] This file written; ROADMAP / UX / owner-loop retarget
-- [ ] P1 `ci.yml` lists `trunk`
+- [x] P1 `ci.yml` lists `trunk` (`db787f5`). Not a test lane.
 - [x] P2 one cue, existing toggle (713 JVM)
 - [x] P3 plates + type-in hint + pounds default (719 JVM)
 - [x] P4 log loop at font 2.0 (722 JVM)

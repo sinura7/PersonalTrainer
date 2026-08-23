@@ -57,8 +57,9 @@ In Android Studio: right-click `app/src/test` → **Run 'Tests'**. From the term
 ./gradlew testDebugUnitTest --tests '*ProgressionBasisTest*'
 ```
 
-These are plain JVM tests — no emulator, a few seconds. Run them before every commit; CI
-runs them again on push.
+These are plain JVM tests — no emulator, a few seconds. Run them
+before every commit, here on Cursor. Studio is the live install
+path. Do not wait on a GitHub Actions run.
 
 Run everything mechanical with one command — the twelve static checks plus the JVM test
 lanes, which is what every game-plan phase gates on:
@@ -170,21 +171,14 @@ If you add a file to `data/backup/` that has no Android imports, add it to the l
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs the unit tests, lint and `assembleDebug` on every push to
-`trunk` and to `claude/**` and `cursor/**` branches, and uploads the test reports, the
-generated Room schemas and a debug APK.
+`.github/workflows/ci.yml` exists and already lists `trunk`. We do
+**not** use GitHub-hosted runners to test. The owner will not add
+billing, make the repo public, or attach a self-hosted runner for
+this. A red X on a commit is noise. Do not open it. Do not ask the
+owner about it. Do not file a packet to "fix CI."
 
-**It has never successfully run.** Every attempt so far fails about three seconds in, with
-`runner_id: 0`, zero billable milliseconds and no logs at all, which means GitHub never
-assigned a runner rather than the build failing. GitHub's own annotation on the run says the
-job was not started because account payments have failed or the spending limit needs raising.
-The action versions the workflow pins were checked against their real tags and all exist, so
-this is an account-level block on a private repository, not a broken workflow.
-
-Actions minutes are free and unlimited on **public** repositories, and a self-hosted runner is
-free on any repository; the default $0 spending limit is what stops the job, so nothing here
-has ever been billed. Until one of those is chosen, nothing in CI verifies anything, and
-**Android Studio is the only thing that has ever compiled this app.**
+The test path is Cursor (`./gradlew testDebugUnitTest assembleDebug`)
+and Studio on the phone. That is the whole lane.
 
 ## Instrumented tests
 
@@ -260,8 +254,8 @@ Consequences, in order of cost:
    regardless of host. Phase 3's migration suite is gated on it.
 2. **Optional: WSL2** restores the JVM lane — clone into the Linux filesystem and run
    `./gradlew testDebugUnitTest` there. Worth it only if the fast lane is missed.
-3. **Optional: CI**, once the billing block is lifted, runs ubuntu and gets the JVM lane
-   for free on every push.
+3. **Do not wait on GitHub Actions.** We do not use hosted runners.
+   Cursor on Linux already has the JVM lane.
 
 Nothing in the plan depends on the JVM lane existing on this machine; the packets name the
 emulator lane as the truth check precisely so this substitution is legal.
