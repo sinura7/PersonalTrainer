@@ -9,8 +9,8 @@ on:
     # Feature branches are included on purpose. Work is pushed here from environments
     # that have no Android SDK and cannot reach Google's Maven, so the branch build is
     # the only thing that ever compiles that code — verifying it only once it reaches
-    # main would mean reviewing it blind right up to the merge.
-    branches: [main, 'claude/**', 'cursor/**']
+    # trunk would mean reviewing it blind right up to the merge.
+    branches: [trunk, 'claude/**', 'cursor/**']
   pull_request:
   workflow_dispatch:
 
@@ -21,7 +21,7 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  # Superseding a PR push is fine. Superseding a push to main is NOT — that commit would
+  # Superseding a PR push is fine. Superseding a push to trunk is NOT — that commit would
   # then never be verified, which is the exact hole this workflow exists to close.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
