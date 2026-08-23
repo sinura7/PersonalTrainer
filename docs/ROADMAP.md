@@ -189,18 +189,19 @@ the tap. Phone gates remain the owner's (card+HOLD, Home replay,
 Backup/Finish copy). Packets, gates, won'ts:
 [JOB4_ACTION_PLAN.md](JOB4_ACTION_PLAN.md).
 
-**Job 5 · code-done on `trunk` except CI `trunk` (Studio).** Rest
-cue, plates, type-in, pounds default, font-scale 2.0, and prompted
-backup are on `trunk`. Phone gates remain the owner's. P1 (`ci.yml`
-lists `trunk`) is Studio. Room v3, fifth tab, LLM, rename, sex, and
-catalog seed stay signed won't. Packets, gates, won'ts:
+**Job 5 · code-done on `trunk`.** Rest cue, plates, type-in, pounds
+default, font-scale 2.0, prompted backup, and `ci.yml` listing
+`trunk` are on `trunk`. Phone gates remain the owner's. GitHub
+runners are not a test lane. Room v3, fifth tab, LLM, rename, sex,
+and catalog seed stay signed won't. Packets, gates, won'ts:
 [JOB5_ACTION_PLAN.md](JOB5_ACTION_PLAN.md).
 
 **Job 6 (in flight).** Regroup. The product is the four-tab logger.
-P0 paper and P3 (one sentence before the rest-permission dialog)
-are on `trunk`. Next is phone truth, CI `trunk` (Studio), and
-week-verb language only if the phone confirms the cliff. Packets,
-gates, won'ts: [JOB6_REGROUP.md](JOB6_REGROUP.md).
+P0 paper, P1 (`ci.yml` lists `trunk`), and P3 (one sentence before
+the rest-permission dialog) are on `trunk`. Next is phone truth,
+then week-verb language only if the phone confirms the cliff. Do
+not open a CI / billing packet. Packets, gates, won'ts:
+[JOB6_REGROUP.md](JOB6_REGROUP.md).
 
 **Review baseline (22 Aug 2026).** Full-tree audit after Job 2 landed on `trunk`.
 No open PRs. Q4 onboarding ANR on the cloud emulator is environment — `setPlace`
@@ -212,7 +213,7 @@ advances. Debug is now `.debug` (Job 3 / P4). Packets from this baseline:
 | Snapshot treats any dest directory as success | P1 | same |
 | Rest timer `apply()` can lose disk state before the alarm | P1 | [#18](https://github.com/sinura7/PersonalTrainer/pull/18) |
 | `preflight.sh` links Robolectric annotations / junit | P1 | [#19](https://github.com/sinura7/PersonalTrainer/pull/19) |
-| CI `on.push` still lists `main`, not `trunk` | P1 | Studio — token has no workflow scope |
+| ~~CI `on.push` still lists `main`, not `trunk`~~ | ~~P1~~ | done 23 Aug — `db787f5`. Hosted runners are not a test lane. |
 | Suggest stays up on a fully pinned week | P2 | [#20](https://github.com/sinura7/PersonalTrainer/pull/20) |
 | Planner still listens for deleted `recovery-upper` | P2 | [#21](https://github.com/sinura7/PersonalTrainer/pull/21) |
 | Setup preview has no catalog-empty error | P3 | [#22](https://github.com/sinura7/PersonalTrainer/pull/22) |

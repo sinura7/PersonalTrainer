@@ -9,12 +9,13 @@ This packet is the plan. No Kotlin. No Gradle. No assets.
 
 ---
 
-## Where we stand (23 Aug 2026, `trunk` @ `c025570`)
+## Where we stand (23 Aug 2026, `trunk` @ `db787f5`)
 
 Temper is a **four-tab strength logger** that can generate a week,
 log a session, rest, finish, repair history, and survive a restore.
-Jobs 1–5 are **code-done on `trunk`**. Job 6 P0 is on `trunk`.
-727 JVM tests, 0 failures (before this packet's copy test).
+Jobs 1–5 are **code-done on `trunk`**. Job 6 P0, P1, and P3 are on
+`trunk`. P1 is closed: `ci.yml` lists `trunk`. We still do not use
+GitHub runners to test.
 
 The gym-floor sentence now:
 
@@ -22,7 +23,7 @@ The gym-floor sentence now:
 > The rest cue is ours. Large type still logs. Settings nags
 > when the backup is old. The first rest-permission ask now has
 > a gym why. The phone has not judged any of that yet.
-> CI still watches a branch that is gone.
+> We test on Cursor and live on Studio. Ignore a GitHub red X.
 > `trunk` is the only sitting remote.
 
 That is the product. Job 6 does **not** add a fifth surface. It
@@ -56,9 +57,9 @@ makes the existing one simpler to trust.
 
 | Item | Why it matters | Disposition |
 |---|---|---|
-| CI `on.push` lists `main`, not `trunk` | A push to the shipping branch may never compile | **P1 · Studio** (token has no workflow scope) |
-| Lint `continue-on-error` | A red lint never fails the job | *later* — gate it once the baseline is known |
-| Instrumented smoke non-gating | Emulator job is written blind | *later* — do not make it a merge gate |
+| `ci.yml` lists `trunk` | P1 landed (`db787f5`). Hosted runners are not a test lane. | **done.** Do not reopen. |
+| Lint `continue-on-error` | A red lint never fails the job | *later* — ignore unless we choose to gate it |
+| Instrumented smoke non-gating | Emulator job is written blind | **won't as a merge gate.** We do not use GitHub runners. |
 | Phone gates for Jobs 2–5 | Code-done ≠ gym-done | **Owner first.** Highest leverage. |
 
 ### B — Intuition (strangers get lost)
@@ -112,10 +113,11 @@ then a **small intuition pass**, then we stop.
 
 ```
 Owner phone (Jobs 2–5 gates)
-  → P1 CI trunk (Studio; do not sit idle)
-    → P2 week-verb language, only if the phone confirms the cliff
-      → P3 one sentence before the notification dialog
+  → P2 week-verb language, only if the phone confirms the cliff
 ```
+
+P1 (`ci.yml` lists `trunk`) and P3 (notification sentence) are
+already on `trunk`. Do not sit idle on GitHub Actions.
 
 Deviate if:
 
@@ -142,12 +144,13 @@ Owner-loop retarget. D1 opening sentence says four tabs.
 
 **Gate.** Reading this file names A–E and the recommended order.
 
-**Won't.** Kotlin. Assets. Editing `ci.yml` (Studio).
+**Won't.** Kotlin. Assets. Editing `ci.yml`.
 
-### P1 — CI listens for `trunk` · **Studio**
+### P1 — CI listens for `trunk` · **done** (`db787f5`)
 
-Same work Job 5 / P1 named. Still the same token limit. Do not
-block P2 on it.
+`on.push.branches` is `[trunk, 'claude/**', 'cursor/**']`. Closed.
+GitHub-hosted runners are not how we test. Do not lift billing.
+Do not ask anyone to open the red X.
 
 ### P2 — Week verbs a stranger can hold · **after the phone**
 
@@ -190,7 +193,8 @@ If any gate fails, write the finding here. That packet jumps the queue.
 ## Floor findings
 
 1. **Jobs 1–5 shipped a product, not a pile.** The leftover is
-   trust (phone, CI) and language (week verbs), not missing screens.
+   trust (phone) and language (week verbs), not missing screens
+   and not a GitHub runner.
 2. **DESIGN_AUDIT is a museum.** Use it for taste, not as a cut list.
 3. **Four tabs is the signed IA.** D1's opening "five tabs" was the
    leftover lie. Struck in this packet.
@@ -202,8 +206,8 @@ If any gate fails, write the finding here. That packet jumps the queue.
 ## Verification
 
 - [x] This file written; ROADMAP / JOB5 / owner-loop / D1 retarget
-- [ ] P1 `ci.yml` lists `trunk` (Studio)
+- [x] P1 `ci.yml` lists `trunk` (`db787f5`). Not a test lane.
 - [ ] Owner phone week
 - [ ] P2 week-verb language (only if the phone confirms)
-- [x] P3 notification sentence (this packet)
+- [x] P3 notification sentence
 - [ ] Signed won'ts still won't
