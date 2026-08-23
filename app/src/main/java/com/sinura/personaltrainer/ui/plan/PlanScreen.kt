@@ -478,6 +478,12 @@ fun PlanScreen(
                 openDay = null
                 sheetDay.slotId?.let { viewModel.swapRoutine(it, routineId) }
             },
+            onEditRoutine = sheetDay.routineId?.let { routineId ->
+                {
+                    openDay = null
+                    onOpenRoutine(routineId)
+                }
+            },
             onUnpin = {
                 openDay = null
                 sheetDay.slotId?.let(viewModel::unpin)

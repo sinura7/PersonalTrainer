@@ -25,8 +25,8 @@ class WeeklySchedulePlannerTest {
         assertEquals(4, prefs.trainingDaysPerWeek)
         assertEquals(SplitStyle.AUTO, prefs.splitStyle)
         assertEquals(DayOfWeek.MONDAY, prefs.weekStart)
-        assertEquals(6, SchedulePreferences(trainingDaysPerWeek = 99).sanitized().trainingDaysPerWeek)
-        assertEquals(2, SchedulePreferences(trainingDaysPerWeek = 1).sanitized().trainingDaysPerWeek)
+        assertEquals(7, SchedulePreferences(trainingDaysPerWeek = 99).sanitized().trainingDaysPerWeek)
+        assertEquals(1, SchedulePreferences(trainingDaysPerWeek = 0).sanitized().trainingDaysPerWeek)
         assertEquals(SplitStyle.UPPER_LOWER, SplitStyle.fromStorage("upper_lower"))
         assertEquals(SplitStyle.AUTO, SplitStyle.fromStorage("nope"))
         assertEquals(DayOfWeek.SUNDAY, SchedulePreferences.weekStartFromStorage("sunday"))
@@ -35,7 +35,7 @@ class WeeklySchedulePlannerTest {
 
     @Test
     fun respectsTrainingDaysPerWeekLimit() {
-        (2..6).forEach { days ->
+        (1..7).forEach { days ->
             val plan = plan(prefs = SchedulePreferences(trainingDaysPerWeek = days, splitStyle = SplitStyle.FULL_BODY))
             assertEquals(7, plan.days.size)
             assertEquals(days, plan.trainingDays.size)
@@ -44,10 +44,17 @@ class WeeklySchedulePlannerTest {
     }
 
     @Test
-    fun neverSchedulesSevenHardDays() {
+    fun sixDayWeekKeepsARestDay() {
         val plan = plan(prefs = SchedulePreferences(trainingDaysPerWeek = 6, splitStyle = SplitStyle.FULL_BODY))
         assertTrue(plan.days.any { it.isRest })
-        assertTrue(plan.trainingDays.size <= 6)
+        assertEquals(6, plan.trainingDays.size)
+    }
+
+    @Test
+    fun sevenDayWeekFillsTheWeek() {
+        val plan = plan(prefs = SchedulePreferences(trainingDaysPerWeek = 7, splitStyle = SplitStyle.FULL_BODY))
+        assertFalse(plan.days.any { it.isRest })
+        assertEquals(7, plan.trainingDays.size)
     }
 
     @Test
@@ -205,8 +212,10 @@ class WeeklySchedulePlannerTest {
 
     @Test
     fun trainingSlotsAreSpacedForFourDays() {
-        assertEquals(listOf(0, 2, 4, 5), WeeklySchedulePlanner.trainingDayIndices(4))
+        assertEquals(listOf(3), WeeklySchedulePlanner.trainingDayIndices(1))
         assertEquals(listOf(0, 3), WeeklySchedulePlanner.trainingDayIndices(2))
+        assertEquals(listOf(0, 2, 4, 5), WeeklySchedulePlanner.trainingDayIndices(4))
+        assertEquals((0..6).toList(), WeeklySchedulePlanner.trainingDayIndices(7))
     }
 
     @Test

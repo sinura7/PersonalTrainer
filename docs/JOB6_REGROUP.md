@@ -174,6 +174,19 @@ deep-link in the sentence.
 **Won't.** A settings deep-link as a substitute for the sentence
 (the banner after denial already exists). A sound library. Overlay.
 
+### P4 — Setup a stranger can finish · **this packet**
+
+**Goal.** Both forks of "Let's get you training" feel like Temper:
+guided questions that look like a readout, and a week you build by
+hand that you can confirm and then keep editing.
+
+**Work.** Experience as numbered cards. Days 1–7. Mixed places.
+Bodyweight as a live wheel with lbs/kg. Build-your-own is a Mon–Sun
+strip, multi-add lifts, compact rows, then "Use this week". Plan
+day sheet has Edit lifts. The applied week stays editable.
+
+**Won't.** A fifth tab. An LLM. Catalog seed. Room v3.
+
 ---
 
 ## Phone gates (owner)
@@ -210,4 +223,5 @@ If any gate fails, write the finding here. That packet jumps the queue.
 - [ ] Owner phone week
 - [ ] P2 week-verb language (only if the phone confirms)
 - [x] P3 notification sentence
+- [ ] P4 setup intuition (questionnaire + build-your-own week)
 - [ ] Signed won'ts still won't

@@ -47,11 +47,11 @@ class RoutineGeneratorTest {
 
     @Test
     fun everyCombinationProducesAFullSessionForEveryRoutine() {
-        // The exhaustive sweep. 3 training ages x 5 day counts x 3 places x 4 goals = 180
+        // The exhaustive sweep. 3 training ages x 7 day counts x 3 places x 4 goals = 252
         // programs, and not one of them may ship a short session.
         var checked = 0
         TrainingAge.entries.forEach { age ->
-            (2..6).forEach { days ->
+            (1..7).forEach { days ->
                 TrainingPlace.entries.forEach { place ->
                     TrainingGoal.entries.forEach { goal ->
                         val plan = RoutineGenerator.generate(
@@ -70,7 +70,7 @@ class RoutineGeneratorTest {
                 }
             }
         }
-        assertEquals(180, checked)
+        assertEquals(252, checked)
     }
 
     @Test
@@ -152,7 +152,7 @@ class RoutineGeneratorTest {
         // generated would produce exactly the "Upper with no lifts" session this phase exists
         // to kill.
         TrainingAge.entries.forEach { age ->
-            (2..6).forEach { days ->
+            (1..7).forEach { days ->
                 val plan = RoutineGenerator.generate(answers(age = age, days = days), catalog)
                 plan.days.filterNot { it.isRest }.forEach { day ->
                     val routine = plan.routineFor(day)
@@ -161,6 +161,15 @@ class RoutineGeneratorTest {
                 }
             }
         }
+    }
+
+    @Test
+    fun aSingleDayIsOneFullBodySession() {
+        val plan = RoutineGenerator.generate(answers(days = 1), catalog)
+        assertEquals(SplitStyle.FULL_BODY, plan.splitStyle)
+        assertEquals(1, plan.routines.size)
+        assertEquals(1, plan.days.count { !it.isRest })
+        assertNotNull(plan.days.first { !it.isRest }.let(plan::routineFor))
     }
 
     @Test
@@ -381,7 +390,7 @@ class RoutineGeneratorTest {
         )
         val plan = RoutineGenerator.generate(answers, catalog)
         assertEquals(
-            "4 days · Upper body emphasis · Athletic · Dumbbells at home",
+            "4 days · Upper body emphasis · Athletic · Home",
             OnboardingPreviewCopy.headline(answers, plan),
         )
         val rest = plan.days.first { it.isRest }
@@ -416,9 +425,9 @@ class SplitDerivationTest {
         OnboardingAnswers(trainingAge = age, daysPerWeek = days, goal = goal)
 
     @Test
-    fun twoOrThreeDaysIsAlwaysFullBody() {
+    fun oneTwoOrThreeDaysIsAlwaysFullBody() {
         TrainingAge.entries.forEach { age ->
-            listOf(2, 3).forEach { days ->
+            listOf(1, 2, 3).forEach { days ->
                 assertEquals(
                     "$age at $days days",
                     SplitStyle.FULL_BODY,
@@ -431,7 +440,7 @@ class SplitDerivationTest {
     @Test
     fun aNewLifterNeverGetsPushPullLegs() {
         // Six separate sessions to learn at once, for no benefit while the weights are light.
-        (2..6).forEach { days ->
+        (1..7).forEach { days ->
             assertTrue(
                 "a new lifter was given PPL at $days days",
                 SplitDerivation.forAnswers(answers(TrainingAge.NEW, days)) != SplitStyle.PUSH_PULL_LEGS,
@@ -440,8 +449,8 @@ class SplitDerivationTest {
     }
 
     @Test
-    fun fiveOrSixDaysWithExperienceGetsPushPullLegs() {
-        listOf(5, 6).forEach { days ->
+    fun fiveToSevenDaysWithExperienceGetsPushPullLegs() {
+        listOf(5, 6, 7).forEach { days ->
             assertEquals(
                 SplitStyle.PUSH_PULL_LEGS,
                 SplitDerivation.forAnswers(answers(TrainingAge.EXPERIENCED, days)),
@@ -473,7 +482,7 @@ class SplitDerivationTest {
         // Both are resolution strategies for a lifter who already has routines. Handing one to
         // someone with none would put them straight back on the fallback path.
         TrainingAge.entries.forEach { age ->
-            (2..6).forEach { days ->
+            (1..7).forEach { days ->
                 TrainingGoal.entries.forEach { goal ->
                     val style = SplitDerivation.forAnswers(answers(age, days, goal))
                     assertTrue("$age/$days/$goal produced $style", style != SplitStyle.AUTO && style != SplitStyle.CUSTOM)

@@ -140,7 +140,9 @@ class LocalBackupRepository(
                 preferredDays = preferencesRepository.preferredDays.first()
                     .map { it.name }
                     .sorted(),
-                trainingPlace = preferencesRepository.trainingPlace.first()?.name.orEmpty(),
+                trainingPlace = TrainingPlace.formatPlaces(
+                    preferencesRepository.storedOnboardingAnswers().resolvedPlaces(),
+                ),
                 lighterWeekStartEpochDay = preferencesRepository.lighterWeekStartEpochDay.first(),
             ),
             exercises = exercises.map {
@@ -436,6 +438,7 @@ class LocalBackupRepository(
                     ?: OnboardingAnswers.inferPlace(
                         document.preferences.availableEquipment.toSet(),
                     ),
+                trainingPlaces = TrainingPlace.parsePlaces(document.preferences.trainingPlace),
                 lighterWeekStartEpochDay = document.preferences.lighterWeekStartEpochDay,
             )
             true

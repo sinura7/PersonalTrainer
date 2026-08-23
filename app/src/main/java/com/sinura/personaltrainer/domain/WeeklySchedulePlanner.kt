@@ -96,11 +96,13 @@ object WeeklySchedulePlanner {
     }
 
     internal fun trainingDayIndices(count: Int): List<Int> = when (count.coerceIn(SchedulePreferences.MIN_DAYS, SchedulePreferences.MAX_DAYS)) {
+        1 -> listOf(3)
         2 -> listOf(0, 3)
         3 -> listOf(0, 2, 4)
         4 -> listOf(0, 2, 4, 5)
         5 -> listOf(0, 1, 2, 4, 5)
         6 -> listOf(0, 1, 2, 3, 4, 5)
+        7 -> listOf(0, 1, 2, 3, 4, 5, 6)
         else -> listOf(0, 2, 4)
     }
 

@@ -6,7 +6,7 @@ package com.sinura.personaltrainer.domain
  * The catalog got one of these in Phase 3 and it was the only reason 98 rows of authored
  * judgment could be reviewed at all. This is the same bet on a harder problem: which lifts go
  * in a session, in what order, at what sets and reps is a training opinion, and an opinion
- * nobody can see is an opinion nobody can disagree with. There are 180 reachable combinations;
+ * nobody can see is an opinion nobody can disagree with. There are 252 reachable combinations;
  * reading them on a phone one screen at a time is not review.
  *
  * Golden-file tested against the committed artifact, so the document and the generator cannot
@@ -64,9 +64,11 @@ object PlanReviewRenderer {
         return out.toString()
     }
 
+    private fun dayCount(days: Int): String = if (days == 1) "1 day" else "$days days"
+
     /**
      * Balanced already appears above. These two rows exist so a reviewer can see that
-     * emphasis actually changes the week, without tripling the 135-program matrix.
+     * emphasis actually changes the week, without tripling the 252-program matrix.
      */
     private fun appendEmphasis(out: StringBuilder, catalog: List<Exercise>) {
         out.appendLine("## Emphasis")
@@ -125,13 +127,13 @@ object PlanReviewRenderer {
         goal: TrainingGoal,
         plan: PlanBlueprint,
     ) {
-        out.appendLine("### ${age.displayName} · $days days · ${goal.displayName} → ${plan.splitStyle.displayName}")
+        out.appendLine("### ${age.displayName} · ${dayCount(days)} · ${goal.displayName} → ${plan.splitStyle.displayName}")
         out.appendLine()
         val week = plan.days.joinToString(" ") { day ->
             val label = day.dayOfWeek.shortLabel()
             if (day.isRest) "_${label}_" else "**$label**"
         }
-        out.appendLine("$week — ${plan.trainingDayCount} training days, ${plan.liftCount} lifts across ${plan.routines.size} sessions")
+        out.appendLine("$week — ${plan.trainingDayCount} training ${if (plan.trainingDayCount == 1) "day" else "days"}, ${plan.liftCount} lifts across ${plan.routines.size} ${if (plan.routines.size == 1) "session" else "sessions"}")
         out.appendLine()
         plan.routines.forEach { routine ->
             out.appendLine("**${routine.name}**")

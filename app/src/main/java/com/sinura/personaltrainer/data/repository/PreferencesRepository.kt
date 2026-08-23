@@ -126,7 +126,18 @@ class PreferencesRepository(
         .map { prefs -> prefs[TRAINING_PLACE]?.let { TrainingPlace.fromStorage(it) } }
 
     suspend fun setTrainingPlace(place: TrainingPlace) {
-        dataStore.edit { prefs -> prefs[TRAINING_PLACE] = place.name }
+        setTrainingPlaces(setOf(place))
+    }
+
+    /**
+     * One or many places, stored in the same key as the old single value.
+     *
+     * A single name is what every backup written before mixed places holds. Comma-separated
+     * names are a mixed kit. Readers that only want one place take [TrainingPlace.widest].
+     */
+    suspend fun setTrainingPlaces(places: Set<TrainingPlace>) {
+        val resolved = places.ifEmpty { setOf(TrainingPlace.FULL_GYM) }
+        dataStore.edit { prefs -> prefs[TRAINING_PLACE] = TrainingPlace.formatPlaces(resolved) }
     }
 
     /**
@@ -160,8 +171,16 @@ class PreferencesRepository(
             availableEquipment = prefs[AVAILABLE_EQUIPMENT].orEmpty(),
             emphasis = TrainingEmphasis.fromStorage(prefs[TRAINING_EMPHASIS]),
         )
-        val place = prefs[TRAINING_PLACE]?.let { TrainingPlace.fromStorage(it) }
-            ?: OnboardingAnswers.inferPlace(coach.availableEquipment)
+        val placeRaw = prefs[TRAINING_PLACE]
+        val parsedPlaces = TrainingPlace.parsePlaces(placeRaw)
+        val place = parsedPlaces.let { found ->
+            if (found.isEmpty()) {
+                placeRaw?.let { TrainingPlace.fromStorage(it) }
+                    ?: OnboardingAnswers.inferPlace(coach.availableEquipment)
+            } else {
+                TrainingPlace.widest(found)
+            }
+        }
         val bodyweight = prefs[BODYWEIGHT_KG]?.takeIf {
             it.isFinite() && it in OnboardingAnswers.MIN_BODYWEIGHT_KG..OnboardingAnswers.MAX_BODYWEIGHT_KG
         }
@@ -170,6 +189,7 @@ class PreferencesRepository(
             daysPerWeek = prefs[TRAINING_DAYS] ?: SchedulePreferences.DEFAULT_DAYS,
             preferredDays = preferredDaysFrom(prefs[PREFERRED_DAYS]),
             place = place,
+            places = parsedPlaces.ifEmpty { setOf(place) },
             goal = coach.goal,
             emphasis = coach.emphasis,
             bodyweightKg = bodyweight,
@@ -334,6 +354,7 @@ class PreferencesRepository(
         preferredDays: Set<DayOfWeek>,
         trainingPlace: TrainingPlace,
         lighterWeekStartEpochDay: Long?,
+        trainingPlaces: Set<TrainingPlace> = emptySet(),
     ) {
         val cleanSchedule = schedule.sanitized()
         val cleanRest = rest.sanitized()
@@ -383,7 +404,9 @@ class PreferencesRepository(
             }
             prefs[TRAINING_AGE] = trainingAge.name
             prefs[PREFERRED_DAYS] = preferredDays.map { it.name }.toSet()
-            prefs[TRAINING_PLACE] = trainingPlace.name
+            prefs[TRAINING_PLACE] = TrainingPlace.formatPlaces(
+                trainingPlaces.ifEmpty { setOf(trainingPlace) },
+            )
             if (lighterWeekStartEpochDay == null) {
                 prefs.remove(LIGHTER_WEEK_START)
             } else {
