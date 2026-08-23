@@ -205,6 +205,20 @@ data class OnboardingAnswers(
         )
     }
 
+    /**
+     * Shrinking the week keeps the first N preferred days in week order.
+     * Emptying the set would throw away a choice the lifter already made.
+     */
+    fun withDaysPerWeek(value: Int): OnboardingAnswers {
+        val days = value.coerceIn(SchedulePreferences.MIN_DAYS, SchedulePreferences.MAX_DAYS)
+        if (preferredDays.size <= days) return copy(daysPerWeek = days)
+        val ordered = (0 until 7).map { SchedulePreferences.DEFAULT_WEEK_START.plus(it.toLong()) }
+        return copy(
+            daysPerWeek = days,
+            preferredDays = ordered.filter { it in preferredDays }.take(days).toSet(),
+        )
+    }
+
     fun coachPreferences(): CoachPreferences {
         val resolved = resolvedPlaces()
         return CoachPreferences(

@@ -49,8 +49,8 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
 /**
  * One lift as a horizontal row you can stack, not a card that eats the screen.
  *
- * Collapsed it is a name, sets × reps, and move controls. Expanded it is sets, reps,
- * rest, and optional target weight.
+ * Collapsed it is a name, sets × reps, and move controls. Expanded it is three
+ * fields plus optional weight: sets, reps, rest, and kg.
  */
 @Composable
 fun CompactLiftRow(

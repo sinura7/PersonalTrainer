@@ -259,12 +259,7 @@ class OnboardingViewModel @JvmOverloads constructor(
 
     fun setExperience(value: TrainingAge) = advance { it.copy(trainingAge = value) }
 
-    fun setDaysPerWeek(value: Int) = update { current ->
-        // Picking fewer days than are already selected would leave a week that contradicts the
-        // answer, so the selection is trimmed to fit rather than silently overriding it later.
-        val trimmed = if (current.preferredDays.size > value) emptySet() else current.preferredDays
-        current.copy(daysPerWeek = value, preferredDays = trimmed)
-    }
+    fun setDaysPerWeek(value: Int) = update { it.withDaysPerWeek(value) }
 
     fun toggleDay(day: DayOfWeek) = update { current ->
         val picked = current.preferredDays
@@ -276,8 +271,6 @@ class OnboardingViewModel @JvmOverloads constructor(
             else -> current.copy(preferredDays = picked + day)
         }
     }
-
-    fun setPlace(value: TrainingPlace) = update { it.copy(places = setOf(value), place = value) }
 
     fun togglePlace(value: TrainingPlace) = update { it.withToggledPlace(value) }
 
