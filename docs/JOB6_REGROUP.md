@@ -221,11 +221,12 @@ like a wipe. Delete unused `OnboardingViewModel.skip()`.
 **Gate.** Re-run from Settings, back on fork, app is back. First
 install still cannot skip past the fork with an empty week.
 
-### Leftover P2 — Bodyweight is opt-in
+### Leftover P2 — Bodyweight is opt-in · **done** (this PR)
 
-**Why.** The wheel writes ~75 kg on first settle, so Skip becomes
-secondary. `setWeightUnit` writes DataStore while setup still says
-nothing is stored until Use this plan.
+**Why.** The wheel wrote ~75 kg on first settle, so Skip became
+secondary. `setWeightUnit` wrote DataStore while setup still said
+nothing is stored until Use this plan. Closed: kg commits on a flick;
+unit writes on apply.
 
 **Work.** Do not commit kg until the user flicks or taps Continue.
 Hold unit locally; write it only from apply, or revert on abandon.
@@ -394,7 +395,7 @@ If any gate fails, write the finding here. That packet jumps the queue.
 - [x] P3 notification sentence
 - [x] P4 setup intuition (questionnaire + build-your-own week)
 - [x] Leftover P1 — setup you can leave
-- [ ] Leftover P2 — bodyweight is opt-in
+- [x] Leftover P2 — bodyweight is opt-in
 - [ ] Leftover P3 — custom week keeps the questionnaire
 - [ ] Leftover P4 — places tell the truth
 - [ ] Leftover P5 — controls fit a phone

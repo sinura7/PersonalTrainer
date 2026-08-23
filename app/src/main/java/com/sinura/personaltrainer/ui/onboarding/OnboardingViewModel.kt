@@ -65,6 +65,8 @@ data class OnboardingUiState(
     val applying: Boolean = false,
     val existingProgram: Boolean = false,
     val error: String? = null,
+    /** Display unit for the bodyweight wheel. Pending until apply; abandon leaves DataStore. */
+    val weightUnit: WeightUnit = WeightUnit.LBS,
 ) {
     /** 1-based position among the questions, for the progress line. Zero on fork and preview. */
     val questionNumber: Int
@@ -101,13 +103,27 @@ class OnboardingViewModel @JvmOverloads constructor(
      * against a Monday default gets their sessions on the wrong weekdays.
      */
     private val weekStart = MutableStateFlow(SchedulePreferences.DEFAULT_WEEK_START)
+    private val storedWeightUnit = MutableStateFlow(WeightUnit.LBS)
+    private val pendingWeightUnit = MutableStateFlow<WeightUnit?>(null)
 
     val uiState: StateFlow<OnboardingUiState> = combine(
         step,
         answers,
         catalog,
-        combine(applying, error, existingProgram, weekStart) { busy, err, existing, start ->
-            Flags(busy, err, existing, start)
+        combine(
+            combine(applying, error, existingProgram, weekStart) { busy, err, existing, start ->
+                Quad(busy, err, existing, start)
+            },
+            storedWeightUnit,
+            pendingWeightUnit,
+        ) { quad, stored, pending ->
+            Flags(
+                applying = quad.applying,
+                error = quad.error,
+                existingProgram = quad.existingProgram,
+                weekStart = quad.weekStart,
+                weightUnit = pending ?: stored,
+            )
         },
     ) { currentStep, currentAnswers, exercises, flags ->
         OnboardingUiState(
@@ -123,6 +139,7 @@ class OnboardingViewModel @JvmOverloads constructor(
             applying = flags.applying,
             error = flags.error,
             existingProgram = flags.existingProgram,
+            weightUnit = flags.weightUnit,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -167,6 +184,13 @@ class OnboardingViewModel @JvmOverloads constructor(
                     AppLog.w(TAG, "Reading the week start for setup failed", thrown)
                 }
                 .collect { preferences -> weekStart.value = preferences.weekStart }
+        }
+        viewModelScope.launch {
+            container.preferencesRepository.weightUnit
+                .catch { thrown ->
+                    AppLog.w(TAG, "Reading the weight unit for setup failed", thrown)
+                }
+                .collect { unit -> storedWeightUnit.value = unit }
         }
     }
 
@@ -258,10 +282,7 @@ class OnboardingViewModel @JvmOverloads constructor(
     fun togglePlace(value: TrainingPlace) = update { it.withToggledPlace(value) }
 
     fun setWeightUnit(unit: WeightUnit) {
-        viewModelScope.launch {
-            runCatchingCancellable { container.preferencesRepository.setWeightUnit(unit) }
-                .onFailure { AppLog.w(TAG, "Saving the weight unit failed", it) }
-        }
+        pendingWeightUnit.value = unit
     }
 
     fun setGoal(value: TrainingGoal) = advance { it.copy(goal = value) }
@@ -292,6 +313,10 @@ class OnboardingViewModel @JvmOverloads constructor(
             applying.value = false
             when (result) {
                 is ApplyPlanResult.Applied -> {
+                    pendingWeightUnit.value?.let { unit ->
+                        runCatchingCancellable { container.preferencesRepository.setWeightUnit(unit) }
+                            .onFailure { AppLog.w(TAG, "Saving the weight unit failed", it) }
+                    }
                     error.value = null
                     _finished.value = true
                 }
@@ -311,6 +336,13 @@ class OnboardingViewModel @JvmOverloads constructor(
         next()
     }
 
+    private data class Quad(
+        val applying: Boolean,
+        val error: String?,
+        val existingProgram: Boolean,
+        val weekStart: DayOfWeek,
+    )
+
     /**
      * The flags that ride alongside the answers. A named type rather than a Triple, because
      * `flags.first` said nothing about which of three booleans it was.
@@ -320,5 +352,6 @@ class OnboardingViewModel @JvmOverloads constructor(
         val error: String?,
         val existingProgram: Boolean,
         val weekStart: DayOfWeek,
+        val weightUnit: WeightUnit,
     )
 }

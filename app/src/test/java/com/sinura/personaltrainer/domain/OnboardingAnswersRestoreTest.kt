@@ -112,4 +112,11 @@ class OnboardingAnswersRestoreTest {
         assertEquals(TrainingEmphasis.UPPER, answers.emphasis)
         assertEquals(82.0, answers.bodyweightKg!!, 0.001)
     }
+
+    @Test
+    fun wheelDoesNotCommitTheParkedPageUntilTheLifterFlicks() {
+        assertFalse(BodyweightSteps.shouldCommitSettledPage(settledPage = 40, initialPage = 40, alreadyChosen = false))
+        assertTrue(BodyweightSteps.shouldCommitSettledPage(settledPage = 41, initialPage = 40, alreadyChosen = false))
+        assertTrue(BodyweightSteps.shouldCommitSettledPage(settledPage = 40, initialPage = 40, alreadyChosen = true))
+    }
 }

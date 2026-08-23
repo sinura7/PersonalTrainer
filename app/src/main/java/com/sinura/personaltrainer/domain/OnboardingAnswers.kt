@@ -121,6 +121,18 @@ object BodyweightSteps {
 
     fun toKg(display: Int, unit: WeightUnit): Double =
         WeightConverter.toKg(display.toDouble(), unit)
+
+    /**
+     * The wheel parks on a default numeral without storing it.
+     *
+     * First settle on the initial page is not a choice. A flick, or a later settle after a
+     * number was already chosen, is.
+     */
+    fun shouldCommitSettledPage(
+        settledPage: Int,
+        initialPage: Int,
+        alreadyChosen: Boolean,
+    ): Boolean = alreadyChosen || settledPage != initialPage
 }
 
 /**
