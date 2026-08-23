@@ -197,11 +197,11 @@ and catalog seed stay signed won't. Packets, gates, won'ts:
 [JOB5_ACTION_PLAN.md](JOB5_ACTION_PLAN.md).
 
 **Job 6 (in flight).** Regroup. The product is the four-tab logger.
-P0 paper, P1 (`ci.yml` lists `trunk`), and P3 (one sentence before
-the rest-permission dialog) are on `trunk`. P4 (setup intuition:
-questionnaire + build-your-own week) is this packet. Next is phone
-truth, then week-verb language only if the phone confirms the cliff.
-Do not open a CI / billing packet. Packets, gates, won'ts:
+P0 paper, P1 (`ci.yml` lists `trunk`), P3 (one sentence before
+the rest-permission dialog), and P4 (setup intuition) are on
+`trunk`. Next is phone truth, then week-verb language only if the
+phone confirms the cliff. Do not open a CI / billing packet.
+Packets, gates, won'ts:
 [JOB6_REGROUP.md](JOB6_REGROUP.md).
 
 **Review baseline (22 Aug 2026).** Full-tree audit after Job 2 landed on `trunk`.
