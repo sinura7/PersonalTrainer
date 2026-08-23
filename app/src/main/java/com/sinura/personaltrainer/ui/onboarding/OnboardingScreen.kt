@@ -1,5 +1,8 @@
 package com.sinura.personaltrainer.ui.onboarding
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -9,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.Icon
@@ -20,6 +24,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -33,7 +39,7 @@ import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
-import com.sinura.personaltrainer.domain.WeightConverter
+import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.shortLabel
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
@@ -44,11 +50,17 @@ import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
+import com.sinura.personaltrainer.ui.theme.Haptics
+import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.Radius
+import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.ui.theme.Volt
+import com.sinura.personaltrainer.ui.theme.VoltDim
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import java.time.DayOfWeek
 
@@ -76,7 +88,7 @@ import java.time.DayOfWeek
 @Composable
 fun OnboardingScreen(
     onFinished: () -> Unit,
-    onBuildMyOwn: () -> Unit,
+    onBuildMyOwn: (preferredDays: Set<DayOfWeek>) -> Unit,
     viewModel: OnboardingViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -110,21 +122,11 @@ fun OnboardingScreen(
             when (state.step) {
                 OnboardingStep.FORK -> ForkStep(
                     onGuided = viewModel::beginGuided,
-                    onOwn = {
-                        viewModel.skip()
-                        onBuildMyOwn()
-                    },
+                    onOwn = { onBuildMyOwn(emptySet()) },
                 )
-                OnboardingStep.EXPERIENCE -> ChoiceStep(
-                    title = "How much lifting have you done?",
-                    blurb = "This sets how much work a session carries, and how fast the weight climbs.",
-                    // Named, not `it`: the trailing lambda is the Choice's onClick, which takes no
-                    // parameter, so an inner `it` refers to nothing at all.
-                    options = TrainingAge.entries.map { age ->
-                        Choice(age.displayName, age.blurb, age == state.answers.trainingAge) {
-                            viewModel.setExperience(age)
-                        }
-                    },
+                OnboardingStep.EXPERIENCE -> ExperienceStep(
+                    selected = state.answers.trainingAge,
+                    onSelect = viewModel::setExperience,
                 )
                 OnboardingStep.DAYS_PER_WEEK -> DaysPerWeekStep(
                     selected = state.answers.daysPerWeek,
@@ -136,14 +138,10 @@ fun OnboardingScreen(
                     onToggle = viewModel::toggleDay,
                     onNext = viewModel::next,
                 )
-                OnboardingStep.PLACE -> ChoiceStep(
-                    title = "Where will you train?",
-                    blurb = "Only lifts you can actually do will be suggested — everywhere in the app.",
-                    options = TrainingPlace.entries.map { place ->
-                        Choice(place.displayName, place.blurb, place == state.answers.place) {
-                            viewModel.setPlace(place)
-                        }
-                    },
+                OnboardingStep.PLACE -> PlaceStep(
+                    selected = state.answers.resolvedPlaces(),
+                    onToggle = viewModel::togglePlace,
+                    onNext = viewModel::next,
                 )
                 OnboardingStep.GOAL -> ChoiceStep(
                     title = "What are you training for?",
@@ -166,15 +164,13 @@ fun OnboardingScreen(
                 OnboardingStep.BODYWEIGHT -> BodyweightStep(
                     answers = state.answers,
                     onSet = viewModel::setBodyweight,
+                    onUnitChange = viewModel::setWeightUnit,
                     onNext = viewModel::next,
                 )
                 OnboardingStep.PREVIEW -> PreviewStep(
                     state = state,
                     onApply = viewModel::applyPlan,
-                    onOwn = {
-                        viewModel.skip()
-                        onBuildMyOwn()
-                    },
+                    onOwn = { onBuildMyOwn(state.answers.preferredDays) },
                 )
             }
         }
@@ -234,18 +230,143 @@ private fun ChoiceStep(title: String, blurb: String, options: List<Choice>) {
 }
 
 @Composable
+private fun ExperienceStep(selected: TrainingAge, onSelect: (TrainingAge) -> Unit) {
+    val view = LocalView.current
+    LazyColumn(
+        contentPadding = PaddingValues(bottom = Metrics.space8),
+        verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
+    ) {
+        item {
+            QuestionTitle(
+                "How much lifting have you done?",
+                "This sets how much work a session carries, and how fast the weight climbs.",
+            )
+        }
+        items(TrainingAge.entries.toList(), key = { it.name }) { age ->
+            val on = age == selected
+            val shape = RoundedCornerShape(Radius.md)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(shape)
+                    .background(if (on) VoltDim else Surface2)
+                    .border(
+                        if (on) Metrics.emphasisBorder else Metrics.hairline,
+                        if (on) Volt else Hairline,
+                        shape,
+                    )
+                    .clickable {
+                        Haptics.tick(view)
+                        onSelect(age)
+                    }
+                    .padding(Metrics.cardPadding),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+                ) {
+                    Text(age.displayName, style = InstrumentType.title, color = TextPrimary)
+                    Text(age.blurb, style = InstrumentType.body, color = TextSecondary)
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        age.liftsPerSession.toString(),
+                        style = InstrumentType.numeralLg,
+                        color = if (on) Volt else TextPrimary,
+                    )
+                    Kicker("LIFTS")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlaceStep(
+    selected: Set<TrainingPlace>,
+    onToggle: (TrainingPlace) -> Unit,
+    onNext: () -> Unit,
+) {
+    val view = LocalView.current
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap)) {
+        QuestionTitle(
+            "Where will you train?",
+            "Tap every place you can actually get to. Mixes are fine — gym days and home days both count.",
+        )
+        TrainingPlace.entries.forEach { place ->
+            val on = place in selected
+            val shape = RoundedCornerShape(Radius.md)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(shape)
+                    .background(if (on) VoltDim else Surface2)
+                    .border(
+                        if (on) Metrics.emphasisBorder else Metrics.hairline,
+                        if (on) Volt else Hairline,
+                        shape,
+                    )
+                    .clickable {
+                        Haptics.tick(view)
+                        onToggle(place)
+                    }
+                    .padding(Metrics.cardPadding),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+                ) {
+                    Text(place.displayName, style = InstrumentType.title, color = TextPrimary)
+                    Text(place.blurb, style = InstrumentType.body, color = TextSecondary)
+                }
+                if (on) {
+                    Text("On", style = InstrumentType.caption, color = Volt)
+                }
+            }
+        }
+        Text(
+            TrainingPlace.label(selected),
+            style = InstrumentType.caption,
+            color = TextTertiary,
+        )
+        PrimaryGymButton(text = "Continue", onClick = onNext)
+    }
+}
+
+@Composable
 private fun DaysPerWeekStep(selected: Int, onSelect: (Int) -> Unit, onNext: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap)) {
         QuestionTitle(
             "How many days a week can you train?",
             "Be honest about the bad weeks, not hopeful about the good ones — this decides the whole shape of the plan.",
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
+            Text(selected.toString(), style = InstrumentType.numeralXl, color = TextPrimary)
+            Text(
+                if (selected == 1) "day" else "days",
+                style = InstrumentType.unit,
+                color = TextSecondary,
+                modifier = Modifier.padding(bottom = Metrics.space2),
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
+        ) {
             (SchedulePreferences.MIN_DAYS..SchedulePreferences.MAX_DAYS).forEach { days ->
                 InstrumentChip(
                     label = days.toString(),
                     selected = days == selected,
                     onClick = { onSelect(days) },
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
@@ -292,45 +413,35 @@ private fun WhichDaysStep(
 private fun BodyweightStep(
     answers: OnboardingAnswers,
     onSet: (Double?) -> Unit,
+    onUnitChange: (WeightUnit) -> Unit,
     onNext: () -> Unit,
 ) {
+    val unit = LocalWeightUnit.current
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap)) {
-        val unit = LocalWeightUnit.current
         QuestionTitle(
             "Roughly what do you weigh?",
             "Recorded so the end of your block can say what your weight did over twelve weeks. " +
                 "Nothing else reads it — bodyweight lifts are counted in reps. Skip it if you'd rather not.",
         )
-        // Coarse buttons rather than a keypad. This is the one question that would otherwise
-        // need the keyboard, and it is precise enough at ten-kilogram steps for what it does.
-        //
-        // Labelled in the lifter's unit, and the label carries the suffix. These used to be
-        // bare numbers stored as kilograms whatever the preference said, so an lbs lifter
-        // re-running setup could tap "80" meaning pounds and be recorded at eighty kilos.
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
-        ) {
-            BODYWEIGHT_STEPS.forEach { kg ->
-                InstrumentChip(
-                    label = WeightConverter.formatDisplayNumber(
-                        WeightConverter.toDisplayValue(kg.toDouble(), unit),
-                    ),
-                    selected = answers.bodyweightKg == kg.toDouble(),
-                    onClick = { onSet(kg.toDouble()) },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
-        Text(
-            unit.suffix,
-            style = InstrumentType.caption,
-            color = TextTertiary,
+        BodyweightWheel(
+            kg = answers.bodyweightKg,
+            unit = unit,
+            onKgChange = onSet,
+            onUnitChange = onUnitChange,
         )
         PrimaryGymButton(
             text = if (answers.bodyweightKg == null) "Skip this" else "Continue",
             onClick = onNext,
         )
+        if (answers.bodyweightKg != null) {
+            SecondaryGymButton(
+                text = "Skip this",
+                onClick = {
+                    onSet(null)
+                    onNext()
+                },
+            )
+        }
     }
 }
 
@@ -454,6 +565,3 @@ private fun QuestionTitle(title: String, blurb: String) {
         Text(blurb, style = InstrumentType.body, color = TextSecondary)
     }
 }
-
-/** Ten-kilogram steps, which is as precise as a bodyweight-set volume estimate needs. */
-private val BODYWEIGHT_STEPS = listOf(50, 60, 70, 80, 90, 100, 110)

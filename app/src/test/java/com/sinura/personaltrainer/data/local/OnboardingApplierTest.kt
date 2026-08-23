@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.data.repository.OnboardingApplier
 import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.ScheduleRepository
+import com.sinura.personaltrainer.domain.CustomWeekLift
 import com.sinura.personaltrainer.domain.DefaultExercises
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.OnboardingAnswers
@@ -212,6 +213,28 @@ class OnboardingApplierTest {
                 )
             }
         }
+    }
+
+    @Test
+    fun aCustomWeekPinsEachFilledDay() = runBlocking {
+        val squat = catalog.first { it.movementKey == "squat" }
+        val result = applier.applyCustom(
+            days = mapOf(
+                DayOfWeek.WEDNESDAY to listOf(
+                    CustomWeekLift(id = "lift-1", exercise = squat, targetSets = 4, targetReps = 6, restSeconds = 120),
+                ),
+            ),
+            weekStart = WEEK_START,
+            today = TODAY,
+        )
+        assertTrue(result is ApplyPlanResult.Applied)
+        val slots = schedule.slots()
+        assertEquals(1, slots.size)
+        assertEquals(DayOfWeek.WEDNESDAY, slots.first().anchorDay)
+        val routine = routines.getById(slots.first().routineId!!)!!
+        assertEquals("Wednesday", routine.name)
+        assertEquals(4, routine.exercises.first().targetSets)
+        assertEquals(true, preferences.onboardingComplete.first())
     }
 
     private companion object {

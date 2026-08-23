@@ -57,6 +57,7 @@ fun PlanDaySheet(
     onPinFocus: (SessionFocusKind) -> Unit,
     onSwapRoutine: (String) -> Unit,
     onUnpin: () -> Unit,
+    onEditRoutine: (() -> Unit)? = null,
     onDismiss: () -> Unit,
 ) {
     var picking by rememberSaveable(day.epochDay) { mutableStateOf(Picker.NONE) }
@@ -104,6 +105,14 @@ fun PlanDaySheet(
                     onClick = onStart,
                 )
                 GroupedList {
+                    if (onEditRoutine != null) {
+                        InstrumentRow(
+                            title = "Edit lifts",
+                            subtitle = "Swap, change sets and reps, or reorder.",
+                            onClick = onEditRoutine,
+                        )
+                        HairlineDivider()
+                    }
                     InstrumentRow(
                         title = "Swap routine…",
                         onClick = { picking = if (picking == Picker.SWAP) Picker.NONE else Picker.SWAP },

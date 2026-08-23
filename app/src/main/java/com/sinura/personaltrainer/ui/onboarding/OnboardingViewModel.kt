@@ -15,6 +15,7 @@ import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
+import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import java.time.DayOfWeek
@@ -235,7 +236,16 @@ class OnboardingViewModel @JvmOverloads constructor(
         }
     }
 
-    fun setPlace(value: TrainingPlace) = advance { it.copy(place = value) }
+    fun setPlace(value: TrainingPlace) = update { it.copy(places = setOf(value), place = value) }
+
+    fun togglePlace(value: TrainingPlace) = update { it.withToggledPlace(value) }
+
+    fun setWeightUnit(unit: WeightUnit) {
+        viewModelScope.launch {
+            runCatchingCancellable { container.preferencesRepository.setWeightUnit(unit) }
+                .onFailure { AppLog.w(TAG, "Saving the weight unit failed", it) }
+        }
+    }
 
     fun setGoal(value: TrainingGoal) = advance { it.copy(goal = value) }
 

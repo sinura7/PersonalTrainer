@@ -14,7 +14,7 @@ object OnboardingPreviewCopy {
                 add("${answers.emphasis.displayName} emphasis")
             }
             add(answers.goal.displayName)
-            add(answers.place.displayName)
+            add(TrainingPlace.label(answers.resolvedPlaces()))
         }
         return bits.joinToString(" · ")
     }
@@ -26,5 +26,6 @@ object OnboardingPreviewCopy {
         return "$title · ${routine.name}" to lifts
     }
 
-    const val FOOTER = "Rest days stay rest days. You can swap a lift after you accept."
+    const val FOOTER =
+        "Rest days stay rest days. Swap a lift, or change sets and reps, any time after you accept."
 }

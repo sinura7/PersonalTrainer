@@ -1,9 +1,12 @@
 package com.sinura.personaltrainer.data.repository
 
 import com.sinura.personaltrainer.domain.BlueprintRoutine
+import com.sinura.personaltrainer.domain.CustomWeekLift
+import com.sinura.personaltrainer.domain.CustomWeekPolicy
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.PlanBlueprint
+import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.domain.TrainingBlock
@@ -75,7 +78,7 @@ class OnboardingApplier(
             // these three it can only guess NEW / spaced days / inferPlace.
             preferencesRepository.setTrainingAge(clean.trainingAge)
             preferencesRepository.setPreferredDays(clean.preferredDays)
-            preferencesRepository.setTrainingPlace(clean.place)
+            preferencesRepository.setTrainingPlaces(clean.resolvedPlaces())
             // Recorded as a weigh-in, not just stored: it is the opening reading of the block
             // being started on the next line, and the block review compares against it.
             clean.bodyweightKg?.let { kg ->
@@ -139,6 +142,61 @@ class OnboardingApplier(
             )
         }
         return created.id
+    }
+
+    /**
+     * Writes a week the lifter built by hand.
+     *
+     * Same stores as [apply], minus the questionnaire answers they never gave. Days, split
+     * and the block are still written — without them Home has routines it cannot start.
+     */
+    suspend fun applyCustom(
+        days: Map<DayOfWeek, List<CustomWeekLift>>,
+        weekStart: DayOfWeek,
+        today: LocalDate,
+    ): ApplyPlanResult {
+        if (!CustomWeekPolicy.canConfirm(days)) {
+            return ApplyPlanResult.Failed("Add at least one lift to a day.")
+        }
+        return runCatchingCancellable {
+            val trainingDays = CustomWeekPolicy.trainingDayCount(days)
+            preferencesRepository.setTrainingDaysPerWeek(trainingDays)
+            preferencesRepository.setSplitStyle(SplitStyle.CUSTOM)
+            preferencesRepository.setPreferredDays(days.filter { it.value.isNotEmpty() }.keys)
+            preferencesRepository.beginBlock(
+                next = TrainingBlock.startingIn(today = today, weekStart = weekStart),
+                todayEpochDay = today.toEpochDay(),
+            )
+            var pinned = 0
+            days.entries
+                .filter { it.value.isNotEmpty() }
+                .forEach { (day, lifts) ->
+                    val created = routineRepository.create(
+                        name = CustomWeekPolicy.routineName(day),
+                    )
+                    lifts.forEach { lift ->
+                        routineRepository.addExercise(
+                            routineId = created.id,
+                            exercise = lift.exercise,
+                            targetSets = lift.targetSets,
+                            targetReps = lift.targetReps,
+                            targetWeightKg = null,
+                            restSeconds = lift.restSeconds,
+                        )
+                    }
+                    scheduleRepository.pin(
+                        routineId = created.id,
+                        focusKind = null,
+                        anchorDay = day,
+                    )
+                    pinned += 1
+                }
+            preferencesRepository.setOnboardingComplete(true)
+            ApplyPlanResult.Applied(routineCount = pinned, pinnedDays = pinned)
+        }.getOrElse { thrown ->
+            AppLog.e(TAG, "Applying a custom week failed", thrown)
+            ApplyPlanResult.Failed("Couldn’t save that week. Try again.")
+        }
     }
 
     /**

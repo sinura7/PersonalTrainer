@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
+import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.EditorPhase
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.LibraryGrouping
@@ -43,6 +44,7 @@ data class RoutineEditorUiState(
     val catalog: List<Exercise> = emptyList(),
     /** Non-null while a swap sheet is open, naming the routine row being replaced. */
     val swapItemId: String? = null,
+    val pendingAddIds: Set<String> = emptySet(),
     val error: String? = null,
 ) {
     /**
@@ -82,6 +84,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     private val showPicker = MutableStateFlow(false)
     private val error = MutableStateFlow<String?>(null)
     private val swapItemId = MutableStateFlow<String?>(null)
+    private val pendingAddIds = MutableStateFlow<Set<String>>(emptySet())
+    private val createdDuringPicker = mutableListOf<Exercise>()
 
     // Shared, not two independent collections: the missing-routine detector below and the
     // uiState chain each used to open their own Room query for the same row.
@@ -141,10 +145,10 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         combine(showPicker, error, load) { picker, err, loadState ->
             EditorFlags(picker, err, loadState.phase)
         },
-        combine(container.exerciseRepository.observeAll(), swapItemId) { catalog, swapTarget ->
-            catalog to swapTarget
+        combine(container.exerciseRepository.observeAll(), swapItemId, pendingAddIds) { catalog, swapTarget, pending ->
+            CatalogExtras(catalog, swapTarget, pending)
         },
-    ) { core, extras, (catalog, swapTarget) ->
+    ) { core, extras, catalogExtras ->
         RoutineEditorUiState(
             isLoading = extras.phase == EditorPhase.LOADING,
             missing = extras.phase == EditorPhase.MISSING,
@@ -154,8 +158,9 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             searchQuery = core.query,
             searchResults = core.results,
             showExercisePicker = extras.showPicker,
-            catalog = catalog,
-            swapItemId = swapTarget,
+            catalog = catalogExtras.catalog,
+            swapItemId = catalogExtras.swapItemId,
+            pendingAddIds = catalogExtras.pendingAddIds,
             error = extras.error,
         )
     }.stateIn(
@@ -349,7 +354,50 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     fun setPickerVisible(visible: Boolean) {
         if (missing) return
         showPicker.value = visible
-        if (!visible) searchQuery.value = ""
+        if (!visible) {
+            searchQuery.value = ""
+            pendingAddIds.value = emptySet()
+            createdDuringPicker.clear()
+        }
+    }
+
+    fun togglePendingAdd(exercise: Exercise) {
+        val current = pendingAddIds.value
+        pendingAddIds.value = if (exercise.id in current) current - exercise.id else current + exercise.id
+    }
+
+    fun confirmPendingAdd() {
+        val selected = pendingAddIds.value
+        if (selected.isEmpty()) return
+        val catalog = uiState.value.catalog + createdDuringPicker
+        val already = uiState.value.routine?.exercises.orEmpty().map { it.exercise.id }.toSet()
+        val toAdd = selected.mapNotNull { id -> catalog.firstOrNull { it.id == id } }
+            .filter { it.id !in already }
+        viewModelScope.launch {
+            val id = ensureRoutineId() ?: return@launch
+            toAdd.forEach { exercise ->
+                val defaults = AddDefaults.forExercise(exercise)
+                try {
+                    container.routineRepository.addExercise(
+                        routineId = id,
+                        exercise = exercise,
+                        targetSets = defaults.sets,
+                        targetReps = defaults.reps,
+                        targetWeightKg = null,
+                        restSeconds = defaults.restSeconds,
+                    )
+                } catch (thrown: Exception) {
+                    AppLog.w(TAG, "addExercise failed", thrown)
+                    error.value = "Could not add that exercise. Try again."
+                    return@launch
+                }
+            }
+            pendingAddIds.value = emptySet()
+            createdDuringPicker.clear()
+            showPicker.value = false
+            searchQuery.value = ""
+            error.value = null
+        }
     }
 
     fun onSearchQuery(value: String) {
@@ -394,28 +442,24 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         }
     }
 
-    fun createAndAddExercise(
-        customName: String,
-        muscleGroup: String,
-        targetSets: Int,
-        targetReps: Int,
-        targetWeightKg: Double?,
-        restSeconds: Int,
-    ) {
+    fun createAndSelect(name: String, muscleGroup: String) {
         viewModelScope.launch {
-            if (customName.isBlank()) {
+            if (name.isBlank()) {
                 error.value = "Exercise name is required."
                 return@launch
             }
             try {
-                when (val result = container.exerciseRepository.createCustom(customName, muscleGroup)) {
+                when (val result = container.exerciseRepository.createCustom(name, muscleGroup)) {
                     is SaveExerciseResult.DuplicateName -> error.value = DUPLICATE_NAME_MESSAGE
                     is SaveExerciseResult.MissingMuscle -> error.value = MuscleGroups.MISSING_MESSAGE
-                    is SaveExerciseResult.Saved ->
-                        addExercise(result.exercise, targetSets, targetReps, targetWeightKg, restSeconds)
+                    is SaveExerciseResult.Saved -> {
+                        createdDuringPicker += result.exercise
+                        togglePendingAdd(result.exercise)
+                        error.value = null
+                    }
                 }
             } catch (thrown: Exception) {
-                AppLog.w(TAG, "createAndAddExercise failed", thrown)
+                AppLog.w(TAG, "createAndSelect failed", thrown)
                 error.value = "Could not create that exercise. Try again."
             }
         }
@@ -543,6 +587,12 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         val notes: String,
         val query: String,
         val results: List<Exercise>,
+    )
+
+    private data class CatalogExtras(
+        val catalog: List<Exercise>,
+        val swapItemId: String?,
+        val pendingAddIds: Set<String>,
     )
 
     private data class EditorFlags(

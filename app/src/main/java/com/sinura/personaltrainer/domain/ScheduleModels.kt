@@ -31,8 +31,8 @@ data class SchedulePreferences(
     )
 
     companion object {
-        const val MIN_DAYS = 2
-        const val MAX_DAYS = 6
+        const val MIN_DAYS = 1
+        const val MAX_DAYS = 7
         const val DEFAULT_DAYS = 4
 
         /**

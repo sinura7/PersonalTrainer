@@ -11,6 +11,32 @@ Lift order is compounds first — the lift that asks most of you should meet you
 
 ## A full gym
 
+### New to lifting · 1 day · Strength → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Back Squat | Barbell | 3 × 5 | 150s |
+| 2 | Barbell Bench Press | Barbell | 3 × 5 | 150s |
+| 3 | Barbell Row | Barbell | 3 × 8 | 90s |
+| 4 | Overhead Press | Barbell | 3 × 8 | 90s |
+
+### New to lifting · 1 day · Athletic → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Back Squat | Barbell | 3 × 5 | 150s |
+| 2 | Barbell Bench Press | Barbell | 3 × 5 | 150s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 4 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
+
 ### New to lifting · 2 days · Strength → Full Body
 
 **Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 8 lifts across 2 sessions
@@ -230,6 +256,78 @@ Lift order is compounds first — the lift that asks most of you should meet you
 | 2 | Romanian Deadlift | Barbell | 3 × 5 | 150s |
 | 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 | 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
+
+### New to lifting · 7 days · Strength → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 5 | 150s |
+| 2 | Barbell Row | Barbell | 3 × 5 | 150s |
+| 3 | Overhead Press | Barbell | 3 × 8 | 90s |
+| 4 | Lat Pulldown | Cable | 3 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Back Squat | Barbell | 3 × 5 | 150s |
+| 2 | Romanian Deadlift | Barbell | 3 × 5 | 150s |
+| 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
+| 4 | Leg Curl | Machine | 3 × 12 | 60s |
+
+### New to lifting · 7 days · Athletic → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 5 | 150s |
+| 2 | Barbell Row | Barbell | 3 × 5 | 150s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 4 | Farmer's Carry | Dumbbell | 3 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Back Squat | Barbell | 3 × 5 | 150s |
+| 2 | Romanian Deadlift | Barbell | 3 × 5 | 150s |
+| 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
+| 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
+
+### On and off · 1 day · Strength → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Back Squat | Barbell | 3 × 5 | 150s |
+| 2 | Barbell Bench Press | Barbell | 3 × 5 | 150s |
+| 3 | Barbell Row | Barbell | 3 × 8 | 90s |
+| 4 | Overhead Press | Barbell | 3 × 8 | 90s |
+| 5 | Romanian Deadlift | Barbell | 3 × 8 | 90s |
+
+### On and off · 1 day · Athletic → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Back Squat | Barbell | 3 × 5 | 150s |
+| 2 | Barbell Bench Press | Barbell | 3 × 5 | 150s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 4 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
+| 5 | Romanian Deadlift | Barbell | 3 × 8 | 90s |
 
 ### On and off · 2 days · Strength → Full Body
 
@@ -607,6 +705,152 @@ Lift order is compounds first — the lift that asks most of you should meet you
 | 4 | Leg Curl | Machine | 3 × 12 | 60s |
 | 5 | Standing Calf Raise | Machine | 3 × 12 | 60s |
 
+### On and off · 7 days · Strength → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 5 | 150s |
+| 2 | Barbell Row | Barbell | 3 × 5 | 150s |
+| 3 | Overhead Press | Barbell | 3 × 8 | 90s |
+| 4 | Lat Pulldown | Cable | 3 × 12 | 60s |
+| 5 | Barbell Curl | Barbell | 3 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Back Squat | Barbell | 3 × 5 | 150s |
+| 2 | Romanian Deadlift | Barbell | 3 × 5 | 150s |
+| 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
+| 4 | Leg Curl | Machine | 3 × 12 | 60s |
+| 5 | Standing Calf Raise | Machine | 3 × 12 | 60s |
+
+### On and off · 7 days · Muscle → Push / Pull / Legs
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 15 lifts across 3 sessions
+
+**Push**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 5 | 150s |
+| 2 | Overhead Press | Barbell | 3 × 5 | 150s |
+| 3 | Chest Fly | Dumbbell | 3 × 12 | 60s |
+| 4 | Tricep Pushdown | Cable | 3 × 12 | 60s |
+| 5 | Lateral Raise | Dumbbell | 3 × 12 | 60s |
+
+**Pull**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Row | Barbell | 3 × 5 | 150s |
+| 2 | Lat Pulldown | Cable | 3 × 10 | 90s |
+| 3 | Face Pull | Cable | 3 × 12 | 60s |
+| 4 | Barbell Curl | Barbell | 3 × 12 | 60s |
+| 5 | Barbell Shrug | Barbell | 3 × 12 | 60s |
+
+**Legs**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Back Squat | Barbell | 3 × 5 | 150s |
+| 2 | Romanian Deadlift | Barbell | 3 × 5 | 150s |
+| 3 | Leg Press | Machine | 3 × 8 | 90s |
+| 4 | Leg Curl | Machine | 3 × 12 | 60s |
+| 5 | Standing Calf Raise | Machine | 3 × 12 | 60s |
+
+### On and off · 7 days · Athletic → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 5 | 150s |
+| 2 | Barbell Row | Barbell | 3 × 5 | 150s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 4 | Farmer's Carry | Dumbbell | 3 × 12 | 60s |
+| 5 | Overhead Press | Barbell | 3 × 8 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Back Squat | Barbell | 3 × 5 | 150s |
+| 2 | Romanian Deadlift | Barbell | 3 × 5 | 150s |
+| 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
+| 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
+| 5 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
+
+### On and off · 7 days · General → Push / Pull / Legs
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 15 lifts across 3 sessions
+
+**Push**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 5 | 150s |
+| 2 | Overhead Press | Barbell | 3 × 5 | 150s |
+| 3 | Chest Fly | Dumbbell | 3 × 12 | 60s |
+| 4 | Tricep Pushdown | Cable | 3 × 12 | 60s |
+| 5 | Lateral Raise | Dumbbell | 3 × 12 | 60s |
+
+**Pull**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Row | Barbell | 3 × 5 | 150s |
+| 2 | Lat Pulldown | Cable | 3 × 10 | 90s |
+| 3 | Face Pull | Cable | 3 × 12 | 60s |
+| 4 | Barbell Curl | Barbell | 3 × 12 | 60s |
+| 5 | Barbell Shrug | Barbell | 3 × 12 | 60s |
+
+**Legs**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Back Squat | Barbell | 3 × 5 | 150s |
+| 2 | Romanian Deadlift | Barbell | 3 × 5 | 150s |
+| 3 | Leg Press | Machine | 3 × 8 | 90s |
+| 4 | Leg Curl | Machine | 3 × 12 | 60s |
+| 5 | Standing Calf Raise | Machine | 3 × 12 | 60s |
+
+### Training regularly · 1 day · Strength → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Back Squat | Barbell | 3 × 5 | 150s |
+| 2 | Barbell Bench Press | Barbell | 3 × 5 | 150s |
+| 3 | Barbell Row | Barbell | 3 × 8 | 90s |
+| 4 | Overhead Press | Barbell | 3 × 8 | 90s |
+| 5 | Romanian Deadlift | Barbell | 3 × 8 | 90s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
+
+### Training regularly · 1 day · Athletic → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Back Squat | Barbell | 3 × 5 | 150s |
+| 2 | Barbell Bench Press | Barbell | 3 × 5 | 150s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 4 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
+| 5 | Romanian Deadlift | Barbell | 3 × 8 | 90s |
+| 6 | Farmer's Carry | Dumbbell | 3 × 12 | 60s |
+
 ### Training regularly · 2 days · Strength → Full Body
 
 **Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 12 lifts across 2 sessions
@@ -981,6 +1225,132 @@ Lift order is compounds first — the lift that asks most of you should meet you
 ### Training regularly · 6 days · General → Push / Pull / Legs
 
 **Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 18 lifts across 3 sessions
+
+**Push**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 5 | 150s |
+| 2 | Overhead Press | Barbell | 3 × 5 | 150s |
+| 3 | Chest Fly | Dumbbell | 3 × 12 | 60s |
+| 4 | Tricep Pushdown | Cable | 3 × 12 | 60s |
+| 5 | Lateral Raise | Dumbbell | 3 × 12 | 60s |
+| 6 | Face Pull | Cable | 3 × 12 | 60s |
+
+**Pull**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Row | Barbell | 3 × 5 | 150s |
+| 2 | Lat Pulldown | Cable | 3 × 10 | 90s |
+| 3 | Face Pull | Cable | 3 × 12 | 60s |
+| 4 | Barbell Curl | Barbell | 3 × 12 | 60s |
+| 5 | Barbell Shrug | Barbell | 3 × 12 | 60s |
+| 6 | Straight-Arm Pulldown | Cable | 3 × 12 | 60s |
+
+**Legs**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Back Squat | Barbell | 3 × 5 | 150s |
+| 2 | Romanian Deadlift | Barbell | 3 × 5 | 150s |
+| 3 | Leg Press | Machine | 3 × 8 | 90s |
+| 4 | Leg Curl | Machine | 3 × 12 | 60s |
+| 5 | Standing Calf Raise | Machine | 3 × 12 | 60s |
+| 6 | Hip Thrust | Barbell | 3 × 12 | 60s |
+
+### Training regularly · 7 days · Strength → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 5 | 150s |
+| 2 | Barbell Row | Barbell | 3 × 5 | 150s |
+| 3 | Overhead Press | Barbell | 3 × 8 | 90s |
+| 4 | Lat Pulldown | Cable | 3 × 12 | 60s |
+| 5 | Barbell Curl | Barbell | 3 × 12 | 60s |
+| 6 | Tricep Pushdown | Cable | 3 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Back Squat | Barbell | 3 × 5 | 150s |
+| 2 | Romanian Deadlift | Barbell | 3 × 5 | 150s |
+| 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
+| 4 | Leg Curl | Machine | 3 × 12 | 60s |
+| 5 | Standing Calf Raise | Machine | 3 × 12 | 60s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
+
+### Training regularly · 7 days · Muscle → Push / Pull / Legs
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 18 lifts across 3 sessions
+
+**Push**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 5 | 150s |
+| 2 | Overhead Press | Barbell | 3 × 5 | 150s |
+| 3 | Chest Fly | Dumbbell | 3 × 12 | 60s |
+| 4 | Tricep Pushdown | Cable | 3 × 12 | 60s |
+| 5 | Lateral Raise | Dumbbell | 3 × 12 | 60s |
+| 6 | Face Pull | Cable | 3 × 12 | 60s |
+
+**Pull**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Row | Barbell | 3 × 5 | 150s |
+| 2 | Lat Pulldown | Cable | 3 × 10 | 90s |
+| 3 | Face Pull | Cable | 3 × 12 | 60s |
+| 4 | Barbell Curl | Barbell | 3 × 12 | 60s |
+| 5 | Barbell Shrug | Barbell | 3 × 12 | 60s |
+| 6 | Straight-Arm Pulldown | Cable | 3 × 12 | 60s |
+
+**Legs**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Back Squat | Barbell | 3 × 5 | 150s |
+| 2 | Romanian Deadlift | Barbell | 3 × 5 | 150s |
+| 3 | Leg Press | Machine | 3 × 8 | 90s |
+| 4 | Leg Curl | Machine | 3 × 12 | 60s |
+| 5 | Standing Calf Raise | Machine | 3 × 12 | 60s |
+| 6 | Hip Thrust | Barbell | 3 × 12 | 60s |
+
+### Training regularly · 7 days · Athletic → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 5 | 150s |
+| 2 | Barbell Row | Barbell | 3 × 5 | 150s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 4 | Farmer's Carry | Dumbbell | 3 × 12 | 60s |
+| 5 | Overhead Press | Barbell | 3 × 8 | 90s |
+| 6 | Dip | Bodyweight | 3 × 9 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Back Squat | Barbell | 3 × 5 | 150s |
+| 2 | Romanian Deadlift | Barbell | 3 × 5 | 150s |
+| 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
+| 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
+| 5 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
+| 6 | Farmer's Carry | Dumbbell | 3 × 12 | 60s |
+
+### Training regularly · 7 days · General → Push / Pull / Legs
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 18 lifts across 3 sessions
 
 **Push**
 
@@ -1017,6 +1387,32 @@ Lift order is compounds first — the lift that asks most of you should meet you
 
 ## Dumbbells at home
 
+### New to lifting · 1 day · Strength → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Goblet Squat | Dumbbell | 3 × 5 | 150s |
+| 2 | Dumbbell Bench Press | Dumbbell | 3 × 5 | 150s |
+| 3 | One-Arm Dumbbell Row | Dumbbell | 3 × 8 | 90s |
+| 4 | Seated Dumbbell Press | Dumbbell | 3 × 8 | 90s |
+
+### New to lifting · 1 day · Athletic → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Goblet Squat | Dumbbell | 3 × 5 | 150s |
+| 2 | Dumbbell Bench Press | Dumbbell | 3 × 5 | 150s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 4 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
+
 ### New to lifting · 2 days · Strength → Full Body
 
 **Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 8 lifts across 2 sessions
@@ -1236,6 +1632,78 @@ Lift order is compounds first — the lift that asks most of you should meet you
 | 2 | Dumbbell Romanian Deadlift | Dumbbell | 3 × 5 | 150s |
 | 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 | 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
+
+### New to lifting · 7 days · Strength → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Dumbbell Bench Press | Dumbbell | 3 × 5 | 150s |
+| 2 | One-Arm Dumbbell Row | Dumbbell | 3 × 5 | 150s |
+| 3 | Seated Dumbbell Press | Dumbbell | 3 × 8 | 90s |
+| 4 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Goblet Squat | Dumbbell | 3 × 5 | 150s |
+| 2 | Dumbbell Romanian Deadlift | Dumbbell | 3 × 5 | 150s |
+| 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
+| 4 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+
+### New to lifting · 7 days · Athletic → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Dumbbell Bench Press | Dumbbell | 3 × 5 | 150s |
+| 2 | One-Arm Dumbbell Row | Dumbbell | 3 × 5 | 150s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 4 | Farmer's Carry | Dumbbell | 3 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Goblet Squat | Dumbbell | 3 × 5 | 150s |
+| 2 | Dumbbell Romanian Deadlift | Dumbbell | 3 × 5 | 150s |
+| 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
+| 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
+
+### On and off · 1 day · Strength → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Goblet Squat | Dumbbell | 3 × 5 | 150s |
+| 2 | Dumbbell Bench Press | Dumbbell | 3 × 5 | 150s |
+| 3 | One-Arm Dumbbell Row | Dumbbell | 3 × 8 | 90s |
+| 4 | Seated Dumbbell Press | Dumbbell | 3 × 8 | 90s |
+| 5 | Dumbbell Romanian Deadlift | Dumbbell | 3 × 8 | 90s |
+
+### On and off · 1 day · Athletic → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Goblet Squat | Dumbbell | 3 × 5 | 150s |
+| 2 | Dumbbell Bench Press | Dumbbell | 3 × 5 | 150s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 4 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
+| 5 | Dumbbell Romanian Deadlift | Dumbbell | 3 × 8 | 90s |
 
 ### On and off · 2 days · Strength → Full Body
 
@@ -1612,6 +2080,152 @@ Lift order is compounds first — the lift that asks most of you should meet you
 | 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 | 4 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
 | 5 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
+
+### On and off · 7 days · Strength → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Dumbbell Bench Press | Dumbbell | 3 × 5 | 150s |
+| 2 | One-Arm Dumbbell Row | Dumbbell | 3 × 5 | 150s |
+| 3 | Seated Dumbbell Press | Dumbbell | 3 × 8 | 90s |
+| 4 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 5 | Dumbbell Curl | Dumbbell | 3 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Goblet Squat | Dumbbell | 3 × 5 | 150s |
+| 2 | Dumbbell Romanian Deadlift | Dumbbell | 3 × 5 | 150s |
+| 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
+| 4 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
+
+### On and off · 7 days · Muscle → Push / Pull / Legs
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 15 lifts across 3 sessions
+
+**Push**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Dumbbell Bench Press | Dumbbell | 3 × 5 | 150s |
+| 2 | Seated Dumbbell Press | Dumbbell | 3 × 5 | 150s |
+| 3 | Chest Fly | Dumbbell | 3 × 12 | 60s |
+| 4 | Overhead Dumbbell Triceps Extension | Dumbbell | 3 × 12 | 60s |
+| 5 | Lateral Raise | Dumbbell | 3 × 12 | 60s |
+
+**Pull**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | One-Arm Dumbbell Row | Dumbbell | 3 × 5 | 150s |
+| 2 | Pull-Up | Bodyweight | 3 × 6 | 120s |
+| 3 | Dumbbell Rear-Delt Fly | Dumbbell | 3 × 12 | 60s |
+| 4 | Dumbbell Curl | Dumbbell | 3 × 12 | 60s |
+| 5 | Dumbbell Shrug | Dumbbell | 3 × 12 | 60s |
+
+**Legs**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Goblet Squat | Dumbbell | 3 × 5 | 150s |
+| 2 | Dumbbell Romanian Deadlift | Dumbbell | 3 × 5 | 150s |
+| 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
+| 4 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
+
+### On and off · 7 days · Athletic → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Dumbbell Bench Press | Dumbbell | 3 × 5 | 150s |
+| 2 | One-Arm Dumbbell Row | Dumbbell | 3 × 5 | 150s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 4 | Farmer's Carry | Dumbbell | 3 × 12 | 60s |
+| 5 | Seated Dumbbell Press | Dumbbell | 3 × 8 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Goblet Squat | Dumbbell | 3 × 5 | 150s |
+| 2 | Dumbbell Romanian Deadlift | Dumbbell | 3 × 5 | 150s |
+| 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
+| 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
+| 5 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
+
+### On and off · 7 days · General → Push / Pull / Legs
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 15 lifts across 3 sessions
+
+**Push**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Dumbbell Bench Press | Dumbbell | 3 × 5 | 150s |
+| 2 | Seated Dumbbell Press | Dumbbell | 3 × 5 | 150s |
+| 3 | Chest Fly | Dumbbell | 3 × 12 | 60s |
+| 4 | Overhead Dumbbell Triceps Extension | Dumbbell | 3 × 12 | 60s |
+| 5 | Lateral Raise | Dumbbell | 3 × 12 | 60s |
+
+**Pull**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | One-Arm Dumbbell Row | Dumbbell | 3 × 5 | 150s |
+| 2 | Pull-Up | Bodyweight | 3 × 6 | 120s |
+| 3 | Dumbbell Rear-Delt Fly | Dumbbell | 3 × 12 | 60s |
+| 4 | Dumbbell Curl | Dumbbell | 3 × 12 | 60s |
+| 5 | Dumbbell Shrug | Dumbbell | 3 × 12 | 60s |
+
+**Legs**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Goblet Squat | Dumbbell | 3 × 5 | 150s |
+| 2 | Dumbbell Romanian Deadlift | Dumbbell | 3 × 5 | 150s |
+| 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
+| 4 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
+
+### Training regularly · 1 day · Strength → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Goblet Squat | Dumbbell | 3 × 5 | 150s |
+| 2 | Dumbbell Bench Press | Dumbbell | 3 × 5 | 150s |
+| 3 | One-Arm Dumbbell Row | Dumbbell | 3 × 8 | 90s |
+| 4 | Seated Dumbbell Press | Dumbbell | 3 × 8 | 90s |
+| 5 | Dumbbell Romanian Deadlift | Dumbbell | 3 × 8 | 90s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
+
+### Training regularly · 1 day · Athletic → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Goblet Squat | Dumbbell | 3 × 5 | 150s |
+| 2 | Dumbbell Bench Press | Dumbbell | 3 × 5 | 150s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 4 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
+| 5 | Dumbbell Romanian Deadlift | Dumbbell | 3 × 8 | 90s |
+| 6 | Farmer's Carry | Dumbbell | 3 × 12 | 60s |
 
 ### Training regularly · 2 days · Strength → Full Body
 
@@ -2021,7 +2635,159 @@ Lift order is compounds first — the lift that asks most of you should meet you
 | 5 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
 | 6 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
 
+### Training regularly · 7 days · Strength → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Dumbbell Bench Press | Dumbbell | 3 × 5 | 150s |
+| 2 | One-Arm Dumbbell Row | Dumbbell | 3 × 5 | 150s |
+| 3 | Seated Dumbbell Press | Dumbbell | 3 × 8 | 90s |
+| 4 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 5 | Dumbbell Curl | Dumbbell | 3 × 12 | 60s |
+| 6 | Overhead Dumbbell Triceps Extension | Dumbbell | 3 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Goblet Squat | Dumbbell | 3 × 5 | 150s |
+| 2 | Dumbbell Romanian Deadlift | Dumbbell | 3 × 5 | 150s |
+| 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
+| 4 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
+
+### Training regularly · 7 days · Muscle → Push / Pull / Legs
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 18 lifts across 3 sessions
+
+**Push**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Dumbbell Bench Press | Dumbbell | 3 × 5 | 150s |
+| 2 | Seated Dumbbell Press | Dumbbell | 3 × 5 | 150s |
+| 3 | Chest Fly | Dumbbell | 3 × 12 | 60s |
+| 4 | Overhead Dumbbell Triceps Extension | Dumbbell | 3 × 12 | 60s |
+| 5 | Lateral Raise | Dumbbell | 3 × 12 | 60s |
+| 6 | Dumbbell Rear-Delt Fly | Dumbbell | 3 × 12 | 60s |
+
+**Pull**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | One-Arm Dumbbell Row | Dumbbell | 3 × 5 | 150s |
+| 2 | Pull-Up | Bodyweight | 3 × 6 | 120s |
+| 3 | Dumbbell Rear-Delt Fly | Dumbbell | 3 × 12 | 60s |
+| 4 | Dumbbell Curl | Dumbbell | 3 × 12 | 60s |
+| 5 | Dumbbell Shrug | Dumbbell | 3 × 12 | 60s |
+| 6 | Hammer Curl | Dumbbell | 3 × 12 | 60s |
+
+**Legs**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Goblet Squat | Dumbbell | 3 × 5 | 150s |
+| 2 | Dumbbell Romanian Deadlift | Dumbbell | 3 × 5 | 150s |
+| 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
+| 4 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
+| 6 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
+
+### Training regularly · 7 days · Athletic → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Dumbbell Bench Press | Dumbbell | 3 × 5 | 150s |
+| 2 | One-Arm Dumbbell Row | Dumbbell | 3 × 5 | 150s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 4 | Farmer's Carry | Dumbbell | 3 × 12 | 60s |
+| 5 | Seated Dumbbell Press | Dumbbell | 3 × 8 | 90s |
+| 6 | Dip | Bodyweight | 3 × 9 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Goblet Squat | Dumbbell | 3 × 5 | 150s |
+| 2 | Dumbbell Romanian Deadlift | Dumbbell | 3 × 5 | 150s |
+| 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
+| 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
+| 5 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
+| 6 | Farmer's Carry | Dumbbell | 3 × 12 | 60s |
+
+### Training regularly · 7 days · General → Push / Pull / Legs
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 18 lifts across 3 sessions
+
+**Push**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Dumbbell Bench Press | Dumbbell | 3 × 5 | 150s |
+| 2 | Seated Dumbbell Press | Dumbbell | 3 × 5 | 150s |
+| 3 | Chest Fly | Dumbbell | 3 × 12 | 60s |
+| 4 | Overhead Dumbbell Triceps Extension | Dumbbell | 3 × 12 | 60s |
+| 5 | Lateral Raise | Dumbbell | 3 × 12 | 60s |
+| 6 | Dumbbell Rear-Delt Fly | Dumbbell | 3 × 12 | 60s |
+
+**Pull**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | One-Arm Dumbbell Row | Dumbbell | 3 × 5 | 150s |
+| 2 | Pull-Up | Bodyweight | 3 × 6 | 120s |
+| 3 | Dumbbell Rear-Delt Fly | Dumbbell | 3 × 12 | 60s |
+| 4 | Dumbbell Curl | Dumbbell | 3 × 12 | 60s |
+| 5 | Dumbbell Shrug | Dumbbell | 3 × 12 | 60s |
+| 6 | Hammer Curl | Dumbbell | 3 × 12 | 60s |
+
+**Legs**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Goblet Squat | Dumbbell | 3 × 5 | 150s |
+| 2 | Dumbbell Romanian Deadlift | Dumbbell | 3 × 5 | 150s |
+| 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
+| 4 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
+| 6 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
+
 ## Bodyweight only
+
+### New to lifting · 1 day · Strength → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
+| 2 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 3 | Inverted Row | Bodyweight | 3 × 11 | 60s |
+| 4 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+
+### New to lifting · 1 day · Athletic → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
+| 2 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 4 | Plank | Bodyweight | 3 × 12 | 60s |
 
 ### New to lifting · 2 days · Strength → Full Body
 
@@ -2242,6 +3008,78 @@ Lift order is compounds first — the lift that asks most of you should meet you
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
 | 3 | Back Extension | Bodyweight | 3 × 9 | 60s |
 | 4 | Plank | Bodyweight | 3 × 12 | 60s |
+
+### New to lifting · 7 days · Strength → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 2 | Inverted Row | Bodyweight | 3 × 8 | 90s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 4 | Dip | Bodyweight | 3 × 9 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
+| 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 3 | Back Extension | Bodyweight | 3 × 9 | 60s |
+| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
+
+### New to lifting · 7 days · Athletic → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 2 | Inverted Row | Bodyweight | 3 × 8 | 90s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 4 | Dip | Bodyweight | 3 × 9 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
+| 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 3 | Back Extension | Bodyweight | 3 × 9 | 60s |
+| 4 | Plank | Bodyweight | 3 × 12 | 60s |
+
+### On and off · 1 day · Strength → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
+| 2 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 3 | Inverted Row | Bodyweight | 3 × 11 | 60s |
+| 4 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 5 | Plank | Bodyweight | 3 × 12 | 60s |
+
+### On and off · 1 day · Athletic → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
+| 2 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 4 | Plank | Bodyweight | 3 × 12 | 60s |
+| 5 | Diamond Push-Up | Bodyweight | 3 × 11 | 60s |
 
 ### On and off · 2 days · Strength → Full Body
 
@@ -2483,6 +3321,84 @@ Lift order is compounds first — the lift that asks most of you should meet you
 | 4 | Plank | Bodyweight | 3 × 12 | 60s |
 | 5 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
 
+### On and off · 7 days · Strength → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 2 | Inverted Row | Bodyweight | 3 × 8 | 90s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 4 | Dip | Bodyweight | 3 × 9 | 60s |
+| 5 | Diamond Push-Up | Bodyweight | 3 × 11 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
+| 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 3 | Back Extension | Bodyweight | 3 × 9 | 60s |
+| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
+| 5 | Plank | Bodyweight | 3 × 12 | 60s |
+
+### On and off · 7 days · Athletic → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 2 | Inverted Row | Bodyweight | 3 × 8 | 90s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 4 | Dip | Bodyweight | 3 × 9 | 60s |
+| 5 | Bench Dip | Bodyweight | 3 × 11 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
+| 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 3 | Back Extension | Bodyweight | 3 × 9 | 60s |
+| 4 | Plank | Bodyweight | 3 × 12 | 60s |
+| 5 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
+
+### Training regularly · 1 day · Strength → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
+| 2 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 3 | Inverted Row | Bodyweight | 3 × 11 | 60s |
+| 4 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 5 | Plank | Bodyweight | 3 × 12 | 60s |
+| 6 | Diamond Push-Up | Bodyweight | 3 × 11 | 60s |
+
+### Training regularly · 1 day · Athletic → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
+| 2 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 4 | Plank | Bodyweight | 3 × 12 | 60s |
+| 5 | Diamond Push-Up | Bodyweight | 3 × 11 | 60s |
+| 6 | Inverted Row | Bodyweight | 3 × 11 | 60s |
+
 ### Training regularly · 2 days · Strength → Full Body
 
 **Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 12 lifts across 2 sessions
@@ -2720,6 +3636,58 @@ Lift order is compounds first — the lift that asks most of you should meet you
 ### Training regularly · 6 days · Athletic → Upper / Lower
 
 **Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 2 | Inverted Row | Bodyweight | 3 × 8 | 90s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 4 | Dip | Bodyweight | 3 × 9 | 60s |
+| 5 | Bench Dip | Bodyweight | 3 × 11 | 60s |
+| 6 | Diamond Push-Up | Bodyweight | 3 × 11 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
+| 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 3 | Back Extension | Bodyweight | 3 × 9 | 60s |
+| 4 | Plank | Bodyweight | 3 × 12 | 60s |
+| 5 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
+| 6 | Side Plank | Bodyweight | 3 × 12 | 60s |
+
+### Training regularly · 7 days · Strength → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 2 | Inverted Row | Bodyweight | 3 × 8 | 90s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
+| 4 | Dip | Bodyweight | 3 × 9 | 60s |
+| 5 | Diamond Push-Up | Bodyweight | 3 × 11 | 60s |
+| 6 | Chin-Up | Bodyweight | 3 × 9 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
+| 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 3 | Back Extension | Bodyweight | 3 × 9 | 60s |
+| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
+| 5 | Plank | Bodyweight | 3 × 12 | 60s |
+| 6 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
+
+### Training regularly · 7 days · Athletic → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 12 lifts across 2 sessions
 
 **Upper**
 

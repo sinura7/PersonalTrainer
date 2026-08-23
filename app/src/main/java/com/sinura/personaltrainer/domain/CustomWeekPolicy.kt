@@ -1,0 +1,84 @@
+package com.sinura.personaltrainer.domain
+
+import java.time.DayOfWeek
+
+/**
+ * One lift staged on a custom week day, before anything is written.
+ *
+ * Ids are local to the draft. They exist so reorder, expand and remove can name a row
+ * without waiting on Room.
+ */
+data class CustomWeekLift(
+    val id: String,
+    val exercise: Exercise,
+    val targetSets: Int,
+    val targetReps: Int,
+    val restSeconds: Int,
+)
+
+/**
+ * Rules for building a week by hand.
+ *
+ * The guided path derives a split and fills it. This path is the other fork: the lifter
+ * names the days and the lifts, and the app writes what they built. The policy stays here
+ * so the screen cannot invent a week with no work in it, and so a test can pin the names
+ * the routines land under.
+ */
+object CustomWeekPolicy {
+    fun canConfirm(days: Map<DayOfWeek, List<CustomWeekLift>>): Boolean =
+        days.values.any { it.isNotEmpty() }
+
+    fun trainingDayCount(days: Map<DayOfWeek, List<CustomWeekLift>>): Int =
+        days.count { it.value.isNotEmpty() }.coerceIn(SchedulePreferences.MIN_DAYS, SchedulePreferences.MAX_DAYS)
+
+    fun routineName(day: DayOfWeek): String =
+        day.name.lowercase().replaceFirstChar { it.titlecase() }
+
+    fun addLifts(
+        existing: List<CustomWeekLift>,
+        incoming: List<Exercise>,
+        idFactory: () -> String,
+    ): List<CustomWeekLift> {
+        val have = existing.map { it.exercise.id }.toSet()
+        val added = incoming.filter { it.id !in have }.map { exercise ->
+            val defaults = AddDefaults.forExercise(exercise)
+            CustomWeekLift(
+                id = idFactory(),
+                exercise = exercise,
+                targetSets = defaults.sets,
+                targetReps = defaults.reps,
+                restSeconds = defaults.restSeconds,
+            )
+        }
+        return existing + added
+    }
+
+    fun move(lifts: List<CustomWeekLift>, itemId: String, direction: Int): List<CustomWeekLift> {
+        val index = lifts.indexOfFirst { it.id == itemId }
+        if (index < 0) return lifts
+        val target = index + direction
+        if (target !in lifts.indices) return lifts
+        val next = lifts.toMutableList()
+        val item = next.removeAt(index)
+        next.add(target, item)
+        return next
+    }
+
+    fun updateTargets(
+        lifts: List<CustomWeekLift>,
+        itemId: String,
+        sets: Int?,
+        reps: Int?,
+        restSeconds: Int?,
+    ): List<CustomWeekLift> = lifts.map { lift ->
+        if (lift.id != itemId) {
+            lift
+        } else {
+            lift.copy(
+                targetSets = sets?.coerceAtLeast(1) ?: lift.targetSets,
+                targetReps = reps?.coerceAtLeast(1) ?: lift.targetReps,
+                restSeconds = restSeconds?.coerceAtLeast(0) ?: lift.restSeconds,
+            )
+        }
+    }
+}

@@ -1,6 +1,8 @@
 package com.sinura.personaltrainer.data.local
 
 import android.content.Context
+import android.content.ContextWrapper
+import android.content.SharedPreferences
 import android.database.sqlite.SQLiteDatabase
 import androidx.test.core.app.ApplicationProvider
 import java.io.File
@@ -27,10 +29,10 @@ class PreMigrationSnapshotTest {
 
     @Before
     fun setUp() {
-        context = ApplicationProvider.getApplicationContext()
-        // Other Robolectric tests open Room on this same applicationId. deleteDatabase
-        // closes that connection; deleting the files alone leaves a live handle that
-        // can rewrite personal_trainer.db after we plant the text stand-in.
+        // Own files and database paths. Other Robolectric classes in this JVM open Room on
+        // the shared applicationId; a leftover WAL on personal_trainer.db used to land in
+        // the copy this class plants as a plain-text stand-in.
+        context = IsolatedSnapshotContext(ApplicationProvider.getApplicationContext())
         context.deleteDatabase(DB_NAME)
         context.getSharedPreferences(PreMigrationSnapshot.PREFS_NAME, Context.MODE_PRIVATE)
             .edit().clear().commit()
@@ -166,4 +168,36 @@ class PreMigrationSnapshotTest {
     private companion object {
         const val DB_NAME = "personal_trainer.db"
     }
+}
+
+/**
+ * A private files/database root so this class cannot see Room's WAL from other tests.
+ *
+ * [ContextWrapper.deleteDatabase] and [ContextWrapper.getDatabasePath] both delegate to the
+ * base context, which is the shared Robolectric application. Override both, or a leftover
+ * `personal_trainer.db-wal` from a previous class lands in the copy this plants as text.
+ */
+private class IsolatedSnapshotContext(base: Context) : ContextWrapper(base) {
+    private val root = File(base.cacheDir, "pre-migration-snapshot-test").also { dir ->
+        dir.deleteRecursively()
+        dir.mkdirs()
+    }
+    private val databases = File(root, "databases").also { it.mkdirs() }
+    private val files = File(root, "files").also { it.mkdirs() }
+
+    override fun getDatabasePath(name: String): File = File(databases, name)
+
+    override fun getFilesDir(): File = files
+
+    override fun deleteDatabase(name: String): Boolean {
+        var deleted = true
+        listOf("", "-wal", "-shm").forEach { suffix ->
+            val file = File(databases, name + suffix)
+            if (file.exists() && !file.delete()) deleted = false
+        }
+        return deleted
+    }
+
+    override fun getSharedPreferences(name: String, mode: Int): SharedPreferences =
+        super.getSharedPreferences("snapshot-test-$name", mode)
 }

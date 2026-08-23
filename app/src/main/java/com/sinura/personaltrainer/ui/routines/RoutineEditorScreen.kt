@@ -13,13 +13,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,31 +30,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.Exercise
-import com.sinura.personaltrainer.domain.RestTimer
-import com.sinura.personaltrainer.domain.RoutineExercise
-import com.sinura.personaltrainer.domain.WeightConverter
-import com.sinura.personaltrainer.domain.WeightUnit
-import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.ExerciseRow
-import com.sinura.personaltrainer.ui.components.ExerciseThumb
-import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -71,7 +57,6 @@ import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
-import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 
 @Composable
 fun RoutineEditorScreen(
@@ -81,6 +66,7 @@ fun RoutineEditorScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var pendingRemoveId by rememberSaveable { mutableStateOf<String?>(null) }
     var notesOpen by rememberSaveable { mutableStateOf(false) }
+    var expandedLiftId by rememberSaveable { mutableStateOf<String?>(null) }
     val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
 
     // Back is state, not a callback: leaving first deletes the empty stub routine, and if the
@@ -128,7 +114,7 @@ fun RoutineEditorScreen(
                 top = Metrics.space2,
                 bottom = Metrics.space7,
             ),
-            verticalArrangement = Arrangement.spacedBy(Metrics.cardGap),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
         ) {
             item(key = "name") {
                 RoutineTitleField(
@@ -147,7 +133,7 @@ fun RoutineEditorScreen(
                     EmptyState(
                         title = "Add your first lift",
                         body = "Targets stay on the routine. Start it from Home when you’re in the gym.",
-                        actionLabel = "Add a lift",
+                        actionLabel = "Add lifts",
                         onAction = { viewModel.setPickerVisible(true) },
                         compact = true,
                         modifier = Modifier.padding(top = Metrics.space4),
@@ -161,25 +147,29 @@ fun RoutineEditorScreen(
                     )
                 }
                 itemsIndexed(exercises, key = { _, item -> item.id }) { index, item ->
-                    RoutineExerciseCard(
-                        item = item,
+                    CompactLiftRow(
+                        exercise = item.exercise,
+                        sets = item.targetSets,
+                        reps = item.targetReps,
+                        restSeconds = item.restSeconds,
                         canMoveUp = index > 0,
                         canMoveDown = index < exercises.lastIndex,
+                        expanded = expandedLiftId == item.id,
+                        onToggle = { expandedLiftId = if (expandedLiftId == item.id) null else item.id },
                         onMoveUp = { viewModel.moveExercise(item.id, -1) },
                         onMoveDown = { viewModel.moveExercise(item.id, 1) },
                         onRemove = { pendingRemoveId = item.id },
-                        // Hidden rather than disabled when the lift stands alone in its family:
-                        // a permanently greyed-out button is a promise the app cannot keep.
                         onSwap = if (state.swapCandidates(item.exercise.id).isNotEmpty()) {
                             { viewModel.requestSwap(item.id) }
                         } else {
                             null
                         },
-                        onStageTargets = { sets, reps, weight, rest ->
-                            viewModel.stageTargets(item.id, sets, reps, weight, rest)
+                        onStageTargets = { sets, reps, rest ->
+                            viewModel.stageTargets(item.id, sets, reps, item.targetWeightKg, rest)
                         },
                         onCommitTargets = { viewModel.commitTargets(item.id) },
                         modifier = Modifier.animateItem(),
+                        rowKey = item.id,
                     )
                 }
             }
@@ -187,7 +177,7 @@ fun RoutineEditorScreen(
                 // Quiet, after the program. The empty state's filled action is the first add.
                 item(key = "add") {
                     SecondaryGymButton(
-                        text = "Add a lift",
+                        text = "Add lifts",
                         onClick = { viewModel.setPickerVisible(true) },
                         modifier = Modifier.padding(top = Metrics.space2),
                         height = Metrics.touchMin,
@@ -211,32 +201,13 @@ fun RoutineEditorScreen(
             query = state.searchQuery,
             results = state.searchResults,
             onQueryChange = viewModel::onSearchQuery,
-            onSelect = { exercise ->
-                // Per lift class now, not one literal for all of them: 3x5 at 90s was a squat's
-                // scheme applied to cable lateral raises.
-                val defaults = AddDefaults.forExercise(exercise)
-                viewModel.addExercise(
-                    exercise = exercise,
-                    targetSets = defaults.sets,
-                    targetReps = defaults.reps,
-                    targetWeightKg = null,
-                    restSeconds = defaults.restSeconds,
-                )
-            },
-            onCreate = { name, muscle ->
-                // A lift being invented in the picker has no load type yet, so it takes the
-                // fallback row deliberately rather than by accident.
-                val defaults = AddDefaults.forExercise(loadType = null, isCompound = false)
-                viewModel.createAndAddExercise(
-                    customName = name,
-                    muscleGroup = muscle,
-                    targetSets = defaults.sets,
-                    targetReps = defaults.reps,
-                    targetWeightKg = null,
-                    restSeconds = defaults.restSeconds,
-                )
-            },
+            onSelect = { },
+            onCreate = viewModel::createAndSelect,
             onDismiss = { viewModel.setPickerVisible(false) },
+            title = "Add lifts",
+            selectedIds = state.pendingAddIds,
+            onToggle = viewModel::togglePendingAdd,
+            onConfirmAdd = viewModel::confirmPendingAdd,
         )
     }
 
@@ -340,127 +311,6 @@ private fun RoutineTitleField(
     }
 }
 
-/**
- * One lift of the program.
- *
- * The prescription is stated once, as a numeral line in the same voice the workout screen
- * speaks — "3 × 5 · 100 kg · 1:30". The four fields under it are the edit mechanism, not the
- * readout: reading targets off admin text boxes made this screen speak a different numeric
- * language from the floor.
- */
-@Composable
-private fun RoutineExerciseCard(
-    item: RoutineExercise,
-    canMoveUp: Boolean,
-    canMoveDown: Boolean,
-    onMoveUp: () -> Unit,
-    onMoveDown: () -> Unit,
-    onRemove: () -> Unit,
-    /** Null when this lift has no variants, so the button is absent rather than disabled. */
-    onSwap: (() -> Unit)?,
-    /** Called on every keystroke. Nulls are empty boxes, not zeroes. */
-    onStageTargets: (Int?, Int?, Double?, Int?) -> Unit,
-    /** Called when a field loses focus: write whatever was staged. */
-    onCommitTargets: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val unit = LocalWeightUnit.current
-    var sets by rememberSaveable(item.id) { mutableStateOf(item.targetSets.toString()) }
-    var reps by rememberSaveable(item.id) { mutableStateOf(item.targetReps.toString()) }
-    var weight by rememberSaveable(item.id, unit) {
-        mutableStateOf(
-            item.targetWeightKg?.let {
-                WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(it, unit))
-            }.orEmpty(),
-        )
-    }
-    var rest by rememberSaveable(item.id) { mutableStateOf(item.restSeconds.toString()) }
-
-    GymCard(modifier = modifier) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            ExerciseThumb(exercise = item.exercise)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    item.exercise.name,
-                    style = InstrumentType.title,
-                    color = TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    item.exercise.muscleGroup,
-                    style = InstrumentType.caption,
-                    color = TextSecondary,
-                )
-            }
-            IconButton(onClick = onMoveUp, enabled = canMoveUp) {
-                Icon(
-                    Icons.Outlined.KeyboardArrowUp,
-                    contentDescription = "Move up",
-                    tint = if (canMoveUp) TextSecondary else TextTertiary,
-                )
-            }
-            IconButton(onClick = onMoveDown, enabled = canMoveDown) {
-                Icon(
-                    Icons.Outlined.KeyboardArrowDown,
-                    contentDescription = "Move down",
-                    tint = if (canMoveDown) TextSecondary else TextTertiary,
-                )
-            }
-        }
-        Text(
-            prescriptionLabel(item, unit),
-            style = InstrumentType.numeralSm,
-            color = TextPrimary,
-        )
-        // Staged on every keystroke, written when a field is left. The parse lives here rather
-        // than in the view model because only this composable knows which unit the number was
-        // typed in; everything downstream deals in kilograms.
-        val stage = {
-            onStageTargets(
-                sets.toIntOrNull(),
-                reps.toIntOrNull(),
-                WeightConverter.parseDisplayToKg(weight, unit, item.targetWeightKg),
-                rest.toIntOrNull(),
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-            SmallNumberField("Sets", sets, Modifier.weight(1f), onCommitTargets) {
-                sets = it.filter(Char::isDigit)
-                stage()
-            }
-            SmallNumberField("Reps", reps, Modifier.weight(1f), onCommitTargets) {
-                reps = it.filter(Char::isDigit)
-                stage()
-            }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-            SmallNumberField("Target ${unit.suffix}", weight, Modifier.weight(1f), onCommitTargets) { value ->
-                weight = value.filter { it.isDigit() || it == '.' }
-                stage()
-            }
-            SmallNumberField("Rest (s)", rest, Modifier.weight(1f), onCommitTargets) {
-                rest = it.filter(Char::isDigit)
-                stage()
-            }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2), modifier = Modifier.fillMaxWidth()) {
-            TextButton(onClick = onRemove) {
-                Text("Remove", style = InstrumentType.bodyStrong, color = Danger)
-            }
-            if (onSwap != null) {
-                TextButton(onClick = onSwap) {
-                    Text("Swap", style = InstrumentType.bodyStrong, color = TextSecondary)
-                }
-            }
-        }
-    }
-}
-
 /** Notes are a programming aside, not the second thing on the screen. */
 @Composable
 private fun NotesBlock(
@@ -499,46 +349,6 @@ private fun NotesBlock(
             )
         }
     }
-}
-
-@Composable
-private fun SmallNumberField(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier,
-    /**
-     * Fired when the field loses focus, which is this screen's commit point for a typed number.
-     * Only on the falling edge: `onFocusChanged` also reports gaining focus, and treating that
-     * as a commit would write the field the moment it was tapped.
-     */
-    onFocusLost: () -> Unit,
-    onValueChange: (String) -> Unit,
-) {
-    var hadFocus by remember { mutableStateOf(false) }
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label, style = InstrumentType.caption) },
-        modifier = modifier.onFocusChanged { focus ->
-            if (hadFocus && !focus.isFocused) onFocusLost()
-            hadFocus = focus.isFocused
-        },
-        singleLine = true,
-        textStyle = InstrumentType.numeralSm,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-    )
-}
-
-private fun prescriptionLabel(item: RoutineExercise, unit: WeightUnit): String = buildString {
-    append(item.targetSets)
-    append(" × ")
-    append(item.targetReps)
-    item.targetWeightKg?.takeIf { it > 0.0 }?.let { kg ->
-        append(" · ")
-        append(kg.toWeightLabel(unit))
-    }
-    append(" · ")
-    append(RestTimer.formatClock(item.restSeconds))
 }
 
 /**

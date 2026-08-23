@@ -255,7 +255,7 @@ object RoutineGenerator {
             routines = emptyList(),
             emphasis = clean.emphasis,
         )
-        val allowed = catalog.filter { it.equipment in clean.place.equipment }
+        val allowed = catalog.filter { it.equipment in clean.equipment() }
 
         val routines = buildRoutines(kinds, split, clean, allowed)
         val days = layOutWeek(clean, kinds, routines, weekStart)
@@ -277,12 +277,14 @@ object RoutineGenerator {
     ): List<BlueprintRoutine> {
         val liftsPerSession = answers.trainingAge.liftsPerSession
         if (split == SplitStyle.FULL_BODY) {
-            val variants = listOf(
-                "full-body-a" to templateFor(SessionFocusKind.FULL_BODY, answers.goal),
-                "full-body-b" to fullBodyBFor(answers.goal),
-            )
-            // A two-day week never reaches variant B twice, but generating both keeps the
-            // rotation honest the moment the lifter adds a third day.
+            val variants = buildList {
+                add("full-body-a" to templateFor(SessionFocusKind.FULL_BODY, answers.goal))
+                // A one-day week never reaches B. Keep the pair once there are two days so
+                // the rotation is honest the moment a third day is added.
+                if (answers.daysPerWeek >= 2) {
+                    add("full-body-b" to fullBodyBFor(answers.goal))
+                }
+            }
             return variants.mapIndexed { index, (key, template) ->
                 BlueprintRoutine(
                     key = key,

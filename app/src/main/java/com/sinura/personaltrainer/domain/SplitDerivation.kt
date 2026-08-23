@@ -23,9 +23,10 @@ object SplitDerivation {
             // divides the body finely enough that each session needs real depth behind it, and
             // a bodyweight catalog does not have that depth in any one direction — the sessions
             // would come out short, or padded with a fourth push-up variant.
-            answers.place == TrainingPlace.BODYWEIGHT_ONLY && days >= 4 -> SplitStyle.UPPER_LOWER
-            // Two or three sessions cannot cover the body in parts. Splitting them would mean
-            // training chest once every ten days, which is how people spend a year on a
+            answers.resolvedPlaces() == setOf(TrainingPlace.BODYWEIGHT_ONLY) && days >= 4 ->
+                SplitStyle.UPPER_LOWER
+            // One, two or three sessions cannot cover the body in parts. Splitting them would
+            // mean training chest once every ten days, which is how people spend a year on a
             // program that never worked.
             days <= 3 -> SplitStyle.FULL_BODY
 

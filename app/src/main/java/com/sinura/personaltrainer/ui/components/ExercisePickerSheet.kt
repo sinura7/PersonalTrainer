@@ -108,6 +108,13 @@ fun ExercisePickerSheet(
      * is typed, so it never sits above results that contradict what was searched for.
      */
     siblings: List<Exercise> = emptyList(),
+    /**
+     * Lifts already ticked in a multi-add. Empty, and ignored, when [onToggle] is null —
+     * mid-session add stays one tap, one lift.
+     */
+    selectedIds: Set<String> = emptySet(),
+    onToggle: ((Exercise) -> Unit)? = null,
+    onConfirmAdd: (() -> Unit)? = null,
 ) {
     val needle = query.trim()
     val canCreate = needle.isNotEmpty() && results.none { it.name.equals(needle, ignoreCase = true) }
@@ -158,10 +165,10 @@ fun ExercisePickerSheet(
                     }
                     items(siblings, key = { "sibling-${it.id}" }) { sibling ->
                         Column {
-                            ExerciseRow(
+                            PickerLiftRow(
                                 exercise = sibling,
-                                onClick = { onSelect(sibling) },
-                                tag = sibling.equipment.label,
+                                selected = sibling.id in selectedIds,
+                                onClick = { if (onToggle != null) onToggle(sibling) else onSelect(sibling) },
                             )
                             HairlineDivider()
                         }
@@ -178,9 +185,10 @@ fun ExercisePickerSheet(
                                     bottom = Metrics.space1,
                                 ),
                             )
-                            ExerciseRow(
+                            PickerLiftRow(
                                 exercise = suggestion,
-                                onClick = { onSelect(suggestion) },
+                                selected = suggestion.id in selectedIds,
+                                onClick = { if (onToggle != null) onToggle(suggestion) else onSelect(suggestion) },
                                 subtitle = suggestionReason,
                             )
                             HairlineDivider()
@@ -221,18 +229,55 @@ fun ExercisePickerSheet(
                 } else {
                     itemsIndexed(results, key = { _, exercise -> exercise.id }) { index, exercise ->
                         Column(modifier = Modifier.animateItem()) {
-                            ExerciseRow(
+                            PickerLiftRow(
                                 exercise = exercise,
-                                onClick = { onSelect(exercise) },
-                                tag = exercise.equipment.label,
+                                selected = exercise.id in selectedIds,
+                                onClick = { if (onToggle != null) onToggle(exercise) else onSelect(exercise) },
                             )
                             if (index < results.lastIndex) HairlineDivider()
                         }
                     }
                 }
             }
+            if (onConfirmAdd != null) {
+                PrimaryGymButton(
+                    text = when (selectedIds.size) {
+                        0 -> "Add"
+                        1 -> "Add 1 lift"
+                        else -> "Add ${selectedIds.size} lifts"
+                    },
+                    onClick = onConfirmAdd,
+                    enabled = selectedIds.isNotEmpty(),
+                    modifier = Modifier.padding(
+                        horizontal = Metrics.gutter,
+                        vertical = Metrics.space3,
+                    ),
+                )
+            }
         }
     }
+}
+
+@Composable
+private fun PickerLiftRow(
+    exercise: Exercise,
+    selected: Boolean,
+    onClick: () -> Unit,
+    subtitle: String? = null,
+) {
+    ExerciseRow(
+        exercise = exercise,
+        onClick = onClick,
+        tag = exercise.equipment.label,
+        subtitle = subtitle,
+        trailing = if (selected) {
+            {
+                Text("On", style = InstrumentType.caption, color = Volt)
+            }
+        } else {
+            null
+        },
+    )
 }
 
 /**

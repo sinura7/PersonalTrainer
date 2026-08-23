@@ -65,6 +65,7 @@ import com.sinura.personaltrainer.ui.history.SessionDetailScreen
 import com.sinura.personaltrainer.ui.home.HomeScreen
 import com.sinura.personaltrainer.ui.library.ExerciseLibraryScreen
 import com.sinura.personaltrainer.ui.progress.ProgressScreen
+import com.sinura.personaltrainer.ui.routines.CustomWeekScreen
 import com.sinura.personaltrainer.ui.routines.RoutineEditorScreen
 import com.sinura.personaltrainer.ui.onboarding.OnboardingGate
 import com.sinura.personaltrainer.ui.onboarding.OnboardingGateViewModel
@@ -82,6 +83,7 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.workout.ActiveWorkoutScreen
+import java.time.DayOfWeek
 
 sealed class Route(val path: String) {
     data object Home : Route("home")
@@ -181,7 +183,8 @@ fun PersonalTrainerNav(
     // Set when setup is left via "I'll build my own", and consumed once the app is up. Held
     // here rather than passed through the gate because the NavController it needs does not
     // exist until the app side of the branch is composing.
-    var openEditorOnEntry by rememberSaveable { mutableStateOf(false) }
+    var buildingOwn by rememberSaveable { mutableStateOf(false) }
+    var preferredOwnRaw by rememberSaveable { mutableStateOf("") }
 
     when (gate) {
         // Nothing, deliberately. A default of either side flashes the wrong screen on every
@@ -195,14 +198,27 @@ fun PersonalTrainerNav(
             // re-enterable from Settings and an lbs lifter was being asked their bodyweight in
             // unlabelled kilograms.
             CompositionLocalProvider(LocalWeightUnit provides weightUnit) {
-                OnboardingScreen(
-                    // Nothing to do: the gate reads the completion flag directly, so finishing
-                    // moves the app on its own. Deliberately NOT clearing openEditorOnEntry
-                    // here — "I'll build my own" also completes setup, and its callback would
-                    // race this one and lose, dropping the lifter on Home instead of the editor.
-                    onFinished = {},
-                    onBuildMyOwn = { openEditorOnEntry = true },
-                )
+                if (buildingOwn) {
+                    val preferred = preferredOwnRaw
+                        .split(',')
+                        .mapNotNull { raw ->
+                            DayOfWeek.entries.firstOrNull { it.name == raw }
+                        }
+                        .toSet()
+                    CustomWeekScreen(
+                        onFinished = {},
+                        onBack = { buildingOwn = false },
+                        preferredDays = preferred,
+                    )
+                } else {
+                    OnboardingScreen(
+                        onFinished = {},
+                        onBuildMyOwn = { days ->
+                            preferredOwnRaw = days.joinToString(",") { it.name }
+                            buildingOwn = true
+                        },
+                    )
+                }
             }
             return
         }
@@ -210,14 +226,6 @@ fun PersonalTrainerNav(
     }
 
     val navController = rememberNavController()
-    LaunchedEffect(openEditorOnEntry) {
-        if (!openEditorOnEntry) return@LaunchedEffect
-        openEditorOnEntry = false
-        // Straight into a new routine. "I'll build my own" is a statement of intent, and
-        // answering it with the same empty Home the guided path exists to replace would be the
-        // app not listening.
-        navController.navigate(Route.RoutineEditor.create("new"))
-    }
     // Temper plates, not Material house/person/dumbbell/clock. The selected tab is volt
     // through tint; the drawings themselves stay monochrome so heat never sits on the chrome.
     val tabs = listOf(
