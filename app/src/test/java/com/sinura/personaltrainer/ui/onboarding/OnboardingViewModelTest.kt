@@ -120,6 +120,7 @@ class OnboardingViewModelTest {
         viewModel!!.applyPlan()
         withTimeout(5_000) { viewModel!!.finished.first { it } }
         withTimeout(5_000) { deps.preferencesRepository.weightUnit.first { it == WeightUnit.KG } }
+        Unit
     }
 
     @Test
