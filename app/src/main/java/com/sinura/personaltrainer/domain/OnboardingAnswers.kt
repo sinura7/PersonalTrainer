@@ -89,6 +89,19 @@ enum class TrainingPlace(val displayName: String, val blurb: String, val shortLa
             return resolved.sortedBy { it.ordinal }.joinToString(" + ") { it.shortLabel }
         }
 
+        const val STEP_BLURB =
+            "Gym covers every lift. Home and bodyweight mix only when there is no gym."
+
+        fun mixCaption(places: Set<TrainingPlace>): String {
+            val resolved = places.ifEmpty { setOf(FULL_GYM) }
+            return when {
+                FULL_GYM in resolved -> STEP_BLURB
+                HOME_DUMBBELLS in resolved && BODYWEIGHT_ONLY in resolved ->
+                    "Home and bodyweight share one kit. No barbell."
+                else -> label(resolved)
+            }
+        }
+
         fun equipmentOf(places: Set<TrainingPlace>): Set<EquipmentType> {
             val resolved = places.ifEmpty { setOf(FULL_GYM) }
             if (FULL_GYM in resolved) return EquipmentType.entries.toSet()
@@ -173,10 +186,11 @@ data class OnboardingAnswers(
 
     fun withToggledPlace(target: TrainingPlace): OnboardingAnswers {
         val current = resolvedPlaces()
-        val next = if (target in current) {
-            (current - target).ifEmpty { current }
-        } else {
-            current + target
+        val next = when {
+            target == TrainingPlace.FULL_GYM && target !in current -> setOf(TrainingPlace.FULL_GYM)
+            target != TrainingPlace.FULL_GYM && TrainingPlace.FULL_GYM in current -> setOf(target)
+            target in current -> (current - target).ifEmpty { current }
+            else -> current + target
         }
         return copy(places = next, place = TrainingPlace.widest(next))
     }

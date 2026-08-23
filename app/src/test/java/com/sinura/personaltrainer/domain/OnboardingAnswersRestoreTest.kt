@@ -72,6 +72,32 @@ class OnboardingAnswersRestoreTest {
     }
 
     @Test
+    fun pickingGymClearsHomeAndBodyweight() {
+        val mixed = OnboardingAnswers(
+            places = setOf(TrainingPlace.HOME_DUMBBELLS, TrainingPlace.BODYWEIGHT_ONLY),
+        ).sanitized()
+        val gym = mixed.withToggledPlace(TrainingPlace.FULL_GYM)
+        assertEquals(setOf(TrainingPlace.FULL_GYM), gym.resolvedPlaces())
+        val home = gym.withToggledPlace(TrainingPlace.HOME_DUMBBELLS)
+        assertEquals(setOf(TrainingPlace.HOME_DUMBBELLS), home.resolvedPlaces())
+    }
+
+    @Test
+    fun placeCopyDoesNotPromiseTwoSchedules() {
+        assertTrue(TrainingPlace.STEP_BLURB.contains("Gym covers every lift"))
+        assertFalse(TrainingPlace.STEP_BLURB.contains("gym days and home days"))
+        assertEquals(
+            TrainingPlace.STEP_BLURB,
+            TrainingPlace.mixCaption(setOf(TrainingPlace.FULL_GYM, TrainingPlace.HOME_DUMBBELLS)),
+        )
+        assertTrue(
+            TrainingPlace.mixCaption(
+                setOf(TrainingPlace.HOME_DUMBBELLS, TrainingPlace.BODYWEIGHT_ONLY),
+            ).contains("No barbell"),
+        )
+    }
+
+    @Test
     fun commaSeparatedStorageRoundTripsAMix() {
         val raw = TrainingPlace.formatPlaces(
             setOf(TrainingPlace.FULL_GYM, TrainingPlace.HOME_DUMBBELLS),

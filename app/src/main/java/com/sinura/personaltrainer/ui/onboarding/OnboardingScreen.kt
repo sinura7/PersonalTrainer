@@ -293,7 +293,7 @@ private fun PlaceStep(
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap)) {
         QuestionTitle(
             "Where will you train?",
-            "Tap every place you can actually get to. Mixes are fine — gym days and home days both count.",
+            TrainingPlace.STEP_BLURB,
         )
         TrainingPlace.entries.forEach { place ->
             val on = place in selected
@@ -329,7 +329,7 @@ private fun PlaceStep(
             }
         }
         Text(
-            TrainingPlace.label(selected),
+            TrainingPlace.mixCaption(selected),
             style = InstrumentType.caption,
             color = TextTertiary,
         )
