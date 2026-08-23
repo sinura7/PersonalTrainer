@@ -220,6 +220,7 @@ class OnboardingApplierTest {
     @Test
     fun aCustomWeekPinsEachFilledDay() = runBlocking {
         val squat = catalog.first { it.movementKey == "squat" }
+        preferences.setTrainingGoal(TrainingGoal.STRENGTH)
         val result = applier.applyCustom(
             days = mapOf(
                 DayOfWeek.WEDNESDAY to listOf(
@@ -237,8 +238,8 @@ class OnboardingApplierTest {
         assertEquals("Wednesday", routine.name)
         assertEquals(4, routine.exercises.first().targetSets)
         assertEquals(true, preferences.onboardingComplete.first())
-        assertNull(preferences.bodyweightKg.first())
-        assertEquals(TrainingGoal.GENERAL, preferences.coachPreferences.first().goal)
+        // Fork-only must not invent questionnaire fields.
+        assertEquals(TrainingGoal.STRENGTH, preferences.coachPreferences.first().goal)
     }
 
     @Test

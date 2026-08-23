@@ -43,6 +43,7 @@ class OnboardingViewModelTest {
         viewModel?.clearForTest()
         viewModel = null
         if (::deps.isInitialized) deps.close()
+        dispatcher.scheduler.advanceUntilIdle()
         Dispatchers.resetMain()
     }
 
