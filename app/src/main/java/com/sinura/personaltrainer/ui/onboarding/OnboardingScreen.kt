@@ -23,6 +23,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,6 +34,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.BlueprintRoutine
+import com.sinura.personaltrainer.domain.CustomWeekPolicy
 import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.OnboardingPreviewCopy
 import com.sinura.personaltrainer.domain.PlanBlueprint
@@ -42,6 +46,7 @@ import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.shortLabel
+import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
@@ -485,6 +490,7 @@ private fun PreviewStep(
     onOwn: () -> Unit,
 ) {
     val plan = state.preview
+    var pendingFullWeek by rememberSaveable { mutableStateOf(false) }
     LazyColumn(
         contentPadding = PaddingValues(bottom = Metrics.space8),
         verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
@@ -527,12 +533,30 @@ private fun PreviewStep(
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
                 PrimaryGymButton(
                     text = if (state.applying) "Building…" else "Use this plan",
-                    onClick = onApply,
+                    onClick = {
+                        if (CustomWeekPolicy.isFullWeek(state.answers.daysPerWeek)) {
+                            pendingFullWeek = true
+                        } else {
+                            onApply()
+                        }
+                    },
                     enabled = plan != null && !state.applying,
                 )
                 SecondaryGymButton(text = "I'll build my own", onClick = onOwn)
             }
         }
+    }
+    if (pendingFullWeek) {
+        ConfirmActionDialog(
+            title = OnboardingPreviewCopy.FULL_WEEK_TITLE,
+            body = OnboardingPreviewCopy.FULL_WEEK_BODY,
+            confirmLabel = OnboardingPreviewCopy.FULL_WEEK_CONFIRM_PLAN,
+            onConfirm = {
+                pendingFullWeek = false
+                onApply()
+            },
+            onDismiss = { pendingFullWeek = false },
+        )
     }
 }
 

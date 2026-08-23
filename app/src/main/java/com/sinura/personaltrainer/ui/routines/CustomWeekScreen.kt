@@ -37,7 +37,9 @@ import com.sinura.personaltrainer.domain.shortLabel
 import com.sinura.personaltrainer.domain.CustomWeekDayMark
 import com.sinura.personaltrainer.domain.CustomWeekPolicy
 import com.sinura.personaltrainer.domain.OnboardingAnswers
+import com.sinura.personaltrainer.domain.OnboardingPreviewCopy
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
@@ -69,6 +71,9 @@ fun CustomWeekScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val finished by viewModel.finished.collectAsStateWithLifecycle()
     var expandedId by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingFullWeek by rememberSaveable { mutableStateOf(false) }
+    val restDays = CustomWeekPolicy.restDayCount(state.days)
+    val restCaption = CustomWeekPolicy.restCaption(restDays)
 
     LaunchedEffect(preferredDays, answers, pendingWeightUnit) {
         viewModel.seedFromGuided(preferredDays, answers, pendingWeightUnit)
@@ -172,18 +177,42 @@ fun CustomWeekScreen(
                     }
                 }
             }
-            PrimaryGymButton(
-                text = if (state.applying) {
-                    "Saving…"
-                } else if (state.trainingDays == 0) {
-                    "Add a lift to confirm"
-                } else {
-                    "Use this week"
-                },
-                onClick = viewModel::confirm,
-                enabled = state.canConfirm && !state.applying,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                PrimaryGymButton(
+                    text = if (state.applying) {
+                        "Saving…"
+                    } else if (state.trainingDays == 0) {
+                        "Add a lift to confirm"
+                    } else {
+                        CustomWeekPolicy.confirmCta(state.trainingDays)
+                    },
+                    onClick = {
+                        if (CustomWeekPolicy.isFullWeek(state.days)) {
+                            pendingFullWeek = true
+                        } else {
+                            viewModel.confirm()
+                        }
+                    },
+                    enabled = state.canConfirm && !state.applying,
+                )
+                if (restCaption != null && state.trainingDays > 0) {
+                    Text(restCaption, style = InstrumentType.caption, color = TextTertiary)
+                }
+            }
         }
+    }
+
+    if (pendingFullWeek) {
+        ConfirmActionDialog(
+            title = OnboardingPreviewCopy.FULL_WEEK_TITLE,
+            body = OnboardingPreviewCopy.FULL_WEEK_BODY,
+            confirmLabel = OnboardingPreviewCopy.FULL_WEEK_CONFIRM_WEEK,
+            onConfirm = {
+                pendingFullWeek = false
+                viewModel.confirm()
+            },
+            onDismiss = { pendingFullWeek = false },
+        )
     }
 
     if (state.showPicker) {

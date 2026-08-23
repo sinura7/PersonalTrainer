@@ -38,6 +38,25 @@ object CustomWeekPolicy {
     fun trainingDayCount(days: Map<DayOfWeek, List<CustomWeekLift>>): Int =
         days.count { it.value.isNotEmpty() }.coerceIn(SchedulePreferences.MIN_DAYS, SchedulePreferences.MAX_DAYS)
 
+    /** Raw filled days. Empty week is zero, not the coerced training-day floor. */
+    fun filledDayCount(days: Map<DayOfWeek, List<CustomWeekLift>>): Int =
+        days.count { it.value.isNotEmpty() }
+
+    fun restDayCount(days: Map<DayOfWeek, List<CustomWeekLift>>): Int =
+        (SchedulePreferences.MAX_DAYS - filledDayCount(days)).coerceAtLeast(0)
+
+    fun isFullWeek(days: Map<DayOfWeek, List<CustomWeekLift>>): Boolean =
+        filledDayCount(days) == SchedulePreferences.MAX_DAYS
+
+    fun isFullWeek(daysPerWeek: Int): Boolean =
+        daysPerWeek == SchedulePreferences.MAX_DAYS
+
+    fun confirmCta(trainingDays: Int): String =
+        "Use this week · $trainingDays training"
+
+    fun restCaption(restDays: Int): String? =
+        if (restDays > 0) "$restDays rest" else null
+
     fun routineName(day: DayOfWeek): String =
         day.name.lowercase().replaceFirstChar { it.titlecase() }
 

@@ -93,6 +93,28 @@ class CustomWeekPolicyTest {
     }
 
     @Test
+    fun restDaysAreTheUnfilledWeekdays() {
+        assertEquals(7, CustomWeekPolicy.restDayCount(emptyMap()))
+        assertEquals(0, CustomWeekPolicy.filledDayCount(emptyMap()))
+        assertFalse(CustomWeekPolicy.isFullWeek(emptyMap()))
+        assertFalse(CustomWeekPolicy.isFullWeek(daysPerWeek = 6))
+        assertTrue(CustomWeekPolicy.isFullWeek(daysPerWeek = 7))
+
+        val six = filledWeek(6)
+        assertEquals(6, CustomWeekPolicy.filledDayCount(six))
+        assertEquals(1, CustomWeekPolicy.restDayCount(six))
+        assertFalse(CustomWeekPolicy.isFullWeek(six))
+        assertEquals("Use this week · 6 training", CustomWeekPolicy.confirmCta(6))
+        assertEquals("1 rest", CustomWeekPolicy.restCaption(1))
+
+        val seven = filledWeek(7)
+        assertEquals(0, CustomWeekPolicy.restDayCount(seven))
+        assertTrue(CustomWeekPolicy.isFullWeek(seven))
+        assertEquals("Use this week · 7 training", CustomWeekPolicy.confirmCta(7))
+        assertEquals(null, CustomWeekPolicy.restCaption(0))
+    }
+
+    @Test
     fun updateTargetsWritesLoad() {
         val lifts = listOf(lift("a", squat))
         val updated = CustomWeekPolicy.updateTargets(
@@ -116,6 +138,9 @@ class CustomWeekPolicyTest {
         assertEquals(null, cleared.single().targetWeightKg)
         assertEquals(5, cleared.single().targetSets)
     }
+
+    private fun filledWeek(count: Int): Map<DayOfWeek, List<CustomWeekLift>> =
+        DayOfWeek.entries.take(count).associateWith { day -> listOf(lift(day.name, squat)) }
 
     private fun lift(id: String, exercise: Exercise) = CustomWeekLift(
         id = id,
