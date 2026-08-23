@@ -172,9 +172,26 @@ class OnboardingViewModel @JvmOverloads constructor(
 
     fun back(): Boolean {
         val index = OnboardingStep.entries.indexOf(step.value)
-        if (index <= 0) return false
+        if (index <= 0) {
+            // Settings re-run flipped the gate to SETUP. Back on the fork used to
+            // call onFinished as a no-op and leave them trapped. A first install
+            // still has no program and stays here until they pick a path.
+            leaveExistingProgram()
+            return false
+        }
         step.value = OnboardingStep.entries[index - 1]
         return true
+    }
+
+    private fun leaveExistingProgram() {
+        viewModelScope.launch {
+            val exists = runCatchingCancellable { container.onboardingApplier.hasExistingProgram() }
+                .getOrDefault(existingProgram.value)
+            if (!exists) return@launch
+            runCatchingCancellable { container.preferencesRepository.setOnboardingComplete(true) }
+                .onFailure { AppLog.w(TAG, "Restoring setup complete failed", it) }
+            _finished.value = true
+        }
     }
 
     fun next() {
@@ -280,21 +297,6 @@ class OnboardingViewModel @JvmOverloads constructor(
                 }
                 is ApplyPlanResult.Failed -> error.value = result.message
             }
-        }
-    }
-
-    /**
-     * Leaves without a plan, and does not ask again.
-     *
-     * Skipping is a decision, not an accident — someone who wants to build their own routines
-     * has said so, and re-presenting the questionnaire on next launch would be the app refusing
-     * to hear it.
-     */
-    fun skip() {
-        viewModelScope.launch {
-            runCatchingCancellable { container.preferencesRepository.setOnboardingComplete(true) }
-                .onFailure { AppLog.w(TAG, "Marking setup complete failed", it) }
-            _finished.value = true
         }
     }
 

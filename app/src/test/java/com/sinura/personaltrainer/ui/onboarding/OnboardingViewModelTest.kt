@@ -15,7 +15,9 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -74,5 +76,29 @@ class OnboardingViewModelTest {
             "Couldn't load the lift catalog. Try again, or build your own.",
             CATALOG_MISSING_MESSAGE,
         )
+    }
+
+    @Test
+    fun backOnForkWithAnExistingProgramRestoresTheAppGate() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps.routineRepository.create("Upper")
+        deps.preferencesRepository.setOnboardingComplete(false)
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+
+        withTimeout(5_000) { viewModel!!.uiState.first { it.existingProgram } }
+        assertFalse(viewModel!!.back())
+        withTimeout(5_000) { deps.preferencesRepository.onboardingComplete.first { it } }
+        assertTrue(viewModel!!.finished.value)
+    }
+
+    @Test
+    fun backOnForkWithNoProgramStaysOnSetup() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+
+        assertFalse(viewModel!!.back())
+        withTimeout(5_000) { viewModel!!.uiState.first { !it.existingProgram } }
+        assertFalse(viewModel!!.finished.value)
+        assertFalse(deps.preferencesRepository.onboardingComplete.first())
     }
 }

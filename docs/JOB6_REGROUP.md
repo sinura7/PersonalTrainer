@@ -204,12 +204,12 @@ One packet, one `cursor/<slug>-0ecb` branch, one squash-merge into
 throw. `docs/ROADMAP.md` may move a few lines; do not restack Kotlin
 files. Do not open P1–P8 in the same PR as each other.
 
-### Leftover P1 — Setup you can leave
+### Leftover P1 — Setup you can leave · **done** (this PR)
 
-**Why.** Settings → Rebuild my plan sets `onboardingComplete=false`.
-Back on the fork calls `onFinished()`, which AppNav wires as `{}`.
-The gate stays SETUP. `SettingsViewModel.rerunGuidedSetup` already
-claims backing out is safe. It is not.
+**Why.** Settings → Add a new block set `onboardingComplete=false`.
+Back on the fork called `onFinished()`, which AppNav wired as `{}`.
+The gate stayed SETUP. Closed: fork back with an existing program
+restores complete. The row no longer says rebuild.
 
 **Work.** Fork back with `existingProgram`: restore complete and
 finish. First install stays on the fork. Custom-week back still
@@ -393,7 +393,7 @@ If any gate fails, write the finding here. That packet jumps the queue.
 - [ ] Historical P2 week-verb language (only if the phone confirms)
 - [x] P3 notification sentence
 - [x] P4 setup intuition (questionnaire + build-your-own week)
-- [ ] Leftover P1 — setup you can leave
+- [x] Leftover P1 — setup you can leave
 - [ ] Leftover P2 — bodyweight is opt-in
 - [ ] Leftover P3 — custom week keeps the questionnaire
 - [ ] Leftover P4 — places tell the truth
