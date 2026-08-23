@@ -1,5 +1,9 @@
 # Hierarchy plan — 20 August 2026
 
+> **Banner (23 Aug 2026).** D1 is four tabs (Home · Body · Plan · History).
+> Library is a pushed route. This file's five-tab punchline is the
+> audit of the proposal, not the shipping IA.
+
 The owner asked for a five-tab hierarchy (Home, Body, Routines, Library, History), a
 Home reworked into an overview page, a Body page with a heat-mapped silhouette and an AI
 trainer, a Routines page that also allocates days, a ~100-exercise library with images and
