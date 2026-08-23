@@ -9,12 +9,12 @@ This packet is the plan. No Kotlin. No Gradle. No assets.
 
 ---
 
-## Where we stand (23 Aug 2026, `trunk` @ `db787f5`)
+## Where we stand (23 Aug 2026, `trunk` @ `922d365`)
 
 Temper is a **four-tab strength logger** that can generate a week,
 log a session, rest, finish, repair history, and survive a restore.
-Jobs 1–5 are **code-done on `trunk`**. Job 6 P0, P1, and P3 are on
-`trunk`. P1 is closed: `ci.yml` lists `trunk`. We still do not use
+Jobs 1–5 are **code-done on `trunk`**. Job 6 P0, P1, P3, and P4 are
+on `trunk`. P1 is closed: `ci.yml` lists `trunk`. We still do not use
 GitHub runners to test.
 
 The gym-floor sentence now:
@@ -174,7 +174,7 @@ deep-link in the sentence.
 **Won't.** A settings deep-link as a substitute for the sentence
 (the banner after denial already exists). A sound library. Overlay.
 
-### P4 — Setup a stranger can finish · **this packet**
+### P4 — Setup a stranger can finish · **done** (merged · phone pending)
 
 **Goal.** Both forks of "Let's get you training" feel like Temper:
 guided questions that look like a readout, and a week you build by
@@ -223,5 +223,5 @@ If any gate fails, write the finding here. That packet jumps the queue.
 - [ ] Owner phone week
 - [ ] P2 week-verb language (only if the phone confirms)
 - [x] P3 notification sentence
-- [ ] P4 setup intuition (questionnaire + build-your-own week)
+- [x] P4 setup intuition (questionnaire + build-your-own week)
 - [ ] Signed won'ts still won't
