@@ -256,11 +256,12 @@ week. Per-day gym vs home scheduling.
 hold those answers. Fork-only custom week still does not invent a
 goal.
 
-### Leftover P4 — Places tell the truth
+### Leftover P4 — Places tell the truth · **done** (this PR)
 
 **Why.** Mix UI is real for home+bodyweight (union). Gym in the set
-still means full kit via `TrainingPlace.equipmentOf`. Copy says gym
-days and home days both count. Generation does not split by place.
+still means full kit via `TrainingPlace.equipmentOf`. Copy used to
+say gym days and home days both count. Closed: gym covers every
+lift; home+bodyweight mix only with no gym.
 
 **Work.** Keep gym-swallow. Blurb and mix caption: gym covers every
 lift; home and bodyweight mix only when there is no gym. Optional:
@@ -396,7 +397,7 @@ If any gate fails, write the finding here. That packet jumps the queue.
 - [x] Leftover P1 — setup you can leave
 - [x] Leftover P2 — bodyweight is opt-in
 - [x] Leftover P3 — custom week keeps the questionnaire
-- [ ] Leftover P4 — places tell the truth
+- [x] Leftover P4 — places tell the truth
 - [ ] Leftover P5 — controls fit a phone
 - [ ] Leftover P6 — compact rows can set load
 - [ ] Leftover P7 — confirm honesty
