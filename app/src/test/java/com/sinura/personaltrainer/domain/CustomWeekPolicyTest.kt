@@ -92,6 +92,31 @@ class CustomWeekPolicyTest {
         )
     }
 
+    @Test
+    fun updateTargetsWritesLoad() {
+        val lifts = listOf(lift("a", squat))
+        val updated = CustomWeekPolicy.updateTargets(
+            lifts,
+            itemId = "a",
+            sets = 5,
+            reps = 5,
+            restSeconds = 180,
+            weightKg = 80.0,
+        )
+        assertEquals(80.0, updated.single().targetWeightKg!!, 0.001)
+        assertEquals(5, updated.single().targetSets)
+        val cleared = CustomWeekPolicy.updateTargets(
+            updated,
+            itemId = "a",
+            sets = null,
+            reps = null,
+            restSeconds = null,
+            weightKg = null,
+        )
+        assertEquals(null, cleared.single().targetWeightKg)
+        assertEquals(5, cleared.single().targetSets)
+    }
+
     private fun lift(id: String, exercise: Exercise) = CustomWeekLift(
         id = id,
         exercise = exercise,

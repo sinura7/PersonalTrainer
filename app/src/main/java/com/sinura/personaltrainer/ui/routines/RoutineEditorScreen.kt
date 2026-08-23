@@ -152,6 +152,7 @@ fun RoutineEditorScreen(
                         sets = item.targetSets,
                         reps = item.targetReps,
                         restSeconds = item.restSeconds,
+                        targetWeightKg = item.targetWeightKg,
                         canMoveUp = index > 0,
                         canMoveDown = index < exercises.lastIndex,
                         expanded = expandedLiftId == item.id,
@@ -164,8 +165,8 @@ fun RoutineEditorScreen(
                         } else {
                             null
                         },
-                        onStageTargets = { sets, reps, rest ->
-                            viewModel.stageTargets(item.id, sets, reps, item.targetWeightKg, rest)
+                        onStageTargets = { sets, reps, rest, kg ->
+                            viewModel.stageTargets(item.id, sets, reps, kg, rest)
                         },
                         onCommitTargets = { viewModel.commitTargets(item.id) },
                         modifier = Modifier.animateItem(),

@@ -242,6 +242,30 @@ class OnboardingApplierTest {
     }
 
     @Test
+    fun aCustomWeekStoresTheTargetWeight() = runBlocking {
+        val squat = catalog.first { it.movementKey == "squat" }
+        val result = applier.applyCustom(
+            days = mapOf(
+                DayOfWeek.MONDAY to listOf(
+                    CustomWeekLift(
+                        id = "lift-1",
+                        exercise = squat,
+                        targetSets = 3,
+                        targetReps = 5,
+                        restSeconds = 150,
+                        targetWeightKg = 80.0,
+                    ),
+                ),
+            ),
+            weekStart = WEEK_START,
+            today = TODAY,
+        )
+        assertTrue(result is ApplyPlanResult.Applied)
+        val routine = routines.getById(schedule.slots().first().routineId!!)!!
+        assertEquals(80.0, routine.exercises.first().targetWeightKg!!, 0.001)
+    }
+
+    @Test
     fun aCustomWeekFromGuidedKeepsTheQuestionnaire() = runBlocking {
         val squat = catalog.first { it.movementKey == "squat" }
         val guided = answers(

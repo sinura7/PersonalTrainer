@@ -212,10 +212,10 @@ class CustomWeekViewModel @JvmOverloads constructor(
         days.value = days.value + (day to days.value[day].orEmpty().filterNot { it.id == itemId })
     }
 
-    fun stageTargets(itemId: String, sets: Int?, reps: Int?, rest: Int?) {
+    fun stageTargets(itemId: String, sets: Int?, reps: Int?, rest: Int?, weightKg: Double?) {
         val day = selectedDay.value
         days.value = days.value + (
-            day to CustomWeekPolicy.updateTargets(days.value[day].orEmpty(), itemId, sets, reps, rest)
+            day to CustomWeekPolicy.updateTargets(days.value[day].orEmpty(), itemId, sets, reps, rest, weightKg)
             )
     }
 

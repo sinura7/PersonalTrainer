@@ -288,7 +288,7 @@ custom week strip: two-letter labels via `shortLabel()`, min height
 **Gate.** All seven day-count chips and all seven weekdays remain
 tappable at default font; two-letter labels readable.
 
-### Leftover P6 — Compact rows can set load
+### Leftover P6 — Compact rows can set load · **done** (this PR)
 
 **Why.** Compact expanded is sets/reps/rest only. Routine editor
 still stages `targetWeightKg`; custom week always writes `null`.
@@ -399,7 +399,7 @@ If any gate fails, write the finding here. That packet jumps the queue.
 - [x] Leftover P3 — custom week keeps the questionnaire
 - [x] Leftover P4 — places tell the truth
 - [x] Leftover P5 — controls fit a phone
-- [ ] Leftover P6 — compact rows can set load
+- [x] Leftover P6 — compact rows can set load
 - [ ] Leftover P7 — confirm honesty
 - [ ] Leftover P8 — small polish plus dead code
 - [ ] Signed won'ts still won't
