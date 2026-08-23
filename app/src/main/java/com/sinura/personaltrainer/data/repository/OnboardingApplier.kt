@@ -147,13 +147,15 @@ class OnboardingApplier(
     /**
      * Writes a week the lifter built by hand.
      *
-     * Same stores as [apply], minus the questionnaire answers they never gave. Days, split
-     * and the block are still written — without them Home has routines it cannot start.
+     * Same stores as [apply]. Questionnaire fields are written only when [answers] is
+     * non-null — the preview path that already asked them. Fork-only custom week does
+     * not invent a goal.
      */
     suspend fun applyCustom(
         days: Map<DayOfWeek, List<CustomWeekLift>>,
         weekStart: DayOfWeek,
         today: LocalDate,
+        answers: OnboardingAnswers? = null,
     ): ApplyPlanResult {
         if (!CustomWeekPolicy.canConfirm(days)) {
             return ApplyPlanResult.Failed("Add at least one lift to a day.")
@@ -163,6 +165,17 @@ class OnboardingApplier(
             preferencesRepository.setTrainingDaysPerWeek(trainingDays)
             preferencesRepository.setSplitStyle(SplitStyle.CUSTOM)
             preferencesRepository.setPreferredDays(days.filter { it.value.isNotEmpty() }.keys)
+            answers?.sanitized()?.let { clean ->
+                val coach = clean.coachPreferences()
+                preferencesRepository.setTrainingGoal(coach.goal)
+                preferencesRepository.setTrainingEmphasis(coach.emphasis)
+                preferencesRepository.setAvailableEquipment(coach.availableEquipment)
+                preferencesRepository.setTrainingAge(clean.trainingAge)
+                preferencesRepository.setTrainingPlaces(clean.resolvedPlaces())
+                clean.bodyweightKg?.let { kg ->
+                    preferencesRepository.recordBodyweight(kg, today.toEpochDay())
+                }
+            }
             preferencesRepository.beginBlock(
                 next = TrainingBlock.startingIn(today = today, weekStart = weekStart),
                 todayEpochDay = today.toEpochDay(),

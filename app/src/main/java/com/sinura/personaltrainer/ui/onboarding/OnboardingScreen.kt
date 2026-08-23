@@ -87,7 +87,7 @@ import java.time.DayOfWeek
 @Composable
 fun OnboardingScreen(
     onFinished: () -> Unit,
-    onBuildMyOwn: (preferredDays: Set<DayOfWeek>) -> Unit,
+    onBuildMyOwn: (answers: OnboardingAnswers?, weightUnit: WeightUnit?) -> Unit,
     viewModel: OnboardingViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -121,7 +121,7 @@ fun OnboardingScreen(
             when (state.step) {
                 OnboardingStep.FORK -> ForkStep(
                     onGuided = viewModel::beginGuided,
-                    onOwn = { onBuildMyOwn(emptySet()) },
+                    onOwn = { onBuildMyOwn(null, null) },
                 )
                 OnboardingStep.EXPERIENCE -> ExperienceStep(
                     selected = state.answers.trainingAge,
@@ -170,7 +170,7 @@ fun OnboardingScreen(
                 OnboardingStep.PREVIEW -> PreviewStep(
                     state = state,
                     onApply = viewModel::applyPlan,
-                    onOwn = { onBuildMyOwn(state.answers.preferredDays) },
+                    onOwn = { onBuildMyOwn(state.answers, state.weightUnit) },
                 )
             }
         }

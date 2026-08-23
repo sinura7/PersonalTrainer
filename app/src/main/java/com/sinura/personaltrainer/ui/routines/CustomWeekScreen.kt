@@ -33,6 +33,10 @@ import androidx.compose.ui.draw.clip
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.shortLabel
+import com.sinura.personaltrainer.domain.CustomWeekDayMark
+import com.sinura.personaltrainer.domain.CustomWeekPolicy
+import com.sinura.personaltrainer.domain.OnboardingAnswers
+import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
@@ -57,14 +61,16 @@ fun CustomWeekScreen(
     onFinished: () -> Unit,
     onBack: () -> Unit,
     preferredDays: Set<DayOfWeek> = emptySet(),
+    answers: OnboardingAnswers? = null,
+    pendingWeightUnit: WeightUnit? = null,
     viewModel: CustomWeekViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val finished by viewModel.finished.collectAsStateWithLifecycle()
     var expandedId by rememberSaveable { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(preferredDays) {
-        viewModel.seedPreferredDays(preferredDays)
+    LaunchedEffect(preferredDays, answers, pendingWeightUnit) {
+        viewModel.seedFromGuided(preferredDays, answers, pendingWeightUnit)
     }
     LaunchedEffect(finished) {
         if (finished) onFinished()
@@ -108,6 +114,7 @@ fun CustomWeekScreen(
                 weekStart = state.weekStart,
                 selected = state.selectedDay,
                 filled = state.days.filter { it.value.isNotEmpty() }.keys,
+                preferred = state.preferredDays,
                 onSelect = viewModel::selectDay,
             )
             state.error?.let { GymErrorBanner(it) }
@@ -198,6 +205,7 @@ private fun WeekDayStrip(
     weekStart: DayOfWeek,
     selected: DayOfWeek,
     filled: Set<DayOfWeek>,
+    preferred: Set<DayOfWeek>,
     onSelect: (DayOfWeek) -> Unit,
 ) {
     val ordered = (0 until 7).map { weekStart.plus(it.toLong()) }
@@ -207,7 +215,7 @@ private fun WeekDayStrip(
     ) {
         ordered.forEach { day ->
             val on = day == selected
-            val hasWork = day in filled
+            val mark = CustomWeekPolicy.dayMark(day, filled, preferred)
             val shape = RoundedCornerShape(Radius.xs)
             Column(
                 modifier = Modifier
@@ -232,13 +240,19 @@ private fun WeekDayStrip(
                     modifier = Modifier
                         .padding(top = Metrics.space1)
                         .clip(shape)
-                        .background(if (hasWork) Volt else Hairline)
+                        .background(
+                            when (mark) {
+                                CustomWeekDayMark.FILLED -> Volt
+                                CustomWeekDayMark.PREFERRED -> VoltDim
+                                CustomWeekDayMark.EMPTY -> Hairline
+                            },
+                        )
                         .padding(horizontal = Metrics.space2, vertical = Metrics.space1),
                 ) {
                     Text(
-                        if (hasWork) "•" else " ",
+                        if (mark == CustomWeekDayMark.EMPTY) " " else "•",
                         style = InstrumentType.caption,
-                        color = if (hasWork) Pit else TextTertiary,
+                        color = if (mark == CustomWeekDayMark.FILLED) Pit else TextTertiary,
                     )
                 }
             }

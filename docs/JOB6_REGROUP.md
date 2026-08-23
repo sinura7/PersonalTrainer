@@ -238,12 +238,11 @@ Keep the live hero numeral.
 stored. Flick once, Continue, kg stored. Toggle lbs then abandon,
 stored unit unchanged.
 
-### Leftover P3 — Custom week keeps the questionnaire
+### Leftover P3 — Custom week keeps the questionnaire · **done** (this PR)
 
-**Why.** Preview → I'll build my own drops age, places, kit, goal,
-emphasis, bodyweight. `applyCustom` writes days/split/preferredDays
-/block/complete only. Replay then guesses NEW / gym / general.
-`seedPreferredDays` only moves `selectedDay`.
+**Why.** Preview → I'll build my own dropped age, places, kit, goal,
+emphasis, bodyweight. Closed: `applyCustom` writes those fields when
+answers are passed. Fork-only custom week still omits them.
 
 **Work.** Pass optional `OnboardingAnswers` into `applyCustom`.
 Fork-only custom week still omits them. Hold answers when leaving
@@ -396,7 +395,7 @@ If any gate fails, write the finding here. That packet jumps the queue.
 - [x] P4 setup intuition (questionnaire + build-your-own week)
 - [x] Leftover P1 — setup you can leave
 - [x] Leftover P2 — bodyweight is opt-in
-- [ ] Leftover P3 — custom week keeps the questionnaire
+- [x] Leftover P3 — custom week keeps the questionnaire
 - [ ] Leftover P4 — places tell the truth
 - [ ] Leftover P5 — controls fit a phone
 - [ ] Leftover P6 — compact rows can set load

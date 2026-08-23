@@ -247,6 +247,42 @@ data class OnboardingAnswers(
         ).sanitized()
 
         /**
+         * Compact encoding so AppNav can hold guided answers across the custom-week fork.
+         *
+         * Empty string is fork-only: no questionnaire to keep.
+         */
+        fun encodeDraft(answers: OnboardingAnswers): String {
+            val clean = answers.sanitized()
+            return listOf(
+                clean.trainingAge.name,
+                clean.daysPerWeek.toString(),
+                clean.preferredDays.sorted().joinToString(",") { it.name },
+                TrainingPlace.formatPlaces(clean.resolvedPlaces()),
+                clean.goal.name,
+                clean.emphasis.name,
+                clean.bodyweightKg?.toString().orEmpty(),
+            ).joinToString("|")
+        }
+
+        fun decodeDraft(raw: String): OnboardingAnswers? {
+            if (raw.isBlank()) return null
+            val parts = raw.split('|')
+            if (parts.size < 7) return null
+            return fromStored(
+                trainingAge = TrainingAge.fromStorage(parts[0]),
+                daysPerWeek = parts[1].toIntOrNull() ?: SchedulePreferences.DEFAULT_DAYS,
+                preferredDays = parts[2].split(',')
+                    .mapNotNull { token -> DayOfWeek.entries.firstOrNull { it.name == token } }
+                    .toSet(),
+                place = TrainingPlace.fromStorage(parts[3]),
+                goal = TrainingGoal.fromStorage(parts[4]),
+                emphasis = TrainingEmphasis.fromStorage(parts[5]),
+                bodyweightKg = parts[6].toDoubleOrNull(),
+                places = TrainingPlace.parsePlaces(parts[3]),
+            )
+        }
+
+        /**
          * Best-effort place from the kit filter. Empty means "no filtering" in
          * [CoachPreferences], which is how a full gym is stored — not "owns nothing".
          */

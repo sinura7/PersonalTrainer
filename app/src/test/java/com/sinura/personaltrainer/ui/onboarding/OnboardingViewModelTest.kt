@@ -43,6 +43,7 @@ class OnboardingViewModelTest {
         viewModel?.clearForTest()
         viewModel = null
         if (::deps.isInitialized) deps.close()
+        dispatcher.scheduler.advanceUntilIdle()
         Dispatchers.resetMain()
     }
 
@@ -88,8 +89,9 @@ class OnboardingViewModelTest {
 
         withTimeout(5_000) { viewModel!!.uiState.first { it.existingProgram } }
         assertFalse(viewModel!!.back())
+        withTimeout(5_000) { viewModel!!.finished.first { it } }
         withTimeout(5_000) { deps.preferencesRepository.onboardingComplete.first { it } }
-        assertTrue(viewModel!!.finished.value)
+        Unit
     }
 
     @Test

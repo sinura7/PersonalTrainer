@@ -11,7 +11,9 @@ import com.sinura.personaltrainer.domain.CustomWeekLift
 import com.sinura.personaltrainer.domain.CustomWeekPolicy
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.MuscleGroups
+import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.SchedulePreferences
+import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
 import com.sinura.personaltrainer.util.runCatchingCancellable
@@ -35,6 +37,7 @@ data class CustomWeekUiState(
     val selectedDay: DayOfWeek = DayOfWeek.MONDAY,
     val days: Map<DayOfWeek, List<CustomWeekLift>> = emptyMap(),
     val weekStart: DayOfWeek = SchedulePreferences.DEFAULT_WEEK_START,
+    val preferredDays: Set<DayOfWeek> = emptySet(),
     val searchQuery: String = "",
     val searchResults: List<Exercise> = emptyList(),
     val catalog: List<Exercise> = emptyList(),
@@ -53,35 +56,41 @@ class CustomWeekViewModel @JvmOverloads constructor(
     application: Application,
     container: AppDependencies = application.appContainer(),
 ) : AppViewModel(application, container) {
-    private val selectedDay = MutableStateFlow(DayOfWeek.MONDAY)
+    private val selectedDay = MutableStateFlow(SchedulePreferences.DEFAULT_WEEK_START)
     private val days = MutableStateFlow<Map<DayOfWeek, List<CustomWeekLift>>>(emptyMap())
     private val weekStart = MutableStateFlow(SchedulePreferences.DEFAULT_WEEK_START)
+    private val preferredDays = MutableStateFlow<Set<DayOfWeek>>(emptySet())
     private val searchQuery = MutableStateFlow("")
     private val showPicker = MutableStateFlow(false)
     private val pendingAddIds = MutableStateFlow<Set<String>>(emptySet())
     private val applying = MutableStateFlow(false)
     private val error = MutableStateFlow<String?>(null)
     private val catalog = MutableStateFlow<List<Exercise>>(emptyList())
+    private var guidedAnswers: OnboardingAnswers? = null
+    private var pendingWeightUnit: WeightUnit? = null
+    private var userPickedDay = false
 
     private val resultsFlow = searchQuery.flatMapLatest { query ->
         container.exerciseRepository.search(query)
     }
 
     val uiState: StateFlow<CustomWeekUiState> = combine(
-        combine(selectedDay, days, weekStart, searchQuery, resultsFlow) { day, draft, start, query, results ->
-            WeekCore(day, draft, start, query, results)
+        combine(selectedDay, days, weekStart, preferredDays, searchQuery) { day, draft, start, preferred, query ->
+            WeekCore(day, draft, start, preferred, query)
         },
-        combine(showPicker, pendingAddIds, applying, error, catalog) { picker, pending, busy, err, lifts ->
-            WeekExtras(picker, pending, busy, err, lifts)
+        combine(resultsFlow, showPicker, pendingAddIds, applying, error) { results, picker, pending, busy, err ->
+            WeekExtras(results, picker, pending, busy, err)
         },
-    ) { core, extras ->
+        catalog,
+    ) { core, extras, lifts ->
         CustomWeekUiState(
             selectedDay = core.selectedDay,
             days = core.days,
             weekStart = core.weekStart,
+            preferredDays = core.preferredDays,
             searchQuery = core.query,
-            searchResults = core.results,
-            catalog = extras.catalog,
+            searchResults = extras.results,
+            catalog = lifts,
             showPicker = extras.showPicker,
             pendingAddIds = extras.pendingAddIds,
             applying = extras.applying,
@@ -113,20 +122,34 @@ class CustomWeekViewModel @JvmOverloads constructor(
                 .catch { thrown ->
                     AppLog.w(TAG, "Reading week start failed", thrown)
                 }
-                .collect { weekStart.value = it.weekStart }
+                .collect { preferences ->
+                    weekStart.value = preferences.weekStart
+                    if (!userPickedDay) {
+                        selectedDay.value = CustomWeekPolicy.initialSelectedDay(
+                            preferences.weekStart,
+                            preferredDays.value,
+                        )
+                    }
+                }
         }
     }
 
     fun selectDay(day: DayOfWeek) {
+        userPickedDay = true
         selectedDay.value = day
     }
 
-    fun seedPreferredDays(preferred: Set<DayOfWeek>) {
-        if (preferred.isEmpty()) return
-        val start = weekStart.value
-        selectedDay.value = (0 until 7).map { start.plus(it.toLong()) }
-            .firstOrNull { it in preferred }
-            ?: preferred.first()
+    fun seedFromGuided(
+        preferred: Set<DayOfWeek>,
+        answers: OnboardingAnswers?,
+        unit: WeightUnit?,
+    ) {
+        guidedAnswers = answers
+        pendingWeightUnit = unit
+        preferredDays.value = preferred
+        if (!userPickedDay) {
+            selectedDay.value = CustomWeekPolicy.initialSelectedDay(weekStart.value, preferred)
+        }
     }
 
     fun setPickerVisible(visible: Boolean) {
@@ -204,10 +227,15 @@ class CustomWeekViewModel @JvmOverloads constructor(
                 days = days.value,
                 weekStart = weekStart.value,
                 today = LocalDate.now(),
+                answers = guidedAnswers,
             )
             applying.value = false
             when (result) {
                 is ApplyPlanResult.Applied -> {
+                    pendingWeightUnit?.let { unit ->
+                        runCatchingCancellable { container.preferencesRepository.setWeightUnit(unit) }
+                            .onFailure { AppLog.w(TAG, "Saving the weight unit failed", it) }
+                    }
                     error.value = null
                     _finished.value = true
                 }
@@ -220,15 +248,15 @@ class CustomWeekViewModel @JvmOverloads constructor(
         val selectedDay: DayOfWeek,
         val days: Map<DayOfWeek, List<CustomWeekLift>>,
         val weekStart: DayOfWeek,
+        val preferredDays: Set<DayOfWeek>,
         val query: String,
-        val results: List<Exercise>,
     )
 
     private data class WeekExtras(
+        val results: List<Exercise>,
         val showPicker: Boolean,
         val pendingAddIds: Set<String>,
         val applying: Boolean,
         val error: String?,
-        val catalog: List<Exercise>,
     )
 }
