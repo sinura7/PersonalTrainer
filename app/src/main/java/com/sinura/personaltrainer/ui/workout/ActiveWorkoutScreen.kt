@@ -75,6 +75,7 @@ import com.sinura.personaltrainer.domain.ProgressionCopy
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RestNotificationCopy
 import com.sinura.personaltrainer.domain.RestTimer
+import com.sinura.personaltrainer.domain.RpeCopy
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.SessionExercise
@@ -96,7 +97,6 @@ import com.sinura.personaltrainer.ui.components.NotesBlock
 import com.sinura.personaltrainer.ui.components.PersonalRecordBanner
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.RestDock
-import com.sinura.personaltrainer.ui.components.RestIdleRow
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SetEntryPanel
 import com.sinura.personaltrainer.ui.components.glyphFor
@@ -300,6 +300,9 @@ fun ActiveWorkoutScreen(
                         running = rest.running,
                         onSkip = viewModel::skipRest,
                         onAdjust = viewModel::adjustRest,
+                        onSelectPreset = viewModel::selectRestDuration,
+                        onCustom = viewModel::selectCustomRest,
+                        onStart = viewModel::startSelectedRest,
                     )
 
                     LazyColumn(
@@ -426,15 +429,6 @@ fun ActiveWorkoutScreen(
                                     onWarmup = viewModel::setWarmup,
                                     onRpe = viewModel::setRpe,
                                 )
-                            }
-                            if (!rest.running) {
-                                item(key = "rest-idle") {
-                                    RestIdleRow(
-                                        totalSeconds = rest.totalSeconds,
-                                        onPreset = viewModel::startPreset,
-                                        onCustom = viewModel::startCustom,
-                                    )
-                                }
                             }
                             item(key = "sets-label") { Kicker("Sets") }
                             items(loggedForSelected, key = { it.id }) { set ->
@@ -939,27 +933,34 @@ private fun SecondaryLogOptions(
     onWarmup: (Boolean) -> Unit,
     onRpe: (Int?) -> Unit,
 ) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        item(key = "warmup") {
-            InstrumentChip(
-                label = "Warm-up",
-                selected = warmup,
-                onClick = { onWarmup(!warmup) },
-            )
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            item(key = "warmup") {
+                InstrumentChip(
+                    label = "Warm-up",
+                    selected = warmup,
+                    onClick = { onWarmup(!warmup) },
+                )
+            }
+            item(key = "rpe-label") {
+                Kicker("RPE", modifier = Modifier.padding(horizontal = Metrics.space2))
+            }
+            items((6..10).toList()) { value ->
+                InstrumentChip(
+                    label = value.toString(),
+                    selected = rpe == value,
+                    onClick = { onRpe(if (rpe == value) null else value) },
+                )
+            }
         }
-        item(key = "rpe-label") {
-            Kicker("RPE", modifier = Modifier.padding(horizontal = Metrics.space2))
-        }
-        items((6..10).toList()) { value ->
-            InstrumentChip(
-                label = value.toString(),
-                selected = rpe == value,
-                onClick = { onRpe(if (rpe == value) null else value) },
-            )
-        }
+        Text(
+            RpeCopy.BLURB,
+            style = InstrumentType.caption,
+            color = TextTertiary,
+        )
     }
 }
 

@@ -83,4 +83,21 @@ object RestTimer {
         return (fromExercise ?: fromLast ?: fromDefault)
             .coerceIn(RestTimerPreferences.MIN_SECONDS, RestTimerPreferences.MAX_SECONDS)
     }
+
+    /**
+     * Rest follows a working set that still has work after it.
+     *
+     * Warm-ups do not start the clock. The last prescribed working set of a lift
+     * does not either — that lift is done, and the next rest is a choice on the dock.
+     * A free lift with no target still rests after every working set.
+     */
+    fun shouldStartAfterLog(
+        isWarmup: Boolean,
+        workingSetsAfterLog: Int,
+        targetSets: Int,
+    ): Boolean {
+        if (isWarmup) return false
+        if (targetSets > 0 && workingSetsAfterLog >= targetSets) return false
+        return true
+    }
 }

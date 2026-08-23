@@ -21,6 +21,7 @@ import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RestTimer
+import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
@@ -737,7 +738,22 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                             reps = current.reps,
                         )
                     }
-                    if (!current.isWarmup) {
+                    val previousWorking = session.value
+                        ?.sets
+                        ?.count { it.exerciseId == exerciseId && !it.isWarmup }
+                        ?: 0
+                    val workingAfter = previousWorking + if (current.isWarmup) 0 else 1
+                    val targetSets = session.value
+                        ?.exercises
+                        ?.firstOrNull { it.exercise.id == exerciseId }
+                        ?.targetSets
+                        ?: 0
+                    if (RestTimer.shouldStartAfterLog(
+                            isWarmup = current.isWarmup,
+                            workingSetsAfterLog = workingAfter,
+                            targetSets = targetSets,
+                        )
+                    ) {
                         startRestAfterSet()
                     }
                 }
@@ -834,18 +850,29 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         restTimer.adjust(deltaSeconds)
     }
 
-    fun startPreset(seconds: Int) {
+    /** Names the next rest. Does not start the clock. */
+    fun selectRestDuration(seconds: Int) {
+        restTotal.value = seconds
         viewModelScope.launch {
             container.preferencesRepository.setLastRestPresetSeconds(seconds)
-            restTotal.value = seconds
-            restTimer.start(seconds, sessionId)
         }
     }
 
-    fun startCustom(input: String): Boolean {
+    fun selectCustomRest(input: String): Boolean {
         val seconds = RestTimer.parseCustom(input) ?: return false
-        startPreset(seconds)
+        selectRestDuration(seconds)
         return true
+    }
+
+    fun startSelectedRest() {
+        val seconds = restTotal.value.coerceIn(
+            RestTimerPreferences.MIN_SECONDS,
+            RestTimerPreferences.MAX_SECONDS,
+        )
+        viewModelScope.launch {
+            container.preferencesRepository.setLastRestPresetSeconds(seconds)
+            restTimer.start(seconds, sessionId)
+        }
     }
 
     fun applySuggestedWeight() {
@@ -911,16 +938,11 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     private fun startRestAfterSet() {
-        viewModelScope.launch {
-            val prefs = container.preferencesRepository.restTimerPreferences.first()
-            val planned = session.value
-                ?.exercises
-                ?.firstOrNull { it.exercise.id == selectedExerciseId.value }
-                ?.restSeconds
-            val seconds = RestTimer.secondsToStart(planned, prefs)
-            restTotal.value = seconds
-            restTimer.start(seconds, sessionId)
-        }
+        val seconds = restTotal.value.coerceIn(
+            RestTimerPreferences.MIN_SECONDS,
+            RestTimerPreferences.MAX_SECONDS,
+        )
+        restTimer.start(seconds, sessionId)
     }
 
     /** Flushes the debounce tail: leaving must not drop the words typed in the last 400 ms. */

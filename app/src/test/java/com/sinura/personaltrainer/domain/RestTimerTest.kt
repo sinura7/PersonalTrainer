@@ -1,7 +1,9 @@
 package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RestTimerTest {
@@ -62,5 +64,14 @@ class RestTimerTest {
         assertEquals(90, RestTimer.secondsToStart(90, prefs))
         assertEquals(60, RestTimer.secondsToStart(null, prefs))
         assertEquals(120, RestTimer.secondsToStart(0, RestTimerPreferences(defaultRestSeconds = 120)))
+    }
+
+    @Test
+    fun restStartsAfterWorkingSetsUntilTheLiftIsDone() {
+        assertFalse(RestTimer.shouldStartAfterLog(isWarmup = true, workingSetsAfterLog = 1, targetSets = 4))
+        assertTrue(RestTimer.shouldStartAfterLog(isWarmup = false, workingSetsAfterLog = 1, targetSets = 4))
+        assertTrue(RestTimer.shouldStartAfterLog(isWarmup = false, workingSetsAfterLog = 3, targetSets = 4))
+        assertFalse(RestTimer.shouldStartAfterLog(isWarmup = false, workingSetsAfterLog = 4, targetSets = 4))
+        assertTrue(RestTimer.shouldStartAfterLog(isWarmup = false, workingSetsAfterLog = 1, targetSets = 0))
     }
 }
