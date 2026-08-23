@@ -197,9 +197,10 @@ catalog seed stay signed won't. Packets, gates, won'ts:
 [JOB5_ACTION_PLAN.md](JOB5_ACTION_PLAN.md).
 
 **Job 6 (in flight).** Regroup. The product is the four-tab logger.
-Next work is phone truth, CI `trunk`, and week-verb language — not
-another feature pile. Packets, gates, won'ts:
-[JOB6_REGROUP.md](JOB6_REGROUP.md).
+P0 paper and P3 (one sentence before the rest-permission dialog)
+are on `trunk`. Next is phone truth, CI `trunk` (Studio), and
+week-verb language only if the phone confirms the cliff. Packets,
+gates, won'ts: [JOB6_REGROUP.md](JOB6_REGROUP.md).
 
 **Review baseline (22 Aug 2026).** Full-tree audit after Job 2 landed on `trunk`.
 No open PRs. Q4 onboarding ANR on the cloud emulator is environment — `setPlace`

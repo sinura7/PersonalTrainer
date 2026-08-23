@@ -9,18 +9,21 @@ This packet is the plan. No Kotlin. No Gradle. No assets.
 
 ---
 
-## Where we stand (22 Aug 2026, `trunk` @ `291d21b`)
+## Where we stand (23 Aug 2026, `trunk` @ `c025570`)
 
 Temper is a **four-tab strength logger** that can generate a week,
 log a session, rest, finish, repair history, and survive a restore.
-Jobs 1–5 are **code-done on `trunk`**. 727 JVM tests, 0 failures.
+Jobs 1–5 are **code-done on `trunk`**. Job 6 P0 is on `trunk`.
+727 JVM tests, 0 failures (before this packet's copy test).
 
 The gym-floor sentence now:
 
 > The week can be started in one tap. The bar names its plates.
 > The rest cue is ours. Large type still logs. Settings nags
-> when the backup is old. The phone has not judged any of that yet.
+> when the backup is old. The first rest-permission ask now has
+> a gym why. The phone has not judged any of that yet.
 > CI still watches a branch that is gone.
+> `trunk` is the only sitting remote.
 
 That is the product. Job 6 does **not** add a fifth surface. It
 makes the existing one simpler to trust.
@@ -63,7 +66,7 @@ makes the existing one simpler to trust.
 | Item | Why it matters | Disposition |
 |---|---|---|
 | Week verbs stack | Suggest / Replay / Tune / Lighter / Use this week / Dismiss live in one place. Four true ideas, similar words. | **P2** if the phone confirms the cliff |
-| Notification permission has no sentence | System dialog appears with no in-app why | **P3** — one line before the dialog |
+| Notification permission has no sentence | System dialog appears with no in-app why | **P3 · this packet** |
 | Library is off-tab | Correct, but first-week users hunt for the catalog | Copy / Plan header is enough. Do not add a fifth tab. |
 | Body vs History | “Did it save?” is History. Body is heat + hole. | A Home tertiary already points at History. Taste. |
 | Untitled routine | A nameless program can be saved | *later* — require a name on leave if the phone hates it |
@@ -156,12 +159,17 @@ four ideas. Do not hide Lighter week.
 
 **Won't.** A fifth tab. A wizard. Auto-scaled deload sets.
 
-### P3 — Why we need the notification · **after P2, or with it if tiny**
+### P3 — Why we need the notification · **this packet**
 
 **Goal.** One in-app sentence before the system permission dialog.
 
+**Work.** `RestNotificationCopy.SENTENCE` in a confirm before
+`POST_NOTIFICATIONS`. Continue launches the system dialog. Not now
+leaves the existing denial banner as the recovery. No settings
+deep-link in the sentence.
+
 **Won't.** A settings deep-link as a substitute for the sentence
-(the banner after denial already exists).
+(the banner after denial already exists). A sound library. Overlay.
 
 ---
 
@@ -197,5 +205,5 @@ If any gate fails, write the finding here. That packet jumps the queue.
 - [ ] P1 `ci.yml` lists `trunk` (Studio)
 - [ ] Owner phone week
 - [ ] P2 week-verb language (only if the phone confirms)
-- [ ] P3 notification sentence
+- [x] P3 notification sentence (this packet)
 - [ ] Signed won'ts still won't

@@ -16,10 +16,14 @@ import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeeklySchedulePlan
+import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.temporal.TemporalAdjusters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -69,10 +73,21 @@ class PlanViewModelTest {
 
         viewModel!!.uiState.first { !it.isLoading }
         viewModel!!.suggestFills()
+        // Suggest re-plans from wall clock and will not propose days already behind
+        // today. On a Sunday of a Mon-start 4-day week that set is empty — waiting
+        // for a non-empty list hangs. The filter still has to hold.
         val proposals = withTimeout(5_000) {
-            viewModel!!.uiState.first { it.proposals.isNotEmpty() }.proposals
+            if (plannerHasARemainingTrainingDay()) {
+                viewModel!!.uiState.first { it.proposals.isNotEmpty() }.proposals
+            } else {
+                delay(1_000)
+                viewModel!!.uiState.value.proposals
+            }
         }
         assertTrue(proposals.all { it.slotId == null && !it.isRest })
+        if (plannerHasARemainingTrainingDay()) {
+            assertTrue(proposals.isNotEmpty())
+        }
     }
 
     @Test
@@ -162,6 +177,15 @@ class PlanViewModelTest {
         assertTrue(proposals.isNotEmpty())
         assertTrue(proposals.all { it.routineId in setOf(upper.id, lower.id) })
         assertFalse(deps.pendingAnswerReplay.value)
+    }
+
+    private fun plannerHasARemainingTrainingDay(): Boolean {
+        val today = LocalDate.now(ZoneId.systemDefault())
+        val prefs = SchedulePreferences.DEFAULT.sanitized()
+        val weekStart = today.with(TemporalAdjusters.previousOrSame(prefs.weekStart))
+        return WeeklySchedulePlanner.trainingDayIndices(prefs.trainingDaysPerWeek)
+            .map { weekStart.plusDays(it.toLong()) }
+            .any { !it.isBefore(today) }
     }
 
     private fun emptyHeat() = BodyHeatSnapshot(
