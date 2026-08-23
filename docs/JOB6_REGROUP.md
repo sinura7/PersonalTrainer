@@ -273,7 +273,7 @@ gym+home filters out machines.
 **Gate.** Home+bodyweight still unions kit, no barbell. Gym+home
 generates a gym program. Screen no longer implies two schedules.
 
-### Leftover P5 — Controls fit a phone
+### Leftover P5 — Controls fit a phone · **done** (this PR)
 
 **Why.** Seven `weight(1f)` chips for 1–7 and seven single-letter
 days will crush in the gutter.
@@ -398,7 +398,7 @@ If any gate fails, write the finding here. That packet jumps the queue.
 - [x] Leftover P2 — bodyweight is opt-in
 - [x] Leftover P3 — custom week keeps the questionnaire
 - [x] Leftover P4 — places tell the truth
-- [ ] Leftover P5 — controls fit a phone
+- [x] Leftover P5 — controls fit a phone
 - [ ] Leftover P6 — compact rows can set load
 - [ ] Leftover P7 — confirm honesty
 - [ ] Leftover P8 — small polish plus dead code
