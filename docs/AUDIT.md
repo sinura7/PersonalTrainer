@@ -1,4 +1,20 @@
-# Audit — 19 August 2026
+# Audits
+
+## Current foundation audit — 23 August 2026
+
+The canonical, repository-contained review of the current app and agreed fitness-platform
+target is [`foundation-audit/README.md`](foundation-audit/README.md). It includes:
+
+- verified build, test, lint, and runtime evidence;
+- every page, state, modal, component, and user journey;
+- architecture and data-flow maps;
+- target capability and public-product comparison;
+- ranked findings with evidence and acceptance criteria.
+
+The review below is preserved as historical context. Its private interactive report is not
+the source of truth for the current tree.
+
+## Historical audit — 19 August 2026
 
 Full-scale review of the app across nine dimensions, with every critical and high-severity
 bug claim independently re-verified against the code. 150 findings.
@@ -12,6 +28,8 @@ Execution plan derived from it — 122 items across 10 workstreams:
 
 > These links are private to the repo owner's Claude account. [ROADMAP.md](ROADMAP.md) is
 > the in-repo summary and is the source of truth for what is actually being built.
+> Counts, grades, and “confirmed” statements below are preserved from that review and were
+> not re-audited as part of the current package.
 
 ## Verdict at the time
 
@@ -36,7 +54,8 @@ Severity spread: 1 critical, 37 high, 76 medium, 36 low.
 ## The three broken promises
 
 1. **The rest timer did not reliably ring in a pocket.** No `AlarmManager`, no wakelock —
-   completion rode a Handler loop that stops when the CPU sleeps. *Fixed in Phase 1a.*
+   completion rode a Handler loop that stops when the CPU sleeps. *Phase 1a added an alarm
+   path, but modern exact-alarm access remains unresolved; see foundation-audit FND-001.*
 2. **Training history had no safety net that did not require Google.** Manual-only backup,
    a single OAuth-bound channel, and a restore that trusted the file blindly — a document
    of `{"version":1}` would have silently erased everything. *Fixed in Phase 1b.*
