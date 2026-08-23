@@ -61,7 +61,6 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.VoltDim
-import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import java.time.DayOfWeek
 
 /**
@@ -163,6 +162,7 @@ fun OnboardingScreen(
                 )
                 OnboardingStep.BODYWEIGHT -> BodyweightStep(
                     answers = state.answers,
+                    unit = state.weightUnit,
                     onSet = viewModel::setBodyweight,
                     onUnitChange = viewModel::setWeightUnit,
                     onNext = viewModel::next,
@@ -412,11 +412,11 @@ private fun WhichDaysStep(
 @Composable
 private fun BodyweightStep(
     answers: OnboardingAnswers,
+    unit: WeightUnit,
     onSet: (Double?) -> Unit,
     onUnitChange: (WeightUnit) -> Unit,
     onNext: () -> Unit,
 ) {
-    val unit = LocalWeightUnit.current
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap)) {
         QuestionTitle(
             "Roughly what do you weigh?",
