@@ -383,6 +383,11 @@ If any gate fails, write the finding here. That packet jumps the queue.
    copy implies two schedules, 1–7 chips crush, compact rows cannot
    set load, seven hard days have no warning. Packets leftover
    P1–P8. Not a fifth tab.
+6. **Phone week, 23 Aug.** RPE chips had no gym sentence. Rest
+   presets lived in the log column and started the clock on tap.
+   The dock now holds next-rest as its own sticky section; logging
+   a working set starts it; the last prescribed set of a lift does
+   not (Start rest is the between-lift tap).
 
 ---
 
@@ -402,4 +407,5 @@ If any gate fails, write the finding here. That packet jumps the queue.
 - [x] Leftover P6 — compact rows can set load
 - [x] Leftover P7 — confirm honesty
 - [x] Leftover P8 — small polish plus dead code
+- [ ] Floor finding — RPE explainer + rest dock (this packet)
 - [ ] Signed won'ts still won't

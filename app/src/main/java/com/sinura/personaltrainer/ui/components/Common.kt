@@ -656,8 +656,8 @@ fun <T> NumberEntryDialog(
  * number they were waiting on left the screen. Here it sits outside the scroll entirely and
  * cannot be lost.
  *
- * Composes to nothing while idle, so the same call site covers all three states: the
- * finished flash still plays because the component stays mounted after the clock stops.
+ * Idle is still this dock: the chips set how long the next rest will be. They do not start
+ * it. Logging a working set starts it. Start rest is for between lifts.
  */
 @Composable
 fun RestDock(
@@ -666,6 +666,9 @@ fun RestDock(
     running: Boolean,
     onSkip: () -> Unit,
     onAdjust: (Int) -> Unit,
+    onSelectPreset: (Int) -> Unit,
+    onCustom: (String) -> Boolean,
+    onStart: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var justFinished by remember { mutableStateOf(false) }
@@ -693,7 +696,23 @@ fun RestDock(
         if (urgent && safeRemaining > 0) Haptics.tick(view)
     }
 
-    if (!running && !justFinished) return
+    if (!running && !justFinished) {
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .background(Surface1)
+                .padding(horizontal = Metrics.space4, vertical = Metrics.space3),
+        ) {
+            RestIdleRow(
+                totalSeconds = totalSeconds,
+                onPreset = onSelectPreset,
+                onCustom = onCustom,
+                onStart = onStart,
+            )
+        }
+        HairlineDivider(startIndent = 0.dp)
+        return
+    }
 
     // Cyan, which the palette defines as "recovery and rest-day identity". Not gold — that
     // means a record broke and nothing else — and not volt, because Home's rest strip already
@@ -751,12 +770,16 @@ fun RestDock(
  *
  * These chips used to stay mounted underneath the running clock, so a countdown was shown
  * with two competing rows of controls beneath it and a mistap silently restarted the timer.
+ * They also used to start the clock. That made picking 1:30 feel like rest had begun before
+ * the set was logged. Now they only name the next rest; Start rest, or logging a working
+ * set, is what starts it.
  */
 @Composable
 fun RestIdleRow(
     totalSeconds: Int,
     onPreset: (Int) -> Unit,
     onCustom: (String) -> Boolean,
+    onStart: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showCustom by rememberSaveable { mutableStateOf(false) }
@@ -769,7 +792,7 @@ fun RestIdleRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Kicker("Rest")
+            Kicker("Next rest")
             Text(
                 RestTimer.formatClock(totalSeconds.coerceAtLeast(0)),
                 style = InstrumentType.numeralMd,
@@ -781,12 +804,18 @@ fun RestIdleRow(
             onSelect = onPreset,
             onCustom = { showCustom = true },
         )
+        RestControl(
+            label = "Start rest",
+            onClick = onStart,
+            modifier = Modifier.fillMaxWidth(),
+            emphasised = true,
+        )
     }
 
     if (showCustom) {
         CustomRestDialog(
             title = "Custom rest",
-            confirmLabel = "Start",
+            confirmLabel = "Set",
             onConfirm = { input ->
                 val ok = onCustom(input)
                 if (ok) showCustom = false
