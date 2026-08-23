@@ -19,7 +19,8 @@ What was left on the cut list was not one product. It was two piles:
 
 1. **Platform leftovers ROADMAP already named and never owned** — rest
    sound *design*, a plate calculator, font-scale 2.0, prompted backup,
-   and CI still listening for `main`.
+   and ~~CI still listening for `main`~~ (`ci.yml` lists `trunk`;
+   hosted runners are not a test lane).
 2. **Signed non-goals** — Room v3, a fifth tab, an LLM, package / Drive
    rename, Job 2 P5 sex, Job 2 P6 catalog seed.
 

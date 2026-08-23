@@ -86,7 +86,7 @@ folded in at the end of a feature phase.
 
 Everything here is a read over the existing schema, so none of it waited on the v1 baseline.
 
-## Phase 4 — Schema v2 · **next**
+## Phase 4 — Schema v2 · **done** (superseded; game-plan Phase 3 shipped it)
 
 > Superseded 20 Aug 2026. The monolithic Phase 4 bundled the migration with behaviour
 > changes this roadmap itself said deserved their own change (see the Phase 3 note above on
@@ -197,28 +197,28 @@ and catalog seed stay signed won't. Packets, gates, won'ts:
 [JOB5_ACTION_PLAN.md](JOB5_ACTION_PLAN.md).
 
 **Job 6 (in flight).** Regroup. The product is the four-tab logger.
-P0 paper, P1 (`ci.yml` lists `trunk`), P3 (one sentence before
-the rest-permission dialog), and P4 (setup intuition) are on
-`trunk`. Next is phone truth, then week-verb language only if the
-phone confirms the cliff. Do not open a CI / billing packet.
-Packets, gates, won'ts:
+Historical P0–P4 (paper, `ci.yml` lists `trunk`, notification
+sentence, setup intuition) are on `trunk`. Leftover setup defects
+are packets P1–P8 — one packet per PR, phone week in parallel.
+Week-verb language (historical P2) only if the phone confirms the
+cliff. Do not open a CI / billing packet. Packets, gates, won'ts:
 [JOB6_REGROUP.md](JOB6_REGROUP.md).
 
 **Review baseline (22 Aug 2026).** Full-tree audit after Job 2 landed on `trunk`.
-No open PRs. Q4 onboarding ANR on the cloud emulator is environment — `setPlace`
-advances. Debug is now `.debug` (Job 3 / P4). Packets from this baseline:
+Closed 22–23 Aug. Do not reopen as live work. Q4 onboarding ANR on the
+cloud emulator is environment. Debug is `.debug` (Job 3 / P4).
 
 | Item | Severity | Packet |
 |---|---|---|
-| Snapshot retry can copy v2 into the v1 rollback folder | P0 | [#17](https://github.com/sinura7/PersonalTrainer/pull/17) |
-| Snapshot treats any dest directory as success | P1 | same |
-| Rest timer `apply()` can lose disk state before the alarm | P1 | [#18](https://github.com/sinura7/PersonalTrainer/pull/18) |
-| `preflight.sh` links Robolectric annotations / junit | P1 | [#19](https://github.com/sinura7/PersonalTrainer/pull/19) |
+| ~~Snapshot retry can copy v2 into the v1 rollback folder~~ | ~~P0~~ | merged [#17](https://github.com/sinura7/PersonalTrainer/pull/17) |
+| ~~Snapshot treats any dest directory as success~~ | ~~P1~~ | same |
+| ~~Rest timer `apply()` can lose disk state before the alarm~~ | ~~P1~~ | merged [#18](https://github.com/sinura7/PersonalTrainer/pull/18) |
+| ~~`preflight.sh` links Robolectric annotations / junit~~ | ~~P1~~ | merged [#19](https://github.com/sinura7/PersonalTrainer/pull/19) |
 | ~~CI `on.push` still lists `main`, not `trunk`~~ | ~~P1~~ | done 23 Aug — `db787f5`. Hosted runners are not a test lane. |
-| Suggest stays up on a fully pinned week | P2 | [#20](https://github.com/sinura7/PersonalTrainer/pull/20) |
-| Planner still listens for deleted `recovery-upper` | P2 | [#21](https://github.com/sinura7/PersonalTrainer/pull/21) |
-| Setup preview has no catalog-empty error | P3 | [#22](https://github.com/sinura7/PersonalTrainer/pull/22) |
-| `DEVELOPMENT.md` still says `2.json` is uncommitted | P2 | [#23](https://github.com/sinura7/PersonalTrainer/pull/23) |
+| ~~Suggest stays up on a fully pinned week~~ | ~~P2~~ | merged [#20](https://github.com/sinura7/PersonalTrainer/pull/20) |
+| ~~Planner still listens for deleted `recovery-upper`~~ | ~~P2~~ | merged [#21](https://github.com/sinura7/PersonalTrainer/pull/21) |
+| ~~Setup preview has no catalog-empty error~~ | ~~P3~~ | merged [#22](https://github.com/sinura7/PersonalTrainer/pull/22) |
+| ~~`DEVELOPMENT.md` still says `2.json` is uncommitted~~ | ~~P2~~ | merged [#23](https://github.com/sinura7/PersonalTrainer/pull/23) |
 
 ---
 
@@ -411,28 +411,12 @@ executes; they do not change what it builds, and nothing here reopens D1–D5.
 
 ---
 
-## Open follow-up — the deload advice has no affordance
+## ~~Open follow-up — the deload advice has no affordance~~ · **done** (Job 3 / P2)
 
-**Raised:** 21 August 2026, by the coach rework (Phase 5). **Owner decision required; does not
-block anything.**
+**Raised:** 21 August 2026, by the coach rework (Phase 5). **Closed:** Job 3 / P2
+shipped the lighter-week marker (HOLD, not scaled sets). The Plan Tune
+control marks this week; progression HOLDs load. Do not rediscover this
+as an open hole.
 
-The coach can now detect overreaching — three weeks of rising working volume with flat top-lift
-estimated maxes — and the card it shows ends by telling you to take an easier week. The app has
-no deload concept anywhere: the Plan tab pins routines and focus kinds, nothing scales load, and
-nothing in the plan knows what "lighter" would mean. So the advice is an instruction the app
-cannot help you follow, and "how do I schedule a deload?" is the obvious next question.
-
-The copy currently shipped is **B** below, chosen because it is the only version of the sentence
-the app can stand behind today. Both options remain open:
-
-- **A — a small follow-up phase (~1 executor day, no schema change).** A "Lighter week" marker
-  on the current week, set from Plan's Tune section and stored as one preference key holding the
-  marked week's start day. It shows on the week strip, and the in-workout progression strip
-  suggests holding load rather than adding it. Nothing else changes.
-- **B — accepted non-goal (shipped).** The advice stays informational, worded as something you
-  can act on by logging: *"Weekly volume rose {pct}% over three weeks while top-lift e1RMs did
-  not move. Take an easier week: same lifts, fewer sets."* No affordance is ever built.
-
-**Chosen: A.** Named as Job 3 / P2 in [JOB3_ACTION_PLAN.md](JOB3_ACTION_PLAN.md).
-Copy reverts to `"Schedule a lighter week."` in that packet. Stack after
-replay (P1) — same Plan / prefs files.
+**Chosen: A** (historical). Named as Job 3 / P2 in
+[JOB3_ACTION_PLAN.md](JOB3_ACTION_PLAN.md).
