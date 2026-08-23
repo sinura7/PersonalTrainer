@@ -11,18 +11,23 @@ blockage. Keep shipping unblocked. Do not sit idle waiting for Studio.
 
 ## Shipping line
 
-- `trunk` is the only shipping branch. `main` is gone. Do not recreate it.
-- One packet, one branch off current `trunk`, one PR into `trunk`.
+- `trunk` is the only sitting line. `main` is gone. Do not recreate it.
+- GitHub needs a temporary head to open a PR. That branch is a vehicle,
+  not a line of work. Squash-merge into `trunk` the same turn the JVM
+  gate is green, then **delete the remote branch**. Leftover `cursor/*`
+  heads are a process defect.
+- One packet, one throwaway branch off current `trunk`, one PR into
+  `trunk`, then the branch is gone.
 - Branch names: `cursor/<short-slug>-b87f`.
 - JVM (`./gradlew testDebugUnitTest` + `assembleDebug`) is the push gate.
-  A green PR may sit. The phone is the merge gate.
-- After merge, the owner pulls `origin/trunk` in Studio — not a leftover
-  local branch.
+- After merge, the owner pulls `origin/trunk` in Studio. The phone
+  judges `trunk`, not a leftover local branch.
 
 ## Continue while Studio is away
 
-Start the next packet as soon as the current one is pushed and the JVM
-gate is green. Do not wait for a phone check to cut the next branch.
+Start the next packet as soon as the current one is on `trunk` and the
+JVM gate is green. Do not wait for a phone check. Do not leave the
+previous vehicle branch sitting.
 
 ## No accidental overlap
 
@@ -41,7 +46,7 @@ the tip only — not each layer as if they were strangers.
 
 ## Phone check
 
-Checkout the PR branch in Studio. Judge that build. Never run
+Pull `origin/trunk` in Studio. Judge that build. Never run
 `connectedDebugAndroidTest` on the release `applicationId`. Debug is
 `com.sinura.personaltrainer.debug` — a separate app. The connected suite
 targets that id. Use the emulator, not the gym-floor phone.

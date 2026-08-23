@@ -73,6 +73,7 @@ import com.sinura.personaltrainer.domain.ExerciseSessionSummary
 import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.ProgressionCopy
 import com.sinura.personaltrainer.domain.ProgressionHint
+import com.sinura.personaltrainer.domain.RestNotificationCopy
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetWork
@@ -1038,8 +1039,10 @@ private fun SetRow(
  * The result used to be discarded. On Android 13+ a denial silently removes BOTH off-screen
  * rest surfaces — the countdown and the "Rest done" alert — so a pocketed phone shows nothing
  * at all, with no way back: after two denials the system dialog stops appearing entirely.
- * The returned flag drives an in-workout banner with a deep link to app notification
- * settings, and re-checks on every resume so it disappears the moment the user grants.
+ * The system dialog has no gym why, so an in-app sentence runs first. Continue launches
+ * the permission prompt; Not now leaves the existing recovery banner as the way back.
+ * The returned flag drives that banner (deep link to app notification settings) and
+ * re-checks on every resume so it disappears the moment the user grants.
  */
 @Composable
 private fun rememberRestNotificationsEnabled(): Boolean {
@@ -1048,6 +1051,8 @@ private fun rememberRestNotificationsEnabled(): Boolean {
     var enabled by remember {
         mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
     }
+    var showWhy by rememberSaveable { mutableStateOf(false) }
+    var decided by rememberSaveable { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) {
@@ -1055,15 +1060,33 @@ private fun rememberRestNotificationsEnabled(): Boolean {
     }
 
     LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= 33) {
+        if (Build.VERSION.SDK_INT >= 33 && !decided) {
             val granted = ContextCompat.checkSelfPermission(
                 context,
                 Manifest.permission.POST_NOTIFICATIONS,
             ) == PackageManager.PERMISSION_GRANTED
             if (!granted) {
-                launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                showWhy = true
             }
         }
+    }
+
+    if (showWhy) {
+        ConfirmActionDialog(
+            title = RestNotificationCopy.TITLE,
+            body = RestNotificationCopy.SENTENCE,
+            confirmLabel = RestNotificationCopy.CONTINUE,
+            dismissLabel = RestNotificationCopy.NOT_NOW,
+            onConfirm = {
+                decided = true
+                showWhy = false
+                launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            },
+            onDismiss = {
+                decided = true
+                showWhy = false
+            },
+        )
     }
 
     // Returning from system settings is a resume, not a recomposition — re-read there.
