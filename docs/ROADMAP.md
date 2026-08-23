@@ -197,12 +197,11 @@ and catalog seed stay signed won't. Packets, gates, won'ts:
 [JOB5_ACTION_PLAN.md](JOB5_ACTION_PLAN.md).
 
 **Job 6 (in flight).** Regroup. The product is the four-tab logger.
-Historical P0–P4 are on `trunk`. Leftover P1–P6 are on `trunk`.
-Leftover P7 (confirm honesty) is this packet. Leftover P8 stays
-one packet per PR, phone week in parallel. Week-verb
-language (historical P2) only if the phone confirms the cliff. Do
-not open a CI / billing packet. Packets, gates, won'ts:
-[JOB6_REGROUP.md](JOB6_REGROUP.md).
+Historical P0–P4 are on `trunk`. Leftover P1–P7 are on `trunk`.
+Leftover P8 (small polish plus dead code) is this packet. Phone
+week in parallel. Week-verb language (historical P2) only if the
+phone confirms the cliff. Do not open a CI / billing packet.
+Packets, gates, won'ts: [JOB6_REGROUP.md](JOB6_REGROUP.md).
 
 **Review baseline (22 Aug 2026).** Full-tree audit after Job 2 landed on `trunk`.
 Closed 22–23 Aug. Do not reopen as live work. Q4 onboarding ANR on the

@@ -193,8 +193,8 @@ private fun OnboardingHeader(state: OnboardingUiState, onBack: () -> Unit) {
                 tint = TextSecondary,
             )
         }
-        // A count, not a bar. Six is a number small enough to say out loud, and "2 of 6" tells
-        // the lifter how much is left far more precisely than a partly-filled line.
+        // A count, not a bar. Seven is a number small enough to say out loud, and "2 of 7"
+        // tells the lifter how much is left far more precisely than a partly-filled line.
         if (state.step.isQuestion) {
             Kicker("Question ${state.questionNumber} of ${state.questionCount}")
         }
@@ -330,7 +330,7 @@ private fun PlaceStep(
                     Text(place.blurb, style = InstrumentType.body, color = TextSecondary)
                 }
                 if (on) {
-                    Text("On", style = InstrumentType.caption, color = Volt)
+                    Text("Selected", style = InstrumentType.caption, color = TextTertiary)
                 }
             }
         }

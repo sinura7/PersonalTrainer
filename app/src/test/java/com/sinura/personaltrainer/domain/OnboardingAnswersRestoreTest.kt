@@ -172,4 +172,24 @@ class OnboardingAnswersRestoreTest {
         assertTrue(BodyweightSteps.shouldCommitSettledPage(settledPage = 41, initialPage = 40, alreadyChosen = false))
         assertTrue(BodyweightSteps.shouldCommitSettledPage(settledPage = 40, initialPage = 40, alreadyChosen = true))
     }
+
+    @Test
+    fun shrinkingDaysKeepsTheFirstPreferredInWeekOrder() {
+        val four = OnboardingAnswers(
+            daysPerWeek = 4,
+            preferredDays = setOf(
+                DayOfWeek.SUNDAY,
+                DayOfWeek.MONDAY,
+                DayOfWeek.WEDNESDAY,
+                DayOfWeek.FRIDAY,
+            ),
+        )
+        val three = four.withDaysPerWeek(3)
+        assertEquals(3, three.daysPerWeek)
+        assertEquals(
+            setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY),
+            three.preferredDays,
+        )
+        assertEquals(four.preferredDays, four.withDaysPerWeek(5).preferredDays)
+    }
 }

@@ -304,7 +304,7 @@ editor's existing `stageTargets`. Collapsed line stays
 has 80 kg. Editor compact row can change weight the same way the
 old card did.
 
-### Leftover P7 — Confirm honesty · **done** (this PR)
+### Leftover P7 — Confirm honesty · **done** (`d4e2a56`)
 
 **Why.** Seven training days with zero rest is allowed with no
 warning. Custom confirm treats blank days as rest with no caption.
@@ -319,7 +319,7 @@ Do **not** cap at 6.
 **Gate.** Six filled days: button names rest. Seven filled: dialog,
 then write. Guided 7-day preview: same warning before apply.
 
-### Leftover P8 — Small polish plus dead code
+### Leftover P8 — Small polish plus dead code · **done** (this PR)
 
 **Why.** Leftover nits that are not worth their own throw if P1
 already deleted `skip()`.
@@ -401,5 +401,5 @@ If any gate fails, write the finding here. That packet jumps the queue.
 - [x] Leftover P5 — controls fit a phone
 - [x] Leftover P6 — compact rows can set load
 - [x] Leftover P7 — confirm honesty
-- [ ] Leftover P8 — small polish plus dead code
+- [x] Leftover P8 — small polish plus dead code
 - [ ] Signed won'ts still won't

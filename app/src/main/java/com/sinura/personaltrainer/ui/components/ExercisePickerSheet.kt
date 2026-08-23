@@ -56,6 +56,7 @@ import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
+import com.sinura.personaltrainer.ui.theme.VoltDim
 
 /**
  * Choosing a lift, and the row anatomy the library screen shares with this sheet.
@@ -265,14 +266,23 @@ private fun PickerLiftRow(
     onClick: () -> Unit,
     subtitle: String? = null,
 ) {
+    val shape = RoundedCornerShape(Radius.xs)
     ExerciseRow(
         exercise = exercise,
+        modifier = if (selected) {
+            Modifier
+                .clip(shape)
+                .background(VoltDim)
+                .border(Metrics.emphasisBorder, Volt, shape)
+        } else {
+            Modifier
+        },
         onClick = onClick,
         tag = exercise.equipment.label,
         subtitle = subtitle,
         trailing = if (selected) {
             {
-                Text("On", style = InstrumentType.caption, color = Volt)
+                Text("Selected", style = InstrumentType.caption, color = TextTertiary)
             }
         } else {
             null
