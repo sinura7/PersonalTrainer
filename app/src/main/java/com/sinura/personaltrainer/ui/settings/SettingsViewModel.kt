@@ -219,7 +219,7 @@ class SettingsViewModel @JvmOverloads constructor(
      * Clearing the flag is the whole mechanism — the gate in the nav host observes it, so the
      * setup screen replaces the app on the next frame with no navigation involved. Nothing
      * else is touched: their routines, schedule and history are all still there when they come
-     * out the other side, whether they finish or back out.
+     * out the other side. Back on the fork restores the flag so the gate returns to APP.
      */
     fun rerunGuidedSetup() {
         viewModelScope.launch {
