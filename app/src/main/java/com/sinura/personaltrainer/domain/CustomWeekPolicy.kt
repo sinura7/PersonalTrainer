@@ -16,6 +16,12 @@ data class CustomWeekLift(
     val restSeconds: Int,
 )
 
+enum class CustomWeekDayMark {
+    EMPTY,
+    PREFERRED,
+    FILLED,
+}
+
 /**
  * Rules for building a week by hand.
  *
@@ -33,6 +39,26 @@ object CustomWeekPolicy {
 
     fun routineName(day: DayOfWeek): String =
         day.name.lowercase().replaceFirstChar { it.titlecase() }
+
+    /**
+     * Preferred days from the questionnaire stay marked even with zero lifts.
+     * Confirm still needs at least one lift somewhere.
+     */
+    fun dayMark(
+        day: DayOfWeek,
+        filled: Set<DayOfWeek>,
+        preferred: Set<DayOfWeek>,
+    ): CustomWeekDayMark = when {
+        day in filled -> CustomWeekDayMark.FILLED
+        day in preferred -> CustomWeekDayMark.PREFERRED
+        else -> CustomWeekDayMark.EMPTY
+    }
+
+    /** Week start, unless a preferred weekday exists — then the first of those in week order. */
+    fun initialSelectedDay(weekStart: DayOfWeek, preferred: Set<DayOfWeek>): DayOfWeek {
+        val ordered = (0 until 7).map { weekStart.plus(it.toLong()) }
+        return ordered.firstOrNull { it in preferred } ?: weekStart
+    }
 
     fun addLifts(
         existing: List<CustomWeekLift>,

@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.domain
 import java.time.DayOfWeek
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -111,6 +112,32 @@ class OnboardingAnswersRestoreTest {
         assertEquals(TrainingGoal.ATHLETIC, answers.goal)
         assertEquals(TrainingEmphasis.UPPER, answers.emphasis)
         assertEquals(82.0, answers.bodyweightKg!!, 0.001)
+    }
+
+    @Test
+    fun draftEncodingRoundTripsGuidedAnswers() {
+        val original = OnboardingAnswers(
+            trainingAge = TrainingAge.EXPERIENCED,
+            daysPerWeek = 4,
+            preferredDays = setOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY),
+            place = TrainingPlace.HOME_DUMBBELLS,
+            places = setOf(TrainingPlace.HOME_DUMBBELLS, TrainingPlace.BODYWEIGHT_ONLY),
+            goal = TrainingGoal.ATHLETIC,
+            emphasis = TrainingEmphasis.UPPER,
+            bodyweightKg = 80.0,
+        )
+        val restored = OnboardingAnswers.decodeDraft(OnboardingAnswers.encodeDraft(original))!!
+        assertEquals(TrainingAge.EXPERIENCED, restored.trainingAge)
+        assertEquals(4, restored.daysPerWeek)
+        assertEquals(setOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY), restored.preferredDays)
+        assertEquals(
+            setOf(TrainingPlace.HOME_DUMBBELLS, TrainingPlace.BODYWEIGHT_ONLY),
+            restored.resolvedPlaces(),
+        )
+        assertEquals(TrainingGoal.ATHLETIC, restored.goal)
+        assertEquals(TrainingEmphasis.UPPER, restored.emphasis)
+        assertEquals(80.0, restored.bodyweightKg!!, 0.001)
+        assertNull(OnboardingAnswers.decodeDraft(""))
     }
 
     @Test

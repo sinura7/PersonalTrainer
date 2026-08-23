@@ -56,6 +56,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.MuscleNormalizer
+import com.sinura.personaltrainer.domain.OnboardingAnswers
+import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.TemperIcons
@@ -83,7 +85,6 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.workout.ActiveWorkoutScreen
-import java.time.DayOfWeek
 
 sealed class Route(val path: String) {
     data object Home : Route("home")
@@ -184,7 +185,8 @@ fun PersonalTrainerNav(
     // here rather than passed through the gate because the NavController it needs does not
     // exist until the app side of the branch is composing.
     var buildingOwn by rememberSaveable { mutableStateOf(false) }
-    var preferredOwnRaw by rememberSaveable { mutableStateOf("") }
+    var answersOwnRaw by rememberSaveable { mutableStateOf("") }
+    var unitOwnRaw by rememberSaveable { mutableStateOf("") }
 
     when (gate) {
         // Nothing, deliberately. A default of either side flashes the wrong screen on every
@@ -199,22 +201,20 @@ fun PersonalTrainerNav(
             // unlabelled kilograms.
             CompositionLocalProvider(LocalWeightUnit provides weightUnit) {
                 if (buildingOwn) {
-                    val preferred = preferredOwnRaw
-                        .split(',')
-                        .mapNotNull { raw ->
-                            DayOfWeek.entries.firstOrNull { it.name == raw }
-                        }
-                        .toSet()
+                    val answers = OnboardingAnswers.decodeDraft(answersOwnRaw)
                     CustomWeekScreen(
                         onFinished = {},
                         onBack = { buildingOwn = false },
-                        preferredDays = preferred,
+                        preferredDays = answers?.preferredDays.orEmpty(),
+                        answers = answers,
+                        pendingWeightUnit = unitOwnRaw.takeIf { it.isNotBlank() }?.let(WeightUnit::fromStorage),
                     )
                 } else {
                     OnboardingScreen(
                         onFinished = {},
-                        onBuildMyOwn = { days ->
-                            preferredOwnRaw = days.joinToString(",") { it.name }
+                        onBuildMyOwn = { answers, unit ->
+                            answersOwnRaw = answers?.let { OnboardingAnswers.encodeDraft(it) }.orEmpty()
+                            unitOwnRaw = unit?.storageKey.orEmpty()
                             buildingOwn = true
                         },
                     )

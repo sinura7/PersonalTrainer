@@ -53,6 +53,45 @@ class CustomWeekPolicyTest {
         assertEquals("Monday", CustomWeekPolicy.routineName(DayOfWeek.MONDAY))
     }
 
+    @Test
+    fun preferredDaysStayMarkedWithZeroLifts() {
+        assertEquals(
+            CustomWeekDayMark.PREFERRED,
+            CustomWeekPolicy.dayMark(
+                DayOfWeek.TUESDAY,
+                filled = emptySet(),
+                preferred = setOf(DayOfWeek.TUESDAY),
+            ),
+        )
+        assertEquals(
+            CustomWeekDayMark.FILLED,
+            CustomWeekPolicy.dayMark(
+                DayOfWeek.TUESDAY,
+                filled = setOf(DayOfWeek.TUESDAY),
+                preferred = setOf(DayOfWeek.TUESDAY),
+            ),
+        )
+        assertEquals(
+            CustomWeekDayMark.EMPTY,
+            CustomWeekPolicy.dayMark(DayOfWeek.WEDNESDAY, filled = emptySet(), preferred = setOf(DayOfWeek.TUESDAY)),
+        )
+    }
+
+    @Test
+    fun selectedDayStartsAtWeekStartUnlessAPreferredDayExists() {
+        assertEquals(
+            DayOfWeek.SUNDAY,
+            CustomWeekPolicy.initialSelectedDay(DayOfWeek.SUNDAY, preferred = emptySet()),
+        )
+        assertEquals(
+            DayOfWeek.TUESDAY,
+            CustomWeekPolicy.initialSelectedDay(
+                DayOfWeek.SUNDAY,
+                preferred = setOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY),
+            ),
+        )
+    }
+
     private fun lift(id: String, exercise: Exercise) = CustomWeekLift(
         id = id,
         exercise = exercise,

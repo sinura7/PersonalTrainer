@@ -15,6 +15,7 @@ import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.RoutineGenerator
 import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingEmphasis
+import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -235,6 +237,37 @@ class OnboardingApplierTest {
         assertEquals("Wednesday", routine.name)
         assertEquals(4, routine.exercises.first().targetSets)
         assertEquals(true, preferences.onboardingComplete.first())
+        assertNull(preferences.bodyweightKg.first())
+        assertEquals(TrainingGoal.GENERAL, preferences.coachPreferences.first().goal)
+    }
+
+    @Test
+    fun aCustomWeekFromGuidedKeepsTheQuestionnaire() = runBlocking {
+        val squat = catalog.first { it.movementKey == "squat" }
+        val guided = answers(
+            days = 4,
+            age = TrainingAge.EXPERIENCED,
+            place = TrainingPlace.HOME_DUMBBELLS,
+            preferred = setOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY),
+            bodyweight = 80.0,
+        ).copy(goal = TrainingGoal.ATHLETIC, emphasis = TrainingEmphasis.UPPER)
+        val result = applier.applyCustom(
+            days = mapOf(
+                DayOfWeek.WEDNESDAY to listOf(
+                    CustomWeekLift(id = "lift-1", exercise = squat, targetSets = 4, targetReps = 6, restSeconds = 120),
+                ),
+            ),
+            weekStart = WEEK_START,
+            today = TODAY,
+            answers = guided,
+        )
+        assertTrue(result is ApplyPlanResult.Applied)
+        assertEquals(TrainingAge.EXPERIENCED, preferences.trainingAge.first())
+        assertEquals(TrainingPlace.HOME_DUMBBELLS, preferences.trainingPlace.first())
+        assertEquals(TrainingGoal.ATHLETIC, preferences.coachPreferences.first().goal)
+        assertEquals(TrainingEmphasis.UPPER, preferences.coachPreferences.first().emphasis)
+        assertEquals(80.0, preferences.bodyweightKg.first()!!, 0.001)
+        assertEquals(setOf(DayOfWeek.WEDNESDAY), preferences.preferredDays.first())
     }
 
     private companion object {
