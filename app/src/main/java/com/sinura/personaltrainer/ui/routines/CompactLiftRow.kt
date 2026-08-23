@@ -33,7 +33,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.RestTimer
+import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
+import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -47,9 +49,8 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
 /**
  * One lift as a horizontal row you can stack, not a card that eats the screen.
  *
- * Collapsed it is a name, a prescription, and move controls. Expanded it is sets, reps and
- * rest — the four-field admin card this replaces, without the padding that made six lifts
- * a scroll of boxes.
+ * Collapsed it is a name, sets × reps, and move controls. Expanded it is sets, reps,
+ * rest, and optional target weight.
  */
 @Composable
 fun CompactLiftRow(
@@ -65,10 +66,11 @@ fun CompactLiftRow(
     onMoveDown: () -> Unit,
     onRemove: () -> Unit,
     onSwap: (() -> Unit)?,
-    onStageTargets: (Int?, Int?, Int?) -> Unit,
+    onStageTargets: (Int?, Int?, Int?, Double?) -> Unit,
     onCommitTargets: () -> Unit,
     modifier: Modifier = Modifier,
     rowKey: String = exercise.id,
+    targetWeightKg: Double? = null,
 ) {
     val shape = RoundedCornerShape(Radius.sm)
     Column(
@@ -130,6 +132,7 @@ fun CompactLiftRow(
                 sets = sets,
                 reps = reps,
                 restSeconds = restSeconds,
+                targetWeightKg = targetWeightKg,
                 onStageTargets = onStageTargets,
                 onCommitTargets = onCommitTargets,
                 onRemove = onRemove,
@@ -145,16 +148,28 @@ private fun CompactTargetFields(
     sets: Int,
     reps: Int,
     restSeconds: Int,
-    onStageTargets: (Int?, Int?, Int?) -> Unit,
+    targetWeightKg: Double?,
+    onStageTargets: (Int?, Int?, Int?, Double?) -> Unit,
     onCommitTargets: () -> Unit,
     onRemove: () -> Unit,
     onSwap: (() -> Unit)?,
 ) {
+    val unit = LocalWeightUnit.current
     var setsText by rememberSaveable(rowKey) { mutableStateOf(sets.toString()) }
     var repsText by rememberSaveable(rowKey) { mutableStateOf(reps.toString()) }
     var restText by rememberSaveable(rowKey) { mutableStateOf(restSeconds.toString()) }
+    var weightText by rememberSaveable(rowKey) {
+        mutableStateOf(
+            targetWeightKg?.let { kg ->
+                WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(kg, unit))
+            }.orEmpty(),
+        )
+    }
     val stage = {
-        onStageTargets(setsText.toIntOrNull(), repsText.toIntOrNull(), restText.toIntOrNull())
+        val kg = weightText.toDoubleOrNull()?.let { display ->
+            WeightConverter.toKg(display, unit)
+        }?.takeIf { it > 0.0 }
+        onStageTargets(setsText.toIntOrNull(), repsText.toIntOrNull(), restText.toIntOrNull(), kg)
     }
     Column(
         modifier = Modifier.padding(start = Metrics.space3, end = Metrics.space3, bottom = Metrics.space3),
@@ -174,8 +189,14 @@ private fun CompactTargetFields(
                 repsText = it.filter(Char::isDigit)
                 stage()
             }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
             MiniNumberField("Rest s", restText, Modifier.weight(1f), onCommitTargets) {
                 restText = it.filter(Char::isDigit)
+                stage()
+            }
+            MiniNumberField(unit.suffix, weightText, Modifier.weight(1f), onCommitTargets, allowDecimal = true) {
+                weightText = it.filter { ch -> ch.isDigit() || ch == '.' }
                 stage()
             }
         }
@@ -198,6 +219,7 @@ private fun MiniNumberField(
     value: String,
     modifier: Modifier,
     onFocusLost: () -> Unit,
+    allowDecimal: Boolean = false,
     onValueChange: (String) -> Unit,
 ) {
     var hadFocus by remember { mutableStateOf(false) }
@@ -211,6 +233,8 @@ private fun MiniNumberField(
         },
         singleLine = true,
         textStyle = InstrumentType.numeralSm,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = if (allowDecimal) KeyboardType.Decimal else KeyboardType.Number,
+        ),
     )
 }

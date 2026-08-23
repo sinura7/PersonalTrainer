@@ -14,6 +14,7 @@ data class CustomWeekLift(
     val targetSets: Int,
     val targetReps: Int,
     val restSeconds: Int,
+    val targetWeightKg: Double? = null,
 )
 
 enum class CustomWeekDayMark {
@@ -96,6 +97,7 @@ object CustomWeekPolicy {
         sets: Int?,
         reps: Int?,
         restSeconds: Int?,
+        weightKg: Double?,
     ): List<CustomWeekLift> = lifts.map { lift ->
         if (lift.id != itemId) {
             lift
@@ -104,6 +106,7 @@ object CustomWeekPolicy {
                 targetSets = sets?.coerceAtLeast(1) ?: lift.targetSets,
                 targetReps = reps?.coerceAtLeast(1) ?: lift.targetReps,
                 restSeconds = restSeconds?.coerceAtLeast(0) ?: lift.restSeconds,
+                targetWeightKg = weightKg?.takeIf { it > 0.0 },
             )
         }
     }

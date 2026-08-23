@@ -144,8 +144,9 @@ fun CustomWeekScreen(
                             exercise = item.exercise,
                             sets = item.targetSets,
                             reps = item.targetReps,
-                            restSeconds = item.restSeconds,
-                            canMoveUp = index > 0,
+                        restSeconds = item.restSeconds,
+                        targetWeightKg = item.targetWeightKg,
+                        canMoveUp = index > 0,
                             canMoveDown = index < lifts.lastIndex,
                             expanded = expandedId == item.id,
                             onToggle = { expandedId = if (expandedId == item.id) null else item.id },
@@ -153,8 +154,8 @@ fun CustomWeekScreen(
                             onMoveDown = { viewModel.moveLift(item.id, 1) },
                             onRemove = { viewModel.removeLift(item.id) },
                             onSwap = null,
-                            onStageTargets = { sets, reps, rest ->
-                                viewModel.stageTargets(item.id, sets, reps, rest)
+                            onStageTargets = { sets, reps, rest, kg ->
+                                viewModel.stageTargets(item.id, sets, reps, rest, kg)
                             },
                             onCommitTargets = { },
                             modifier = Modifier.animateItem(),

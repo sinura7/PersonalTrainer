@@ -193,7 +193,7 @@ class OnboardingApplier(
                             exercise = lift.exercise,
                             targetSets = lift.targetSets,
                             targetReps = lift.targetReps,
-                            targetWeightKg = null,
+                            targetWeightKg = lift.targetWeightKg,
                             restSeconds = lift.restSeconds,
                         )
                     }
