@@ -28,4 +28,10 @@ object OnboardingPreviewCopy {
 
     const val FOOTER =
         "Rest days stay rest days. Swap a lift, or change sets and reps, any time after you accept."
+
+    const val FULL_WEEK_TITLE = "No rest day this week."
+    const val FULL_WEEK_BODY =
+        "Seven training days is allowed. Rest is a choice, not a cap."
+    const val FULL_WEEK_CONFIRM_PLAN = "Use this plan"
+    const val FULL_WEEK_CONFIRM_WEEK = "Use this week"
 }

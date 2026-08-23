@@ -42,8 +42,8 @@ class OnboardingViewModelTest {
     fun tearDown() {
         viewModel?.clearForTest()
         viewModel = null
-        if (::deps.isInitialized) deps.close()
         dispatcher.scheduler.advanceUntilIdle()
+        if (::deps.isInitialized) deps.close()
         Dispatchers.resetMain()
     }
 

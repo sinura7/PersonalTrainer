@@ -288,7 +288,7 @@ custom week strip: two-letter labels via `shortLabel()`, min height
 **Gate.** All seven day-count chips and all seven weekdays remain
 tappable at default font; two-letter labels readable.
 
-### Leftover P6 — Compact rows can set load · **done** (this PR)
+### Leftover P6 — Compact rows can set load · **done** (`72ec562`)
 
 **Why.** Compact expanded is sets/reps/rest only. Routine editor
 still stages `targetWeightKg`; custom week always writes `null`.
@@ -304,7 +304,7 @@ editor's existing `stageTargets`. Collapsed line stays
 has 80 kg. Editor compact row can change weight the same way the
 old card did.
 
-### Leftover P7 — Confirm honesty
+### Leftover P7 — Confirm honesty · **done** (this PR)
 
 **Why.** Seven training days with zero rest is allowed with no
 warning. Custom confirm treats blank days as rest with no caption.
@@ -400,6 +400,6 @@ If any gate fails, write the finding here. That packet jumps the queue.
 - [x] Leftover P4 — places tell the truth
 - [x] Leftover P5 — controls fit a phone
 - [x] Leftover P6 — compact rows can set load
-- [ ] Leftover P7 — confirm honesty
+- [x] Leftover P7 — confirm honesty
 - [ ] Leftover P8 — small polish plus dead code
 - [ ] Signed won'ts still won't

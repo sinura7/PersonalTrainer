@@ -43,6 +43,7 @@ class SettingsViewModelTest {
     fun tearDown() {
         viewModel?.clearForTest()
         viewModel = null
+        dispatcher.scheduler.advanceUntilIdle()
         if (::deps.isInitialized) deps.close()
         Dispatchers.resetMain()
     }

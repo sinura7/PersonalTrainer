@@ -120,8 +120,8 @@ class FakeAppDependencies(
     )
 
     fun close() {
-        database.close()
         prefsScope.cancel()
+        database.close()
     }
 }
 

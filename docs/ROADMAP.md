@@ -197,9 +197,9 @@ and catalog seed stay signed won't. Packets, gates, won'ts:
 [JOB5_ACTION_PLAN.md](JOB5_ACTION_PLAN.md).
 
 **Job 6 (in flight).** Regroup. The product is the four-tab logger.
-Historical P0–P4 are on `trunk`. Leftover P1–P5 are on `trunk`.
-Leftover P6 (compact rows can set load) is this packet. Leftover
-P7–P8 stay one packet per PR, phone week in parallel. Week-verb
+Historical P0–P4 are on `trunk`. Leftover P1–P6 are on `trunk`.
+Leftover P7 (confirm honesty) is this packet. Leftover P8 stays
+one packet per PR, phone week in parallel. Week-verb
 language (historical P2) only if the phone confirms the cliff. Do
 not open a CI / billing packet. Packets, gates, won'ts:
 [JOB6_REGROUP.md](JOB6_REGROUP.md).
