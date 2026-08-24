@@ -46,39 +46,6 @@
     </issue>
 
     <issue
-        id="AndroidGradlePluginVersion"
-        message="A newer version of com.android.application than 8.7.3 is available: 9.3.1"
-        errorLine1="agp = &quot;8.7.3&quot;"
-        errorLine2="      ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="2"
-            column="7"/>
-    </issue>
-
-    <issue
-        id="AndroidGradlePluginVersion"
-        message="A newer version of com.android.application than 8.7.3 is available: 9.3.1"
-        errorLine1="agp = &quot;8.7.3&quot;"
-        errorLine2="      ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="2"
-            column="7"/>
-    </issue>
-
-    <issue
-        id="AndroidGradlePluginVersion"
-        message="A newer version of com.android.application than 8.7.3 is available: 9.3.1"
-        errorLine1="agp = &quot;8.7.3&quot;"
-        errorLine2="      ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="2"
-            column="7"/>
-    </issue>
-
-    <issue
         id="GradleDependency"
         message="A newer version of androidx.core:core-ktx than 1.15.0 is available: 1.19.0"
         errorLine1="coreKtx = &quot;1.15.0&quot;"

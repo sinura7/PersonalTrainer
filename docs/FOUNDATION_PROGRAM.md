@@ -490,7 +490,16 @@ Start versus Restore, catalog-only and bodyweight-only files).
 
 ### Phase 4 — Supported Android/toolchain baseline · pending
 
-- **P4.1** Compile/target SDK 36 with a reviewed compatibility pass.
+#### P4.1 — Compile/target SDK 36 · **done**
+
+- Compile/target SDK 36 with a reviewed compatibility pass.
+- Landed: `compileSdk` and `targetSdk` are 36; `minSdk` stays 26.
+  AGP 8.9.2 and Gradle 8.11.1 are the official minimum pair.
+  Robolectric 4.14.1 stays and emulates API 35 until P4.2.
+  [sdk36-compatibility.md](architecture/sdk36-compatibility.md) reviews
+  every targeting-36 behavior change. Edge-to-edge was already on;
+  predictive back is accepted via `enableOnBackInvokedCallback` and
+  existing `BackHandler`s. The API 29 device lane is unchanged.
 - **P4.2** Core KTX, Lifecycle, Activity, coroutines, serialization,
   Robolectric, AndroidX Test — family by family.
 - **P4.3** Compose BOM, Material, Navigation, compiler as one matrix.

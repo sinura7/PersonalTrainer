@@ -103,6 +103,16 @@ REQUIRED_IN = [
         "drive.file",
         "P3.1 inventory must cover the Drive channel",
     ),
+    (
+        "docs/architecture/sdk36-compatibility.md",
+        "compileSdk = 36, targetSdk = 36, minSdk = 26",
+        "P4.1 review must sign the SDK triple",
+    ),
+    (
+        "docs/architecture/sdk36-compatibility.md",
+        "Robolectric 4.14.1 emulates API 35",
+        "P4.1 review must pin the JVM test SDK until P4.2",
+    ),
 ]
 
 ISSUED_FND = [f"FND-{n:03d}" for n in range(1, 49) if n != 37] + [
