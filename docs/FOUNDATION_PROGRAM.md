@@ -524,6 +524,8 @@ Start versus Restore, catalog-only and bodyweight-only files).
   2.0.21. BOM 2026.08.00 is refused: Compose UI 1.12.0 requires AGP
   9.1 and compileSdk 37. Kotlin stays 2.0.21.
   [compose-toolchain.md](architecture/compose-toolchain.md).
+  Evidence:
+  [P4.3 evidence](foundation-program/evidence/P4.3-compose-toolchain.md).
 - **P4.4** Room, DataStore, persistence test stack; v1/v2 migrations stay
   green on the new substrate.
 - **P4.5** Remove deprecated Google Sign-In remnants; keep
