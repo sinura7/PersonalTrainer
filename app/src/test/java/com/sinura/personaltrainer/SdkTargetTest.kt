@@ -27,11 +27,11 @@ class SdkTargetTest {
     }
 
     @Test
-    fun robolectricLanePinsApi35UntilP42() {
+    fun robolectricLaneEmulatesApi36() {
         val properties = source("src/test/resources/robolectric.properties")
         assertTrue(
-            "Robolectric 4.14.1 must emulate 35, not compileSdk 36",
-            Regex("""(?m)^sdk=35\s*$""").containsMatchIn(properties.readText()),
+            "Robolectric 4.16 must emulate compileSdk 36",
+            Regex("""(?m)^sdk=36\s*$""").containsMatchIn(properties.readText()),
         )
     }
 

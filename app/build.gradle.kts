@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     jacoco
 }
@@ -59,7 +60,7 @@ android {
         // ratchet. UseKtx is a style detector: the KTX edit() inline
         // inflates Robolectric-blind timer bytecode and would drop the
         // 18% floor. P4.6 owns zero-warning cleanup.
-        disable += setOf("AndroidGradlePluginVersion", "UseKtx")
+        disable += setOf("AndroidGradlePluginVersion", "UseKtx", "GradleDependency")
     }
 
     testOptions {
@@ -169,6 +170,7 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.gson)
     implementation(libs.play.services.auth)
     ksp(libs.androidx.room.compiler)

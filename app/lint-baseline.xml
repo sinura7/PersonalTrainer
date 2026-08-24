@@ -45,170 +45,20 @@
             column="33"/>
     </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.core:core-ktx than 1.15.0 is available: 1.19.0"
-        errorLine1="coreKtx = &quot;1.15.0&quot;"
-        errorLine2="          ~~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="4"
-            column="11"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.core:core-ktx than 1.15.0 is available: 1.19.0"
-        errorLine1="coreKtx = &quot;1.15.0&quot;"
-        errorLine2="          ~~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="4"
-            column="11"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.core:core-ktx than 1.15.0 is available: 1.19.0"
-        errorLine1="coreKtx = &quot;1.15.0&quot;"
-        errorLine2="          ~~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="4"
-            column="11"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.lifecycle:lifecycle-runtime-compose than 2.8.7 is available: 2.11.0"
-        errorLine1="lifecycleRuntimeKtx = &quot;2.8.7&quot;"
-        errorLine2="                      ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="5"
-            column="23"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.lifecycle:lifecycle-runtime-compose than 2.8.7 is available: 2.11.0"
-        errorLine1="lifecycleRuntimeKtx = &quot;2.8.7&quot;"
-        errorLine2="                      ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="5"
-            column="23"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.lifecycle:lifecycle-runtime-compose than 2.8.7 is available: 2.11.0"
-        errorLine1="lifecycleRuntimeKtx = &quot;2.8.7&quot;"
-        errorLine2="                      ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="5"
-            column="23"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.8.7 is available: 2.11.0"
-        errorLine1="lifecycleRuntimeKtx = &quot;2.8.7&quot;"
-        errorLine2="                      ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="5"
-            column="23"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.8.7 is available: 2.11.0"
-        errorLine1="lifecycleRuntimeKtx = &quot;2.8.7&quot;"
-        errorLine2="                      ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="5"
-            column="23"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.8.7 is available: 2.11.0"
-        errorLine1="lifecycleRuntimeKtx = &quot;2.8.7&quot;"
-        errorLine2="                      ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="5"
-            column="23"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.lifecycle:lifecycle-viewmodel-compose than 2.8.7 is available: 2.11.0"
-        errorLine1="lifecycleRuntimeKtx = &quot;2.8.7&quot;"
-        errorLine2="                      ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="5"
-            column="23"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.lifecycle:lifecycle-viewmodel-compose than 2.8.7 is available: 2.11.0"
-        errorLine1="lifecycleRuntimeKtx = &quot;2.8.7&quot;"
-        errorLine2="                      ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="5"
-            column="23"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.lifecycle:lifecycle-viewmodel-compose than 2.8.7 is available: 2.11.0"
-        errorLine1="lifecycleRuntimeKtx = &quot;2.8.7&quot;"
-        errorLine2="                      ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="5"
-            column="23"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.activity:activity-compose than 1.9.3 is available: 1.13.0"
-        errorLine1="activityCompose = &quot;1.9.3&quot;"
-        errorLine2="                  ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="6"
-            column="19"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.activity:activity-compose than 1.9.3 is available: 1.13.0"
-        errorLine1="activityCompose = &quot;1.9.3&quot;"
-        errorLine2="                  ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="6"
-            column="19"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.activity:activity-compose than 1.9.3 is available: 1.13.0"
-        errorLine1="activityCompose = &quot;1.9.3&quot;"
-        errorLine2="                  ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="6"
-            column="19"/>
-    </issue>
 
     <issue
         id="GradleDependency"
@@ -474,137 +324,17 @@
             column="20"/>
     </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.test:core than 1.6.1 is available: 1.7.0"
-        errorLine1="androidxTestCore = &quot;1.6.1&quot;"
-        errorLine2="                   ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="17"
-            column="20"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.test:core than 1.6.1 is available: 1.7.0"
-        errorLine1="androidxTestCore = &quot;1.6.1&quot;"
-        errorLine2="                   ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="17"
-            column="20"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.test:core than 1.6.1 is available: 1.7.0"
-        errorLine1="androidxTestCore = &quot;1.6.1&quot;"
-        errorLine2="                   ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="17"
-            column="20"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.test:runner than 1.6.2 is available: 1.7.0"
-        errorLine1="androidxTestRunner = &quot;1.6.2&quot;"
-        errorLine2="                     ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="18"
-            column="22"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.test:runner than 1.6.2 is available: 1.7.0"
-        errorLine1="androidxTestRunner = &quot;1.6.2&quot;"
-        errorLine2="                     ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="18"
-            column="22"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.test:runner than 1.6.2 is available: 1.7.0"
-        errorLine1="androidxTestRunner = &quot;1.6.2&quot;"
-        errorLine2="                     ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="18"
-            column="22"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.test:rules than 1.6.1 is available: 1.7.0"
-        errorLine1="androidxTestRules = &quot;1.6.1&quot;"
-        errorLine2="                    ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="19"
-            column="21"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.test:rules than 1.6.1 is available: 1.7.0"
-        errorLine1="androidxTestRules = &quot;1.6.1&quot;"
-        errorLine2="                    ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="19"
-            column="21"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.test:rules than 1.6.1 is available: 1.7.0"
-        errorLine1="androidxTestRules = &quot;1.6.1&quot;"
-        errorLine2="                    ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="19"
-            column="21"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.test.ext:junit than 1.2.1 is available: 1.3.0"
-        errorLine1="androidxTestExtJunit = &quot;1.2.1&quot;"
-        errorLine2="                       ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="20"
-            column="24"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.test.ext:junit than 1.2.1 is available: 1.3.0"
-        errorLine1="androidxTestExtJunit = &quot;1.2.1&quot;"
-        errorLine2="                       ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="20"
-            column="24"/>
-    </issue>
 
-    <issue
-        id="GradleDependency"
-        message="A newer version of androidx.test.ext:junit than 1.2.1 is available: 1.3.0"
-        errorLine1="androidxTestExtJunit = &quot;1.2.1&quot;"
-        errorLine2="                       ~~~~~~~">
-        <location
-            file="../gradle/libs.versions.toml"
-            line="20"
-            column="24"/>
-    </issue>
 
     <issue
         id="ModifierParameter"

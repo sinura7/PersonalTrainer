@@ -110,8 +110,18 @@ REQUIRED_IN = [
     ),
     (
         "docs/architecture/sdk36-compatibility.md",
-        "Robolectric 4.14.1 emulates API 35",
-        "P4.1 review must pin the JVM test SDK until P4.2",
+        "Robolectric 4.16",
+        "P4.1 review must record the P4.2 Robolectric lift",
+    ),
+    (
+        "docs/architecture/core-toolchain.md",
+        "Lifecycle | 2.8.7 | **2.10.0**",
+        "P4.2 review must sign the Lifecycle floor",
+    ),
+    (
+        "docs/architecture/core-toolchain.md",
+        "Robolectric | 4.14.1 | **4.16**",
+        "P4.2 review must sign Robolectric 4.16",
     ),
 ]
 

@@ -48,17 +48,15 @@ to run on API 36 devices; it does not move the test lane.
 6. **Device lane stays API 29.** An API 36 emulator is not the gate
    (ADR-002). `ApplicationInfo.targetSdkVersion` is still 36 on that
    device.
-7. **Robolectric 4.14.1 emulates API 35.** That runner does not ship
-   an API 36 jar. `app/src/test/resources/robolectric.properties`
-   pins `sdk=35` so DefaultSdkPicker does not request 36 from
-   compileSdk. P4.2 owns a Robolectric that can emulate 36.
+7. **Robolectric 4.14.1 emulated API 35 in P4.1.** P4.2 takes
+   Robolectric 4.16 and pins `sdk=36`. The P4.1 pin is historical.
 8. **AGP 8.9 lint is accepted without jumping to AGP 9.**
    `enableOnBackInvokedCallback` is marked `tools:targetApi="33"`.
-   `AndroidGradlePluginVersion` and `UseKtx` are disabled: latest-stable
-   9.x is not this packet, and the KTX `edit()` inline inflates
-   Robolectric-blind timer bytecode below the 18% floor. Durable
-   `commit()` stays. `check-sdk-target.py` is the SDK ratchet. P4.6
-   owns zero-warning cleanup.
+   `AndroidGradlePluginVersion`, `UseKtx`, and `GradleDependency` are
+   disabled: latest-stable 9.x / core 1.19 is not this packet, and the
+   KTX `edit()` inline inflates Robolectric-blind timer bytecode below
+   the 18% floor. Durable `commit()` stays. `check-sdk-target.py` is
+   the SDK and core-family ratchet. P4.6 owns zero-warning cleanup.
 
 ## 3. Finding coverage
 

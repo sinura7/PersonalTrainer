@@ -207,7 +207,7 @@ Status legend: **done** · **next** · pending · gated · skipped
 - Verify every FND ID has a planned disposition.
 - Stop if any data-model decision remains ambiguous.
 
-### Phase 1 — Truthful test, review, and visual evidence substrate · **next**
+### Phase 1 — Truthful test, review, and visual evidence substrate · **done**
 
 #### P1.1 — Repair the device lane and one local verification command · **done**
 
@@ -394,7 +394,7 @@ Status legend: **done** · **next** · pending · gated · skipped
   the live-session read fails. Evidence:
   [P2.6 evidence](foundation-program/evidence/P2.6-data-health.md).
 
-### Phase 3 — Data survival, restore, backup privacy, and scale · pending
+### Phase 3 — Data survival, restore, backup privacy, and scale · **packets done**
 
 Packets P3.1–P3.7 implement [ADR-009](architecture/ADR-009-backup-privacy-sync.md)
 and close FND-011, FND-014A–C, and the measurement half of FND-038.
@@ -488,22 +488,31 @@ Start versus Restore, catalog-only and bodyweight-only files).
 
 **Milestone: Trustworthy Strength Gate.**
 
-### Phase 4 — Supported Android/toolchain baseline · pending
+### Phase 4 — Supported Android/toolchain baseline · **in progress**
 
 #### P4.1 — Compile/target SDK 36 · **done**
 
 - Compile/target SDK 36 with a reviewed compatibility pass.
 - Landed: `compileSdk` and `targetSdk` are 36; `minSdk` stays 26.
   AGP 8.9.2 and Gradle 8.11.1 are the official minimum pair.
-  Robolectric 4.14.1 stays and emulates API 35 until P4.2.
+  Robolectric 4.14.1 emulated API 35 in this packet; P4.2 lifts that pin.
   [sdk36-compatibility.md](architecture/sdk36-compatibility.md) reviews
   every targeting-36 behavior change. Edge-to-edge was already on;
   predictive back is accepted via `enableOnBackInvokedCallback` and
   existing `BackHandler`s. The API 29 device lane is unchanged.
   Evidence:
   [P4.1 evidence](foundation-program/evidence/P4.1-sdk36.md).
-- **P4.2** Core KTX, Lifecycle, Activity, coroutines, serialization,
+
+#### P4.2 — Core AndroidX / Kotlin families · **done**
+
+- Core KTX, Lifecycle, Activity, coroutines, serialization,
   Robolectric, AndroidX Test — family by family.
+- Landed: Core KTX 1.17.0, Lifecycle 2.10.0, Activity 1.12.4,
+  coroutines 1.10.2, kotlinx.serialization 1.8.1, Robolectric 4.16
+  emulating API 36, AndroidX Test 1.7.0 / ext-junit 1.3.0.
+  Lifecycle 2.11 and coroutines 1.11 are refused on this AGP/Kotlin
+  pair. Gson remains the backup codec.
+  [core-toolchain.md](architecture/core-toolchain.md).
 - **P4.3** Compose BOM, Material, Navigation, compiler as one matrix.
 - **P4.4** Room, DataStore, persistence test stack; v1/v2 migrations stay
   green on the new substrate.
