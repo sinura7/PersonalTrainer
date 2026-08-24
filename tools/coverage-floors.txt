@@ -4,7 +4,7 @@
 #
 # package<TAB>min_percent
 com.sinura.personaltrainer.domain	90
-com.sinura.personaltrainer.data.backup	66
+com.sinura.personaltrainer.data.backup	68
 com.sinura.personaltrainer.timer	18
 com.sinura.personaltrainer.util	30
 com.sinura.personaltrainer.workout	23

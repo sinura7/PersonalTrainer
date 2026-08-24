@@ -433,7 +433,16 @@ and close FND-011, FND-014A–C, and the measurement half of FND-038.
   counts and date. Evidence:
   [P3.3 evidence](foundation-program/evidence/P3.3-safety-snapshots.md).
 
-- **P3.4** Serialize starts and journal restore phases. Closes FND-014C.
+#### P3.4 — Serialized start and journaled restore · **done**
+
+- Session start/repeat and restore share one coordinator. Restore is
+  journaled and recoverable across process death. Success means the
+  committed state.
+- Exit: FND-014C closed.
+- Landed: start, repeat, and `commitRestore` take the maintenance lock.
+  A restore journal records staged / wiping / room / prefs. Process
+  start finishes an interrupted restore before catalog seed. A live
+  start is refused while that journal is open.
 - **P3.5** `allowBackup=false` plus explicit exclusion rules.
   Upgrade-in-place must not erase data.
 - **P3.6** Portable authenticated encrypted envelope. Legacy plaintext

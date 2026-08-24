@@ -9,6 +9,9 @@ import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.BackupSummary
 import com.sinura.personaltrainer.data.backup.BackupValidation
 import com.sinura.personaltrainer.data.backup.BackupValidator
+import com.sinura.personaltrainer.data.backup.RestoreJournal
+import com.sinura.personaltrainer.data.backup.RestoreJournalRecord
+import com.sinura.personaltrainer.data.backup.RestoreJournalStore
 import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
 import com.sinura.personaltrainer.data.backup.DriveAuthClient
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
@@ -26,6 +29,7 @@ class BackupRepository(
     private val driveAuthClient: DriveAuthClient,
     private val driveRestClient: DriveRestClient,
     private val networkChecker: NetworkChecker,
+    private val restoreJournal: RestoreJournalStore,
 ) {
     suspend fun signIn(
         activity: Activity,
@@ -155,21 +159,111 @@ class BackupRepository(
 
     /** Writes the already-prepared document. Re-checks the live-session refuse. */
     suspend fun commitRestore(plan: RestorePlan): RestoreResult = withContext(Dispatchers.IO) {
-        refuseIfLive()
-        val snapshot = localBackupRepository.writeVerifiedSafetySnapshot()
-        val outcome = dbMaintenance.withMaintenanceLock {
-            val result = localBackupRepository.replaceWith(plan.document)
-            dbMaintenance.reconcileCatalogLocked()
-            result
+        dbMaintenance.withMaintenanceLock {
+            recoverInterruptedRestoreLocked()
+            refuseIfLive()
+            val snapshot = localBackupRepository.writeVerifiedSafetySnapshot()
+            val incomingJson = BackupJson.encode(plan.document)
+            restoreJournal.stage(
+                RestoreJournalRecord(
+                    phase = RestoreJournal.STAGED,
+                    sourceName = plan.sourceName,
+                    snapshotId = snapshot.id,
+                    beforeFingerprint = localBackupRepository.roomFingerprint(),
+                    afterFingerprint = RestoreJournal.fingerprint(plan.document),
+                ),
+                incomingJson,
+            )
+            try {
+                restoreJournal.mark(RestoreJournal.WIPING)
+                localBackupRepository.replaceRoom(plan.document)
+                restoreJournal.mark(RestoreJournal.ROOM)
+                val preferencesRestored = localBackupRepository.applyPreferences(plan.document)
+                if (preferencesRestored) restoreJournal.mark(RestoreJournal.PREFS)
+                dbMaintenance.reconcileCatalogLocked()
+                restoreJournal.clear()
+                RestoreResult(
+                    sourceName = plan.sourceName,
+                    summary = plan.summary,
+                    incoming = plan.incoming,
+                    local = plan.local,
+                    preferencesRestored = preferencesRestored,
+                    safetySnapshotId = snapshot.id,
+                )
+            } catch (thrown: kotlinx.coroutines.CancellationException) {
+                throw thrown
+            } catch (thrown: BackupException) {
+                throw namedCommitFailure(thrown)
+            } catch (thrown: Exception) {
+                throw namedCommitFailure(thrown)
+            }
         }
-        RestoreResult(
-            sourceName = plan.sourceName,
-            summary = plan.summary,
-            incoming = plan.incoming,
-            local = plan.local,
-            preferencesRestored = outcome.preferencesRestored,
-            safetySnapshotId = snapshot.id,
-        )
+    }
+
+    /**
+     * Finish a restore that died after Room committed. Safe to call on every
+     * process start. Holds the same lock as start and restore.
+     */
+    suspend fun recoverInterruptedRestore(): Boolean = withContext(Dispatchers.IO) {
+        dbMaintenance.withMaintenanceLock { recoverInterruptedRestoreLocked() }
+    }
+
+    fun restoreInProgress(): Boolean = restoreJournal.isOpen()
+
+    private suspend fun recoverInterruptedRestoreLocked(): Boolean {
+        val record = restoreJournal.read() ?: return false
+        return when (record.phase) {
+            RestoreJournal.STAGED -> {
+                restoreJournal.clear()
+                false
+            }
+            RestoreJournal.WIPING -> {
+                val current = localBackupRepository.roomFingerprint()
+                when (current) {
+                    record.afterFingerprint -> {
+                        finishFromRoom(record)
+                        true
+                    }
+                    else -> {
+                        restoreJournal.clear()
+                        false
+                    }
+                }
+            }
+            RestoreJournal.ROOM, RestoreJournal.PREFS -> {
+                finishFromRoom(record)
+                true
+            }
+            else -> {
+                restoreJournal.clear()
+                false
+            }
+        }
+    }
+
+    private suspend fun finishFromRoom(record: RestoreJournalRecord) {
+        val document = BackupJson.decode(restoreJournal.readIncoming())
+        if (record.phase == RestoreJournal.ROOM) {
+            val prefsOk = localBackupRepository.applyPreferences(document)
+            if (prefsOk) restoreJournal.mark(RestoreJournal.PREFS)
+        }
+        dbMaintenance.reconcileCatalogLocked()
+        restoreJournal.clear()
+    }
+
+    private fun namedCommitFailure(thrown: Throwable): BackupException {
+        val phase = restoreJournal.read()?.phase
+        val message = when (phase) {
+            RestoreJournal.ROOM, RestoreJournal.PREFS, RestoreJournal.WIPING ->
+                RestoreJournal.RECOVERED_MIXED
+            else -> (thrown as? BackupException)?.message ?: thrown.message
+                ?: "Restore failed. Nothing was changed."
+        }
+        return if (thrown is BackupException && thrown.message == message) {
+            thrown
+        } else {
+            BackupException(message)
+        }
     }
 
     suspend fun listSafetySnapshots(): List<SafetySnapshotMeta> = withContext(Dispatchers.IO) {

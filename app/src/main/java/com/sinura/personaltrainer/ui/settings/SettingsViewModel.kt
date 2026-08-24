@@ -368,7 +368,11 @@ class SettingsViewModel @JvmOverloads constructor(
     }
 
     init {
-        refreshSafetySnapshots()
+        viewModelScope.launch {
+            runCatchingCancellable { container.backupRepository.recoverInterruptedRestore() }
+                .onFailure { AppLog.w(TAG, "Finishing an interrupted restore failed", it) }
+            refreshSafetySnapshots()
+        }
     }
 
     fun refreshSafetySnapshots() {

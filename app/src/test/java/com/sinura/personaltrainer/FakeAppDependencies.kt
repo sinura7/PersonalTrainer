@@ -16,6 +16,7 @@ import kotlinx.coroutines.runBlocking
 import com.sinura.personaltrainer.data.backup.DriveAuthClient
 import com.sinura.personaltrainer.data.backup.DriveRestClient
 import com.sinura.personaltrainer.data.backup.NetworkChecker
+import com.sinura.personaltrainer.data.backup.RestoreJournalStore
 import com.sinura.personaltrainer.data.local.TrainerDatabase
 import com.sinura.personaltrainer.data.repository.BackupRepository
 import com.sinura.personaltrainer.data.repository.DbMaintenance
@@ -72,7 +73,12 @@ class FakeAppDependencies(
     override val routineRepository: RoutineRepository = RoutineRepository(database.routineDao())
     override val scheduleRepository: ScheduleRepository = ScheduleRepository(database.scheduleDao())
     override val workoutRepository: WorkoutRepository =
-        WorkoutRepository(database, database.workoutDao())
+        WorkoutRepository(
+            database,
+            database.workoutDao(),
+            dbMaintenance,
+            restoreInProgress = { backupRepository.restoreInProgress() },
+        )
     private val prefsContext = IsolatedAppContext(context.applicationContext)
     private val prefsScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val prefsStore = PreferenceDataStoreFactory.create(
@@ -120,18 +126,23 @@ class FakeAppDependencies(
         workoutRepository = workoutRepository,
         routineRepository = routineRepository,
     )
+    val restoreJournal = RestoreJournalStore(
+        File(context.cacheDir, "restore-journal-${System.nanoTime()}").also { it.mkdirs() },
+    )
+    val localBackupRepository = LocalBackupRepository(
+        database = database,
+        preferencesRepository = preferencesRepository,
+        onBeforeRestore = {},
+        safetySnapshotDir = safetySnapshotDir,
+    )
     override val backupRepository: BackupRepository = BackupRepository(
-        localBackupRepository = LocalBackupRepository(
-            database = database,
-            preferencesRepository = preferencesRepository,
-            onBeforeRestore = {},
-            safetySnapshotDir = safetySnapshotDir,
-        ),
+        localBackupRepository = localBackupRepository,
         preferencesRepository = preferencesRepository,
         dbMaintenance = dbMaintenance,
         driveAuthClient = DriveAuthClient(),
         driveRestClient = DriveRestClient(),
         networkChecker = NetworkChecker(context),
+        restoreJournal = restoreJournal,
     )
 
     fun close() {

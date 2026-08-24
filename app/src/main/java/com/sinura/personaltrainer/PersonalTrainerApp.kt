@@ -37,6 +37,11 @@ class PersonalTrainerApp : Application() {
         container.restTimerController.rehydrate()
         applicationScope.launch {
             try {
+                container.backupRepository.recoverInterruptedRestore()
+            } catch (error: Exception) {
+                AppLog.e(TAG, "Finishing an interrupted restore failed", error)
+            }
+            try {
                 container.dbMaintenance.seedCatalog()
             } catch (error: Exception) {
                 // The catalog is a convenience; the app is fully usable without it.

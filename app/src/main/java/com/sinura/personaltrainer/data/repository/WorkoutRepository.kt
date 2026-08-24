@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.data.repository
 
 import androidx.room.withTransaction
+import com.sinura.personaltrainer.data.backup.RestoreJournal
 import com.sinura.personaltrainer.data.local.TrainerDatabase
 import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
@@ -63,7 +64,18 @@ sealed interface StartSessionOutcome {
 class WorkoutRepository(
     private val database: TrainerDatabase,
     private val workoutDao: WorkoutDao,
+    private val dbMaintenance: DbMaintenance? = null,
+    private val restoreInProgress: () -> Boolean = { false },
 ) {
+    private suspend fun <T> serialized(block: suspend () -> T): T =
+        dbMaintenance?.withMaintenanceLock(block) ?: block()
+
+    private fun refuseIfRestoreOpen(): StartSessionOutcome.Unavailable? =
+        if (restoreInProgress()) {
+            StartSessionOutcome.Unavailable(RestoreJournal.INTERRUPTED)
+        } else {
+            null
+        }
     fun observeHistoryHealth(): Flow<DataHealth<List<WorkoutSession>>> =
         workoutDao.observeFinishedSessions().map { list -> list.map { it.toDomain() } }
             .observeHealth("workout history")
@@ -102,6 +114,8 @@ class WorkoutRepository(
 
     suspend fun startRoutineSafely(routine: Routine): StartSessionOutcome {
         return try {
+            serialized {
+            refuseIfRestoreOpen()?.let { return@serialized it }
             val now = System.currentTimeMillis()
             val session = WorkoutSessionEntity(
                 id = UUID.randomUUID().toString(),
@@ -126,6 +140,7 @@ class WorkoutRepository(
                 )
             }
             materializeStart(insertSessionIfIdle(session, exercises))
+            }
         } catch (thrown: kotlinx.coroutines.CancellationException) {
             throw thrown
         } catch (thrown: Exception) {
@@ -153,6 +168,8 @@ class WorkoutRepository(
 
     suspend fun startFreeWorkoutSafely(focusTitle: String? = null): StartSessionOutcome {
         return try {
+            serialized {
+            refuseIfRestoreOpen()?.let { return@serialized it }
             val now = System.currentTimeMillis()
             val focus = focusTitle?.trim().orEmpty()
             val session = WorkoutSessionEntity(
@@ -166,6 +183,7 @@ class WorkoutRepository(
                 finishedAt = null,
             )
             materializeStart(insertSessionIfIdle(session, emptyList()))
+            }
         } catch (thrown: kotlinx.coroutines.CancellationException) {
             throw thrown
         } catch (thrown: Exception) {
@@ -216,7 +234,9 @@ class WorkoutRepository(
             )
         }
 
-        val inserted = insertSessionIfIdle(session, exercises)
+        val inserted = serialized {
+            if (restoreInProgress()) null else insertSessionIfIdle(session, exercises)
+        } ?: return RepeatOutcome.Failed(RestoreJournal.INTERRUPTED)
         if (!inserted.inserted) {
             val running = workoutDao.getSessionRow(inserted.sessionId)
             return RepeatOutcome.Blocked(inserted.sessionId, running?.routineName)

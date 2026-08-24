@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import com.sinura.personaltrainer.data.backup.DriveAuthClient
 import com.sinura.personaltrainer.data.backup.DriveRestClient
 import com.sinura.personaltrainer.data.backup.NetworkChecker
+import com.sinura.personaltrainer.data.backup.RestoreJournalStore
 import com.sinura.personaltrainer.data.local.TrainerDatabase
 import com.sinura.personaltrainer.data.repository.BackupRepository
 import com.sinura.personaltrainer.data.repository.DbMaintenance
@@ -43,7 +44,12 @@ class AppContainer(context: Context) : AppDependencies {
     override val routineRepository: RoutineRepository = RoutineRepository(database.routineDao())
     /** The week the user pinned. Nothing else in the app is allowed to write it. */
     override val scheduleRepository: ScheduleRepository = ScheduleRepository(database.scheduleDao())
-    override val workoutRepository: WorkoutRepository = WorkoutRepository(database, database.workoutDao())
+    override val workoutRepository: WorkoutRepository = WorkoutRepository(
+        database,
+        database.workoutDao(),
+        dbMaintenance,
+        restoreInProgress = { backupRepository.restoreInProgress() },
+    )
     override val preferencesRepository: PreferencesRepository = PreferencesRepository(context)
 
     /**
@@ -119,5 +125,6 @@ class AppContainer(context: Context) : AppDependencies {
         driveAuthClient = DriveAuthClient(),
         driveRestClient = DriveRestClient(),
         networkChecker = NetworkChecker(context),
+        restoreJournal = RestoreJournalStore(java.io.File(context.filesDir, "restore-journal")),
     )
 }

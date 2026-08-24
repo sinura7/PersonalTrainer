@@ -13,8 +13,12 @@ import com.sinura.personaltrainer.data.backup.SafetySnapshot
 import java.io.File
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.seedTestWorkout
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CompletableDeferred
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -142,6 +146,96 @@ class RestorePrepareTest {
         assertFalse(snaps.single().id.contains("/"))
         assertEquals(1, snaps.single().authored.sessions)
         assertEquals(fixture.session.id, deps.workoutRepository.getSession(fixture.session.id)?.id)
+    }
+
+    @Test
+    fun successfulCommitClearsTheRestoreJournal() = runBlocking {
+        seedTestWorkout(deps, finish = true, loggedSets = listOf(TestSetInput(100.0, 5)))
+        val json = deps.backupRepository.exportJson()
+        deps.backupRepository.restoreFromJson(json, sourceName = "phone.json")
+        assertFalse(deps.backupRepository.restoreInProgress())
+        assertFalse(deps.restoreJournal.isOpen())
+    }
+
+    @Test
+    fun recoverFinishesPreferencesAfterRoomCommit() = runBlocking {
+        seedTestWorkout(deps, finish = true, loggedSets = listOf(TestSetInput(100.0, 5)))
+        deps.preferencesRepository.setWeightUnit(com.sinura.personaltrainer.domain.WeightUnit.LBS)
+        val incoming = BackupJson.decode(deps.backupRepository.exportJson()).let { doc ->
+            doc.copy(preferences = doc.preferences.copy(weightUnit = "kg"))
+        }
+        val incomingJson = BackupJson.encode(incoming)
+        deps.restoreJournal.stage(
+            com.sinura.personaltrainer.data.backup.RestoreJournalRecord(
+                phase = com.sinura.personaltrainer.data.backup.RestoreJournal.STAGED,
+                sourceName = "phone.json",
+                snapshotId = "pre-restore-1.json",
+                beforeFingerprint = "before",
+                afterFingerprint = com.sinura.personaltrainer.data.backup.RestoreJournal.fingerprint(incoming),
+            ),
+            incomingJson,
+        )
+        deps.restoreJournal.mark(com.sinura.personaltrainer.data.backup.RestoreJournal.ROOM)
+        deps.localBackupRepository.replaceRoom(incoming)
+        assertEquals(
+            com.sinura.personaltrainer.domain.WeightUnit.LBS,
+            deps.preferencesRepository.weightUnit.first(),
+        )
+        assertTrue(deps.backupRepository.recoverInterruptedRestore())
+        assertEquals(
+            com.sinura.personaltrainer.domain.WeightUnit.KG,
+            deps.preferencesRepository.weightUnit.first(),
+        )
+        assertFalse(deps.restoreJournal.isOpen())
+    }
+
+    @Test
+    fun startWaitsForTheMaintenanceLock() = runBlocking {
+        val holding = CompletableDeferred<Unit>()
+        val holder = launch {
+            deps.dbMaintenance.withMaintenanceLock {
+                holding.complete(Unit)
+                delay(200)
+            }
+        }
+        holding.await()
+        val started = async { deps.workoutRepository.startFreeWorkoutSafely() }
+        delay(50)
+        assertFalse(started.isCompleted)
+        holder.join()
+        val outcome = started.await()
+        assertTrue(outcome is com.sinura.personaltrainer.data.repository.StartSessionOutcome.Started)
+    }
+
+    @Test
+    fun startRefusesWhileRestoreJournalIsOpen() = runBlocking {
+        deps.restoreJournal.stage(
+            com.sinura.personaltrainer.data.backup.RestoreJournalRecord(
+                phase = com.sinura.personaltrainer.data.backup.RestoreJournal.ROOM,
+                sourceName = "phone.json",
+                snapshotId = "pre-restore-1.json",
+                beforeFingerprint = "before",
+                afterFingerprint = "after",
+            ),
+            BackupJson.encode(
+                BackupDocument(
+                    exportedAt = "2026-08-24T10:00:00Z",
+                    preferences = BackupPreferences(weightUnit = "kg"),
+                    exercises = emptyList(),
+                    routines = emptyList(),
+                    routineExercises = emptyList(),
+                    sessions = emptyList(),
+                    sessionExercises = emptyList(),
+                    setLogs = emptyList(),
+                ),
+            ),
+        )
+        val outcome = deps.workoutRepository.startFreeWorkoutSafely()
+        assertTrue(outcome is com.sinura.personaltrainer.data.repository.StartSessionOutcome.Unavailable)
+        assertEquals(
+            com.sinura.personaltrainer.data.backup.RestoreJournal.INTERRUPTED,
+            (outcome as com.sinura.personaltrainer.data.repository.StartSessionOutcome.Unavailable).message,
+        )
     }
 }
 

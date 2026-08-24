@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.data.backup.BackupExercise
 import com.sinura.personaltrainer.data.backup.BackupExerciseMuscle
 import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.BackupJson
+import com.sinura.personaltrainer.data.backup.RestoreJournal
 import com.sinura.personaltrainer.data.backup.SafetySnapshot
 import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
 import com.sinura.personaltrainer.data.backup.SafetySnapshotStore
@@ -287,6 +288,15 @@ class LocalBackupRepository(
      * @return whether preferences were restored alongside the data.
      */
     suspend fun replaceWith(document: BackupDocument): RestoreOutcome {
+        replaceRoom(document)
+        return RestoreOutcome(preferencesRestored = applyPreferences(document))
+    }
+
+    /**
+     * Room wipe + write only. Preferences stay outside so a journal can
+     * finish them after process death.
+     */
+    suspend fun replaceRoom(document: BackupDocument) {
         if (document.version > BackupJson.CURRENT_VERSION) {
             throw BackupException("This backup was made with a newer app version and can’t be opened here.")
         }
@@ -428,10 +438,10 @@ class LocalBackupRepository(
                 SeedMetaEntity(id = 1, catalogVersion = 0, pendingCollisions = "[]"),
             )
         }
-        // The data is safe at this point. Preferences are a single atomic write, and a
-        // failure here is reported as a warning rather than failing the whole restore —
-        // losing a kg/lbs setting is not worth discarding a recovered training history.
-        val preferencesRestored = try {
+    }
+
+    suspend fun applyPreferences(document: BackupDocument): Boolean {
+        return try {
             preferencesRepository.setRestoredPreferences(
                 unit = WeightUnit.fromStorage(document.preferences.weightUnit),
                 schedule = SchedulePreferences(
@@ -476,7 +486,14 @@ class LocalBackupRepository(
         } catch (_: Exception) {
             false
         }
-        return RestoreOutcome(preferencesRestored = preferencesRestored)
+    }
+
+    suspend fun roomFingerprint(): String {
+        val authored = authoredInventory()
+        val firstId = database.withTransaction {
+            database.workoutDao().getAllSessions().minByOrNull { it.id }?.id
+        }
+        return RestoreJournal.fingerprint(authored, firstId)
     }
 
     /**
