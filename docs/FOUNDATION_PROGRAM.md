@@ -536,6 +536,8 @@ Start versus Restore, catalog-only and bodyweight-only files).
   Schema identity hashes are unchanged. `fallbackToDestructiveMigration`
   stays banned.
   [persistence-toolchain.md](architecture/persistence-toolchain.md).
+  Evidence:
+  [P4.4 evidence](foundation-program/evidence/P4.4-persistence-toolchain.md).
 - **P4.5** Remove deprecated Google Sign-In remnants; keep
   `AuthorizationClient` / `drive.file`. Local recording stays Google-free.
   Closes FND-028.
