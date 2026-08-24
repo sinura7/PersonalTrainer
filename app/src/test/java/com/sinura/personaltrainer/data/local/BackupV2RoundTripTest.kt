@@ -300,7 +300,7 @@ class BackupV2RoundTripTest {
 
     @Test
     fun hasLocalDataCountsScheduleSlots() = runBlocking {
-        assertFalse("an empty database holds nothing", local.hasLocalData())
+        assertEquals(0, local.authoredInventory().scheduleSlots)
 
         database.routineDao().upsertRoutine(RoutineEntity("r1", "Push", "", STAMP, STAMP))
         database.scheduleDao().replaceAll(
@@ -313,6 +313,7 @@ class BackupV2RoundTripTest {
         )
         // A pinned week is authored state. Without the slot count, someone whose only work so far
         // is a plan reads as empty and an empty-backup restore wipes it without asking.
+        assertEquals(1, local.authoredInventory().scheduleSlots)
         assertTrue(local.hasLocalData())
     }
 

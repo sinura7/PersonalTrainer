@@ -189,7 +189,7 @@ fun SettingsScreen(
                 onSignOut = { viewModel.signOut(activity) },
                 onCreateBackup = { viewModel.createBackup(activity) },
                 onRefresh = { viewModel.refreshBackups(activity) },
-                onRestore = viewModel::requestRestore,
+                onRestore = { file -> viewModel.requestRestore(activity, file) },
                 onExportFile = { exportLauncher.launch(viewModel.exportFileName()) },
                 onImportFile = {
                     // Some file managers hand back JSON as octet-stream or text/plain.
@@ -201,28 +201,14 @@ fun SettingsScreen(
         }
     }
 
-    backup.pendingRestore?.let { file ->
+    backup.pendingPreview?.let { preview ->
         ConfirmActionDialog(
             title = "Replace all training data?",
-            body = "Restoring ${file.name} replaces every exercise, routine, and workout on this phone. " +
-                "A copy of your current data is saved on this phone first, but this cannot be undone from here.",
+            body = preview.body,
             confirmLabel = "Restore backup",
             destructive = true,
-            onConfirm = { viewModel.confirmRestore(activity) },
+            onConfirm = { viewModel.confirmRestore() },
             onDismiss = viewModel::cancelRestore,
-        )
-    }
-
-    backup.pendingFileRestore?.let { uri ->
-        ConfirmActionDialog(
-            title = "Replace all training data?",
-            body = "Importing this file replaces every exercise, routine, and workout on this phone. " +
-                "The file is checked before anything is written, and a copy of your current data is " +
-                "saved on this phone first.",
-            confirmLabel = "Import and replace",
-            destructive = true,
-            onConfirm = { viewModel.confirmFileRestore(uri) },
-            onDismiss = viewModel::cancelFileRestore,
         )
     }
 }

@@ -48,14 +48,14 @@ object BackupValidator {
         "This backup file is damaged or incomplete, so nothing was changed."
 
     /**
-     * @param localHasData whether the phone currently holds training data. A document that is
-     * structurally valid but empty is the most dangerous file there is — it would silently
-     * erase everything — so it is refused unless [allowEmptyDestructiveRestore] is set by an
-     * explicit user confirmation.
+     * @param localAuthored authored rows currently on the phone. A document with no
+     * authored data — including a catalog-only file of built-in exercises — would
+     * erase that state, so it is refused unless [allowEmptyDestructiveRestore] is
+     * set by a test that is deliberately wiping.
      */
     fun validate(
         document: BackupDocument,
-        localHasData: Boolean,
+        localAuthored: AuthoredInventory,
         allowEmptyDestructiveRestore: Boolean = false,
     ): BackupValidation {
         identityProblem(document)?.let { return BackupValidation.Invalid(it) }
@@ -221,16 +221,25 @@ object BackupValidator {
             sessions = document.sessions.size,
             setLogs = document.setLogs.size,
         )
+        val incoming = AuthoredInventory.fromDocument(document)
 
-        if (summary.isEmpty && localHasData && !allowEmptyDestructiveRestore) {
-            return BackupValidation.Invalid(
-                "This backup is empty. Restoring it would erase everything on this phone, " +
-                    "so it was refused. Pick a different file.",
-            )
+        if (incoming.isEmpty && !localAuthored.isEmpty && !allowEmptyDestructiveRestore) {
+            return BackupValidation.Invalid(AuthoredInventory.EMPTY_INCOMING_REFUSED)
         }
 
         return BackupValidation.Valid(summary)
     }
+
+    /** Compatibility for callers that only know whether the phone has authored data. */
+    fun validate(
+        document: BackupDocument,
+        localHasData: Boolean,
+        allowEmptyDestructiveRestore: Boolean = false,
+    ): BackupValidation = validate(
+        document = document,
+        localAuthored = if (localHasData) AuthoredInventory.PRESENT else AuthoredInventory.EMPTY,
+        allowEmptyDestructiveRestore = allowEmptyDestructiveRestore,
+    )
 
     private fun identityProblem(document: BackupDocument): String? {
         if (document.version < 1) return "This backup file is missing a valid version."

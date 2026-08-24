@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.data.repository
 
 import android.app.Activity
 import android.content.IntentSender
+import com.sinura.personaltrainer.data.backup.AuthoredInventory
 import com.sinura.personaltrainer.data.backup.BackupDocument
 import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.BackupJson
@@ -85,10 +86,8 @@ class BackupRepository(
         file: DriveBackupFile,
         launchResolution: suspend (IntentSender) -> Boolean,
     ): RestoreResult = withContext(Dispatchers.IO) {
-        networkChecker.requireOnline()
-        val session = driveAuthClient.authorize(activity, launchResolution)
-        val json = driveRestClient.downloadBackup(session.accessToken, file.id)
-        val result = restoreFromJson(json, sourceName = file.name)
+        val plan = prepareDriveRestore(activity, file, launchResolution)
+        val result = commitRestore(plan)
         preferencesRepository.setLastRestore(
             file.name,
             file.modifiedAtMillis.takeIf { it > 0 } ?: System.currentTimeMillis(),
@@ -96,9 +95,24 @@ class BackupRepository(
         result
     }
 
+    suspend fun prepareDriveRestore(
+        activity: Activity,
+        file: DriveBackupFile,
+        launchResolution: suspend (IntentSender) -> Boolean,
+    ): RestorePlan = withContext(Dispatchers.IO) {
+        networkChecker.requireOnline()
+        val session = driveAuthClient.authorize(activity, launchResolution)
+        val json = driveRestClient.downloadBackup(session.accessToken, file.id)
+        prepareRestore(json, sourceName = file.name)
+    }
+
     /** Serialises the current database for a local file export. */
     suspend fun exportJson(): String = withContext(Dispatchers.IO) {
         BackupJson.encode(localBackupRepository.createSnapshot())
+    }
+
+    suspend fun authoredInventory(): AuthoredInventory = withContext(Dispatchers.IO) {
+        localBackupRepository.authoredInventory()
     }
 
     /**
@@ -115,16 +129,62 @@ class BackupRepository(
         }
 
     /**
+     * Decode, validate, and compare authored counts. Does not write.
+     *
+     * The confirm dialog reads [RestorePlan.incoming] and [RestorePlan.local].
+     * First tap must land here, not in [commitRestore].
+     */
+    suspend fun prepareRestore(
+        json: String,
+        sourceName: String,
+        allowEmptyDestructiveRestore: Boolean = false,
+    ): RestorePlan = withContext(Dispatchers.IO) {
+        refuseIfLive()
+        val document = BackupJson.decode(json)
+        val local = localBackupRepository.authoredInventory()
+        val summary = validateOrThrow(document, local, allowEmptyDestructiveRestore)
+        RestorePlan(
+            sourceName = sourceName,
+            document = document,
+            incoming = AuthoredInventory.fromDocument(document),
+            local = local,
+            summary = summary,
+        )
+    }
+
+    /** Writes the already-prepared document. Re-checks the live-session refuse. */
+    suspend fun commitRestore(plan: RestorePlan): RestoreResult = withContext(Dispatchers.IO) {
+        refuseIfLive()
+        val outcome = dbMaintenance.withMaintenanceLock {
+            val result = localBackupRepository.replaceWith(plan.document)
+            dbMaintenance.reconcileCatalogLocked()
+            result
+        }
+        RestoreResult(
+            sourceName = plan.sourceName,
+            summary = plan.summary,
+            incoming = plan.incoming,
+            local = plan.local,
+            preferencesRestored = outcome.preferencesRestored,
+            safetySnapshotPath = outcome.safetySnapshotPath,
+        )
+    }
+
+    /**
      * The single validated restore path. Drive downloads and local file imports both land
      * here, so neither can skip a check the other performs.
      *
-     * Order matters: refuse while a workout is live, decode, validate, and only then wipe.
+     * Order: prepare (no write) then commit. Tests that need a one-shot call still use this.
      */
     suspend fun restoreFromJson(
         json: String,
         sourceName: String,
         allowEmptyDestructiveRestore: Boolean = false,
-    ): RestoreResult = withContext(Dispatchers.IO) {
+    ): RestoreResult = commitRestore(
+        prepareRestore(json, sourceName, allowEmptyDestructiveRestore),
+    )
+
+    private suspend fun refuseIfLive() {
         val liveId = try {
             localBackupRepository.inProgressSessionId()
         } catch (thrown: kotlinx.coroutines.CancellationException) {
@@ -138,35 +198,16 @@ class BackupRepository(
                     "so a restore can't delete the session you're standing in.",
             )
         }
-        val document = BackupJson.decode(json)
-        val validated = validateOrThrow(document, allowEmptyDestructiveRestore)
-        // Decode, validate and wipe are one unit against the catalog: the startup seed pass is
-        // launched fire-and-forget from Application.onCreate and would otherwise be free to
-        // upsert into the middle of the delete pass.
-        val outcome = dbMaintenance.withMaintenanceLock {
-            val result = localBackupRepository.replaceWith(document)
-            // Every restore ends here, v1 file or v2. A restored database carries whatever
-            // catalog the backup was taken from — an old build's 37, a phone that never had
-            // some of them — so the catalog is brought back in line with what THIS build knows
-            // before anyone reads it.
-            dbMaintenance.reconcileCatalogLocked()
-            result
-        }
-        RestoreResult(
-            sourceName = sourceName,
-            summary = validated,
-            preferencesRestored = outcome.preferencesRestored,
-            safetySnapshotPath = outcome.safetySnapshotPath,
-        )
     }
 
     private suspend fun validateOrThrow(
         document: BackupDocument,
+        local: AuthoredInventory,
         allowEmptyDestructiveRestore: Boolean,
     ): BackupSummary {
         val validation = BackupValidator.validate(
             document = document,
-            localHasData = localBackupRepository.hasLocalData(),
+            localAuthored = local,
             allowEmptyDestructiveRestore = allowEmptyDestructiveRestore,
         )
         return when (validation) {
@@ -176,9 +217,22 @@ class BackupRepository(
     }
 }
 
+data class RestorePlan(
+    val sourceName: String,
+    val document: BackupDocument,
+    val incoming: AuthoredInventory,
+    val local: AuthoredInventory,
+    val summary: BackupSummary,
+) {
+    val confirmBody: String
+        get() = AuthoredInventory.confirmBody(sourceName, incoming, local)
+}
+
 data class RestoreResult(
     val sourceName: String,
     val summary: BackupSummary,
     val preferencesRestored: Boolean,
     val safetySnapshotPath: String?,
+    val incoming: AuthoredInventory = AuthoredInventory.EMPTY,
+    val local: AuthoredInventory = AuthoredInventory.EMPTY,
 )

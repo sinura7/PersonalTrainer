@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.data.repository
 
 import androidx.room.withTransaction
+import com.sinura.personaltrainer.data.backup.AuthoredInventory
 import com.sinura.personaltrainer.data.backup.BackupDocument
 import com.sinura.personaltrainer.data.backup.BackupExercise
 import com.sinura.personaltrainer.data.backup.BackupExerciseMuscle
@@ -232,15 +233,39 @@ class LocalBackupRepository(
         )
     }
 
-    /** True when the phone holds anything worth protecting from an empty restore. */
-    suspend fun hasLocalData(): Boolean = database.withTransaction {
-        database.exerciseDao().getAll().any { it.isCustom } ||
-            database.routineDao().getAllRoutines().isNotEmpty() ||
-            database.workoutDao().getAllSessions().isNotEmpty() ||
-            // A pinned week is authored state too. Without this, someone whose only work so far
-            // is a plan looks empty, and an empty-backup restore would wipe it without asking.
-            database.scheduleDao().count() > 0
+    /** Authored rows on this phone, including DataStore-only bodyweight and blocks. */
+    suspend fun authoredInventory(): AuthoredInventory {
+        val room = database.withTransaction {
+            RoomAuthored(
+                sessions = database.workoutDao().getAllSessions().size,
+                setLogs = database.workoutDao().getAllSets().size,
+                routines = database.routineDao().getAllRoutines().size,
+                customExercises = database.exerciseDao().getAll().count { it.isCustom },
+                scheduleSlots = database.scheduleDao().count(),
+            )
+        }
+        val log = preferencesRepository.bodyweightLog.first()
+        val currentKg = preferencesRepository.bodyweightKg.first()
+        val bodyweight = when {
+            log.isNotEmpty() -> log.size
+            currentKg != null -> 1
+            else -> 0
+        }
+        val currentBlock = preferencesRepository.trainingBlock.first()
+        val pastBlocks = preferencesRepository.pastBlocks.first()
+        return AuthoredInventory(
+            sessions = room.sessions,
+            setLogs = room.setLogs,
+            routines = room.routines,
+            customExercises = room.customExercises,
+            scheduleSlots = room.scheduleSlots,
+            bodyweightEntries = bodyweight,
+            blocks = pastBlocks.size + if (currentBlock != null) 1 else 0,
+        )
     }
+
+    /** True when the phone holds anything worth protecting from an empty restore. */
+    suspend fun hasLocalData(): Boolean = !authoredInventory().isEmpty
 
     suspend fun inProgressSessionId(): String? =
         database.workoutDao().getInProgressSession()?.id
@@ -487,6 +512,14 @@ class LocalBackupRepository(
         const val SAFETY_SNAPSHOT_KEEP = 3
     }
 }
+
+private data class RoomAuthored(
+    val sessions: Int,
+    val setLogs: Int,
+    val routines: Int,
+    val customExercises: Int,
+    val scheduleSlots: Int,
+)
 
 data class RestoreOutcome(
     val preferencesRestored: Boolean,

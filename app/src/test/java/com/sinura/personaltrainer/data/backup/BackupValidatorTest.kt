@@ -174,7 +174,7 @@ class BackupValidatorTest {
     fun rejectsAnEmptyDocumentWhenThePhoneHasData() {
         val result = BackupValidator.validate(empty(), localHasData = true)
         assertTrue(result is BackupValidation.Invalid)
-        assertTrue((result as BackupValidation.Invalid).reason.contains("empty"))
+        assertTrue((result as BackupValidation.Invalid).reason.contains("refused"))
     }
 
     @Test
@@ -182,6 +182,23 @@ class BackupValidatorTest {
         // Nothing to lose: restoring an empty backup onto a fresh install is a no-op.
         assertTrue(
             BackupValidator.validate(empty(), localHasData = false) is BackupValidation.Valid,
+        )
+    }
+
+    @Test
+    fun catalogOnlyFileIsRefusedWhenThePhoneHasAuthoredData() {
+        val catalog = catalogOnly()
+        assertTrue(AuthoredInventory.fromDocument(catalog).isEmpty)
+        assertTrue(catalog.exercises.isNotEmpty())
+        val result = BackupValidator.validate(catalog, localHasData = true)
+        assertTrue(result is BackupValidation.Invalid)
+        assertTrue((result as BackupValidation.Invalid).reason.contains("refused"))
+    }
+
+    @Test
+    fun catalogOnlyFileIsAcceptedOnAnEmptyPhone() {
+        assertTrue(
+            BackupValidator.validate(catalogOnly(), localHasData = false) is BackupValidation.Valid,
         )
     }
 
@@ -361,6 +378,17 @@ class BackupValidatorTest {
         val reason = (result as BackupValidation.Invalid).reason
         assertTrue("reason was: $reason", reason.contains(expectedFragment))
     }
+
+    private fun catalogOnly() = BackupDocument(
+        exportedAt = "2026-08-19T10:00:00Z",
+        preferences = BackupPreferences(weightUnit = "kg"),
+        exercises = listOf(exercise("ex-squat", "Barbell Back Squat", "Quads")),
+        routines = emptyList(),
+        routineExercises = emptyList(),
+        sessions = emptyList(),
+        sessionExercises = emptyList(),
+        setLogs = emptyList(),
+    )
 
     private fun empty() = BackupDocument(
         exportedAt = "2026-08-19T10:00:00Z",

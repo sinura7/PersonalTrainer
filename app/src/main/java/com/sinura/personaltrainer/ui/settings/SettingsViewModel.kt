@@ -9,9 +9,11 @@ import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
+import com.sinura.personaltrainer.data.backup.AuthoredInventory
 import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
+import com.sinura.personaltrainer.data.repository.RestorePlan
 import com.sinura.personaltrainer.data.repository.RestoreResult
 import com.sinura.personaltrainer.domain.BackupPrompt
 import com.sinura.personaltrainer.domain.CoachPreferences
@@ -54,8 +56,7 @@ data class BackupUiState(
     val busyLabel: String? = null,
     val status: String? = null,
     val error: String? = null,
-    val pendingRestore: DriveBackupFile? = null,
-    val pendingFileRestore: Uri? = null,
+    val pendingPreview: RestorePreviewUi? = null,
     /** Restore would wipe the live session. Say so before the tap, not after the refuse. */
     val sessionLive: Boolean = false,
     /** No stamp, or older than 14 days. Caption nags; Export stays the tap. */
@@ -179,8 +180,7 @@ class SettingsViewModel @JvmOverloads constructor(
     private val status = MutableStateFlow<String?>(null)
     private val error = MutableStateFlow<String?>(null)
     private val backups = MutableStateFlow<List<DriveBackupFile>>(emptyList())
-    private val pendingRestore = MutableStateFlow<DriveBackupFile?>(null)
-    private val pendingFileRestore = MutableStateFlow<Uri?>(null)
+    private val pendingPlan = MutableStateFlow<RestorePlan?>(null)
     private var resolutionWaiter: CompletableDeferred<Boolean>? = null
 
     /**
@@ -210,13 +210,12 @@ class SettingsViewModel @JvmOverloads constructor(
         ) { email, lastAt, lastName, restoreAt, restoreName ->
             BackupMeta(email, lastAt, lastName, restoreAt, restoreName)
         },
-        combine(isBusy, busyLabel, status, error, pendingRestore) { busy, label, note, err, restore ->
-            BackupFlags(busy, label, note, err, restore)
+        combine(isBusy, busyLabel, status, error, pendingPlan) { busy, label, note, err, plan ->
+            BackupFlags(busy, label, note, err, plan?.toPreview())
         },
-        pendingFileRestore,
         backups,
         container.workoutRepository.observeInProgress(),
-    ) { meta, flags, fileRestore, files, live ->
+    ) { meta, flags, files, live ->
         BackupUiState(
             accountEmail = meta.email,
             lastBackupAt = meta.lastAt,
@@ -228,8 +227,7 @@ class SettingsViewModel @JvmOverloads constructor(
             busyLabel = flags.label,
             status = flags.status,
             error = flags.error,
-            pendingRestore = flags.pendingRestore,
-            pendingFileRestore = fileRestore,
+            pendingPreview = flags.pendingPreview,
             sessionLive = live != null,
             backupStale = BackupPrompt.isStale(meta.lastAt, System.currentTimeMillis()),
         )
@@ -336,20 +334,29 @@ class SettingsViewModel @JvmOverloads constructor(
         }
     }
 
-    fun requestRestore(file: DriveBackupFile) {
-        pendingRestore.value = file
-        error.value = null
+    fun requestRestore(activity: Activity, file: DriveBackupFile) {
+        runBackupAction("Checking backup…") {
+            pendingPlan.value = container.backupRepository.prepareDriveRestore(
+                activity,
+                file,
+                ::awaitResolution,
+            )
+        }
     }
 
     fun cancelRestore() {
-        pendingRestore.value = null
+        pendingPlan.value = null
     }
 
-    fun confirmRestore(activity: Activity) {
-        val file = pendingRestore.value ?: return
-        pendingRestore.value = null
+    fun confirmRestore() {
+        val plan = pendingPlan.value ?: return
+        pendingPlan.value = null
         runBackupAction("Restoring backup…") {
-            val result = container.backupRepository.restoreBackup(activity, file, ::awaitResolution)
+            val result = container.backupRepository.commitRestore(plan)
+            container.preferencesRepository.setLastRestore(
+                plan.sourceName,
+                System.currentTimeMillis(),
+            )
             status.value = describeRestore(result)
         }
     }
@@ -380,32 +387,26 @@ class SettingsViewModel @JvmOverloads constructor(
 
     /** Importing replaces everything, so it gets the same explicit confirm as a Drive restore. */
     fun requestFileRestore(uri: Uri) {
-        pendingFileRestore.value = uri
-        error.value = null
-    }
-
-    fun cancelFileRestore() {
-        pendingFileRestore.value = null
-    }
-
-    fun confirmFileRestore(uri: Uri) {
-        pendingFileRestore.value = null
-        importFromFile(uri)
-    }
-
-    private fun importFromFile(uri: Uri) {
-        runBackupAction("Reading backup file…") {
+        runBackupAction("Checking backup…") {
             val json = withContext(Dispatchers.IO) {
                 val resolver = getApplication<Application>().contentResolver
                 resolver.openInputStream(uri)?.use { stream ->
                     stream.readBytes().toString(Charsets.UTF_8)
                 } ?: throw BackupException("Couldn't read that file. Pick another one.")
             }
-            val name = displayName(uri)
-            val result = container.backupRepository.restoreFromJson(json, sourceName = name)
-            container.preferencesRepository.setLastRestore(name, System.currentTimeMillis())
-            status.value = describeRestore(result)
+            pendingPlan.value = container.backupRepository.prepareRestore(
+                json,
+                sourceName = displayName(uri),
+            )
         }
+    }
+
+    fun cancelFileRestore() {
+        pendingPlan.value = null
+    }
+
+    fun confirmFileRestore() {
+        confirmRestore()
     }
 
     /** Backups exclude the live session on purpose; say so instead of letting the user assume. */
@@ -496,6 +497,18 @@ class SettingsViewModel @JvmOverloads constructor(
         val label: String?,
         val status: String?,
         val error: String?,
-        val pendingRestore: DriveBackupFile?,
+        val pendingPreview: RestorePreviewUi?,
     )
 }
+
+data class RestorePreviewUi(
+    val sourceName: String,
+    val incoming: AuthoredInventory,
+    val local: AuthoredInventory,
+) {
+    val body: String
+        get() = AuthoredInventory.confirmBody(sourceName, incoming, local)
+}
+
+private fun RestorePlan.toPreview(): RestorePreviewUi =
+    RestorePreviewUi(sourceName = sourceName, incoming = incoming, local = local)

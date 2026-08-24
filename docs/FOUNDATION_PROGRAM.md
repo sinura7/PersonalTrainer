@@ -409,8 +409,19 @@ and close FND-011, FND-014A–C, and the measurement half of FND-038.
   enabled in the shipping manifest until P3.5. Evidence:
   [P3.1 evidence](foundation-program/evidence/P3.1-threat-model.md).
 
-- **P3.2** Split restore preparation from commit; authored-data counts;
-  catalog-only files cannot wipe history. Closes FND-014B.
+#### P3.2 — Authored-data restore preview · **done**
+
+- Split restore preparation from commit; authored-data counts;
+  catalog-only files cannot wipe history.
+- Exit: FND-014B closed.
+- Landed: `prepareRestore` decodes and compares authored inventories
+  without writing. Confirm names incoming vs local sessions, sets,
+  routines, custom exercises, schedule, weigh-ins, and blocks. A
+  catalog-only or empty file is refused when the phone has authored
+  data, including DataStore-only bodyweight or blocks. Evidence:
+  [P3.2 evidence](foundation-program/evidence/P3.2-restore-preview.md).
+
+- **P3.3** Verified, user-recoverable safety snapshots. Failure aborts
 - **P3.3** Verified, user-recoverable safety snapshots. Failure aborts
   restore. Closes FND-014A.
 - **P3.4** Serialize starts and journal restore phases. Closes FND-014C.

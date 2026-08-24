@@ -247,7 +247,7 @@ class BackupJsonTest {
         // here would make every belt-less set on this lift fail SetLogRules.
         assertEquals(LoadType.BODYWEIGHT_PLUS.name, row.getValue("b").loadType)
 
-        val result = BackupValidator.validate(parsed, localHasData = true)
+        val result = BackupValidator.validate(parsed, localHasData = false)
         assertTrue(result.toString(), result is BackupValidation.Valid)
     }
 
