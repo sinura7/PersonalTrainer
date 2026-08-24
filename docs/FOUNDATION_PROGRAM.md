@@ -470,8 +470,16 @@ and close FND-011, FND-014A–C, and the measurement half of FND-038.
   asks for the password. A file without `version` cannot decode as an
   empty catalog. Existing plaintext files still restore. Evidence:
   [P3.6 evidence](foundation-program/evidence/P3.6-envelope.md).
-- **P3.7** Benchmark backup on a 500-session / 15,000-set fixture before
-  any streaming rewrite. Stream only if signed budgets fail.
+
+#### P3.7 — Backup scale measurement · **done**
+
+- Benchmark backup on a 500-session / 15,000-set fixture before any
+  streaming rewrite. Stream only if signed budgets fail.
+- Landed: `BackupScaleBudget` signs encode ≤ 2 s, decode ≤ 2 s,
+  snapshot+encode ≤ 4 s, and encoded size ≤ 8 MiB. A JVM run of the
+  fixture encoded in 230 ms / 4.2 MiB and snapshot+encode in 280 ms.
+  Whole-document encode stays. Streaming remains P8.5 only if these
+  ceilings fail later.
 
 Phase 3 does not close until exact before/after fingerprints reconcile
 under the fault matrix (process kill at every journal phase, concurrent
