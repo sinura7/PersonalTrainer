@@ -9,6 +9,7 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.LighterWeek
+import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.ScheduleSlot
 import com.sinura.personaltrainer.domain.SchedulePreferences
@@ -54,6 +55,16 @@ class TrainingInsightsSource(
     private val computeDispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val nowMs: () -> Long = System::currentTimeMillis,
     private val zone: () -> ZoneId = ZoneId::systemDefault,
+    private val compute: (TrainingInsightsInput) -> TrainingInsights =
+        TrainingInsightsCalculator::compute,
+    private val loadHints: suspend (
+        routines: List<Routine>,
+        unit: WeightUnit,
+        lighterWeek: Boolean,
+    ) -> List<ProgressionHint> = { routines, unit, lighterWeek ->
+        workoutRepository.readyForProgression(routines, unit, lighterWeek = lighterWeek)
+    },
+    private val shareGraceMs: Long = SHARE_GRACE_MS,
 ) : TrainingInsightsPublisher {
     /**
      * One computation for every screen that wants the default view of it.
@@ -88,7 +99,7 @@ class TrainingInsightsSource(
         observe(includeWeekPlan = includeWeekPlan)
             .shareIn(
                 scope = sharedScope,
-                started = SharingStarted.WhileSubscribed(SHARE_GRACE_MS),
+                started = SharingStarted.WhileSubscribed(shareGraceMs),
                 replay = 1,
             )
 
@@ -137,16 +148,12 @@ class TrainingInsightsSource(
         // Null, not emptyList: "the query failed" and "nothing is ready to progress" render
         // very differently, and the old code collapsed them into the same empty section.
         val hints = runCatchingCancellable {
-            workoutRepository.readyForProgression(
-                sources.routines,
-                sources.unit,
-                lighterWeek = sources.lighterWeek,
-            )
+            loadHints(sources.routines, sources.unit, sources.lighterWeek)
         }.getOrElse { thrown ->
             AppLog.w(TAG, "Reading the progression hints failed", thrown)
             null
         }
-        TrainingInsightsCalculator.compute(
+        compute(
             TrainingInsightsInput(
                 history = sources.history,
                 routines = sources.routines,
@@ -164,7 +171,7 @@ class TrainingInsightsSource(
         )
     }.flowOn(computeDispatcher)
 
-    private companion object {
+    internal companion object {
         /** Long enough to survive a rotation or a tab switch, short enough not to hold work. */
         const val SHARE_GRACE_MS = 5_000L
     }

@@ -296,13 +296,21 @@ Status legend: **done** · **next** · pending · gated · skipped
   as the shared base class. Inventory:
   [P1.5 evidence](foundation-program/evidence/P1.5-viewmodel-inventory.md).
 
-#### P1.6 — `TrainingInsightsSource` as a runtime publisher
+#### P1.6 — `TrainingInsightsSource` as a runtime publisher · **done**
 
 - Shared collectors execute one upstream pipeline; replay/grace;
   with/without-week; refresh; latest-input; cancellation; independent
   failure isolation. Calculation stays off main. Cancellation never
   becomes fallback data.
 - Exit: FND-040 closed.
+- Landed: 10 runtime-source contracts. Two `observeShared` collectors
+  run one compute and replay the same instance; with-plan and
+  without-plan stay independent; grace expiry restarts the pipeline;
+  refresh recomputes unchanged inputs; `mapLatest` drops an in-flight
+  pass; cancelled hint loads never become `PROGRESSION` fallback;
+  a hint exception isolates to that failure; compute runs on the
+  injected dispatcher. Evidence:
+  [P1.6 evidence](foundation-program/evidence/P1.6-insights-source.md).
 
 ### Phase 2 — Current strength-product trust defects · pending
 
