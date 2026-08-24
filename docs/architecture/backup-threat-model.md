@@ -19,9 +19,9 @@ on them.
 1. **User-controlled backup is the authoritative recovery path.** SAF export
    and optional Drive whole-file backup replace local state after preview and
    confirm. They are not synchronization.
-2. **Implicit Android backup and device-to-device app-data transfer will be
-   disabled** (`allowBackup=false` plus explicit exclusion rules). That is
-   P3.5. The shipping manifest still has `allowBackup="true"`.
+2. **Implicit Android backup and device-to-device app-data transfer are
+   disabled** (`allowBackup=false` plus explicit exclusion rules). That
+   landed in P3.5. Existing OS copies are not recalled.
 3. **Existing OS backups are not retroactively recalled.** They are luck, not
    a plan, and after P3.5 they are not a supported channel.
 4. **App-layer plaintext export and Drive payloads expose fitness and
@@ -58,14 +58,15 @@ Application id: `com.sinura.personaltrainer` (debug:
 `com.sinura.personaltrainer.debug`). None of these stores have app-layer
 encryption.
 
-| Store | On-disk location | Holds | In user backup JSON | Eligible for Auto Backup today |
+| Store | On-disk location | Holds | In user backup JSON | Eligible for Auto Backup |
 |---|---|---|---|---|
-| Room `TrainerDatabase` | `databases/personal_trainer.db` (+ WAL/SHM) | Exercises, muscles, routines, finished and live sessions, sets, schedule, seed meta | Finished sessions and the rest of the catalog/plan; **live sessions excluded** | Yes |
-| DataStore `user_settings` | `files/datastore/user_settings.preferences_pb` | Unit, schedule, rest prefs, coach, bodyweight + log, blocks, onboarding, Drive email/folder, backup stamps, collision dismissals | Partial — see exclusions below | Yes |
-| `rest_timer_state` | `shared_prefs/rest_timer_state.xml` | Live rest countdown and session id | No | Yes |
-| `schema_marker` | `shared_prefs/schema_marker.xml` | Last opened schema version | No | Yes |
-| Safety snapshots | `files/safety-snapshots/pre-restore-*.json` | Plaintext JSON of current state; keep newest 3 | N/A (they *are* backups) | Yes |
-| Pre-migration v1 copy | `files/pre-migration/v1/personal_trainer.db` (+ WAL/SHM) | Byte copy taken once before Room v2 | No | Yes |
+| Room `TrainerDatabase` | `databases/personal_trainer.db` (+ WAL/SHM) | Exercises, muscles, routines, finished and live sessions, sets, schedule, seed meta | Finished sessions and the rest of the catalog/plan; **live sessions excluded** | No |
+| DataStore `user_settings` | `files/datastore/user_settings.preferences_pb` | Unit, schedule, rest prefs, coach, bodyweight + log, blocks, onboarding, Drive email/folder, backup stamps, collision dismissals | Partial — see exclusions below | No |
+| `rest_timer_state` | `shared_prefs/rest_timer_state.xml` | Live rest countdown and session id | No | No |
+| `schema_marker` | `shared_prefs/schema_marker.xml` | Last opened schema version | No | No |
+| Safety snapshots | `files/safety-snapshots/pre-restore-*.json` | Plaintext JSON of current state; keep newest 3 | N/A (they *are* backups) | No |
+| Restore journal | `files/restore-journal/` | Phase + incoming JSON for a killed restore | No | No |
+| Pre-migration v1 copy | `files/pre-migration/v1/personal_trainer.db` (+ WAL/SHM) | Byte copy taken once before Room v2 | No | No |
 | Workout draft | In-process cache + Activity `SavedStateHandle` | Unlogged set entry | No | OS saved state only |
 | Drive token | `DriveAuthClient` memory | Access token + email | No | No |
 | Logcat | Not persisted by the app | `PT/<Component>` breadcrumbs | No | No |
@@ -76,21 +77,18 @@ backup/restore stamps; rest-timer runtime state.
 
 ## 4. Channels
 
-### 4.1 Implicit OS backup (shipping, to be closed)
+### 4.1 Implicit OS backup (disabled)
 
-- Manifest: `android:allowBackup="true"`.
-- `android:fullBackupContent` and `android:dataExtractionRules` are unset.
-- `res/xml/backup_rules.xml` is `<full-backup-content />` and is **not**
-  referenced. Lint already flags it unused.
-- Effective inclusion is the Android default: Room, DataStore, both
-  SharedPreferences files, safety snapshots, and the pre-migration copy.
-- The OS transport is OS-encrypted. Temper does not version or validate an
-  OS-restored tree. A Play/D2D restore can therefore land mixed or stale
-  files the app will treat as authoritative Room + preferences.
-
-P3.5 implements `allowBackup=false` plus explicit legacy and API-31+
-exclusion rules covering every row in §3. Upgrade-in-place must not erase
-local data.
+- Manifest: `android:allowBackup="false"`.
+- `android:fullBackupContent="@xml/backup_rules"`.
+- `android:dataExtractionRules="@xml/data_extraction_rules"`.
+- Both rule files exclude `root`, `file`, `database`, `sharedpref`, and
+  `external`, and name Room, DataStore, rest-timer prefs, schema marker,
+  safety snapshots, restore journal, and the pre-migration copy.
+- API 31+ `device-transfer` is excluded the same way, so a new-phone
+  setup does not copy Temper data.
+- Existing OS backups taken before this packet are **not recalled**.
+  They are luck, not a plan, and not a supported channel.
 
 ### 4.2 SAF export / import
 
@@ -136,7 +134,7 @@ forever.
 |---|---|---|---|---|
 | T1 | **Device theft, screen locked** | Room/DataStore are app-private. A locked device is the platform's lock. No app-layer DB encryption. | Keep relying on the platform lock for at-rest on-device files. Do not invent device-bound encryption for portable backups. | none — accepted platform posture |
 | T2 | **Unlocked or shared device** | Any app or person with the unlocked phone can open Temper and read history, or Export to file. | Product stays single-user, no in-app lock screen in Phase 3. Do not pretend otherwise. | none — out of scope |
-| T3 | **Android Auto Backup / D2D transfer** | Default inclusion copies the whole §3 tree, including safety and pre-migration snapshots that can retain deleted history. Temper will treat an OS-restored DB as real. | Disable the channel. Document that already-taken OS copies are not recalled. | P3.5 |
+| T3 | **Android Auto Backup / D2D transfer** | Closed: `allowBackup=false` plus domain and named-store excludes for cloud backup and device-transfer. Already-taken OS copies are not recalled. | Disable the channel. Document that already-taken OS copies are not recalled. | P3.5 |
 | T4 | **File leak of a SAF/Drive JSON** | Plaintext. Complete finished history + bodyweight if those rows exist. | Warn. Offer a portable authenticated encrypted envelope. Keep legacy plaintext import. Plaintext export becomes an advanced choice. | P3.6 |
 | T5 | **Drive account or `drive.file` folder compromise** | Attacker with the Google account can read/replace files this app created. `drive.file` cannot list the rest of Drive. | Keep `drive.file`. Say **backup**, never sync. Encryption (P3.6) reduces payload value. | P3.6; P12.2 copy |
 | T6 | **Catalog-only or bodyweight-blind restore** | A file that is only the seeded catalog passes the empty guard and can wipe authored sessions. Local bodyweight/blocks do not count as “has data.” | Authored-data counts on both sides. Catalog-only cannot wipe history through the normal path. | P3.2 |
@@ -153,8 +151,8 @@ Current-voice documents may say:
 
 - Export to file is the copy that counts.
 - Drive is optional whole-file **backup**, not sync.
-- Auto Backup is enabled in the shipping manifest and is **not** the
-  supported recovery path.
+- Auto Backup is **disabled** in the shipping manifest. Existing OS
+  copies are not recalled and are not a supported channel.
 - Export and Drive JSON are plaintext today.
 - Restore refuses while a workout is live.
 - A verified safety copy is required before restore teardown. Copies
@@ -172,7 +170,7 @@ They must not say:
 
 | Finding | This inventory | Remaining implementation |
 |---|---|---|
-| FND-011 | Threat model covers device theft (T1–T2), Auto Backup (T3), file leak (T4), and Drive (T5) | P3.5 manifest; P3.6 envelope |
+| FND-011 | Threat model covers device theft (T1–T2), Auto Backup (T3 closed), file leak (T4), and Drive (T5) | P3.6 envelope |
 | FND-014B | T6 records the catalog-only / authored-count hole | P3.2 |
 | FND-014A | T7 is closed: verified snapshot, Settings recovery | done — P3.3 |
 | FND-014C | T8–T9 are closed: one lock, journaled recover | done — P3.4 |

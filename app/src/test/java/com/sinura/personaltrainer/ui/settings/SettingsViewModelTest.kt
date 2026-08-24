@@ -113,8 +113,16 @@ class SettingsViewModelTest {
         deps.setExactAlarmAttempt(ExactAlarmAttempt.BEST_EFFORT)
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
+        // Keep the DataStore-backed rest prefs flowing. first { !it } on the
+        // offer flag alone can complete on the stateIn initial value before
+        // setRestSoundEnabled's edit is observed.
+        viewModel!!.restTimerPreferences.first()
         viewModel!!.offerExactAlarmAccess.first { !it }
         viewModel!!.setRestSoundEnabled(false)
+        withTimeout(5_000) {
+            viewModel!!.restTimerPreferences.first { !it.soundEnabled }
+        }
+        assertTrue(deps.preferencesRepository.restAlarmEligible.first())
         val offered = withTimeout(5_000) { viewModel!!.offerExactAlarmAccess.first { it } }
         assertTrue(offered)
     }

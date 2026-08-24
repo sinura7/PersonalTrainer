@@ -1,2 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<full-backup-content />
+<!--
+  Legacy Auto Backup / D2D (API 23–30). Referenced by android:fullBackupContent.
+  allowBackup=false already disables the channel; these excludes stay so a later
+  flip of the flag cannot quietly re-include training history.
+
+  Stores named from docs/architecture/backup-threat-model.md §3:
+  Room, DataStore, rest_timer_state, schema_marker, safety snapshots,
+  restore journal, pre-migration copy.
+-->
+<full-backup-content>
+    <exclude domain="root" />
+    <exclude domain="file" />
+    <exclude domain="database" />
+    <exclude domain="sharedpref" />
+    <exclude domain="external" />
+
+    <exclude domain="database" path="personal_trainer.db" />
+    <exclude domain="database" path="personal_trainer.db-journal" />
+    <exclude domain="database" path="personal_trainer.db-wal" />
+    <exclude domain="database" path="personal_trainer.db-shm" />
+    <exclude domain="file" path="datastore" />
+    <exclude domain="file" path="safety-snapshots" />
+    <exclude domain="file" path="restore-journal" />
+    <exclude domain="file" path="pre-migration" />
+    <exclude domain="sharedpref" path="rest_timer_state.xml" />
+    <exclude domain="sharedpref" path="schema_marker.xml" />
+</full-backup-content>

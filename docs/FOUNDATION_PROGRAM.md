@@ -444,8 +444,18 @@ and close FND-011, FND-014A–C, and the measurement half of FND-038.
   start finishes an interrupted restore before catalog seed. A live
   start is refused while that journal is open. Evidence:
   [P3.4 evidence](foundation-program/evidence/P3.4-restore-journal.md).
-- **P3.5** `allowBackup=false` plus explicit exclusion rules.
-  Upgrade-in-place must not erase data.
+
+#### P3.5 — Disable implicit OS backup · **done**
+
+- `allowBackup=false` plus explicit legacy and API-31+ exclusion rules
+  covering databases, files, shared preferences, safety snapshots,
+  journal, and migration snapshots. Upgrade-in-place must not erase
+  data. Existing OS copies are not recalled.
+- Landed: shipping manifest disables Auto Backup and points at
+  `backup_rules.xml` and `data_extraction_rules.xml`. Both exclude
+  every store in the threat-model inventory, including device-transfer.
+  File-backed Room close/reopen keeps the session. `FLAG_ALLOW_BACKUP`
+  is unset on the debug package.
 - **P3.6** Portable authenticated encrypted envelope. Legacy plaintext
   import kept; plaintext export becomes a warned advanced choice.
 - **P3.7** Benchmark backup on a 500-session / 15,000-set fixture before

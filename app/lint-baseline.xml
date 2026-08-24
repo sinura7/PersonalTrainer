@@ -701,15 +701,4 @@
             column="40"/>
     </issue>
 
-    <issue
-        id="UnusedResources"
-        message="The resource `R.xml.backup_rules` appears to be unused"
-        errorLine1="&lt;full-backup-content />"
-        errorLine2="~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/xml/backup_rules.xml"
-            line="2"
-            column="1"/>
-    </issue>
-
 </issues>

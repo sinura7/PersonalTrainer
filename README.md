@@ -75,8 +75,8 @@ Four tabs — **Home · Body · Plan · History**. Library is a pushed route, no
 **Backup, not sync.** Export/import a JSON file with no Google account, or make an
 optional whole-file Google Drive **backup**. Restores are validated before anything is
 written, and refuse to run while a workout is in progress. Drive does not merge two
-phones. Android Auto Backup is currently enabled in the manifest; it is **not** the
-supported recovery path and is scheduled to be disabled. Use Export to file.
+phones. Android Auto Backup is **disabled** in the shipping manifest. It is
+not the recovery path. Existing OS copies are not recalled. Use Export to file.
 
 Training works offline. A backup is only read when you ask for one. Cardio, backdated
 new activities, timed two-a-day schedules, and measurable goals are the foundation

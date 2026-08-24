@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  API 31+ cloud backup and device-to-device transfer. Referenced by
+  android:dataExtractionRules. Cloud backup is already off via allowBackup=false;
+  device-transfer excludes are what stop a new-phone setup from copying Temper
+  data without the owner exporting a file.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+
+        <exclude domain="database" path="personal_trainer.db" />
+        <exclude domain="database" path="personal_trainer.db-journal" />
+        <exclude domain="database" path="personal_trainer.db-wal" />
+        <exclude domain="database" path="personal_trainer.db-shm" />
+        <exclude domain="file" path="datastore" />
+        <exclude domain="file" path="safety-snapshots" />
+        <exclude domain="file" path="restore-journal" />
+        <exclude domain="file" path="pre-migration" />
+        <exclude domain="sharedpref" path="rest_timer_state.xml" />
+        <exclude domain="sharedpref" path="schema_marker.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+
+        <exclude domain="database" path="personal_trainer.db" />
+        <exclude domain="database" path="personal_trainer.db-journal" />
+        <exclude domain="database" path="personal_trainer.db-wal" />
+        <exclude domain="database" path="personal_trainer.db-shm" />
+        <exclude domain="file" path="datastore" />
+        <exclude domain="file" path="safety-snapshots" />
+        <exclude domain="file" path="restore-journal" />
+        <exclude domain="file" path="pre-migration" />
+        <exclude domain="sharedpref" path="rest_timer_state.xml" />
+        <exclude domain="sharedpref" path="schema_marker.xml" />
+    </device-transfer>
+</data-extraction-rules>
