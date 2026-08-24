@@ -72,6 +72,20 @@ lanes, which is what every foundation-program packet gates on:
 tools/preflight.sh
 ```
 
+The single local verification command for a foundation-program packet is:
+
+```bash
+tools/verify.sh
+```
+
+That runs preflight, `testDebugUnitTest`, `lintDebug` (new issues fail; existing
+ones live in `app/lint-baseline.xml`), `jacocoTestReport`, and
+`tools/check-coverage.py`. If an emulator is already running it also runs
+`connectedDebugAndroidTest` against `com.sinura.personaltrainer.debug`.
+
+`InstrumentationSmokeTest` asserts `BuildConfig.APPLICATION_ID` and that the
+debug lane uses the `.debug` suffix. Do not hardcode the release package.
+
 The individual checks in `tools/` cover the gap when you cannot build — they are a
 pre-flight, not a substitute for `./gradlew assembleDebug`:
 

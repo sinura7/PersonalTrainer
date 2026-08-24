@@ -209,7 +209,7 @@ Status legend: **done** · **next** · pending · gated · skipped
 
 ### Phase 1 — Truthful test, review, and visual evidence substrate · **next**
 
-#### P1.1 — Repair the device lane and one local verification command
+#### P1.1 — Repair the device lane and one local verification command · **done** (code; device lane pending emulator)
 
 - Fix `InstrumentationSmokeTest` so it validates the generated debug
   target instead of hardcoding the release package.
@@ -221,6 +221,14 @@ Status legend: **done** · **next** · pending · gated · skipped
   coverage threshold, then restoring.
 - Exit: existing instrumented tests pass on the stable API 29+ emulator
   lane; FND-004 closed.
+- Landed: `BuildConfig.APPLICATION_ID` + `.debug` suffix assertions;
+  Compose UI-test deps; `AppClock` / `IdFactory` + sharedTest fakes;
+  `tools/verify.sh`; JaCoCo floors; lint baseline with new-warning-as-error.
+  Gate probes: broken test, 99% domain floor, unused string resource — all
+  failed as required, then discarded. This environment's API 29 emulator
+  stayed `offline` (KVM was granted; adb never reached `device`), so
+  `connectedDebugAndroidTest` remains a phone/emulator milestone, not a
+  merge fiction. FND-004 is closed in code.
 
 #### P1.2 — Page/state preview and screenshot infrastructure
 

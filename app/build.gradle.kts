@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    jacoco
 }
 
 // Bump both values for every GitHub Release.
@@ -40,8 +41,19 @@ android {
     sourceSets {
         // Lets MigrationTestHelper read the exported schemas as test assets.
         getByName("androidTest").assets.srcDir("$projectDir/schemas")
+        getByName("androidTest").java.srcDir("$projectDir/src/sharedTest/java")
         // Same substrate for the JVM (Robolectric) migration lane.
         getByName("test").assets.srcDir("$projectDir/schemas")
+        getByName("test").java.srcDir("$projectDir/src/sharedTest/java")
+    }
+
+    lint {
+        // Existing findings live in lint-baseline.xml. A new warning is an
+        // error. P4.6 still owns cleaning the baseline to zero.
+        baseline = file("lint-baseline.xml")
+        warningsAsErrors = true
+        abortOnError = true
+        checkReleaseBuilds = false
     }
 
     testOptions {
@@ -70,6 +82,7 @@ android {
             // debug install is a new app; uninstall the old debug (same id as
             // release, debug-signed) when you see two Temper icons.
             applicationIdSuffix = ".debug"
+            enableUnitTestCoverage = true
         }
         release {
             isMinifyEnabled = false
@@ -154,6 +167,9 @@ dependencies {
     implementation(libs.play.services.auth)
     ksp(libs.androidx.room.compiler)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
@@ -164,4 +180,39 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.rules)
     androidTestImplementation(libs.androidx.room.testing)
+}
+
+val jacocoExcludes = listOf(
+    "**/R.class",
+    "**/R$*.class",
+    "**/BuildConfig.*",
+    "**/Manifest*.*",
+    "**/*_Impl.class",
+    "**/*_Impl$*.class",
+    "**/*_Factory.class",
+    "**/*ComposableSingletons*.*",
+    "**/databinding/**",
+)
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+    group = "verification"
+    description = "Unit-test coverage XML/HTML for tools/check-coverage.py"
+    dependsOn("testDebugUnitTest")
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+    val javaTree = fileTree(layout.buildDirectory.dir("intermediates/javac/debug")) {
+        exclude(jacocoExcludes)
+    }
+    val kotlinTree = fileTree(layout.buildDirectory.dir("tmp/kotlin-classes/debug")) {
+        exclude(jacocoExcludes)
+    }
+    classDirectories.setFrom(javaTree, kotlinTree)
+    sourceDirectories.setFrom(files("src/main/java"))
+    executionData.setFrom(
+        layout.buildDirectory.file("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec"),
+        layout.buildDirectory.file("jacoco/testDebugUnitTest.exec"),
+    )
 }

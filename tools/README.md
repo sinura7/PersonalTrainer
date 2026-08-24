@@ -190,6 +190,32 @@ code. Both mistakes it now avoids were made first: treating a preceding dot as p
 was unused (extensions are always called that way) reported 228 live imports as dead, and
 blanking whole string literals hid the only use of several others.
 
+## `check-coverage.py`
+
+Compares JaCoCo package instruction coverage to [coverage-floors.txt](coverage-floors.txt).
+
+```bash
+./gradlew jacocoTestReport
+python3 tools/check-coverage.py
+```
+
+Floors are a ratchet. Raise them when a packet adds tests. Do not lower a floor
+to hide a regression. Generated Room/Compose/R/BuildConfig classes are excluded
+by the `jacocoTestReport` task.
+
+## `verify.sh`
+
+One local verification command for a foundation-program packet:
+
+```bash
+tools/verify.sh
+```
+
+Runs preflight, unit tests, lint against `app/lint-baseline.xml` (new issues
+fail), coverage ratchet, and `connectedDebugAndroidTest` if an emulator is
+already up. The connected lane always targets
+`com.sinura.personaltrainer.debug`.
+
 ## `check-doc-authority.py`
 
 Guards the documentation authority signed in `docs/architecture/ADR-001-documentation-authority.md`.

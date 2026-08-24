@@ -1,0 +1,10 @@
+# Instruction-coverage floors, percent, for the local verification ratchet.
+# Raise a floor when a packet adds tests. Never lower one to hide a regression.
+# Generated Room/Compose/R/BuildConfig classes are excluded in jacocoTestReport.
+#
+# package<TAB>min_percent
+com.sinura.personaltrainer.domain	90
+com.sinura.personaltrainer.data.backup	62
+com.sinura.personaltrainer.timer	14
+com.sinura.personaltrainer.util	28
+com.sinura.personaltrainer.workout	22
