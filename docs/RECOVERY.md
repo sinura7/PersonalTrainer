@@ -29,11 +29,11 @@ Your training history is on the old phone. Recover it in this order:
 Install the app on the new phone first (see [SETUP.md](../SETUP.md)), then restore.
 
 > Android Auto Backup is **not** the recovery path. The shipping manifest still
-> allows it (a documented defect; see foundation-audit FND-011). Its contents
-> are not versioned or validated by Temper, and the foundation program will
-> disable the channel. Treat any OS copy as luck, not a plan. Export to file
+> allows it (FND-011; disable is P3.5). Its contents are not versioned or
+> validated by Temper. Treat any OS copy as luck, not a plan. Export to file
 > is the copy that counts. Google Drive, if you used it, is a whole-file
-> **backup**, not a sync.
+> **backup**, not a sync. The signed inventory is
+> [backup-threat-model.md](architecture/backup-threat-model.md).
 
 ## 2. "My laptop died"
 

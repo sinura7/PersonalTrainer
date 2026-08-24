@@ -399,8 +399,16 @@ Status legend: **done** · **next** · pending · gated · skipped
 Packets P3.1–P3.7 implement [ADR-009](architecture/ADR-009-backup-privacy-sync.md)
 and close FND-011, FND-014A–C, and the measurement half of FND-038.
 
-- **P3.1** Sign the threat-model inventory. Policy is already decided:
-  disable implicit OS backup; user-controlled backup is authoritative.
+#### P3.1 — Threat-model inventory · **done**
+
+- Policy is already decided: disable implicit OS backup; user-controlled
+  backup is authoritative.
+- Landed: [backup-threat-model.md](architecture/backup-threat-model.md)
+  inventories every store and channel, covers device theft, Auto Backup,
+  file leak, and Drive, and maps T3–T10 to P3.2–P3.7. Auto Backup stays
+  enabled in the shipping manifest until P3.5. Evidence:
+  [P3.1 evidence](foundation-program/evidence/P3.1-threat-model.md).
+
 - **P3.2** Split restore preparation from commit; authored-data counts;
   catalog-only files cannot wipe history. Closes FND-014B.
 - **P3.3** Verified, user-recoverable safety snapshots. Failure aborts

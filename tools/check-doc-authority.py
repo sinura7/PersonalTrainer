@@ -78,6 +78,31 @@ REQUIRED_IN = [
     (ROADMAP, "FOUNDATION_PROGRAM.md", "ROADMAP must point at the current program"),
     (ROADMAP, "superseded", "ROADMAP must mark superseded constraints"),
     (".cursor/rules/owner-loop.mdc", "FOUNDATION_PROGRAM.md", "owner-loop must point at the program"),
+    (
+        "docs/architecture/backup-threat-model.md",
+        "User-controlled backup is the authoritative recovery path",
+        "P3.1 inventory must restate the recovery-path decision",
+    ),
+    (
+        "docs/architecture/backup-threat-model.md",
+        "allowBackup=false",
+        "P3.1 inventory must record the Auto Backup disable decision",
+    ),
+    (
+        "docs/architecture/backup-threat-model.md",
+        "Device theft",
+        "P3.1 inventory must cover device theft",
+    ),
+    (
+        "docs/architecture/backup-threat-model.md",
+        "File leak",
+        "P3.1 inventory must cover file leak",
+    ),
+    (
+        "docs/architecture/backup-threat-model.md",
+        "drive.file",
+        "P3.1 inventory must cover the Drive channel",
+    ),
 ]
 
 ISSUED_FND = [f"FND-{n:03d}" for n in range(1, 49) if n != 37] + [

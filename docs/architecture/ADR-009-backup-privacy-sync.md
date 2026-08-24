@@ -4,7 +4,8 @@
 - **Date:** 24 August 2026
 - **Supersedes:** Implicit Android Auto Backup as an accepted recovery path;
   any current-voice description of Drive as “sync”
-- **Related:** FND-011, FND-012, FND-014A–C, FND-030, FND-038; Phase 3, 11, 12
+- **Related:** FND-011, FND-012, FND-014A–C, FND-030, FND-038; Phase 3, 11, 12;
+  signed inventory [backup-threat-model.md](backup-threat-model.md)
 
 ## Context
 
@@ -87,7 +88,8 @@ safety. Incremental account sync is a later product, not a rename of Drive.
 
 ## Consequences
 
-- P3.1’s threat-model packet records the inventory; it does not reopen
+- P3.1’s threat-model packet records the inventory
+  ([backup-threat-model.md](backup-threat-model.md)); it does not reopen
   whether Auto Backup stays on.
 - Commercial privacy/Data Safety copy in P12.2 must match this ADR.
 - Calling Drive “cloud sync” in current-voice docs is a failed authority

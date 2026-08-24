@@ -43,6 +43,12 @@ No ADR may leave a schema, scheduling, privacy, or entitlement choice as TBD.
 | [ADR-012](ADR-012-rest-and-reminders.md) | Exact rest, reminders, and missed-work policy | FND-001, FND-007, FND-017 |
 | [ADR-013](ADR-013-finding-dispositions.md) | Finding dispositions and superseded doctrine | FND-037 and the full map |
 
+## Supporting records
+
+| Record | Role |
+|---|---|
+| [backup-threat-model.md](backup-threat-model.md) | P3.1 signed inventory of stores, channels, and threats. Implements ADR-009; does not reopen it. |
+
 ## Permanent refusals that remain in force
 
 These are not superseded by the foundation program:

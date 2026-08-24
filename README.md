@@ -33,6 +33,7 @@ need no configuration.
 |---|---|
 | [docs/FOUNDATION_PROGRAM.md](docs/FOUNDATION_PROGRAM.md) | **current program — packets, gates, signed decisions** |
 | [docs/architecture/](docs/architecture/README.md) | accepted architecture decision records |
+| [docs/architecture/backup-threat-model.md](docs/architecture/backup-threat-model.md) | signed backup/privacy inventory (P3.1) |
 | [docs/foundation-audit/](docs/foundation-audit/README.md) | canonical current-state audit (23 August 2026) |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | project layout, running tests, what will bite you |
 | [SETUP.md](SETUP.md) | release keystore, Google Drive OAuth, building a signed APK |
