@@ -513,6 +513,8 @@ Start versus Restore, catalog-only and bodyweight-only files).
   Lifecycle 2.11 and coroutines 1.11 are refused on this AGP/Kotlin
   pair. Gson remains the backup codec.
   [core-toolchain.md](architecture/core-toolchain.md).
+  Evidence:
+  [P4.2 evidence](foundation-program/evidence/P4.2-core-toolchain.md).
 - **P4.3** Compose BOM, Material, Navigation, compiler as one matrix.
 - **P4.4** Room, DataStore, persistence test stack; v1/v2 migrations stay
   green on the new substrate.
