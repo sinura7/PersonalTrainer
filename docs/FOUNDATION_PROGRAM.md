@@ -468,7 +468,8 @@ and close FND-011, FND-014A–C, and the measurement half of FND-038.
 - Landed: default file and Drive export wrap the backup JSON in
   PBKDF2-HMAC-SHA256 + AES-256-GCM. Import detects the envelope and
   asks for the password. A file without `version` cannot decode as an
-  empty catalog. Existing plaintext files still restore.
+  empty catalog. Existing plaintext files still restore. Evidence:
+  [P3.6 evidence](foundation-program/evidence/P3.6-envelope.md).
 - **P3.7** Benchmark backup on a 500-session / 15,000-set fixture before
   any streaming rewrite. Stream only if signed budgets fail.
 
