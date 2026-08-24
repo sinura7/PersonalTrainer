@@ -90,8 +90,8 @@ import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.EquipmentGlyphIcon
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
-import com.sinura.personaltrainer.ui.components.GymNoticeBanner
 import com.sinura.personaltrainer.ui.components.InstrumentChip
+import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.NotesBlock
@@ -125,6 +125,9 @@ object WorkoutTestTags {
     const val CONTENT = "workout-content"
     const val LOG_SET = "workout-log-set"
     const val FINISH = "workout-finish"
+    const val NOTIF_RECOVERY = "workout-notif-recovery"
+    const val CURRENT_LIFT = "workout-current-lift"
+    const val SET_ENTRY = "workout-set-entry"
 }
 
 @Composable
@@ -132,6 +135,7 @@ fun ActiveWorkoutScreen(
     onExit: () -> Unit,
     onFinished: (String) -> Unit,
     viewModel: ActiveWorkoutViewModel = viewModel(),
+    restNotificationsEnabledOverride: Boolean? = null,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val rest by viewModel.restTimerState.collectAsStateWithLifecycle()
@@ -142,7 +146,8 @@ fun ActiveWorkoutScreen(
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     var notesOpen by rememberSaveable { mutableStateOf(false) }
     var confirmRemoveLift by rememberSaveable { mutableStateOf(false) }
-    val restNotificationsEnabled = rememberRestNotificationsEnabled()
+    val restNotificationsEnabled = restNotificationsEnabledOverride
+        ?: rememberRestNotificationsEnabled()
     val session = state.session
     val selected = session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId }
     // Keyed on the session, not recomputed per frame: the header below it redraws every second
@@ -302,6 +307,9 @@ fun ActiveWorkoutScreen(
                         .padding(padding),
                 ) {
                     // Outside the scroll on purpose. See RestDock.
+                    if (!restNotificationsEnabled) {
+                        RestNotificationRecoveryRow()
+                    }
                     RestDock(
                         remainingSeconds = rest.remainingSeconds,
                         totalSeconds = rest.totalSeconds,
@@ -326,9 +334,6 @@ fun ActiveWorkoutScreen(
                         ),
                         verticalArrangement = Arrangement.spacedBy(Metrics.space4),
                     ) {
-                        if (!restNotificationsEnabled) {
-                            item(key = "notif") { RestNotificationsDisabledBanner() }
-                        }
                         personalRecord?.let { moment ->
                             item(key = "pr-moment") {
                                 PersonalRecordBanner(
@@ -398,6 +403,7 @@ fun ActiveWorkoutScreen(
                                     canEdit = loggedForSelected.isEmpty(),
                                     onSwap = viewModel::requestSwap,
                                     onRemove = { confirmRemoveLift = true },
+                                    modifier = Modifier.testTag(WorkoutTestTags.CURRENT_LIFT),
                                 )
                             }
                             state.lastPerformance?.let { last ->
@@ -430,6 +436,7 @@ fun ActiveWorkoutScreen(
                                     // one labelled "assist".
                                     loadClass = LoadClass.of(selected?.exercise?.loadType),
                                     plated = selected?.exercise?.equipment == EquipmentType.BARBELL,
+                                    modifier = Modifier.testTag(WorkoutTestTags.SET_ENTRY),
                                 )
                             }
                             item(key = "secondary") {
@@ -782,11 +789,15 @@ private fun CurrentLiftHeader(
     canEdit: Boolean,
     onSwap: () -> Unit,
     onRemove: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val targetSets = lift.targetSets.coerceAtLeast(1)
     val targetReps = lift.targetReps.coerceAtLeast(1)
     var menuOpen by rememberSaveable(lift.id) { mutableStateOf(false) }
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 lift.exercise.name,
@@ -1056,8 +1067,8 @@ private fun SetRow(
  * rest surfaces — the countdown and the "Rest done" alert — so a pocketed phone shows nothing
  * at all, with no way back: after two denials the system dialog stops appearing entirely.
  * The system dialog has no gym why, so an in-app sentence runs first. Continue launches
- * the permission prompt; Not now leaves the existing recovery banner as the way back.
- * The returned flag drives that banner (deep link to app notification settings) and
+ * the permission prompt; Not now leaves the compact recovery row as the way back.
+ * The returned flag drives that row (deep link to app notification settings) and
  * re-checks on every resume so it disappears the moment the user grants.
  */
 @Composable
@@ -1119,23 +1130,23 @@ private fun rememberRestNotificationsEnabled(): Boolean {
     return enabled
 }
 
-/** Tells the lifter their rest clock is invisible off-screen, and offers the one fix. */
+/**
+ * Persistent recovery after the one explanation. One identity line and one
+ * act — not a viewport-dominating banner (FND-015).
+ */
 @Composable
-private fun RestNotificationsDisabledBanner(modifier: Modifier = Modifier) {
+private fun RestNotificationRecoveryRow(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    GymNoticeBanner(
-        title = "Rest alerts are off",
-        body = "Notifications are blocked, so you won't see the countdown or hear " +
-            "\"Rest done\" with the phone in your pocket.",
-        actionLabel = "Turn on notifications",
-        onAction = {
+    InstrumentRow(
+        title = RestNotificationCopy.RECOVERY_TITLE,
+        modifier = modifier.testTag(WorkoutTestTags.NOTIF_RECOVERY),
+        onClick = {
             val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                 .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             try {
                 context.startActivity(intent)
             } catch (thrown: Exception) {
-                // Some OEM builds do not expose the per-app notification screen.
                 AppLog.w(TAG, "App notification settings unavailable; falling back", thrown)
                 context.startActivity(
                     Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
@@ -1144,7 +1155,14 @@ private fun RestNotificationsDisabledBanner(modifier: Modifier = Modifier) {
                 )
             }
         },
-        modifier = modifier,
+        trailing = {
+            Text(
+                RestNotificationCopy.RECOVERY_ACTION,
+                style = InstrumentType.bodyStrong,
+                color = Volt,
+                maxLines = 1,
+            )
+        },
     )
 }
 

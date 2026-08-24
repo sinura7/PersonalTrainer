@@ -226,20 +226,30 @@ class ActiveWorkoutViewModelTest {
     fun warmupAndLastTargetSetDoNotAutoStartRest() = runBlocking {
         val warmupFixture = seedWorkout(targetSets = 3)
         val warmupVm = createViewModel(warmupFixture.session.id)
-        warmupVm.awaitFound()
+        // Prefill writes the whole draft, including isWarmup = false. Wait for it
+        // to finish so it cannot clobber the warmup flag after the user sets it.
+        warmupVm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
+        deps.restTimerController.stop()
         warmupVm.setWeight(40.0)
+        warmupVm.awaitState { it.draft.weightKg == 40.0 }
         warmupVm.setWarmup(true)
+        warmupVm.awaitState { it.draft.isWarmup }
         warmupVm.logSet()
-        awaitSession(warmupFixture.session.id) { it.sets.size == 1 }
+        val warmupSession = awaitSession(warmupFixture.session.id) { it.sets.size == 1 }
+        assertTrue(warmupSession.sets.single().isWarmup)
         assertFalse(deps.restTimerStore.current().running)
 
         deps.workoutRepository.discardSession(warmupFixture.session.id)
+        deps.restTimerController.stop()
         val finalFixture = seedWorkout(targetSets = 1)
         val finalVm = createViewModel(finalFixture.session.id)
-        finalVm.awaitFound()
+        finalVm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
+        deps.restTimerController.stop()
         finalVm.setWeight(100.0)
+        finalVm.awaitState { it.draft.weightKg == 100.0 }
         finalVm.logSet()
-        awaitSession(finalFixture.session.id) { it.sets.size == 1 }
+        val finalSession = awaitSession(finalFixture.session.id) { it.sets.size == 1 }
+        assertFalse(finalSession.sets.single().isWarmup)
         assertFalse(deps.restTimerStore.current().running)
     }
 

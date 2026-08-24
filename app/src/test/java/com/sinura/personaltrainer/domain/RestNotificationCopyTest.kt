@@ -6,20 +6,20 @@ import org.junit.Test
 
 class RestNotificationCopyTest {
     @Test
-    fun sentenceNamesTheShadeAndThePocket() {
-        assertTrue(RestNotificationCopy.SENTENCE.contains("shade"))
-        assertTrue(RestNotificationCopy.SENTENCE.contains("pocket"))
-    }
-
-    @Test
-    fun sentenceIsNotASettingsDeepLink() {
-        val blob = listOf(
+    fun explanationAndRecoveryStayHonestAndCompact() {
+        val all = listOf(
             RestNotificationCopy.TITLE,
             RestNotificationCopy.SENTENCE,
             RestNotificationCopy.CONTINUE,
             RestNotificationCopy.NOT_NOW,
-        ).joinToString(" ")
-        assertFalse(blob.contains("Settings", ignoreCase = true))
-        assertFalse(blob.contains("Turn on", ignoreCase = true))
+            RestNotificationCopy.RECOVERY_TITLE,
+            RestNotificationCopy.RECOVERY_ACTION,
+        )
+        all.forEach { line ->
+            assertFalse(line.contains("reliable", ignoreCase = true))
+            assertFalse(line.contains("Notifications are blocked", ignoreCase = true))
+        }
+        assertTrue(RestNotificationCopy.RECOVERY_TITLE.length <= 24)
+        assertTrue(RestNotificationCopy.RECOVERY_ACTION.length <= 12)
     }
 }

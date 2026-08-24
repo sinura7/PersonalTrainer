@@ -343,12 +343,18 @@ Status legend: **done** · **next** · pending · gated · skipped
   exact-alarm defect. Coverage floor timer 17→18. Evidence:
   [P2.2 evidence](foundation-program/evidence/P2.2-exact-alarm.md).
 
-#### P2.3 — Compact notification-denial state
+#### P2.3 — Compact notification-denial state · **done**
 
 - One full explanation before the OS prompt; compact persistent recovery
   row after. Current lift, wells, and Log stay discoverable at 360 dp;
   at font 2.0 Log remains visible and names its payload.
 - Exit: FND-015 closed without hiding recovery.
+- Landed: the why-dialog still runs once before `POST_NOTIFICATIONS`.
+  After that, recovery is a one-line `Rest alerts off` / `Turn on` row
+  above RestDock, not a viewport-dominating banner. Constrained
+  360 dp / font 2.0 device test: Log stays visible and names the set.
+  Evidence:
+  [P2.3 evidence](foundation-program/evidence/P2.3-notification-denial.md).
 
 #### P2.4 — Unify aggregate volume presentation
 

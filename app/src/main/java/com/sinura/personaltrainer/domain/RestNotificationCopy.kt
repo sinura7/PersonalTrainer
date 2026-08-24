@@ -15,4 +15,9 @@ object RestNotificationCopy {
     const val CONTINUE = "Continue"
 
     const val NOT_NOW = "Not now"
+
+    /** Persistent recovery after the one explanation. One line, not a banner. */
+    const val RECOVERY_TITLE = "Rest alerts off"
+
+    const val RECOVERY_ACTION = "Turn on"
 }
