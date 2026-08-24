@@ -549,6 +549,8 @@ Start versus Restore, catalog-only and bodyweight-only files).
   clears the cached token and revokes access. No `GoogleSignIn` types
   remain.
   [drive-auth.md](architecture/drive-auth.md).
+  Evidence:
+  [P4.5 evidence](foundation-program/evidence/P4.5-drive-auth.md).
 - **P4.6** Supply-chain controls and zero-unwaived-warning local lint
   policy. Hosted runners still not the gate. Closes FND-026, FND-027.
 
