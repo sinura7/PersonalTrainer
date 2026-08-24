@@ -52,6 +52,7 @@ No ADR may leave a schema, scheduling, privacy, or entitlement choice as TBD.
 | [core-toolchain.md](core-toolchain.md) | P4.2 signed Core / Lifecycle / Activity / coroutines / serialization / Robolectric / AndroidX Test matrix. |
 | [compose-toolchain.md](compose-toolchain.md) | P4.3 signed Compose BOM / Material / Navigation / compiler matrix. |
 | [persistence-toolchain.md](persistence-toolchain.md) | P4.4 signed Room / DataStore matrix. Schema v1/v2 hashes stay. |
+| [drive-auth.md](drive-auth.md) | P4.5 Drive authorization: AuthorizationClient + drive.file; Google Sign-In gone. |
 
 ## Permanent refusals that remain in force
 

@@ -36,4 +36,4 @@ Versions that need a newer Kotlin serialization compiler are refused.
 
 ## Finding coverage
 
-FND-027 continues. Sign-In and lint-baseline cleanup remain P4.5–P4.6.
+FND-027 continues. Lint-baseline and supply-chain cleanup remain P4.6.

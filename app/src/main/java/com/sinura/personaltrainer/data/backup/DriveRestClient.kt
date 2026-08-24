@@ -72,6 +72,15 @@ class DriveRestClient {
         return request(accessToken, "$DRIVE_FILES/$fileId?alt=media", "GET")
     }
 
+    /**
+     * Drive About is in the `drive.file` surface. AuthorizationClient
+     * does not return an account email; this is the supported read.
+     */
+    fun fetchAccountEmail(accessToken: String): String? {
+        val body = request(accessToken, "$DRIVE_ABOUT?fields=user(emailAddress)", "GET")
+        return DriveAboutJson.parseAccountEmail(body)
+    }
+
     private fun folderExists(accessToken: String, folderId: String): Boolean {
         return try {
             request(accessToken, "$DRIVE_FILES/$folderId?fields=id,trashed", "GET")
@@ -175,5 +184,6 @@ class DriveRestClient {
     companion object {
         private const val DRIVE_FILES = "https://www.googleapis.com/drive/v3/files"
         private const val DRIVE_UPLOAD = "https://www.googleapis.com/upload/drive/v3/files"
+        private const val DRIVE_ABOUT = "https://www.googleapis.com/drive/v3/about"
     }
 }

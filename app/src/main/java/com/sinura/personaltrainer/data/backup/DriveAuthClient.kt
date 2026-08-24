@@ -3,9 +3,9 @@ package com.sinura.personaltrainer.data.backup
 import android.app.Activity
 import android.content.IntentSender
 import com.google.android.gms.auth.api.identity.AuthorizationRequest
+import com.google.android.gms.auth.api.identity.ClearTokenRequest
 import com.google.android.gms.auth.api.identity.Identity
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
+import com.google.android.gms.auth.api.identity.RevokeAccessRequest
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.common.api.Scope
@@ -20,6 +20,13 @@ data class DriveSession(
     val email: String?,
 )
 
+/**
+ * Drive authorization through [AuthorizationClient] and `drive.file` only.
+ *
+ * Google Sign-In types are gone. The authorization result does not carry
+ * an account email; [DriveRestClient.fetchAccountEmail] reads it from
+ * Drive About with the same access token.
+ */
 class DriveAuthClient {
     @Volatile
     private var session: DriveSession? = null
@@ -56,16 +63,23 @@ class DriveAuthClient {
         }
         val token = resolved.accessToken
             ?: throw BackupException("Google did not return a Drive access token. Try again.")
-        val email = resolved.toGoogleSignInAccount()?.email
-            ?: lastSignedInEmail(activity)
-        val next = DriveSession(accessToken = token, email = email)
+        val next = DriveSession(accessToken = token, email = null)
         session = next
         return next
     }
 
     suspend fun signOut(activity: Activity) {
+        val client = Identity.getAuthorizationClient(activity)
+        val token = session?.accessToken
+        if (token != null) {
+            try {
+                client.clearToken(ClearTokenRequest.builder().setToken(token).build()).await()
+            } catch (_: Exception) {
+                // Local session is cleared either way.
+            }
+        }
         try {
-            Identity.getSignInClient(activity).signOut().await()
+            client.revokeAccess(RevokeAccessRequest.builder().build()).await()
         } catch (_: Exception) {
             // Local session is cleared either way.
         }
@@ -78,7 +92,6 @@ class DriveAuthClient {
         return when (api?.statusCode) {
             CommonStatusCodes.CANCELED,
             CommonStatusCodes.SIGN_IN_REQUIRED,
-            GoogleSignInStatusCodes.SIGN_IN_CANCELLED,
             ->
                 BackupException("Google sign-in was cancelled.")
             CommonStatusCodes.NETWORK_ERROR ->
@@ -98,10 +111,6 @@ class DriveAuthClient {
             continuation.resumeWithException(BackupException("Google sign-in was cancelled."))
         }
     }
-
-    @Suppress("DEPRECATION")
-    private fun lastSignedInEmail(activity: Activity): String? =
-        GoogleSignIn.getLastSignedInAccount(activity)?.email
 
     companion object {
         const val DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file"

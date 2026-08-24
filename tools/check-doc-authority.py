@@ -143,6 +143,16 @@ REQUIRED_IN = [
         "Refuse Room 2.8.x",
         "P4.4 review must record the Room 2.8 refusal",
     ),
+    (
+        "docs/architecture/drive-auth.md",
+        "No `com.google.android.gms.auth.api.signin` types",
+        "P4.5 review must ban Google Sign-In remnants",
+    ),
+    (
+        "docs/architecture/drive-auth.md",
+        "Scope stays `drive.file`",
+        "P4.5 review must keep the Drive scope",
+    ),
 ]
 
 ISSUED_FND = [f"FND-{n:03d}" for n in range(1, 49) if n != 37] + [

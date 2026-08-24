@@ -37,9 +37,7 @@ class BackupRepository(
         launchResolution: suspend (IntentSender) -> Boolean,
     ): DriveSession {
         networkChecker.requireOnline()
-        val session = driveAuthClient.authorize(activity, launchResolution)
-        preferencesRepository.setDriveAccountEmail(session.email)
-        return session
+        return rememberAuthorizedSession(activity, launchResolution)
     }
 
     suspend fun signOut(activity: Activity) {
@@ -54,8 +52,7 @@ class BackupRepository(
         iterations: Int = BackupEnvelope.DEFAULT_ITERATIONS,
     ): DriveBackupFile = withContext(Dispatchers.IO) {
         networkChecker.requireOnline()
-        val session = driveAuthClient.authorize(activity, launchResolution)
-        preferencesRepository.setDriveAccountEmail(session.email)
+        val session = rememberAuthorizedSession(activity, launchResolution)
         val snapshot = localBackupRepository.createSnapshot()
         val json = BackupJson.encode(snapshot)
         val payload = if (password != null) {
@@ -84,8 +81,7 @@ class BackupRepository(
         launchResolution: suspend (IntentSender) -> Boolean,
     ): List<DriveBackupFile> = withContext(Dispatchers.IO) {
         networkChecker.requireOnline()
-        val session = driveAuthClient.authorize(activity, launchResolution)
-        preferencesRepository.setDriveAccountEmail(session.email)
+        val session = rememberAuthorizedSession(activity, launchResolution)
         val folderId = driveRestClient.ensureBackupFolder(
             accessToken = session.accessToken,
             knownFolderId = preferencesRepository.driveFolderId(),
@@ -114,7 +110,7 @@ class BackupRepository(
         launchResolution: suspend (IntentSender) -> Boolean,
     ): String = withContext(Dispatchers.IO) {
         networkChecker.requireOnline()
-        val session = driveAuthClient.authorize(activity, launchResolution)
+        val session = rememberAuthorizedSession(activity, launchResolution)
         driveRestClient.downloadBackup(session.accessToken, file.id)
     }
 
@@ -348,6 +344,26 @@ class BackupRepository(
             is BackupValidation.Valid -> validation.summary
             is BackupValidation.Invalid -> throw BackupException(validation.reason)
         }
+    }
+
+    /**
+     * AuthorizationClient does not return an account email. Drive About
+     * does, still under `drive.file`. A failed About read must not undo
+     * a successful token; Settings treats a non-null email as signed in.
+     */
+    private suspend fun rememberAuthorizedSession(
+        activity: Activity,
+        launchResolution: suspend (IntentSender) -> Boolean,
+    ): DriveSession {
+        val session = driveAuthClient.authorize(activity, launchResolution)
+        val email = runCatching { driveRestClient.fetchAccountEmail(session.accessToken) }
+            .getOrNull()
+            ?.ifBlank { null }
+            ?: session.email
+            ?: "Google Drive"
+        val named = session.copy(email = email)
+        preferencesRepository.setDriveAccountEmail(named.email)
+        return named
     }
 }
 

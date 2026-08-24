@@ -538,9 +538,17 @@ Start versus Restore, catalog-only and bodyweight-only files).
   [persistence-toolchain.md](architecture/persistence-toolchain.md).
   Evidence:
   [P4.4 evidence](foundation-program/evidence/P4.4-persistence-toolchain.md).
-- **P4.5** Remove deprecated Google Sign-In remnants; keep
+
+#### P4.5 — Supported Drive authorization · **done**
+
+- Remove deprecated Google Sign-In remnants; keep
   `AuthorizationClient` / `drive.file`. Local recording stays Google-free.
   Closes FND-028.
+- Landed: play-services-auth 21.6.0. `DriveAuthClient` uses
+  `AuthorizationClient` only. Email comes from Drive About. Sign-out
+  clears the cached token and revokes access. No `GoogleSignIn` types
+  remain.
+  [drive-auth.md](architecture/drive-auth.md).
 - **P4.6** Supply-chain controls and zero-unwaived-warning local lint
   policy. Hosted runners still not the gate. Closes FND-026, FND-027.
 

@@ -4,7 +4,8 @@
 P4.1 signed the SDK triple. P4.2 ratchets Core KTX, Lifecycle, Activity,
 coroutines, serialization, Robolectric, and AndroidX Test. P4.3 ratchets
 Compose BOM, Navigation, and the Kotlin Compose compiler pin. P4.4
-ratchets Room and DataStore. Sign-In stays for P4.5.
+ratchets Room and DataStore. P4.5 ratchets play-services-auth and
+forbids Google Sign-In remnants.
 """
 from __future__ import annotations
 
@@ -31,6 +32,10 @@ SCHEMA_V2 = os.path.join(
     ROOT,
     "app/schemas/com.sinura.personaltrainer.data.local.TrainerDatabase/2.json",
 )
+DRIVE_AUTH = os.path.join(
+    ROOT,
+    "app/src/main/java/com/sinura/personaltrainer/data/backup/DriveAuthClient.kt",
+)
 
 REQUIRED = {
     "compileSdk": 36,
@@ -55,6 +60,7 @@ CATALOG_MIN = {
     "kotlin": ((2, 0, 21), "2.0.21"),
     "room": ((2, 7, 2), "2.7.2"),
     "datastore": ((1, 2, 1), "1.2.1"),
+    "playServicesAuth": ((21, 6, 0), "21.6.0"),
 }
 
 findings: list[str] = []
@@ -177,6 +183,22 @@ def main() -> int:
             findings.append(
                 f"{os.path.relpath(path, ROOT)}  identityHash must stay {expected}",
             )
+
+    if not os.path.isfile(DRIVE_AUTH):
+        findings.append("DriveAuthClient.kt  missing")
+    else:
+        body = open(DRIVE_AUTH, encoding="utf-8").read()
+        for banned in (
+            "com.google.android.gms.auth.api.signin",
+            "GoogleSignIn",
+            "toGoogleSignInAccount",
+            "getSignInClient",
+        ):
+            if banned in body:
+                findings.append(f"DriveAuthClient.kt  still uses {banned}")
+        for needle in ("getAuthorizationClient", "drive.file", "clearToken", "revokeAccess"):
+            if needle not in body:
+                findings.append(f"DriveAuthClient.kt  missing {needle}")
 
     print(f"{len(findings)} sdk-target finding(s)")
     for item in findings:
