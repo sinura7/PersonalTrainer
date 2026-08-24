@@ -430,7 +430,8 @@ and close FND-011, FND-014A–C, and the measurement half of FND-038.
 - Exit: FND-014A closed.
 - Landed: `commitRestore` writes a verified copy, re-reads it, and
   refuses unless authored counts match. Settings lists those copies by
-  counts and date.
+  counts and date. Evidence:
+  [P3.3 evidence](foundation-program/evidence/P3.3-safety-snapshots.md).
 
 - **P3.4** Serialize starts and journal restore phases. Closes FND-014C.
 - **P3.5** `allowBackup=false` plus explicit exclusion rules.
