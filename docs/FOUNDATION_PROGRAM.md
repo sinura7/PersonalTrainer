@@ -500,6 +500,8 @@ Start versus Restore, catalog-only and bodyweight-only files).
   every targeting-36 behavior change. Edge-to-edge was already on;
   predictive back is accepted via `enableOnBackInvokedCallback` and
   existing `BackHandler`s. The API 29 device lane is unchanged.
+  Evidence:
+  [P4.1 evidence](foundation-program/evidence/P4.1-sdk36.md).
 - **P4.2** Core KTX, Lifecycle, Activity, coroutines, serialization,
   Robolectric, AndroidX Test — family by family.
 - **P4.3** Compose BOM, Material, Navigation, compiler as one matrix.
