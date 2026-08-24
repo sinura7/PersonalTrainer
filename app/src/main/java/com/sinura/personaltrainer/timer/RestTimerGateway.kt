@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.timer
 
+import com.sinura.personaltrainer.domain.AlarmScheduleResult
+import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +18,8 @@ interface RestTimerGateway {
     val snapshot: StateFlow<RestTimerSnapshot>
     val remainingSeconds: Flow<Int>
     val runningSessionId: Flow<String?>
+    val lastAlarmSchedule: StateFlow<AlarmScheduleResult>
+    val exactAlarmAttempt: StateFlow<ExactAlarmAttempt>
 
     fun start(totalSeconds: Int, sessionId: String?)
     fun adjust(deltaSeconds: Int)
@@ -24,4 +28,10 @@ interface RestTimerGateway {
 
     /** Current-but-early delivery asks the live rest to be scheduled again. */
     fun rescheduleCurrent() {}
+
+    /**
+     * Re-read the exact-alarm grant. A live rest is armed again so a grant
+     * or revoke that happened in Settings takes effect without restarting.
+     */
+    fun refreshAlarmCapability() {}
 }

@@ -3,6 +3,8 @@ package com.sinura.personaltrainer.timer
 import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
+import com.sinura.personaltrainer.domain.AlarmScheduleResult
+import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -10,7 +12,9 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
@@ -23,9 +27,13 @@ class RestTimerController(
     context: Context,
     private val store: RestTimerStore,
     private val persistence: RestTimerStatePersistence? = null,
+    private val alarms: RestTimerAlarmScheduler = RestTimerAlarmScheduler(context.applicationContext),
 ) : RestTimerGateway {
     private val appContext = context.applicationContext
-    private val alarms = RestTimerAlarmScheduler(appContext)
+    private val _lastAlarmSchedule = MutableStateFlow(AlarmScheduleResult.FAILED)
+    private val _exactAlarmAttempt = MutableStateFlow(alarms.currentAttempt())
+    override val lastAlarmSchedule: StateFlow<AlarmScheduleResult> = _lastAlarmSchedule.asStateFlow()
+    override val exactAlarmAttempt: StateFlow<ExactAlarmAttempt> = _exactAlarmAttempt.asStateFlow()
 
     /** Application-lifetime; only used to announce a rest that ended while we were dead. */
     private val announceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -133,10 +141,22 @@ class RestTimerController(
         scheduleAlarmForCurrent()
     }
 
+    override fun refreshAlarmCapability() {
+        _exactAlarmAttempt.value = alarms.currentAttempt()
+        if (store.current().running) {
+            scheduleAlarmForCurrent()
+        }
+    }
+
     private fun scheduleAlarmForCurrent() {
         val state = store.current()
         if (!state.running) return
-        alarms.schedule(state.endsAtElapsedRealtime, state.sessionId, state.timerId)
+        _exactAlarmAttempt.value = alarms.currentAttempt()
+        _lastAlarmSchedule.value = alarms.schedule(
+            endsAtElapsedRealtime = state.endsAtElapsedRealtime,
+            sessionId = state.sessionId,
+            timerId = state.timerId,
+        )
     }
 
     private fun dispatch(action: String) {

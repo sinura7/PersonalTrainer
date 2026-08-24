@@ -61,8 +61,8 @@ Four tabs — **Home · Body · Plan · History**. Library is a pushed route, no
 - **Logging** — weight + reps, optional RPE and warm-up, suggested next weight.
 - **Rest timer** — foreground service + notification so rest keeps running when the app
   is minimized; 1:00 / 1:30 / 2:00 / custom presets; sound and vibration when rest ends.
-  Exact completion on modern Android is a known defect (FND-001) being closed in the
-  foundation program; the UI must not call an inexact fallback "reliable".
+  Exact completion uses `SCHEDULE_EXACT_ALARM` when the system grant is present. Without
+  it the app uses an inexact wakeup and does not call that reliable.
 - **Progression** — the **top set** of the last finished session for that lift vs target
   reps. Hit target → add one increment; 1–2 reps short → hold; 3+ short → drop one
   increment. The increment is **2.5 kg** or **5 lbs** in the display unit

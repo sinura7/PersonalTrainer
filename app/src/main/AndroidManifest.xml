@@ -10,6 +10,8 @@
     <!-- Held briefly by RestTimerAlarmReceiver so the completion cue actually plays when the
          alarm wakes a sleeping device. -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Rest completion. Never USE_EXACT_ALARM — ADR-012. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <application
         android:name=".PersonalTrainerApp"
@@ -41,8 +43,9 @@
                 android:value="Gym rest countdown that must stay accurate while the app is backgrounded during a workout" />
         </service>
 
-        <!-- Fires the rest-complete alert even in Doze with the screen off. setAlarmClock
-             needs no exact-alarm permission, so there is nothing for the user to revoke. -->
+        <!-- Fires the rest-complete alert even in Doze with the screen off.
+             Exact delivery needs SCHEDULE_EXACT_ALARM; without the grant the
+             scheduler takes an inexact path and does not call that reliable. -->
         <receiver
             android:name=".timer.RestTimerAlarmReceiver"
             android:exported="false" />

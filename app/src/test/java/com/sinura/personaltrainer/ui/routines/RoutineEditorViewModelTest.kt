@@ -245,14 +245,16 @@ class RoutineEditorViewModelTest {
         vm.togglePendingAdd(squat)
         vm.togglePendingAdd(row)
         vm.togglePendingAdd(row)
-        assertEquals(setOf(squat.id), vm.uiState.value.pendingAddIds)
+        assertEquals(setOf(squat.id), vm.uiState.first { it.pendingAddIds == setOf(squat.id) }.pendingAddIds)
         vm.togglePendingAdd(row)
+        vm.uiState.first { it.pendingAddIds == setOf(squat.id, row.id) }
         vm.confirmPendingAdd()
 
         val saved = awaitRoutine { it.exercises.size == 2 }
         assertEquals(setOf(squat.id, row.id), saved.exercises.map { it.exercise.id }.toSet())
-        assertFalse(vm.uiState.value.showExercisePicker)
-        assertTrue(vm.uiState.value.pendingAddIds.isEmpty())
+        val closed = vm.uiState.first { !it.showExercisePicker && it.pendingAddIds.isEmpty() }
+        assertFalse(closed.showExercisePicker)
+        assertTrue(closed.pendingAddIds.isEmpty())
     }
 
     private fun createViewModel(routineId: String): RoutineEditorViewModel =

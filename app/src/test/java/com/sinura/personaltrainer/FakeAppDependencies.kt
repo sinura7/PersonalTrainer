@@ -26,6 +26,8 @@ import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.ScheduleRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
+import com.sinura.personaltrainer.domain.AlarmScheduleResult
+import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.insights.TrainingInsightsPublisher
@@ -85,8 +87,12 @@ class FakeAppDependencies(
     override val restTimerStatePersistence: RestTimerStatePersistence =
         SharedPrefsRestTimerStatePersistence(context)
     override val restTimerStore: RestTimerStore = RestTimerStore(restTimerStatePersistence)
-    override val restTimerController: RestTimerGateway =
-        InMemoryRestTimerGateway(restTimerStore)
+    private val inMemoryRestTimer = InMemoryRestTimerGateway(restTimerStore)
+    override val restTimerController: RestTimerGateway = inMemoryRestTimer
+
+    fun setExactAlarmAttempt(attempt: ExactAlarmAttempt) {
+        inMemoryRestTimer.setAttempt(attempt)
+    }
     override val workoutDraftCache: WorkoutDraftCache = WorkoutDraftCache()
     override val finishWorkout: FinishWorkout = FinishWorkout(
         workoutRepository = workoutRepository,
@@ -165,6 +171,8 @@ private class InMemoryRestTimerGateway(
     private val store: RestTimerStore,
 ) : RestTimerGateway {
     private var elapsedRealtimeMs: Long = 0L
+    private val _lastAlarmSchedule = MutableStateFlow(AlarmScheduleResult.EXACT)
+    private val _exactAlarmAttempt = MutableStateFlow(ExactAlarmAttempt.EXACT)
 
     override val snapshot: StateFlow<RestTimerSnapshot> = store.snapshot
     override val remainingSeconds: Flow<Int> = snapshot
@@ -173,6 +181,12 @@ private class InMemoryRestTimerGateway(
     override val runningSessionId: Flow<String?> = snapshot
         .map { state -> state.sessionId.takeIf { state.running } }
         .distinctUntilChanged()
+    override val lastAlarmSchedule: StateFlow<AlarmScheduleResult> = _lastAlarmSchedule
+    override val exactAlarmAttempt: StateFlow<ExactAlarmAttempt> = _exactAlarmAttempt
+
+    fun setAttempt(attempt: ExactAlarmAttempt) {
+        _exactAlarmAttempt.value = attempt
+    }
 
     override fun start(totalSeconds: Int, sessionId: String?) {
         store.start(totalSeconds, sessionId, elapsedRealtimeMs)

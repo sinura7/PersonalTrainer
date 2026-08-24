@@ -328,13 +328,20 @@ Status legend: **done** · **next** · pending · gated · skipped
   extras carry the id. Coverage floor timer 14→17. Evidence:
   [P2.1 evidence](foundation-program/evidence/P2.1-rest-timer-identity.md).
 
-#### P2.2 — Policy-compliant exact-alarm capability
+#### P2.2 — Policy-compliant exact-alarm capability · **done**
 
 - Declare/check `SCHEDULE_EXACT_ALARM`. Do not use `USE_EXACT_ALARM`.
 - Typed `Exact` / `BestEffort` / `Failed`. Honest inexact fallback.
 - Physical gate on fresh API 31/34/35: grant/deny/revoke, notification
   grant/deny, screen off, forced Doze, extend/replace.
 - Exit: FND-001 closed; lint has no exact-alarm defect.
+- Landed: manifest declares `SCHEDULE_EXACT_ALARM` only. Exact APIs run
+  only when the policy grant is true. Denied or failed exact becomes
+  `BEST_EFFORT` via `setAndAllowWhileIdle`, never called reliable.
+  Settings offers the special-access screen only after rest is used or
+  configured. Resume rechecks and reschedules a live timer. Lint has no
+  exact-alarm defect. Coverage floor timer 17→18. Evidence:
+  [P2.2 evidence](foundation-program/evidence/P2.2-exact-alarm.md).
 
 #### P2.3 — Compact notification-denial state
 

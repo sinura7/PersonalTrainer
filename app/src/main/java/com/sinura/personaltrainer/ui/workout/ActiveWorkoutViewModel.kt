@@ -882,6 +882,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         )
         viewModelScope.launch {
             container.preferencesRepository.setLastRestPresetSeconds(seconds)
+            container.preferencesRepository.markRestAlarmEligible()
             restTimer.start(seconds, sessionId)
         }
     }
@@ -961,6 +962,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             RestTimerPreferences.MAX_SECONDS,
         )
         restTimer.start(seconds, sessionId)
+        viewModelScope.launch {
+            container.preferencesRepository.markRestAlarmEligible()
+        }
     }
 
     /** Flushes the debounce tail: leaving must not drop the words typed in the last 400 ms. */

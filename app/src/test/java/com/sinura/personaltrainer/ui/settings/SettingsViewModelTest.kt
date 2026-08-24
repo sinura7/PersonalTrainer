@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.BackupPrompt
+import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -81,5 +82,46 @@ class SettingsViewModelTest {
             viewModel!!.backupState.first { it.lastBackupAt == now }
         }
         assertFalse(fresh.backupStale)
+    }
+
+    @Test
+    fun configuringRestMarksExactAlarmPromptEligible() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+
+        viewModel!!.restTimerPreferences.first()
+        viewModel!!.offerExactAlarmAccess.first { !it }
+        viewModel!!.refreshAlarmCapability()
+        assertFalse(deps.preferencesRepository.restAlarmEligible.first())
+
+        viewModel!!.setDefaultRestSeconds(75)
+        withTimeout(5_000) {
+            viewModel!!.restTimerPreferences.first { it.defaultRestSeconds == 75 }
+        }
+        assertTrue(deps.preferencesRepository.restAlarmEligible.first())
+        assertFalse(viewModel!!.offerExactAlarmAccess.value)
+    }
+
+    @Test
+    fun bestEffortAndEligibleOffersExactAlarmSettings() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps.setExactAlarmAttempt(ExactAlarmAttempt.BEST_EFFORT)
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+
+        viewModel!!.offerExactAlarmAccess.first { !it }
+        viewModel!!.setRestSoundEnabled(false)
+        val offered = withTimeout(5_000) { viewModel!!.offerExactAlarmAccess.first { it } }
+        assertTrue(offered)
+    }
+
+    @Test
+    fun bestEffortWithoutEligibilityDoesNotOfferExactAlarmSettings() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps.setExactAlarmAttempt(ExactAlarmAttempt.BEST_EFFORT)
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+
+        viewModel!!.offerExactAlarmAccess.first { !it }
+        assertFalse(deps.preferencesRepository.restAlarmEligible.first())
+        assertFalse(viewModel!!.offerExactAlarmAccess.value)
     }
 }

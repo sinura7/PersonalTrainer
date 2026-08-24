@@ -114,8 +114,9 @@ class ExerciseLibraryViewModelTest {
             deps.exerciseRepository.observeAll().first().firstOrNull { it.isCustom && it.name == "My row" }
         }
         assertEquals("Back", created.muscleGroup)
-        assertNull(vm.uiState.value.editor)
-        assertEquals("Created My row.", vm.uiState.value.message)
+        val saved = vm.uiState.first { it.editor == null && it.message == "Created My row." }
+        assertNull(saved.editor)
+        assertEquals("Created My row.", saved.message)
     }
 
     @Test

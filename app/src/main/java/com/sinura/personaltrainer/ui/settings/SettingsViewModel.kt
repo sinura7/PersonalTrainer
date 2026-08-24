@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.settings
 
 import android.app.Activity
 import android.app.Application
+import android.content.Intent
 import android.content.IntentSender
 import android.net.Uri
 import androidx.lifecycle.viewModelScope
@@ -15,6 +16,7 @@ import com.sinura.personaltrainer.data.repository.RestoreResult
 import com.sinura.personaltrainer.domain.BackupPrompt
 import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
@@ -24,6 +26,7 @@ import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.timer.exactAlarmSettingsIntent as buildExactAlarmSettingsIntent
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import java.time.DayOfWeek
 import kotlin.time.Duration.Companion.minutes
@@ -87,6 +90,29 @@ class SettingsViewModel @JvmOverloads constructor(
                 started = SharingStarted.WhileSubscribed(5_000),
                 initialValue = RestTimerPreferences.DEFAULT,
             )
+
+    /**
+     * Honest inexact copy + Settings tap. Shown only after rest is used or
+     * configured, and only while the policy would take the best-effort path.
+     * Never says the fallback is reliable.
+     */
+    val offerExactAlarmAccess: StateFlow<Boolean> = combine(
+        container.preferencesRepository.restAlarmEligible,
+        container.restTimerController.exactAlarmAttempt,
+    ) { eligible, attempt ->
+        eligible && attempt == ExactAlarmAttempt.BEST_EFFORT
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = false,
+    )
+
+    fun refreshAlarmCapability() {
+        container.restTimerController.refreshAlarmCapability()
+    }
+
+    fun exactAlarmSettingsIntent(): Intent? =
+        buildExactAlarmSettingsIntent(getApplication<Application>().packageName)
 
     val coachPreferences: StateFlow<CoachPreferences> =
         container.preferencesRepository.coachPreferences

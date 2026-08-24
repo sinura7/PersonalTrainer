@@ -66,6 +66,7 @@ import com.sinura.personaltrainer.ui.components.CustomRestDialog
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
+import com.sinura.personaltrainer.ui.components.GymNoticeBanner
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.GymStatusBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
@@ -98,11 +99,17 @@ fun SettingsScreen(
     val selectedUnit by viewModel.weightUnit.collectAsStateWithLifecycle()
     val schedulePrefs by viewModel.schedulePreferences.collectAsStateWithLifecycle()
     val restPrefs by viewModel.restTimerPreferences.collectAsStateWithLifecycle()
+    val offerExactAlarmAccess by viewModel.offerExactAlarmAccess.collectAsStateWithLifecycle()
     val coachPrefs by viewModel.coachPreferences.collectAsStateWithLifecycle()
     val bodyweightKg by viewModel.bodyweightKg.collectAsStateWithLifecycle()
     val backup by viewModel.backupState.collectAsStateWithLifecycle()
-    val activity = LocalContext.current.findActivity()
+    val context = LocalContext.current
+    val activity = context.findActivity()
     val dateTimeFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+
+    LaunchedEffect(Unit) {
+        viewModel.refreshAlarmCapability()
+    }
 
     val resolutionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult(),
@@ -166,6 +173,10 @@ fun SettingsScreen(
             )
             RestTimerPrefsSection(
                 preferences = restPrefs,
+                offerExactAlarmAccess = offerExactAlarmAccess,
+                onAllowPreciseRestAlerts = {
+                    viewModel.exactAlarmSettingsIntent()?.let { context.startActivity(it) }
+                },
                 onSound = viewModel::setRestSoundEnabled,
                 onVibrate = viewModel::setRestVibrationEnabled,
                 onDefaultRest = viewModel::setDefaultRestSeconds,
@@ -468,6 +479,8 @@ private fun CoachingSection(
 @Composable
 private fun RestTimerPrefsSection(
     preferences: RestTimerPreferences,
+    offerExactAlarmAccess: Boolean,
+    onAllowPreciseRestAlerts: () -> Unit,
     onSound: (Boolean) -> Unit,
     onVibrate: (Boolean) -> Unit,
     onDefaultRest: (Int) -> Unit,
@@ -479,6 +492,15 @@ private fun RestTimerPrefsSection(
         caption = "The cue plays when rest ends. Default rest is used after a working set if the " +
             "lift has none and you haven't picked a preset.",
     ) {
+        if (offerExactAlarmAccess) {
+            GymNoticeBanner(
+                title = "Rest alerts may be delayed",
+                body = "This phone has not allowed precise rest alarms. The timer still runs, " +
+                    "but the cue can arrive late if the screen is off.",
+                actionLabel = "Allow precise rest alerts",
+                onAction = onAllowPreciseRestAlerts,
+            )
+        }
         GroupedList {
             InstrumentRow(
                 title = "Sound",

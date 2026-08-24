@@ -259,6 +259,19 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun startingRestMarksExactAlarmPromptEligible() = runBlocking {
+        val fixture = seedWorkout()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitFound()
+
+        assertFalse(deps.preferencesRepository.restAlarmEligible.first())
+        vm.startSelectedRest()
+        eventually { deps.restTimerStore.current().takeIf { it.running } }
+        withTimeout(5_000) { deps.preferencesRepository.restAlarmEligible.first { it } }
+        Unit
+    }
+
+    @Test
     fun editUpdatesExistingSetWithoutStartingAnotherRestOrRecord() = runBlocking {
         val fixture = seedWorkout(targetSets = 1)
         val vm = createViewModel(fixture.session.id)

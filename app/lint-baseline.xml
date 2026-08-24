@@ -2,28 +2,6 @@
 <issues format="6" by="lint 8.7.3" type="baseline" client="gradle" dependencies="false" name="AGP (8.7.3)" variant="all" version="8.7.3">
 
     <issue
-        id="MissingPermission"
-        message="Setting Exact alarms with `setAlarmClock` requires the `SCHEDULE_EXACT_ALARM` permission or power exemption from user; it is intended for applications where the user knowingly schedules actions to happen at a precise time such as alarms, clocks, calendars, etc. Check out the javadoc on this permission to make sure your use case is valid."
-        errorLine1="            alarmManager.setAlarmClock("
-        errorLine2="            ^">
-        <location
-            file="src/main/java/com/sinura/personaltrainer/timer/RestTimerAlarmScheduler.kt"
-            line="37"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingPermission"
-        message="Setting Exact alarms with `setExactAndAllowWhileIdle` requires the `SCHEDULE_EXACT_ALARM` permission or power exemption from user; it is intended for applications where the user knowingly schedules actions to happen at a precise time such as alarms, clocks, calendars, etc. Check out the javadoc on this permission to make sure your use case is valid."
-        errorLine1="                alarmManager.setExactAndAllowWhileIdle("
-        errorLine2="                ^">
-        <location
-            file="src/main/java/com/sinura/personaltrainer/timer/RestTimerAlarmScheduler.kt"
-            line="45"
-            column="17"/>
-    </issue>
-
-    <issue
         id="ApplySharedPref"
         message="Consider using `apply()` instead; `commit` writes its data to persistent storage immediately, whereas `apply` will handle it in the background"
         errorLine1="        prefs.edit().putInt(KEY_LAST_OPENED_SCHEMA, TARGET_SCHEMA).commit()"

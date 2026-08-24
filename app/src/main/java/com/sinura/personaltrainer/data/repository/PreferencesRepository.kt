@@ -246,17 +246,35 @@ class PreferencesRepository(
             ).sanitized()
         }
 
+    /**
+     * Exact-alarm special-access is requested only after rest is used or
+     * configured. Onboarding must never write this. Restore leaves it alone.
+     */
+    val restAlarmEligible: Flow<Boolean> = safePreferences
+        .map { prefs -> prefs[REST_ALARM_ELIGIBLE] ?: false }
+
+    suspend fun markRestAlarmEligible() {
+        dataStore.edit { prefs -> prefs[REST_ALARM_ELIGIBLE] = true }
+    }
+
     suspend fun setRestSoundEnabled(enabled: Boolean) {
-        dataStore.edit { prefs -> prefs[REST_SOUND] = enabled }
+        dataStore.edit { prefs ->
+            prefs[REST_SOUND] = enabled
+            prefs[REST_ALARM_ELIGIBLE] = true
+        }
     }
 
     suspend fun setRestVibrationEnabled(enabled: Boolean) {
-        dataStore.edit { prefs -> prefs[REST_VIBRATE] = enabled }
+        dataStore.edit { prefs ->
+            prefs[REST_VIBRATE] = enabled
+            prefs[REST_ALARM_ELIGIBLE] = true
+        }
     }
 
     suspend fun setDefaultRestSeconds(seconds: Int) {
         dataStore.edit { prefs ->
             prefs[REST_DEFAULT] = seconds.coerceIn(RestTimerPreferences.MIN_SECONDS, RestTimerPreferences.MAX_SECONDS)
+            prefs[REST_ALARM_ELIGIBLE] = true
         }
     }
 
@@ -614,6 +632,7 @@ class PreferencesRepository(
         val REST_VIBRATE = booleanPreferencesKey("rest_vibrate")
         val REST_DEFAULT = intPreferencesKey("rest_default_seconds")
         val REST_LAST_PRESET = intPreferencesKey("rest_last_preset_seconds")
+        val REST_ALARM_ELIGIBLE = booleanPreferencesKey("rest_alarm_eligible")
         val DRIVE_ACCOUNT = stringPreferencesKey("drive_account_email")
         val DRIVE_FOLDER_ID = stringPreferencesKey("drive_folder_id")
         val LAST_BACKUP_AT = longPreferencesKey("last_backup_at")
