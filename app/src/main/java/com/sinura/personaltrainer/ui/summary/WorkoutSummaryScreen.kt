@@ -71,7 +71,6 @@ import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import kotlinx.coroutines.delay
 import java.text.DateFormat
 import java.util.Date
-import kotlin.math.roundToInt
 
 /**
  * What the workout amounted to, shown once, immediately after finishing.
@@ -194,7 +193,7 @@ private fun SummaryHero(summary: WorkoutSummary, unit: WeightUnit) {
         DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(summary.performedAtMs))
     }
     val target = remember(summary.volumeKg, unit) {
-        WeightConverter.toDisplayValue(summary.volumeKg, unit).roundToInt()
+        WeightConverter.volumeAnimationTarget(summary.volumeKg, unit)
     }
 
     var played by rememberSaveable { mutableStateOf(false) }
@@ -209,7 +208,9 @@ private fun SummaryHero(summary: WorkoutSummary, unit: WeightUnit) {
         label = "summary-volume",
     )
 
-    val finalLabel = remember(target) { WeightConverter.formatGroupedNumber(target.toDouble()) }
+    val finalLabel = remember(summary.volumeKg, unit) {
+        WeightConverter.formatVolumeLabel(summary.volumeKg, unit)
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
         Kicker("Workout complete", color = Volt)
@@ -227,7 +228,7 @@ private fun SummaryHero(summary: WorkoutSummary, unit: WeightUnit) {
                 // One node for the whole readout, holding the settled value: a screen reader
                 // must never be handed a number that is still counting.
                 .semantics(mergeDescendants = true) {
-                    contentDescription = "Total volume $finalLabel ${unit.suffix}"
+                    contentDescription = "Total volume $finalLabel"
                 },
             verticalArrangement = Arrangement.spacedBy(Metrics.space1),
         ) {

@@ -356,13 +356,18 @@ Status legend: **done** · **next** · pending · gated · skipped
   Evidence:
   [P2.3 evidence](foundation-program/evidence/P2.3-notification-denial.md).
 
-#### P2.4 — Unify aggregate volume presentation
+#### P2.4 — Unify aggregate volume presentation · **done**
 
 - One formatter in `WeightFormat.kt` for Summary, History, Session Detail,
   Exercise Detail, animation target, and accessibility copy.
 - Property tests for both units, `.5` boundaries, grouping, large values,
   and the verified 100 lb × 5 case.
 - Exit: FND-005 closed; surfaces display byte-identical aggregate labels.
+- Landed: `volumeDisplayWhole` is the only rounding. Summary count-up
+  and TalkBack use it; `SetCopy` and Exercise Detail lifetime volume
+  print `formatVolumeNumber`. 100 lb × 5 is 500 lbs, not 501.
+  Evidence:
+  [P2.4 evidence](foundation-program/evidence/P2.4-volume-format.md).
 
 #### P2.5 — Identity before metrics
 

@@ -87,6 +87,24 @@ object WeightConverter {
     }
 
     /**
+     * The single whole-number volume every session surface must show.
+     *
+     * Ties-to-even (`kotlin.math.round`), not half-away-from-zero (`roundToInt`).
+     * 100 lb × 5 stores 45.4 kg × 5 = 227 kg, which displays as 500.5 lbs and
+     * must read **500**, not 501. Summary, History, Session Detail, Exercise
+     * Detail, the count-up target, and TalkBack all read this Long.
+     */
+    fun volumeDisplayWhole(kg: Double, unit: WeightUnit): Long {
+        val display = toDisplayValue(kg, unit)
+        if (display.isNaN() || display.isInfinite()) return 0L
+        return round(display).toLong()
+    }
+
+    /** Compose count-up target. Same integer [formatVolumeNumber] will print. */
+    fun volumeAnimationTarget(kg: Double, unit: WeightUnit): Int =
+        volumeDisplayWhole(kg, unit).coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
+
+    /**
      * Session/muscle volume runs to five digits. Grouped, whole-number output ("12,450 kg")
      * reads at a glance where "12450.0 kg" does not.
      *
@@ -94,12 +112,22 @@ object WeightConverter {
      * [parseDisplayToKg]'s round-trip check, and a grouping separator there would break
      * parsing of the user's own entry.
      */
+    fun formatVolumeNumber(
+        kg: Double,
+        unit: WeightUnit,
+        locale: Locale = Locale.getDefault(),
+    ): String = NumberFormat.getIntegerInstance(locale).format(volumeDisplayWhole(kg, unit))
+
     fun formatVolumeLabel(
         kg: Double,
         unit: WeightUnit,
         locale: Locale = Locale.getDefault(),
-    ): String = "${formatGroupedNumber(toDisplayValue(kg, unit), locale)} ${unit.suffix}"
+    ): String = "${formatVolumeNumber(kg, unit, locale)} ${unit.suffix}"
 
+    /**
+     * Group a number that is already in the display unit (animation frames,
+     * chart series). Stored kilograms must go through [formatVolumeNumber].
+     */
     fun formatGroupedNumber(value: Double, locale: Locale = Locale.getDefault()): String {
         if (value.isNaN() || value.isInfinite()) return "0"
         val whole = round(value).toLong()

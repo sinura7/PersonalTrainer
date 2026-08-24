@@ -635,7 +635,7 @@ private fun displayNumber(kg: Double, unit: WeightUnit): String =
     WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(kg, unit))
 
 private fun groupedNumber(kg: Double, unit: WeightUnit): String =
-    WeightConverter.formatGroupedNumber(WeightConverter.toDisplayValue(kg, unit))
+    WeightConverter.formatVolumeNumber(kg, unit)
 
 /** Series values are already in display units, so they are formatted rather than converted. */
 private fun formatSeries(value: Double, grouped: Boolean): String =

@@ -70,7 +70,7 @@ object SetCopy {
      */
     fun workColumn(work: SetWork, unit: WeightUnit): WorkColumn = when {
         work.volumeKg > 0.0 -> WorkColumn(
-            value = WeightConverter.formatGroupedNumber(WeightConverter.toDisplayValue(work.volumeKg, unit)),
+            value = WeightConverter.formatVolumeNumber(work.volumeKg, unit),
             label = unit.suffix,
         )
         work.bodyweightReps > 0 -> WorkColumn(
