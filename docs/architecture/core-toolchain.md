@@ -36,5 +36,5 @@ Kotlin compiler or AGP 9 are refused.
 
 ## Finding coverage
 
-FND-027 continues. Compose, Room, Sign-In, and lint-baseline cleanup
-remain P4.3–P4.6.
+FND-027 continues. Room, Sign-In, and lint-baseline cleanup remain
+P4.4–P4.6.

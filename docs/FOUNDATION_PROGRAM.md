@@ -515,7 +515,15 @@ Start versus Restore, catalog-only and bodyweight-only files).
   [core-toolchain.md](architecture/core-toolchain.md).
   Evidence:
   [P4.2 evidence](foundation-program/evidence/P4.2-core-toolchain.md).
-- **P4.3** Compose BOM, Material, Navigation, compiler as one matrix.
+
+#### P4.3 — Compose BOM, Material, Navigation, compiler · **done**
+
+- Compose BOM, Material, Navigation, compiler as one matrix.
+- Landed: Compose BOM 2026.06.01 (UI / runtime / foundation 1.11.4,
+  Material3 1.4.0), Navigation 2.9.8, Kotlin Compose compiler plugin
+  2.0.21. BOM 2026.08.00 is refused: Compose UI 1.12.0 requires AGP
+  9.1 and compileSdk 37. Kotlin stays 2.0.21.
+  [compose-toolchain.md](architecture/compose-toolchain.md).
 - **P4.4** Room, DataStore, persistence test stack; v1/v2 migrations stay
   green on the new substrate.
 - **P4.5** Remove deprecated Google Sign-In remnants; keep

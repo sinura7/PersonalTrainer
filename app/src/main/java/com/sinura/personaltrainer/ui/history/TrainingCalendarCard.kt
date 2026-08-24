@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -48,7 +49,6 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
-import java.util.Locale
 
 private val monthFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM yyyy")
 
@@ -72,6 +72,7 @@ fun TrainingCalendarCard(
     unit: WeightUnit,
     modifier: Modifier = Modifier,
 ) {
+    val locale = LocalLocale.current.platformLocale
     GymCard(modifier = modifier) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -113,7 +114,7 @@ fun TrainingCalendarCard(
                 TrainingCalendarBuilder.weekdayOrder(weekStart).forEach { day ->
                     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                         Kicker(
-                            day.getDisplayName(TextStyle.NARROW, Locale.getDefault()),
+                            day.getDisplayName(TextStyle.NARROW, locale),
                             color = TextTertiary,
                         )
                     }

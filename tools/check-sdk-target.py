@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Drift check: SDK 36 plus the P4.2 core-family floors.
+"""Drift check: SDK 36 plus the P4.2/P4.3 family floors.
 
 P4.1 signed the SDK triple. P4.2 ratchets Core KTX, Lifecycle, Activity,
-coroutines, serialization, Robolectric, and AndroidX Test. Compose, Room,
-and Sign-In stay for later packets.
+coroutines, serialization, Robolectric, and AndroidX Test. P4.3 ratchets
+Compose BOM, Navigation, and the Kotlin Compose compiler pin. Room,
+DataStore, and Sign-In stay for later packets.
 """
 from __future__ import annotations
 
@@ -16,7 +17,8 @@ GRADLE = os.path.join(ROOT, "app/build.gradle.kts")
 CATALOG = os.path.join(ROOT, "gradle/libs.versions.toml")
 WRAPPER = os.path.join(ROOT, "gradle/wrapper/gradle-wrapper.properties")
 ROBOLECTRIC = os.path.join(ROOT, "app/src/test/resources/robolectric.properties")
-TOOLCHAIN = os.path.join(ROOT, "app/src/main/java/com/sinura/personaltrainer/toolchain/CoreToolchain.kt")
+CORE_TOOLCHAIN = os.path.join(ROOT, "app/src/main/java/com/sinura/personaltrainer/toolchain/CoreToolchain.kt")
+COMPOSE_TOOLCHAIN = os.path.join(ROOT, "app/src/main/java/com/sinura/personaltrainer/toolchain/ComposeToolchain.kt")
 
 REQUIRED = {
     "compileSdk": 36,
@@ -36,6 +38,9 @@ CATALOG_MIN = {
     "androidxTestRunner": ((1, 7, 0), "1.7.0"),
     "androidxTestRules": ((1, 7, 0), "1.7.0"),
     "androidxTestExtJunit": ((1, 3, 0), "1.3.0"),
+    "composeBom": ((2026, 6, 1), "2026.06.01"),
+    "navigationCompose": ((2, 9, 8), "2.9.8"),
+    "kotlin": ((2, 0, 21), "2.0.21"),
 }
 
 findings: list[str] = []
@@ -104,10 +109,10 @@ def main() -> int:
         if not re.search(r"(?m)^sdk=36\s*$", props):
             findings.append("robolectric.properties  must pin sdk=36 after Robolectric 4.16")
 
-    if not os.path.isfile(TOOLCHAIN):
+    if not os.path.isfile(CORE_TOOLCHAIN):
         findings.append("CoreToolchain.kt  missing signed P4.2 matrix")
     else:
-        body = open(TOOLCHAIN, encoding="utf-8").read()
+        body = open(CORE_TOOLCHAIN, encoding="utf-8").read()
         for needle in (
             'coreKtx = "1.17.0"',
             'lifecycle = "2.10.0"',
@@ -118,6 +123,20 @@ def main() -> int:
         ):
             if needle not in body:
                 findings.append(f"CoreToolchain.kt  missing {needle}")
+
+    if not os.path.isfile(COMPOSE_TOOLCHAIN):
+        findings.append("ComposeToolchain.kt  missing signed P4.3 matrix")
+    else:
+        body = open(COMPOSE_TOOLCHAIN, encoding="utf-8").read()
+        for needle in (
+            'composeBom = "2026.06.01"',
+            'navigation = "2.9.8"',
+            'compiler = "2.0.21"',
+            'composeUi = "1.11.4"',
+            'material3 = "1.4.0"',
+        ):
+            if needle not in body:
+                findings.append(f"ComposeToolchain.kt  missing {needle}")
 
     print(f"{len(findings)} sdk-target finding(s)")
     for item in findings:

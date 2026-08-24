@@ -4,8 +4,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 /**
- * The P4.2 core-family matrix. Compose, Room, and Sign-In stay on the
- * versions P4.3–P4.5 own. Core KTX stops at 1.17.0 because 1.18+
+ * The P4.2 core-family matrix. Compose is signed in P4.3. Room and
+ * Sign-In stay on the versions P4.4–P4.5 own. Core KTX stops at 1.17.0 because 1.18+
  * wants compileSdk 37 / AGP 9. Lifecycle stops at 2.10.0 because
  * 2.11 requires AGP 9.2. Coroutines stay on 1.10.2 because 1.11 is
  * a Kotlin 2.2 companion.

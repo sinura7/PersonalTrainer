@@ -132,8 +132,18 @@ class ExerciseDetailViewModelTest {
         }
         assertEquals(squat.id, saved.exercises.single().exercise.id)
         assertNull(saved.exercises.single().targetWeightKg)
-        assertEquals("Added to ${routine.name}.", eventually { vm.uiState.value.notice })
-        assertTrue(vm.uiState.value.routines.single { it.routine.id == routine.id }.alreadyHolds)
+        // Notice is set in the same coroutine as the write; Room's observeAll
+        // can emit membership one frame later. Wait for both, not just the toast.
+        val state = eventually {
+            vm.uiState.value.takeIf {
+                it.notice == "Added to ${routine.name}." &&
+                    it.routines.any { membership ->
+                        membership.routine.id == routine.id && membership.alreadyHolds
+                    }
+            }
+        }
+        assertEquals("Added to ${routine.name}.", state.notice)
+        assertTrue(state.routines.single { it.routine.id == routine.id }.alreadyHolds)
     }
 
     private fun createViewModel(exerciseId: String): ExerciseDetailViewModel =

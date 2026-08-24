@@ -50,6 +50,7 @@ No ADR may leave a schema, scheduling, privacy, or entitlement choice as TBD.
 | [backup-threat-model.md](backup-threat-model.md) | P3.1 signed inventory of stores, channels, and threats. Implements ADR-009; does not reopen it. |
 | [sdk36-compatibility.md](sdk36-compatibility.md) | P4.1 reviewed pass for compile/target 36. AGP/Gradle are the official pair; Compose, Room, and Robolectric stay for P4.2–P4.4. |
 | [core-toolchain.md](core-toolchain.md) | P4.2 signed Core / Lifecycle / Activity / coroutines / serialization / Robolectric / AndroidX Test matrix. |
+| [compose-toolchain.md](compose-toolchain.md) | P4.3 signed Compose BOM / Material / Navigation / compiler matrix. |
 
 ## Permanent refusals that remain in force
 

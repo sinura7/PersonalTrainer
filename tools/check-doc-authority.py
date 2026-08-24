@@ -123,6 +123,16 @@ REQUIRED_IN = [
         "Robolectric | 4.14.1 | **4.16**",
         "P4.2 review must sign Robolectric 4.16",
     ),
+    (
+        "docs/architecture/compose-toolchain.md",
+        "Compose BOM | 2024.12.01 | **2026.06.01**",
+        "P4.3 review must sign the Compose BOM floor",
+    ),
+    (
+        "docs/architecture/compose-toolchain.md",
+        "Refuse Compose BOM 2026.08.00",
+        "P4.3 review must record the AGP 9 refusal",
+    ),
 ]
 
 ISSUED_FND = [f"FND-{n:03d}" for n in range(1, 49) if n != 37] + [
