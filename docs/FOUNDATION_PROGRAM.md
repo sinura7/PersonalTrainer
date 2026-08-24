@@ -526,8 +526,16 @@ Start versus Restore, catalog-only and bodyweight-only files).
   [compose-toolchain.md](architecture/compose-toolchain.md).
   Evidence:
   [P4.3 evidence](foundation-program/evidence/P4.3-compose-toolchain.md).
-- **P4.4** Room, DataStore, persistence test stack; v1/v2 migrations stay
-  green on the new substrate.
+
+#### P4.4 — Room, DataStore, persistence test stack · **done**
+
+- Room, DataStore, persistence test stack; v1/v2 migrations stay green
+  on the new substrate.
+- Landed: Room 2.7.2, DataStore 1.2.1. Room 2.8.x is refused: the 2.8
+  compiler needs a newer kotlinx.serialization than the P4.2 pin.
+  Schema identity hashes are unchanged. `fallbackToDestructiveMigration`
+  stays banned.
+  [persistence-toolchain.md](architecture/persistence-toolchain.md).
 - **P4.5** Remove deprecated Google Sign-In remnants; keep
   `AuthorizationClient` / `drive.file`. Local recording stays Google-free.
   Closes FND-028.

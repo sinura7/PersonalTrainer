@@ -133,6 +133,16 @@ REQUIRED_IN = [
         "Refuse Compose BOM 2026.08.00",
         "P4.3 review must record the AGP 9 refusal",
     ),
+    (
+        "docs/architecture/persistence-toolchain.md",
+        "Room | 2.6.1 | **2.7.2**",
+        "P4.4 review must sign the Room floor",
+    ),
+    (
+        "docs/architecture/persistence-toolchain.md",
+        "Refuse Room 2.8.x",
+        "P4.4 review must record the Room 2.8 refusal",
+    ),
 ]
 
 ISSUED_FND = [f"FND-{n:03d}" for n in range(1, 49) if n != 37] + [

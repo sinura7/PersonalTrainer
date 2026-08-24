@@ -40,5 +40,4 @@ paired with Kotlin 2.0.21.
 
 ## Finding coverage
 
-FND-027 continues. Room, Sign-In, and lint-baseline cleanup remain
-P4.4–P4.6.
+FND-027 continues. Sign-In and lint-baseline cleanup remain P4.5–P4.6.

@@ -3,8 +3,8 @@
 
 P4.1 signed the SDK triple. P4.2 ratchets Core KTX, Lifecycle, Activity,
 coroutines, serialization, Robolectric, and AndroidX Test. P4.3 ratchets
-Compose BOM, Navigation, and the Kotlin Compose compiler pin. Room,
-DataStore, and Sign-In stay for later packets.
+Compose BOM, Navigation, and the Kotlin Compose compiler pin. P4.4
+ratchets Room and DataStore. Sign-In stays for P4.5.
 """
 from __future__ import annotations
 
@@ -19,6 +19,18 @@ WRAPPER = os.path.join(ROOT, "gradle/wrapper/gradle-wrapper.properties")
 ROBOLECTRIC = os.path.join(ROOT, "app/src/test/resources/robolectric.properties")
 CORE_TOOLCHAIN = os.path.join(ROOT, "app/src/main/java/com/sinura/personaltrainer/toolchain/CoreToolchain.kt")
 COMPOSE_TOOLCHAIN = os.path.join(ROOT, "app/src/main/java/com/sinura/personaltrainer/toolchain/ComposeToolchain.kt")
+PERSISTENCE_TOOLCHAIN = os.path.join(
+    ROOT,
+    "app/src/main/java/com/sinura/personaltrainer/toolchain/PersistenceToolchain.kt",
+)
+SCHEMA_V1 = os.path.join(
+    ROOT,
+    "app/schemas/com.sinura.personaltrainer.data.local.TrainerDatabase/1.json",
+)
+SCHEMA_V2 = os.path.join(
+    ROOT,
+    "app/schemas/com.sinura.personaltrainer.data.local.TrainerDatabase/2.json",
+)
 
 REQUIRED = {
     "compileSdk": 36,
@@ -41,6 +53,8 @@ CATALOG_MIN = {
     "composeBom": ((2026, 6, 1), "2026.06.01"),
     "navigationCompose": ((2, 9, 8), "2.9.8"),
     "kotlin": ((2, 0, 21), "2.0.21"),
+    "room": ((2, 7, 2), "2.7.2"),
+    "datastore": ((1, 2, 1), "1.2.1"),
 }
 
 findings: list[str] = []
@@ -137,6 +151,32 @@ def main() -> int:
         ):
             if needle not in body:
                 findings.append(f"ComposeToolchain.kt  missing {needle}")
+
+    if not os.path.isfile(PERSISTENCE_TOOLCHAIN):
+        findings.append("PersistenceToolchain.kt  missing signed P4.4 matrix")
+    else:
+        body = open(PERSISTENCE_TOOLCHAIN, encoding="utf-8").read()
+        for needle in (
+            'room = "2.7.2"',
+            'datastore = "1.2.1"',
+            'schemaV1 = "6d58ad40d5c03785ab29aaf61157f369"',
+            'schemaV2 = "3eedd5301f0344b7802f5d0da2f68b3e"',
+        ):
+            if needle not in body:
+                findings.append(f"PersistenceToolchain.kt  missing {needle}")
+
+    for path, expected in (
+        (SCHEMA_V1, "6d58ad40d5c03785ab29aaf61157f369"),
+        (SCHEMA_V2, "3eedd5301f0344b7802f5d0da2f68b3e"),
+    ):
+        if not os.path.isfile(path):
+            findings.append(f"{os.path.relpath(path, ROOT)}  missing committed schema")
+            continue
+        body = open(path, encoding="utf-8").read()
+        if f'"identityHash": "{expected}"' not in body and f'"identityHash":"{expected}"' not in body:
+            findings.append(
+                f"{os.path.relpath(path, ROOT)}  identityHash must stay {expected}",
+            )
 
     print(f"{len(findings)} sdk-target finding(s)")
     for item in findings:
