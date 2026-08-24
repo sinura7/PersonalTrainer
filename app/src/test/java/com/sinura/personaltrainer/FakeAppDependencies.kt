@@ -8,8 +8,11 @@ import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.runBlocking
 import com.sinura.personaltrainer.data.backup.DriveAuthClient
 import com.sinura.personaltrainer.data.backup.DriveRestClient
 import com.sinura.personaltrainer.data.backup.NetworkChecker
@@ -26,7 +29,7 @@ import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.insights.TrainingInsightsPublisher
-import com.sinura.personaltrainer.timer.RestTimerController
+import com.sinura.personaltrainer.timer.RestTimerGateway
 import com.sinura.personaltrainer.timer.RestTimerStatePersistence
 import com.sinura.personaltrainer.timer.RestTimerStore
 import com.sinura.personaltrainer.timer.SharedPrefsRestTimerStatePersistence
@@ -37,6 +40,10 @@ import com.sinura.personaltrainer.workout.WorkoutDraftCache
 import java.io.File
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.StateFlow
+import com.sinura.personaltrainer.domain.RestTimerSnapshot
 
 /**
  * Real repositories on an in-memory database, plus a controllable insights stream.
@@ -78,8 +85,8 @@ class FakeAppDependencies(
     override val restTimerStatePersistence: RestTimerStatePersistence =
         SharedPrefsRestTimerStatePersistence(context)
     override val restTimerStore: RestTimerStore = RestTimerStore(restTimerStatePersistence)
-    override val restTimerController: RestTimerController =
-        RestTimerController(context, restTimerStore, restTimerStatePersistence)
+    override val restTimerController: RestTimerGateway =
+        InMemoryRestTimerGateway(restTimerStore)
     override val workoutDraftCache: WorkoutDraftCache = WorkoutDraftCache()
     override val finishWorkout: FinishWorkout = FinishWorkout(
         workoutRepository = workoutRepository,
@@ -120,7 +127,9 @@ class FakeAppDependencies(
     )
 
     fun close() {
-        prefsScope.cancel()
+        val preferencesJob = prefsScope.coroutineContext[Job]
+        preferencesJob?.cancel()
+        runBlocking { preferencesJob?.join() }
         database.close()
     }
 }
@@ -128,6 +137,11 @@ class FakeAppDependencies(
 /** Cancels [viewModelScope] so collectors do not outlive the test. */
 fun ViewModel.clearForTest() {
     viewModelScope.cancel()
+}
+
+/** Cancels and awaits every ViewModel child before a test resets Dispatchers.Main. */
+suspend fun ViewModel.clearAndJoinForTest() {
+    viewModelScope.coroutineContext[Job]?.cancelAndJoin()
 }
 
 /**
@@ -141,4 +155,36 @@ private class IsolatedAppContext(base: Context) : ContextWrapper(base) {
     override fun getApplicationContext(): Context = this
 
     override fun getFilesDir(): File = File(root, "files").also { it.mkdirs() }
+}
+
+/**
+ * No Context, service, AlarmManager, or wall time. ViewModel tests assert the
+ * contract and store; Android delivery is exercised by connected tests.
+ */
+private class InMemoryRestTimerGateway(
+    private val store: RestTimerStore,
+) : RestTimerGateway {
+    private var elapsedRealtimeMs: Long = 0L
+
+    override val snapshot: StateFlow<RestTimerSnapshot> = store.snapshot
+    override val remainingSeconds: Flow<Int> = snapshot
+        .map { state -> if (state.running) state.remainingSeconds(elapsedRealtimeMs) else 0 }
+        .distinctUntilChanged()
+    override val runningSessionId: Flow<String?> = snapshot
+        .map { state -> state.sessionId.takeIf { state.running } }
+        .distinctUntilChanged()
+
+    override fun start(totalSeconds: Int, sessionId: String?) {
+        store.start(totalSeconds, sessionId, elapsedRealtimeMs)
+    }
+
+    override fun adjust(deltaSeconds: Int) {
+        store.adjust(deltaSeconds, elapsedRealtimeMs)
+    }
+
+    override fun stop(fromService: Boolean) {
+        store.clear()
+    }
+
+    override fun rehydrate(): Boolean = false
 }

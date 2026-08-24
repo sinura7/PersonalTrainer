@@ -3,7 +3,7 @@ package com.sinura.personaltrainer.ui.home
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
-import com.sinura.personaltrainer.clearForTest
+import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.ProgressionAction
 import com.sinura.personaltrainer.domain.ProgressionHint
@@ -47,7 +47,7 @@ class HomeViewModelTest {
 
     @After
     fun tearDown() {
-        viewModel?.clearForTest()
+        runBlocking { viewModel?.clearAndJoinForTest() }
         viewModel = null
         dispatcher.scheduler.advanceUntilIdle()
         if (::deps.isInitialized) deps.close()

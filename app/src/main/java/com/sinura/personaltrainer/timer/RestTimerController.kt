@@ -23,15 +23,15 @@ class RestTimerController(
     context: Context,
     private val store: RestTimerStore,
     private val persistence: RestTimerStatePersistence? = null,
-) {
+) : RestTimerGateway {
     private val appContext = context.applicationContext
     private val alarms = RestTimerAlarmScheduler(appContext)
 
     /** Application-lifetime; only used to announce a rest that ended while we were dead. */
     private val announceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    val snapshot: StateFlow<RestTimerSnapshot> = store.snapshot
+    override val snapshot: StateFlow<RestTimerSnapshot> = store.snapshot
 
-    val remainingSeconds: Flow<Int> = snapshot.flatMapLatest { state ->
+    override val remainingSeconds: Flow<Int> = snapshot.flatMapLatest { state ->
         if (!state.running) {
             flowOf(0)
         } else {
@@ -46,11 +46,11 @@ class RestTimerController(
         }
     }.distinctUntilChanged()
 
-    val runningSessionId: Flow<String?> = snapshot.map { snap ->
+    override val runningSessionId: Flow<String?> = snapshot.map { snap ->
         snap.sessionId.takeIf { snap.running }
     }.distinctUntilChanged()
 
-    fun start(totalSeconds: Int, sessionId: String?) {
+    override fun start(totalSeconds: Int, sessionId: String?) {
         // A new rest must be allowed to announce even though the previous one just did.
         RestTimerCompletion.reset()
         store.start(totalSeconds, sessionId, SystemClock.elapsedRealtime())
@@ -58,7 +58,7 @@ class RestTimerController(
         dispatch(RestTimerService.ACTION_SYNC)
     }
 
-    fun adjust(deltaSeconds: Int) {
+    override fun adjust(deltaSeconds: Int) {
         store.adjust(deltaSeconds, SystemClock.elapsedRealtime())
         if (store.current().running) {
             scheduleAlarmForCurrent()
@@ -69,7 +69,7 @@ class RestTimerController(
         }
     }
 
-    fun stop(fromService: Boolean = false) {
+    override fun stop(fromService: Boolean) {
         val wasRunning = store.current().running
         store.clear()
         // Always drop the pending wakeup: a cancelled rest must never fire an alert later.
@@ -88,7 +88,7 @@ class RestTimerController(
      *
      * @return true when a still-running rest was restored.
      */
-    fun rehydrate(): Boolean {
+    override fun rehydrate(): Boolean {
         if (store.current().running) return true
         val outcome = RestTimerRehydrator.rehydrate(
             stored = persistence?.load(),

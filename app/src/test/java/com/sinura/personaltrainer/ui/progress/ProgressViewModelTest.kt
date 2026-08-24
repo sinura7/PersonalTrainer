@@ -3,7 +3,7 @@ package com.sinura.personaltrainer.ui.progress
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
-import com.sinura.personaltrainer.clearForTest
+import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.LighterWeek
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
@@ -40,7 +40,7 @@ class ProgressViewModelTest {
 
     @After
     fun tearDown() {
-        viewModel?.clearForTest()
+        runBlocking { viewModel?.clearAndJoinForTest() }
         viewModel = null
         dispatcher.scheduler.advanceUntilIdle()
         if (::deps.isInitialized) deps.close()

@@ -2,7 +2,7 @@ package com.sinura.personaltrainer.workout
 
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.logging.AppLog
-import com.sinura.personaltrainer.timer.RestTimerController
+import com.sinura.personaltrainer.timer.RestTimerGateway
 import com.sinura.personaltrainer.util.runCatchingCancellable
 
 private const val TAG = "PT/FinishWorkout"
@@ -35,7 +35,7 @@ sealed interface FinishOutcome {
  */
 class FinishWorkout(
     private val workoutRepository: WorkoutRepository,
-    private val restTimer: RestTimerController,
+    private val restTimer: RestTimerGateway,
     private val draftCache: WorkoutDraftCache,
 ) {
     /**

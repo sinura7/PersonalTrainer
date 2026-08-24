@@ -37,4 +37,11 @@ object SessionEditRules {
         replacementAlreadyPresent: Boolean,
     ): String? = refusalForRemove(sessionFinished, itemExists, loggedSetCount)
         ?: ALREADY_PRESENT.takeIf { replacementAlreadyPresent }
+
+    /** Messages deliberately safe to show instead of replacing with a generic failure. */
+    fun isUserMessage(message: String): Boolean =
+        message == FINISHED_SESSION ||
+            message == HAS_LOGGED_SETS ||
+            message == ITEM_MISSING ||
+            message == ALREADY_PRESENT
 }

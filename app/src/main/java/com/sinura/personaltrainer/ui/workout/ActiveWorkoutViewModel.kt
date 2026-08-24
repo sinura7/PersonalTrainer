@@ -22,6 +22,7 @@ import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RestTimerPreferences
+import com.sinura.personaltrainer.domain.SessionEditRules
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
@@ -181,6 +182,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     /** What the database already holds, so a re-seed or a no-op edit does not re-write it. */
     private var lastPersistedNotes: String? = null
     private var pendingResumeDraft: WorkoutDraft? = null
+    /** Blocks a late Room emission from recreating a draft after finish/discard cleared it. */
+    private var terminalExit = false
 
     /**
      * Tapping the lift that is already selected must still refill the draft from the
@@ -613,7 +616,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 error.value = null
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "removeSelectedLift failed", thrown)
-                error.value = thrown.message?.takeIf { SetLogRules.isUserMessage(it) }
+                error.value = thrown.message?.takeIf {
+                    SetLogRules.isUserMessage(it) || SessionEditRules.isUserMessage(it)
+                }
                     ?: "Could not remove that lift. Try again."
             }
         }
@@ -633,7 +638,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 error.value = null
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "swapExerciseInSession failed", thrown)
-                error.value = thrown.message?.takeIf { SetLogRules.isUserMessage(it) }
+                error.value = thrown.message?.takeIf {
+                    SetLogRules.isUserMessage(it) || SessionEditRules.isUserMessage(it)
+                }
                     ?: "Could not swap that lift. Try again."
             }
             return
@@ -717,6 +724,19 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                     )
                     editingSetId.value = null
                 } else {
+                    // Snapshot the count before the insert. The session Flow may publish the
+                    // new row as soon as Room commits; reading it after logSet() and then
+                    // adding one double-counted the set under a fast collector. A final
+                    // prescribed set could therefore look like target + 1 and start a rest.
+                    val previousWorking = session.value
+                        ?.sets
+                        ?.count { it.exerciseId == exerciseId && !it.isWarmup }
+                        ?: 0
+                    val targetSets = session.value
+                        ?.exercises
+                        ?.firstOrNull { it.exercise.id == exerciseId }
+                        ?.targetSets
+                        ?: 0
                     val logged = container.workoutRepository.logSet(
                         sessionId = sessionId,
                         exerciseId = exerciseId,
@@ -738,16 +758,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                             reps = current.reps,
                         )
                     }
-                    val previousWorking = session.value
-                        ?.sets
-                        ?.count { it.exerciseId == exerciseId && !it.isWarmup }
-                        ?: 0
                     val workingAfter = previousWorking + if (current.isWarmup) 0 else 1
-                    val targetSets = session.value
-                        ?.exercises
-                        ?.firstOrNull { it.exercise.id == exerciseId }
-                        ?.targetSets
-                        ?: 0
                     if (RestTimer.shouldStartAfterLog(
                             isWarmup = current.isWarmup,
                             workingSetsAfterLog = workingAfter,
@@ -908,6 +919,11 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                     // The use case clears the process-wide cache; the SavedStateHandle mirror
                     // is scoped to this nav entry and unreachable from anywhere else, so it
                     // stays this ViewModel's job.
+                    terminalExit = true
+                    // The use case cleared this before returning. Clear once more after the
+                    // terminal flag so an in-flight pre-finish Room emission cannot recreate
+                    // the cache in the narrow gap between those two operations.
+                    draftCache.clear(sessionId)
                     savedDraft.clear()
                     finished.value = true
                     _exitRequested.value = WorkoutExit.Finished(outcome.sessionId)
@@ -927,6 +943,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             when (container.discardWorkout(sessionId)) {
                 DiscardOutcome.Discarded -> {
                     error.value = null
+                    terminalExit = true
+                    draftCache.clear(sessionId)
                     savedDraft.clear()
                     _exitRequested.value = WorkoutExit.Discarded
                 }
@@ -952,7 +970,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     private fun persistDraft() {
-        if (sessionId.isBlank()) return
+        if (sessionId.isBlank() || terminalExit || finished.value || session.value?.isFinished == true) return
         val current = WorkoutDraft(
             sessionId = sessionId,
             exerciseId = selectedExerciseId.value,

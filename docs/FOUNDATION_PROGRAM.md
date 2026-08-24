@@ -246,7 +246,7 @@ Status legend: **done** · **next** · pending · gated · skipped
   pixel-identical. Changing the gallery accent from Volt to Warn produced
   a bounded, located diff rather than repainting the page.
 
-#### P1.3 — Characterize Active Workout before refactoring
+#### P1.3 — Characterize Active Workout before refactoring · **done**
 
 - Dedicated tests around `ActiveWorkoutViewModel`: load/missing, draft
   precedence, selection, validation, write failure, PR, rest start,
@@ -256,6 +256,15 @@ Status legend: **done** · **next** · pending · gated · skipped
   finish → Summary.
 - Assert durable outcomes and visible states, not private coroutine order.
 - Exit: every FND-003 transition has a named test; critical journey green.
+- Landed: 23 direct behavior tests over real in-memory Room, SavedState,
+  draft cache, a deterministic timer gateway, and public state/effects.
+  The API 29 real-app journey seeds a routine, types 100 kg, logs 5 reps,
+  observes a 120-second rest, finishes, and verifies the 500 kg Summary plus
+  durable history. Characterization exposed and fixed three orchestration
+  defects: a final prescribed set could double-count itself and start rest;
+  swap/remove refusals were hidden behind generic copy; and late Room
+  emissions could recreate a cleared finish/discard draft. Full device lane:
+  20/20.
 
 #### P1.4 — Session lifecycle and repair ViewModels
 

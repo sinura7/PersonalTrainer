@@ -3,7 +3,7 @@ package com.sinura.personaltrainer.ui.plan
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
-import com.sinura.personaltrainer.clearForTest
+import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.OnboardingAnswers
@@ -57,7 +57,7 @@ class PlanViewModelTest {
 
     @After
     fun tearDown() {
-        viewModel?.clearForTest()
+        runBlocking { viewModel?.clearAndJoinForTest() }
         viewModel = null
         dispatcher.scheduler.advanceUntilIdle()
         if (::deps.isInitialized) deps.close()

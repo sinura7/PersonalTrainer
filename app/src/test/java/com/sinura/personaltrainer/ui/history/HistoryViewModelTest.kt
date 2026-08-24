@@ -3,7 +3,7 @@ package com.sinura.personaltrainer.ui.history
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
-import com.sinura.personaltrainer.clearForTest
+import com.sinura.personaltrainer.clearAndJoinForTest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -40,7 +40,7 @@ class HistoryViewModelTest {
 
     @After
     fun tearDown() {
-        viewModel?.clearForTest()
+        runBlocking { viewModel?.clearAndJoinForTest() }
         viewModel = null
         dispatcher.scheduler.advanceUntilIdle()
         if (::deps.isInitialized) deps.close()

@@ -55,6 +55,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -118,6 +119,13 @@ import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import kotlinx.coroutines.delay
 
 private const val TAG = "PT/ActiveWorkoutScreen"
+
+/** Stable semantics for the critical device journey; copy remains free to improve. */
+object WorkoutTestTags {
+    const val CONTENT = "workout-content"
+    const val LOG_SET = "workout-log-set"
+    const val FINISH = "workout-finish"
+}
 
 @Composable
 fun ActiveWorkoutScreen(
@@ -307,7 +315,9 @@ fun ActiveWorkoutScreen(
 
                     LazyColumn(
                         state = listState,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag(WorkoutTestTags.CONTENT),
                         contentPadding = PaddingValues(
                             start = Metrics.gutter,
                             end = Metrics.gutter,
@@ -638,7 +648,11 @@ private fun WorkoutHeader(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            TextButton(onClick = onFinish, enabled = canFinish) {
+            TextButton(
+                onClick = onFinish,
+                enabled = canFinish,
+                modifier = Modifier.testTag(WorkoutTestTags.FINISH),
+            ) {
                 Text(
                     "Finish",
                     style = InstrumentType.bodyStrong,
@@ -720,6 +734,7 @@ private fun LogBar(
         PrimaryGymButton(
             text = if (editing) "Save $draftLabel" else "Log $draftLabel",
             onClick = onLog,
+            modifier = Modifier.testTag(WorkoutTestTags.LOG_SET),
             height = Metrics.commit,
             hapticFeedback = false,
         )

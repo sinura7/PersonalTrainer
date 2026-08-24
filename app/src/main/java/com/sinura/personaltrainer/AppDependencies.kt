@@ -9,7 +9,7 @@ import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.ScheduleRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.insights.TrainingInsightsPublisher
-import com.sinura.personaltrainer.timer.RestTimerController
+import com.sinura.personaltrainer.timer.RestTimerGateway
 import com.sinura.personaltrainer.timer.RestTimerStatePersistence
 import com.sinura.personaltrainer.timer.RestTimerStore
 import com.sinura.personaltrainer.workout.DiscardWorkout
@@ -35,7 +35,7 @@ interface AppDependencies {
     val onboardingApplier: OnboardingApplier
     val restTimerStatePersistence: RestTimerStatePersistence
     val restTimerStore: RestTimerStore
-    val restTimerController: RestTimerController
+    val restTimerController: RestTimerGateway
     val workoutDraftCache: WorkoutDraftCache
     val finishWorkout: FinishWorkout
     val discardWorkout: DiscardWorkout

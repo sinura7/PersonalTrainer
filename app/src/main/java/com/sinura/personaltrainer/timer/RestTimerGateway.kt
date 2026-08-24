@@ -1,0 +1,24 @@
+package com.sinura.personaltrainer.timer
+
+import com.sinura.personaltrainer.domain.RestTimerSnapshot
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
+
+/**
+ * The workout-facing rest timer contract.
+ *
+ * ViewModels and use cases need state plus five commands; they do not need
+ * AlarmManager, a foreground Service, or an Android Context. Keeping that
+ * boundary explicit lets behavior tests use a deterministic in-memory timer
+ * while [RestTimerController] remains the Android implementation.
+ */
+interface RestTimerGateway {
+    val snapshot: StateFlow<RestTimerSnapshot>
+    val remainingSeconds: Flow<Int>
+    val runningSessionId: Flow<String?>
+
+    fun start(totalSeconds: Int, sessionId: String?)
+    fun adjust(deltaSeconds: Int)
+    fun stop(fromService: Boolean = false)
+    fun rehydrate(): Boolean
+}
