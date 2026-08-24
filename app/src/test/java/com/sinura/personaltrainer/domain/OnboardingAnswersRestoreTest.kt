@@ -1,6 +1,6 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -126,14 +126,14 @@ class OnboardingAnswersRestoreTest {
         val answers = OnboardingAnswers.fromStored(
             trainingAge = TrainingAge.EXPERIENCED,
             daysPerWeek = 9,
-            preferredDays = setOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY),
+            preferredDays = setOf(Weekday.TUESDAY, Weekday.THURSDAY),
             place = TrainingPlace.HOME_DUMBBELLS,
             goal = TrainingGoal.ATHLETIC,
             emphasis = TrainingEmphasis.UPPER,
             bodyweightKg = 82.0,
         )
         assertEquals(SchedulePreferences.MAX_DAYS, answers.daysPerWeek)
-        assertEquals(setOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY), answers.preferredDays)
+        assertEquals(setOf(Weekday.TUESDAY, Weekday.THURSDAY), answers.preferredDays)
         assertEquals(TrainingAge.EXPERIENCED, answers.trainingAge)
         assertEquals(TrainingGoal.ATHLETIC, answers.goal)
         assertEquals(TrainingEmphasis.UPPER, answers.emphasis)
@@ -145,7 +145,7 @@ class OnboardingAnswersRestoreTest {
         val original = OnboardingAnswers(
             trainingAge = TrainingAge.EXPERIENCED,
             daysPerWeek = 4,
-            preferredDays = setOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY),
+            preferredDays = setOf(Weekday.TUESDAY, Weekday.THURSDAY),
             place = TrainingPlace.HOME_DUMBBELLS,
             places = setOf(TrainingPlace.HOME_DUMBBELLS, TrainingPlace.BODYWEIGHT_ONLY),
             goal = TrainingGoal.ATHLETIC,
@@ -155,7 +155,7 @@ class OnboardingAnswersRestoreTest {
         val restored = OnboardingAnswers.decodeDraft(OnboardingAnswers.encodeDraft(original))!!
         assertEquals(TrainingAge.EXPERIENCED, restored.trainingAge)
         assertEquals(4, restored.daysPerWeek)
-        assertEquals(setOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY), restored.preferredDays)
+        assertEquals(setOf(Weekday.TUESDAY, Weekday.THURSDAY), restored.preferredDays)
         assertEquals(
             setOf(TrainingPlace.HOME_DUMBBELLS, TrainingPlace.BODYWEIGHT_ONLY),
             restored.resolvedPlaces(),
@@ -178,16 +178,16 @@ class OnboardingAnswersRestoreTest {
         val four = OnboardingAnswers(
             daysPerWeek = 4,
             preferredDays = setOf(
-                DayOfWeek.SUNDAY,
-                DayOfWeek.MONDAY,
-                DayOfWeek.WEDNESDAY,
-                DayOfWeek.FRIDAY,
+                Weekday.SUNDAY,
+                Weekday.MONDAY,
+                Weekday.WEDNESDAY,
+                Weekday.FRIDAY,
             ),
         )
         val three = four.withDaysPerWeek(3)
         assertEquals(3, three.daysPerWeek)
         assertEquals(
-            setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY),
+            setOf(Weekday.MONDAY, Weekday.WEDNESDAY, Weekday.FRIDAY),
             three.preferredDays,
         )
         assertEquals(four.preferredDays, four.withDaysPerWeek(5).preferredDays)

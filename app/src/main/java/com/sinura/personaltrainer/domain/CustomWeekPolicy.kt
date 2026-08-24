@@ -1,7 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.DayOfWeek
-
 /**
  * One lift staged on a custom week day, before anything is written.
  *
@@ -32,20 +30,20 @@ enum class CustomWeekDayMark {
  * the routines land under.
  */
 object CustomWeekPolicy {
-    fun canConfirm(days: Map<DayOfWeek, List<CustomWeekLift>>): Boolean =
+    fun canConfirm(days: Map<Weekday, List<CustomWeekLift>>): Boolean =
         days.values.any { it.isNotEmpty() }
 
-    fun trainingDayCount(days: Map<DayOfWeek, List<CustomWeekLift>>): Int =
+    fun trainingDayCount(days: Map<Weekday, List<CustomWeekLift>>): Int =
         days.count { it.value.isNotEmpty() }.coerceIn(SchedulePreferences.MIN_DAYS, SchedulePreferences.MAX_DAYS)
 
     /** Raw filled days. Empty week is zero, not the coerced training-day floor. */
-    fun filledDayCount(days: Map<DayOfWeek, List<CustomWeekLift>>): Int =
+    fun filledDayCount(days: Map<Weekday, List<CustomWeekLift>>): Int =
         days.count { it.value.isNotEmpty() }
 
-    fun restDayCount(days: Map<DayOfWeek, List<CustomWeekLift>>): Int =
+    fun restDayCount(days: Map<Weekday, List<CustomWeekLift>>): Int =
         (SchedulePreferences.MAX_DAYS - filledDayCount(days)).coerceAtLeast(0)
 
-    fun isFullWeek(days: Map<DayOfWeek, List<CustomWeekLift>>): Boolean =
+    fun isFullWeek(days: Map<Weekday, List<CustomWeekLift>>): Boolean =
         filledDayCount(days) == SchedulePreferences.MAX_DAYS
 
     fun isFullWeek(daysPerWeek: Int): Boolean =
@@ -57,7 +55,7 @@ object CustomWeekPolicy {
     fun restCaption(restDays: Int): String? =
         if (restDays > 0) "$restDays rest" else null
 
-    fun routineName(day: DayOfWeek): String =
+    fun routineName(day: Weekday): String =
         day.name.lowercase().replaceFirstChar { it.titlecase() }
 
     /**
@@ -65,9 +63,9 @@ object CustomWeekPolicy {
      * Confirm still needs at least one lift somewhere.
      */
     fun dayMark(
-        day: DayOfWeek,
-        filled: Set<DayOfWeek>,
-        preferred: Set<DayOfWeek>,
+        day: Weekday,
+        filled: Set<Weekday>,
+        preferred: Set<Weekday>,
     ): CustomWeekDayMark = when {
         day in filled -> CustomWeekDayMark.FILLED
         day in preferred -> CustomWeekDayMark.PREFERRED
@@ -75,7 +73,7 @@ object CustomWeekPolicy {
     }
 
     /** Week start, unless a preferred weekday exists — then the first of those in week order. */
-    fun initialSelectedDay(weekStart: DayOfWeek, preferred: Set<DayOfWeek>): DayOfWeek {
+    fun initialSelectedDay(weekStart: Weekday, preferred: Set<Weekday>): Weekday {
         val ordered = (0 until 7).map { weekStart.plus(it.toLong()) }
         return ordered.firstOrNull { it in preferred } ?: weekStart
     }

@@ -1,6 +1,6 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -90,7 +90,7 @@ class StartDayDecisionTest {
 
     private fun pinnedDay(): SuggestedTrainingDay = SuggestedTrainingDay(
         epochDay = 20_000L,
-        dayOfWeek = DayOfWeek.MONDAY,
+        dayOfWeek = Weekday.MONDAY,
         isRest = false,
         focusKind = SessionFocusKind.LEGS,
         focusTitle = "Legs",

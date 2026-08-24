@@ -1,6 +1,6 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import java.util.concurrent.atomic.AtomicInteger
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -24,10 +24,10 @@ class CustomWeekPolicyTest {
     @Test
     fun confirmNeedsAtLeastOneLift() {
         assertFalse(CustomWeekPolicy.canConfirm(emptyMap()))
-        assertFalse(CustomWeekPolicy.canConfirm(mapOf(DayOfWeek.MONDAY to emptyList())))
+        assertFalse(CustomWeekPolicy.canConfirm(mapOf(Weekday.MONDAY to emptyList())))
         assertTrue(
             CustomWeekPolicy.canConfirm(
-                mapOf(DayOfWeek.MONDAY to listOf(lift("1", squat))),
+                mapOf(Weekday.MONDAY to listOf(lift("1", squat))),
             ),
         )
     }
@@ -50,7 +50,7 @@ class CustomWeekPolicyTest {
 
     @Test
     fun mondayIsTheRoutineName() {
-        assertEquals("Monday", CustomWeekPolicy.routineName(DayOfWeek.MONDAY))
+        assertEquals("Monday", CustomWeekPolicy.routineName(Weekday.MONDAY))
     }
 
     @Test
@@ -58,36 +58,36 @@ class CustomWeekPolicyTest {
         assertEquals(
             CustomWeekDayMark.PREFERRED,
             CustomWeekPolicy.dayMark(
-                DayOfWeek.TUESDAY,
+                Weekday.TUESDAY,
                 filled = emptySet(),
-                preferred = setOf(DayOfWeek.TUESDAY),
+                preferred = setOf(Weekday.TUESDAY),
             ),
         )
         assertEquals(
             CustomWeekDayMark.FILLED,
             CustomWeekPolicy.dayMark(
-                DayOfWeek.TUESDAY,
-                filled = setOf(DayOfWeek.TUESDAY),
-                preferred = setOf(DayOfWeek.TUESDAY),
+                Weekday.TUESDAY,
+                filled = setOf(Weekday.TUESDAY),
+                preferred = setOf(Weekday.TUESDAY),
             ),
         )
         assertEquals(
             CustomWeekDayMark.EMPTY,
-            CustomWeekPolicy.dayMark(DayOfWeek.WEDNESDAY, filled = emptySet(), preferred = setOf(DayOfWeek.TUESDAY)),
+            CustomWeekPolicy.dayMark(Weekday.WEDNESDAY, filled = emptySet(), preferred = setOf(Weekday.TUESDAY)),
         )
     }
 
     @Test
     fun selectedDayStartsAtWeekStartUnlessAPreferredDayExists() {
         assertEquals(
-            DayOfWeek.SUNDAY,
-            CustomWeekPolicy.initialSelectedDay(DayOfWeek.SUNDAY, preferred = emptySet()),
+            Weekday.SUNDAY,
+            CustomWeekPolicy.initialSelectedDay(Weekday.SUNDAY, preferred = emptySet()),
         )
         assertEquals(
-            DayOfWeek.TUESDAY,
+            Weekday.TUESDAY,
             CustomWeekPolicy.initialSelectedDay(
-                DayOfWeek.SUNDAY,
-                preferred = setOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY),
+                Weekday.SUNDAY,
+                preferred = setOf(Weekday.TUESDAY, Weekday.THURSDAY),
             ),
         )
     }
@@ -139,8 +139,8 @@ class CustomWeekPolicyTest {
         assertEquals(5, cleared.single().targetSets)
     }
 
-    private fun filledWeek(count: Int): Map<DayOfWeek, List<CustomWeekLift>> =
-        DayOfWeek.entries.take(count).associateWith { day -> listOf(lift(day.name, squat)) }
+    private fun filledWeek(count: Int): Map<Weekday, List<CustomWeekLift>> =
+        Weekday.entries.take(count).associateWith { day -> listOf(lift(day.name, squat)) }
 
     private fun lift(id: String, exercise: Exercise) = CustomWeekLift(
         id = id,

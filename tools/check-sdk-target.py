@@ -200,6 +200,23 @@ def main() -> int:
             if needle not in body:
                 findings.append(f"DriveAuthClient.kt  missing {needle}")
 
+    time_port = os.path.join(
+        ROOT,
+        "app/src/main/java/com/sinura/personaltrainer/domain/TimePort.kt",
+    )
+    if not os.path.isfile(time_port):
+        findings.append("TimePort.kt  missing P5.1 time seam")
+    else:
+        body = open(time_port, encoding="utf-8").read()
+        for needle in (
+            "CapturedCivilTime",
+            "DstOverlapChoice",
+            "DstGapPolicy",
+            "fun interface IdPort",
+        ):
+            if needle not in body:
+                findings.append(f"TimePort.kt  missing {needle}")
+
     print(f"{len(findings)} sdk-target finding(s)")
     for item in findings:
         print(item)

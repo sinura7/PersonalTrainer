@@ -1,6 +1,6 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.ZoneId
+import com.sinura.personaltrainer.util.JvmTime
 
 /**
  * Volume climbing while strength does not.
@@ -33,7 +33,8 @@ object DeloadSignal {
     fun detect(
         history: List<WorkoutSession>,
         nowMs: Long,
-        zone: ZoneId = ZoneId.systemDefault(),
+        time: TimePort = JvmTime,
+        zoneId: String = time.defaultZoneId(),
     ): DeloadFinding? {
         val finished = history.filter { it.isFinished }
         if (finished.isEmpty()) return null

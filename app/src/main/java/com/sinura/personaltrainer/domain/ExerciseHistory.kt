@@ -1,10 +1,6 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.DayOfWeek
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.temporal.TemporalAdjusters
+import com.sinura.personaltrainer.util.JvmTime
 
 /** One finished session, seen through the lens of a single exercise. */
 data class ExerciseSessionSummary(
@@ -43,7 +39,7 @@ data class ExerciseSessionSummary(
 
 /** Volume for one training week, for the tonnage trend. */
 data class WeeklyTonnage(
-    val weekStart: LocalDate,
+    val weekStart: CivilDate,
     val volumeKg: Double,
     /** Reps, for a lift measured in reps. The trend plots whichever of the two is this lift's. */
     val bodyweightReps: Int = 0,
@@ -93,8 +89,9 @@ object ExerciseHistoryBuilder {
         loadClass: LoadClass = sessions.firstOrNull { session ->
             session.exercises.any { it.exercise.id == exerciseId }
         }?.loadClassOf(exerciseId) ?: LoadClass.LOADED,
-        zone: ZoneId = ZoneId.systemDefault(),
-        weekStart: DayOfWeek = DayOfWeek.MONDAY,
+        time: TimePort = JvmTime,
+        zoneId: String = time.defaultZoneId(),
+        weekStart: Weekday = Weekday.MONDAY,
     ): ExerciseHistory = fromEntries(
         exerciseId = exerciseId,
         entries = sessions.filter { it.isFinished }.flatMap { session ->
@@ -107,7 +104,8 @@ object ExerciseHistoryBuilder {
             }.toList()
         },
         loadClass = loadClass,
-        zone = zone,
+        time = time,
+        zoneId = zoneId,
         weekStart = weekStart,
     )
 
@@ -120,8 +118,9 @@ object ExerciseHistoryBuilder {
         exerciseId: String,
         entries: List<ExerciseSetEntry>,
         loadClass: LoadClass,
-        zone: ZoneId = ZoneId.systemDefault(),
-        weekStart: DayOfWeek = DayOfWeek.MONDAY,
+        time: TimePort = JvmTime,
+        zoneId: String = time.defaultZoneId(),
+        weekStart: Weekday = Weekday.MONDAY,
     ): ExerciseHistory {
         val summaries = entries
             .groupBy { it.record.sessionId }
@@ -131,10 +130,7 @@ object ExerciseHistoryBuilder {
         val allSets = summaries.flatMap { it.sets }
         val weekly = allSets
             .groupBy { record ->
-                Instant.ofEpochMilli(record.completedAt)
-                    .atZone(zone)
-                    .toLocalDate()
-                    .with(TemporalAdjusters.previousOrSame(weekStart))
+                time.civilDate(record.completedAt, zoneId).previousOrSame(weekStart)
             }
             .map { (start, records) ->
                 val work = SetWork.sum(

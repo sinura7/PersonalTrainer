@@ -1,8 +1,6 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.Instant
-import java.time.YearMonth
-import java.time.ZoneId
+import com.sinura.personaltrainer.util.JvmTime
 
 /**
  * A month of training, as History shows it.
@@ -13,7 +11,7 @@ import java.time.ZoneId
  * takes a scroll and a squint at date captions.
  */
 data class SessionMonthGroup(
-    val month: YearMonth,
+    val month: CivilYearMonth,
     val sessions: List<WorkoutSession>,
 )
 
@@ -28,10 +26,11 @@ data class SessionMonthGroup(
  */
 fun groupSessionsByMonth(
     sessions: List<WorkoutSession>,
-    zone: ZoneId = ZoneId.systemDefault(),
+    time: TimePort = JvmTime,
+    zoneId: String = time.defaultZoneId(),
 ): List<SessionMonthGroup> = sessions
     .groupBy { session ->
-        YearMonth.from(Instant.ofEpochMilli(session.date).atZone(zone).toLocalDate())
+        CivilYearMonth.from(time.civilDate(session.date, zoneId))
     }
     .entries
     .sortedByDescending { it.key }

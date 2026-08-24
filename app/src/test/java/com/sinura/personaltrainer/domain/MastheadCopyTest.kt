@@ -1,6 +1,6 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -82,7 +82,7 @@ class MastheadCopyTest {
 
     private fun day(kind: SessionFocusKind): SuggestedTrainingDay = SuggestedTrainingDay(
         epochDay = 20_000L,
-        dayOfWeek = DayOfWeek.MONDAY,
+        dayOfWeek = Weekday.MONDAY,
         isRest = false,
         focusKind = kind,
         focusTitle = kind.label,
@@ -127,7 +127,7 @@ class NextSessionReasonTest {
 
     private fun pushDay(): SuggestedTrainingDay = SuggestedTrainingDay(
         epochDay = 20_000L,
-        dayOfWeek = DayOfWeek.MONDAY,
+        dayOfWeek = Weekday.MONDAY,
         isRest = false,
         focusKind = SessionFocusKind.PUSH,
         focusTitle = "Push",
@@ -157,7 +157,7 @@ class NextSessionReasonTest {
 class ColdStartCopyTest {
     private fun restDay(): SuggestedTrainingDay = SuggestedTrainingDay(
         epochDay = 20_000L,
-        dayOfWeek = DayOfWeek.MONDAY,
+        dayOfWeek = Weekday.MONDAY,
         isRest = true,
         focusKind = SessionFocusKind.RECOVERY,
         focusTitle = "Rest",
@@ -293,7 +293,7 @@ class FeaturedSessionTest {
 
     private fun day(isRest: Boolean, name: String?): SuggestedTrainingDay = SuggestedTrainingDay(
         epochDay = 20_000L,
-        dayOfWeek = DayOfWeek.MONDAY,
+        dayOfWeek = Weekday.MONDAY,
         isRest = isRest,
         focusKind = SessionFocusKind.PUSH,
         focusTitle = "Push",

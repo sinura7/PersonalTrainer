@@ -1,7 +1,6 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.Instant
-import java.time.ZoneId
+import com.sinura.personaltrainer.util.JvmTime
 
 /**
  * A lift.
@@ -135,8 +134,10 @@ data class WorkoutSession(
     fun performedAtMs(): Long =
         listOf(date, finishedAt ?: 0L, startedAt).firstOrNull { it > 0L } ?: 0L
 
-    fun performedEpochDay(zone: ZoneId = ZoneId.systemDefault()): Long =
-        Instant.ofEpochMilli(performedAtMs()).atZone(zone).toLocalDate().toEpochDay()
+    fun performedEpochDay(
+        time: TimePort = JvmTime,
+        zoneId: String = time.defaultZoneId(),
+    ): Long = time.civilDate(performedAtMs(), zoneId).epochDay
 
     /**
      * Working sets, warm-ups excluded.

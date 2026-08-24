@@ -17,7 +17,7 @@ import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -88,7 +88,7 @@ class OnboardingApplierTest {
         days: Int = 4,
         age: TrainingAge = TrainingAge.RETURNING,
         place: TrainingPlace = TrainingPlace.FULL_GYM,
-        preferred: Set<DayOfWeek> = emptySet(),
+        preferred: Set<Weekday> = emptySet(),
         bodyweight: Double? = null,
     ) = OnboardingAnswers(
         trainingAge = age,
@@ -169,7 +169,7 @@ class OnboardingApplierTest {
 
     @Test
     fun theDaysTheLifterPickedAreTheDaysThatGetPinned() = runBlocking {
-        val picked = setOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY, DayOfWeek.SUNDAY)
+        val picked = setOf(Weekday.TUESDAY, Weekday.THURSDAY, Weekday.SUNDAY)
         val input = answers(days = 3, preferred = picked)
         applier.apply(input, RoutineGenerator.generate(input, catalog), catalog, WEEK_START, TODAY)
         assertEquals(picked, schedule.slots().mapNotNull { it.anchorDay }.toSet())
@@ -222,7 +222,7 @@ class OnboardingApplierTest {
         preferences.setTrainingGoal(TrainingGoal.STRENGTH)
         val result = applier.applyCustom(
             days = mapOf(
-                DayOfWeek.WEDNESDAY to listOf(
+                Weekday.WEDNESDAY to listOf(
                     CustomWeekLift(id = "lift-1", exercise = squat, targetSets = 4, targetReps = 6, restSeconds = 120),
                 ),
             ),
@@ -232,7 +232,7 @@ class OnboardingApplierTest {
         assertTrue(result is ApplyPlanResult.Applied)
         val slots = schedule.slots()
         assertEquals(1, slots.size)
-        assertEquals(DayOfWeek.WEDNESDAY, slots.first().anchorDay)
+        assertEquals(Weekday.WEDNESDAY, slots.first().anchorDay)
         val routine = routines.getById(slots.first().routineId!!)!!
         assertEquals("Wednesday", routine.name)
         assertEquals(4, routine.exercises.first().targetSets)
@@ -246,7 +246,7 @@ class OnboardingApplierTest {
         val squat = catalog.first { it.movementKey == "squat" }
         val result = applier.applyCustom(
             days = mapOf(
-                DayOfWeek.MONDAY to listOf(
+                Weekday.MONDAY to listOf(
                     CustomWeekLift(
                         id = "lift-1",
                         exercise = squat,
@@ -272,12 +272,12 @@ class OnboardingApplierTest {
             days = 4,
             age = TrainingAge.EXPERIENCED,
             place = TrainingPlace.HOME_DUMBBELLS,
-            preferred = setOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY),
+            preferred = setOf(Weekday.TUESDAY, Weekday.THURSDAY),
             bodyweight = 80.0,
         ).copy(goal = TrainingGoal.ATHLETIC, emphasis = TrainingEmphasis.UPPER)
         val result = applier.applyCustom(
             days = mapOf(
-                DayOfWeek.WEDNESDAY to listOf(
+                Weekday.WEDNESDAY to listOf(
                     CustomWeekLift(id = "lift-1", exercise = squat, targetSets = 4, targetReps = 6, restSeconds = 120),
                 ),
             ),
@@ -291,13 +291,13 @@ class OnboardingApplierTest {
         assertEquals(TrainingGoal.ATHLETIC, preferences.coachPreferences.first().goal)
         assertEquals(TrainingEmphasis.UPPER, preferences.coachPreferences.first().emphasis)
         assertEquals(80.0, preferences.bodyweightKg.first()!!, 0.001)
-        assertEquals(setOf(DayOfWeek.WEDNESDAY), preferences.preferredDays.first())
+        assertEquals(setOf(Weekday.WEDNESDAY), preferences.preferredDays.first())
     }
 
     private companion object {
         // Fixed rather than read from the clock: the block's start date is derived from this,
         // and a test whose expectations move at midnight is a test that fails in CI at 00:00.
-        val WEEK_START: DayOfWeek = DayOfWeek.MONDAY
+        val WEEK_START: Weekday = Weekday.MONDAY
         val TODAY: LocalDate = LocalDate.of(2026, 8, 19)
     }
 }

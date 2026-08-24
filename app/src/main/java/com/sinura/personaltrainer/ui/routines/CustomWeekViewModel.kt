@@ -17,7 +17,7 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
 import com.sinura.personaltrainer.util.runCatchingCancellable
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import java.time.LocalDate
 import java.util.UUID
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -34,10 +34,10 @@ import kotlinx.coroutines.launch
 private const val TAG = "PT/CustomWeekVM"
 
 data class CustomWeekUiState(
-    val selectedDay: DayOfWeek = DayOfWeek.MONDAY,
-    val days: Map<DayOfWeek, List<CustomWeekLift>> = emptyMap(),
-    val weekStart: DayOfWeek = SchedulePreferences.DEFAULT_WEEK_START,
-    val preferredDays: Set<DayOfWeek> = emptySet(),
+    val selectedDay: Weekday = Weekday.MONDAY,
+    val days: Map<Weekday, List<CustomWeekLift>> = emptyMap(),
+    val weekStart: Weekday = SchedulePreferences.DEFAULT_WEEK_START,
+    val preferredDays: Set<Weekday> = emptySet(),
     val searchQuery: String = "",
     val searchResults: List<Exercise> = emptyList(),
     val catalog: List<Exercise> = emptyList(),
@@ -57,9 +57,9 @@ class CustomWeekViewModel @JvmOverloads constructor(
     container: AppDependencies = application.appContainer(),
 ) : AppViewModel(application, container) {
     private val selectedDay = MutableStateFlow(SchedulePreferences.DEFAULT_WEEK_START)
-    private val days = MutableStateFlow<Map<DayOfWeek, List<CustomWeekLift>>>(emptyMap())
+    private val days = MutableStateFlow<Map<Weekday, List<CustomWeekLift>>>(emptyMap())
     private val weekStart = MutableStateFlow(SchedulePreferences.DEFAULT_WEEK_START)
-    private val preferredDays = MutableStateFlow<Set<DayOfWeek>>(emptySet())
+    private val preferredDays = MutableStateFlow<Set<Weekday>>(emptySet())
     private val searchQuery = MutableStateFlow("")
     private val showPicker = MutableStateFlow(false)
     private val pendingAddIds = MutableStateFlow<Set<String>>(emptySet())
@@ -134,13 +134,13 @@ class CustomWeekViewModel @JvmOverloads constructor(
         }
     }
 
-    fun selectDay(day: DayOfWeek) {
+    fun selectDay(day: Weekday) {
         userPickedDay = true
         selectedDay.value = day
     }
 
     fun seedFromGuided(
-        preferred: Set<DayOfWeek>,
+        preferred: Set<Weekday>,
         answers: OnboardingAnswers?,
         unit: WeightUnit?,
     ) {
@@ -245,10 +245,10 @@ class CustomWeekViewModel @JvmOverloads constructor(
     }
 
     private data class WeekCore(
-        val selectedDay: DayOfWeek,
-        val days: Map<DayOfWeek, List<CustomWeekLift>>,
-        val weekStart: DayOfWeek,
-        val preferredDays: Set<DayOfWeek>,
+        val selectedDay: Weekday,
+        val days: Map<Weekday, List<CustomWeekLift>>,
+        val weekStart: Weekday,
+        val preferredDays: Set<Weekday>,
         val query: String,
     )
 

@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.LighterWeek
+import com.sinura.personaltrainer.util.toCivilDate
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -54,7 +55,10 @@ class ProgressViewModelTest {
         viewModel = ProgressViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
         val weekStart = deps.preferencesRepository.schedulePreferences.first().weekStart
-        val expected = LighterWeek.weekStartEpochDay(today = LocalDate.now(), weekStart = weekStart)
+        val expected = LighterWeek.weekStartEpochDay(
+            today = LocalDate.now().toCivilDate(),
+            weekStart = weekStart,
+        )
         viewModel!!.markLighterWeek()
         val marked = withTimeout(5_000) {
             while (true) {

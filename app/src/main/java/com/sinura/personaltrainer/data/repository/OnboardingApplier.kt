@@ -10,7 +10,7 @@ import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.domain.TrainingBlock
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import java.time.LocalDate
 
 private const val TAG = "PT/Onboarding"
@@ -54,7 +54,7 @@ class OnboardingApplier(
         answers: OnboardingAnswers,
         blueprint: PlanBlueprint,
         catalog: List<Exercise>,
-        weekStart: DayOfWeek,
+        weekStart: Weekday,
         today: LocalDate,
     ): ApplyPlanResult {
         val clean = answers.sanitized()
@@ -89,7 +89,10 @@ class OnboardingApplier(
             // keeps the one this replaces if it had finished — re-running setup the week after
             // a block ends should not lose the block that ended.
             preferencesRepository.beginBlock(
-                next = TrainingBlock.startingIn(today = today, weekStart = weekStart),
+                next = TrainingBlock.startingIn(
+                    today = com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(today.toEpochDay()),
+                    weekStart = weekStart,
+                ),
                 todayEpochDay = today.toEpochDay(),
             )
 
@@ -152,8 +155,8 @@ class OnboardingApplier(
      * not invent a goal.
      */
     suspend fun applyCustom(
-        days: Map<DayOfWeek, List<CustomWeekLift>>,
-        weekStart: DayOfWeek,
+        days: Map<Weekday, List<CustomWeekLift>>,
+        weekStart: Weekday,
         today: LocalDate,
         answers: OnboardingAnswers? = null,
     ): ApplyPlanResult {
@@ -177,7 +180,10 @@ class OnboardingApplier(
                 }
             }
             preferencesRepository.beginBlock(
-                next = TrainingBlock.startingIn(today = today, weekStart = weekStart),
+                next = TrainingBlock.startingIn(
+                    today = com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(today.toEpochDay()),
+                    weekStart = weekStart,
+                ),
                 todayEpochDay = today.toEpochDay(),
             )
             var pinned = 0

@@ -1,6 +1,6 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.ZoneId
+import com.sinura.personaltrainer.util.JvmTime
 
 /**
  * What twelve weeks actually came to.
@@ -80,11 +80,12 @@ object BlockReviewBuilder {
         block: TrainingBlock,
         sessions: List<WorkoutSession>,
         unit: WeightUnit,
-        zone: ZoneId = ZoneId.systemDefault(),
+        time: TimePort = JvmTime,
+        zoneId: String = time.defaultZoneId(),
         bodyweightLog: List<BodyweightEntry> = emptyList(),
     ): BlockReview {
         val inBlock = sessions.filter { session ->
-            val day = session.performedEpochDay(zone)
+            val day = session.performedEpochDay(time, zoneId)
             session.isFinished &&
                 day >= block.startEpochDay &&
                 day < block.endExclusiveEpochDay
@@ -94,9 +95,9 @@ object BlockReviewBuilder {
             sessions = inBlock.size,
             workingSets = inBlock.sumOf { it.workingSetCount() },
             work = SetWork.sum(inBlock.map { it.work() }),
-            daysTrained = inBlock.map { it.performedEpochDay(zone) }.distinct().size,
+            daysTrained = inBlock.map { it.performedEpochDay(time, zoneId) }.distinct().size,
             recordsBroken = countRecords(inBlock),
-            movers = movers(block, inBlock, unit, zone),
+            movers = movers(block, inBlock, unit, time, zoneId),
             bodyweight = bodyweightChange(block, bodyweightLog),
         )
     }
@@ -163,7 +164,8 @@ object BlockReviewBuilder {
         block: TrainingBlock,
         inBlock: List<WorkoutSession>,
         unit: WeightUnit,
-        zone: ZoneId,
+        time: TimePort,
+        zoneId: String,
     ): List<BlockMover> {
         val window = comparisonWeeks(block.weeks) * DAYS_IN_WEEK
         val openingEnds = block.startEpochDay + window
@@ -175,8 +177,8 @@ object BlockReviewBuilder {
 
         return byExercise.mapNotNull { (exerciseId, pairs) ->
             val loadClass = pairs.first().first.loadClassOf(exerciseId)
-            val opening = pairs.filter { (session, _) -> session.performedEpochDay(zone) < openingEnds }
-            val closing = pairs.filter { (session, _) -> session.performedEpochDay(zone) >= closingBegins }
+            val opening = pairs.filter { (session, _) -> session.performedEpochDay(time, zoneId) < openingEnds }
+            val closing = pairs.filter { (session, _) -> session.performedEpochDay(time, zoneId) >= closingBegins }
             if (opening.isEmpty() || closing.isEmpty()) return@mapNotNull null
 
             val from = bestOf(opening.map { it.second }, loadClass) ?: return@mapNotNull null

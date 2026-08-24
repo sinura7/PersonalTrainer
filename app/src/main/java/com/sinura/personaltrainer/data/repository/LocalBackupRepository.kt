@@ -45,7 +45,7 @@ import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import kotlinx.coroutines.flow.first
 import java.io.File
 
@@ -472,7 +472,7 @@ class LocalBackupRepository(
                     document.preferences.trainingAge.takeIf { it.isNotBlank() },
                 ),
                 preferredDays = document.preferences.preferredDays.mapNotNull { raw ->
-                    DayOfWeek.entries.firstOrNull { it.name.equals(raw, ignoreCase = true) }
+                    Weekday.entries.firstOrNull { it.name.equals(raw, ignoreCase = true) }
                 }.toSet(),
                 trainingPlace = document.preferences.trainingPlace.takeIf { it.isNotBlank() }
                     ?.let { TrainingPlace.fromStorage(it) }

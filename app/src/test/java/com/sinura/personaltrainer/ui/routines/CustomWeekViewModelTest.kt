@@ -6,7 +6,7 @@ import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.insertTestExercise
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -74,13 +74,13 @@ class CustomWeekViewModelTest {
         val vm = createViewModel()
         vm.uiState.first { it.catalog.any { exercise -> exercise.id == squat.id } }
 
-        vm.selectDay(DayOfWeek.TUESDAY)
+        vm.selectDay(Weekday.TUESDAY)
         vm.setPickerVisible(true)
         vm.togglePendingAdd(squat)
         vm.confirmPendingAdd()
 
         val staged = vm.uiState.first { it.canConfirm }
-        assertEquals(DayOfWeek.TUESDAY, staged.selectedDay)
+        assertEquals(Weekday.TUESDAY, staged.selectedDay)
         assertEquals(1, staged.trainingDays)
         assertEquals(squat.id, staged.selectedLifts.single().exercise.id)
         assertFalse(staged.showPicker)
@@ -152,12 +152,12 @@ class CustomWeekViewModelTest {
         vm.uiState.first { it.catalog.isNotEmpty() }
 
         vm.seedFromGuided(
-            preferred = setOf(DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY),
+            preferred = setOf(Weekday.WEDNESDAY, Weekday.FRIDAY),
             answers = null,
             unit = WeightUnit.KG,
         )
-        assertEquals(DayOfWeek.WEDNESDAY, vm.uiState.value.selectedDay)
-        assertEquals(setOf(DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY), vm.uiState.value.preferredDays)
+        assertEquals(Weekday.WEDNESDAY, vm.uiState.value.selectedDay)
+        assertEquals(setOf(Weekday.WEDNESDAY, Weekday.FRIDAY), vm.uiState.value.preferredDays)
 
         vm.togglePendingAdd(squat)
         vm.confirmPendingAdd()

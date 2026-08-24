@@ -133,7 +133,10 @@ class TrainingInsightsSource(
             ) { coachPrefs, marked -> coachPrefs to marked },
         ) { sources, slots, coachAndMarked ->
             val today = Instant.ofEpochMilli(nowMs()).atZone(zone()).toLocalDate()
-            val thisWeek = LighterWeek.weekStartEpochDay(today, sources.preferences.weekStart)
+            val thisWeek = LighterWeek.weekStartEpochDay(
+                com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(today.toEpochDay()),
+                sources.preferences.weekStart,
+            )
             sources.copy(
                 slots = slots,
                 coachPrefs = coachAndMarked.first,
@@ -165,7 +168,7 @@ class TrainingInsightsSource(
                 coachPrefs = sources.coachPrefs,
                 window = heatWindow,
                 nowMs = nowMs(),
-                zone = zone(),
+                zoneId = zone().id,
                 includeWeekPlan = includeWeekPlan,
             ),
         )

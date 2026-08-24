@@ -29,7 +29,7 @@ import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.workout.DiscardOutcome
 import com.sinura.personaltrainer.workout.StartDayOutcome
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -132,7 +132,6 @@ class PlanViewModel @JvmOverloads constructor(
                         block = finished,
                         sessions = current.history,
                         unit = settings.unit,
-                        zone = zone,
                         bodyweightLog = settings.bodyweightLog,
                     )
                 },
@@ -389,7 +388,7 @@ class PlanViewModel @JvmOverloads constructor(
         viewModelScope.launch { container.preferencesRepository.setSplitStyle(style) }
     }
 
-    fun setWeekStart(day: DayOfWeek) {
+    fun setWeekStart(day: Weekday) {
         viewModelScope.launch { container.preferencesRepository.setWeekStart(day) }
     }
 
@@ -419,7 +418,8 @@ class PlanViewModel @JvmOverloads constructor(
         }
     }
 
-    private fun dayOfWeekFor(epochDay: Long): DayOfWeek = LocalDate.ofEpochDay(epochDay).dayOfWeek
+    private fun dayOfWeekFor(epochDay: Long): Weekday =
+        com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(epochDay).dayOfWeek
 
     /**
      * Begin the next twelve weeks from the top of this week.
@@ -435,7 +435,12 @@ class PlanViewModel @JvmOverloads constructor(
             // here — this is only reachable from the completed state — but the rule lives in
             // one place rather than being asserted at each caller.
             container.preferencesRepository.beginBlock(
-                next = TrainingBlock.startingIn(today = LocalDate.now(), weekStart = weekStart),
+                next = TrainingBlock.startingIn(
+                    today = LocalDate.now().let { d ->
+                        com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(d.toEpochDay())
+                    },
+                    weekStart = weekStart,
+                ),
                 todayEpochDay = todayEpochDay(),
             )
         }

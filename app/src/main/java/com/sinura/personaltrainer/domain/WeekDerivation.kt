@@ -1,10 +1,6 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.DayOfWeek
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.temporal.TemporalAdjusters
+import com.sinura.personaltrainer.util.JvmTime
 
 /**
  * One position in the training cycle, as the app reasons about it.
@@ -22,14 +18,14 @@ data class ScheduleSlot(
     val position: Int,
     val routineId: String?,
     val focusKind: SessionFocusKind?,
-    val anchorDay: DayOfWeek?,
+    val anchorDay: Weekday?,
     val createdAt: Long,
     val updatedAt: Long,
 )
 
 data class DerivedDay(
     val epochDay: Long,
-    val dayOfWeek: DayOfWeek,
+    val dayOfWeek: Weekday,
     /** Null means rest — no slot placed here. */
     val slot: ScheduleSlot?,
     val satisfiedBySessionId: String?,
@@ -69,19 +65,20 @@ object WeekDerivation {
         history: List<WorkoutSession>,
         preferences: SchedulePreferences,
         nowMs: Long,
-        zone: ZoneId = ZoneId.systemDefault(),
+        time: TimePort = JvmTime,
+        zoneId: String = time.defaultZoneId(),
     ): DerivedWeek {
         val prefs = preferences.sanitized()
-        val today = Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate()
-        val weekStart = today.with(TemporalAdjusters.previousOrSame(prefs.weekStart))
+        val today = time.civilDate(nowMs, zoneId)
+        val weekStart = today.previousOrSame(prefs.weekStart)
         val dates = (0L..6L).map { weekStart.plusDays(it) }
         val ordered = slots.sortedBy { it.position }
 
-        val satisfaction = satisfy(ordered, history, dates, zone)
+        val satisfaction = satisfy(ordered, history, dates, time, zoneId)
         val placement = place(ordered, satisfaction, dates, today)
 
         val days = dates.map { date ->
-            val epochDay = date.toEpochDay()
+            val epochDay = date.epochDay
             val slot = placement[epochDay]
             DerivedDay(
                 epochDay = epochDay,
@@ -91,7 +88,7 @@ object WeekDerivation {
             )
         }
         return DerivedWeek(
-            weekStartEpochDay = weekStart.toEpochDay(),
+            weekStartEpochDay = weekStart.epochDay,
             days = days,
             // The earliest day holding an undone slot. That IS the lowest-position unsatisfied
             // slot, because unsatisfied slots are placed with a cursor that never moves back.
@@ -114,14 +111,15 @@ object WeekDerivation {
     private fun satisfy(
         slots: List<ScheduleSlot>,
         history: List<WorkoutSession>,
-        dates: List<LocalDate>,
-        zone: ZoneId,
+        dates: List<CivilDate>,
+        time: TimePort,
+        zoneId: String,
     ): Map<String, Satisfaction> {
-        val first = dates.first().toEpochDay()
-        val last = dates.last().toEpochDay()
+        val first = dates.first().epochDay
+        val last = dates.last().epochDay
         val thisWeek = history
             .filter { it.isFinished }
-            .map { it to epochDayOf(it.date, zone) }
+            .map { it to epochDayOf(it.date, time, zoneId) }
             .filter { (_, day) -> day in first..last }
             .sortedBy { (session, _) -> session.finishedAt ?: session.date }
 
@@ -148,8 +146,8 @@ object WeekDerivation {
     private fun place(
         slots: List<ScheduleSlot>,
         satisfaction: Map<String, Satisfaction>,
-        dates: List<LocalDate>,
-        today: LocalDate,
+        dates: List<CivilDate>,
+        today: CivilDate,
     ): Map<Long, ScheduleSlot> {
         val placed = LinkedHashMap<Long, ScheduleSlot>()
 
@@ -190,19 +188,19 @@ object WeekDerivation {
     private fun placeUnsatisfied(
         unsatisfied: List<ScheduleSlot>,
         placed: MutableMap<Long, ScheduleSlot>,
-        dates: List<LocalDate>,
-        today: LocalDate,
+        dates: List<CivilDate>,
+        today: CivilDate,
     ) {
-        val todayEpoch = today.toEpochDay()
-        var cursor = maxOf(dates.first().toEpochDay(), todayEpoch)
+        val todayEpoch = today.epochDay
+        var cursor = maxOf(dates.first().epochDay, todayEpoch)
         unsatisfied.forEach { slot ->
             val anchorEpoch = slot.anchorDay?.let { anchor ->
-                dates.firstOrNull { it.dayOfWeek == anchor }?.toEpochDay()
+                dates.firstOrNull { it.dayOfWeek == anchor }?.epochDay
             }
             val target = if (anchorEpoch != null && anchorEpoch >= cursor && !placed.containsKey(anchorEpoch)) {
                 anchorEpoch
             } else {
-                dates.map { it.toEpochDay() }
+                dates.map { it.epochDay }
                     .firstOrNull { it >= cursor && !placed.containsKey(it) }
             } ?: return@forEach
             placed[target] = slot
@@ -284,8 +282,8 @@ object WeekDerivation {
         slotId = null,
     )
 
-    private fun epochDayOf(atMs: Long, zone: ZoneId): Long =
-        Instant.ofEpochMilli(atMs).atZone(zone).toLocalDate().toEpochDay()
+    private fun epochDayOf(atMs: Long, time: TimePort, zoneId: String): Long =
+        time.civilDate(atMs, zoneId).epochDay
 
     private data class Satisfaction(val sessionId: String, val epochDay: Long)
 }

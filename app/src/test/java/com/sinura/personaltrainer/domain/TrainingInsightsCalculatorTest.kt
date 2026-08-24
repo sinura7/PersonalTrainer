@@ -7,7 +7,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import java.time.Instant
 import java.time.ZoneOffset
 
@@ -80,13 +80,13 @@ class TrainingInsightsCalculatorTest {
         val monday = TrainingInsightsCalculator.compute(
             input(
                 window = HeatWindow.CURRENT_WEEK,
-                preferences = SchedulePreferences.DEFAULT.copy(weekStart = DayOfWeek.MONDAY),
+                preferences = SchedulePreferences.DEFAULT.copy(weekStart = Weekday.MONDAY),
             ),
         ).snapshot!!.windowStartMs
         val sunday = TrainingInsightsCalculator.compute(
             input(
                 window = HeatWindow.CURRENT_WEEK,
-                preferences = SchedulePreferences.DEFAULT.copy(weekStart = DayOfWeek.SUNDAY),
+                preferences = SchedulePreferences.DEFAULT.copy(weekStart = Weekday.SUNDAY),
             ),
         ).snapshot!!.windowStartMs
 
@@ -192,7 +192,7 @@ class TrainingInsightsCalculatorTest {
             position = 0,
             routineId = "r-push",
             focusKind = null,
-            anchorDay = DayOfWeek.FRIDAY,
+            anchorDay = Weekday.FRIDAY,
             createdAt = 0L,
             updatedAt = 0L,
         )
@@ -200,7 +200,7 @@ class TrainingInsightsCalculatorTest {
             .compute(input(routines = listOf(push), slots = listOf(slot)))
             .weekPlan
         assertNotNull(pinned)
-        val friday = pinned!!.days.first { it.dayOfWeek == DayOfWeek.FRIDAY }
+        val friday = pinned!!.days.first { it.dayOfWeek == Weekday.FRIDAY }
         assertEquals("r-push", friday.routineId)
         assertEquals("slot-0", friday.slotId)
         assertEquals("1 pinned · 0 logged this week", pinned.summary)

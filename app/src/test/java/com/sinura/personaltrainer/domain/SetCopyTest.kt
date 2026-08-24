@@ -39,7 +39,7 @@ class SetCopyTest {
     @Test
     fun aSessionReportsOnlyTheUnitsItActuallyHas() {
         assertEquals(
-            "1,000 kg",
+            "1000 kg",
             SetCopy.workLine(SetWork(volumeKg = 1000.0, bodyweightReps = 0), WeightUnit.KG),
         )
         assertEquals(
@@ -51,7 +51,7 @@ class SetCopyTest {
     @Test
     fun aMixedSessionReportsBoth() {
         val line = SetCopy.workLine(SetWork(volumeKg = 1000.0, bodyweightReps = 42), WeightUnit.KG)
-        assertEquals("1,000 kg  ·  42 bodyweight reps", line)
+        assertEquals("1000 kg  ·  42 bodyweight reps", line)
     }
 
     @Test

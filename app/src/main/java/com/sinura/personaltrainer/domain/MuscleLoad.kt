@@ -1,9 +1,6 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.DayOfWeek
-import java.time.Instant
-import java.time.ZoneId
-import java.time.temporal.TemporalAdjusters
+import com.sinura.personaltrainer.util.JvmTime
 
 /**
  * The two windows the body map offers.
@@ -27,15 +24,16 @@ enum class HeatWindow(
      * [CURRENT_WEEK] uses it, but it must be the same value the weekly planner uses or
      * "this week" means two different things in two places.
      */
-    fun startMs(nowMs: Long, zone: ZoneId, weekStart: DayOfWeek = DayOfWeek.MONDAY): Long {
-        val now = Instant.ofEpochMilli(nowMs).atZone(zone)
-        return when (this) {
-            LAST_30_DAYS -> now.minusDays(30).toInstant().toEpochMilli()
-            CURRENT_WEEK -> now.toLocalDate()
-                .with(TemporalAdjusters.previousOrSame(weekStart))
-                .atStartOfDay(zone)
-                .toInstant()
-                .toEpochMilli()
+    fun startMs(
+        nowMs: Long,
+        time: TimePort = JvmTime,
+        weekStart: Weekday = Weekday.MONDAY,
+        zoneId: String = time.defaultZoneId(),
+    ): Long = when (this) {
+        LAST_30_DAYS -> time.minusCivilDays(nowMs, zoneId, 30)
+        CURRENT_WEEK -> {
+            val weekStartDate = time.civilDate(nowMs, zoneId).previousOrSame(weekStart)
+            time.startOfDayMillis(weekStartDate, zoneId)
         }
     }
 

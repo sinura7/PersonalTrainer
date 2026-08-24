@@ -45,7 +45,6 @@ import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
-import com.sinura.personaltrainer.domain.shortLabel
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
@@ -67,7 +66,7 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.VoltDim
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 
 /**
  * The guided setup: seven questions, then the actual week.
@@ -399,7 +398,7 @@ private fun DaysPerWeekStep(selected: Int, onSelect: (Int) -> Unit, onNext: () -
 @Composable
 private fun WhichDaysStep(
     answers: OnboardingAnswers,
-    onToggle: (DayOfWeek) -> Unit,
+    onToggle: (Weekday) -> Unit,
     onNext: () -> Unit,
 ) {
     val remaining = answers.daysPerWeek - answers.preferredDays.size
@@ -415,7 +414,7 @@ private fun WhichDaysStep(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
         ) {
-            DayOfWeek.entries.forEach { day ->
+            Weekday.entries.forEach { day ->
                 InstrumentChip(
                     label = day.shortLabel().take(2),
                     selected = day in answers.preferredDays,

@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.DayOfWeek
 
 /** One lift in a generated routine, already sized. */
 data class BlueprintLift(
@@ -20,7 +19,7 @@ data class BlueprintRoutine(
 
 /** One day of the proposed week. [routineKey] is null on a rest day. */
 data class BlueprintDay(
-    val dayOfWeek: DayOfWeek,
+    val dayOfWeek: Weekday,
     val routineKey: String?,
 ) {
     val isRest: Boolean get() = routineKey == null

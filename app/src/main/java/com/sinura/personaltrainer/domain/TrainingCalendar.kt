@@ -1,14 +1,9 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.DayOfWeek
-import java.time.Instant
-import java.time.LocalDate
-import java.time.YearMonth
-import java.time.ZoneId
-import java.time.temporal.TemporalAdjusters
+import com.sinura.personaltrainer.util.JvmTime
 
 data class CalendarDay(
-    val date: LocalDate,
+    val date: CivilDate,
     /** False for the leading and trailing days that only exist to square off the grid. */
     val inMonth: Boolean,
     val sessionIds: List<String> = emptyList(),
@@ -32,7 +27,7 @@ data class CalendarDay(
 }
 
 data class TrainingMonth(
-    val month: YearMonth,
+    val month: CivilYearMonth,
     /** Whole weeks, each starting on the user's configured week-start day. */
     val weeks: List<List<CalendarDay>> = emptyList(),
     val trainedDays: Int = 0,
@@ -49,23 +44,22 @@ data class TrainingMonth(
  */
 object TrainingCalendarBuilder {
     fun build(
-        month: YearMonth,
+        month: CivilYearMonth,
         sessions: List<WorkoutSession>,
-        zone: ZoneId = ZoneId.systemDefault(),
-        weekStart: DayOfWeek = DayOfWeek.MONDAY,
+        time: TimePort = JvmTime,
+        weekStart: Weekday = Weekday.MONDAY,
+        zoneId: String = time.defaultZoneId(),
     ): TrainingMonth {
         val byDate = sessions
             .filter { it.isFinished }
-            .groupBy { session ->
-                Instant.ofEpochMilli(session.date).atZone(zone).toLocalDate()
-            }
+            .groupBy { session -> time.civilDate(session.date, zoneId) }
 
-        val inMonth = byDate.filterKeys { YearMonth.from(it) == month }
+        val inMonth = byDate.filterKeys { CivilYearMonth.from(it) == month }
         val busiest = inMonth.values
             .maxOfOrNull { day -> day.sumOf { session -> session.workingSetCount() } }
             ?: 0
 
-        val first = month.atDay(1).with(TemporalAdjusters.previousOrSame(weekStart))
+        val first = month.atDay(1).previousOrSame(weekStart)
         val lastDayOfMonth = month.atEndOfMonth()
         val weeks = mutableListOf<List<CalendarDay>>()
         var cursor = first
@@ -77,7 +71,7 @@ object TrainingCalendarBuilder {
                 val sets = daySessions.sumOf { session -> session.workingSetCount() }
                 CalendarDay(
                     date = date,
-                    inMonth = YearMonth.from(date) == month,
+                    inMonth = CivilYearMonth.from(date) == month,
                     sessionIds = daySessions.map { it.id },
                     work = SetWork.sum(daySessions.map { it.work() }),
                     // Clamped because `busiest` only considers in-month days, while the
@@ -107,7 +101,7 @@ object TrainingCalendarBuilder {
     }
 
     /** Column headings, in the order [build] lays the weeks out. */
-    fun weekdayOrder(weekStart: DayOfWeek): List<DayOfWeek> =
+    fun weekdayOrder(weekStart: Weekday): List<Weekday> =
         (0 until DAYS_IN_WEEK).map { weekStart.plus(it.toLong()) }
 
     private const val DAYS_IN_WEEK = 7

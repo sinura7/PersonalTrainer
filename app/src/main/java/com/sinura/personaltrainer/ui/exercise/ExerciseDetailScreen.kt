@@ -79,9 +79,9 @@ import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import com.sinura.personaltrainer.util.toLocalDate
 import java.text.DateFormat
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Date
@@ -635,12 +635,12 @@ private fun displayNumber(kg: Double, unit: WeightUnit): String =
     WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(kg, unit))
 
 private fun groupedNumber(kg: Double, unit: WeightUnit): String =
-    WeightConverter.formatVolumeNumber(kg, unit)
+    com.sinura.personaltrainer.util.QuantityFormat.formatVolumeNumber(kg, unit)
 
 /** Series values are already in display units, so they are formatted rather than converted. */
 private fun formatSeries(value: Double, grouped: Boolean): String =
     if (grouped) {
-        WeightConverter.formatGroupedNumber(value)
+        com.sinura.personaltrainer.util.QuantityFormat.formatGroupedNumber(value)
     } else {
         WeightConverter.formatDisplayNumber(value)
     }
@@ -673,7 +673,8 @@ private fun trendDescription(
 
 private val axisDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM")
 
-private fun axisLabel(weekStart: LocalDate): String = axisDateFormatter.format(weekStart)
+private fun axisLabel(weekStart: com.sinura.personaltrainer.domain.CivilDate): String =
+    axisDateFormatter.format(weekStart.toLocalDate())
 
 private fun axisLabel(atMs: Long): String =
     axisDateFormatter.format(Instant.ofEpochMilli(atMs).atZone(ZoneId.systemDefault()).toLocalDate())

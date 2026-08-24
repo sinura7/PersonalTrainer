@@ -63,6 +63,7 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.workout.StartOptionsSheet
+import com.sinura.personaltrainer.util.toYearMonth
 import java.text.DateFormat
 import java.time.Instant
 import java.time.LocalDate
@@ -168,7 +169,7 @@ fun HistoryScreen(
                                     when (day.sessionIds.size) {
                                         0 -> Unit
                                         1 -> onOpenSession(day.sessionIds.first())
-                                        else -> selectedDayEpoch = day.date.toEpochDay()
+                                        else -> selectedDayEpoch = day.date.epochDay
                                     }
                                 },
                                 unit = unit,
@@ -181,7 +182,7 @@ fun HistoryScreen(
                             // all past the first screenful.
                             stickyHeader(key = "month-${group.month}") {
                                 Kicker(
-                                    MONTH_FORMAT.format(group.month),
+                                    MONTH_FORMAT.format(group.month.toYearMonth()),
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .background(Pit)

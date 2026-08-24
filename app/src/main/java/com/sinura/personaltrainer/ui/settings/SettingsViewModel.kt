@@ -32,7 +32,7 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.timer.exactAlarmSettingsIntent as buildExactAlarmSettingsIntent
 import com.sinura.personaltrainer.util.runCatchingCancellable
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -295,7 +295,7 @@ class SettingsViewModel @JvmOverloads constructor(
         }
     }
 
-    fun setWeekStart(day: DayOfWeek) {
+    fun setWeekStart(day: Weekday) {
         viewModelScope.launch {
             container.preferencesRepository.setWeekStart(day)
         }

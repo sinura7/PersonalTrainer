@@ -6,7 +6,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -168,16 +168,16 @@ class ExerciseHistoryBuilderTest {
         )
 
         val mondayWeeks = ExerciseHistoryBuilder
-            .build(squat, sessions, zone = zone, weekStart = DayOfWeek.MONDAY)
+            .build(squat, sessions, zone = zone, weekStart = Weekday.MONDAY)
             .weeklyTonnage
         assertEquals(2, mondayWeeks.size)
-        assertEquals(LocalDate.of(2026, 8, 10), mondayWeeks.first().weekStart)
+        assertEquals(LocalDate.of(2026, 8, 10).toEpochDay(), mondayWeeks.first().weekStart.epochDay)
 
         val sundayWeeks = ExerciseHistoryBuilder
-            .build(squat, sessions, zone = zone, weekStart = DayOfWeek.SUNDAY)
+            .build(squat, sessions, zone = zone, weekStart = Weekday.SUNDAY)
             .weeklyTonnage
         assertEquals(1, sundayWeeks.size)
-        assertEquals(LocalDate.of(2026, 8, 16), sundayWeeks.single().weekStart)
+        assertEquals(LocalDate.of(2026, 8, 16).toEpochDay(), sundayWeeks.single().weekStart.epochDay)
         assertEquals(1000.0, sundayWeeks.single().volumeKg, 0.0001)
     }
 

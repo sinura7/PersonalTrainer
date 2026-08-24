@@ -23,7 +23,7 @@ import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -267,7 +267,7 @@ class BackupV2RoundTripTest {
         maintenance.seedCatalog()
         seedUserData()
         preferences.setTrainingAge(TrainingAge.EXPERIENCED)
-        preferences.setPreferredDays(setOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY))
+        preferences.setPreferredDays(setOf(Weekday.TUESDAY, Weekday.THURSDAY))
         preferences.setTrainingPlace(TrainingPlace.HOME_DUMBBELLS)
 
         val json = BackupJson.encode(local.createSnapshot())
@@ -279,7 +279,7 @@ class BackupV2RoundTripTest {
 
         assertEquals(TrainingAge.EXPERIENCED, preferences.trainingAge.first())
         assertEquals(
-            setOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY),
+            setOf(Weekday.TUESDAY, Weekday.THURSDAY),
             preferences.preferredDays.first(),
         )
         assertEquals(TrainingPlace.HOME_DUMBBELLS, preferences.trainingPlace.first())

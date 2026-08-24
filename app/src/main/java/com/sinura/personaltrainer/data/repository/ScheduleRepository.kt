@@ -6,7 +6,7 @@ import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.domain.ScheduleSlot
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -40,7 +40,7 @@ class ScheduleRepository(private val scheduleDao: ScheduleDao) {
     suspend fun pin(
         routineId: String?,
         focusKind: SessionFocusKind?,
-        anchorDay: DayOfWeek?,
+        anchorDay: Weekday?,
     ): ScheduleSlot {
         require((routineId == null) != (focusKind == null)) {
             "A slot is a routine or a focus, never both and never neither."

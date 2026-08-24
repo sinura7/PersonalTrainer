@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.DayOfWeek
 
 /**
  * Turns six answers into a week of real lifts.
@@ -245,7 +244,7 @@ object RoutineGenerator {
     fun generate(
         answers: OnboardingAnswers,
         catalog: List<Exercise>,
-        weekStart: DayOfWeek = DayOfWeek.MONDAY,
+        weekStart: Weekday = Weekday.MONDAY,
     ): PlanBlueprint {
         val clean = answers.sanitized()
         val split = SplitDerivation.forAnswers(clean)
@@ -410,7 +409,7 @@ object RoutineGenerator {
         answers: OnboardingAnswers,
         kinds: List<SessionFocusKind>,
         routines: List<BlueprintRoutine>,
-        weekStart: DayOfWeek,
+        weekStart: Weekday,
     ): List<BlueprintDay> {
         val week = (0 until DAYS_IN_WEEK).map { offset -> weekStart.plus(offset.toLong()) }
         val picked = week.filter { it in answers.preferredDays }

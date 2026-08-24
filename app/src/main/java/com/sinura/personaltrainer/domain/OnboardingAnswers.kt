@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.DayOfWeek
 
 /**
  * How long the lifter has been at this.
@@ -164,7 +163,7 @@ data class OnboardingAnswers(
     val trainingAge: TrainingAge = TrainingAge.NEW,
     val daysPerWeek: Int = SchedulePreferences.DEFAULT_DAYS,
     /** Empty means "no preference" — the planner spaces them out instead. */
-    val preferredDays: Set<DayOfWeek> = emptySet(),
+    val preferredDays: Set<Weekday> = emptySet(),
     /**
      * The single-place field older call sites still write.
      *
@@ -234,7 +233,7 @@ data class OnboardingAnswers(
         )
     }
 
-    fun schedulePreferences(weekStart: DayOfWeek = DayOfWeek.MONDAY): SchedulePreferences =
+    fun schedulePreferences(weekStart: Weekday = Weekday.MONDAY): SchedulePreferences =
         SchedulePreferences(
             trainingDaysPerWeek = daysPerWeek,
             splitStyle = SplitDerivation.forAnswers(this),
@@ -257,7 +256,7 @@ data class OnboardingAnswers(
         fun fromStored(
             trainingAge: TrainingAge,
             daysPerWeek: Int,
-            preferredDays: Set<DayOfWeek>,
+            preferredDays: Set<Weekday>,
             place: TrainingPlace,
             goal: TrainingGoal,
             emphasis: TrainingEmphasis,
@@ -300,7 +299,7 @@ data class OnboardingAnswers(
                 trainingAge = TrainingAge.fromStorage(parts[0]),
                 daysPerWeek = parts[1].toIntOrNull() ?: SchedulePreferences.DEFAULT_DAYS,
                 preferredDays = parts[2].split(',')
-                    .mapNotNull { token -> DayOfWeek.entries.firstOrNull { it.name == token } }
+                    .mapNotNull { token -> Weekday.entries.firstOrNull { it.name == token } }
                     .toSet(),
                 place = TrainingPlace.fromStorage(parts[3]),
                 goal = TrainingGoal.fromStorage(parts[4]),

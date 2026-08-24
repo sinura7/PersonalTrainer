@@ -1,14 +1,13 @@
 package com.sinura.personaltrainer.util
 
+import com.sinura.personaltrainer.domain.IdPort
 import java.util.UUID
 
 /**
- * Stable ID source. Production uses random UUIDs. Tests use a sequential
- * factory so fixtures and assertions stay deterministic.
+ * JVM adapter for [IdPort]. Production uses random UUIDs. Tests use a
+ * sequential factory so fixtures stay deterministic.
  */
-fun interface IdFactory {
-    fun newId(): String
-
+fun interface IdFactory : IdPort {
     companion object {
         val Uuid: IdFactory = IdFactory { UUID.randomUUID().toString() }
     }

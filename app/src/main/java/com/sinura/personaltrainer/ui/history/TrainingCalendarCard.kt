@@ -44,8 +44,11 @@ import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.ui.theme.heatColor
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.util.toCivilDate
+import com.sinura.personaltrainer.util.toJavaDayOfWeek
+import com.sinura.personaltrainer.util.toYearMonth
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -64,7 +67,7 @@ private val monthFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM
 @Composable
 fun TrainingCalendarCard(
     month: TrainingMonth,
-    weekStart: DayOfWeek,
+    weekStart: Weekday,
     today: LocalDate,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
@@ -87,14 +90,14 @@ fun TrainingCalendarCard(
             }
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 Text(
-                    monthFormatter.format(month.month),
+                    monthFormatter.format(month.month.toYearMonth()),
                     style = InstrumentType.title,
                     color = TextPrimary,
                     maxLines = 1,
                 )
             }
             // Nothing is ever logged in the future, so there is no forward month to look at.
-            val canGoForward = month.month < java.time.YearMonth.from(today)
+            val canGoForward = month.month.toYearMonth() < java.time.YearMonth.from(today)
             IconButton(onClick = onNextMonth, enabled = canGoForward) {
                 Icon(
                     Icons.AutoMirrored.Outlined.KeyboardArrowRight,
@@ -114,7 +117,7 @@ fun TrainingCalendarCard(
                 TrainingCalendarBuilder.weekdayOrder(weekStart).forEach { day ->
                     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                         Kicker(
-                            day.getDisplayName(TextStyle.NARROW, locale),
+                            day.toJavaDayOfWeek().getDisplayName(TextStyle.NARROW, locale),
                             color = TextTertiary,
                         )
                     }
@@ -129,7 +132,7 @@ fun TrainingCalendarCard(
                     week.forEach { day ->
                         DayCell(
                             day = day,
-                            isToday = day.date == today,
+                            isToday = day.date == today.toCivilDate(),
                             onClick = { onOpenDay(day) },
                             unit = unit,
                             modifier = Modifier.weight(1f),

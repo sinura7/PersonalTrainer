@@ -1,7 +1,6 @@
 package com.sinura.personaltrainer.domain
 
 import java.time.LocalDate
-import java.time.YearMonth
 import java.time.ZoneOffset
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -22,7 +21,10 @@ class SessionMonthGroupingTest {
         )
         val groups = groupSessionsByMonth(sessions, zone)
 
-        assertEquals(listOf(YearMonth.of(2026, 8), YearMonth.of(2026, 7)), groups.map { it.month })
+        assertEquals(
+            listOf(CivilYearMonth(2026, 8), CivilYearMonth(2026, 7)),
+            groups.map { it.month },
+        )
         // The repository already hands them over newest-first; re-sorting here would be a
         // second opinion about ordering that could disagree with the flat list this replaces.
         assertEquals(listOf("a", "b"), groups.first().sessions.map { it.id })
@@ -38,7 +40,10 @@ class SessionMonthGroupingTest {
             ),
             zone,
         )
-        assertEquals(listOf(YearMonth.of(2027, 1), YearMonth.of(2026, 12)), groups.map { it.month })
+        assertEquals(
+            listOf(CivilYearMonth(2027, 1), CivilYearMonth(2026, 12)),
+            groups.map { it.month },
+        )
     }
 
     @Test

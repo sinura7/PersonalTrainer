@@ -1,10 +1,6 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.DayOfWeek
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.temporal.TemporalAdjusters
+import com.sinura.personaltrainer.util.JvmTime
 
 object WeeklySchedulePlanner {
     const val THIN_HISTORY_SESSIONS = 3
@@ -29,20 +25,22 @@ object WeeklySchedulePlanner {
         routines: List<Routine>,
         recentSessions: List<WorkoutSession>,
         nowMs: Long,
-        zone: ZoneId = ZoneId.systemDefault(),
+        time: TimePort = JvmTime,
+        zoneId: String = time.defaultZoneId(),
         pinnedSlots: List<ScheduleSlot> = emptyList(),
         emphasis: TrainingEmphasis = TrainingEmphasis.BALANCED,
     ): WeeklySchedulePlan {
         val prefs = preferences.sanitized()
-        val today = Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate()
-        val weekStart = today.with(TemporalAdjusters.previousOrSame(prefs.weekStart))
+        val today = time.civilDate(nowMs, zoneId)
+        val weekStart = today.previousOrSame(prefs.weekStart)
         val dates = (0..6).map { weekStart.plusDays(it.toLong()) }
         val derived = WeekDerivation.derive(
             slots = pinnedSlots,
             history = recentSessions,
             preferences = prefs,
             nowMs = nowMs,
-            zone = zone,
+            time = time,
+            zoneId = zoneId,
         )
         val pinnedByDay = WeekDerivation
             .toWeeklySchedulePlan(derived, routines, prefs, nowMs)
@@ -56,11 +54,11 @@ object WeeklySchedulePlanner {
         val trainIndices = trainingDayIndices(prefs.trainingDaysPerWeek)
         val kinds = arrangeKinds(
             kinds = slotKinds(resolved, prefs.trainingDaysPerWeek, usableRoutines, emphasis),
-            lastFocus = recentFocus(finished, nowMs, zone),
+            lastFocus = recentFocus(finished, nowMs),
         )
         val usedRoutineIds = linkedSetOf<String>()
         val days = dates.mapIndexed { index, date ->
-            val pinned = pinnedByDay[date.toEpochDay()]
+            val pinned = pinnedByDay[date.epochDay]
             val slot = trainIndices.indexOf(index)
             // A day the user already owns is echoed, never proposed over. A day already behind
             // today gets no proposal at all: the planner used to lay a fresh week over the whole
@@ -68,7 +66,7 @@ object WeeklySchedulePlanner {
             // Monday's session on Monday.
             if (pinned != null) {
                 pinned
-            } else if (slot < 0 || date.isBefore(today)) {
+            } else if (slot < 0 || date < today) {
                 restDay(date)
             } else {
                 val kind = kinds.getOrElse(slot) { SessionFocusKind.FULL_BODY }
@@ -85,7 +83,7 @@ object WeeklySchedulePlanner {
             }
         }
         return WeeklySchedulePlan(
-            weekStartEpochDay = weekStart.toEpochDay(),
+            weekStartEpochDay = weekStart.epochDay,
             generatedAtMs = nowMs,
             preferences = prefs,
             resolvedSplit = resolved,
@@ -178,7 +176,7 @@ object WeeklySchedulePlanner {
     }
 
     private fun trainingDay(
-        date: LocalDate,
+        date: CivilDate,
         kind: SessionFocusKind,
         snapshot: BodyHeatSnapshot,
         recommendations: List<TrainingRecommendation>,
@@ -198,7 +196,7 @@ object WeeklySchedulePlanner {
             else -> ScheduleConfidence.MEDIUM
         }
         return SuggestedTrainingDay(
-            epochDay = date.toEpochDay(),
+            epochDay = date.epochDay,
             dayOfWeek = date.dayOfWeek,
             isRest = false,
             focusKind = kind,
@@ -211,8 +209,8 @@ object WeeklySchedulePlanner {
         )
     }
 
-    private fun restDay(date: LocalDate): SuggestedTrainingDay = SuggestedTrainingDay(
-        epochDay = date.toEpochDay(),
+    private fun restDay(date: CivilDate): SuggestedTrainingDay = SuggestedTrainingDay(
+        epochDay = date.epochDay,
         dayOfWeek = date.dayOfWeek,
         isRest = true,
         focusKind = SessionFocusKind.RECOVERY,
@@ -370,7 +368,6 @@ object WeeklySchedulePlanner {
     private fun recentFocus(
         sessions: List<WorkoutSession>,
         nowMs: Long,
-        zone: ZoneId,
     ): SessionFocusKind? {
         val last = sessions.maxByOrNull { it.finishedAt ?: it.date } ?: return null
         val at = last.finishedAt ?: last.date
@@ -464,4 +461,3 @@ object WeeklySchedulePlanner {
     private val UPPER_MUSCLES = PUSH_MUSCLES + PULL_MUSCLES
 }
 
-fun DayOfWeek.shortLabel(): String = name.take(3).lowercase().replaceFirstChar { it.titlecase() }

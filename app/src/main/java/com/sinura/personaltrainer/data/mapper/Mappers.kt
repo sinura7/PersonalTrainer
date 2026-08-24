@@ -20,7 +20,7 @@ import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.logging.AppLog
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 
 /**
  * [credits] is passed in rather than read here: the junction lives in its own table, and a
@@ -169,7 +169,7 @@ fun ScheduleSlotEntity.toDomain(): ScheduleSlot? {
         return null
     }
     val anchor = anchorDay?.let { day ->
-        DayOfWeek.entries.getOrNull(day)
+        Weekday.entries.getOrNull(day)
             ?: run {
                 AppLog.w(MAPPER_TAG, "Dropping schedule slot $id: anchor day $day is not 0-6")
                 return null

@@ -4,7 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -36,30 +36,30 @@ class TrainingCalendarBuilderTest {
     }
 
     private fun TrainingMonth.day(date: LocalDate): CalendarDay =
-        weeks.flatten().first { it.date == date }
+        weeks.flatten().first { it.date.epochDay == date.toEpochDay() }
 
     @Test
     fun gridStartsOnTheConfiguredWeekStart() {
         // 1 August 2026 is a Saturday.
-        val monday = TrainingCalendarBuilder.build(august, emptyList(), zone, DayOfWeek.MONDAY)
-        assertEquals(LocalDate.of(2026, 7, 27), monday.weeks.first().first().date)
+        val monday = TrainingCalendarBuilder.build(august, emptyList(), zone, Weekday.MONDAY)
+        assertEquals(LocalDate.of(2026, 7, 27).toEpochDay(), monday.weeks.first().first().date.epochDay)
 
-        val sunday = TrainingCalendarBuilder.build(august, emptyList(), zone, DayOfWeek.SUNDAY)
-        assertEquals(LocalDate.of(2026, 7, 26), sunday.weeks.first().first().date)
+        val sunday = TrainingCalendarBuilder.build(august, emptyList(), zone, Weekday.SUNDAY)
+        assertEquals(LocalDate.of(2026, 7, 26).toEpochDay(), sunday.weeks.first().first().date.epochDay)
     }
 
     @Test
     fun everyWeekIsWholeAndTheMonthIsCovered() {
-        val grid = TrainingCalendarBuilder.build(august, emptyList(), zone, DayOfWeek.MONDAY)
+        val grid = TrainingCalendarBuilder.build(august, emptyList(), zone, Weekday.MONDAY)
         assertTrue(grid.weeks.all { it.size == 7 })
-        val dates = grid.weeks.flatten().map { it.date }
-        assertTrue(LocalDate.of(2026, 8, 1) in dates)
-        assertTrue(LocalDate.of(2026, 8, 31) in dates)
+        val dates = grid.weeks.flatten().map { it.date.epochDay }
+        assertTrue(LocalDate.of(2026, 8, 1).toEpochDay() in dates)
+        assertTrue(LocalDate.of(2026, 8, 31).toEpochDay() in dates)
     }
 
     @Test
     fun paddingDaysAreMarkedOutOfMonth() {
-        val grid = TrainingCalendarBuilder.build(august, emptyList(), zone, DayOfWeek.MONDAY)
+        val grid = TrainingCalendarBuilder.build(august, emptyList(), zone, Weekday.MONDAY)
         assertFalse(grid.day(LocalDate.of(2026, 7, 27)).inMonth)
         assertTrue(grid.day(LocalDate.of(2026, 8, 1)).inMonth)
     }
@@ -70,7 +70,7 @@ class TrainingCalendarBuilderTest {
             august,
             listOf(workout("a", "2026-08-10T10:00:00Z", 100.0, 5)),
             zone,
-            DayOfWeek.MONDAY,
+            Weekday.MONDAY,
         )
         val day = grid.day(LocalDate.of(2026, 8, 10))
         assertTrue(day.trained)
@@ -88,7 +88,7 @@ class TrainingCalendarBuilderTest {
                 workout("b", "2026-08-10T18:00:00Z", 60.0, 10),
             ),
             zone,
-            DayOfWeek.MONDAY,
+            Weekday.MONDAY,
         )
         assertEquals(1, grid.trainedDays)
         assertEquals(listOf("a", "b"), grid.day(LocalDate.of(2026, 8, 10)).sessionIds)
@@ -106,7 +106,7 @@ class TrainingCalendarBuilderTest {
                 workout("heavy", "2026-08-12T10:00:00Z", 100.0, 5, sets = 4),
             ),
             zone,
-            DayOfWeek.MONDAY,
+            Weekday.MONDAY,
         )
         assertEquals(1f, grid.day(LocalDate.of(2026, 8, 12)).intensity, 0.0001f)
         assertEquals(0.5f, grid.day(LocalDate.of(2026, 8, 5)).intensity, 0.0001f)
@@ -125,7 +125,7 @@ class TrainingCalendarBuilderTest {
             exercises = listOf(sessionExercise("ex-pu", "Pull-Up", "Back", LoadType.BODYWEIGHT)),
             date = at("2026-08-12T10:00:00Z"),
         )
-        val grid = TrainingCalendarBuilder.build(august, listOf(bodyweightDay), zone, DayOfWeek.MONDAY)
+        val grid = TrainingCalendarBuilder.build(august, listOf(bodyweightDay), zone, Weekday.MONDAY)
         val day = grid.day(LocalDate.of(2026, 8, 12))
         assertTrue(day.trained)
         assertEquals(1f, day.intensity, 0.0001f)
@@ -144,7 +144,7 @@ class TrainingCalendarBuilderTest {
                 workout("august", "2026-08-12T10:00:00Z", 100.0, 5),
             ),
             zone,
-            DayOfWeek.MONDAY,
+            Weekday.MONDAY,
         )
         assertEquals(1f, grid.day(LocalDate.of(2026, 8, 12)).intensity, 0.0001f)
         assertEquals(1, grid.trainedDays)
@@ -156,7 +156,7 @@ class TrainingCalendarBuilderTest {
             august,
             listOf(workout("live", "2026-08-12T10:00:00Z", 100.0, 5, finished = false)),
             zone,
-            DayOfWeek.MONDAY,
+            Weekday.MONDAY,
         )
         assertEquals(0, grid.trainedDays)
         assertFalse(grid.day(LocalDate.of(2026, 8, 12)).trained)
@@ -174,7 +174,7 @@ class TrainingCalendarBuilderTest {
                 workout("august", "2026-08-05T10:00:00Z", 50.0, 5, sets = 1),
             ),
             zone,
-            DayOfWeek.MONDAY,
+            Weekday.MONDAY,
         )
 
         val padding = grid.day(LocalDate.of(2026, 7, 27))
@@ -187,10 +187,10 @@ class TrainingCalendarBuilderTest {
     fun weekdayHeadingsFollowTheWeekStart() {
         assertEquals(
             listOf(
-                DayOfWeek.SUNDAY, DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
-                DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY,
+                Weekday.SUNDAY, Weekday.MONDAY, Weekday.TUESDAY, Weekday.WEDNESDAY,
+                Weekday.THURSDAY, Weekday.FRIDAY, Weekday.SATURDAY,
             ),
-            TrainingCalendarBuilder.weekdayOrder(DayOfWeek.SUNDAY),
+            TrainingCalendarBuilder.weekdayOrder(Weekday.SUNDAY),
         )
     }
 }

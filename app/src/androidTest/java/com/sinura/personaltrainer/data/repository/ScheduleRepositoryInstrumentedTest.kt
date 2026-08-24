@@ -8,7 +8,7 @@ import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.domain.ScheduleConfidence
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -56,14 +56,14 @@ class ScheduleRepositoryInstrumentedTest {
 
     @Test
     fun pinWritesARoutineSlotAndUnpinRemovesIt() = runBlocking {
-        val slot = repository.pin(routineId = PUSH, focusKind = null, anchorDay = DayOfWeek.MONDAY)
+        val slot = repository.pin(routineId = PUSH, focusKind = null, anchorDay = Weekday.MONDAY)
 
         val stored = repository.slots()
         assertEquals(1, stored.size)
         assertEquals(slot.id, stored.single().id)
         assertEquals(PUSH, stored.single().routineId)
         assertNull(stored.single().focusKind)
-        assertEquals(DayOfWeek.MONDAY, stored.single().anchorDay)
+        assertEquals(Weekday.MONDAY, stored.single().anchorDay)
         assertEquals(0, stored.single().position)
 
         repository.unpin(slot.id)
@@ -77,7 +77,7 @@ class ScheduleRepositoryInstrumentedTest {
             repository.pin(routineId = PUSH, focusKind = SessionFocusKind.PUSH, anchorDay = null)
         }
         val neither = runCatching {
-            repository.pin(routineId = null, focusKind = null, anchorDay = DayOfWeek.WEDNESDAY)
+            repository.pin(routineId = null, focusKind = null, anchorDay = Weekday.WEDNESDAY)
         }
 
         assertTrue(both.isFailure)
@@ -90,7 +90,7 @@ class ScheduleRepositoryInstrumentedTest {
         val slot = repository.pin(
             routineId = null,
             focusKind = SessionFocusKind.LEGS,
-            anchorDay = DayOfWeek.FRIDAY,
+            anchorDay = Weekday.FRIDAY,
         )
 
         repository.swapRoutine(slot.id, PULL)
@@ -98,20 +98,20 @@ class ScheduleRepositoryInstrumentedTest {
         val stored = repository.slots().single()
         assertEquals(PULL, stored.routineId)
         assertNull(stored.focusKind)
-        assertEquals(DayOfWeek.FRIDAY, stored.anchorDay)
+        assertEquals(Weekday.FRIDAY, stored.anchorDay)
     }
 
     @Test
     fun acceptFillsAppendsAnchoredSlotsAndSkipsRestDays() = runBlocking {
-        repository.pin(routineId = PUSH, focusKind = null, anchorDay = DayOfWeek.MONDAY)
+        repository.pin(routineId = PUSH, focusKind = null, anchorDay = Weekday.MONDAY)
 
         repository.acceptFills(
             listOf(
-                fill(epochDay = 20_000, day = DayOfWeek.MONDAY, rest = true),
-                fill(epochDay = 20_001, day = DayOfWeek.TUESDAY, rest = false, routineId = PULL),
+                fill(epochDay = 20_000, day = Weekday.MONDAY, rest = true),
+                fill(epochDay = 20_001, day = Weekday.TUESDAY, rest = false, routineId = PULL),
                 fill(
                     epochDay = 20_002,
-                    day = DayOfWeek.WEDNESDAY,
+                    day = Weekday.WEDNESDAY,
                     rest = false,
                     routineId = null,
                     focusKind = SessionFocusKind.LEGS,
@@ -124,17 +124,17 @@ class ScheduleRepositoryInstrumentedTest {
         assertEquals(PUSH, slots[0].routineId)
         assertEquals(0, slots[0].position)
         assertEquals(PULL, slots[1].routineId)
-        assertEquals(DayOfWeek.TUESDAY, slots[1].anchorDay)
+        assertEquals(Weekday.TUESDAY, slots[1].anchorDay)
         assertEquals(1, slots[1].position)
         assertNull(slots[2].routineId)
         assertEquals(SessionFocusKind.LEGS, slots[2].focusKind)
-        assertEquals(DayOfWeek.WEDNESDAY, slots[2].anchorDay)
+        assertEquals(Weekday.WEDNESDAY, slots[2].anchorDay)
         assertEquals(2, slots[2].position)
     }
 
     private fun fill(
         epochDay: Long,
-        day: DayOfWeek,
+        day: Weekday,
         rest: Boolean,
         routineId: String? = null,
         focusKind: SessionFocusKind = SessionFocusKind.FULL_BODY,

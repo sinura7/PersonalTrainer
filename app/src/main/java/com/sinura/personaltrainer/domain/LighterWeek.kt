@@ -1,9 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.DayOfWeek
-import java.time.LocalDate
-import java.time.temporal.TemporalAdjusters
-
 /**
  * One marked week. Not a mesocycle, not a set-count scaler.
  *
@@ -15,8 +11,8 @@ object LighterWeek {
     const val CAPTION = "Lighter week"
     const val TUNE_LABEL = "Lighter week"
 
-    fun weekStartEpochDay(today: LocalDate, weekStart: DayOfWeek): Long =
-        today.with(TemporalAdjusters.previousOrSame(weekStart)).toEpochDay()
+    fun weekStartEpochDay(today: CivilDate, weekStart: Weekday): Long =
+        today.previousOrSame(weekStart).epochDay
 
     fun isCurrent(markedStartEpochDay: Long?, weekStartEpochDay: Long?): Boolean =
         markedStartEpochDay != null && weekStartEpochDay != null &&

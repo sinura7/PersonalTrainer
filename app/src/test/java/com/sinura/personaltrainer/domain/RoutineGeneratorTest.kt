@@ -1,6 +1,6 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -35,7 +35,7 @@ class RoutineGeneratorTest {
         place: TrainingPlace = TrainingPlace.FULL_GYM,
         goal: TrainingGoal = TrainingGoal.GENERAL,
         emphasis: TrainingEmphasis = TrainingEmphasis.BALANCED,
-        preferred: Set<DayOfWeek> = emptySet(),
+        preferred: Set<Weekday> = emptySet(),
     ) = OnboardingAnswers(
         trainingAge = age,
         daysPerWeek = days,
@@ -130,7 +130,7 @@ class RoutineGeneratorTest {
 
     @Test
     fun theDaysTheLifterPickedAreTheDaysTheyGet() {
-        val picked = setOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY, DayOfWeek.SATURDAY)
+        val picked = setOf(Weekday.TUESDAY, Weekday.THURSDAY, Weekday.SATURDAY)
         val plan = RoutineGenerator.generate(answers(days = 3, preferred = picked), catalog)
         val training = plan.days.filterNot { it.isRest }.map { it.dayOfWeek }.toSet()
         assertEquals(picked, training)
@@ -139,7 +139,7 @@ class RoutineGeneratorTest {
     @Test
     fun pickingFewerDaysThanPromisedIsToppedUpNotIgnored() {
         // They said four days and tapped two. Both of theirs survive; the app finds the rest.
-        val picked = setOf(DayOfWeek.MONDAY, DayOfWeek.FRIDAY)
+        val picked = setOf(Weekday.MONDAY, Weekday.FRIDAY)
         val plan = RoutineGenerator.generate(answers(days = 4, preferred = picked), catalog)
         val training = plan.days.filterNot { it.isRest }.map { it.dayOfWeek }.toSet()
         assertEquals(4, training.size)
@@ -292,7 +292,7 @@ class RoutineGeneratorTest {
 
     @Test
     fun threeDayUpperSwapsASlotWithoutStealingTheOpenerOrARestDay() {
-        val picked = setOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY, DayOfWeek.SATURDAY)
+        val picked = setOf(Weekday.TUESDAY, Weekday.THURSDAY, Weekday.SATURDAY)
         val balanced = RoutineGenerator.generate(answers(days = 3, preferred = picked), catalog)
         val upper = RoutineGenerator.generate(
             answers(days = 3, preferred = picked, emphasis = TrainingEmphasis.UPPER),

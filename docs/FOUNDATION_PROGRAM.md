@@ -573,7 +573,14 @@ Implements [ADR-007](architecture/ADR-007-activity-model.md),
 [ADR-010](architecture/ADR-010-schema-reset-migrations.md), and
 [ADR-011](architecture/ADR-011-time-semantics.md). One uninterrupted train.
 
-- **P5.1** Platform-neutral time, ID, and quantity seams.
+- **P5.1** Platform-neutral time, ID, and quantity seams. · **done**
+  Landed: `Weekday`, `CivilDate`, `CapturedCivilTime`, `TimePort`,
+  and `IdPort` live in `domain/` with no `java.time` / `Locale` /
+  `NumberFormat`. JVM adapter is `util/JvmTime`. Grouped quantity
+  printing is `util/QuantityFormat`. DST gap/overlap is explicit.
+  [time-seams.md](architecture/time-seams.md).
+  Evidence:
+  [P5.1 evidence](foundation-program/evidence/P5.1-time-seams.md).
 - **P5.2** Unified domain contract with tests *before* persistence/UI.
   Every FND-002 acceptance case representable.
 - **P5.3** Shadow `TemperDatabase` beside legacy `TrainerDatabase`.

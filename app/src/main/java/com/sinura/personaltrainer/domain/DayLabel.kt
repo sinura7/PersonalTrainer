@@ -1,8 +1,6 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.Instant
-import java.time.ZoneId
-import java.time.temporal.ChronoUnit
+import com.sinura.personaltrainer.util.JvmTime
 
 /**
  * How long ago something happened, in the words a lifter would use.
@@ -16,11 +14,16 @@ import java.time.temporal.ChronoUnit
 object DayLabel {
     const val RELATIVE_DAYS = 7
 
-    fun relative(thenMs: Long, nowMs: Long, zone: ZoneId = ZoneId.systemDefault()): String? {
+    fun relative(
+        thenMs: Long,
+        nowMs: Long,
+        time: TimePort = JvmTime,
+        zoneId: String = time.defaultZoneId(),
+    ): String? {
         if (thenMs <= 0L) return null
-        val then = Instant.ofEpochMilli(thenMs).atZone(zone).toLocalDate()
-        val now = Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate()
-        val days = ChronoUnit.DAYS.between(then, now)
+        val then = time.civilDate(thenMs, zoneId)
+        val now = time.civilDate(nowMs, zoneId)
+        val days = now.epochDay - then.epochDay
         return when {
             days < 0L -> null
             days == 0L -> "Today"
@@ -40,6 +43,7 @@ object DayLabel {
  * calendar and the derivation all ask the same question the same way.
  */
 fun todayEpochDay(
-    nowMs: Long = System.currentTimeMillis(),
-    zone: ZoneId = ZoneId.systemDefault(),
-): Long = Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate().toEpochDay()
+    nowMs: Long = JvmTime.nowMillis(),
+    time: TimePort = JvmTime,
+    zoneId: String = time.defaultZoneId(),
+): Long = time.civilDate(nowMs, zoneId).epochDay

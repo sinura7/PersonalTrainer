@@ -235,7 +235,7 @@ private fun SummaryHero(summary: WorkoutSummary, unit: WeightUnit) {
         ) {
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
-                    WeightConverter.formatGroupedNumber(shown.toDouble()),
+                    com.sinura.personaltrainer.util.QuantityFormat.formatGroupedNumber(shown.toDouble()),
                     modifier = Modifier.alignByBaseline(),
                     style = InstrumentType.numeralXl,
                     color = TextPrimary,

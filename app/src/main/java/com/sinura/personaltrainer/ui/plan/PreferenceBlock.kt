@@ -15,7 +15,7 @@ import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextSecondary
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 
 /**
  * The three preferences that shape a suggested week: how many days, which split, where the
@@ -31,7 +31,7 @@ fun PreferenceBlock(
     preferences: SchedulePreferences,
     onDays: (Int) -> Unit,
     onSplit: (SplitStyle) -> Unit,
-    onWeekStart: (DayOfWeek) -> Unit,
+    onWeekStart: (Weekday) -> Unit,
     lighterWeek: Boolean = false,
     onLighterWeek: ((Boolean) -> Unit)? = null,
 ) {
@@ -68,9 +68,9 @@ fun PreferenceBlock(
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
             GymSectionHeader("Week starts", compact = true)
             Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                listOf(DayOfWeek.MONDAY, DayOfWeek.SUNDAY).forEach { day ->
+                listOf(Weekday.MONDAY, Weekday.SUNDAY).forEach { day ->
                     InstrumentChip(
-                        label = if (day == DayOfWeek.MONDAY) "Monday" else "Sunday",
+                        label = if (day == Weekday.MONDAY) "Monday" else "Sunday",
                         selected = preferences.weekStart == day,
                         onClick = { onWeekStart(day) },
                     )

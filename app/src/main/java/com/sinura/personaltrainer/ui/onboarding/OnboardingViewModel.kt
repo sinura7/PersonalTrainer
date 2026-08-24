@@ -18,7 +18,7 @@ import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -261,7 +261,7 @@ class OnboardingViewModel @JvmOverloads constructor(
 
     fun setDaysPerWeek(value: Int) = update { it.withDaysPerWeek(value) }
 
-    fun toggleDay(day: DayOfWeek) = update { current ->
+    fun toggleDay(day: Weekday) = update { current ->
         val picked = current.preferredDays
         when {
             day in picked -> current.copy(preferredDays = picked - day)
@@ -333,7 +333,7 @@ class OnboardingViewModel @JvmOverloads constructor(
         val applying: Boolean,
         val error: String?,
         val existingProgram: Boolean,
-        val weekStart: DayOfWeek,
+        val weekStart: Weekday,
     )
 
     /**
@@ -344,7 +344,7 @@ class OnboardingViewModel @JvmOverloads constructor(
         val applying: Boolean,
         val error: String?,
         val existingProgram: Boolean,
-        val weekStart: DayOfWeek,
+        val weekStart: Weekday,
         val weightUnit: WeightUnit,
     )
 }

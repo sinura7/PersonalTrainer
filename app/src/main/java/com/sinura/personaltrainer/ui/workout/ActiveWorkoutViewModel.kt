@@ -488,7 +488,10 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         val rest = planned?.restSeconds?.takeIf { it > 0 } ?: 90
         restTotal.value = rest
         val schedule = container.preferencesRepository.schedulePreferences.first()
-        val thisWeek = LighterWeek.weekStartEpochDay(LocalDate.now(), schedule.weekStart)
+        val thisWeek = LighterWeek.weekStartEpochDay(
+            com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(LocalDate.now().toEpochDay()),
+            schedule.weekStart,
+        )
         val lighter = LighterWeek.isCurrent(
             container.preferencesRepository.lighterWeekStartEpochDay.first(),
             thisWeek,

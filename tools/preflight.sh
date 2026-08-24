@@ -120,7 +120,8 @@ for c in "check-internal-imports.py app/src/main/java" \
          "check-backup-policy.py" \
          "check-sdk-target.py" \
          "check-lint-policy.py" \
-         "check-supply-chain.py"; do
+         "check-supply-chain.py" \
+         "check-domain-seams.py"; do
     step "$c"
     # shellcheck disable=SC2086
     python3 tools/$c || fail "$c"

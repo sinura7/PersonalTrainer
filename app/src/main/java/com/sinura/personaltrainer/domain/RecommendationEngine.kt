@@ -1,6 +1,6 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.ZoneId
+import com.sinura.personaltrainer.util.JvmTime
 
 enum class RecommendationPriority {
     HIGH,
@@ -80,7 +80,8 @@ data class CoachInputs(
     val preferences: CoachPreferences = CoachPreferences.DEFAULT,
     val unit: WeightUnit = WeightUnit.KG,
     val nowMs: Long,
-    val zone: ZoneId = ZoneId.systemDefault(),
+    val time: TimePort = JvmTime,
+    val zoneId: String = time.defaultZoneId(),
 )
 
 /**
@@ -317,7 +318,7 @@ object RecommendationEngine {
     }
 
     internal fun deloadSignal(inputs: CoachInputs): TrainingRecommendation? {
-        val finding = DeloadSignal.detect(inputs.history, inputs.nowMs, inputs.zone) ?: return null
+        val finding = DeloadSignal.detect(inputs.history, inputs.nowMs, inputs.time, inputs.zoneId) ?: return null
         return TrainingRecommendation(
             id = "deload-volume-flat-strength",
             kicker = KICKER_LOAD,

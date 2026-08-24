@@ -163,6 +163,16 @@ REQUIRED_IN = [
         "gradle/verification-metadata.xml",
         "P4.6 review must require the checksum ledger",
     ),
+    (
+        "docs/architecture/time-seams.md",
+        "Shared-target domain types do not import `java.time`",
+        "P5.1 review must ban java.time in domain",
+    ),
+    (
+        "docs/architecture/time-seams.md",
+        "DST is explicit",
+        "P5.1 review must sign explicit DST resolution",
+    ),
 ]
 
 ISSUED_FND = [f"FND-{n:03d}" for n in range(1, 49) if n != 37] + [

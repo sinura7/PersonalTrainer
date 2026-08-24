@@ -2,7 +2,8 @@ package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.util.toJavaDayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -30,7 +31,7 @@ class HeatWindowTest {
         // Regression: the heat map hardcoded Monday while SchedulePreferences let the user
         // pick any day, so a Sunday session landed in the "wrong" week on the Progress tab.
         val thursday = LocalDate.of(2026, 8, 20)
-        val start = HeatWindow.CURRENT_WEEK.startMs(millis(thursday), zone, DayOfWeek.SUNDAY)
+        val start = HeatWindow.CURRENT_WEEK.startMs(millis(thursday), zone, Weekday.SUNDAY)
         val expected = LocalDate.of(2026, 8, 16).atStartOfDay(zone).toInstant().toEpochMilli()
         assertEquals(expected, start)
     }
@@ -38,7 +39,7 @@ class HeatWindowTest {
     @Test
     fun currentWeekOnTheStartDayItselfBeginsThatMorning() {
         val sunday = LocalDate.of(2026, 8, 16)
-        val start = HeatWindow.CURRENT_WEEK.startMs(millis(sunday, hour = 23), zone, DayOfWeek.SUNDAY)
+        val start = HeatWindow.CURRENT_WEEK.startMs(millis(sunday, hour = 23), zone, Weekday.SUNDAY)
         assertEquals(sunday.atStartOfDay(zone).toInstant().toEpochMilli(), start)
     }
 
@@ -47,11 +48,11 @@ class HeatWindowTest {
         val now = millis(LocalDate.of(2026, 8, 20))
         assertEquals(
             HeatWindow.LAST_30_DAYS.startMs(now, zone),
-            HeatWindow.LAST_30_DAYS.startMs(now, zone, DayOfWeek.SUNDAY),
+            HeatWindow.LAST_30_DAYS.startMs(now, zone, Weekday.SUNDAY),
         )
         assertEquals(
             HeatWindow.LAST_30_DAYS.startMs(now, zone),
-            HeatWindow.LAST_30_DAYS.startMs(now, zone, DayOfWeek.FRIDAY),
+            HeatWindow.LAST_30_DAYS.startMs(now, zone, Weekday.FRIDAY),
         )
     }
 
@@ -60,14 +61,18 @@ class HeatWindowTest {
         // The single-source-of-truth check: SchedulePreferences.weekStart must move BOTH the
         // body map's "This week" boundary and the planner's week, or "this week" means two
         // different things on two screens.
-        listOf(DayOfWeek.MONDAY, DayOfWeek.SUNDAY).forEach { weekStart ->
+        listOf(Weekday.MONDAY, Weekday.SUNDAY).forEach { weekStart ->
             val prefs = SchedulePreferences(weekStart = weekStart)
             val thursdayNoon = LocalDate.of(2026, 8, 20).atTime(12, 0)
             val nowMs = thursdayNoon.atZone(zone).toInstant().toEpochMilli()
 
             val heatStart = HeatWindow.CURRENT_WEEK.startMs(nowMs, zone, prefs.weekStart)
             val plannerWeekStart = thursdayNoon.toLocalDate()
-                .with(java.time.temporal.TemporalAdjusters.previousOrSame(prefs.weekStart))
+                .with(
+                    java.time.temporal.TemporalAdjusters.previousOrSame(
+                        prefs.weekStart.toJavaDayOfWeek(),
+                    ),
+                )
 
             assertEquals(
                 "heat window and planner disagree for $weekStart",

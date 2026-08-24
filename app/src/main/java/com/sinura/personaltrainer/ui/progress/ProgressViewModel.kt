@@ -106,7 +106,10 @@ class ProgressViewModel @JvmOverloads constructor(
     fun markLighterWeek() {
         viewModelScope.launch {
             val weekStart = container.preferencesRepository.schedulePreferences.first().weekStart
-            val start = LighterWeek.weekStartEpochDay(today = LocalDate.now(), weekStart = weekStart)
+            val start = LighterWeek.weekStartEpochDay(
+                today = com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(LocalDate.now().toEpochDay()),
+                weekStart = weekStart,
+            )
             container.preferencesRepository.setLighterWeekStartEpochDay(start)
         }
     }

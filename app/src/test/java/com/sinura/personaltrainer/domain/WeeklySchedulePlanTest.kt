@@ -1,6 +1,6 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -70,7 +70,7 @@ class WeeklySchedulePlanTest {
 
     private fun day(epoch: Long, rest: Boolean, slotId: String? = null) = SuggestedTrainingDay(
         epochDay = epoch,
-        dayOfWeek = DayOfWeek.MONDAY,
+        dayOfWeek = Weekday.MONDAY,
         isRest = rest,
         focusKind = if (rest) SessionFocusKind.RECOVERY else SessionFocusKind.FULL_BODY,
         focusTitle = if (rest) "Rest" else "Train",

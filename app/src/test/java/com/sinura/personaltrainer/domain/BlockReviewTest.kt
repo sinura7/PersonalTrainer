@@ -4,7 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import java.time.LocalDate
 import java.time.ZoneOffset
 
@@ -18,7 +18,7 @@ import java.time.ZoneOffset
 class BlockReviewTest {
     private val zone = ZoneOffset.UTC
     private val start = LocalDate.of(2026, 8, 17)
-    private val block = TrainingBlock.startingIn(start, DayOfWeek.MONDAY)
+    private val block = TrainingBlock.startingIn(start, Weekday.MONDAY)
 
     private fun dayMs(weeksIn: Long): Long =
         start.plusWeeks(weeksIn).atStartOfDay(zone).toInstant().toEpochMilli() + 36_000_000L

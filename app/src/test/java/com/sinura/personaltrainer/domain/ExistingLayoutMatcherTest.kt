@@ -1,6 +1,6 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -25,13 +25,13 @@ class ExistingLayoutMatcherTest {
                 planned("lower", "Lower Body", SessionFocusKind.LOWER),
             ),
             days = listOf(
-                BlueprintDay(DayOfWeek.MONDAY, null),
-                BlueprintDay(DayOfWeek.TUESDAY, "upper"),
-                BlueprintDay(DayOfWeek.WEDNESDAY, null),
-                BlueprintDay(DayOfWeek.THURSDAY, "lower"),
-                BlueprintDay(DayOfWeek.FRIDAY, null),
-                BlueprintDay(DayOfWeek.SATURDAY, null),
-                BlueprintDay(DayOfWeek.SUNDAY, "upper"),
+                BlueprintDay(Weekday.MONDAY, null),
+                BlueprintDay(Weekday.TUESDAY, "upper"),
+                BlueprintDay(Weekday.WEDNESDAY, null),
+                BlueprintDay(Weekday.THURSDAY, "lower"),
+                BlueprintDay(Weekday.FRIDAY, null),
+                BlueprintDay(Weekday.SATURDAY, null),
+                BlueprintDay(Weekday.SUNDAY, "upper"),
             ),
         )
 
@@ -40,16 +40,16 @@ class ExistingLayoutMatcherTest {
         )
 
         assertEquals(3, proposals.size)
-        assertEquals(setOf(DayOfWeek.TUESDAY, DayOfWeek.THURSDAY, DayOfWeek.SUNDAY),
+        assertEquals(setOf(Weekday.TUESDAY, Weekday.THURSDAY, Weekday.SUNDAY),
             proposals.map { it.dayOfWeek }.toSet())
-        assertEquals("r-upper", proposals.single { it.dayOfWeek == DayOfWeek.TUESDAY }.routineId)
-        assertEquals("r-lower", proposals.single { it.dayOfWeek == DayOfWeek.THURSDAY }.routineId)
-        assertEquals("r-upper", proposals.single { it.dayOfWeek == DayOfWeek.SUNDAY }.routineId)
+        assertEquals("r-upper", proposals.single { it.dayOfWeek == Weekday.TUESDAY }.routineId)
+        assertEquals("r-lower", proposals.single { it.dayOfWeek == Weekday.THURSDAY }.routineId)
+        assertEquals("r-upper", proposals.single { it.dayOfWeek == Weekday.SUNDAY }.routineId)
         assertTrue(proposals.all { it.slotId == null })
         assertTrue(proposals.all { it.reason == WeekTwoCopy.PROPOSAL_REASON })
         assertEquals(
             weekStart.plusDays(1).toEpochDay(),
-            proposals.single { it.dayOfWeek == DayOfWeek.TUESDAY }.epochDay,
+            proposals.single { it.dayOfWeek == Weekday.TUESDAY }.epochDay,
         )
     }
 
@@ -59,7 +59,7 @@ class ExistingLayoutMatcherTest {
         val blueprint = PlanBlueprint(
             splitStyle = SplitStyle.PUSH_PULL_LEGS,
             routines = listOf(planned("push", "Push", SessionFocusKind.PUSH)),
-            days = listOf(BlueprintDay(DayOfWeek.MONDAY, "push")),
+            days = listOf(BlueprintDay(Weekday.MONDAY, "push")),
         )
 
         val proposals = ExistingLayoutMatcher.match(
@@ -77,7 +77,7 @@ class ExistingLayoutMatcherTest {
         val blueprint = PlanBlueprint(
             splitStyle = SplitStyle.PUSH_PULL_LEGS,
             routines = listOf(planned("push", "Push", SessionFocusKind.PUSH)),
-            days = listOf(BlueprintDay(DayOfWeek.MONDAY, "push")),
+            days = listOf(BlueprintDay(Weekday.MONDAY, "push")),
         )
 
         assertTrue(
@@ -93,7 +93,7 @@ class ExistingLayoutMatcherTest {
         val blueprint = PlanBlueprint(
             splitStyle = SplitStyle.UPPER_LOWER,
             routines = listOf(planned("upper", "Upper", SessionFocusKind.UPPER)),
-            days = listOf(BlueprintDay(DayOfWeek.MONDAY, "upper")),
+            days = listOf(BlueprintDay(Weekday.MONDAY, "upper")),
         )
 
         assertTrue(
@@ -110,15 +110,15 @@ class ExistingLayoutMatcherTest {
             splitStyle = SplitStyle.UPPER_LOWER,
             routines = listOf(planned("upper", "Upper", SessionFocusKind.UPPER)),
             days = listOf(
-                BlueprintDay(DayOfWeek.MONDAY, null),
-                BlueprintDay(DayOfWeek.TUESDAY, "upper"),
+                BlueprintDay(Weekday.MONDAY, null),
+                BlueprintDay(Weekday.TUESDAY, "upper"),
             ),
         )
 
         val proposals = ExistingLayoutMatcher.match(
             blueprint, listOf(upper), weekStart.toEpochDay(),
         )
-        assertEquals(listOf(DayOfWeek.TUESDAY), proposals.map { it.dayOfWeek })
+        assertEquals(listOf(Weekday.TUESDAY), proposals.map { it.dayOfWeek })
     }
 
     @Test
@@ -127,7 +127,7 @@ class ExistingLayoutMatcherTest {
         val blueprint = PlanBlueprint(
             splitStyle = SplitStyle.UPPER_LOWER,
             routines = listOf(planned("upper", "Upper", SessionFocusKind.UPPER)),
-            days = listOf(BlueprintDay(DayOfWeek.MONDAY, "upper")),
+            days = listOf(BlueprintDay(Weekday.MONDAY, "upper")),
         )
         val ids = ExistingLayoutMatcher.match(
             blueprint, listOf(upper), weekStart.toEpochDay(),

@@ -23,7 +23,6 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.ZoneId
 
 private const val TAG = "PT/ExerciseDetailVM"
 
@@ -132,7 +131,6 @@ class ExerciseDetailViewModel @JvmOverloads constructor(
                 // From the library row, which this screen already has: a push-up's history is
                 // counted in reps and a bench press's in kilograms.
                 loadClass = LoadClass.of(exercise?.loadType),
-                zone = ZoneId.systemDefault(),
                 // The tonnage weeks have to start where the planner's weeks start, or "this
                 // week's volume" means two different spans in two places in the same app.
                 weekStart = preferences.weekStart,

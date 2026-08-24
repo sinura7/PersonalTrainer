@@ -17,7 +17,9 @@ import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeeklySchedulePlan
 import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.util.toJavaDayOfWeek
+import com.sinura.personaltrainer.util.toWeekday
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.TemporalAdjusters
@@ -97,10 +99,10 @@ class PlanViewModelTest {
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
         val upper = deps.routineRepository.create(name = "Upper")
         val lower = deps.routineRepository.create(name = "Lower Body")
-        listOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY)
+        listOf(Weekday.MONDAY, Weekday.WEDNESDAY, Weekday.FRIDAY, Weekday.SATURDAY)
             .forEach { day ->
                 deps.scheduleRepository.pin(
-                    routineId = if (day == DayOfWeek.WEDNESDAY) lower.id else upper.id,
+                    routineId = if (day == Weekday.WEDNESDAY) lower.id else upper.id,
                     focusKind = null,
                     anchorDay = day,
                 )
@@ -183,7 +185,9 @@ class PlanViewModelTest {
     private fun plannerHasARemainingTrainingDay(): Boolean {
         val today = LocalDate.now(ZoneId.systemDefault())
         val prefs = SchedulePreferences.DEFAULT.sanitized()
-        val weekStart = today.with(TemporalAdjusters.previousOrSame(prefs.weekStart))
+        val weekStart = today.with(
+            TemporalAdjusters.previousOrSame(prefs.weekStart.toJavaDayOfWeek()),
+        )
         return WeeklySchedulePlanner.trainingDayIndices(prefs.trainingDaysPerWeek)
             .map { weekStart.plusDays(it.toLong()) }
             .any { !it.isBefore(today) }
@@ -209,7 +213,7 @@ class PlanViewModelTest {
                 val date = LocalDate.ofEpochDay(start + offset)
                 SuggestedTrainingDay(
                     epochDay = date.toEpochDay(),
-                    dayOfWeek = date.dayOfWeek,
+                    dayOfWeek = date.dayOfWeek.toWeekday(),
                     isRest = true,
                     focusKind = SessionFocusKind.FULL_BODY,
                     focusTitle = "Rest",

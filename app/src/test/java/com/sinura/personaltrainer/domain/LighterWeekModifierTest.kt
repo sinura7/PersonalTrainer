@@ -4,7 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import java.time.LocalDate
 
 class LighterWeekTest {
@@ -12,7 +12,7 @@ class LighterWeekTest {
     fun aPastMarkIsInert() {
         val thisWeek = LighterWeek.weekStartEpochDay(
             LocalDate.of(2026, 8, 22),
-            DayOfWeek.MONDAY,
+            Weekday.MONDAY,
         )
         assertFalse(LighterWeek.isCurrent(thisWeek - 7, thisWeek))
         assertTrue(LighterWeek.isCurrent(thisWeek, thisWeek))

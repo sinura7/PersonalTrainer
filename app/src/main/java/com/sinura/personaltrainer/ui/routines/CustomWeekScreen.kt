@@ -33,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.sinura.personaltrainer.domain.shortLabel
 import com.sinura.personaltrainer.domain.CustomWeekDayMark
 import com.sinura.personaltrainer.domain.CustomWeekPolicy
 import com.sinura.personaltrainer.domain.OnboardingAnswers
@@ -57,13 +56,13 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.VoltDim
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 
 @Composable
 fun CustomWeekScreen(
     onFinished: () -> Unit,
     onBack: () -> Unit,
-    preferredDays: Set<DayOfWeek> = emptySet(),
+    preferredDays: Set<Weekday> = emptySet(),
     answers: OnboardingAnswers? = null,
     pendingWeightUnit: WeightUnit? = null,
     viewModel: CustomWeekViewModel = viewModel(),
@@ -233,11 +232,11 @@ fun CustomWeekScreen(
 
 @Composable
 private fun WeekDayStrip(
-    weekStart: DayOfWeek,
-    selected: DayOfWeek,
-    filled: Set<DayOfWeek>,
-    preferred: Set<DayOfWeek>,
-    onSelect: (DayOfWeek) -> Unit,
+    weekStart: Weekday,
+    selected: Weekday,
+    filled: Set<Weekday>,
+    preferred: Set<Weekday>,
+    onSelect: (Weekday) -> Unit,
 ) {
     val ordered = (0 until 7).map { weekStart.plus(it.toLong()) }
     Row(

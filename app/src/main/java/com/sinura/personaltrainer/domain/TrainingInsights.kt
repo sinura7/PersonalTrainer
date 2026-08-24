@@ -1,7 +1,7 @@
 package com.sinura.personaltrainer.domain
 
+import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.util.recoverWith
-import java.time.ZoneId
 
 private const val TAG = "PT/Insights"
 
@@ -70,7 +70,8 @@ data class TrainingInsightsInput(
     val unit: WeightUnit,
     val window: HeatWindow,
     val nowMs: Long,
-    val zone: ZoneId,
+    val time: TimePort = JvmTime,
+    val zoneId: String = time.defaultZoneId(),
     /** Progress has no week plan to show; skipping it keeps a wide history window cheap. */
     val includeWeekPlan: Boolean = true,
 )
@@ -94,7 +95,8 @@ object TrainingInsightsCalculator {
                 sessions = input.history,
                 window = input.window,
                 nowMs = input.nowMs,
-                zone = input.zone,
+                time = input.time,
+                zoneId = input.zoneId,
                 exerciseCatalog = input.exerciseCatalog,
                 weekStart = input.preferences.weekStart,
             )
@@ -113,7 +115,8 @@ object TrainingInsightsCalculator {
             val basis = MuscleLoadCalculator.coachBasis(
                 sessions = input.history,
                 nowMs = input.nowMs,
-                zone = input.zone,
+                time = input.time,
+                zoneId = input.zoneId,
                 exerciseCatalog = input.exerciseCatalog,
             )
             RecommendationEngine.recommend(
@@ -126,7 +129,8 @@ object TrainingInsightsCalculator {
                     preferences = input.coachPrefs,
                     unit = input.unit,
                     nowMs = input.nowMs,
-                    zone = input.zone,
+                    time = input.time,
+                    zoneId = input.zoneId,
                 ),
             )
         }.let { derived ->
@@ -148,7 +152,8 @@ object TrainingInsightsCalculator {
                     history = input.history,
                     preferences = input.preferences,
                     nowMs = input.nowMs,
-                    zone = input.zone,
+                    time = input.time,
+                    zoneId = input.zoneId,
                 )
                 WeekDerivation.toWeeklySchedulePlan(
                     week = derived,

@@ -1,9 +1,6 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.DayOfWeek
-import java.time.Instant
-import java.time.ZoneId
-import java.time.temporal.ChronoUnit
+import com.sinura.personaltrainer.util.JvmTime
 import kotlin.math.max
 
 object MuscleLoadCalculator {
@@ -48,11 +45,12 @@ object MuscleLoadCalculator {
         sessions: List<WorkoutSession>,
         window: HeatWindow,
         nowMs: Long,
-        zone: ZoneId = ZoneId.systemDefault(),
+        time: TimePort = JvmTime,
+        zoneId: String = time.defaultZoneId(),
         exerciseCatalog: Map<String, Exercise> = emptyMap(),
-        weekStart: DayOfWeek = DayOfWeek.MONDAY,
+        weekStart: Weekday = Weekday.MONDAY,
     ): BodyHeatSnapshot {
-        val windowStart = window.startMs(nowMs, zone, weekStart)
+        val windowStart = window.startMs(nowMs, time, weekStart, zoneId)
         val finished = sessions.filter { it.isFinished }
         val acc = CanonicalMuscle.entries.associateWith { MuscleAccumulator() }.toMutableMap()
         var anyWorkingSets = false
@@ -100,7 +98,7 @@ object MuscleLoadCalculator {
                 workingSets = row.windowSets,
                 sessionCount = row.windowSessions.size,
                 lastTrainedAtMs = row.lastTrainedAtMs,
-                daysSinceLastTrained = daysSince(row.lastTrainedAtMs, nowMs, zone),
+                daysSinceLastTrained = daysSince(row.lastTrainedAtMs, nowMs, time, zoneId),
                 weeklySets = weeklySets,
                 heat = heatFraction(weeklySets),
                 exercises = row.exercises.values
@@ -184,11 +182,11 @@ object MuscleLoadCalculator {
     fun coachBasis(
         sessions: List<WorkoutSession>,
         nowMs: Long,
-        zone: ZoneId = ZoneId.systemDefault(),
+        time: TimePort = JvmTime,
+        zoneId: String = time.defaultZoneId(),
         exerciseCatalog: Map<String, Exercise> = emptyMap(),
     ): CoachBasis {
-        val basisStart = Instant.ofEpochMilli(nowMs).atZone(zone)
-            .minusDays(COACH_TRAILING_DAYS).toInstant().toEpochMilli()
+        val basisStart = time.minusCivilDays(nowMs, zoneId, COACH_TRAILING_DAYS)
         val weighted = CanonicalMuscle.entries.associateWith { 0.0 }.toMutableMap()
         val lastTrained = mutableMapOf<CanonicalMuscle, Long>()
         var anyWorkingSets = false
@@ -217,7 +215,7 @@ object MuscleLoadCalculator {
                     // Fourteen days of weighted sets, expressed per week, so the coach's
                     // thresholds are the same numbers the map's bands use.
                     weeklySets = (weighted[muscle] ?: 0.0) * 7.0 / COACH_TRAILING_DAYS,
-                    daysSinceLastTrained = daysSince(lastTrained[muscle], nowMs, zone),
+                    daysSinceLastTrained = daysSince(lastTrained[muscle], nowMs, time, zoneId),
                 )
             },
             hasAnyWorkingSets = anyWorkingSets,
@@ -225,11 +223,16 @@ object MuscleLoadCalculator {
         )
     }
 
-    fun daysSince(lastTrainedAtMs: Long?, nowMs: Long, zone: ZoneId = ZoneId.systemDefault()): Int? {
+    fun daysSince(
+        lastTrainedAtMs: Long?,
+        nowMs: Long,
+        time: TimePort = JvmTime,
+        zoneId: String = time.defaultZoneId(),
+    ): Int? {
         if (lastTrainedAtMs == null) return null
-        val last = Instant.ofEpochMilli(lastTrainedAtMs).atZone(zone).toLocalDate()
-        val now = Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate()
-        return ChronoUnit.DAYS.between(last, now).toInt().coerceAtLeast(0)
+        val last = time.civilDate(lastTrainedAtMs, zoneId)
+        val now = time.civilDate(nowMs, zoneId)
+        return (now.epochDay - last.epochDay).toInt().coerceAtLeast(0)
     }
 
     /**

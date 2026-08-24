@@ -7,7 +7,7 @@ import com.sinura.personaltrainer.domain.ScheduleConfidence
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.testutil.seedTestWorkout
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -93,7 +93,7 @@ class StartTrainingDayTest {
         focusTitle: String = "Legs",
     ) = SuggestedTrainingDay(
         epochDay = 20_000,
-        dayOfWeek = DayOfWeek.MONDAY,
+        dayOfWeek = Weekday.MONDAY,
         isRest = isRest,
         focusKind = SessionFocusKind.LEGS,
         focusTitle = focusTitle,

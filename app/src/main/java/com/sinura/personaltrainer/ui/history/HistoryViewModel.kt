@@ -19,9 +19,11 @@ import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.TrainingMonth
+import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
+import com.sinura.personaltrainer.util.toCivilYearMonth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,9 +35,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.DayOfWeek
 import java.time.YearMonth
-import java.time.ZoneId
 
 data class HistoryUiState(
     val isLoading: Boolean = true,
@@ -46,8 +46,8 @@ data class HistoryUiState(
     val monthGroups: List<SessionMonthGroup> = emptyList(),
     /** The standing records, newest first — what History could never tell you before. */
     val records: List<PrSummaryRow> = emptyList(),
-    val calendar: TrainingMonth = TrainingMonth(month = YearMonth.now()),
-    val weekStart: DayOfWeek = DayOfWeek.MONDAY,
+    val calendar: TrainingMonth = TrainingMonth(month = YearMonth.now().toCivilYearMonth()),
+    val weekStart: Weekday = Weekday.MONDAY,
     /** Blocks already finished, newest first. Empty until one has been. */
     val pastBlocks: List<FinishedBlock> = emptyList(),
 )
@@ -113,12 +113,11 @@ class HistoryViewModel @JvmOverloads constructor(
                 isLoading = false,
                 stale = list.stale,
                 sessions = sessions,
-                monthGroups = groupSessionsByMonth(sessions, ZoneId.systemDefault()),
+                monthGroups = groupSessionsByMonth(sessions),
                 records = prSummary(sessions),
                 calendar = TrainingCalendarBuilder.build(
-                    month = month,
+                    month = month.toCivilYearMonth(),
                     sessions = sessions,
-                    zone = ZoneId.systemDefault(),
                     weekStart = preferences.weekStart,
                 ),
                 weekStart = preferences.weekStart,
@@ -131,7 +130,6 @@ class HistoryViewModel @JvmOverloads constructor(
                                 block = block,
                                 sessions = sessions,
                                 unit = settings.unit,
-                                zone = ZoneId.systemDefault(),
                                 bodyweightLog = settings.bodyweightLog,
                             ),
                         )

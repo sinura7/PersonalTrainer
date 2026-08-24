@@ -99,7 +99,7 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.Warn
 import java.text.DateFormat
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import java.util.Date
 
 @Composable
@@ -386,7 +386,7 @@ private fun SchedulePrefsSection(
     preferences: SchedulePreferences,
     onDays: (Int) -> Unit,
     onSplit: (SplitStyle) -> Unit,
-    onWeekStart: (DayOfWeek) -> Unit,
+    onWeekStart: (Weekday) -> Unit,
 ) {
     SettingsGroup(
         title = "Schedule",

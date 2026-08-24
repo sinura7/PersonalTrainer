@@ -1,7 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.DayOfWeek
-
 enum class SplitStyle(
     val storageKey: String,
     val displayName: String,
@@ -23,7 +21,7 @@ enum class SplitStyle(
 data class SchedulePreferences(
     val trainingDaysPerWeek: Int = DEFAULT_DAYS,
     val splitStyle: SplitStyle = SplitStyle.AUTO,
-    val weekStart: DayOfWeek = DEFAULT_WEEK_START,
+    val weekStart: Weekday = DEFAULT_WEEK_START,
 ) {
     fun sanitized(): SchedulePreferences = copy(
         trainingDaysPerWeek = trainingDaysPerWeek.coerceIn(MIN_DAYS, MAX_DAYS),
@@ -36,15 +34,15 @@ data class SchedulePreferences(
         const val DEFAULT_DAYS = 4
 
         /**
-         * Named rather than spelled `DayOfWeek.MONDAY` at each site, because the guided setup
+         * Named rather than spelled `Weekday.MONDAY` at each site, because the guided setup
          * had its own Monday default in a parameter nobody passed, and it silently overwrote
          * the lifter's stored choice on every run.
          */
-        val DEFAULT_WEEK_START: DayOfWeek = DayOfWeek.MONDAY
+        val DEFAULT_WEEK_START: Weekday = Weekday.MONDAY
         val DEFAULT = SchedulePreferences()
 
-        fun weekStartFromStorage(value: String?): DayOfWeek =
-            DayOfWeek.entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
+        fun weekStartFromStorage(value: String?): Weekday =
+            Weekday.entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
                 ?: DEFAULT_WEEK_START
     }
 }
@@ -74,7 +72,7 @@ enum class ScheduleConfidence {
 
 data class SuggestedTrainingDay(
     val epochDay: Long,
-    val dayOfWeek: DayOfWeek,
+    val dayOfWeek: Weekday,
     val isRest: Boolean,
     val focusKind: SessionFocusKind,
     val focusTitle: String,

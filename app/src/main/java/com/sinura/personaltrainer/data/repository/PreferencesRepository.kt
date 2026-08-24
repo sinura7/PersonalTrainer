@@ -27,7 +27,7 @@ import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
@@ -111,10 +111,10 @@ class PreferencesRepository(
         dataStore.edit { prefs -> prefs[TRAINING_AGE] = age.name }
     }
 
-    val preferredDays: Flow<Set<DayOfWeek>> = safePreferences
+    val preferredDays: Flow<Set<Weekday>> = safePreferences
         .map { prefs -> preferredDaysFrom(prefs[PREFERRED_DAYS]) }
 
-    suspend fun setPreferredDays(days: Set<DayOfWeek>) {
+    suspend fun setPreferredDays(days: Set<Weekday>) {
         dataStore.edit { prefs -> prefs[PREFERRED_DAYS] = days.map { it.name }.toSet() }
     }
 
@@ -231,7 +231,7 @@ class PreferencesRepository(
         }
     }
 
-    suspend fun setWeekStart(day: DayOfWeek) {
+    suspend fun setWeekStart(day: Weekday) {
         dataStore.edit { prefs ->
             prefs[WEEK_START] = day.name
         }
@@ -370,7 +370,7 @@ class PreferencesRepository(
         block: TrainingBlock?,
         pastBlocks: List<TrainingBlock>,
         trainingAge: TrainingAge,
-        preferredDays: Set<DayOfWeek>,
+        preferredDays: Set<Weekday>,
         trainingPlace: TrainingPlace,
         lighterWeekStartEpochDay: Long?,
         trainingPlaces: Set<TrainingPlace> = emptySet(),
@@ -663,9 +663,9 @@ class PreferencesRepository(
         val TRAINING_PLACE = stringPreferencesKey("training_place")
         val LIGHTER_WEEK_START = longPreferencesKey("lighter_week_start_epoch_day")
 
-        fun preferredDaysFrom(raw: Set<String>?): Set<DayOfWeek> =
+        fun preferredDaysFrom(raw: Set<String>?): Set<Weekday> =
             raw.orEmpty().mapNotNull { name ->
-                DayOfWeek.entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
+                Weekday.entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
             }.toSet()
     }
 }

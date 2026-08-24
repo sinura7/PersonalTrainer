@@ -1,6 +1,6 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
 import java.time.LocalDate
 import java.time.ZoneOffset
 import org.junit.Assert.assertEquals
@@ -92,7 +92,7 @@ class WeekDerivationTest {
             recentSessions = emptyList(),
             nowMs = millis(MON),
             zone = ZoneOffset.UTC,
-            pinnedSlots = listOf(slot(0, PUSH, anchor = DayOfWeek.MONDAY)),
+            pinnedSlots = listOf(slot(0, PUSH, anchor = Weekday.MONDAY)),
         )
 
         val monday = plan.days.first { it.epochDay == MON_EPOCH }
@@ -136,8 +136,8 @@ class WeekDerivationTest {
     fun sessionSatisfiesOnlyOneSlot() {
         // Two identical Push slots; one Push session. Exactly one is credited.
         val slots = listOf(
-            slot(0, PUSH, anchor = DayOfWeek.MONDAY),
-            slot(1, PUSH, anchor = DayOfWeek.THURSDAY),
+            slot(0, PUSH, anchor = Weekday.MONDAY),
+            slot(1, PUSH, anchor = Weekday.THURSDAY),
         )
         val week = derive(
             slots = slots,
@@ -150,7 +150,7 @@ class WeekDerivationTest {
 
     @Test
     fun focusSlotSatisfiedByCompatibleSession() {
-        val slots = listOf(focusSlot(0, SessionFocusKind.PULL, anchor = DayOfWeek.TUESDAY))
+        val slots = listOf(focusSlot(0, SessionFocusKind.PULL, anchor = Weekday.TUESDAY))
         val session = finished(id = "s1", routineId = null, day = MON).copy(routineName = "Pull")
         val week = derive(slots = slots, today = TUE, history = listOf(session))
 
@@ -162,7 +162,7 @@ class WeekDerivationTest {
     fun satisfiedSlotDisplaysOnItsSessionDay() {
         // Pinned to Monday, actually trained on Wednesday. The week shows what happened.
         val week = derive(
-            slots = listOf(slot(0, PUSH, anchor = DayOfWeek.MONDAY)),
+            slots = listOf(slot(0, PUSH, anchor = Weekday.MONDAY)),
             today = THU,
             history = listOf(finished(id = "s1", routineId = PUSH, day = WED)),
         )
@@ -237,12 +237,12 @@ class WeekDerivationTest {
         week.days.first { it.epochDay == epochDay }.slot == null
 
     private fun baseline(): List<ScheduleSlot> = listOf(
-        slot(0, PUSH, anchor = DayOfWeek.MONDAY),
+        slot(0, PUSH, anchor = Weekday.MONDAY),
         slot(1, PULL, anchor = null),
-        slot(2, LEGS, anchor = DayOfWeek.FRIDAY),
+        slot(2, LEGS, anchor = Weekday.FRIDAY),
     )
 
-    private fun slot(position: Int, routineId: String, anchor: DayOfWeek?): ScheduleSlot =
+    private fun slot(position: Int, routineId: String, anchor: Weekday?): ScheduleSlot =
         ScheduleSlot(
             id = "slot-$position",
             position = position,
@@ -253,7 +253,7 @@ class WeekDerivationTest {
             updatedAt = 0L,
         )
 
-    private fun focusSlot(position: Int, kind: SessionFocusKind, anchor: DayOfWeek?): ScheduleSlot =
+    private fun focusSlot(position: Int, kind: SessionFocusKind, anchor: Weekday?): ScheduleSlot =
         ScheduleSlot(
             id = "slot-$position",
             position = position,
@@ -319,7 +319,7 @@ class WeekDerivationTest {
         const val PULL = "r-pull"
         const val LEGS = "r-legs"
 
-        val PREFS = SchedulePreferences(weekStart = DayOfWeek.MONDAY)
+        val PREFS = SchedulePreferences(weekStart = Weekday.MONDAY)
 
         val MON: LocalDate = LocalDate.of(2026, 8, 24)
         val TUE: LocalDate = LocalDate.of(2026, 8, 25)

@@ -1,8 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.DayOfWeek
-import java.time.LocalDate
-
 /**
  * Turns a generated blueprint into proposals that point at routines already on the phone.
  *
@@ -22,15 +19,15 @@ object ExistingLayoutMatcher {
     ): List<SuggestedTrainingDay> {
         val unused = existing.toMutableList()
         val claimedByKey = LinkedHashMap<String, Routine>()
-        val weekStart = LocalDate.ofEpochDay(weekStartEpochDay)
+        val weekStart = CivilDate.fromEpochDay(weekStartEpochDay)
         val proposals = ArrayList<SuggestedTrainingDay>(blueprint.trainingDayCount)
         for (day in blueprint.days) {
             if (day.isRest) continue
             val planned = blueprint.routineFor(day) ?: continue
             val claimed = claim(planned, unused, claimedByKey) ?: continue
-            val date = dateOn(weekStart, day.dayOfWeek)
+                val date = dateOn(weekStart, day.dayOfWeek)
             proposals += SuggestedTrainingDay(
-                epochDay = date.toEpochDay(),
+                epochDay = date.epochDay,
                 dayOfWeek = day.dayOfWeek,
                 isRest = false,
                 focusKind = planned.focusKind,
@@ -67,7 +64,7 @@ object ExistingLayoutMatcher {
         return hit
     }
 
-    private fun dateOn(weekStart: LocalDate, day: DayOfWeek): LocalDate {
+    private fun dateOn(weekStart: CivilDate, day: Weekday): CivilDate {
         var cursor = weekStart
         repeat(7) {
             if (cursor.dayOfWeek == day) return cursor

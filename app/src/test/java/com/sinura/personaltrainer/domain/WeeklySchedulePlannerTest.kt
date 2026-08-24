@@ -4,7 +4,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.time.DayOfWeek
+import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.util.toWeekday
 import java.time.LocalDate
 import java.time.ZoneOffset
 
@@ -24,13 +25,13 @@ class WeeklySchedulePlannerTest {
         val prefs = SchedulePreferences.DEFAULT
         assertEquals(4, prefs.trainingDaysPerWeek)
         assertEquals(SplitStyle.AUTO, prefs.splitStyle)
-        assertEquals(DayOfWeek.MONDAY, prefs.weekStart)
+        assertEquals(Weekday.MONDAY, prefs.weekStart)
         assertEquals(7, SchedulePreferences(trainingDaysPerWeek = 99).sanitized().trainingDaysPerWeek)
         assertEquals(1, SchedulePreferences(trainingDaysPerWeek = 0).sanitized().trainingDaysPerWeek)
         assertEquals(SplitStyle.UPPER_LOWER, SplitStyle.fromStorage("upper_lower"))
         assertEquals(SplitStyle.AUTO, SplitStyle.fromStorage("nope"))
-        assertEquals(DayOfWeek.SUNDAY, SchedulePreferences.weekStartFromStorage("sunday"))
-        assertEquals(DayOfWeek.MONDAY, SchedulePreferences.weekStartFromStorage(null))
+        assertEquals(Weekday.SUNDAY, SchedulePreferences.weekStartFromStorage("sunday"))
+        assertEquals(Weekday.MONDAY, SchedulePreferences.weekStartFromStorage(null))
     }
 
     @Test
@@ -205,9 +206,12 @@ class WeeklySchedulePlannerTest {
 
     @Test
     fun weekCanStartOnSunday() {
-        val plan = plan(prefs = SchedulePreferences(weekStart = DayOfWeek.SUNDAY, splitStyle = SplitStyle.FULL_BODY))
-        assertEquals(DayOfWeek.SUNDAY, LocalDate.ofEpochDay(plan.weekStartEpochDay).dayOfWeek)
-        assertEquals(DayOfWeek.SUNDAY, plan.days.first().dayOfWeek)
+        val plan = plan(prefs = SchedulePreferences(weekStart = Weekday.SUNDAY, splitStyle = SplitStyle.FULL_BODY))
+        assertEquals(
+            Weekday.SUNDAY,
+            LocalDate.ofEpochDay(plan.weekStartEpochDay).dayOfWeek.toWeekday(),
+        )
+        assertEquals(Weekday.SUNDAY, plan.days.first().dayOfWeek)
     }
 
     @Test
@@ -285,7 +289,7 @@ class WeeklySchedulePlannerTest {
             position = 0,
             routineId = "r-push",
             focusKind = null,
-            anchorDay = DayOfWeek.MONDAY,
+            anchorDay = Weekday.MONDAY,
             createdAt = 0L,
             updatedAt = 0L,
         )
@@ -323,7 +327,7 @@ class WeeklySchedulePlannerTest {
             position = 0,
             routineId = "r-push",
             focusKind = null,
-            anchorDay = DayOfWeek.MONDAY,
+            anchorDay = Weekday.MONDAY,
             createdAt = 0L,
             updatedAt = 0L,
         )

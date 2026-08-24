@@ -1,9 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.DayOfWeek
-import java.time.LocalDate
-import java.time.temporal.TemporalAdjusters
-
 /**
  * The twelve weeks you are in the middle of.
  *
@@ -81,11 +77,11 @@ data class TrainingBlock(
          * map's, the tonnage buckets'.
          */
         fun startingIn(
-            today: LocalDate,
-            weekStart: DayOfWeek,
+            today: CivilDate,
+            weekStart: Weekday,
             weeks: Int = DEFAULT_WEEKS,
         ): TrainingBlock = TrainingBlock(
-            startEpochDay = today.with(TemporalAdjusters.previousOrSame(weekStart)).toEpochDay(),
+            startEpochDay = today.previousOrSame(weekStart).epochDay,
             weeks = weeks.coerceIn(MIN_WEEKS, MAX_WEEKS),
         )
     }

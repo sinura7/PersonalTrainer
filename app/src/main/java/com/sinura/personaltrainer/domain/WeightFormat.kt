@@ -1,7 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import java.text.NumberFormat
-import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.round
 
@@ -105,34 +103,17 @@ object WeightConverter {
         volumeDisplayWhole(kg, unit).coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
 
     /**
-     * Session/muscle volume runs to five digits. Grouped, whole-number output ("12,450 kg")
-     * reads at a glance where "12450.0 kg" does not.
+     * Locale-free digits for the whole-number volume.
      *
-     * Kept separate from [formatDisplayNumber] on purpose: that function feeds
-     * [parseDisplayToKg]'s round-trip check, and a grouping separator there would break
-     * parsing of the user's own entry.
+     * Grouped output ("12,450") is a platform concern — see
+     * `util/QuantityFormat`. Domain copy and TalkBack that must stay
+     * shared-target read this string.
      */
-    fun formatVolumeNumber(
-        kg: Double,
-        unit: WeightUnit,
-        locale: Locale = Locale.getDefault(),
-    ): String = NumberFormat.getIntegerInstance(locale).format(volumeDisplayWhole(kg, unit))
+    fun formatVolumeNumber(kg: Double, unit: WeightUnit): String =
+        volumeDisplayWhole(kg, unit).toString()
 
-    fun formatVolumeLabel(
-        kg: Double,
-        unit: WeightUnit,
-        locale: Locale = Locale.getDefault(),
-    ): String = "${formatVolumeNumber(kg, unit, locale)} ${unit.suffix}"
-
-    /**
-     * Group a number that is already in the display unit (animation frames,
-     * chart series). Stored kilograms must go through [formatVolumeNumber].
-     */
-    fun formatGroupedNumber(value: Double, locale: Locale = Locale.getDefault()): String {
-        if (value.isNaN() || value.isInfinite()) return "0"
-        val whole = round(value).toLong()
-        return NumberFormat.getIntegerInstance(locale).format(whole)
-    }
+    fun formatVolumeLabel(kg: Double, unit: WeightUnit): String =
+        "${formatVolumeNumber(kg, unit)} ${unit.suffix}"
 
     fun parseDisplayToKg(input: String, unit: WeightUnit, originalKg: Double?): Double? {
         val trimmed = input.trim()
