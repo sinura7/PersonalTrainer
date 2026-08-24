@@ -9,12 +9,15 @@ import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.BackupExercise
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.BackupPreferences
+import com.sinura.personaltrainer.data.backup.SafetySnapshot
+import java.io.File
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
@@ -96,6 +99,49 @@ class RestorePrepareTest {
             assertEquals(AuthoredInventory.EMPTY_INCOMING_REFUSED, thrown.message)
         }
         assertEquals(80.0, deps.preferencesRepository.bodyweightKg.first()!!, 0.0001)
+    }
+
+    @Test
+    fun commitRestoreAbortsWhenSafetyDirIsUnwritable() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Application>()
+        val blocker = File(context.cacheDir, "not-a-safety-dir-${System.nanoTime()}").apply {
+            writeText("nope")
+        }
+        deps.close()
+        deps = FakeAppDependencies(context, safetySnapshotDir = blocker)
+        val fixture = seedTestWorkout(
+            deps,
+            finish = true,
+            loggedSets = listOf(TestSetInput(100.0, 5)),
+        )
+        val json = deps.backupRepository.exportJson()
+        val plan = deps.backupRepository.prepareRestore(json, sourceName = "same.json")
+        try {
+            deps.backupRepository.commitRestore(plan)
+            fail("unwritable safety dir should abort restore")
+        } catch (thrown: BackupException) {
+            assertEquals(SafetySnapshot.MISSING_DIR, thrown.message)
+        }
+        assertEquals(fixture.session.id, deps.workoutRepository.getSession(fixture.session.id)?.id)
+        assertTrue(deps.safetySnapshotDir.isFile)
+    }
+
+    @Test
+    fun commitRestoreWritesAListableSafetyCopy() = runBlocking {
+        val fixture = seedTestWorkout(
+            deps,
+            finish = true,
+            loggedSets = listOf(TestSetInput(100.0, 5)),
+        )
+        val incoming = deps.backupRepository.exportJson()
+        val result = deps.backupRepository.restoreFromJson(incoming, sourceName = "phone.json")
+        val snaps = deps.backupRepository.listSafetySnapshots()
+        assertEquals(1, snaps.size)
+        assertEquals(result.safetySnapshotId, snaps.single().id)
+        assertTrue(SafetySnapshot.isSafeId(snaps.single().id))
+        assertFalse(snaps.single().id.contains("/"))
+        assertEquals(1, snaps.single().authored.sessions)
+        assertEquals(fixture.session.id, deps.workoutRepository.getSession(fixture.session.id)?.id)
     }
 }
 

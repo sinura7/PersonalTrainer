@@ -8,6 +8,7 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -24,7 +25,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Switch
@@ -47,6 +51,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.BuildConfig
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
+import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
 import com.sinura.personaltrainer.domain.BackupPrompt
 import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.DayLabel
@@ -127,6 +132,16 @@ fun SettingsScreen(
         ActivityResultContracts.OpenDocument(),
     ) { uri -> uri?.let { viewModel.requestFileRestore(it) } }
 
+    var pendingSafetyExportId by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingSafetyDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
+    val exportSafetyLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument(BackupJson.MIME_TYPE),
+    ) { uri ->
+        val id = pendingSafetyExportId
+        pendingSafetyExportId = null
+        if (uri != null && id != null) viewModel.exportSafetySnapshot(id, uri)
+    }
+
     // State, not an event: a consent request raised while this screen was recomposing or
     // rotating used to be dropped, leaving the backup UI stuck busy forever.
     val pendingResolution by viewModel.pendingResolution.collectAsStateWithLifecycle()
@@ -195,6 +210,12 @@ fun SettingsScreen(
                     // Some file managers hand back JSON as octet-stream or text/plain.
                     importLauncher.launch(arrayOf(BackupJson.MIME_TYPE, "text/plain", "*/*"))
                 },
+                onExportSafety = { id ->
+                    pendingSafetyExportId = id
+                    exportSafetyLauncher.launch(viewModel.exportSafetyFileName())
+                },
+                onRestoreSafety = viewModel::requestSafetyRestore,
+                onDeleteSafety = { id -> pendingSafetyDeleteId = id },
             )
             PlanSetupSection(onRerun = viewModel::rerunGuidedSetup)
             AboutSection()
@@ -209,6 +230,22 @@ fun SettingsScreen(
             destructive = true,
             onConfirm = { viewModel.confirmRestore() },
             onDismiss = viewModel::cancelRestore,
+        )
+    }
+
+    backup.safetySnapshots.firstOrNull { it.id == pendingSafetyDeleteId }?.let { snap ->
+        ConfirmActionDialog(
+            title = "Delete this safety copy?",
+            body = "This removes the copy made on " +
+                dateTimeFormat.format(Date(snap.createdAtMillis)) +
+                ". Training data on this phone is unchanged.",
+            confirmLabel = "Delete copy",
+            destructive = true,
+            onConfirm = {
+                pendingSafetyDeleteId = null
+                viewModel.deleteSafetySnapshot(snap.id)
+            },
+            onDismiss = { pendingSafetyDeleteId = null },
         )
     }
 }
@@ -550,6 +587,9 @@ private fun BackupRestoreSection(
     onRestore: (DriveBackupFile) -> Unit,
     onExportFile: () -> Unit,
     onImportFile: () -> Unit,
+    onExportSafety: (String) -> Unit,
+    onRestoreSafety: (String) -> Unit,
+    onDeleteSafety: (String) -> Unit,
 ) {
     var dismissedStatus by rememberSaveable { mutableStateOf<String?>(null) }
     // Cleared the moment an action starts, so the memo only ever suppresses a message left
@@ -679,7 +719,93 @@ private fun BackupRestoreSection(
                 }
             }
         }
+
+        GymSectionHeader("Safety copies on this phone", compact = true)
+        if (state.safetySnapshots.isEmpty()) {
+            Text(
+                "None yet. A verified copy is saved each time you restore.",
+                style = InstrumentType.caption,
+                color = TextTertiary,
+            )
+        } else {
+            GroupedList {
+                state.safetySnapshots.forEachIndexed { index, snap ->
+                    if (index > 0) HairlineDivider()
+                    SafetyCopyRow(
+                        snapshot = snap,
+                        dateTimeFormat = dateTimeFormat,
+                        enabled = !state.isBusy,
+                        restoreBlocked = restoreBlocked,
+                        onExport = { onExportSafety(snap.id) },
+                        onRestore = { onRestoreSafety(snap.id) },
+                        onDelete = { onDeleteSafety(snap.id) },
+                    )
+                }
+            }
+        }
     }
+}
+
+@Composable
+private fun SafetyCopyRow(
+    snapshot: SafetySnapshotMeta,
+    dateTimeFormat: DateFormat,
+    enabled: Boolean,
+    restoreBlocked: Boolean,
+    onExport: () -> Unit,
+    onRestore: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+    InstrumentRow(
+        title = snapshot.title,
+        subtitle = snapshot.subtitle(dateTimeFormat.format(Date(snapshot.createdAtMillis))),
+        trailing = {
+            Box {
+                IconButton(onClick = { menuOpen = true }, enabled = enabled) {
+                    Icon(
+                        Icons.Outlined.MoreVert,
+                        contentDescription = "Safety copy options",
+                        tint = if (enabled) TextSecondary else TextTertiary,
+                    )
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = {
+                            Text("Export", style = InstrumentType.bodyStrong, color = TextPrimary)
+                        },
+                        onClick = {
+                            menuOpen = false
+                            onExport()
+                        },
+                    )
+                    DropdownMenuItem(
+                        enabled = !restoreBlocked,
+                        text = {
+                            Text(
+                                "Restore…",
+                                style = InstrumentType.bodyStrong,
+                                color = if (restoreBlocked) TextTertiary else Danger,
+                            )
+                        },
+                        onClick = {
+                            menuOpen = false
+                            onRestore()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text("Delete…", style = InstrumentType.bodyStrong, color = TextSecondary)
+                        },
+                        onClick = {
+                            menuOpen = false
+                            onDelete()
+                        },
+                    )
+                }
+            }
+        },
+    )
 }
 
 /**

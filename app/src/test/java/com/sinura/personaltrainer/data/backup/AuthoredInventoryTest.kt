@@ -99,7 +99,8 @@ class AuthoredInventoryTest {
         assertTrue(body.contains("6 weigh-ins"))
         assertFalse(body.contains("continue anyway", ignoreCase = true))
         assertFalse(body.contains("reset", ignoreCase = true))
-        assertFalse(body.contains("saved on this phone", ignoreCase = true))
+        assertTrue(body.contains("saved first"))
+        assertTrue(body.contains("from Settings"))
     }
 
     private fun catalogOnly() = BackupDocument(

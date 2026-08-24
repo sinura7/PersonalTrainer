@@ -7,6 +7,9 @@ import com.sinura.personaltrainer.data.backup.BackupExercise
 import com.sinura.personaltrainer.data.backup.BackupExerciseMuscle
 import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.BackupJson
+import com.sinura.personaltrainer.data.backup.SafetySnapshot
+import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
+import com.sinura.personaltrainer.data.backup.SafetySnapshotStore
 import com.sinura.personaltrainer.data.backup.BackupPreferences
 import com.sinura.personaltrainer.data.backup.BackupRoutine
 import com.sinura.personaltrainer.data.backup.BackupRoutineExercise
@@ -51,15 +54,19 @@ import java.io.File
  * @param onBeforeRestore runs immediately before the wipe, at the single choke point every
  * restore passes through, so no caller can forget to tear down state that points at rows
  * about to be deleted (the rest timer and the in-memory workout draft).
- * @param safetySnapshotDir where a copy of the current data is written before it is
- * overwritten. Restoring the wrong file is otherwise unrecoverable.
+ * @param safetySnapshotDir where a verified copy of the current data is written
+ * before it is overwritten. [replaceWith] does not write that copy — [commitRestore]
+ * does, so a failed snapshot can abort without touching Room.
  */
 class LocalBackupRepository(
     private val database: TrainerDatabase,
     private val preferencesRepository: PreferencesRepository,
     private val onBeforeRestore: suspend () -> Unit = {},
-    private val safetySnapshotDir: File? = null,
+    safetySnapshotDir: File? = null,
+    clock: () -> Long = { System.currentTimeMillis() },
 ) {
+    private val safetySnapshots: SafetySnapshotStore? =
+        safetySnapshotDir?.let { SafetySnapshotStore(it, clock) }
     /**
      * A consistent point-in-time export.
      *
@@ -283,7 +290,6 @@ class LocalBackupRepository(
         if (document.version > BackupJson.CURRENT_VERSION) {
             throw BackupException("This backup was made with a newer app version and can’t be opened here.")
         }
-        val safetySnapshotPath = writeSafetySnapshot()
         // Stop anything holding a session id that is about to stop existing.
         onBeforeRestore()
         database.withTransaction {
@@ -470,31 +476,31 @@ class LocalBackupRepository(
         } catch (_: Exception) {
             false
         }
-        return RestoreOutcome(
-            preferencesRestored = preferencesRestored,
-            safetySnapshotPath = safetySnapshotPath,
-        )
+        return RestoreOutcome(preferencesRestored = preferencesRestored)
     }
 
     /**
-     * Writes the current data to app-private storage before it is destroyed, keeping the most
-     * recent few. Best-effort: a restore is never blocked because this failed.
+     * Encode the current phone, write it, re-read it, and refuse unless the
+     * authored counts match. Restore must call this before [replaceWith].
      */
-    private suspend fun writeSafetySnapshot(): String? {
-        val dir = safetySnapshotDir ?: return null
-        return try {
-            if (!dir.exists() && !dir.mkdirs()) return null
-            val json = BackupJson.encode(createSnapshot())
-            val file = File(dir, "pre-restore-${System.currentTimeMillis()}.json")
-            file.writeText(json)
-            dir.listFiles { f -> f.isFile && f.name.startsWith("pre-restore-") }
-                ?.sortedByDescending { it.lastModified() }
-                ?.drop(SAFETY_SNAPSHOT_KEEP)
-                ?.forEach { it.delete() }
-            file.absolutePath
-        } catch (_: Exception) {
-            null
-        }
+    suspend fun writeVerifiedSafetySnapshot(): SafetySnapshotMeta {
+        val store = safetySnapshots ?: throw BackupException(SafetySnapshot.MISSING_DIR)
+        val expected = authoredInventory()
+        val json = BackupJson.encode(createSnapshot())
+        return store.writeVerified(json, expected)
+    }
+
+    fun listSafetySnapshots(): List<SafetySnapshotMeta> =
+        safetySnapshots?.list() ?: emptyList()
+
+    fun readSafetySnapshot(id: String): String {
+        val store = safetySnapshots ?: throw BackupException(SafetySnapshot.MISSING_DIR)
+        return store.readJson(id)
+    }
+
+    fun deleteSafetySnapshot(id: String) {
+        val store = safetySnapshots ?: throw BackupException(SafetySnapshot.NOT_FOUND)
+        store.delete(id)
     }
 
     private data class TableSnapshot(
@@ -507,10 +513,6 @@ class LocalBackupRepository(
         val credits: List<ExerciseMuscleEntity>,
         val scheduleSlots: List<ScheduleSlotEntity>,
     )
-
-    private companion object {
-        const val SAFETY_SNAPSHOT_KEEP = 3
-    }
 }
 
 private data class RoomAuthored(
@@ -523,5 +525,4 @@ private data class RoomAuthored(
 
 data class RestoreOutcome(
     val preferencesRestored: Boolean,
-    val safetySnapshotPath: String?,
 )

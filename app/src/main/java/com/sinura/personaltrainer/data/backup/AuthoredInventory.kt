@@ -76,7 +76,7 @@ data class AuthoredInventory(
             "Restoring $sourceName replaces everything on this phone.\n\n" +
                 "This file: ${incoming.describe()}.\n" +
                 "This phone: ${local.describe()}.\n\n" +
-                "This cannot be undone from Settings."
+                "A verified copy of this phone is saved first. You can restore that copy from Settings."
 
         const val EMPTY_INCOMING_REFUSED =
             "This file has no sessions, sets, routines, custom exercises, " +

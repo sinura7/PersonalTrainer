@@ -113,17 +113,18 @@ local data.
 
 ### 4.4 Restore commit (shipping)
 
-Order today: refuse if a workout is live → decode → validate → empty-file
-guard → maintenance lock → **best-effort** safety snapshot → wipe Room →
-write Room → write preferences (failure is a warning, not a rollback) →
-catalog reconcile.
+Order today: refuse if a workout is live → decode → validate → authored
+compare (no write) → confirm → **verified** safety snapshot (failure
+aborts, nothing is wiped) → maintenance lock → wipe Room → write Room →
+write preferences (failure is a warning, not a rollback) → catalog
+reconcile.
 
-Settings still says a copy “is saved on this phone first” even when the
-snapshot path is null. The path is never shown or offered as recovery.
+Settings lists retained snapshots by authored counts and date. Export,
+restore-through-preview, and delete are offered. Raw private paths are
+not shown.
 
-`BackupSummary.isEmpty` counts built-in exercises, so a catalog-only file
-is “non-empty.” `hasLocalData()` ignores DataStore-only bodyweight and
-finished blocks.
+Catalog-only and DataStore-only authored data are compared on both
+sides (P3.2). Start versus restore is still not journaled (P3.4).
 
 ## 5. Threats
 
@@ -139,7 +140,7 @@ forever.
 | T4 | **File leak of a SAF/Drive JSON** | Plaintext. Complete finished history + bodyweight if those rows exist. | Warn. Offer a portable authenticated encrypted envelope. Keep legacy plaintext import. Plaintext export becomes an advanced choice. | P3.6 |
 | T5 | **Drive account or `drive.file` folder compromise** | Attacker with the Google account can read/replace files this app created. `drive.file` cannot list the rest of Drive. | Keep `drive.file`. Say **backup**, never sync. Encryption (P3.6) reduces payload value. | P3.6; P12.2 copy |
 | T6 | **Catalog-only or bodyweight-blind restore** | A file that is only the seeded catalog passes the empty guard and can wipe authored sessions. Local bodyweight/blocks do not count as “has data.” | Authored-data counts on both sides. Catalog-only cannot wipe history through the normal path. | P3.2 |
-| T7 | **Safety snapshot fails, restore continues** | Disk pressure is a likely reason the snapshot failed — the same pressure that makes a wipe unrecoverable. UI still promises a copy. | Verified snapshot is a restore precondition. Failure aborts. Snapshots are listable/exportable/restorable from Settings. | P3.3 |
+| T7 | **Safety snapshot fails, restore continues** | Closed: a verified snapshot is a restore precondition. Failure aborts before Room is touched. Settings lists, exports, restores through preview, and deletes retained copies. Paths stay off the screen. | Verified snapshot is a restore precondition. Failure aborts. Snapshots are listable/exportable/restorable from Settings. | P3.3 |
 | T8 | **Start versus restore race** | Live-session check is before the maintenance lock. Start does not share that lock. A just-started session can be deleted by a restore that already passed the check. | One coordinator serializes start/repeat and restore. | P3.4 |
 | T9 | **Process death mid-restore** | Room can commit while preferences and catalog reconcile have not. UI can report failure over a mixed phone. | Journaled phases. Success means the committed state. Failure states are recoverable and named. | P3.4 |
 | T10 | **Scale / whole-document encode** | `createSnapshot` / `BackupJson.encode` load the finished DB in memory. | Measure on a 500-session / 15,000-set fixture before any streaming rewrite. | P3.7, later P8.5 |
@@ -156,13 +157,14 @@ Current-voice documents may say:
   supported recovery path.
 - Export and Drive JSON are plaintext today.
 - Restore refuses while a workout is live.
-- A safety copy is **not** guaranteed until P3.3.
+- A verified safety copy is required before restore teardown. Copies
+  are listable from Settings. Failure aborts the restore.
 
 They must not say:
 
 - Drive syncs two phones.
 - Auto Backup is how you move to a new phone.
-- The current restore is atomic or always keeps a usable safety copy.
+- The current restore is atomic or survives process death.
 - The JSON is private or encrypted.
 
 ## 7. Finding coverage
@@ -171,7 +173,7 @@ They must not say:
 |---|---|---|
 | FND-011 | Threat model covers device theft (T1–T2), Auto Backup (T3), file leak (T4), and Drive (T5) | P3.5 manifest; P3.6 envelope |
 | FND-014B | T6 records the catalog-only / authored-count hole | P3.2 |
-| FND-014A | T7 records the best-effort unreachable snapshot | P3.3 |
+| FND-014A | T7 is closed: verified snapshot, Settings recovery | done — P3.3 |
 | FND-014C | T8–T9 record the start race and mixed commit | P3.4 |
 | FND-038 | T10 records the whole-document encode | P3.7 measure, P8.5 if budgets fail |
 | FND-030 | T12 records missing commercial privacy copy | P12.2 |

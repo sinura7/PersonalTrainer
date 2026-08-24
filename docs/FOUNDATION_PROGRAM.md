@@ -421,9 +421,17 @@ and close FND-011, FND-014A–C, and the measurement half of FND-038.
   data, including DataStore-only bodyweight or blocks. Evidence:
   [P3.2 evidence](foundation-program/evidence/P3.2-restore-preview.md).
 
-- **P3.3** Verified, user-recoverable safety snapshots. Failure aborts
-- **P3.3** Verified, user-recoverable safety snapshots. Failure aborts
-  restore. Closes FND-014A.
+#### P3.3 — Verified safety snapshots · **done**
+
+- A verified safety snapshot is required before teardown. Snapshot
+  failure aborts restore. Retained copies are listable, exportable,
+  restorable through preview, and deletable from Settings. Raw private
+  paths are not shown.
+- Exit: FND-014A closed.
+- Landed: `commitRestore` writes a verified copy, re-reads it, and
+  refuses unless authored counts match. Settings lists those copies by
+  counts and date.
+
 - **P3.4** Serialize starts and journal restore phases. Closes FND-014C.
 - **P3.5** `allowBackup=false` plus explicit exclusion rules.
   Upgrade-in-place must not erase data.

@@ -13,6 +13,7 @@ import com.sinura.personaltrainer.data.backup.AuthoredInventory
 import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
+import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
 import com.sinura.personaltrainer.data.repository.RestorePlan
 import com.sinura.personaltrainer.data.repository.RestoreResult
 import com.sinura.personaltrainer.domain.BackupPrompt
@@ -61,6 +62,7 @@ data class BackupUiState(
     val sessionLive: Boolean = false,
     /** No stamp, or older than 14 days. Caption nags; Export stays the tap. */
     val backupStale: Boolean = true,
+    val safetySnapshots: List<SafetySnapshotMeta> = emptyList(),
 )
 
 private const val TAG = "PT/SettingsVM"
@@ -180,6 +182,7 @@ class SettingsViewModel @JvmOverloads constructor(
     private val status = MutableStateFlow<String?>(null)
     private val error = MutableStateFlow<String?>(null)
     private val backups = MutableStateFlow<List<DriveBackupFile>>(emptyList())
+    private val safetySnapshots = MutableStateFlow<List<SafetySnapshotMeta>>(emptyList())
     private val pendingPlan = MutableStateFlow<RestorePlan?>(null)
     private var resolutionWaiter: CompletableDeferred<Boolean>? = null
 
@@ -215,7 +218,8 @@ class SettingsViewModel @JvmOverloads constructor(
         },
         backups,
         container.workoutRepository.observeInProgress(),
-    ) { meta, flags, files, live ->
+        safetySnapshots,
+    ) { meta, flags, files, live, snaps ->
         BackupUiState(
             accountEmail = meta.email,
             lastBackupAt = meta.lastAt,
@@ -230,6 +234,7 @@ class SettingsViewModel @JvmOverloads constructor(
             pendingPreview = flags.pendingPreview,
             sessionLive = live != null,
             backupStale = BackupPrompt.isStale(meta.lastAt, System.currentTimeMillis()),
+            safetySnapshots = snaps,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -357,7 +362,57 @@ class SettingsViewModel @JvmOverloads constructor(
                 plan.sourceName,
                 System.currentTimeMillis(),
             )
+            reloadSafetySnapshots()
             status.value = describeRestore(result)
+        }
+    }
+
+    init {
+        refreshSafetySnapshots()
+    }
+
+    fun refreshSafetySnapshots() {
+        viewModelScope.launch {
+            runCatchingCancellable { reloadSafetySnapshots() }
+                .onFailure { AppLog.w(TAG, "Listing safety copies failed", it) }
+        }
+    }
+
+    private suspend fun reloadSafetySnapshots() {
+        safetySnapshots.value = container.backupRepository.listSafetySnapshots()
+    }
+
+    fun requestSafetyRestore(id: String) {
+        runBackupAction("Checking safety copy…") {
+            val json = container.backupRepository.readSafetySnapshot(id)
+            pendingPlan.value = container.backupRepository.prepareRestore(
+                json,
+                sourceName = SafetySnapshotMeta.TITLE,
+            )
+        }
+    }
+
+    fun exportSafetyFileName(): String = BackupJson.fileName()
+
+    fun exportSafetySnapshot(id: String, uri: Uri) {
+        runBackupAction("Saving safety copy…") {
+            val json = container.backupRepository.readSafetySnapshot(id)
+            withContext(Dispatchers.IO) {
+                val resolver = getApplication<Application>().contentResolver
+                resolver.openOutputStream(uri, "wt")?.use { stream ->
+                    stream.write(json.toByteArray(Charsets.UTF_8))
+                    stream.flush()
+                } ?: throw BackupException("Couldn't write to that location. Pick another folder.")
+            }
+            status.value = "Safety copy saved to your chosen file."
+        }
+    }
+
+    fun deleteSafetySnapshot(id: String) {
+        runBackupAction("Deleting safety copy…") {
+            container.backupRepository.deleteSafetySnapshot(id)
+            reloadSafetySnapshots()
+            status.value = "Safety copy deleted. Training data on this phone is unchanged."
         }
     }
 
@@ -418,7 +473,8 @@ class SettingsViewModel @JvmOverloads constructor(
         }
 
     private fun describeRestore(result: RestoreResult): String {
-        val base = "Restored ${result.sourceName} — ${result.summary.describe()}."
+        val base = "Restored ${result.sourceName} — ${result.summary.describe()}. " +
+            "A verified copy of the previous data is under Safety copies on this phone."
         return if (result.preferencesRestored) {
             base
         } else {

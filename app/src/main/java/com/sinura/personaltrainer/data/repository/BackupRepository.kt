@@ -9,6 +9,7 @@ import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.BackupSummary
 import com.sinura.personaltrainer.data.backup.BackupValidation
 import com.sinura.personaltrainer.data.backup.BackupValidator
+import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
 import com.sinura.personaltrainer.data.backup.DriveAuthClient
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
 import com.sinura.personaltrainer.data.backup.DriveRestClient
@@ -155,6 +156,7 @@ class BackupRepository(
     /** Writes the already-prepared document. Re-checks the live-session refuse. */
     suspend fun commitRestore(plan: RestorePlan): RestoreResult = withContext(Dispatchers.IO) {
         refuseIfLive()
+        val snapshot = localBackupRepository.writeVerifiedSafetySnapshot()
         val outcome = dbMaintenance.withMaintenanceLock {
             val result = localBackupRepository.replaceWith(plan.document)
             dbMaintenance.reconcileCatalogLocked()
@@ -166,8 +168,20 @@ class BackupRepository(
             incoming = plan.incoming,
             local = plan.local,
             preferencesRestored = outcome.preferencesRestored,
-            safetySnapshotPath = outcome.safetySnapshotPath,
+            safetySnapshotId = snapshot.id,
         )
+    }
+
+    suspend fun listSafetySnapshots(): List<SafetySnapshotMeta> = withContext(Dispatchers.IO) {
+        localBackupRepository.listSafetySnapshots()
+    }
+
+    suspend fun readSafetySnapshot(id: String): String = withContext(Dispatchers.IO) {
+        localBackupRepository.readSafetySnapshot(id)
+    }
+
+    suspend fun deleteSafetySnapshot(id: String) = withContext(Dispatchers.IO) {
+        localBackupRepository.deleteSafetySnapshot(id)
     }
 
     /**
@@ -232,7 +246,7 @@ data class RestoreResult(
     val sourceName: String,
     val summary: BackupSummary,
     val preferencesRestored: Boolean,
-    val safetySnapshotPath: String?,
+    val safetySnapshotId: String?,
     val incoming: AuthoredInventory = AuthoredInventory.EMPTY,
     val local: AuthoredInventory = AuthoredInventory.EMPTY,
 )

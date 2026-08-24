@@ -4,8 +4,12 @@ import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.data.backup.SafetySnapshot
+import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
 import com.sinura.personaltrainer.domain.BackupPrompt
 import com.sinura.personaltrainer.domain.ExactAlarmAttempt
+import com.sinura.personaltrainer.testutil.TestSetInput
+import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -15,6 +19,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -123,5 +128,58 @@ class SettingsViewModelTest {
         viewModel!!.offerExactAlarmAccess.first { !it }
         assertFalse(deps.preferencesRepository.restAlarmEligible.first())
         assertFalse(viewModel!!.offerExactAlarmAccess.value)
+    }
+
+    @Test
+    fun commitRestoreSurfacesSafetyCopyThenDeleteRemovesIt() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        seedTestWorkout(
+            deps,
+            finish = true,
+            loggedSets = listOf(TestSetInput(100.0, 5)),
+        )
+        val json = deps.backupRepository.exportJson()
+        deps.backupRepository.restoreFromJson(json, sourceName = "phone.json")
+
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        val listed = withTimeout(5_000) {
+            viewModel!!.backupState.first { it.safetySnapshots.isNotEmpty() }
+        }
+        assertEquals(1, listed.safetySnapshots.size)
+        val snap = listed.safetySnapshots.single()
+        assertEquals(SafetySnapshotMeta.TITLE, snap.title)
+        assertTrue(SafetySnapshot.isSafeId(snap.id))
+        assertFalse(snap.id.contains("/"))
+        assertTrue(snap.authored.sessions >= 1)
+
+        viewModel!!.deleteSafetySnapshot(snap.id)
+        val empty = withTimeout(5_000) {
+            viewModel!!.backupState.first { it.safetySnapshots.isEmpty() && it.status != null }
+        }
+        assertTrue(empty.safetySnapshots.isEmpty())
+        assertTrue(empty.status?.contains("deleted") == true)
+    }
+
+    @Test
+    fun safetyCopyRestoreGoesThroughPreview() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        seedTestWorkout(
+            deps,
+            finish = true,
+            loggedSets = listOf(TestSetInput(100.0, 5)),
+        )
+        val json = deps.backupRepository.exportJson()
+        deps.backupRepository.restoreFromJson(json, sourceName = "phone.json")
+        val id = deps.backupRepository.listSafetySnapshots().single().id
+
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.backupState.first { it.safetySnapshots.isNotEmpty() }
+        viewModel!!.requestSafetyRestore(id)
+        val preview = withTimeout(5_000) {
+            viewModel!!.backupState.first { it.pendingPreview != null }
+        }
+        assertEquals(SafetySnapshotMeta.TITLE, preview.pendingPreview?.sourceName)
+        assertTrue(preview.pendingPreview?.body?.contains("This file:") == true)
+        assertTrue(preview.pendingPreview?.body?.contains("saved first") == true)
     }
 }

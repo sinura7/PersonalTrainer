@@ -55,6 +55,8 @@ import com.sinura.personaltrainer.domain.RestTimerSnapshot
 class FakeAppDependencies(
     context: Context,
     insights: Flow<TrainingInsights> = MutableStateFlow(TrainingInsights()),
+    val safetySnapshotDir: File = File(context.cacheDir, "safety-snapshots-${System.nanoTime()}")
+        .also { it.mkdirs() },
 ) : AppDependencies {
     val database: TrainerDatabase = Room.inMemoryDatabaseBuilder(context, TrainerDatabase::class.java)
         .allowMainThreadQueries()
@@ -123,7 +125,7 @@ class FakeAppDependencies(
             database = database,
             preferencesRepository = preferencesRepository,
             onBeforeRestore = {},
-            safetySnapshotDir = File(context.cacheDir, "safety-snapshots"),
+            safetySnapshotDir = safetySnapshotDir,
         ),
         preferencesRepository = preferencesRepository,
         dbMaintenance = dbMaintenance,
