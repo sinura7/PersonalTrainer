@@ -190,15 +190,30 @@ code. Both mistakes it now avoids were made first: treating a preceding dot as p
 was unused (extensions are always called that way) reported 228 live imports as dead, and
 blanking whole string literals hid the only use of several others.
 
+## `check-doc-authority.py`
+
+Guards the documentation authority signed in `docs/architecture/ADR-001-documentation-authority.md`.
+
+```bash
+python3 tools/check-doc-authority.py
+```
+
+Current-voice files (README, SETUP, DEVELOPMENT, RECOVERY, UX page-pass binding
+rules, the foundation program, ADRs, owner-loop) must not assert obsolete law:
+Drive as sync, `main` as the sitting branch, uncommitted `2.json`, 7/14-day heat
+windows, Job 6 as the current program, or a permanent Room v2 freeze. Relative
+markdown links in active documents must resolve. Every issued FND ID must have a
+disposition in ADR-013. Archives are not phrase-checked.
+
 ## preflight.sh
 
-`tools/preflight.sh` is the mechanical half of every game-plan phase's definition of done:
-run it before every push. It chains the eleven static checks above and then the domain
+`tools/preflight.sh` is the mechanical half of every foundation-program packet's definition of done:
+run it before every push. It chains the static checks above and then the domain
 suite, exiting non-zero on the first failure.
 
 Three of the checks (`check-named-args`, `check-when-exhaustive`, `check-unused-imports`)
 and `syntax-check.sh` always exit 0, so preflight judges them on their summary line rather
-than their status; the other seven exit by finding-count and are judged on that.
+than their status; the others exit by finding-count and are judged on that.
 
 The domain tests need a directory of seven jars (see `run-domain-tests.sh`'s header). If
 `$PT_JARS` / `build/test-jars` is absent, preflight assembles it by symlinking jars found in

@@ -3,6 +3,10 @@
 How to work on this app day to day. Android Studio is the primary tool; everything here
 assumes you are building and installing from it.
 
+The current program is [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md). Signed
+decisions are [architecture/](architecture/README.md). This file is the
+operational runbook: layout, tests, Windows notes, things that bite you.
+
 ## First run
 
 1. Clone, then **File → Open** the folder containing `settings.gradle.kts`.
@@ -61,8 +65,8 @@ These are plain JVM tests — no emulator, a few seconds. Run them
 before every commit, here on Cursor. Studio is the live install
 path. Do not wait on a GitHub Actions run.
 
-Run everything mechanical with one command — the twelve static checks plus the JVM test
-lanes, which is what every game-plan phase gates on:
+Run everything mechanical with one command — the static checks plus the JVM test
+lanes, which is what every foundation-program packet gates on:
 
 ```bash
 tools/preflight.sh
@@ -83,6 +87,7 @@ python3 tools/check-state-members.py app/src/main/java     # state.foo exists on
 python3 tools/check-annotation-targets.py                  # annotations still on a declaration
 python3 tools/check-required-args.py                       # every required parameter supplied
 python3 tools/check-import-hygiene.py                      # no duplicate imports; `by` delegates importable
+python3 tools/check-doc-authority.py                       # current-voice docs, FND map, relative links
 tools/syntax-check.sh app/src/main/java                    # parse-level diagnostics only
 ```
 
@@ -209,7 +214,7 @@ Migration tests must pass in both lanes before a schema change ships.
 
 `WorkoutRepository` and `ScheduleRepository` have instrumented tests on real SQLite
 (`app/src/androidTest/.../data/repository/`). ViewModels and Compose screens remain
-unverified by automation — see [ROADMAP.md](ROADMAP.md).
+unverified by automation — see [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md) Phase 1.
 
 ## On Windows
 
@@ -315,7 +320,8 @@ Android Studio at home is the phone check. They are not the same evening.
   `connectedDebugAndroidTest` on the release `applicationId`. The connected
   suite targets `.debug`, which is the point.
 
-Agents load the same rules from `.cursor/rules/owner-loop.mdc`.
+Agents load the same rules from `.cursor/rules/owner-loop.mdc`. The current
+program those rules point at is [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md).
 
 ## Committing
 

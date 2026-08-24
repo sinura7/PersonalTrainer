@@ -12,9 +12,9 @@ for this to be **audited and critiqued, not implemented blindly**.
 
 This document is that audit: five code readers swept every screen and the docs, five
 specialist critics (information architecture, gym-floor UX, content strategy, coaching,
-sequencing) judged the proposal against what they found. [ROADMAP.md](ROADMAP.md) remains
-the source of truth for what is being built; nothing below is committed until the
-decisions in §3 are recorded there.
+sequencing) judged the proposal against what they found. Current law is
+[FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md). [ROADMAP.md](ROADMAP.md) is
+the historical record of D1. Nothing below is a live instruction.
 
 Interactive report:
 **https://claude.ai/code/artifact/767dd64c-177f-447b-9efa-74200edd5f3e**

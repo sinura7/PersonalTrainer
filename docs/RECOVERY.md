@@ -8,7 +8,7 @@ irreplaceable, and only one of them is in this repository:
 
 | Thing | Where it lives | If lost |
 |---|---|---|
-| **Source code** | this repo, `main` branch | nothing lost — clone and build |
+| **Source code** | this repo, `trunk` branch | nothing lost — clone and build |
 | **Training history** | the phone's Room database | restore from a backup file (below) |
 | **Release keystore** | your own backup, **not** this repo | cannot update the installed app, ever |
 
@@ -28,8 +28,12 @@ Your training history is on the old phone. Recover it in this order:
 
 Install the app on the new phone first (see [SETUP.md](../SETUP.md)), then restore.
 
-> Android's own Auto Backup may also have a copy, but the app does not rely on it and its
-> contents are not versioned or validated. Treat it as luck, not a plan.
+> Android Auto Backup is **not** the recovery path. The shipping manifest still
+> allows it (a documented defect; see foundation-audit FND-011). Its contents
+> are not versioned or validated by Temper, and the foundation program will
+> disable the channel. Treat any OS copy as luck, not a plan. Export to file
+> is the copy that counts. Google Drive, if you used it, is a whole-file
+> **backup**, not a sync.
 
 ## 2. "My laptop died"
 

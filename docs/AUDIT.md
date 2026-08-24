@@ -26,10 +26,11 @@ line references):
 Execution plan derived from it — 122 items across 10 workstreams:
 **https://claude.ai/code/artifact/4c772739-8b6f-4564-ad85-e0605e5abff0**
 
-> These links are private to the repo owner's Claude account. [ROADMAP.md](ROADMAP.md) is
-> the in-repo summary and is the source of truth for what is actually being built.
-> Counts, grades, and “confirmed” statements below are preserved from that review and were
-> not re-audited as part of the current package.
+> These links are private to the repo owner's Claude account. What is being
+> built now is [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md).
+> [ROADMAP.md](ROADMAP.md) is the historical in-repo summary of the strength
+> logger. Counts, grades, and “confirmed” statements below are preserved from
+> that review and were not re-audited as part of the current package.
 
 ## Verdict at the time
 

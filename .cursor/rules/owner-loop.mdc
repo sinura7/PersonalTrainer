@@ -56,15 +56,21 @@ Pull `origin/trunk` in Studio. Judge that build. Never run
 `com.sinura.personaltrainer.debug` — a separate app. The connected suite
 targets that id. Use the emulator, not the gym-floor phone.
 
+## Current program
+
+`docs/FOUNDATION_PROGRAM.md` and `docs/architecture/` are current law.
+Jobs 1–6 are historical. Do not open a CI / billing / runner packet.
+
 ## Still not these jobs
 
-Room v3, a fifth tab, an LLM, package or Drive-folder rename, Job 2 P5
-sex, catalog seed. A waiting PR is not permission to open a different
-job.
+A fifth tab, an LLM-as-author, package or Drive-folder rename, Job 2 P5
+sex, catalog seed, `fallbackToDestructiveMigration`, GitHub-hosted
+runners as a test lane. A waiting PR is not permission to open a
+different job.
 
-Jobs 1–5 are code-done on `trunk`. Phone gates stay the owner's.
-Job 6 is polish and intuition, not another feature pile. Living
-plan: `docs/JOB6_REGROUP.md`. Do not start its packets in the same
-PR as each other. Do not open a CI / billing / runner packet.
-Room v3, a fifth tab, an LLM, package or Drive-folder rename,
-Job 2 P5 sex, catalog seed stay signed won't.
+**Room v3 won’t is superseded** for the one signed Phase 5 cutover
+(`docs/architecture/ADR-010-schema-reset-migrations.md`). Do not invent
+a `TrainerDatabase` v3 during polish. Do not reset after the foundation
+freeze.
+
+Jobs 1–6 are code-done on `trunk`. Phone gates stay the owner's.

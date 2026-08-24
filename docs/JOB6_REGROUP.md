@@ -1,6 +1,17 @@
 # Job 6 — Regroup: polish and intuition
 
-Living plan. **Not the law.** If the phone disagrees, write it under
+> **Superseded as current program on 24 August 2026.** Leftover P0–P8 and
+> the rest-dock floor finding are on `trunk`. This file is historical
+> leftover paper. Current law: [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md)
+> and [architecture/](architecture/README.md).
+>
+> The signed “Room v3 won’t” row below is **superseded** for the one
+> Phase 5 cutover ([ADR-010](architecture/ADR-010-schema-reset-migrations.md)).
+> `fallbackToDestructiveMigration`, a fifth tab, an LLM-as-author, package /
+> Drive-folder rename, and GitHub-hosted runners as a test lane remain
+> forbidden.
+
+Living plan when it was written. **Not the law.** If the phone disagrees, write it under
 *Floor findings* and take that instead.
 
 Status: **done** · **next** · *later* · **won't**

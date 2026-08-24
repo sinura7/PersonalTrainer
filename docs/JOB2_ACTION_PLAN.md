@@ -1,5 +1,8 @@
 # Job 2 action plan — the app builds the week
 
+> **Banner (24 Aug 2026).** Code-done historical job. Current program:
+> [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md).
+
 Living plan. **Not the law.** If a clearer move shows up, take it, write it
 under *Floor findings*, strike the old line. Same method as
 [UX_PAGE_PASS.md](UX_PAGE_PASS.md).

@@ -1,8 +1,14 @@
 # UX page pass — living plan
 
+> **Banner (24 Aug 2026).** Binding product rules below remain in force except
+> the Room v2 freeze. A new database generation is authorized once, in
+> foundation-program Phase 5 ([ADR-010](architecture/ADR-010-schema-reset-migrations.md)).
+> Current program: [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md). This file is
+> the gym-floor page-pass method, not the feature roadmap.
+
 How we make Temper the easiest thing to use on the gym floor.
 
-This file is the plan we follow. **It is not the law.** If a clearer move shows up
+This file is the plan we follow for page passes. **It is not the law.** If a clearer move shows up
 while building or on the phone, take it, write it under *Floor findings*, and
 leave the old line struck through with why it lost. Trial and error is the method.
 
@@ -65,7 +71,10 @@ These are signed. A page pass may not weaken them.
 - **Finish / Discard** go through `FinishWorkout` / `DiscardWorkout`.
 - Same week object (`TrainingInsightsSource`). Same `WeekStrip`. Same `ExercisePickerSheet`.
 - Weights stored in kg. Display via `LocalWeightUnit`.
-- Room stays at **version 2**. Never invent a schema v3 or an identityHash.
+- Production stays on Room v2 until the signed Phase 5 cutover. Do not invent
+  a `TrainerDatabase` v3 identityHash during a page pass.
+  `fallbackToDestructiveMigration` stays forbidden. The one authorized new
+  database generation is [ADR-010](architecture/ADR-010-schema-reset-migrations.md).
 
 ---
 
@@ -225,18 +234,19 @@ and the screen says so *before* the tap, not only after the repository refuses.
 - Guided setup re-run that deletes history (it must not).
 
 **Won't.** Silent WorkManager Drive upload. Renaming the Drive folder.
-Room v3. Job 5 / P5 is a stale-backup prompt, still a tap.
+Inventing a casual `TrainerDatabase` v3 during a page pass. Job 5 / P5 is a
+stale-backup prompt, still a tap. The foundation cutover is not this file.
 
 ---
 
 ## Do not open
 
-Room v3 · emulator instrumented tests on the real applicationId ·
-package rename · Drive folder rename · 5th tab · LLM trainer.
+Casual `TrainerDatabase` v3 · emulator instrumented tests on the real
+applicationId · package rename · Drive folder rename · 5th tab · LLM trainer.
 
 Plate calculator, rest *sound* design, font-scale 2.0, and prompted
-backup shipped as Job 5. Next is polish and intuition, not new pages:
-[JOB6_REGROUP.md](JOB6_REGROUP.md).
+backup shipped as Job 5. Job 6 leftover polish is historical. Current
+program: [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md).
 
 Deload decision UI was deferred here. The Tune chip is Job 3 / P2
 (ROADMAP option A). The Body card tap that actually marks the week is

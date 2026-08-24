@@ -1,5 +1,10 @@
 # Job 3 action plan — the week continues
 
+> **Banner (24 Aug 2026).** Code-done historical job. “Room v3 won’t” in
+> this file is **superseded** for the one Phase 5 cutover
+> ([ADR-010](architecture/ADR-010-schema-reset-migrations.md)). Current
+> program: [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md).
+
 Living plan. **Not the law.** If a clearer move shows up, take it, write it
 under *Floor findings*, strike the old line. Same method as
 [JOB2_ACTION_PLAN.md](JOB2_ACTION_PLAN.md) and [UX_PAGE_PASS.md](UX_PAGE_PASS.md).

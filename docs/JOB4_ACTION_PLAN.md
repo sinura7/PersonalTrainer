@@ -1,5 +1,10 @@
 # Job 4 action plan — the coach keeps its word
 
+> **Banner (24 Aug 2026).** Code-done historical job. “Room v3 won’t” in
+> this file is **superseded** for the one Phase 5 cutover
+> ([ADR-010](architecture/ADR-010-schema-reset-migrations.md)). Current
+> program: [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md).
+
 Living plan. **Not the law.** If a clearer move shows up, take it, write it
 under *Floor findings*, strike the old line. Same method as
 [JOB3_ACTION_PLAN.md](JOB3_ACTION_PLAN.md).

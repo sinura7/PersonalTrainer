@@ -1,8 +1,16 @@
 # Phase 3 — migration rehearsal and real-phone upgrade
 
+> **Banner (24 Aug 2026).** The v1 → v2 migration has shipped.
+> [`2.json`](../app/schemas/com.sinura.personaltrainer.data.local.TrainerDatabase/2.json)
+> is committed (`identityHash` `3eedd530…`). Do not hand-edit it. Step 0
+> below is historical — do not treat “schema for version 2 does not exist
+> yet” as current. A later database generation is a signed Phase 5 cutover
+> ([ADR-010](architecture/ADR-010-schema-reset-migrations.md)), not a
+> casual v3. Current program: [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md).
+
 The v1 → v2 migration runs **exactly once**, on a phone holding training history that cannot be
-re-created, with no destructive fallback and no way to downgrade. This document is how it gets
-rehearsed against real data before it touches that phone.
+re-created, with no destructive fallback and no way to downgrade. This document is how it was
+rehearsed against real data before it touched that phone.
 
 Two constraints shape everything below:
 

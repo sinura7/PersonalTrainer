@@ -1,8 +1,15 @@
 # Schedule semantics — signed spec
 
-**Status:** decision D2. Phase 3 derives the `schedule_slots` DDL from this spec; Phase 4
-implements the derivation. Nothing that depends on it executes until the owner signs D2 in
-`docs/ROADMAP.md` § Decisions.
+> **Banner (24 Aug 2026).** This file is the **current v2 derivation**. D2
+> remains historically signed. The *target* missed-work policy no longer
+> silently shifts a missed day: recurrence stays unchanged and the user is
+> asked once ([ADR-012](architecture/ADR-012-rest-and-reminders.md), packet
+> P7.3). Until P7.3 ships, the code may still shift; that is a known gap,
+> not permission to add more silent rewrites. Current program:
+> [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md).
+
+**Status:** decision D2 (implemented). Phase 3 derived the `schedule_slots` DDL from this spec; Phase 4
+implemented the derivation.
 
 ## The model
 

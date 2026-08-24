@@ -1,9 +1,23 @@
 # Roadmap
 
+> **Superseded as current law on 24 August 2026.** This file is the historical
+> record of how the strength logger was built (audits, game plan, Jobs 1–6).
+> The current program is [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md).
+> Signed decisions live in [architecture/](architecture/README.md).
+>
+> Historical “Room v3 won’t” and “no backdated session creation” are
+> **superseded** by [ADR-010](architecture/ADR-010-schema-reset-migrations.md)
+> and [ADR-007](architecture/ADR-007-activity-model.md).
+> `fallbackToDestructiveMigration`, a fifth tab without a new ADR, and an
+> LLM-as-author remain forbidden.
+>
+> Executors verify current decisions in `docs/architecture/`, not by grepping
+> `Signed:` in this file.
+
 Derived from the full audit of 19 Aug 2026 ([AUDIT.md](AUDIT.md)). Phases land in order;
 each one ends at a gate that must be verified before the next begins.
 
-Status legend: **done** · **next** · *later*
+Status legend: **done** · **next** · *later* · **superseded**
 
 ---
 
@@ -196,13 +210,12 @@ runners are not a test lane. Room v3, fifth tab, LLM, rename, sex,
 and catalog seed stay signed won't. Packets, gates, won'ts:
 [JOB5_ACTION_PLAN.md](JOB5_ACTION_PLAN.md).
 
-**Job 6 (in flight).** Regroup. The product is the four-tab logger.
-Historical P0–P4 and leftover P1–P8 are on `trunk` (`febb9b0`).
-This packet is the phone-week floor finding: RPE explainer and a
-sticky rest dock that configures next rest, then starts on log.
-Week-verb language (historical P2) only if the phone confirms the
-cliff. Do not open a CI / billing packet. Packets, gates, won'ts:
-[JOB6_REGROUP.md](JOB6_REGROUP.md).
+**Job 6 (superseded as current program, 24 Aug 2026).** Regroup for the
+four-tab logger. Leftover P0–P8 are on `trunk`. Phone-week floor finding
+(RPE explainer and sticky rest dock) landed in `2484396`. Job 6 is no
+longer the current program. [JOB6_REGROUP.md](JOB6_REGROUP.md) is
+historical leftover paper. Current work:
+[FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md).
 
 **Review baseline (22 Aug 2026).** Full-tree audit after Job 2 landed on `trunk`.
 Closed 22–23 Aug. Do not reopen as live work. Q4 onboarding ANR on the
@@ -247,9 +260,23 @@ Carried forward deliberately, with the phase that will address them.
 
 ## Decisions
 
-Signed decisions that later phases build on. A decision is binding once the owner's
-initials and date appear on its Signed line. Executors verify with
-`grep -c "Signed:" docs/ROADMAP.md` before starting any phase.
+**These D1–D6 decisions built the strength logger.** They remain historically
+true. Current binding decisions are the ADRs. D7 records the supersession.
+
+A historical decision is marked **Signed** below. Executors starting a
+*foundation-program* packet verify [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md)
+and `docs/architecture/`, not this grep.
+
+### D7 — Foundation program supersession
+
+**Chosen:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md) and
+[docs/architecture/](architecture/README.md) are current law. Room v3
+won’t is superseded for the one authorized Phase 5 cutover. Backdated
+activity creation is required. Drive is backup, not sync. One live
+activity; many completed and scheduled activities per day. FND-037 is
+not a finding.
+
+**Signed: foundation program P0.1, 24 August 2026.**
 
 ### D1 — Information architecture
 

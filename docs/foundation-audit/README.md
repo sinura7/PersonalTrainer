@@ -118,5 +118,7 @@ Every ranked item identifies its type:
 - **Target gap:** intentionally absent today but required by the agreed product.
 - **Opportunity:** useful, non-blocking improvement.
 
-The next phase should turn the accepted findings into an ordered roadmap. It should not
-blindly implement every item in this package.
+The ordered program that accepts these findings is
+[FOUNDATION_PROGRAM.md](../FOUNDATION_PROGRAM.md). Dispositions are
+[ADR-013](../architecture/ADR-013-finding-dispositions.md). This package
+remains the dated current-state map. It is not an implementation roadmap.
