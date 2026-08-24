@@ -1,10 +1,12 @@
 package com.sinura.personaltrainer.insights
 
+import com.sinura.personaltrainer.data.repository.ActivityRepository
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
 import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.data.repository.ScheduleRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
+import com.sinura.personaltrainer.domain.toInsightSession
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.CoachPreferences
@@ -30,6 +32,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.shareIn
@@ -52,6 +55,7 @@ class TrainingInsightsSource(
     private val exerciseRepository: ExerciseRepository,
     private val preferencesRepository: PreferencesRepository,
     private val scheduleRepository: ScheduleRepository,
+    private val activityRepository: ActivityRepository? = null,
     private val computeDispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val nowMs: () -> Long = System::currentTimeMillis,
     private val zone: () -> ZoneId = ZoneId::systemDefault,
@@ -118,7 +122,12 @@ class TrainingInsightsSource(
         // is folded in around the original group rather than the group being re-shaped.
         combine(
             combine(
-                workoutRepository.observeHistory(),
+                combine(
+                    workoutRepository.observeHistory(),
+                    activityRepository?.observeCompleted() ?: flowOf(emptyList()),
+                ) { sessions, activities ->
+                    sessions + activities.mapNotNull { it.toInsightSession() }
+                },
                 routineRepository.observeAll(),
                 exerciseRepository.observeAll(),
                 preferencesRepository.schedulePreferences,

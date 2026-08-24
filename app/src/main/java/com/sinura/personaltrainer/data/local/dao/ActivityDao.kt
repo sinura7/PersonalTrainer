@@ -35,6 +35,10 @@ interface ActivityDao {
     suspend fun getAllGraphs(): List<ActivitySessionGraph>
 
     @Transaction
+    @Query("SELECT * FROM activity_sessions WHERE status = 'COMPLETED' ORDER BY performedStartInstantMs DESC")
+    fun observeCompletedGraphs(): Flow<List<ActivitySessionGraph>>
+
+    @Transaction
     @Query("SELECT * FROM activity_sessions WHERE performedStartLocalEpochDay = :localEpochDay ORDER BY performedStartInstantMs")
     suspend fun graphsOnLocalDate(localEpochDay: Long): List<ActivitySessionGraph>
 

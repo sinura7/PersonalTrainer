@@ -64,7 +64,14 @@ fun TrainingCalendarBuilder.build(
     sessions: List<WorkoutSession>,
     zone: ZoneId,
     weekStart: Weekday = Weekday.MONDAY,
-): TrainingMonth = build(month.toCivilYearMonth(), sessions, JvmTime, weekStart, zone.id)
+): TrainingMonth = build(
+    month.toCivilYearMonth(),
+    sessions,
+    emptyList(),
+    JvmTime,
+    weekStart,
+    zone.id,
+)
 
 fun groupSessionsByMonth(sessions: List<WorkoutSession>, zone: ZoneId): List<SessionMonthGroup> =
     groupSessionsByMonth(sessions, JvmTime, zone.id)

@@ -17,8 +17,17 @@ import com.sinura.personaltrainer.data.backup.DriveAuthClient
 import com.sinura.personaltrainer.data.backup.DriveRestClient
 import com.sinura.personaltrainer.data.backup.NetworkChecker
 import com.sinura.personaltrainer.data.backup.RestoreJournalStore
+import com.sinura.personaltrainer.activity.ConfirmActivity
+import com.sinura.personaltrainer.activity.DiscardActivity
+import com.sinura.personaltrainer.activity.FinishActivity
+import com.sinura.personaltrainer.activity.StartLiveActivity
 import com.sinura.personaltrainer.data.local.TemperDatabase
+import com.sinura.personaltrainer.data.repository.ActivityRepository
 import com.sinura.personaltrainer.data.repository.BackupRepository
+import com.sinura.personaltrainer.timer.CardioTimerPersistence
+import com.sinura.personaltrainer.timer.PersistedCardioTimer
+import com.sinura.personaltrainer.util.IdFactory
+import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
 import com.sinura.personaltrainer.data.repository.LocalBackupRepository
@@ -86,7 +95,20 @@ class FakeAppDependencies(
         produceFile = { File(prefsContext.filesDir, "datastore/user_settings.preferences_pb") },
     )
     override val preferencesRepository: PreferencesRepository =
-        PreferencesRepository(prefsContext, prefsStore)
+        PreferencesRepository(
+            prefsContext,
+            prefsStore,
+            bodyweightDao = database.bodyweightDao(),
+            trainingBlockDao = database.trainingBlockDao(),
+        )
+    override val activityRepository: ActivityRepository = ActivityRepository(database)
+    override val confirmActivity: ConfirmActivity =
+        ConfirmActivity(activityRepository, IdFactory.Uuid, JvmTime)
+    override val startLiveActivity: StartLiveActivity =
+        StartLiveActivity(activityRepository, IdFactory.Uuid, JvmTime)
+    override val discardActivity: DiscardActivity = DiscardActivity(activityRepository)
+    override val finishActivity: FinishActivity = FinishActivity(activityRepository, JvmTime)
+    override val cardioTimerPersistence: CardioTimerPersistence = InMemoryCardioTimerPersistence()
     override val onboardingApplier: OnboardingApplier = OnboardingApplier(
         routineRepository = routineRepository,
         scheduleRepository = scheduleRepository,
@@ -215,4 +237,18 @@ private class InMemoryRestTimerGateway(
     }
 
     override fun rehydrate(): Boolean = false
+}
+
+private class InMemoryCardioTimerPersistence : CardioTimerPersistence {
+    private var stored: PersistedCardioTimer? = null
+
+    override fun save(state: PersistedCardioTimer) {
+        stored = state
+    }
+
+    override fun load(): PersistedCardioTimer? = stored
+
+    override fun clear() {
+        stored = null
+    }
 }

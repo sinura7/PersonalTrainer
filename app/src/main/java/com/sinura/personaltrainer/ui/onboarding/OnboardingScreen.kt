@@ -42,6 +42,7 @@ import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.TrainingEmphasis
+import com.sinura.personaltrainer.domain.TrainingFocus
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -127,6 +128,15 @@ fun OnboardingScreen(
                 OnboardingStep.FORK -> ForkStep(
                     onGuided = viewModel::beginGuided,
                     onOwn = { onBuildMyOwn(null, null) },
+                )
+                OnboardingStep.FOCUS -> ChoiceStep(
+                    title = "What do you want to record?",
+                    blurb = "Strength, cardio, or both. Nothing is written until you accept a plan.",
+                    options = TrainingFocus.entries.map { focus ->
+                        Choice(focus.displayName, focus.blurb, focus == state.answers.focus) {
+                            viewModel.setFocus(focus)
+                        }
+                    },
                 )
                 OnboardingStep.EXPERIENCE -> ExperienceStep(
                     selected = state.answers.trainingAge,

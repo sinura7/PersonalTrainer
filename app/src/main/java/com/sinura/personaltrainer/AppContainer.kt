@@ -6,8 +6,15 @@ import com.sinura.personaltrainer.data.backup.DriveAuthClient
 import com.sinura.personaltrainer.data.backup.DriveRestClient
 import com.sinura.personaltrainer.data.backup.NetworkChecker
 import com.sinura.personaltrainer.data.backup.RestoreJournalStore
+import com.sinura.personaltrainer.activity.ConfirmActivity
+import com.sinura.personaltrainer.activity.DiscardActivity
+import com.sinura.personaltrainer.activity.FinishActivity
+import com.sinura.personaltrainer.activity.StartLiveActivity
 import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.repository.ActivityRepository
+import com.sinura.personaltrainer.timer.SharedPrefsCardioTimerPersistence
+import com.sinura.personaltrainer.util.IdFactory
+import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.data.repository.BackupRepository
 import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
@@ -29,7 +36,7 @@ import com.sinura.personaltrainer.workout.WorkoutDraftCache
 
 class AppContainer(context: Context) : AppDependencies {
     private val database: TemperDatabase = TemperDatabase.create(context)
-    val activityRepository: ActivityRepository = ActivityRepository(database)
+    override val activityRepository: ActivityRepository = ActivityRepository(database)
 
     /**
      * One lock over every wholesale rewrite of the catalog. The startup seed and a restore both
@@ -52,7 +59,11 @@ class AppContainer(context: Context) : AppDependencies {
         dbMaintenance,
         restoreInProgress = { backupRepository.restoreInProgress() },
     )
-    override val preferencesRepository: PreferencesRepository = PreferencesRepository(context)
+    override val preferencesRepository: PreferencesRepository = PreferencesRepository(
+        context,
+        bodyweightDao = database.bodyweightDao(),
+        trainingBlockDao = database.trainingBlockDao(),
+    )
 
     /**
      * The one writer that spans preferences, routines and the schedule together. Constructed
@@ -93,6 +104,7 @@ class AppContainer(context: Context) : AppDependencies {
         exerciseRepository = exerciseRepository,
         preferencesRepository = preferencesRepository,
         scheduleRepository = scheduleRepository,
+        activityRepository = activityRepository,
     )
 
     /**
@@ -110,6 +122,14 @@ class AppContainer(context: Context) : AppDependencies {
         workoutRepository = workoutRepository,
         routineRepository = routineRepository,
     )
+    override val confirmActivity: ConfirmActivity =
+        ConfirmActivity(activityRepository, IdFactory.Uuid, JvmTime)
+    override val startLiveActivity: StartLiveActivity =
+        StartLiveActivity(activityRepository, IdFactory.Uuid, JvmTime)
+    override val discardActivity: DiscardActivity = DiscardActivity(activityRepository)
+    override val finishActivity: FinishActivity = FinishActivity(activityRepository, JvmTime)
+    override val cardioTimerPersistence: SharedPrefsCardioTimerPersistence =
+        SharedPrefsCardioTimerPersistence(context)
     override val backupRepository: BackupRepository = BackupRepository(
         localBackupRepository = LocalBackupRepository(
             database = database,

@@ -34,6 +34,6 @@ case is representable. Export/import of the new types is P5.5.
 
 ## Finding coverage
 
-FND-002 is representable. It closes at P6.6 when queries, History, and
-export use these types. FND-018's one-live rule is the contract here;
-the Home agenda proof is P7.5.
+FND-002 closed at P6.6: History, calendar, insights, and detail read
+completed activities. FND-018's one-live rule is the contract here
+and is proven across both live lanes; the Home agenda proof is P7.5.

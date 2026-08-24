@@ -614,18 +614,31 @@ Implements [ADR-007](architecture/ADR-007-activity-model.md),
 
 **Milestone: Foundation Freeze Gate.**
 
-### Phase 6 — First-class strength, cardio, mixed, and backdated recording · pending
+### Phase 6 — First-class strength, cardio, mixed, and backdated recording · **done**
 
-- **P6.1** Bodyweight and training blocks into Room. Closes FND-019.
-- **P6.2** Backdated strength authoring. Closes strength half of FND-008.
-- **P6.3** Manual typed cardio. A cardio-only session needs no exercise
-  or set row.
-- **P6.4** Live cardio with process/background recovery.
-- **P6.5** Ordered mixed blocks. Honest separate modality metrics.
-- **P6.6** Summary, History, calendar, detail become activity-aware.
+- **P6.1** Bodyweight and training blocks into Room. · **done**
+  Closes FND-019. `TemperDatabase` migrates v1 → v2. Empty tables only;
+  DataStore encoded strings import once after open. Room is the source
+  of truth. `fallbackToDestructiveMigration` remains banned.
+- **P6.2** Backdated strength authoring. · **done**
+  Composer writes `ActivityDraft(origin=BACKDATED)` through
+  `ConfirmActivity`. Future dates clamp to today.
+- **P6.3** Manual typed cardio. · **done**
+  A cardio-only session writes zero exercise / `set_logs` rows.
+- **P6.4** Live cardio with process/background recovery. · **done**
+  ElapsedRealtime plus a boot marker. Reboot keeps the last honest
+  elapsed. One live activity at a time across both lanes.
+- **P6.5** Ordered mixed blocks. · **done**
+  Strength and cardio stay separate typed blocks with honest
+  modality metrics. Cardio does not invent kilograms.
+- **P6.6** Summary, History, calendar, detail become activity-aware. · **done**
   Closes FND-002 and FND-008; proves the one-live resolution of FND-018.
-- **P6.7** Onboarding asks Strength / Cardio / Both. Nothing written
-  until “Use this plan.” No notification permission during onboarding.
+  History, calendar, insights, and detail read completed activities.
+- **P6.7** Onboarding asks Strength / Cardio / Both. · **done**
+  Nothing written until “Use this plan.” Cardio focus generates no
+  lift week. No notification permission during onboarding.
+  Evidence:
+  [P6.1–P6.7 evidence](foundation-program/evidence/P6.1-P6.7-fitness-recorder.md).
 
 **Milestone: Fitness Recorder Alpha.**
 

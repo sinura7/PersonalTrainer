@@ -13,6 +13,7 @@ import com.sinura.personaltrainer.domain.RoutineGenerator
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingEmphasis
+import com.sinura.personaltrainer.domain.TrainingFocus
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -44,6 +45,7 @@ internal const val CATALOG_MISSING_MESSAGE =
 enum class OnboardingStep {
     /** Build it for me, or I'll do it myself. Everything after this is the guided path. */
     FORK,
+    FOCUS,
     EXPERIENCE,
     DAYS_PER_WEEK,
     WHICH_DAYS,
@@ -131,10 +133,11 @@ class OnboardingViewModel @JvmOverloads constructor(
             answers = currentAnswers,
             // Regenerated rather than cached: it is cheap, and a preview that lags one answer
             // behind is worse than no preview, because it is confidently wrong.
-            preview = if (exercises.isEmpty()) {
-                null
-            } else {
-                RoutineGenerator.generate(currentAnswers, exercises, flags.weekStart)
+            preview = when {
+                currentAnswers.focus == TrainingFocus.CARDIO ->
+                    RoutineGenerator.generate(currentAnswers, exercises, flags.weekStart)
+                exercises.isEmpty() -> null
+                else -> RoutineGenerator.generate(currentAnswers, exercises, flags.weekStart)
             },
             applying = flags.applying,
             error = flags.error,
@@ -254,8 +257,10 @@ class OnboardingViewModel @JvmOverloads constructor(
     }
 
     fun beginGuided() {
-        step.value = OnboardingStep.EXPERIENCE
+        step.value = OnboardingStep.FOCUS
     }
+
+    fun setFocus(value: TrainingFocus) = advance { it.copy(focus = value) }
 
     fun setExperience(value: TrainingAge) = advance { it.copy(trainingAge = value) }
 

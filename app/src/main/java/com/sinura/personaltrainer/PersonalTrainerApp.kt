@@ -42,6 +42,11 @@ class PersonalTrainerApp : Application() {
                 AppLog.e(TAG, "Finishing an interrupted restore failed", error)
             }
             try {
+                container.preferencesRepository.importEncodedHistoryIfNeeded()
+            } catch (error: Exception) {
+                AppLog.e(TAG, "Importing encoded bodyweight and blocks failed", error)
+            }
+            try {
                 container.dbMaintenance.seedCatalog()
             } catch (error: Exception) {
                 // The catalog is a convenience; the app is fully usable without it.

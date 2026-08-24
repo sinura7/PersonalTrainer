@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.data.repository
 import androidx.room.withTransaction
 import com.sinura.personaltrainer.data.backup.RestoreJournal
 import com.sinura.personaltrainer.data.local.AppRoomDatabase
+import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
@@ -76,6 +77,18 @@ class WorkoutRepository(
         } else {
             null
         }
+
+    private suspend fun hasLiveActivity(): Boolean {
+        val temper = database as? TemperDatabase ?: return false
+        return temper.activityDao().getLive() != null
+    }
+
+    private suspend fun refuseIfOtherLive(): StartSessionOutcome.Unavailable? =
+        if (hasLiveActivity()) {
+            StartSessionOutcome.Unavailable("One live activity at a time.")
+        } else {
+            null
+        }
     fun observeHistoryHealth(): Flow<DataHealth<List<WorkoutSession>>> =
         workoutDao.observeFinishedSessions().map { list -> list.map { it.toDomain() } }
             .observeHealth("workout history")
@@ -116,6 +129,7 @@ class WorkoutRepository(
         return try {
             serialized {
             refuseIfRestoreOpen()?.let { return@serialized it }
+            refuseIfOtherLive()?.let { return@serialized it }
             val now = System.currentTimeMillis()
             val session = WorkoutSessionEntity(
                 id = UUID.randomUUID().toString(),
@@ -170,6 +184,7 @@ class WorkoutRepository(
         return try {
             serialized {
             refuseIfRestoreOpen()?.let { return@serialized it }
+            refuseIfOtherLive()?.let { return@serialized it }
             val now = System.currentTimeMillis()
             val focus = focusTitle?.trim().orEmpty()
             val session = WorkoutSessionEntity(
@@ -235,8 +250,13 @@ class WorkoutRepository(
         }
 
         val inserted = serialized {
-            if (restoreInProgress()) null else insertSessionIfIdle(session, exercises)
-        } ?: return RepeatOutcome.Failed(RestoreJournal.INTERRUPTED)
+            if (restoreInProgress()) null
+            else if (hasLiveActivity()) null
+            else insertSessionIfIdle(session, exercises)
+        } ?: return RepeatOutcome.Failed(
+            if (restoreInProgress()) RestoreJournal.INTERRUPTED
+            else "One live activity at a time.",
+        )
         if (!inserted.inserted) {
             val running = workoutDao.getSessionRow(inserted.sessionId)
             return RepeatOutcome.Blocked(inserted.sessionId, running?.routineName)

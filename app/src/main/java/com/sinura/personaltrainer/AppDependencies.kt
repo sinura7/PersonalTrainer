@@ -1,5 +1,10 @@
 package com.sinura.personaltrainer
 
+import com.sinura.personaltrainer.activity.ConfirmActivity
+import com.sinura.personaltrainer.activity.DiscardActivity
+import com.sinura.personaltrainer.activity.FinishActivity
+import com.sinura.personaltrainer.activity.StartLiveActivity
+import com.sinura.personaltrainer.data.repository.ActivityRepository
 import com.sinura.personaltrainer.data.repository.BackupRepository
 import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
@@ -9,6 +14,7 @@ import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.ScheduleRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.insights.TrainingInsightsPublisher
+import com.sinura.personaltrainer.timer.CardioTimerPersistence
 import com.sinura.personaltrainer.timer.RestTimerGateway
 import com.sinura.personaltrainer.timer.RestTimerStatePersistence
 import com.sinura.personaltrainer.timer.RestTimerStore
@@ -45,4 +51,10 @@ interface AppDependencies {
     val pendingAnswerReplay: MutableStateFlow<Boolean>
     val startTrainingDay: StartTrainingDay
     val backupRepository: BackupRepository
+    val activityRepository: ActivityRepository
+    val confirmActivity: ConfirmActivity
+    val startLiveActivity: StartLiveActivity
+    val discardActivity: DiscardActivity
+    val finishActivity: FinishActivity
+    val cardioTimerPersistence: CardioTimerPersistence
 }

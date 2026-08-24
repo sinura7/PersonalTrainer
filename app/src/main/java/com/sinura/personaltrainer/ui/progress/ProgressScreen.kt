@@ -58,6 +58,8 @@ fun ProgressScreen(
     onOpenExercise: (String) -> Unit,
     onWorkoutStarted: (String) -> Unit,
     onOpenRoutines: () -> Unit,
+    onLogActivity: (String) -> Unit = {},
+    onOpenLiveCardio: (String) -> Unit = {},
     viewModel: ProgressViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -218,6 +220,10 @@ fun ProgressScreen(
         StartOptionsSheet(
             onDismiss = { startOptionsOpen = false },
             onWorkoutStarted = onWorkoutStarted,
+            onLogPast = { onLogActivity("strength") },
+            onLogCardio = { onLogActivity("cardio") },
+            onLogMixed = { onLogActivity("mixed") },
+            onOpenLiveActivity = onOpenLiveCardio,
         )
     }
 }

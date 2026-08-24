@@ -79,6 +79,7 @@ class OnboardingApplier(
             preferencesRepository.setTrainingAge(clean.trainingAge)
             preferencesRepository.setPreferredDays(clean.preferredDays)
             preferencesRepository.setTrainingPlaces(clean.resolvedPlaces())
+            preferencesRepository.setTrainingFocus(clean.focus)
             // Recorded as a weigh-in, not just stored: it is the opening reading of the block
             // being started on the next line, and the block review compares against it.
             clean.bodyweightKg?.let { kg ->
@@ -175,6 +176,7 @@ class OnboardingApplier(
                 preferencesRepository.setAvailableEquipment(coach.availableEquipment)
                 preferencesRepository.setTrainingAge(clean.trainingAge)
                 preferencesRepository.setTrainingPlaces(clean.resolvedPlaces())
+                preferencesRepository.setTrainingFocus(clean.focus)
                 clean.bodyweightKg?.let { kg ->
                     preferencesRepository.recordBodyweight(kg, today.toEpochDay())
                 }

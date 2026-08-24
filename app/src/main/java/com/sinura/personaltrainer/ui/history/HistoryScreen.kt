@@ -39,7 +39,11 @@ import com.sinura.personaltrainer.domain.PrSummaryRow
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.ActivitySession
+import com.sinura.personaltrainer.domain.HistoryKind
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.domain.cardioMinutes
+import com.sinura.personaltrainer.domain.strengthWork
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GroupedList
@@ -78,6 +82,9 @@ fun HistoryScreen(
     onOpenExercise: (String) -> Unit,
     onWorkoutStarted: (String) -> Unit,
     onOpenActiveSession: (String) -> Unit,
+    onOpenActivity: (String) -> Unit = {},
+    onLogActivity: (String) -> Unit = {},
+    onOpenLiveCardio: (String) -> Unit = {},
     viewModel: HistoryViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -134,10 +141,10 @@ fun HistoryScreen(
                             .padding(Metrics.gutter),
                     )
                 }
-                state.sessions.isEmpty() -> {
+                state.sessions.isEmpty() && state.activities.isEmpty() -> {
                     EmptyState(
                         title = "No sessions yet",
-                        body = "Finish a workout and it lands here.",
+                        body = "Finish a workout or log cardio and it lands here.",
                         actionLabel = "Start a workout",
                         onAction = { startOptionsOpen = true },
                         modifier = Modifier
@@ -166,9 +173,13 @@ fun HistoryScreen(
                                 // Opening "the first one" was a coin toss dressed as a default:
                                 // nothing on screen said there had been a second.
                                 onOpenDay = { day ->
-                                    when (day.sessionIds.size) {
-                                        0 -> Unit
-                                        1 -> onOpenSession(day.sessionIds.first())
+                                    val total = day.sessionIds.size + day.activityIds.size
+                                    when {
+                                        total == 0 -> Unit
+                                        total == 1 && day.sessionIds.size == 1 ->
+                                            onOpenSession(day.sessionIds.first())
+                                        total == 1 && day.activityIds.size == 1 ->
+                                            onOpenActivity(day.activityIds.first())
                                         else -> selectedDayEpoch = day.date.epochDay
                                     }
                                 },
@@ -190,26 +201,36 @@ fun HistoryScreen(
                                 )
                             }
                             itemsIndexed(
-                                group.sessions,
-                                key = { _, session -> session.id },
-                            ) { index, session ->
+                                group.entries,
+                                key = { _, entry -> entry.id },
+                            ) { index, entry ->
                                 Column(
                                     modifier = Modifier
                                         .animateItem()
                                         // Shape computed WITHIN the group, so each month reads
                                         // as its own panel with rounded ends.
-                                        .clip(groupedRowShape(index, group.sessions.size))
+                                        .clip(groupedRowShape(index, group.entries.size))
                                         .background(Surface1),
                                 ) {
                                     if (index > 0) HairlineDivider()
                                     SessionLogRow(
-                                        title = session.routineName ?: "Workout",
-                                        dateLabel = dateFormat.format(Date(session.date)),
-                                        workingSets = session.sets.count { !it.isWarmup },
-                                        work = remember(session) { session.work() },
-                                        durationMinutes = session.durationMinutes,
-                                        onClick = { onOpenSession(session.id) },
-                                        onRepeat = { viewModel.repeatSession(session.id) },
+                                        title = entry.title,
+                                        dateLabel = dateFormat.format(Date(entry.sortMillis)),
+                                        workingSets = entry.workingSets,
+                                        work = entry.work,
+                                        durationMinutes = entry.durationMinutes,
+                                        onClick = {
+                                            if (entry.kind == HistoryKind.ACTIVITY) {
+                                                onOpenActivity(entry.id)
+                                            } else {
+                                                onOpenSession(entry.id)
+                                            }
+                                        },
+                                        onRepeat = if (entry.kind == HistoryKind.WORKOUT) {
+                                            { viewModel.repeatSession(entry.id) }
+                                        } else {
+                                            null
+                                        },
                                     )
                                 }
                             }
@@ -268,17 +289,23 @@ fun HistoryScreen(
         val daySessions = state.sessions.filter { session ->
             Instant.ofEpochMilli(session.date).atZone(zone).toLocalDate().toEpochDay() == dayEpoch
         }
-        if (daySessions.isEmpty()) {
+        val dayActivities = state.activities.filter { it.localEpochDay == dayEpoch }
+        if (daySessions.isEmpty() && dayActivities.isEmpty()) {
             selectedDayEpoch = null
         } else {
             DaySessionsSheet(
                 sessions = daySessions,
+                activities = dayActivities,
                 dateLabel = DAY_FORMAT.format(LocalDate.ofEpochDay(dayEpoch)),
                 unit = unit,
                 dateFormat = dateFormat,
                 onOpenSession = { sessionId ->
                     selectedDayEpoch = null
                     onOpenSession(sessionId)
+                },
+                onOpenActivity = { activityId ->
+                    selectedDayEpoch = null
+                    onOpenActivity(activityId)
                 },
                 onDismiss = { selectedDayEpoch = null },
             )
@@ -289,6 +316,10 @@ fun HistoryScreen(
         StartOptionsSheet(
             onDismiss = { startOptionsOpen = false },
             onWorkoutStarted = onOpenActiveSession,
+            onLogPast = { onLogActivity("strength") },
+            onLogCardio = { onLogActivity("cardio") },
+            onLogMixed = { onLogActivity("mixed") },
+            onOpenLiveActivity = onOpenLiveCardio,
         )
     }
 
@@ -316,10 +347,12 @@ fun HistoryScreen(
 @Composable
 private fun DaySessionsSheet(
     sessions: List<WorkoutSession>,
+    activities: List<ActivitySession>,
     dateLabel: String,
     unit: WeightUnit,
     dateFormat: DateFormat,
     onOpenSession: (String) -> Unit,
+    onOpenActivity: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Surface3) {
@@ -333,7 +366,7 @@ private fun DaySessionsSheet(
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
                 Kicker(dateLabel)
                 Text(
-                    "${sessions.size} sessions",
+                    "${sessions.size + activities.size} sessions",
                     style = InstrumentType.title,
                     color = TextPrimary,
                 )
@@ -348,6 +381,18 @@ private fun DaySessionsSheet(
                         work = remember(session) { session.work() },
                         durationMinutes = session.durationMinutes,
                         onClick = { onOpenSession(session.id) },
+                        unit = unit,
+                    )
+                }
+                activities.forEachIndexed { index, activity ->
+                    if (index > 0 || sessions.isNotEmpty()) HairlineDivider()
+                    SessionLogRow(
+                        title = activity.title,
+                        dateLabel = dateFormat.format(Date(activity.performedStart.instantMillis)),
+                        workingSets = activity.strengthSetCount(),
+                        work = remember(activity) { activity.strengthWork() },
+                        durationMinutes = activity.cardioMinutes(),
+                        onClick = { onOpenActivity(activity.id) },
                         unit = unit,
                     )
                 }

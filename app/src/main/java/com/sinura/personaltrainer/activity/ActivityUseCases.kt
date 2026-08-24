@@ -49,3 +49,14 @@ class DiscardActivity(
         repository.discard(sessionId)
     }
 }
+
+class FinishActivity(
+    private val repository: ActivityRepository,
+    private val clock: TimePort,
+) {
+    suspend operator fun invoke(
+        sessionId: String,
+        now: CapturedCivilTime,
+        blocks: List<ActivityBlock>? = null,
+    ): ActivityWrite = repository.completeLive(sessionId, now, clock, blocks)
+}

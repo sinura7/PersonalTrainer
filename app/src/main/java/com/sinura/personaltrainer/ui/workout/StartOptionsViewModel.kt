@@ -6,11 +6,18 @@ import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
+import com.sinura.personaltrainer.domain.ActivitySession
 import com.sinura.personaltrainer.domain.AddDefaults
+import com.sinura.personaltrainer.domain.CardioBlock
+import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.OwnedLiftResolver
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.timer.CardioElapsed
+import com.sinura.personaltrainer.timer.PersistedCardioTimer
+import com.sinura.personaltrainer.util.IdFactory
+import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.workout.DiscardOutcome
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,6 +37,7 @@ private const val START_BLOCKED_MESSAGE = "A workout is already in progress."
 data class StartOptionsUiState(
     val isLoading: Boolean = true,
     val inProgress: WorkoutSession? = null,
+    val liveActivity: ActivitySession? = null,
     val routines: List<Routine> = emptyList(),
     /** The coach's named lift, offered as a one-tap start. Null when it has nothing specific. */
     val suggestion: Exercise? = null,
@@ -67,14 +75,18 @@ class StartOptionsViewModel @JvmOverloads constructor(
             }
 
     val uiState: StateFlow<StartOptionsUiState> = combine(
-        container.workoutRepository.observeInProgress(),
+        combine(
+            container.workoutRepository.observeInProgress(),
+            container.activityRepository.observeLive(),
+        ) { workout, activity -> workout to activity },
         container.routineRepository.observeAll(),
         suggestedLift,
         error,
-    ) { inProgress, routines, suggested, err ->
+    ) { live, routines, suggested, err ->
         StartOptionsUiState(
             isLoading = false,
-            inProgress = inProgress,
+            inProgress = live.first,
+            liveActivity = live.second,
             routines = routines,
             suggestion = suggested?.first,
             suggestionReason = suggested?.second,
@@ -97,9 +109,71 @@ class StartOptionsViewModel @JvmOverloads constructor(
      */
     private val _navigateToSession = MutableStateFlow<String?>(null)
     val navigateToSession: StateFlow<String?> = _navigateToSession.asStateFlow()
+    private val _navigateToCardio = MutableStateFlow<String?>(null)
+    val navigateToCardio: StateFlow<String?> = _navigateToCardio.asStateFlow()
+    private val _navigateToComposer = MutableStateFlow<String?>(null)
+    val navigateToComposer: StateFlow<String?> = _navigateToComposer.asStateFlow()
 
     fun onSessionNavigationHandled() {
         _navigateToSession.value = null
+    }
+
+    fun onCardioNavigationHandled() {
+        _navigateToCardio.value = null
+    }
+
+    fun onComposerNavigationHandled() {
+        _navigateToComposer.value = null
+    }
+
+    fun openComposer(mode: String) {
+        _navigateToComposer.value = mode
+    }
+
+    fun startCardio() {
+        viewModelScope.launch {
+            try {
+                val now = JvmTime.captureNow()
+                val block = CardioBlock(
+                    id = IdFactory.Uuid.newId(),
+                    sortOrder = 0,
+                    type = CardioType.RUN,
+                    indoor = false,
+                    elapsedSeconds = 0L,
+                    movingSeconds = 0L,
+                    distanceMeters = null,
+                    elevationMeters = null,
+                    heartRateBpm = null,
+                    energyKj = null,
+                    rpe = null,
+                    routeRef = null,
+                )
+                when (val write = container.startLiveActivity("Cardio", listOf(block), now)) {
+                    is com.sinura.personaltrainer.domain.ActivityWrite.Accepted -> {
+                        val nowElapsed = android.os.SystemClock.elapsedRealtime()
+                        val nowWall = System.currentTimeMillis()
+                        container.cardioTimerPersistence.save(
+                            PersistedCardioTimer(
+                                sessionId = write.session.id,
+                                startedAtElapsedRealtime = nowElapsed,
+                                startedAtWallClockMillis = nowWall,
+                                bootMarker = CardioElapsed.bootMarker(nowWall, nowElapsed),
+                            ),
+                        )
+                        error.value = null
+                        _navigateToCardio.value = write.session.id
+                    }
+                    is com.sinura.personaltrainer.domain.ActivityWrite.Rejected -> {
+                        error.value = write.reason
+                    }
+                }
+            } catch (thrown: kotlinx.coroutines.CancellationException) {
+                throw thrown
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "startCardio failed", thrown)
+                error.value = "Could not start cardio. Try again."
+            }
+        }
     }
 
     fun startRoutine(routineId: String) {
@@ -173,11 +247,19 @@ class StartOptionsViewModel @JvmOverloads constructor(
      * the sheet is not allowed its own idea of what discarding means.
      */
     fun discardInProgress() {
-        val live = uiState.value.inProgress ?: return
+        val liveWorkout = uiState.value.inProgress
+        val liveActivity = uiState.value.liveActivity
         viewModelScope.launch {
-            when (val result = container.discardWorkout(live.id)) {
-                DiscardOutcome.Discarded -> error.value = null
-                is DiscardOutcome.Failed -> error.value = result.message
+            when {
+                liveWorkout != null -> when (val result = container.discardWorkout(liveWorkout.id)) {
+                    DiscardOutcome.Discarded -> error.value = null
+                    is DiscardOutcome.Failed -> error.value = result.message
+                }
+                liveActivity != null -> {
+                    container.discardActivity(liveActivity.id)
+                    container.cardioTimerPersistence.clear()
+                    error.value = null
+                }
             }
         }
     }

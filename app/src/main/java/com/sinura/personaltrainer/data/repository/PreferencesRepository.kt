@@ -12,10 +12,15 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.sinura.personaltrainer.data.local.FoundationGeneration
+import com.sinura.personaltrainer.data.local.dao.BodyweightDao
+import com.sinura.personaltrainer.data.local.dao.TrainingBlockDao
+import com.sinura.personaltrainer.data.local.entity.BodyweightEntryEntity
+import com.sinura.personaltrainer.data.local.entity.TrainingBlockEntity
 import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.BlockArchive
 import com.sinura.personaltrainer.domain.BodyweightEntry
 import com.sinura.personaltrainer.domain.BodyweightLog
+import com.sinura.personaltrainer.domain.TrainingFocus
 import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.OnboardingAnswers
@@ -47,6 +52,9 @@ class PreferencesRepository(
      * `edit()` / `first()` once another Robolectric test has opened it.
      */
     dataStore: DataStore<Preferences> = context.applicationContext.userSettingsDataStore,
+    private val bodyweightDao: BodyweightDao? = null,
+    private val trainingBlockDao: TrainingBlockDao? = null,
+    private val nowMs: () -> Long = { System.currentTimeMillis() },
 ) {
     private val dataStore = dataStore
 
@@ -195,7 +203,15 @@ class PreferencesRepository(
             goal = coach.goal,
             emphasis = coach.emphasis,
             bodyweightKg = bodyweight,
+            focus = TrainingFocus.fromStorage(prefs[TRAINING_FOCUS]),
         )
+    }
+
+    val trainingFocus: Flow<TrainingFocus> = safePreferences
+        .map { prefs -> TrainingFocus.fromStorage(prefs[TRAINING_FOCUS]) }
+
+    suspend fun setTrainingFocus(focus: TrainingFocus) {
+        dataStore.edit { prefs -> prefs[TRAINING_FOCUS] = focus.name }
     }
 
     /**
@@ -433,6 +449,60 @@ class PreferencesRepository(
                 prefs[LIGHTER_WEEK_START] = lighterWeekStartEpochDay
             }
         }
+        replaceRoomHistory(bodyweightLog, block, pastBlocks)
+    }
+
+    /**
+     * One-shot DataStore → Room copy after the Temper v1→v2 migration.
+     *
+     * Room migrations cannot read DataStore. Empty tables plus leftover
+     * encoded strings mean this install still holds history in preferences.
+     * After import, Room is the source of truth and the encoded strings
+     * stay only as a backup-compatible echo until the next write.
+     */
+    suspend fun importEncodedHistoryIfNeeded() {
+        val bodyDao = bodyweightDao
+        val blockDao = trainingBlockDao
+        if (bodyDao != null && bodyDao.count() == 0) {
+            val prefs = safePreferences.first()
+            val entries = BodyweightLog.decode(prefs[BODYWEIGHT_LOG])
+            if (entries.isNotEmpty()) {
+                bodyDao.upsertAll(entries.map { it.toEntity(nowMs()) })
+            }
+        }
+        if (blockDao != null && blockDao.count() == 0) {
+            val prefs = safePreferences.first()
+            val past = BlockArchive.decode(prefs[PAST_BLOCKS])
+            val current = prefs[BLOCK_START]?.let { start ->
+                TrainingBlock(start, prefs[BLOCK_WEEKS] ?: TrainingBlock.DEFAULT_WEEKS)
+            }
+            val rows = buildList {
+                past.forEach { add(it.toEntity(isCurrent = false, archivedAtMs = nowMs())) }
+                current?.let { add(it.toEntity(isCurrent = true, archivedAtMs = null)) }
+            }
+            if (rows.isNotEmpty()) blockDao.upsertAll(rows)
+        }
+    }
+
+    private suspend fun replaceRoomHistory(
+        log: List<BodyweightEntry>,
+        current: TrainingBlock?,
+        past: List<TrainingBlock>,
+    ) {
+        bodyweightDao?.let { dao ->
+            dao.deleteAll()
+            if (log.isNotEmpty()) {
+                dao.upsertAll(log.map { it.toEntity(nowMs()) })
+            }
+        }
+        trainingBlockDao?.let { dao ->
+            dao.deleteAll()
+            val rows = buildList {
+                past.forEach { add(it.toEntity(isCurrent = false, archivedAtMs = nowMs())) }
+                current?.let { add(it.toEntity(isCurrent = true, archivedAtMs = null)) }
+            }
+            if (rows.isNotEmpty()) dao.upsertAll(rows)
+        }
     }
 
     /**
@@ -503,8 +573,9 @@ class PreferencesRepository(
      * Kept beside [bodyweightKg] rather than instead of it: that is the current value, this is
      * how it got there, and [recordBodyweight] writes both in one edit so they cannot disagree.
      */
-    val bodyweightLog: Flow<List<BodyweightEntry>> = safePreferences
-        .map { prefs -> BodyweightLog.decode(prefs[BODYWEIGHT_LOG]) }
+    val bodyweightLog: Flow<List<BodyweightEntry>> =
+        bodyweightDao?.observeAll()?.map { rows -> rows.map { it.toDomain() } }
+            ?: safePreferences.map { prefs -> BodyweightLog.decode(prefs[BODYWEIGHT_LOG]) }
 
     /**
      * Record what the lifter weighs today, keeping the history.
@@ -518,14 +589,25 @@ class PreferencesRepository(
                 it >= OnboardingAnswers.MIN_BODYWEIGHT_KG &&
                 it <= OnboardingAnswers.MAX_BODYWEIGHT_KG
         } ?: return
+        bodyweightDao?.let { dao ->
+            dao.upsert(BodyweightEntryEntity(epochDay, clean, nowMs()))
+            val all = dao.getAll()
+            if (all.size > BodyweightLog.MAX_ENTRIES) {
+                all.dropLast(BodyweightLog.MAX_ENTRIES).forEach { extra ->
+                    dao.deleteDay(extra.epochDay)
+                }
+            }
+        }
         dataStore.edit { prefs ->
             prefs[BODYWEIGHT_KG] = clean
-            prefs[BODYWEIGHT_LOG] = BodyweightLog.encode(
-                BodyweightLog.record(
-                    BodyweightLog.decode(prefs[BODYWEIGHT_LOG]),
-                    BodyweightEntry(epochDay = epochDay, kg = clean),
-                ),
-            )
+            if (bodyweightDao == null) {
+                prefs[BODYWEIGHT_LOG] = BodyweightLog.encode(
+                    BodyweightLog.record(
+                        BodyweightLog.decode(prefs[BODYWEIGHT_LOG]),
+                        BodyweightEntry(epochDay = epochDay, kg = clean),
+                    ),
+                )
+            }
         }
     }
 
@@ -546,20 +628,22 @@ class PreferencesRepository(
      * started a block, and putting them in an implied one — dated from whenever the app first
      * saw them — would invent a milestone they never set.
      */
-    val trainingBlock: Flow<TrainingBlock?> = safePreferences
-        .map { prefs ->
-            val start = prefs[BLOCK_START] ?: return@map null
-            TrainingBlock(
-                startEpochDay = start,
-                weeks = prefs[BLOCK_WEEKS] ?: TrainingBlock.DEFAULT_WEEKS,
-            )
-        }
+    val trainingBlock: Flow<TrainingBlock?> =
+        trainingBlockDao?.observeCurrent()?.map { it?.toDomain() }
+            ?: safePreferences.map { prefs ->
+                val start = prefs[BLOCK_START] ?: return@map null
+                TrainingBlock(
+                    startEpochDay = start,
+                    weeks = prefs[BLOCK_WEEKS] ?: TrainingBlock.DEFAULT_WEEKS,
+                )
+            }
 
     /**
      * The blocks already finished, oldest first. Boundaries only — see [BlockArchive].
      */
-    val pastBlocks: Flow<List<TrainingBlock>> = safePreferences
-        .map { prefs -> BlockArchive.decode(prefs[PAST_BLOCKS]) }
+    val pastBlocks: Flow<List<TrainingBlock>> =
+        trainingBlockDao?.observePast()?.map { rows -> rows.map { it.toDomain() } }
+            ?: safePreferences.map { prefs -> BlockArchive.decode(prefs[PAST_BLOCKS]) }
 
     /**
      * Make [next] the current block, keeping the one it replaces if it was finished.
@@ -570,6 +654,18 @@ class PreferencesRepository(
      * "start the next twelve" button and the guided setup — go through here.
      */
     suspend fun beginBlock(next: TrainingBlock, todayEpochDay: Long) {
+        trainingBlockDao?.let { dao ->
+            val existing = dao.getCurrent()
+            if (existing != null) {
+                val current = existing.toDomain()
+                if (current.isCompleteOn(todayEpochDay)) {
+                    dao.upsert(existing.copy(isCurrent = false, archivedAtMs = nowMs()))
+                } else {
+                    dao.deleteById(existing.id)
+                }
+            }
+            dao.upsert(next.toEntity(isCurrent = true, archivedAtMs = null))
+        }
         dataStore.edit { prefs ->
             val current = prefs[BLOCK_START]?.let { start ->
                 TrainingBlock(start, prefs[BLOCK_WEEKS] ?: TrainingBlock.DEFAULT_WEEKS)
@@ -591,6 +687,12 @@ class PreferencesRepository(
      * [beginBlock], which is where the rule about keeping a finished block lives.
      */
     suspend fun setTrainingBlock(block: TrainingBlock?) {
+        trainingBlockDao?.let { dao ->
+            dao.getCurrent()?.let { dao.deleteById(it.id) }
+            if (block != null) {
+                dao.upsert(block.toEntity(isCurrent = true, archivedAtMs = null))
+            }
+        }
         dataStore.edit { prefs ->
             if (block == null) {
                 prefs.remove(BLOCK_START)
@@ -651,6 +753,8 @@ class PreferencesRepository(
             prefs[REST_DEFAULT] = rest.defaultRestSeconds
             prefs[FOUNDATION_GENERATION] = FoundationGeneration.NAME
         }
+        bodyweightDao?.deleteAll()
+        trainingBlockDao?.deleteAll()
     }
 
     private companion object {
@@ -662,6 +766,7 @@ class PreferencesRepository(
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val BODYWEIGHT_KG = doublePreferencesKey("bodyweight_kg")
         val BODYWEIGHT_LOG = stringPreferencesKey("bodyweight_log")
+        val TRAINING_FOCUS = stringPreferencesKey("training_focus")
         val BLOCK_START = longPreferencesKey("block_start_epoch_day")
         val BLOCK_WEEKS = intPreferencesKey("block_weeks")
         val PAST_BLOCKS = stringPreferencesKey("past_blocks")
@@ -692,3 +797,27 @@ class PreferencesRepository(
             }.toSet()
     }
 }
+
+private fun BodyweightEntry.toEntity(recordedAtMs: Long) = BodyweightEntryEntity(
+    epochDay = epochDay,
+    kg = kg,
+    recordedAtMs = recordedAtMs,
+)
+
+private fun BodyweightEntryEntity.toDomain() = BodyweightEntry(
+    epochDay = epochDay,
+    kg = kg,
+)
+
+private fun TrainingBlock.toEntity(isCurrent: Boolean, archivedAtMs: Long?) = TrainingBlockEntity(
+    id = "block-$startEpochDay",
+    startEpochDay = startEpochDay,
+    weeks = weeks,
+    isCurrent = isCurrent,
+    archivedAtMs = archivedAtMs,
+)
+
+private fun TrainingBlockEntity.toDomain() = TrainingBlock(
+    startEpochDay = startEpochDay,
+    weeks = weeks,
+)

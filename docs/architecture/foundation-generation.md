@@ -11,8 +11,9 @@ This packet is the one authorized cutover from `TrainerDatabase` v2
 ## Decision
 
 1. **`TemperDatabase` is a new generation.** New name (`temper.db`), new
-   schema folder, new version series starting at 1. It is not a silent
-   v2→v3 patch of `TrainerDatabase`.
+   schema folder, new version series that started at 1. P6.1 migrated
+   it to version 2 (bodyweight entries and training blocks). It is not
+   a silent v2→v3 patch of `TrainerDatabase`.
 2. **`fallbackToDestructiveMigration` remains prohibited** on both
    databases. A migration bug fails closed.
 3. **The activity tables persist [ADR-007](ADR-007-activity-model.md).**
@@ -38,6 +39,6 @@ This packet is the one authorized cutover from `TrainerDatabase` v2
 
 ## Finding coverage
 
-FND-002 is representable and persistable. It still closes at P6.6 when
-History and export surfaces use these types in production UI. FND-019's
-storage direction is established; bodyweight/blocks move in P6.1.
+FND-002 closed at P6.6: History, calendar, insights, and detail read
+completed activities. FND-019 closed at P6.1: bodyweight and training
+blocks are Room tables on `TemperDatabase` v2.

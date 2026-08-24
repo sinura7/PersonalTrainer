@@ -397,6 +397,19 @@ class RoutineGeneratorTest {
         assertEquals("Rest", OnboardingPreviewCopy.dayLine(rest, null).second)
     }
 
+    @Test
+    fun cardioFocusGeneratesNoLiftWeek() {
+        val answers = OnboardingAnswers(focus = TrainingFocus.CARDIO, daysPerWeek = 4)
+        val plan = RoutineGenerator.generate(answers, catalog)
+        assertTrue(plan.routines.isEmpty())
+        assertEquals(0, plan.trainingDayCount)
+        assertTrue(plan.days.all { it.isRest })
+        assertEquals(
+            "Cardio logging is ready. A lift week is not generated.",
+            OnboardingPreviewCopy.headline(answers, plan),
+        )
+    }
+
     private fun BlueprintLift.family(): String =
         catalog.first { it.id == exerciseId }.movementKey.orEmpty()
 

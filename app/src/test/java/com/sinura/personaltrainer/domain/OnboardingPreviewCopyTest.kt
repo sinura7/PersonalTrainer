@@ -10,4 +10,14 @@ class OnboardingPreviewCopyTest {
         assertEquals("Use this plan", OnboardingPreviewCopy.FULL_WEEK_CONFIRM_PLAN)
         assertEquals("Use this week", OnboardingPreviewCopy.FULL_WEEK_CONFIRM_WEEK)
     }
+
+    @Test
+    fun cardioFocusHeadlineDoesNotInventALiftWeek() {
+        val answers = OnboardingAnswers(focus = TrainingFocus.CARDIO)
+        val plan = RoutineGenerator.generate(answers, emptyList())
+        assertEquals(
+            "Cardio logging is ready. A lift week is not generated.",
+            OnboardingPreviewCopy.headline(answers, plan),
+        )
+    }
 }

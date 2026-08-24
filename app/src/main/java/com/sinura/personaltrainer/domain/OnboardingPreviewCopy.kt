@@ -8,6 +8,9 @@ package com.sinura.personaltrainer.domain
  */
 object OnboardingPreviewCopy {
     fun headline(answers: OnboardingAnswers, plan: PlanBlueprint): String {
+        if (answers.focus == TrainingFocus.CARDIO) {
+            return "Cardio logging is ready. A lift week is not generated."
+        }
         val bits = buildList {
             add("${plan.trainingDayCount} days")
             if (answers.emphasis != TrainingEmphasis.BALANCED) {

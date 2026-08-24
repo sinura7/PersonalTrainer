@@ -68,6 +68,8 @@ fun HomeScreen(
     onOpenHistory: () -> Unit,
     onOpenExercise: (String) -> Unit,
     onOpenSettings: () -> Unit,
+    onLogActivity: (String) -> Unit = {},
+    onOpenLiveCardio: (String) -> Unit = {},
     viewModel: HomeViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -255,6 +257,10 @@ fun HomeScreen(
             onStartToday = todayDay?.takeUnless { it.isRest }?.let { target ->
                 { viewModel.startSuggestedDay(target) }
             },
+            onLogPast = { onLogActivity("strength") },
+            onLogCardio = { onLogActivity("cardio") },
+            onLogMixed = { onLogActivity("mixed") },
+            onOpenLiveActivity = onOpenLiveCardio,
         )
     }
 }

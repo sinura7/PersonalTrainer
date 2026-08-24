@@ -2,8 +2,10 @@
 
 `TrainerDatabase` (legacy, `personal_trainer.db`) and `TemperDatabase`
 (foundation generation, `temper.db`) each have their own folder.
-`TrainerDatabase` v1/v2 stay the migration substrate. `TemperDatabase`
-starts at version 1 — a new generation, not a v2→v3 patch.
+`TrainerDatabase` v1/v2 stay the historical migration substrate.
+`TemperDatabase` started at version 1 and is now at version 2
+(P6.1 bodyweight / training-block tables). It is still a new
+generation, not a `TrainerDatabase` v2→v3 patch.
 
 Every file in this directory is a JSON snapshot of one database version,
 emitted by Room's annotation processor into `room.schemaLocation`
@@ -31,6 +33,8 @@ git add app/schemas/
 # Robolectric reads debug assets, not this folder. Release APKs do not include the copy.
 cp app/schemas/com.sinura.personaltrainer.data.local.TrainerDatabase/*.json \
    app/src/debug/assets/com.sinura.personaltrainer.data.local.TrainerDatabase/
+cp app/schemas/com.sinura.personaltrainer.data.local.TemperDatabase/*.json \
+   app/src/debug/assets/com.sinura.personaltrainer.data.local.TemperDatabase/
 git add app/src/debug/assets/
 ```
 
@@ -40,8 +44,8 @@ git add app/src/debug/assets/
 2. Never delete an old version's file — migrations are validated against it.
 3. A schema change is not done until its `<version>.json` and its migration test are
    committed together.
-4. After a new `<version>.json` is generated, copy it into
-   `app/src/debug/assets/com.sinura.personaltrainer.data.local.TrainerDatabase/`.
-   AGP 8 does not package `sourceSets.test.assets.srcDir("schemas")` into the
-   Robolectric APK. Debug assets are what `MigrationTestHelper` sees on the JVM.
-   They do not ship in a release APK.
+4. After a new `<version>.json` is generated, copy it into the matching
+   `app/src/debug/assets/com.sinura.personaltrainer.data.local.<Database>/`
+   folder. AGP 8 does not package `sourceSets.test.assets.srcDir("schemas")`
+   into the Robolectric APK. Debug assets are what `MigrationTestHelper`
+   sees on the JVM. They do not ship in a release APK.

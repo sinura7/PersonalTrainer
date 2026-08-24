@@ -1,0 +1,66 @@
+package com.sinura.personaltrainer.domain
+
+import com.sinura.personaltrainer.util.JvmTime
+
+enum class HistoryKind { WORKOUT, ACTIVITY }
+
+data class HistoryEntry(
+    val id: String,
+    val kind: HistoryKind,
+    val title: String,
+    val sortMillis: Long,
+    val localEpochDay: Long,
+    val workingSets: Int,
+    val cardioMinutes: Int,
+    val work: SetWork,
+    val durationMinutes: Int,
+)
+
+data class HistoryMonthGroup(
+    val month: CivilYearMonth,
+    val entries: List<HistoryEntry>,
+)
+
+fun WorkoutSession.toHistoryEntry(
+    time: TimePort = JvmTime,
+    zoneId: String = time.defaultZoneId(),
+): HistoryEntry = HistoryEntry(
+    id = id,
+    kind = HistoryKind.WORKOUT,
+    title = routineName ?: "Workout",
+    sortMillis = performedAtMs(),
+    localEpochDay = performedEpochDay(time, zoneId),
+    workingSets = workingSetCount(),
+    cardioMinutes = 0,
+    work = work(),
+    durationMinutes = durationMinutes,
+)
+
+fun ActivitySession.toHistoryEntry(): HistoryEntry = HistoryEntry(
+    id = id,
+    kind = HistoryKind.ACTIVITY,
+    title = title.ifBlank {
+        when {
+            isCardioOnly -> "Cardio"
+            isMixed -> "Mixed session"
+            else -> "Workout"
+        }
+    },
+    sortMillis = performedStart.instantMillis,
+    localEpochDay = localEpochDay,
+    workingSets = strengthSetCount(),
+    cardioMinutes = cardioMinutes(),
+    work = strengthWork(),
+    durationMinutes = cardioMinutes().coerceAtLeast(0),
+)
+
+fun groupHistoryByMonth(entries: List<HistoryEntry>): List<HistoryMonthGroup> = entries
+    .groupBy { CivilYearMonth.from(CivilDate.fromEpochDay(it.localEpochDay)) }
+    .entries
+    .sortedByDescending { it.key }
+    .map { (month, rows) ->
+        HistoryMonthGroup(
+            month = month,
+            entries = rows.sortedByDescending { it.sortMillis },
+        )
+    }

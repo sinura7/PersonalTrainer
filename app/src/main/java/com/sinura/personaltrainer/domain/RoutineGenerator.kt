@@ -247,6 +247,16 @@ object RoutineGenerator {
         weekStart: Weekday = Weekday.MONDAY,
     ): PlanBlueprint {
         val clean = answers.sanitized()
+        if (clean.focus == TrainingFocus.CARDIO) {
+            val days = (0 until 7).map { offset ->
+                BlueprintDay(dayOfWeek = weekStart.plus(offset.toLong()), routineKey = null)
+            }
+            return PlanBlueprint(
+                splitStyle = SplitDerivation.forAnswers(clean),
+                routines = emptyList(),
+                days = days,
+            )
+        }
         val split = SplitDerivation.forAnswers(clean)
         val kinds = WeeklySchedulePlanner.slotKinds(
             split,

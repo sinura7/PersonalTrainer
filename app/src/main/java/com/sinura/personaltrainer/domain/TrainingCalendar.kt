@@ -7,6 +7,7 @@ data class CalendarDay(
     /** False for the leading and trailing days that only exist to square off the grid. */
     val inMonth: Boolean,
     val sessionIds: List<String> = emptyList(),
+    val activityIds: List<String> = emptyList(),
     val work: SetWork = SetWork.NONE,
     /**
      * How hard this day was relative to the hardest day of the same month, 0..1.
@@ -23,7 +24,7 @@ data class CalendarDay(
      */
     val intensity: Float = 0f,
 ) {
-    val trained: Boolean get() = sessionIds.isNotEmpty()
+    val trained: Boolean get() = sessionIds.isNotEmpty() || activityIds.isNotEmpty()
 }
 
 data class TrainingMonth(
@@ -46,6 +47,7 @@ object TrainingCalendarBuilder {
     fun build(
         month: CivilYearMonth,
         sessions: List<WorkoutSession>,
+        activities: List<ActivitySession> = emptyList(),
         time: TimePort = JvmTime,
         weekStart: Weekday = Weekday.MONDAY,
         zoneId: String = time.defaultZoneId(),
@@ -53,11 +55,18 @@ object TrainingCalendarBuilder {
         val byDate = sessions
             .filter { it.isFinished }
             .groupBy { session -> time.civilDate(session.date, zoneId) }
+        val activitiesByDate = activities
+            .filter { it.isCompleted }
+            .groupBy { CivilDate.fromEpochDay(it.localEpochDay) }
 
-        val inMonth = byDate.filterKeys { CivilYearMonth.from(it) == month }
-        val busiest = inMonth.values
-            .maxOfOrNull { day -> day.sumOf { session -> session.workingSetCount() } }
-            ?: 0
+        val inMonthDates = (byDate.keys + activitiesByDate.keys)
+            .filter { CivilYearMonth.from(it) == month }
+            .toSet()
+        val busiest = inMonthDates.maxOfOrNull { date ->
+            val sets = byDate[date].orEmpty().sumOf { it.workingSetCount() } +
+                activitiesByDate[date].orEmpty().sumOf { it.strengthSetCount() }
+            sets
+        } ?: 0
 
         val first = month.atDay(1).previousOrSame(weekStart)
         val lastDayOfMonth = month.atEndOfMonth()
@@ -68,12 +77,17 @@ object TrainingCalendarBuilder {
             weeks += (0 until DAYS_IN_WEEK).map { offset ->
                 val date = cursor.plusDays(offset.toLong())
                 val daySessions = byDate[date].orEmpty()
-                val sets = daySessions.sumOf { session -> session.workingSetCount() }
+                val dayActivities = activitiesByDate[date].orEmpty()
+                val sets = daySessions.sumOf { session -> session.workingSetCount() } +
+                    dayActivities.sumOf { it.strengthSetCount() }
                 CalendarDay(
                     date = date,
                     inMonth = CivilYearMonth.from(date) == month,
                     sessionIds = daySessions.map { it.id },
-                    work = SetWork.sum(daySessions.map { it.work() }),
+                    activityIds = dayActivities.map { it.id },
+                    work = SetWork.sum(
+                        daySessions.map { it.work() } + dayActivities.map { it.strengthWork() },
+                    ),
                     // Clamped because `busiest` only considers in-month days, while the
                     // leading and trailing padding days of the grid keep their real volume:
                     // a heavy end-of-previous-month session divided by a light current
@@ -92,10 +106,16 @@ object TrainingCalendarBuilder {
         return TrainingMonth(
             month = month,
             weeks = weeks,
-            trainedDays = inMonth.size,
-            work = SetWork.sum(inMonth.values.flatten().map { it.work() }),
-            workingSets = inMonth.values.sumOf { day ->
-                day.sumOf { session -> session.sets.count { !it.isWarmup } }
+            trainedDays = inMonthDates.size,
+            work = SetWork.sum(
+                inMonthDates.flatMap { date ->
+                    byDate[date].orEmpty().map { it.work() } +
+                        activitiesByDate[date].orEmpty().map { it.strengthWork() }
+                },
+            ),
+            workingSets = inMonthDates.sumOf { date ->
+                byDate[date].orEmpty().sumOf { it.workingSetCount() } +
+                    activitiesByDate[date].orEmpty().sumOf { it.strengthSetCount() }
             },
         )
     }

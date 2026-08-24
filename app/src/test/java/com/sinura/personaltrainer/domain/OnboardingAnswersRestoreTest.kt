@@ -163,7 +163,20 @@ class OnboardingAnswersRestoreTest {
         assertEquals(TrainingGoal.ATHLETIC, restored.goal)
         assertEquals(TrainingEmphasis.UPPER, restored.emphasis)
         assertEquals(80.0, restored.bodyweightKg!!, 0.001)
+        assertEquals(TrainingFocus.STRENGTH, restored.focus)
         assertNull(OnboardingAnswers.decodeDraft(""))
+    }
+
+    @Test
+    fun draftCarriesFocusAndOldSevenPartDraftsDefaultToStrength() {
+        val both = OnboardingAnswers(focus = TrainingFocus.BOTH)
+        assertEquals(TrainingFocus.BOTH, OnboardingAnswers.decodeDraft(OnboardingAnswers.encodeDraft(both))!!.focus)
+        val old = OnboardingAnswers.encodeDraft(OnboardingAnswers()).substringBeforeLast("|")
+        assertEquals(6, old.count { it == '|' })
+        assertEquals(TrainingFocus.STRENGTH, OnboardingAnswers.decodeDraft(old)!!.focus)
+        assertEquals(TrainingFocus.CARDIO, TrainingFocus.fromStorage("cardio"))
+        assertEquals(TrainingFocus.STRENGTH, TrainingFocus.fromStorage(null))
+        assertEquals(TrainingFocus.STRENGTH, TrainingFocus.fromStorage("NOPE"))
     }
 
     @Test

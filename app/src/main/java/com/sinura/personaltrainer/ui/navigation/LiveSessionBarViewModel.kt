@@ -20,10 +20,13 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 private const val TAG = "PT/LiveSessionBar"
+
+enum class LiveBarKind { WORKOUT, ACTIVITY }
 
 data class LiveSessionBarUiState(
     val sessionId: String,
@@ -35,6 +38,7 @@ data class LiveSessionBarUiState(
     val restRunning: Boolean,
     val stale: Boolean,
     val staleHours: Long,
+    val kind: LiveBarKind = LiveBarKind.WORKOUT,
 ) {
     /** A session with nothing logged can never be finished — discard is its only exit. */
     val canFinish: Boolean get() = totalSets >= 1
@@ -61,12 +65,13 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<LiveSessionBarUiState?> =
-        container.workoutRepository.observeInProgress()
-            .flatMapLatest { session ->
-                if (session == null) {
-                    flowOf(null)
-                } else {
-                    combine(
+        combine(
+            container.workoutRepository.observeInProgress(),
+            container.activityRepository.observeLive(),
+        ) { workout, activity -> workout to activity }
+            .flatMapLatest { (session, liveActivity) ->
+                when {
+                    session != null -> combine(
                         container.workoutRepository.observeSessionActivity(session.id),
                         container.restTimerController.remainingSeconds,
                         ticker,
@@ -87,8 +92,31 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
                             restRunning = restSeconds > 0,
                             stale = LiveSessionRules.isStale(lastActivity, now),
                             staleHours = LiveSessionRules.staleHours(lastActivity, now),
+                            kind = LiveBarKind.WORKOUT,
                         )
                     }
+                    liveActivity != null -> ticker.map { now ->
+                        val persisted = container.cardioTimerPersistence.load()
+                            ?.takeIf { it.sessionId == liveActivity.id }
+                        val elapsed = com.sinura.personaltrainer.timer.CardioElapsed.seconds(
+                            persisted = persisted,
+                            sessionStartedAtMs = liveActivity.performedStart.instantMillis,
+                            nowWallMs = now,
+                        )
+                        LiveSessionBarUiState(
+                            sessionId = liveActivity.id,
+                            title = liveActivity.title,
+                            elapsedLabel = LiveSessionRules.formatElapsed(elapsed),
+                            workingSets = liveActivity.strengthSetCount(),
+                            totalSets = liveActivity.strengthSetCount().coerceAtLeast(1),
+                            restRemainingSeconds = 0,
+                            restRunning = false,
+                            stale = false,
+                            staleHours = 0,
+                            kind = LiveBarKind.ACTIVITY,
+                        )
+                    }
+                    else -> flowOf(null)
                 }
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
@@ -96,30 +124,58 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
     /** Consumed by the host composition, so a finish survives Activity recreation. */
     private val _finishedNavigation = MutableStateFlow<String?>(null)
     val finishedNavigation: StateFlow<String?> = _finishedNavigation.asStateFlow()
+    private val _finishedActivityNavigation = MutableStateFlow<String?>(null)
+    val finishedActivityNavigation: StateFlow<String?> = _finishedActivityNavigation.asStateFlow()
 
     fun onFinishNavigationHandled() {
         _finishedNavigation.value = null
+        _finishedActivityNavigation.value = null
     }
 
     fun finishFromBar() {
-        val id = uiState.value?.sessionId ?: return
+        val live = uiState.value ?: return
         viewModelScope.launch {
-            when (val outcome = container.finishWorkout(id, notes = null)) {
-                is FinishOutcome.Finished -> _finishedNavigation.value = outcome.sessionId
-                // No error surface here on purpose: the bar reflects the database, so a
-                // failed finish simply leaves the session — and the bar — visible, which is
-                // honest. The cause is in the log.
-                else -> AppLog.w(TAG, "Finishing from the bar did not complete: $outcome")
+            if (live.kind == LiveBarKind.ACTIVITY) {
+                val now = com.sinura.personaltrainer.util.JvmTime.captureNow()
+                val current = container.activityRepository.get(live.sessionId)
+                val persisted = container.cardioTimerPersistence.load()
+                    ?.takeIf { it.sessionId == live.sessionId }
+                val elapsed = com.sinura.personaltrainer.timer.CardioElapsed.seconds(
+                    persisted = persisted,
+                    sessionStartedAtMs = current?.performedStart?.instantMillis ?: now.instantMillis,
+                    nowWallMs = now.instantMillis,
+                )
+                val blocks = current?.cardioBlocks?.map { block ->
+                    block.copy(elapsedSeconds = elapsed, movingSeconds = elapsed)
+                } ?: current?.blocks
+                when (val write = container.finishActivity(live.sessionId, now, blocks)) {
+                    is com.sinura.personaltrainer.domain.ActivityWrite.Accepted -> {
+                        container.cardioTimerPersistence.clear()
+                        _finishedActivityNavigation.value = write.session.id
+                    }
+                    is com.sinura.personaltrainer.domain.ActivityWrite.Rejected ->
+                        AppLog.w(TAG, "Finishing live cardio from the bar failed: ${write.reason}")
+                }
+            } else {
+                when (val outcome = container.finishWorkout(live.sessionId, notes = null)) {
+                    is FinishOutcome.Finished -> _finishedNavigation.value = outcome.sessionId
+                    else -> AppLog.w(TAG, "Finishing from the bar did not complete: $outcome")
+                }
             }
         }
     }
 
     fun discardFromBar() {
-        val id = uiState.value?.sessionId ?: return
+        val live = uiState.value ?: return
         viewModelScope.launch {
-            when (val outcome = container.discardWorkout(id)) {
-                DiscardOutcome.Discarded -> Unit
-                is DiscardOutcome.Failed -> AppLog.w(TAG, "Discarding from the bar failed")
+            if (live.kind == LiveBarKind.ACTIVITY) {
+                container.discardActivity(live.sessionId)
+                container.cardioTimerPersistence.clear()
+            } else {
+                when (val outcome = container.discardWorkout(live.sessionId)) {
+                    DiscardOutcome.Discarded -> Unit
+                    is DiscardOutcome.Failed -> AppLog.w(TAG, "Discarding from the bar failed")
+                }
             }
         }
     }

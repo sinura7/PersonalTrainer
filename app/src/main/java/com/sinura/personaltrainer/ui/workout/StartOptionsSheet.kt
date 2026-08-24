@@ -63,11 +63,18 @@ fun StartOptionsSheet(
     /** Today's slot, pinned on top. Null on a rest day or an empty week. */
     todayDay: SuggestedTrainingDay? = null,
     onStartToday: (() -> Unit)? = null,
+    onLogPast: () -> Unit = {},
+    onLogCardio: () -> Unit = {},
+    onLogMixed: () -> Unit = {},
+    onOpenLiveActivity: (String) -> Unit = {},
     viewModel: StartOptionsViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val navigateToSession by viewModel.navigateToSession.collectAsStateWithLifecycle()
+    val navigateToCardio by viewModel.navigateToCardio.collectAsStateWithLifecycle()
+    val navigateToComposer by viewModel.navigateToComposer.collectAsStateWithLifecycle()
     val inProgress = state.inProgress
+    val liveActivity = state.liveActivity
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(navigateToSession) {
@@ -75,6 +82,22 @@ fun StartOptionsSheet(
         viewModel.onSessionNavigationHandled()
         onDismiss()
         onWorkoutStarted(target)
+    }
+    LaunchedEffect(navigateToCardio) {
+        val target = navigateToCardio ?: return@LaunchedEffect
+        viewModel.onCardioNavigationHandled()
+        onDismiss()
+        onOpenLiveActivity(target)
+    }
+    LaunchedEffect(navigateToComposer) {
+        val mode = navigateToComposer ?: return@LaunchedEffect
+        viewModel.onComposerNavigationHandled()
+        onDismiss()
+        when (mode) {
+            "cardio" -> onLogCardio()
+            "mixed" -> onLogMixed()
+            else -> onLogPast()
+        }
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Surface3) {
@@ -89,7 +112,7 @@ fun StartOptionsSheet(
             Text("Start a workout", style = InstrumentType.title, color = TextPrimary)
             state.error?.let { message -> GymErrorBanner(message) }
 
-            if (inProgress != null) {
+            if (inProgress != null || liveActivity != null) {
                 Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
                     Kicker("Session in progress")
                     // They opened Start on purpose. Sending them to dismiss and find the bar
@@ -98,7 +121,11 @@ fun StartOptionsSheet(
                         text = "Go to session",
                         onClick = {
                             onDismiss()
-                            onWorkoutStarted(inProgress.id)
+                            if (inProgress != null) {
+                                onWorkoutStarted(inProgress.id)
+                            } else {
+                                onOpenLiveActivity(liveActivity!!.id)
+                            }
                         },
                     )
                     Text(
@@ -161,13 +188,63 @@ fun StartOptionsSheet(
             }
 
             FreeWorkoutAction(onStart = viewModel::startFree)
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+                TextButton(
+                    onClick = {
+                        onDismiss()
+                        onLogPast()
+                    },
+                    contentPadding = PaddingValues(0.dp),
+                ) {
+                    Text("Log past workout", style = InstrumentType.bodyStrong, color = TextSecondary)
+                }
+                TextButton(
+                    onClick = {
+                        onDismiss()
+                        viewModel.openComposer("mixed")
+                    },
+                    contentPadding = PaddingValues(0.dp),
+                ) {
+                    Text("Log mixed session", style = InstrumentType.bodyStrong, color = TextSecondary)
+                }
+                Text(
+                    "Backdated strength, or a mixed day.",
+                    style = InstrumentType.caption,
+                    color = TextTertiary,
+                )
+                TextButton(
+                    onClick = {
+                        onDismiss()
+                        onLogCardio()
+                    },
+                    contentPadding = PaddingValues(0.dp),
+                ) {
+                    Text("Log cardio", style = InstrumentType.bodyStrong, color = TextSecondary)
+                }
+                Text(
+                    "Typed time and distance. No fake lift rows.",
+                    style = InstrumentType.caption,
+                    color = TextTertiary,
+                )
+                TextButton(
+                    onClick = viewModel::startCardio,
+                    contentPadding = PaddingValues(0.dp),
+                ) {
+                    Text("Start cardio", style = InstrumentType.bodyStrong, color = TextSecondary)
+                }
+                Text(
+                    "Live clock. Survives leaving the app.",
+                    style = InstrumentType.caption,
+                    color = TextTertiary,
+                )
+            }
         }
     }
 
-    if (confirmDiscard && inProgress != null) {
-        val loggedSets = inProgress.sets.size
+    if (confirmDiscard && (inProgress != null || liveActivity != null)) {
+        val loggedSets = inProgress?.sets?.size ?: 0
         ConfirmActionDialog(
-            title = "Discard this workout?",
+            title = "Discard this session?",
             body = if (loggedSets > 0) {
                 "This deletes the session and its $loggedSets logged " +
                     (if (loggedSets == 1) "set" else "sets") + ". This cannot be undone."

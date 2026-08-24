@@ -8,10 +8,13 @@ import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.repository.RepeatOutcome
 import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.PrSummaryRow
-import com.sinura.personaltrainer.domain.SessionMonthGroup
+import com.sinura.personaltrainer.domain.ActivitySession
+import com.sinura.personaltrainer.domain.HistoryMonthGroup
 import com.sinura.personaltrainer.domain.TrainingCalendarBuilder
-import com.sinura.personaltrainer.domain.groupSessionsByMonth
+import com.sinura.personaltrainer.domain.groupHistoryByMonth
 import com.sinura.personaltrainer.domain.prSummary
+import com.sinura.personaltrainer.domain.toHistoryEntry
+import com.sinura.personaltrainer.domain.toInsightSession
 import com.sinura.personaltrainer.domain.BlockReview
 import com.sinura.personaltrainer.domain.BodyweightEntry
 import com.sinura.personaltrainer.domain.BlockReviewBuilder
@@ -42,8 +45,9 @@ data class HistoryUiState(
     val unavailable: Boolean = false,
     val stale: Boolean = false,
     val sessions: List<WorkoutSession> = emptyList(),
+    val activities: List<ActivitySession> = emptyList(),
     /** The same sessions, grouped for the list. Derived, never a second query. */
-    val monthGroups: List<SessionMonthGroup> = emptyList(),
+    val monthGroups: List<HistoryMonthGroup> = emptyList(),
     /** The standing records, newest first — what History could never tell you before. */
     val records: List<PrSummaryRow> = emptyList(),
     val calendar: TrainingMonth = TrainingMonth(month = YearMonth.now().toCivilYearMonth()),
@@ -94,7 +98,10 @@ class HistoryViewModel @JvmOverloads constructor(
 
     val uiState: StateFlow<HistoryUiState> = historyRetry.flatMapLatest {
         combine(
-            container.workoutRepository.observeHistoryHealth(),
+            combine(
+                container.workoutRepository.observeHistoryHealth(),
+                container.activityRepository.observeCompleted(),
+            ) { health, activities -> health to activities },
             combine(
                 container.preferencesRepository.schedulePreferences,
                 container.preferencesRepository.pastBlocks,
@@ -102,22 +109,29 @@ class HistoryViewModel @JvmOverloads constructor(
                 container.preferencesRepository.bodyweightLog,
             ) { preferences, blocks, unit, log -> Settings(preferences, blocks, unit, log) },
             visibleMonth,
-        ) { health, settings, month ->
+        ) { historyAndActivities, settings, month ->
+            val health = historyAndActivities.first
+            val activities = historyAndActivities.second
             val list = historyListFromHealth(health)
             if (list.unavailable) {
                 return@combine HistoryUiState(isLoading = false, unavailable = true)
             }
             val sessions = list.sessions
+            val insightSessions = sessions + activities.mapNotNull { it.toInsightSession() }
             val preferences = settings.preferences
             HistoryUiState(
                 isLoading = false,
                 stale = list.stale,
                 sessions = sessions,
-                monthGroups = groupSessionsByMonth(sessions),
-                records = prSummary(sessions),
+                activities = activities,
+                monthGroups = groupHistoryByMonth(
+                    sessions.map { it.toHistoryEntry() } + activities.map { it.toHistoryEntry() },
+                ),
+                records = prSummary(insightSessions),
                 calendar = TrainingCalendarBuilder.build(
                     month = month.toCivilYearMonth(),
                     sessions = sessions,
+                    activities = activities,
                     weekStart = preferences.weekStart,
                 ),
                 weekStart = preferences.weekStart,
@@ -128,7 +142,7 @@ class HistoryViewModel @JvmOverloads constructor(
                             block = block,
                             review = BlockReviewBuilder.build(
                                 block = block,
-                                sessions = sessions,
+                                sessions = insightSessions,
                                 unit = settings.unit,
                                 bodyweightLog = settings.bodyweightLog,
                             ),

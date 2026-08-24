@@ -4,12 +4,16 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
+import com.sinura.personaltrainer.data.local.dao.BodyweightDao
+import com.sinura.personaltrainer.data.local.dao.TrainingBlockDao
 import com.sinura.personaltrainer.data.local.entity.ActivityBlockEntity
 import com.sinura.personaltrainer.data.local.entity.ActivityCardioIntervalEntity
 import com.sinura.personaltrainer.data.local.entity.ActivitySessionEntity
 import com.sinura.personaltrainer.data.local.entity.ActivityStrengthSetEntity
 import com.sinura.personaltrainer.data.local.entity.ActivityTemplateEntity
+import com.sinura.personaltrainer.data.local.entity.BodyweightEntryEntity
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
+import com.sinura.personaltrainer.data.local.entity.TrainingBlockEntity
 import com.sinura.personaltrainer.data.local.entity.ExerciseMuscleEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
@@ -43,12 +47,16 @@ import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
         ActivityBlockEntity::class,
         ActivityStrengthSetEntity::class,
         ActivityCardioIntervalEntity::class,
+        BodyweightEntryEntity::class,
+        TrainingBlockEntity::class,
     ],
     version = FoundationGeneration.VERSION,
     exportSchema = true,
 )
 abstract class TemperDatabase : AppRoomDatabase() {
     abstract fun activityDao(): ActivityDao
+    abstract fun bodyweightDao(): BodyweightDao
+    abstract fun trainingBlockDao(): TrainingBlockDao
 
     companion object {
         fun create(context: Context): TemperDatabase {
@@ -59,6 +67,7 @@ abstract class TemperDatabase : AppRoomDatabase() {
             )
                 // No fallbackToDestructiveMigration, here or ever: a migration
                 // bug must fail closed, not silently erase training history.
+                .addMigrations(MIGRATION_TEMPER_1_2)
                 .build()
         }
     }

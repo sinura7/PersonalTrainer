@@ -177,6 +177,7 @@ data class OnboardingAnswers(
     val emphasis: TrainingEmphasis = TrainingEmphasis.BALANCED,
     /** Null when skipped. Replaces the flat stand-in in bodyweight-set volume. */
     val bodyweightKg: Double? = null,
+    val focus: TrainingFocus = TrainingFocus.STRENGTH,
 ) {
     fun resolvedPlaces(): Set<TrainingPlace> =
         (if (places.isNotEmpty()) places else setOf(place)).ifEmpty { setOf(TrainingPlace.FULL_GYM) }
@@ -262,6 +263,7 @@ data class OnboardingAnswers(
             emphasis: TrainingEmphasis,
             bodyweightKg: Double?,
             places: Set<TrainingPlace> = emptySet(),
+            focus: TrainingFocus = TrainingFocus.STRENGTH,
         ): OnboardingAnswers = OnboardingAnswers(
             trainingAge = trainingAge,
             daysPerWeek = daysPerWeek,
@@ -271,6 +273,7 @@ data class OnboardingAnswers(
             goal = goal,
             emphasis = emphasis,
             bodyweightKg = bodyweightKg,
+            focus = focus,
         ).sanitized()
 
         /**
@@ -288,6 +291,7 @@ data class OnboardingAnswers(
                 clean.goal.name,
                 clean.emphasis.name,
                 clean.bodyweightKg?.toString().orEmpty(),
+                clean.focus.name,
             ).joinToString("|")
         }
 
@@ -306,6 +310,7 @@ data class OnboardingAnswers(
                 emphasis = TrainingEmphasis.fromStorage(parts[5]),
                 bodyweightKg = parts[6].toDoubleOrNull(),
                 places = TrainingPlace.parsePlaces(parts[3]),
+                focus = TrainingFocus.fromStorage(parts.getOrNull(7)),
             )
         }
 

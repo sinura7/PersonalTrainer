@@ -87,6 +87,9 @@ import com.sinura.personaltrainer.ui.theme.SurfacePressed
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import com.sinura.personaltrainer.ui.activity.ActivityComposerScreen
+import com.sinura.personaltrainer.ui.activity.ActivityDetailScreen
+import com.sinura.personaltrainer.ui.activity.LiveCardioScreen
 import com.sinura.personaltrainer.ui.workout.ActiveWorkoutScreen
 
 sealed class Route(val path: String) {
@@ -107,6 +110,18 @@ sealed class Route(val path: String) {
     }
     data object SessionDetail : Route("history/{sessionId}") {
         fun create(sessionId: String): String = "history/$sessionId"
+    }
+    data object ActivityComposer : Route("log/{mode}") {
+        fun create(mode: String): String = "log/$mode"
+    }
+    data object LiveCardio : Route("cardio/{sessionId}") {
+        fun create(sessionId: String): String = "cardio/$sessionId"
+    }
+    data object ActivityDetail : Route("activity/{activityId}") {
+        fun create(activityId: String): String = "activity/$activityId"
+    }
+    data object ActivitySummary : Route("activity-summary/{activityId}") {
+        fun create(activityId: String): String = "activity-summary/$activityId"
     }
     data object Settings : Route("settings")
     data object Progress : Route("progress")
@@ -169,6 +184,8 @@ private val ScreenExit: ExitTransition = fadeOut(tween(Motion.TAP, easing = Moti
 private val LIVE_BAR_HIDDEN_ROUTES = setOf(
     Route.ActiveWorkout.path,
     Route.WorkoutSummary.path,
+    Route.LiveCardio.path,
+    Route.ActivitySummary.path,
     // The start interstitial that used to be listed here is gone (amends Phase 1a's settled
     // decision 2). Its replacement, StartOptionsSheet, is a MODAL surface the user deliberately
     // opened, not ambient chrome — so the bar staying visible behind it is still exactly one
@@ -256,6 +273,7 @@ fun PersonalTrainerNav(
     val liveBarViewModel: LiveSessionBarViewModel = viewModel()
     val liveSession by liveBarViewModel.uiState.collectAsStateWithLifecycle()
     val finishedNavigation by liveBarViewModel.finishedNavigation.collectAsStateWithLifecycle()
+    val finishedActivityNavigation by liveBarViewModel.finishedActivityNavigation.collectAsStateWithLifecycle()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     // Hidden exactly where the session already owns the screen, or where starting one is the
@@ -273,6 +291,15 @@ fun PersonalTrainerNav(
     LaunchedEffect(finishedNavigation) {
         val sessionId = finishedNavigation ?: return@LaunchedEffect
         navController.navigate(Route.WorkoutSummary.create(sessionId)) {
+            popUpTo(Route.Home.path) { inclusive = false }
+            launchSingleTop = true
+        }
+        liveBarViewModel.onFinishNavigationHandled()
+    }
+
+    LaunchedEffect(finishedActivityNavigation) {
+        val activityId = finishedActivityNavigation ?: return@LaunchedEffect
+        navController.navigate(Route.ActivitySummary.create(activityId)) {
             popUpTo(Route.Home.path) { inclusive = false }
             launchSingleTop = true
         }
@@ -317,7 +344,12 @@ fun PersonalTrainerNav(
                             // screen and must own the gesture inset itself.
                             applyNavInsets = !showBottomBar,
                             onResume = {
-                                navController.navigate(Route.ActiveWorkout.create(live.sessionId)) {
+                                val target = if (live.kind == LiveBarKind.ACTIVITY) {
+                                    Route.LiveCardio.create(live.sessionId)
+                                } else {
+                                    Route.ActiveWorkout.create(live.sessionId)
+                                }
+                                navController.navigate(target) {
                                     launchSingleTop = true
                                 }
                             },
@@ -370,6 +402,14 @@ fun PersonalTrainerNav(
                                 launchSingleTop = true
                             }
                         },
+                        onLogActivity = { mode ->
+                            navController.navigate(Route.ActivityComposer.create(mode))
+                        },
+                        onOpenLiveCardio = { sessionId ->
+                            navController.navigate(Route.LiveCardio.create(sessionId)) {
+                                launchSingleTop = true
+                            }
+                        },
                         onOpenPlan = { goToTab(Route.Routines.path) },
                         // History's calendar is the first thing on that tab, so arriving on the
                         // tab IS arriving at the calendar — no route parameter, no scroll effect.
@@ -388,6 +428,14 @@ fun PersonalTrainerNav(
                             }
                         },
                         onOpenRoutines = { goToTab(Route.Routines.path) },
+                        onLogActivity = { mode ->
+                            navController.navigate(Route.ActivityComposer.create(mode))
+                        },
+                        onOpenLiveCardio = { sessionId ->
+                            navController.navigate(Route.LiveCardio.create(sessionId)) {
+                                launchSingleTop = true
+                            }
+                        },
                     )
                 }
                 composable(
@@ -442,6 +490,19 @@ fun PersonalTrainerNav(
                                 launchSingleTop = true
                             }
                         },
+                        onOpenActivity = { navController.navigate(Route.ActivityDetail.create(it)) },
+                        onLogActivity = { mode ->
+                            if (mode == "live-cardio") {
+                                navController.navigate(Route.LiveCardio.create("live"))
+                            } else {
+                                navController.navigate(Route.ActivityComposer.create(mode))
+                            }
+                        },
+                        onOpenLiveCardio = { sessionId ->
+                            navController.navigate(Route.LiveCardio.create(sessionId)) {
+                                launchSingleTop = true
+                            }
+                        },
                     )
                 }
                 composable(
@@ -492,6 +553,50 @@ fun PersonalTrainerNav(
                             navController.navigate(Route.SessionDetail.create(sessionId)) {
                                 launchSingleTop = true
                             }
+                        },
+                    )
+                }
+                composable(
+                    route = Route.ActivityComposer.path,
+                    arguments = listOf(navArgument("mode") { type = NavType.StringType }),
+                ) {
+                    ActivityComposerScreen(
+                        onBack = { navController.popBackStack() },
+                        onSaved = { activityId ->
+                            navController.navigate(Route.ActivitySummary.create(activityId)) {
+                                popUpTo(Route.Home.path) { inclusive = false }
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
+                composable(
+                    route = Route.LiveCardio.path,
+                    arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
+                ) {
+                    LiveCardioScreen(
+                        onExit = { navController.popBackStack() },
+                        onFinished = { activityId ->
+                            navController.navigate(Route.ActivitySummary.create(activityId)) {
+                                popUpTo(Route.Home.path) { inclusive = false }
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
+                composable(
+                    route = Route.ActivityDetail.path,
+                    arguments = listOf(navArgument("activityId") { type = NavType.StringType }),
+                ) {
+                    ActivityDetailScreen(onBack = { navController.popBackStack() })
+                }
+                composable(
+                    route = Route.ActivitySummary.path,
+                    arguments = listOf(navArgument("activityId") { type = NavType.StringType }),
+                ) {
+                    ActivityDetailScreen(
+                        onBack = {
+                            navController.popBackStack(Route.Home.path, inclusive = false)
                         },
                     )
                 }
