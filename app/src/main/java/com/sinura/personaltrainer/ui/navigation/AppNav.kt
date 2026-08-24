@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -54,10 +55,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.MuscleNormalizer
 import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.TemperIcons
@@ -193,6 +196,18 @@ fun PersonalTrainerNav(
         // cold start; on a first install that flash is the empty planless Home this phase
         // exists to stop anyone seeing.
         OnboardingGate.UNKNOWN -> return
+        OnboardingGate.UNAVAILABLE -> {
+            EmptyState(
+                title = DataHealthCopy.SETTINGS_TITLE,
+                body = DataHealthCopy.SETTINGS_BODY,
+                actionLabel = DataHealthCopy.RETRY,
+                onAction = gateViewModel::retry,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(Metrics.gutter),
+            )
+            return
+        }
         OnboardingGate.SETUP -> {
             // Inside the unit provider, like every other screen. Setup was composed outside it
             // and so read the static KG default rather than the stored preference — which does

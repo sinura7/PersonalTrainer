@@ -13,6 +13,7 @@ import com.sinura.personaltrainer.data.backup.DriveBackupFile
 import com.sinura.personaltrainer.data.backup.DriveRestClient
 import com.sinura.personaltrainer.data.backup.DriveSession
 import com.sinura.personaltrainer.data.backup.NetworkChecker
+import com.sinura.personaltrainer.domain.DataHealthCopy
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -105,7 +106,13 @@ class BackupRepository(
      * so the UI can say so rather than letting the user assume today's session is in the file.
      */
     suspend fun hasUnfinishedWorkout(): Boolean =
-        localBackupRepository.inProgressSessionId() != null
+        try {
+            localBackupRepository.inProgressSessionId() != null
+        } catch (thrown: kotlinx.coroutines.CancellationException) {
+            throw thrown
+        } catch (thrown: Exception) {
+            throw BackupException(DataHealthCopy.RESTORE_UNAVAILABLE)
+        }
 
     /**
      * The single validated restore path. Drive downloads and local file imports both land
@@ -118,7 +125,14 @@ class BackupRepository(
         sourceName: String,
         allowEmptyDestructiveRestore: Boolean = false,
     ): RestoreResult = withContext(Dispatchers.IO) {
-        if (localBackupRepository.inProgressSessionId() != null) {
+        val liveId = try {
+            localBackupRepository.inProgressSessionId()
+        } catch (thrown: kotlinx.coroutines.CancellationException) {
+            throw thrown
+        } catch (thrown: Exception) {
+            throw BackupException(DataHealthCopy.RESTORE_UNAVAILABLE)
+        }
+        if (liveId != null) {
             throw BackupException(
                 "You have a workout in progress. Finish or discard it before restoring, " +
                     "so a restore can't delete the session you're standing in.",

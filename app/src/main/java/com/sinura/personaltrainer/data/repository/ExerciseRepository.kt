@@ -59,7 +59,7 @@ class ExerciseRepository(
         combine(exerciseDao.observeAll(), catalogDao.observeAllCredits()) { rows, credits ->
             val byExercise = credits.groupByExercise()
             rows.map { it.toDomain(byExercise[it.id].orEmpty()) }
-        }.orLogAndFallback("the exercise catalog", emptyList())
+        }.observeHealth("the exercise catalog").presentValues()
 
     /**
      * Name, muscle group, or nickname.
@@ -89,7 +89,7 @@ class ExerciseRepository(
                     .distinctBy { it.id }
                     .map { it.toDomain(byExercise[it.id].orEmpty()) }
                     .let(ExerciseOrdering::catalogOrder)
-            }.orLogAndFallback("exercise search", emptyList())
+            }.observeHealth("exercise search").presentValues()
         }
     }
 
@@ -106,13 +106,13 @@ class ExerciseRepository(
         ) { rows, credits ->
             val byExercise = credits.groupByExercise()
             rows.map { it.toDomain(byExercise[it.id].orEmpty()) }
-        }.orLogAndFallback("name collisions", emptyList())
+        }.observeHealth("name collisions").presentValues()
 
     /** When each lift was last logged, for the picker's recency order. */
     fun observeLastLogged(): Flow<Map<String, Long>> =
         workoutDao.observeLastLogged()
             .map { rows -> rows.associate { it.exerciseId to it.lastLoggedAt } }
-            .orLogAndFallback("recent lifts", emptyMap())
+            .observeHealth("recent lifts").presentValues()
 
     suspend fun getById(id: String): Exercise? =
         exerciseDao.getById(id)?.toDomain(catalogDao.creditsFor(id).toCredits())
@@ -120,7 +120,7 @@ class ExerciseRepository(
     fun observeById(id: String): Flow<Exercise?> =
         combine(exerciseDao.observeById(id), catalogDao.observeAllCredits()) { row, credits ->
             row?.toDomain(credits.filter { it.exerciseId == id }.toCredits())
-        }.orLogAndFallback("this exercise", null)
+        }.observeHealth("this exercise").presentValues()
 
     /**
      * Refuses a name another exercise already answers to.

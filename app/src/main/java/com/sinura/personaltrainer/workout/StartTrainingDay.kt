@@ -59,6 +59,7 @@ class StartTrainingDay(
                     is StartSessionOutcome.Started -> StartDayOutcome.Open(outcome.session.id)
                     is StartSessionOutcome.Blocked ->
                         StartDayOutcome.Blocked(outcome.inProgress.id)
+                    is StartSessionOutcome.Unavailable -> StartDayOutcome.Failed(outcome.message)
                 }
                 is StartDayDecision.StartFree -> when (
                     val outcome = workoutRepository.startFreeWorkoutSafely(decision.focusTitle)
@@ -66,6 +67,7 @@ class StartTrainingDay(
                     is StartSessionOutcome.Started -> StartDayOutcome.Open(outcome.session.id)
                     is StartSessionOutcome.Blocked ->
                         StartDayOutcome.Blocked(outcome.inProgress.id)
+                    is StartSessionOutcome.Unavailable -> StartDayOutcome.Failed(outcome.message)
                 }
             }
         }.getOrElse { thrown ->

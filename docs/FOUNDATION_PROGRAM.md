@@ -312,7 +312,7 @@ Status legend: **done** · **next** · pending · gated · skipped
   injected dispatcher. Evidence:
   [P1.6 evidence](foundation-program/evidence/P1.6-insights-source.md).
 
-### Phase 2 — Current strength-product trust defects · pending
+### Phase 2 — Current strength-product trust defects · **done**
 
 #### P2.1 — Identity-safe rest completion · **done**
 
@@ -381,13 +381,18 @@ Status legend: **done** · **next** · pending · gated · skipped
   field is labeled Target weight with the unit as suffix. Evidence:
   [P2.5 evidence](foundation-program/evidence/P2.5-identity-before-metrics.md).
 
-#### P2.6 — Explicit data health
+#### P2.6 — Explicit data health · **done**
 
 - Replace `orLogAndFallback` with typed data health. Last successful value
   where safe; empty ≠ unavailable; fail start/restore closed when required
   invariants are unreadable. Preference failure cannot masquerade as first
   install. No “continue anyway” or reset from the fault screen.
 - Exit: FND-013 closed.
+- Landed: `DataHealth` + `observeHealth` replace the empty-list fallback.
+  History shows a Retry fault, not “No sessions yet”. Settings unread is
+  `OnboardingGate.UNAVAILABLE`, not setup. Start and restore refuse when
+  the live-session read fails. Evidence:
+  [P2.6 evidence](foundation-program/evidence/P2.6-data-health.md).
 
 ### Phase 3 — Data survival, restore, backup privacy, and scale · pending
 

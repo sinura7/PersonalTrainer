@@ -78,6 +78,20 @@ class OnboardingGateViewModelTest {
         assertEquals(OnboardingGate.APP, vm.gate.first { it == OnboardingGate.APP })
     }
 
+    @Test
+    fun unreadSettingsFailureIsUnavailableNotSetup() {
+        val unread = com.sinura.personaltrainer.domain.DataHealthFold.onFailure<Boolean>(
+            last = null,
+            what = "settings",
+        )
+        assertEquals(OnboardingGate.UNAVAILABLE, gateFromHealth(unread))
+        val lastTrue = com.sinura.personaltrainer.domain.DataHealthFold.onFailure(
+            last = true,
+            what = "settings",
+        )
+        assertEquals(OnboardingGate.APP, gateFromHealth(lastTrue))
+    }
+
     private fun createViewModel(): OnboardingGateViewModel =
         OnboardingGateViewModel(
             ApplicationProvider.getApplicationContext<Application>(),

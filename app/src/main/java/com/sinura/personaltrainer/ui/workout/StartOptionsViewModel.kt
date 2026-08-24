@@ -115,6 +115,8 @@ class StartOptionsViewModel @JvmOverloads constructor(
             }
             try {
                 handleStart(container.workoutRepository.startRoutineSafely(routine))
+            } catch (thrown: kotlinx.coroutines.CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "startRoutine failed", thrown)
                 error.value = "Could not start that routine. Try again."
@@ -139,6 +141,10 @@ class StartOptionsViewModel @JvmOverloads constructor(
                     error.value = START_BLOCKED_MESSAGE
                     return@launch
                 }
+                if (outcome is StartSessionOutcome.Unavailable) {
+                    error.value = outcome.message
+                    return@launch
+                }
                 val session = (outcome as StartSessionOutcome.Started).session
                 val defaults = AddDefaults.forExercise(exercise)
                 container.workoutRepository.addExerciseToSession(
@@ -151,6 +157,8 @@ class StartOptionsViewModel @JvmOverloads constructor(
                 )
                 error.value = null
                 _navigateToSession.value = session.id
+            } catch (thrown: kotlinx.coroutines.CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "startSuggested failed", thrown)
                 error.value = "Could not start that session. Try again."
@@ -178,6 +186,8 @@ class StartOptionsViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             try {
                 handleStart(container.workoutRepository.startFreeWorkoutSafely())
+            } catch (thrown: kotlinx.coroutines.CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "startFree failed", thrown)
                 error.value = "Could not start a free workout. Try again."
@@ -193,6 +203,9 @@ class StartOptionsViewModel @JvmOverloads constructor(
             }
             is StartSessionOutcome.Blocked -> {
                 error.value = START_BLOCKED_MESSAGE
+            }
+            is StartSessionOutcome.Unavailable -> {
+                error.value = outcome.message
             }
         }
     }

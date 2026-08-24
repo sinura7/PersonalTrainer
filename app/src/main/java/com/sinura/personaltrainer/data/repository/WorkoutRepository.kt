@@ -29,8 +29,11 @@ import com.sinura.personaltrainer.domain.RepeatSessionPlan
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.LighterWeekModifier
 import com.sinura.personaltrainer.domain.RpeModifier
+import com.sinura.personaltrainer.domain.DataHealth
+import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.SessionActivity
 import com.sinura.personaltrainer.domain.SessionEditRules
+import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkingSetCandidate
@@ -54,23 +57,29 @@ sealed interface RepeatOutcome {
 sealed interface StartSessionOutcome {
     data class Started(val session: WorkoutSession) : StartSessionOutcome
     data class Blocked(val inProgress: WorkoutSession) : StartSessionOutcome
+    data class Unavailable(val message: String) : StartSessionOutcome
 }
 
 class WorkoutRepository(
     private val database: TrainerDatabase,
     private val workoutDao: WorkoutDao,
 ) {
-    fun observeHistory(): Flow<List<WorkoutSession>> =
+    fun observeHistoryHealth(): Flow<DataHealth<List<WorkoutSession>>> =
         workoutDao.observeFinishedSessions().map { list -> list.map { it.toDomain() } }
-            .orLogAndFallback("workout history", emptyList())
+            .observeHealth("workout history")
+
+    fun observeHistory(): Flow<List<WorkoutSession>> =
+        observeHistoryHealth().presentValues()
 
     fun observeSession(id: String): Flow<WorkoutSession?> =
         workoutDao.observeSession(id).map { it?.toDomain() }
-            .orLogAndFallback("the active session", null)
+            .observeHealth("the active session")
+            .presentValues()
 
     fun observeInProgress(): Flow<WorkoutSession?> =
         workoutDao.observeInProgressSession().map { it?.toSummary() }
-            .orLogAndFallback("the in-progress session", null)
+            .observeHealth("the in-progress session")
+            .presentValues()
 
     suspend fun getInProgress(): WorkoutSession? =
         workoutDao.getInProgressSession()?.toSummary()
@@ -79,7 +88,8 @@ class WorkoutRepository(
     fun observeSessionActivity(sessionId: String): Flow<SessionActivity> =
         workoutDao.observeSessionActivity(sessionId)
             .map { SessionActivity(it.totalSets, it.workingSets, it.lastCompletedAt) }
-            .orLogAndFallback("session activity", SessionActivity(0, 0, null))
+            .observeHealth("session activity")
+            .presentValues()
 
     suspend fun getSession(id: String): WorkoutSession? = workoutDao.getSession(id)?.toDomain()
 
@@ -87,33 +97,41 @@ class WorkoutRepository(
         when (val outcome = startRoutineSafely(routine)) {
             is StartSessionOutcome.Started -> outcome.session
             is StartSessionOutcome.Blocked -> outcome.inProgress
+            is StartSessionOutcome.Unavailable -> error(outcome.message)
         }
 
     suspend fun startRoutineSafely(routine: Routine): StartSessionOutcome {
-        val now = System.currentTimeMillis()
-        val session = WorkoutSessionEntity(
-            id = UUID.randomUUID().toString(),
-            routineId = routine.id,
-            routineName = routine.name,
-            date = now,
-            notes = "",
-            durationMinutes = 0,
-            startedAt = now,
-            finishedAt = null,
-        )
-        val exercises = routine.exercises.mapIndexed { index, item ->
-            SessionExerciseEntity(
+        return try {
+            val now = System.currentTimeMillis()
+            val session = WorkoutSessionEntity(
                 id = UUID.randomUUID().toString(),
-                sessionId = session.id,
-                exerciseId = item.exercise.id,
-                sortOrder = index,
-                targetSets = item.targetSets,
-                targetReps = item.targetReps,
-                targetWeightKg = item.targetWeightKg,
-                restSeconds = item.restSeconds,
+                routineId = routine.id,
+                routineName = routine.name,
+                date = now,
+                notes = "",
+                durationMinutes = 0,
+                startedAt = now,
+                finishedAt = null,
             )
+            val exercises = routine.exercises.mapIndexed { index, item ->
+                SessionExerciseEntity(
+                    id = UUID.randomUUID().toString(),
+                    sessionId = session.id,
+                    exerciseId = item.exercise.id,
+                    sortOrder = index,
+                    targetSets = item.targetSets,
+                    targetReps = item.targetReps,
+                    targetWeightKg = item.targetWeightKg,
+                    restSeconds = item.restSeconds,
+                )
+            }
+            materializeStart(insertSessionIfIdle(session, exercises))
+        } catch (thrown: kotlinx.coroutines.CancellationException) {
+            throw thrown
+        } catch (thrown: Exception) {
+            AppLog.e(TAG, "startRoutineSafely failed closed", thrown)
+            StartSessionOutcome.Unavailable(DataHealthCopy.START_UNAVAILABLE)
         }
-        return materializeStart(insertSessionIfIdle(session, exercises))
     }
 
     private suspend fun materializeStart(result: SessionInsert): StartSessionOutcome {
@@ -130,22 +148,30 @@ class WorkoutRepository(
         when (val outcome = startFreeWorkoutSafely(focusTitle)) {
             is StartSessionOutcome.Started -> outcome.session
             is StartSessionOutcome.Blocked -> outcome.inProgress
+            is StartSessionOutcome.Unavailable -> error(outcome.message)
         }
 
     suspend fun startFreeWorkoutSafely(focusTitle: String? = null): StartSessionOutcome {
-        val now = System.currentTimeMillis()
-        val focus = focusTitle?.trim().orEmpty()
-        val session = WorkoutSessionEntity(
-            id = UUID.randomUUID().toString(),
-            routineId = null,
-            routineName = focus.ifBlank { "Free workout" },
-            date = now,
-            notes = if (focus.isBlank()) "" else "Suggested focus: $focus",
-            durationMinutes = 0,
-            startedAt = now,
-            finishedAt = null,
-        )
-        return materializeStart(insertSessionIfIdle(session, emptyList()))
+        return try {
+            val now = System.currentTimeMillis()
+            val focus = focusTitle?.trim().orEmpty()
+            val session = WorkoutSessionEntity(
+                id = UUID.randomUUID().toString(),
+                routineId = null,
+                routineName = focus.ifBlank { "Free workout" },
+                date = now,
+                notes = if (focus.isBlank()) "" else "Suggested focus: $focus",
+                durationMinutes = 0,
+                startedAt = now,
+                finishedAt = null,
+            )
+            materializeStart(insertSessionIfIdle(session, emptyList()))
+        } catch (thrown: kotlinx.coroutines.CancellationException) {
+            throw thrown
+        } catch (thrown: Exception) {
+            AppLog.e(TAG, "startFreeWorkoutSafely failed closed", thrown)
+            StartSessionOutcome.Unavailable(DataHealthCopy.START_UNAVAILABLE)
+        }
     }
 
     /**
@@ -632,7 +658,8 @@ class WorkoutRepository(
     fun observeExerciseSets(exerciseId: String): Flow<List<ExerciseSetEntry>> =
         workoutDao.observeFinishedWorkingSets(exerciseId)
             .map { rows -> rows.map { it.toEntry() } }
-            .orLogAndFallback("the history for this exercise", emptyList())
+            .observeHealth("the history for this exercise")
+            .presentValues()
 
     /**
      * What this lift looked like the last time it was trained, for the values shown beside the
@@ -814,3 +841,5 @@ class WorkoutRepository(
         return ProgressionBasis.topWorkingSet(candidates)
     }
 }
+
+private const val TAG = "PT/WorkoutRepository"

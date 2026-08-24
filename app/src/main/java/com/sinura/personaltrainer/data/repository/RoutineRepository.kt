@@ -15,10 +15,10 @@ class RoutineRepository(
 ) {
     fun observeAll(): Flow<List<Routine>> = routineDao.observeAll().map { list ->
         list.map { it.toDomain() }
-    }.orLogAndFallback("routines", emptyList())
+    }.observeHealth("routines").presentValues()
 
     fun observeById(id: String): Flow<Routine?> = routineDao.observeById(id).map { it?.toDomain() }
-        .orLogAndFallback("a routine", null)
+        .observeHealth("a routine").presentValues()
 
     suspend fun getById(id: String): Routine? = routineDao.getById(id)?.toDomain()
 

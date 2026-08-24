@@ -5,8 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
+import com.sinura.personaltrainer.domain.DataHealth
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
@@ -16,6 +20,8 @@ enum class OnboardingGate {
     UNKNOWN,
     SETUP,
     APP,
+    /** Settings could not be read. Not a first install. */
+    UNAVAILABLE,
 }
 
 /**
@@ -27,15 +33,29 @@ enum class OnboardingGate {
  * planless screen this whole phase exists to stop anyone seeing. Defaulting to SETUP would be
  * worse still, flashing a questionnaire at everybody who already finished it.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class OnboardingGateViewModel @JvmOverloads constructor(
     application: Application,
     container: AppDependencies = application.appContainer(),
 ) : AppViewModel(application, container) {
-    val gate: StateFlow<OnboardingGate> = container.preferencesRepository.onboardingComplete
-        .map { complete -> if (complete) OnboardingGate.APP else OnboardingGate.SETUP }
+    private val retryTick = MutableStateFlow(0)
+
+    val gate: StateFlow<OnboardingGate> = retryTick.flatMapLatest {
+        container.preferencesRepository.onboardingCompleteHealth.map(::gateFromHealth)
+    }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = OnboardingGate.UNKNOWN,
         )
+
+    fun retry() {
+        retryTick.value += 1
+    }
+}
+
+internal fun gateFromHealth(health: DataHealth<Boolean>): OnboardingGate = when (health) {
+    is DataHealth.Available -> if (health.value) OnboardingGate.APP else OnboardingGate.SETUP
+    is DataHealth.Degraded -> if (health.lastValue) OnboardingGate.APP else OnboardingGate.SETUP
+    is DataHealth.Unavailable -> OnboardingGate.UNAVAILABLE
 }

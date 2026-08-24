@@ -6,6 +6,7 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.repository.RepeatOutcome
+import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.PrSummaryRow
 import com.sinura.personaltrainer.domain.SessionMonthGroup
 import com.sinura.personaltrainer.domain.TrainingCalendarBuilder
@@ -22,11 +23,13 @@ import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -36,6 +39,8 @@ import java.time.ZoneId
 
 data class HistoryUiState(
     val isLoading: Boolean = true,
+    val unavailable: Boolean = false,
+    val stale: Boolean = false,
     val sessions: List<WorkoutSession> = emptyList(),
     /** The same sessions, grouped for the list. Derived, never a second query. */
     val monthGroups: List<SessionMonthGroup> = emptyList(),
@@ -60,6 +65,7 @@ data class FinishedBlock(
     val review: BlockReview,
 )
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class HistoryViewModel @JvmOverloads constructor(
     application: Application,
     container: AppDependencies = application.appContainer(),
@@ -84,49 +90,55 @@ class HistoryViewModel @JvmOverloads constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    val uiState: StateFlow<HistoryUiState> = combine(
-        container.workoutRepository.observeHistory(),
+    private val historyRetry = MutableStateFlow(0)
+
+    val uiState: StateFlow<HistoryUiState> = historyRetry.flatMapLatest {
         combine(
-            container.preferencesRepository.schedulePreferences,
-            container.preferencesRepository.pastBlocks,
-            container.preferencesRepository.weightUnit,
-            container.preferencesRepository.bodyweightLog,
-        ) { preferences, blocks, unit, log -> Settings(preferences, blocks, unit, log) },
-        visibleMonth,
-    ) { sessions, settings, month ->
-        val preferences = settings.preferences
-        HistoryUiState(
-            isLoading = false,
-            sessions = sessions,
-            monthGroups = groupSessionsByMonth(sessions, ZoneId.systemDefault()),
-            records = prSummary(sessions),
-            calendar = TrainingCalendarBuilder.build(
-                month = month,
+            container.workoutRepository.observeHistoryHealth(),
+            combine(
+                container.preferencesRepository.schedulePreferences,
+                container.preferencesRepository.pastBlocks,
+                container.preferencesRepository.weightUnit,
+                container.preferencesRepository.bodyweightLog,
+            ) { preferences, blocks, unit, log -> Settings(preferences, blocks, unit, log) },
+            visibleMonth,
+        ) { health, settings, month ->
+            val list = historyListFromHealth(health)
+            if (list.unavailable) {
+                return@combine HistoryUiState(isLoading = false, unavailable = true)
+            }
+            val sessions = list.sessions
+            val preferences = settings.preferences
+            HistoryUiState(
+                isLoading = false,
+                stale = list.stale,
                 sessions = sessions,
-                zone = ZoneId.systemDefault(),
-                // The calendar's weeks start where the planner's and the heat map's do, or
-                // "this week" would mean a third thing in the same app.
+                monthGroups = groupSessionsByMonth(sessions, ZoneId.systemDefault()),
+                records = prSummary(sessions),
+                calendar = TrainingCalendarBuilder.build(
+                    month = month,
+                    sessions = sessions,
+                    zone = ZoneId.systemDefault(),
+                    weekStart = preferences.weekStart,
+                ),
                 weekStart = preferences.weekStart,
-            ),
-            weekStart = preferences.weekStart,
-            // Newest first: the block you just finished is the one you want to read.
-            pastBlocks = settings.blocks
-                .asReversed()
-                .map { block ->
-                    FinishedBlock(
-                        block = block,
-                        review = BlockReviewBuilder.build(
+                pastBlocks = settings.blocks
+                    .asReversed()
+                    .map { block ->
+                        FinishedBlock(
                             block = block,
-                            sessions = sessions,
-                            unit = settings.unit,
-                            zone = ZoneId.systemDefault(),
-                            bodyweightLog = settings.bodyweightLog,
-                        ),
-                    )
-                }
-                // A block with nothing logged in it is a date range, not a result.
-                .filterNot { it.review.isEmpty },
-        )
+                            review = BlockReviewBuilder.build(
+                                block = block,
+                                sessions = sessions,
+                                unit = settings.unit,
+                                zone = ZoneId.systemDefault(),
+                                bodyweightLog = settings.bodyweightLog,
+                            ),
+                        )
+                    }
+                    .filterNot { it.review.isEmpty },
+            )
+        }
     }
         .flowOn(Dispatchers.Default)
         .stateIn(
@@ -187,11 +199,42 @@ class HistoryViewModel @JvmOverloads constructor(
         _error.value = null
     }
 
+    fun retryHistory() {
+        historyRetry.value += 1
+    }
+
     private data class Settings(
         val preferences: SchedulePreferences,
         val blocks: List<TrainingBlock>,
         val unit: WeightUnit,
         val bodyweightLog: List<BodyweightEntry>,
+    )
+}
+
+internal data class HistoryListState(
+    val unavailable: Boolean,
+    val stale: Boolean,
+    val sessions: List<WorkoutSession>,
+)
+
+/** Empty is a successful list. Unavailable is a first-read fault, never emptiness. */
+internal fun historyListFromHealth(
+    health: DataHealth<List<WorkoutSession>>,
+): HistoryListState = when (health) {
+    is DataHealth.Unavailable -> HistoryListState(
+        unavailable = true,
+        stale = false,
+        sessions = emptyList(),
+    )
+    is DataHealth.Available -> HistoryListState(
+        unavailable = false,
+        stale = false,
+        sessions = health.value,
+    )
+    is DataHealth.Degraded -> HistoryListState(
+        unavailable = false,
+        stale = true,
+        sessions = health.lastValue,
     )
 }
 

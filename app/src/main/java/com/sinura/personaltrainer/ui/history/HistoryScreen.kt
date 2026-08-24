@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.PrSummaryRow
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.WeightConverter
@@ -120,6 +121,17 @@ fun HistoryScreen(
             when {
                 state.isLoading -> {
                     ScreenLoading()
+                }
+                state.unavailable -> {
+                    EmptyState(
+                        title = DataHealthCopy.HISTORY_TITLE,
+                        body = DataHealthCopy.HISTORY_BODY,
+                        actionLabel = DataHealthCopy.RETRY,
+                        onAction = viewModel::retryHistory,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(Metrics.gutter),
+                    )
                 }
                 state.sessions.isEmpty() -> {
                     EmptyState(

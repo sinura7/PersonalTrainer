@@ -26,7 +26,7 @@ class ScheduleRepository(private val scheduleDao: ScheduleDao) {
 
     fun observeSlots(): Flow<List<ScheduleSlot>> = scheduleDao.observeAll()
         .map { rows -> rows.mapNotNull { it.toDomain() } }
-        .orLogAndFallback("schedule slots", emptyList())
+        .observeHealth("schedule slots").presentValues()
 
     suspend fun slots(): List<ScheduleSlot> = scheduleDao.getAll().mapNotNull { it.toDomain() }
 

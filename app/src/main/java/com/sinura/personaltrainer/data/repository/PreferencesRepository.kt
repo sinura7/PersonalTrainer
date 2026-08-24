@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.BlockArchive
 import com.sinura.personaltrainer.domain.BodyweightEntry
 import com.sinura.personaltrainer.domain.BodyweightLog
@@ -460,8 +461,26 @@ class PreferencesRepository(
      * be dropped back into a questionnaire; someone who skipped setup and built one routine by
      * hand has still made their choice. Inferring it from data would get both wrong.
      */
-    val onboardingComplete: Flow<Boolean> = safePreferences
-        .map { prefs -> prefs[ONBOARDING_COMPLETE] ?: false }
+    /**
+     * Setup-finished flag as [DataHealth]. An unreadable store is Unavailable,
+     * never `false` — that would masquerade as a first install.
+     */
+    val onboardingCompleteHealth: Flow<DataHealth<Boolean>> = dataStore.data
+        .observeHealth("settings")
+        .map { health ->
+            when (health) {
+                is DataHealth.Available ->
+                    DataHealth.Available(health.value[ONBOARDING_COMPLETE] ?: false)
+                is DataHealth.Degraded ->
+                    DataHealth.Degraded(
+                        lastValue = health.lastValue[ONBOARDING_COMPLETE] ?: false,
+                        what = health.what,
+                    )
+                is DataHealth.Unavailable -> health
+            }
+        }
+
+    val onboardingComplete: Flow<Boolean> = onboardingCompleteHealth.presentValues()
 
     suspend fun setOnboardingComplete(complete: Boolean) {
         dataStore.edit { prefs -> prefs[ONBOARDING_COMPLETE] = complete }

@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.domain.DataHealth
+import com.sinura.personaltrainer.domain.WorkoutSession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -14,7 +16,9 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -63,5 +67,41 @@ class HistoryViewModelTest {
         assertEquals(live.id, blocked!!.inProgressSessionId)
         assertEquals("Legs", blocked.inProgressName)
         assertNull(viewModel!!.navigateToSession.value)
+    }
+
+    @Test
+    fun emptyHistoryIsAvailableNotTheFaultScreen() {
+        val empty = historyListFromHealth(DataHealth.Available(emptyList()))
+        assertFalse(empty.unavailable)
+        assertFalse(empty.stale)
+        assertTrue(empty.sessions.isEmpty())
+    }
+
+    @Test
+    fun unreadHistoryFailureIsUnavailableNotNoSessionsYet() {
+        val unread = historyListFromHealth(DataHealth.Unavailable("workout history"))
+        assertTrue(unread.unavailable)
+        assertFalse(unread.stale)
+        assertTrue(unread.sessions.isEmpty())
+    }
+
+    @Test
+    fun laterHistoryFailureKeepsSessionsAndMarksStale() {
+        val session = WorkoutSession(
+            id = "s1",
+            routineId = null,
+            routineName = "Push",
+            date = 1L,
+            notes = "",
+            durationMinutes = 40,
+            startedAt = 1L,
+            finishedAt = 2L,
+            exercises = emptyList(),
+            sets = emptyList(),
+        )
+        val stale = historyListFromHealth(DataHealth.Degraded(listOf(session), "workout history"))
+        assertFalse(stale.unavailable)
+        assertTrue(stale.stale)
+        assertEquals("s1", stale.sessions.single().id)
     }
 }
