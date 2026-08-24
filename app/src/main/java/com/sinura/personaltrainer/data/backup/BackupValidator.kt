@@ -215,6 +215,37 @@ object BackupValidator {
             }
         }
 
+        val ruleIds = HashSet<String>(document.scheduleRules.size)
+        document.scheduleRules.forEach { rule ->
+            if (isBlank(rule.id)) return invalid("a schedule rule is missing its id")
+            if (!ruleIds.add(rule.id)) {
+                return invalid("two schedule rules share the id \"${rule.id}\"")
+            }
+            if (rule.weekday !in 1..7) return invalid("a schedule rule has a weekday that does not exist")
+            if (rule.hour !in 0..23 || rule.minute !in 0..59) {
+                return invalid("a schedule rule has an impossible time")
+            }
+        }
+        val occurrenceIds = HashSet<String>(document.scheduleOccurrences.size)
+        document.scheduleOccurrences.forEach { occurrence ->
+            if (isBlank(occurrence.id)) return invalid("a schedule occurrence is missing its id")
+            if (!occurrenceIds.add(occurrence.id)) {
+                return invalid("two schedule occurrences share the id \"${occurrence.id}\"")
+            }
+            if (document.scheduleRules.isNotEmpty() && occurrence.ruleId !in ruleIds) {
+                return invalid("a schedule occurrence points at a rule that is not in this file")
+            }
+            if (occurrence.hour !in 0..23 || occurrence.minute !in 0..59) {
+                return invalid("a schedule occurrence has an impossible time")
+            }
+        }
+        document.reminderDeliveries.forEach { delivery ->
+            if (isBlank(delivery.id)) return invalid("a reminder delivery is missing its id")
+            if (document.scheduleOccurrences.isNotEmpty() && delivery.occurrenceId !in occurrenceIds) {
+                return invalid("a reminder delivery points at an occurrence that is not in this file")
+            }
+        }
+
         val activityIds = HashSet<String>(document.activities.size)
         document.activities.forEach { activity ->
             if (isBlank(activity.id)) return invalid("an activity is missing its id")

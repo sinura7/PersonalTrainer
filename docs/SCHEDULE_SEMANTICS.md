@@ -1,12 +1,11 @@
 # Schedule semantics — signed spec
 
-> **Banner (24 Aug 2026).** This file is the **current v2 derivation**. D2
-> remains historically signed. The *target* missed-work policy no longer
-> silently shifts a missed day: recurrence stays unchanged and the user is
-> asked once ([ADR-012](architecture/ADR-012-rest-and-reminders.md), packet
-> P7.3). Until P7.3 ships, the code may still shift; that is a known gap,
-> not permission to add more silent rewrites. Current program:
-> [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md).
+> **Banner (24 Aug 2026).** This file is the **historical v2 slot
+> derivation**. D2 remains signed for `schedule_slots` and the leftover
+> ThisWeekCard week strip. User-visible missed work is now one persisted
+> decision over dated occurrences ([ADR-012](architecture/ADR-012-rest-and-reminders.md),
+> P7.3). Recurrence does not change. Do not add more silent rewrites.
+> Current program: [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md).
 
 **Status:** decision D2 (implemented). Phase 3 derived the `schedule_slots` DDL from this spec; Phase 4
 implemented the derivation.

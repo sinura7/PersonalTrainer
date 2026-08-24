@@ -11,6 +11,7 @@ import com.sinura.personaltrainer.data.repository.ExerciseRepository
 import com.sinura.personaltrainer.data.repository.OnboardingApplier
 import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
+import com.sinura.personaltrainer.data.repository.PlannerRepository
 import com.sinura.personaltrainer.data.repository.ScheduleRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.insights.TrainingInsightsPublisher
@@ -36,6 +37,7 @@ interface AppDependencies {
     val exerciseRepository: ExerciseRepository
     val routineRepository: RoutineRepository
     val scheduleRepository: ScheduleRepository
+    val plannerRepository: PlannerRepository
     val workoutRepository: WorkoutRepository
     val preferencesRepository: PreferencesRepository
     val onboardingApplier: OnboardingApplier
@@ -57,4 +59,5 @@ interface AppDependencies {
     val discardActivity: DiscardActivity
     val finishActivity: FinishActivity
     val cardioTimerPersistence: CardioTimerPersistence
+    val pendingOccurrenceId: MutableStateFlow<String?>
 }

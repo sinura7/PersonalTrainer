@@ -155,6 +155,35 @@ class PlanViewModelTest {
     }
 
     @Test
+    fun addMorningCardioCreatesASecondOccurrenceOnThatDay() = runBlocking {
+        val today = LocalDate.now(ZoneId.systemDefault())
+        val monday = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+        val insights = MutableStateFlow(
+            TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
+        )
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.pinFocus(monday.toEpochDay(), SessionFocusKind.PUSH)
+        withTimeout(5_000) {
+            viewModel!!.uiState.first { it.rules.isNotEmpty() }
+        }
+        viewModel!!.addMorningCardio(monday.toEpochDay())
+        dispatcher.scheduler.advanceUntilIdle()
+        val mondayOcc = withTimeout(5_000) {
+            deps.plannerRepository.observeOccurrences().first { rows ->
+                rows.count { it.localEpochDay == monday.toEpochDay() } >= 2
+            }
+        }
+        assertEquals(2, mondayOcc.count { it.localEpochDay == monday.toEpochDay() })
+        assertTrue(
+            deps.plannerRepository.rules().any {
+                it.modality == com.sinura.personaltrainer.domain.ScheduleModality.CARDIO
+            },
+        )
+    }
+
+    @Test
     fun pendingAnswerReplayReplaysWithoutCreating() = runBlocking {
         val insights = MutableStateFlow(TrainingInsights())
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
@@ -202,8 +231,10 @@ class PlanViewModelTest {
         hasWindowWorkingSets = false,
     )
 
-    private fun emptyWeek(): WeeklySchedulePlan {
-        val start = weekStart.toEpochDay()
+    private fun emptyWeek(): WeeklySchedulePlan = weekStarting(weekStart)
+
+    private fun weekStarting(startDate: LocalDate): WeeklySchedulePlan {
+        val start = startDate.toEpochDay()
         return WeeklySchedulePlan(
             weekStartEpochDay = start,
             generatedAtMs = 0L,

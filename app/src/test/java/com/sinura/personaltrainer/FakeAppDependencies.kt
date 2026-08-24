@@ -32,10 +32,12 @@ import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
 import com.sinura.personaltrainer.data.repository.LocalBackupRepository
 import com.sinura.personaltrainer.data.repository.OnboardingApplier
+import com.sinura.personaltrainer.data.repository.PlannerRepository
 import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.ScheduleRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
+import com.sinura.personaltrainer.reminder.NoOpReminderScheduler
 import com.sinura.personaltrainer.domain.AlarmScheduleResult
 import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.domain.HeatWindow
@@ -81,6 +83,12 @@ class FakeAppDependencies(
     )
     override val routineRepository: RoutineRepository = RoutineRepository(database.routineDao())
     override val scheduleRepository: ScheduleRepository = ScheduleRepository(database.scheduleDao())
+    override val plannerRepository: PlannerRepository = PlannerRepository(
+        database = database,
+        scheduler = NoOpReminderScheduler(),
+        time = JvmTime,
+    )
+    override val pendingOccurrenceId = MutableStateFlow<String?>(null)
     override val workoutRepository: WorkoutRepository =
         WorkoutRepository(
             database,
@@ -154,6 +162,7 @@ class FakeAppDependencies(
     val localBackupRepository = LocalBackupRepository(
         database = database,
         activityDao = database.activityDao(),
+        plannerDao = database.plannerDao(),
         preferencesRepository = preferencesRepository,
         onBeforeRestore = {},
         safetySnapshotDir = safetySnapshotDir,

@@ -3,8 +3,9 @@
 - **Status:** Accepted
 - **Date:** 24 August 2026
 - **Supersedes:** D2 rule 3 as the *user-visible* missed-day policy (silent
-  forward shift). D2 remains the description of *current* v2 derivation until
-  P7.3 replaces it. Documentation that the rest alarm is “exempt” or
+  forward shift). D2 remains the description of historical v2 slot
+  derivation and the leftover ThisWeekCard week strip. P7.3 is the
+  product rule. Documentation that the rest alarm is “exempt” or
   unconditionally reliable is superseded.
 - **Related:** FND-001, FND-007, FND-017; P2.1–P2.3, P7.3–P7.5
 
@@ -68,9 +69,10 @@ day. The agreed product asks once, then adapts only if the user says so.
 16. The prompt is deduped. Read paths do not mutate the week. Week rollover
     still generates the next week from the unchanged rule
     ([ADR-007](ADR-007-activity-model.md) occurrences).
-17. Silent D2-style shifting is removed as user-visible policy in P7.3. Until
-    that packet, current v2 derivation may still shift; that is a known
-    defect relative to this ADR, not permission to add more silent rewrites.
+17. Silent D2-style shifting is removed as user-visible policy. Occurrences
+    stay dated until one persisted missed-work decision. The leftover
+    slot-week strip may still derive a shifted day; that is not the
+    product rule and must not grow.
 
 ## Consequences
 

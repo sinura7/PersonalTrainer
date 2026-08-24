@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.ActivityBlock
 import com.sinura.personaltrainer.domain.ActivityDraft
@@ -180,8 +181,10 @@ class ActivityComposerViewModel @JvmOverloads constructor(
             title = resolvedTitle(),
             performedStart = performed,
             performedEnd = performed,
+            occurrenceId = container.pendingOccurrenceId.value,
             blocks = blocks,
         )
+        PendingOccurrence.forget(container)
         return container.confirmActivity(draft, now)
     }
 

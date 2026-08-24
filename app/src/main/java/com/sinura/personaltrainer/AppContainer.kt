@@ -20,10 +20,12 @@ import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
 import com.sinura.personaltrainer.data.repository.LocalBackupRepository
 import com.sinura.personaltrainer.data.repository.OnboardingApplier
+import com.sinura.personaltrainer.data.repository.PlannerRepository
 import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.ScheduleRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
+import com.sinura.personaltrainer.reminder.WorkManagerReminderScheduler
 import com.sinura.personaltrainer.insights.TrainingInsightsSource
 import com.sinura.personaltrainer.timer.RestTimerController
 import com.sinura.personaltrainer.timer.RestTimerStatePersistence
@@ -53,6 +55,12 @@ class AppContainer(context: Context) : AppDependencies {
     override val routineRepository: RoutineRepository = RoutineRepository(database.routineDao())
     /** The week the user pinned. Nothing else in the app is allowed to write it. */
     override val scheduleRepository: ScheduleRepository = ScheduleRepository(database.scheduleDao())
+    override val plannerRepository: PlannerRepository = PlannerRepository(
+        database = database,
+        scheduler = WorkManagerReminderScheduler(context),
+        time = JvmTime,
+    )
+    override val pendingOccurrenceId = MutableStateFlow<String?>(null)
     override val workoutRepository: WorkoutRepository = WorkoutRepository(
         database,
         database.workoutDao(),
@@ -134,6 +142,7 @@ class AppContainer(context: Context) : AppDependencies {
         localBackupRepository = LocalBackupRepository(
             database = database,
             activityDao = database.activityDao(),
+            plannerDao = database.plannerDao(),
             preferencesRepository = preferencesRepository,
             // Runs at the wipe choke point: both of these hold a session id that is about to
             // stop existing, and a running rest timer would keep counting for a dead workout.

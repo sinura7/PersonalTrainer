@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.LiveSessionRules
 import com.sinura.personaltrainer.logging.AppLog
@@ -158,7 +159,10 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
                 }
             } else {
                 when (val outcome = container.finishWorkout(live.sessionId, notes = null)) {
-                    is FinishOutcome.Finished -> _finishedNavigation.value = outcome.sessionId
+                    is FinishOutcome.Finished -> {
+                        PendingOccurrence.complete(container, outcome.sessionId)
+                        _finishedNavigation.value = outcome.sessionId
+                    }
                     else -> AppLog.w(TAG, "Finishing from the bar did not complete: $outcome")
                 }
             }
@@ -173,7 +177,7 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
                 container.cardioTimerPersistence.clear()
             } else {
                 when (val outcome = container.discardWorkout(live.sessionId)) {
-                    DiscardOutcome.Discarded -> Unit
+                    DiscardOutcome.Discarded -> PendingOccurrence.forget(container)
                     is DiscardOutcome.Failed -> AppLog.w(TAG, "Discarding from the bar failed")
                 }
             }

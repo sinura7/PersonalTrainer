@@ -36,4 +36,6 @@ case is representable. Export/import of the new types is P5.5.
 
 FND-002 closed at P6.6: History, calendar, insights, and detail read
 completed activities. FND-018's one-live rule is the contract here
-and is proven across both live lanes; the Home agenda proof is P7.5.
+and is proven across both live lanes. Home agenda (P7.5) starts
+morning cardio and evening strength independently; one live activity
+still holds.

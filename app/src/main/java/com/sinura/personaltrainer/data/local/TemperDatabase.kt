@@ -5,6 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.local.dao.BodyweightDao
+import com.sinura.personaltrainer.data.local.dao.PlannerDao
 import com.sinura.personaltrainer.data.local.dao.TrainingBlockDao
 import com.sinura.personaltrainer.data.local.entity.ActivityBlockEntity
 import com.sinura.personaltrainer.data.local.entity.ActivityCardioIntervalEntity
@@ -17,6 +18,10 @@ import com.sinura.personaltrainer.data.local.entity.TrainingBlockEntity
 import com.sinura.personaltrainer.data.local.entity.ExerciseMuscleEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
+import com.sinura.personaltrainer.data.local.entity.MissedWorkDecisionEntity
+import com.sinura.personaltrainer.data.local.entity.ReminderDeliveryEntity
+import com.sinura.personaltrainer.data.local.entity.ScheduleOccurrenceEntity
+import com.sinura.personaltrainer.data.local.entity.ScheduleRuleEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleSlotEntity
 import com.sinura.personaltrainer.data.local.entity.SeedMetaEntity
 import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
@@ -49,6 +54,10 @@ import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
         ActivityCardioIntervalEntity::class,
         BodyweightEntryEntity::class,
         TrainingBlockEntity::class,
+        ScheduleRuleEntity::class,
+        ScheduleOccurrenceEntity::class,
+        MissedWorkDecisionEntity::class,
+        ReminderDeliveryEntity::class,
     ],
     version = FoundationGeneration.VERSION,
     exportSchema = true,
@@ -57,6 +66,7 @@ abstract class TemperDatabase : AppRoomDatabase() {
     abstract fun activityDao(): ActivityDao
     abstract fun bodyweightDao(): BodyweightDao
     abstract fun trainingBlockDao(): TrainingBlockDao
+    abstract fun plannerDao(): PlannerDao
 
     companion object {
         fun create(context: Context): TemperDatabase {
@@ -67,7 +77,7 @@ abstract class TemperDatabase : AppRoomDatabase() {
             )
                 // No fallbackToDestructiveMigration, here or ever: a migration
                 // bug must fail closed, not silently erase training history.
-                .addMigrations(MIGRATION_TEMPER_1_2)
+                .addMigrations(MIGRATION_TEMPER_1_2, MIGRATION_TEMPER_2_3)
                 .build()
         }
     }

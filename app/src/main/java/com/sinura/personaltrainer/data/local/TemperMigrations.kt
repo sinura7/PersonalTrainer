@@ -38,3 +38,97 @@ val MIGRATION_TEMPER_1_2 = object : Migration(1, 2) {
         )
     }
 }
+
+/**
+ * Temper v2 → v3: schedule rules, dated occurrences, one missed-work
+ * decision, and reminder delivery records (P7.1). Additive empty tables.
+ * Slot → rule import is app-layer after open. Recurrence rules are not
+ * rewritten here.
+ */
+val MIGRATION_TEMPER_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `schedule_rules` (" +
+                "`id` TEXT NOT NULL, " +
+                "`weekday` INTEGER NOT NULL, " +
+                "`hour` INTEGER NOT NULL, " +
+                "`minute` INTEGER NOT NULL, " +
+                "`modality` TEXT NOT NULL, " +
+                "`zonePolicy` TEXT NOT NULL, " +
+                "`fixedZoneId` TEXT, " +
+                "`routineId` TEXT, " +
+                "`templateId` TEXT, " +
+                "`focusKind` TEXT, " +
+                "`reminderOffsetMinutes` INTEGER NOT NULL, " +
+                "`enabled` INTEGER NOT NULL, " +
+                "`createdAtMs` INTEGER NOT NULL, " +
+                "`updatedAtMs` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`id`))",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_schedule_rules_weekday` " +
+                "ON `schedule_rules` (`weekday`)",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_schedule_rules_enabled` " +
+                "ON `schedule_rules` (`enabled`)",
+        )
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `schedule_occurrences` (" +
+                "`id` TEXT NOT NULL, " +
+                "`ruleId` TEXT NOT NULL, " +
+                "`status` TEXT NOT NULL, " +
+                "`instantMs` INTEGER NOT NULL, " +
+                "`zoneId` TEXT NOT NULL, " +
+                "`offsetSeconds` INTEGER NOT NULL, " +
+                "`localEpochDay` INTEGER NOT NULL, " +
+                "`hour` INTEGER NOT NULL, " +
+                "`minute` INTEGER NOT NULL, " +
+                "`completedActivityId` TEXT, " +
+                "`createdAtMs` INTEGER NOT NULL, " +
+                "`updatedAtMs` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`id`), " +
+                "FOREIGN KEY(`ruleId`) REFERENCES `schedule_rules`(`id`) " +
+                "ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_schedule_occurrences_ruleId` " +
+                "ON `schedule_occurrences` (`ruleId`)",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_schedule_occurrences_localEpochDay` " +
+                "ON `schedule_occurrences` (`localEpochDay`)",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_schedule_occurrences_ruleId_localEpochDay` " +
+                "ON `schedule_occurrences` (`ruleId`, `localEpochDay`)",
+        )
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `missed_work_decisions` (" +
+                "`weekStartEpochDay` INTEGER NOT NULL, " +
+                "`choice` TEXT NOT NULL, " +
+                "`decidedAtMs` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`weekStartEpochDay`))",
+        )
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `reminder_deliveries` (" +
+                "`id` TEXT NOT NULL, " +
+                "`occurrenceId` TEXT NOT NULL, " +
+                "`scheduledAtMs` INTEGER NOT NULL, " +
+                "`status` TEXT NOT NULL, " +
+                "`createdAtMs` INTEGER NOT NULL, " +
+                "`updatedAtMs` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`id`), " +
+                "FOREIGN KEY(`occurrenceId`) REFERENCES `schedule_occurrences`(`id`) " +
+                "ON UPDATE NO ACTION ON DELETE CASCADE )",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_reminder_deliveries_occurrenceId` " +
+                "ON `reminder_deliveries` (`occurrenceId`)",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_reminder_deliveries_status` " +
+                "ON `reminder_deliveries` (`status`)",
+        )
+    }
+}

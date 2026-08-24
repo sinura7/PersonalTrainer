@@ -14,6 +14,10 @@ import com.sinura.personaltrainer.data.backup.SafetySnapshotStore
 import com.sinura.personaltrainer.data.backup.BackupPreferences
 import com.sinura.personaltrainer.data.backup.BackupRoutine
 import com.sinura.personaltrainer.data.backup.BackupRoutineExercise
+import com.sinura.personaltrainer.data.backup.BackupMissedWorkDecision
+import com.sinura.personaltrainer.data.backup.BackupReminderDelivery
+import com.sinura.personaltrainer.data.backup.BackupScheduleOccurrence
+import com.sinura.personaltrainer.data.backup.BackupScheduleRule
 import com.sinura.personaltrainer.data.backup.BackupScheduleSlot
 import com.sinura.personaltrainer.data.backup.BackupSession
 import com.sinura.personaltrainer.data.backup.BackupSessionExercise
@@ -22,6 +26,11 @@ import com.sinura.personaltrainer.data.backup.BackupActivityTemplate
 import com.sinura.personaltrainer.data.backup.BackupSetLog
 import com.sinura.personaltrainer.data.local.AppRoomDatabase
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
+import com.sinura.personaltrainer.data.local.dao.PlannerDao
+import com.sinura.personaltrainer.data.local.entity.MissedWorkDecisionEntity
+import com.sinura.personaltrainer.data.local.entity.ReminderDeliveryEntity
+import com.sinura.personaltrainer.data.local.entity.ScheduleOccurrenceEntity
+import com.sinura.personaltrainer.data.local.entity.ScheduleRuleEntity
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.ExerciseMuscleEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
@@ -66,6 +75,7 @@ class LocalBackupRepository(
     private val database: AppRoomDatabase,
     private val preferencesRepository: PreferencesRepository,
     private val activityDao: ActivityDao? = null,
+    private val plannerDao: PlannerDao? = null,
     private val onBeforeRestore: suspend () -> Unit = {},
     safetySnapshotDir: File? = null,
     clock: () -> Long = { System.currentTimeMillis() },
@@ -106,6 +116,14 @@ class LocalBackupRepository(
                 credits = database.catalogDao().getAllCredits(),
                 scheduleSlots = database.scheduleDao().getAll(),
                 activityExport = activityDao?.let { ActivityBackupIo.snapshot(it) },
+                plannerExport = plannerDao?.let { dao ->
+                    PlannerExport(
+                        rules = dao.getRules(),
+                        occurrences = dao.getOccurrencesBetween(Long.MIN_VALUE, Long.MAX_VALUE),
+                        decisions = dao.getDecisions(),
+                        deliveries = dao.getDeliveries(),
+                    )
+                },
             )
         }
         val exercises = snapshot.exercises
@@ -158,6 +176,9 @@ class LocalBackupRepository(
                     preferencesRepository.storedOnboardingAnswers().resolvedPlaces(),
                 ),
                 lighterWeekStartEpochDay = preferencesRepository.lighterWeekStartEpochDay.first(),
+                reminderOptOut = preferencesRepository.reminderPreferences.first().optOut,
+                reminderQuietStartHour = preferencesRepository.reminderPreferences.first().quietStartHour,
+                reminderQuietEndHour = preferencesRepository.reminderPreferences.first().quietEndHour,
             ),
             exercises = exercises.map {
                 BackupExercise(
@@ -245,6 +266,10 @@ class LocalBackupRepository(
             },
             activities = snapshot.activityExport?.first ?: emptyList(),
             activityTemplates = snapshot.activityExport?.second ?: emptyList(),
+            scheduleRules = snapshot.plannerExport?.rules.orEmpty().map { it.toBackup() },
+            scheduleOccurrences = snapshot.plannerExport?.occurrences.orEmpty().map { it.toBackup() },
+            missedWorkDecisions = snapshot.plannerExport?.decisions.orEmpty().map { it.toBackup() },
+            reminderDeliveries = snapshot.plannerExport?.deliveries.orEmpty().map { it.toBackup() },
         )
     }
 
@@ -317,6 +342,10 @@ class LocalBackupRepository(
             database.workoutDao().deleteAllSets()
             database.workoutDao().deleteAllSessionExercises()
             database.workoutDao().deleteAllSessions()
+            plannerDao?.deleteAllDeliveries()
+            plannerDao?.deleteAllOccurrences()
+            plannerDao?.deleteAllDecisions()
+            plannerDao?.deleteAllRules()
             database.scheduleDao().deleteAll()
             database.routineDao().deleteAllRoutineExercises()
             database.routineDao().deleteAllRoutines()
@@ -447,6 +476,75 @@ class LocalBackupRepository(
                 SeedMetaEntity(id = 1, catalogVersion = 0, pendingCollisions = "[]"),
             )
             activityDao?.let { ActivityBackupIo.replace(it, document) }
+            plannerDao?.let { dao ->
+                if (document.scheduleRules.isNotEmpty()) {
+                    dao.upsertRules(
+                        document.scheduleRules.map { row ->
+                            ScheduleRuleEntity(
+                                id = row.id,
+                                weekday = row.weekday,
+                                hour = row.hour,
+                                minute = row.minute,
+                                modality = row.modality,
+                                zonePolicy = row.zonePolicy,
+                                fixedZoneId = row.fixedZoneId,
+                                routineId = row.routineId,
+                                templateId = row.templateId,
+                                focusKind = row.focusKind,
+                                reminderOffsetMinutes = row.reminderOffsetMinutes,
+                                enabled = if (row.enabled) 1 else 0,
+                                createdAtMs = row.createdAtMs,
+                                updatedAtMs = row.updatedAtMs,
+                            )
+                        },
+                    )
+                }
+                if (document.scheduleOccurrences.isNotEmpty()) {
+                    dao.upsertOccurrences(
+                        document.scheduleOccurrences.map { row ->
+                            ScheduleOccurrenceEntity(
+                                id = row.id,
+                                ruleId = row.ruleId,
+                                status = row.status,
+                                instantMs = row.instantMs,
+                                zoneId = row.zoneId,
+                                offsetSeconds = row.offsetSeconds,
+                                localEpochDay = row.localEpochDay,
+                                hour = row.hour,
+                                minute = row.minute,
+                                completedActivityId = row.completedActivityId,
+                                createdAtMs = row.createdAtMs,
+                                updatedAtMs = row.updatedAtMs,
+                            )
+                        },
+                    )
+                }
+                if (document.missedWorkDecisions.isNotEmpty()) {
+                    document.missedWorkDecisions.forEach { row ->
+                        dao.upsertDecision(
+                            MissedWorkDecisionEntity(
+                                weekStartEpochDay = row.weekStartEpochDay,
+                                choice = row.choice,
+                                decidedAtMs = row.decidedAtMs,
+                            ),
+                        )
+                    }
+                }
+                if (document.reminderDeliveries.isNotEmpty()) {
+                    dao.upsertDeliveries(
+                        document.reminderDeliveries.map { row ->
+                            ReminderDeliveryEntity(
+                                id = row.id,
+                                occurrenceId = row.occurrenceId,
+                                scheduledAtMs = row.scheduledAtMs,
+                                status = row.status,
+                                createdAtMs = row.createdAtMs,
+                                updatedAtMs = row.updatedAtMs,
+                            )
+                        },
+                    )
+                }
+            }
         }
     }
 
@@ -491,6 +589,9 @@ class LocalBackupRepository(
                     ),
                 trainingPlaces = TrainingPlace.parsePlaces(document.preferences.trainingPlace),
                 lighterWeekStartEpochDay = document.preferences.lighterWeekStartEpochDay,
+                reminderOptOut = document.preferences.reminderOptOut,
+                reminderQuietStartHour = document.preferences.reminderQuietStartHour,
+                reminderQuietEndHour = document.preferences.reminderQuietEndHour,
             )
             true
         } catch (_: Exception) {
@@ -540,8 +641,63 @@ class LocalBackupRepository(
         val credits: List<ExerciseMuscleEntity>,
         val scheduleSlots: List<ScheduleSlotEntity>,
         val activityExport: Pair<List<BackupActivity>, List<BackupActivityTemplate>>?,
+        val plannerExport: PlannerExport?,
     )
 }
+
+private data class PlannerExport(
+    val rules: List<ScheduleRuleEntity>,
+    val occurrences: List<ScheduleOccurrenceEntity>,
+    val decisions: List<MissedWorkDecisionEntity>,
+    val deliveries: List<ReminderDeliveryEntity>,
+)
+
+private fun ScheduleRuleEntity.toBackup() = BackupScheduleRule(
+    id = id,
+    weekday = weekday,
+    hour = hour,
+    minute = minute,
+    modality = modality,
+    zonePolicy = zonePolicy,
+    fixedZoneId = fixedZoneId,
+    routineId = routineId,
+    templateId = templateId,
+    focusKind = focusKind,
+    reminderOffsetMinutes = reminderOffsetMinutes,
+    enabled = enabled != 0,
+    createdAtMs = createdAtMs,
+    updatedAtMs = updatedAtMs,
+)
+
+private fun ScheduleOccurrenceEntity.toBackup() = BackupScheduleOccurrence(
+    id = id,
+    ruleId = ruleId,
+    status = status,
+    instantMs = instantMs,
+    zoneId = zoneId,
+    offsetSeconds = offsetSeconds,
+    localEpochDay = localEpochDay,
+    hour = hour,
+    minute = minute,
+    completedActivityId = completedActivityId,
+    createdAtMs = createdAtMs,
+    updatedAtMs = updatedAtMs,
+)
+
+private fun MissedWorkDecisionEntity.toBackup() = BackupMissedWorkDecision(
+    weekStartEpochDay = weekStartEpochDay,
+    choice = choice,
+    decidedAtMs = decidedAtMs,
+)
+
+private fun ReminderDeliveryEntity.toBackup() = BackupReminderDelivery(
+    id = id,
+    occurrenceId = occurrenceId,
+    scheduledAtMs = scheduledAtMs,
+    status = status,
+    createdAtMs = createdAtMs,
+    updatedAtMs = updatedAtMs,
+)
 
 private data class RoomAuthored(
     val sessions: Int,

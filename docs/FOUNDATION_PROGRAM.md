@@ -65,7 +65,9 @@ contain the original sentences.
 - **Job 6 as the current program** — superseded by this file.
 - **ROADMAP / AUDIT as what is being built** — superseded.
 - **D2 silent missed-day shift as the product policy** — superseded as the
-  target; current v2 code may still shift until P7.3.
+  user-visible rule. Occurrences stay on their dates until one persisted
+  missed-work decision. Slot-week derivation remains only for the leftover
+  ThisWeekCard fallback.
 - **Drive as sync** — superseded as vocabulary and as architecture.
 
 Permanent refusals that remain: fifth tab without a new ADR, LLM-as-author,
@@ -642,16 +644,27 @@ Implements [ADR-007](architecture/ADR-007-activity-model.md),
 
 **Milestone: Fitness Recorder Alpha.**
 
-### Phase 7 — Recurring schedule, occurrences, missed decisions, reminders · pending
+### Phase 7 — Recurring schedule, occurrences, missed decisions, reminders · done
 
 - **P7.1** Schedule-rule and occurrence schema *migration* (foundation is
-  already frozen). Two occurrences can complete independently on one date.
-- **P7.2** Occurrence-aware Plan editing. Four-tab IA preserved.
-- **P7.3** One persisted missed-work decision. Closes FND-017.
-- **P7.4** WorkManager reminder delivery and actions. Closes FND-007
-  reminders. Not exact alarms.
-- **P7.5** Home daily agenda. Morning cardio and evening strength are
-  independently visible and startable.
+  already frozen). · **done**
+  `TemperDatabase` migrates v2 → v3. Four new tables start empty;
+  `schedule_slots` is kept and imported as evening-strength rules.
+  Two occurrences can complete independently on one date.
+- **P7.2** Occurrence-aware Plan editing. · **done**
+  The Plan day sheet lists occurrences and can add morning cardio.
+  Four-tab IA preserved. No fifth tab.
+- **P7.3** One persisted missed-work decision. · **done**
+  Closes FND-017. Recurrence is unchanged. Read paths do not mutate
+  the week.
+- **P7.4** WorkManager reminder delivery and actions. · **done**
+  Closes FND-007 reminders. Start, Snooze, Move, Skip. Not exact alarms.
+  Quiet hours and opt-out exist. No reminder permission during onboarding.
+- **P7.5** Home daily agenda. · **done**
+  Morning cardio and evening strength are independently visible and
+  startable. Strength finish marks the bound occurrence DONE.
+  Evidence:
+  [P7.1–P7.5 evidence](foundation-program/evidence/P7.1-P7.5-offline-planner.md).
 
 **Milestone: Offline Planner Beta.**
 
@@ -747,7 +760,7 @@ does not accept, reject, or defer a finding without naming a packet.
 | How to build and test | [DEVELOPMENT.md](DEVELOPMENT.md) |
 | How to recover a phone | [RECOVERY.md](RECOVERY.md) |
 | How the strength logger was built | [ROADMAP.md](ROADMAP.md) (historical) |
-| Current schedule derivation (v2) | [SCHEDULE_SEMANTICS.md](SCHEDULE_SEMANTICS.md) until P7.3 |
+| Current schedule derivation (v2 slots) | [SCHEDULE_SEMANTICS.md](SCHEDULE_SEMANTICS.md) (historical slot week; occurrences are law after P7.3) |
 
 ## 10. Phase 0 closeout checklist
 

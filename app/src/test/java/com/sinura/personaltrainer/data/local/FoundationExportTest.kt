@@ -95,7 +95,7 @@ class FoundationExportTest {
         val snapshot = local.createSnapshot()
         val json = BackupJson.encode(snapshot)
         assertTrue(json.contains("\"activities\""))
-        assertEquals(3, snapshot.version)
+        assertEquals(BackupJson.CURRENT_VERSION, snapshot.version)
         val decoded = BackupJson.decode(json)
         assertEquals(1, decoded.activities.size)
         assertEquals("Easy run", decoded.activities.single().title)

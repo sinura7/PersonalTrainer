@@ -6,13 +6,13 @@ package com.sinura.personaltrainer.data.local
  * Phase 5 cuts from [TrainerDatabase] (`personal_trainer.db`, v2) to
  * [TemperDatabase] (`temper.db`, v1). After P5.7 this generation is
  * frozen: a second wipe is a defect. Later schema changes migrate
- * `TemperDatabase` with generated artifacts and tests. P6.1 is the
- * first such migration: v1 → v2.
+ * `TemperDatabase` with generated artifacts and tests. P6.1 is v1 → v2.
+ * P7.1 is v2 → v3 (schedule rules and occurrences).
  */
 object FoundationGeneration {
     const val NAME = "temper"
     const val DATABASE_FILE = "temper.db"
-    const val VERSION = 2
+    const val VERSION = 3
     const val LEGACY_DATABASE_FILE = "personal_trainer.db"
 
     /**

@@ -10,12 +10,14 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.sinura.personaltrainer.reminder.ReminderNotifications
 import com.sinura.personaltrainer.timer.RestTimerService
 import com.sinura.personaltrainer.ui.navigation.PersonalTrainerNav
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 
 class MainActivity : ComponentActivity() {
     private var openSessionId by mutableStateOf<String?>(null)
+    private var openOccurrenceId by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,6 +27,11 @@ class MainActivity : ComponentActivity() {
         // force-navigate back into that workout for the rest of the Activity's life —
         // including after it had been finished or discarded.
         openSessionId = if (savedInstanceState == null) consumeSessionId(intent) else null
+        openOccurrenceId = if (savedInstanceState == null) {
+            ReminderNotifications.consumeOccurrenceId(intent)
+        } else {
+            null
+        }
         // Both bars transparent, both pinned to light icons. The default picks icon colour
         // from the system's light/dark setting, which is the wrong signal for an app that
         // draws one dark theme regardless: a phone in light mode got dark status icons on a
@@ -38,6 +45,8 @@ class MainActivity : ComponentActivity() {
                 PersonalTrainerNav(
                     openSessionId = openSessionId,
                     onOpenSessionConsumed = { openSessionId = null },
+                    openOccurrenceId = openOccurrenceId,
+                    onOpenOccurrenceConsumed = { openOccurrenceId = null },
                 )
             }
         }
@@ -55,6 +64,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         consumeSessionId(intent)?.let { openSessionId = it }
+        ReminderNotifications.consumeOccurrenceId(intent)?.let { openOccurrenceId = it }
     }
 
     /**

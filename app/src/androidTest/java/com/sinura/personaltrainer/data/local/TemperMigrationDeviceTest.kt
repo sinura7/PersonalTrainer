@@ -31,10 +31,18 @@ class TemperMigrationDeviceTest {
                     "('s1', NULL, 'Push', $STAMP, '', 30, $STAMP, ${STAMP + 1_000})",
             )
         }
-        helper.runMigrationsAndValidate(DB, 2, true, MIGRATION_TEMPER_1_2).use { db ->
+        helper.runMigrationsAndValidate(
+            DB,
+            3,
+            true,
+            MIGRATION_TEMPER_1_2,
+            MIGRATION_TEMPER_2_3,
+        ).use { db ->
             assertEquals(1, countOf(db, "workout_sessions"))
             assertEquals(0, countOf(db, "bodyweight_entries"))
             assertEquals(0, countOf(db, "training_blocks"))
+            assertEquals(0, countOf(db, "schedule_rules"))
+            assertEquals(0, countOf(db, "schedule_occurrences"))
             db.query("PRAGMA foreign_key_check").use { cursor ->
                 assertEquals(0, cursor.count)
             }

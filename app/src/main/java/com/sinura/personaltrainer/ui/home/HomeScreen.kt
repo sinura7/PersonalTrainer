@@ -70,14 +70,33 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onLogActivity: (String) -> Unit = {},
     onOpenLiveCardio: (String) -> Unit = {},
+    pendingOccurrenceStartId: String? = null,
+    onPendingOccurrenceConsumed: () -> Unit = {},
     viewModel: HomeViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val startedSessionId by viewModel.navigateToSession.collectAsStateWithLifecycle()
+    val cardioId by viewModel.navigateToCardio.collectAsStateWithLifecycle()
+    val composerMode by viewModel.navigateToComposer.collectAsStateWithLifecycle()
     LaunchedEffect(startedSessionId) {
         val id = startedSessionId ?: return@LaunchedEffect
         onResumeWorkout(id)
         viewModel.onSessionNavigationHandled()
+    }
+    LaunchedEffect(cardioId) {
+        val id = cardioId ?: return@LaunchedEffect
+        onOpenLiveCardio(id)
+        viewModel.onCardioNavigationHandled()
+    }
+    LaunchedEffect(composerMode) {
+        val mode = composerMode ?: return@LaunchedEffect
+        onLogActivity(mode)
+        viewModel.onComposerNavigationHandled()
+    }
+    LaunchedEffect(pendingOccurrenceStartId) {
+        val id = pendingOccurrenceStartId ?: return@LaunchedEffect
+        viewModel.startOccurrence(id)
+        onPendingOccurrenceConsumed()
     }
     val blocked by viewModel.blockedByInProgress.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
@@ -156,8 +175,42 @@ fun HomeScreen(
                 GymErrorBanner(message)
             }
         }
+        if (state.missedWorkPrompt) {
+            item {
+                com.sinura.personaltrainer.ui.plan.MissedWorkCard(
+                    overdueCount = state.overdueCount,
+                    onMoveRemaining = {
+                        viewModel.applyMissedWork(
+                            com.sinura.personaltrainer.domain.MissedWorkChoice.MOVE_REMAINING,
+                        )
+                    },
+                    onAdaptWeek = {
+                        viewModel.applyMissedWork(
+                            com.sinura.personaltrainer.domain.MissedWorkChoice.ADAPT_WEEK,
+                        )
+                    },
+                    onKeepDates = {
+                        viewModel.applyMissedWork(
+                            com.sinura.personaltrainer.domain.MissedWorkChoice.KEEP_DATES,
+                        )
+                    },
+                    onSkipMissed = {
+                        viewModel.applyMissedWork(
+                            com.sinura.personaltrainer.domain.MissedWorkChoice.SKIP_MISSED,
+                        )
+                    },
+                )
+            }
+        }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                if (state.agenda.isNotEmpty()) {
+                    DailyAgendaCard(
+                        items = state.agenda,
+                        sessionLive = inProgress != null,
+                        onStartOccurrence = viewModel::startOccurrence,
+                    )
+                }
                 // The hero carries Home's only filled button, and it never says Resume: while
                 // a session is live the LiveSessionBar is the only surface that returns to it.
                 // The lifts and the reason describe `featured` — the same day the card's own

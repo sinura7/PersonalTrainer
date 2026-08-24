@@ -30,12 +30,14 @@ class StartLiveActivity(
         title: String,
         blocks: List<ActivityBlock>,
         now: CapturedCivilTime,
+        occurrenceId: String? = null,
     ): ActivityWrite {
         val draft = ActivityDraft(
             status = ActivityStatus.ACTIVE,
             origin = ActivityOrigin.LIVE,
             title = title,
             performedStart = now,
+            occurrenceId = occurrenceId,
             blocks = blocks,
         )
         return repository.confirm(draft, now, ids, clock)

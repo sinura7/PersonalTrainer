@@ -111,6 +111,7 @@ fun SettingsScreen(
     val selectedUnit by viewModel.weightUnit.collectAsStateWithLifecycle()
     val schedulePrefs by viewModel.schedulePreferences.collectAsStateWithLifecycle()
     val restPrefs by viewModel.restTimerPreferences.collectAsStateWithLifecycle()
+    val reminderPrefs by viewModel.reminderPreferences.collectAsStateWithLifecycle()
     val offerExactAlarmAccess by viewModel.offerExactAlarmAccess.collectAsStateWithLifecycle()
     val coachPrefs by viewModel.coachPreferences.collectAsStateWithLifecycle()
     val bodyweightKg by viewModel.bodyweightKg.collectAsStateWithLifecycle()
@@ -201,6 +202,10 @@ fun SettingsScreen(
                 onToggleEquipment = viewModel::toggleEquipment,
                 onRecordBodyweight = viewModel::recordBodyweight,
                 onClearBodyweight = viewModel::clearBodyweight,
+            )
+            ReminderPrefsSection(
+                optOut = reminderPrefs.optOut,
+                onOptOut = viewModel::setReminderOptOut,
             )
             RestTimerPrefsSection(
                 preferences = restPrefs,
@@ -546,6 +551,26 @@ private fun CoachingSection(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ReminderPrefsSection(
+    optOut: Boolean,
+    onOptOut: (Boolean) -> Unit,
+) {
+    SettingsGroup(
+        title = "Workout reminders",
+        caption = "Best-effort reminders. Not exact alarms. Quiet hours are 22:00–07:00. " +
+            "Permission is never asked during setup.",
+    ) {
+        GroupedList {
+            InstrumentRow(
+                title = "Turn reminders off",
+                subtitle = "Stops new reminder work. Rest alerts are unchanged.",
+                trailing = { Switch(checked = optOut, onCheckedChange = onOptOut) },
+            )
         }
     }
 }

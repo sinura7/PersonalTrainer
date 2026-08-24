@@ -25,6 +25,15 @@ data class BackupDocument(
      */
     val activities: List<BackupActivity> = emptyList(),
     val activityTemplates: List<BackupActivityTemplate> = emptyList(),
+    /**
+     * v4 planner tables (P7.1). Defaulted so a v1–v3 file decodes instead
+     * of failing. Live reminder deliveries restore as PENDING only when
+     * still in the future; the importer leaves status as stored.
+     */
+    val scheduleRules: List<BackupScheduleRule> = emptyList(),
+    val scheduleOccurrences: List<BackupScheduleOccurrence> = emptyList(),
+    val missedWorkDecisions: List<BackupMissedWorkDecision> = emptyList(),
+    val reminderDeliveries: List<BackupReminderDelivery> = emptyList(),
 ) {
     /**
      * Whether the owner of this backup has plainly already been through the guided setup.
@@ -115,6 +124,9 @@ data class BackupPreferences(
     val trainingPlace: String = "",
     /** Null means no lighter week is marked. A past value is inert to readers. */
     val lighterWeekStartEpochDay: Long? = null,
+    val reminderOptOut: Boolean = false,
+    val reminderQuietStartHour: Int = 22,
+    val reminderQuietEndHour: Int = 7,
 )
 
 /**
@@ -284,6 +296,53 @@ data class BackupActivityTemplate(
     val title: String,
     val notes: String,
     val blocks: List<BackupActivityBlock> = emptyList(),
+)
+
+data class BackupScheduleRule(
+    val id: String,
+    val weekday: Int,
+    val hour: Int,
+    val minute: Int,
+    val modality: String,
+    val zonePolicy: String = "FOLLOW_DEVICE",
+    val fixedZoneId: String? = null,
+    val routineId: String? = null,
+    val templateId: String? = null,
+    val focusKind: String? = null,
+    val reminderOffsetMinutes: Int = 0,
+    val enabled: Boolean = true,
+    val createdAtMs: Long,
+    val updatedAtMs: Long,
+)
+
+data class BackupScheduleOccurrence(
+    val id: String,
+    val ruleId: String,
+    val status: String,
+    val instantMs: Long,
+    val zoneId: String,
+    val offsetSeconds: Int,
+    val localEpochDay: Long,
+    val hour: Int,
+    val minute: Int,
+    val completedActivityId: String? = null,
+    val createdAtMs: Long,
+    val updatedAtMs: Long,
+)
+
+data class BackupMissedWorkDecision(
+    val weekStartEpochDay: Long,
+    val choice: String,
+    val decidedAtMs: Long,
+)
+
+data class BackupReminderDelivery(
+    val id: String,
+    val occurrenceId: String,
+    val scheduledAtMs: Long,
+    val status: String,
+    val createdAtMs: Long,
+    val updatedAtMs: Long,
 )
 
 data class DriveBackupFile(

@@ -242,10 +242,14 @@ fun PlanScreen(
     onWorkoutStarted: (String) -> Unit,
     onOpenLibrary: () -> Unit,
     onOpenSettings: () -> Unit,
+    onLogActivity: (String) -> Unit = {},
+    onOpenLiveCardio: (String) -> Unit = {},
     viewModel: PlanViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val navigateToSession by viewModel.navigateToSession.collectAsStateWithLifecycle()
+    val navigateToCardio by viewModel.navigateToCardio.collectAsStateWithLifecycle()
+    val navigateToComposer by viewModel.navigateToComposer.collectAsStateWithLifecycle()
     val blocked by viewModel.blockedByInProgress.collectAsStateWithLifecycle()
     val dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM)
     val today = remember { todayEpochDay() }
@@ -258,6 +262,16 @@ fun PlanScreen(
         val target = navigateToSession ?: return@LaunchedEffect
         onWorkoutStarted(target)
         viewModel.onSessionNavigationHandled()
+    }
+    LaunchedEffect(navigateToCardio) {
+        val target = navigateToCardio ?: return@LaunchedEffect
+        onOpenLiveCardio(target)
+        viewModel.onCardioNavigationHandled()
+    }
+    LaunchedEffect(navigateToComposer) {
+        val mode = navigateToComposer ?: return@LaunchedEffect
+        onLogActivity(mode)
+        viewModel.onComposerNavigationHandled()
     }
 
     Column(
@@ -305,6 +319,34 @@ fun PlanScreen(
                         today = today,
                         review = state.blockReview,
                         onStartNext = viewModel::startNextBlock,
+                    )
+                }
+            }
+
+            if (state.missedWorkPrompt) {
+                item(key = "missed-work") {
+                    MissedWorkCard(
+                        overdueCount = state.overdueCount,
+                        onMoveRemaining = {
+                            viewModel.applyMissedWork(
+                                com.sinura.personaltrainer.domain.MissedWorkChoice.MOVE_REMAINING,
+                            )
+                        },
+                        onAdaptWeek = {
+                            viewModel.applyMissedWork(
+                                com.sinura.personaltrainer.domain.MissedWorkChoice.ADAPT_WEEK,
+                            )
+                        },
+                        onKeepDates = {
+                            viewModel.applyMissedWork(
+                                com.sinura.personaltrainer.domain.MissedWorkChoice.KEEP_DATES,
+                            )
+                        },
+                        onSkipMissed = {
+                            viewModel.applyMissedWork(
+                                com.sinura.personaltrainer.domain.MissedWorkChoice.SKIP_MISSED,
+                            )
+                        },
                     )
                 }
             }
@@ -489,6 +531,15 @@ fun PlanScreen(
                 sheetDay.slotId?.let(viewModel::unpin)
             },
             onDismiss = { openDay = null },
+            occurrences = viewModel.agendaFor(sheetDay.epochDay),
+            onStartOccurrence = { occurrenceId ->
+                openDay = null
+                viewModel.startOccurrence(occurrenceId)
+            },
+            onAddMorningCardio = {
+                openDay = null
+                viewModel.addMorningCardio(sheetDay.epochDay)
+            },
         )
     }
 

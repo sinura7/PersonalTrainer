@@ -17,7 +17,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.sinura.personaltrainer.domain.AgendaItem
+import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.ui.components.GroupedList
@@ -59,6 +62,9 @@ fun PlanDaySheet(
     onUnpin: () -> Unit,
     onEditRoutine: (() -> Unit)? = null,
     onDismiss: () -> Unit,
+    occurrences: List<AgendaItem> = emptyList(),
+    onStartOccurrence: (String) -> Unit = {},
+    onAddMorningCardio: () -> Unit = {},
 ) {
     var picking by rememberSaveable(day.epochDay) { mutableStateOf(Picker.NONE) }
     val pinned = !day.isRest
@@ -95,7 +101,35 @@ fun PlanDaySheet(
                 )
             }
 
+            if (occurrences.isNotEmpty()) {
+                GroupedList {
+                    occurrences.forEachIndexed { index, item ->
+                        if (index > 0) HairlineDivider()
+                        InstrumentRow(
+                            title = "${item.timeLabel}  ·  ${item.title}",
+                            subtitle = item.occurrence.status.name.lowercase().replaceFirstChar { it.titlecase() },
+                            onClick = {
+                                if (!isPast && item.occurrence.status == OccurrenceStatus.PLANNED) {
+                                    onStartOccurrence(item.occurrence.id)
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+
             if (isPast) return@Column
+
+            val hasCardio = occurrences.any { it.rule?.modality == ScheduleModality.CARDIO }
+            if (!hasCardio) {
+                GroupedList {
+                    InstrumentRow(
+                        title = "Add morning cardio",
+                        subtitle = "A second occurrence on this day. Starts at 07:00.",
+                        onClick = onAddMorningCardio,
+                    )
+                }
+            }
 
             if (pinned) {
                 PrimaryGymButton(

@@ -24,6 +24,7 @@ import com.sinura.personaltrainer.domain.TrainingFocus
 import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.OnboardingAnswers
+import com.sinura.personaltrainer.domain.ReminderPreferences
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
@@ -275,6 +276,45 @@ class PreferencesRepository(
         dataStore.edit { prefs -> prefs[REST_ALARM_ELIGIBLE] = true }
     }
 
+    val reminderPreferences: Flow<ReminderPreferences> = safePreferences
+        .map { prefs ->
+            ReminderPreferences(
+                optOut = prefs[REMINDER_OPT_OUT] ?: false,
+                quietStartHour = prefs[REMINDER_QUIET_START]
+                    ?: ReminderPreferences.DEFAULT_QUIET_START_HOUR,
+                quietEndHour = prefs[REMINDER_QUIET_END]
+                    ?: ReminderPreferences.DEFAULT_QUIET_END_HOUR,
+            ).sanitized()
+        }
+
+    suspend fun setReminderOptOut(optOut: Boolean) {
+        dataStore.edit { prefs -> prefs[REMINDER_OPT_OUT] = optOut }
+    }
+
+    suspend fun setReminderQuietHours(startHour: Int, endHour: Int) {
+        dataStore.edit { prefs ->
+            prefs[REMINDER_QUIET_START] = startHour.coerceIn(0, 23)
+            prefs[REMINDER_QUIET_END] = endHour.coerceIn(0, 23)
+        }
+    }
+
+    /**
+     * Strength (and mixed) occurrence started through the live logger.
+     * Device-local: not part of backup. Cleared on finish or discard.
+     */
+    val pendingOccurrenceId: Flow<String?> = safePreferences
+        .map { prefs -> prefs[PENDING_OCCURRENCE_ID]?.takeIf { it.isNotBlank() } }
+
+    suspend fun setPendingOccurrenceId(id: String?) {
+        dataStore.edit { prefs ->
+            if (id.isNullOrBlank()) {
+                prefs.remove(PENDING_OCCURRENCE_ID)
+            } else {
+                prefs[PENDING_OCCURRENCE_ID] = id
+            }
+        }
+    }
+
     suspend fun setRestSoundEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[REST_SOUND] = enabled
@@ -391,6 +431,9 @@ class PreferencesRepository(
         trainingPlace: TrainingPlace,
         lighterWeekStartEpochDay: Long?,
         trainingPlaces: Set<TrainingPlace> = emptySet(),
+        reminderOptOut: Boolean = false,
+        reminderQuietStartHour: Int = ReminderPreferences.DEFAULT_QUIET_START_HOUR,
+        reminderQuietEndHour: Int = ReminderPreferences.DEFAULT_QUIET_END_HOUR,
     ) {
         val cleanSchedule = schedule.sanitized()
         val cleanRest = rest.sanitized()
@@ -448,6 +491,9 @@ class PreferencesRepository(
             } else {
                 prefs[LIGHTER_WEEK_START] = lighterWeekStartEpochDay
             }
+            prefs[REMINDER_OPT_OUT] = reminderOptOut
+            prefs[REMINDER_QUIET_START] = reminderQuietStartHour.coerceIn(0, 23)
+            prefs[REMINDER_QUIET_END] = reminderQuietEndHour.coerceIn(0, 23)
         }
         replaceRoomHistory(bodyweightLog, block, pastBlocks)
     }
@@ -790,6 +836,10 @@ class PreferencesRepository(
         val TRAINING_PLACE = stringPreferencesKey("training_place")
         val LIGHTER_WEEK_START = longPreferencesKey("lighter_week_start_epoch_day")
         val FOUNDATION_GENERATION = stringPreferencesKey("foundation_generation")
+        val REMINDER_OPT_OUT = booleanPreferencesKey("reminder_opt_out")
+        val REMINDER_QUIET_START = intPreferencesKey("reminder_quiet_start_hour")
+        val REMINDER_QUIET_END = intPreferencesKey("reminder_quiet_end_hour")
+        val PENDING_OCCURRENCE_ID = stringPreferencesKey("pending_occurrence_id")
 
         fun preferredDaysFrom(raw: Set<String>?): Set<Weekday> =
             raw.orEmpty().mapNotNull { name ->

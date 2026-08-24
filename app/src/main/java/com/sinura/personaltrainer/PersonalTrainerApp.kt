@@ -3,11 +3,13 @@ package com.sinura.personaltrainer
 import android.app.Application
 import com.sinura.personaltrainer.data.local.PreMigrationSnapshot
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.reminder.ReminderNotifications
 import com.sinura.personaltrainer.timer.RestTimerNotifications
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class PersonalTrainerApp : Application() {
@@ -33,6 +35,7 @@ class PersonalTrainerApp : Application() {
         // configure, and so the legacy sounding "rest complete" channel is deleted even if
         // no timer runs this session.
         RestTimerNotifications.ensureChannels(this)
+        ReminderNotifications.ensureChannel(this)
         // A rest can outlive its process. Recover it before any screen asks for timer state.
         container.restTimerController.rehydrate()
         applicationScope.launch {
@@ -45,6 +48,20 @@ class PersonalTrainerApp : Application() {
                 container.preferencesRepository.importEncodedHistoryIfNeeded()
             } catch (error: Exception) {
                 AppLog.e(TAG, "Importing encoded bodyweight and blocks failed", error)
+            }
+            try {
+                PendingOccurrence.restore(container)
+                container.plannerRepository.importSlotsIfNeeded()
+                val weekStart = container.preferencesRepository.schedulePreferences
+                    .first().weekStart
+                val today = com.sinura.personaltrainer.util.JvmTime.captureNow()
+                val todayDate = com.sinura.personaltrainer.util.JvmTime.civilDate(
+                    today.instantMillis,
+                    today.zoneId,
+                )
+                container.plannerRepository.ensureWeek(todayDate.previousOrSame(weekStart))
+            } catch (error: Exception) {
+                AppLog.e(TAG, "Importing schedule rules failed", error)
             }
             try {
                 container.dbMaintenance.seedCatalog()

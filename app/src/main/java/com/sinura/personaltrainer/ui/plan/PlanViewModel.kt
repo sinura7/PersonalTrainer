@@ -4,8 +4,25 @@ import android.app.Application
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.appContainer
+import com.sinura.personaltrainer.domain.AgendaItem
+import com.sinura.personaltrainer.domain.CardioBlock
+import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.CivilDate
+import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.ExistingLayoutMatcher
+import com.sinura.personaltrainer.domain.MissedWorkChoice
+import com.sinura.personaltrainer.domain.MissedWorkDecision
+import com.sinura.personaltrainer.domain.MissedWorkPolicy
+import com.sinura.personaltrainer.domain.ScheduleModality
+import com.sinura.personaltrainer.domain.ScheduleOccurrence
+import com.sinura.personaltrainer.domain.SlotRuleImport
+import com.sinura.personaltrainer.domain.ActivityWrite
+import com.sinura.personaltrainer.timer.CardioElapsed
+import com.sinura.personaltrainer.timer.PersistedCardioTimer
+import com.sinura.personaltrainer.util.IdFactory
+import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.domain.InsightFailure
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.Routine
@@ -68,6 +85,10 @@ data class PlanUiState(
     /** True when this calendar week is the marked lighter week. */
     val lighterWeek: Boolean = false,
     val error: String? = null,
+    val occurrences: List<com.sinura.personaltrainer.domain.ScheduleOccurrence> = emptyList(),
+    val rules: List<com.sinura.personaltrainer.domain.ScheduleRule> = emptyList(),
+    val missedWorkPrompt: Boolean = false,
+    val overdueCount: Int = 0,
 )
 
 /**
@@ -108,11 +129,32 @@ class PlanViewModel @JvmOverloads constructor(
         ) { preferences, block, unit, logAndLighter ->
             SettingsAndBlock(preferences, block, unit, logAndLighter.first, logAndLighter.second)
         },
-        proposals,
-        actionError,
-    ) { current, inProgress, settings, previewed, error ->
+        combine(
+            proposals,
+            actionError,
+            combine(
+                container.plannerRepository.observeOccurrences(),
+                container.plannerRepository.observeRules(),
+                container.plannerRepository.observeDecisions(),
+            ) { occurrences, rules, decisions ->
+                PlannerSnapshot(occurrences, rules, decisions)
+            },
+        ) { previewed, error, planner -> Triple(previewed, error, planner) },
+    ) { current, inProgress, settings, extras ->
+        val previewed = extras.first
+        val error = extras.second
+        val planner = extras.third
         if (current == null) return@combine PlanUiState()
         val zone = ZoneId.systemDefault()
+        val today = todayEpochDay()
+        val nowMinutes = currentMinutesOfDay()
+        val weekStart = current.weekPlan?.weekStartEpochDay
+            ?: CivilDate.fromEpochDay(today).previousOrSame(settings.preferences.weekStart).epochDay
+        val weekOcc = planner.occurrences.filter {
+            it.localEpochDay in weekStart..(weekStart + 6)
+        }
+        val overdue = MissedWorkPolicy.overdue(weekOcc, today, nowMinutes)
+        val decision = planner.decisions.firstOrNull { it.weekStartEpochDay == weekStart }
         PlanUiState(
             isLoading = false,
             week = current.weekPlan,
@@ -126,7 +168,7 @@ class PlanViewModel @JvmOverloads constructor(
             proposals = previewed,
             block = settings.block,
             blockReview = settings.block
-                ?.takeIf { it.isCompleteOn(todayEpochDay()) }
+                ?.takeIf { it.isCompleteOn(today) }
                 ?.let { finished ->
                     BlockReviewBuilder.build(
                         block = finished,
@@ -144,6 +186,10 @@ class PlanViewModel @JvmOverloads constructor(
                     "Couldn’t read this week’s plan. Your pins are safe — try again."
                 else -> null
             },
+            occurrences = weekOcc,
+            rules = planner.rules,
+            missedWorkPrompt = MissedWorkPolicy.promptNeeded(overdue, decision),
+            overdueCount = overdue.size,
         )
     }
         // Off the main thread. This transform walks every finished session to build the logged
@@ -162,6 +208,20 @@ class PlanViewModel @JvmOverloads constructor(
 
     private val _blockedByInProgress = MutableStateFlow<BlockedStart?>(null)
     val blockedByInProgress: StateFlow<BlockedStart?> = _blockedByInProgress.asStateFlow()
+
+    private val _navigateToCardio = MutableStateFlow<String?>(null)
+    val navigateToCardio: StateFlow<String?> = _navigateToCardio.asStateFlow()
+
+    private val _navigateToComposer = MutableStateFlow<String?>(null)
+    val navigateToComposer: StateFlow<String?> = _navigateToComposer.asStateFlow()
+
+    fun onCardioNavigationHandled() {
+        _navigateToCardio.value = null
+    }
+
+    fun onComposerNavigationHandled() {
+        _navigateToComposer.value = null
+    }
 
     init {
         // Home's empty hero can ask for a preview before this screen exists. The flag is
@@ -194,6 +254,7 @@ class PlanViewModel @JvmOverloads constructor(
                 focusKind = null,
                 anchorDay = dayOfWeekFor(epochDay),
             )
+            refreshPlanner()
         }
     }
 
@@ -204,6 +265,7 @@ class PlanViewModel @JvmOverloads constructor(
                 focusKind = kind,
                 anchorDay = dayOfWeekFor(epochDay),
             )
+            refreshPlanner()
         }
     }
 
@@ -211,6 +273,7 @@ class PlanViewModel @JvmOverloads constructor(
     fun unpin(slotId: String) {
         write("Could not unpin that day. Try again.") {
             container.scheduleRepository.unpin(slotId)
+            refreshPlanner()
         }
     }
 
@@ -268,6 +331,7 @@ class PlanViewModel @JvmOverloads constructor(
         proposals.value = emptyList()
         write("Could not save that week. Try again.") {
             container.scheduleRepository.acceptFills(previewed)
+            refreshPlanner()
         }
     }
 
@@ -329,8 +393,118 @@ class PlanViewModel @JvmOverloads constructor(
     // -----------------------------------------------------------------------
 
     fun startDay(day: SuggestedTrainingDay) {
-        viewModelScope.launch { start(day) }
+        viewModelScope.launch {
+            PendingOccurrence.forget(container)
+            start(day)
+        }
     }
+
+    fun addMorningCardio(epochDay: Long) {
+        write("Could not add morning cardio. Try again.") {
+            container.plannerRepository.addTimedRule(
+                weekday = dayOfWeekFor(epochDay),
+                hour = SlotRuleImport.DEFAULT_CARDIO_HOUR,
+                minute = 0,
+                modality = ScheduleModality.CARDIO,
+            )
+            refreshPlanner()
+        }
+    }
+
+    fun applyMissedWork(choice: MissedWorkChoice) {
+        write("Could not save that decision. Try again.") {
+            val weekStartEpoch = uiState.value.week?.weekStartEpochDay
+                ?: return@write
+            val now = JvmTime.captureNow()
+            container.plannerRepository.applyMissedWork(
+                choice = choice,
+                weekStart = CivilDate.fromEpochDay(weekStartEpoch),
+                todayEpochDay = todayEpochDay(),
+                nowMinutesOfDay = currentMinutesOfDay(now.instantMillis, now.zoneId),
+                deviceZoneId = now.zoneId,
+                nowMs = now.instantMillis,
+            )
+        }
+    }
+
+    fun startOccurrence(occurrenceId: String) {
+        viewModelScope.launch {
+            val occurrence = container.plannerRepository.getOccurrence(occurrenceId) ?: return@launch
+            val rule = container.plannerRepository.getRule(occurrence.ruleId)
+            when (rule?.modality ?: ScheduleModality.STRENGTH) {
+                ScheduleModality.CARDIO -> {
+                    PendingOccurrence.forget(container)
+                    startCardioOccurrence(occurrence)
+                }
+                ScheduleModality.MIXED -> {
+                    PendingOccurrence.bind(container, occurrence.id)
+                    _navigateToComposer.value = "mixed"
+                }
+                ScheduleModality.STRENGTH -> {
+                    PendingOccurrence.bind(container, occurrence.id)
+                    val item = AgendaItem(occurrence, rule)
+                    start(
+                        SuggestedTrainingDay(
+                            epochDay = occurrence.localEpochDay,
+                            dayOfWeek = com.sinura.personaltrainer.domain.Weekday.fromEpochDay(
+                                occurrence.localEpochDay,
+                            ),
+                            isRest = false,
+                            focusKind = rule?.focusKind
+                                ?: com.sinura.personaltrainer.domain.SessionFocusKind.FULL_BODY,
+                            focusTitle = item.title,
+                            routineId = rule?.routineId,
+                            routineName = rule?.routineId?.let { id ->
+                                uiState.value.routines.firstOrNull { it.id == id }?.name
+                            },
+                            reason = "Planned.",
+                            emphasisMuscles = emptyList(),
+                            confidence = com.sinura.personaltrainer.domain.ScheduleConfidence.HIGH,
+                            slotId = null,
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
+    private suspend fun startCardioOccurrence(occurrence: ScheduleOccurrence) {
+        val now = JvmTime.captureNow()
+        val block = CardioBlock(
+            id = IdFactory.Uuid.newId(),
+            sortOrder = 0,
+            type = CardioType.RUN,
+            indoor = false,
+            elapsedSeconds = 0L,
+            movingSeconds = 0L,
+            distanceMeters = null,
+            elevationMeters = null,
+            heartRateBpm = null,
+            energyKj = null,
+            rpe = null,
+            routeRef = null,
+        )
+        when (val write = container.startLiveActivity("Cardio", listOf(block), now, occurrence.id)) {
+            is ActivityWrite.Accepted -> {
+                val nowElapsed = android.os.SystemClock.elapsedRealtime()
+                val nowWall = System.currentTimeMillis()
+                container.cardioTimerPersistence.save(
+                    PersistedCardioTimer(
+                        sessionId = write.session.id,
+                        startedAtElapsedRealtime = nowElapsed,
+                        startedAtWallClockMillis = nowWall,
+                        bootMarker = CardioElapsed.bootMarker(nowWall, nowElapsed),
+                    ),
+                )
+                actionError.value = null
+                _navigateToCardio.value = write.session.id
+            }
+            is ActivityWrite.Rejected -> actionError.value = write.reason
+        }
+    }
+
+    fun agendaFor(epochDay: Long): List<AgendaItem> =
+        DailyAgenda.forDay(epochDay, uiState.value.occurrences, uiState.value.rules)
 
     private suspend fun start(day: SuggestedTrainingDay) {
         when (val outcome = container.startTrainingDay(day)) {
@@ -421,6 +595,17 @@ class PlanViewModel @JvmOverloads constructor(
     private fun dayOfWeekFor(epochDay: Long): Weekday =
         com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(epochDay).dayOfWeek
 
+    private fun currentMinutesOfDay(
+        nowMs: Long = System.currentTimeMillis(),
+        zoneId: String = ZoneId.systemDefault().id,
+    ): Int {
+        val start = JvmTime.startOfDayMillis(
+            CivilDate.fromEpochDay(todayEpochDay(nowMs, JvmTime, zoneId)),
+            zoneId,
+        )
+        return DailyAgenda.minutesOfDay(nowMs, start)
+    }
+
     /**
      * Begin the next twelve weeks from the top of this week.
      *
@@ -448,6 +633,19 @@ class PlanViewModel @JvmOverloads constructor(
 
     /** The day whose Start was refused, held so the screen can ask instead of the app deciding. */
     data class BlockedStart(val day: SuggestedTrainingDay, val sessionId: String)
+
+    private suspend fun refreshPlanner() {
+        container.plannerRepository.syncSlotsToRules()
+        val prefs = container.preferencesRepository.schedulePreferences.first()
+        val today = CivilDate.fromEpochDay(todayEpochDay())
+        container.plannerRepository.ensureWeek(today.previousOrSame(prefs.weekStart))
+    }
+
+    private data class PlannerSnapshot(
+        val occurrences: List<ScheduleOccurrence>,
+        val rules: List<com.sinura.personaltrainer.domain.ScheduleRule>,
+        val decisions: List<MissedWorkDecision>,
+    )
 
     private data class SettingsAndBlock(
         val preferences: SchedulePreferences,

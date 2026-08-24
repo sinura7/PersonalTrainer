@@ -69,6 +69,19 @@ class ActivityRepository(
                 is ActivityWrite.Accepted -> {
                     try {
                         ActivityBackupIo.insertSession(dao, write.session)
+                        if (write.session.status == ActivityStatus.COMPLETED) {
+                            write.session.occurrenceId?.let { occId ->
+                                database.plannerDao().getOccurrence(occId)?.let { row ->
+                                    database.plannerDao().upsertOccurrence(
+                                        row.copy(
+                                            status = "DONE",
+                                            completedActivityId = write.session.id,
+                                            updatedAtMs = clock.nowMillis(),
+                                        ),
+                                    )
+                                }
+                            }
+                        }
                         write
                     } catch (_: SQLiteConstraintException) {
                         ActivityWrite.Rejected("One live activity at a time.")
@@ -112,6 +125,17 @@ class ActivityRepository(
             )
             dao.deleteSession(sessionId)
             ActivityBackupIo.insertSession(dao, completed)
+            completed.occurrenceId?.let { occId ->
+                database.plannerDao().getOccurrence(occId)?.let { row ->
+                    database.plannerDao().upsertOccurrence(
+                        row.copy(
+                            status = "DONE",
+                            completedActivityId = completed.id,
+                            updatedAtMs = clock.nowMillis(),
+                        ),
+                    )
+                }
+            }
             ActivityWrite.Accepted(completed)
         }
     }

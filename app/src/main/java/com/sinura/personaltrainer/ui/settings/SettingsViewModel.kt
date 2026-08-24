@@ -102,6 +102,20 @@ class SettingsViewModel @JvmOverloads constructor(
                 initialValue = RestTimerPreferences.DEFAULT,
             )
 
+    val reminderPreferences: StateFlow<com.sinura.personaltrainer.domain.ReminderPreferences> =
+        container.preferencesRepository.reminderPreferences
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = com.sinura.personaltrainer.domain.ReminderPreferences.DEFAULT,
+            )
+
+    fun setReminderOptOut(optOut: Boolean) {
+        viewModelScope.launch {
+            container.preferencesRepository.setReminderOptOut(optOut)
+        }
+    }
+
     /**
      * Honest inexact copy + Settings tap. Shown only after rest is used or
      * configured, and only while the policy would take the best-effort path.

@@ -13,7 +13,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 object BackupJson {
-    const val CURRENT_VERSION = 3
+    const val CURRENT_VERSION = 4
     const val APP_ID = "personal-trainer"
     const val FOLDER_NAME = "PersonalTrainer Backups"
     const val FILE_PREFIX = "personal-trainer-backup-"
@@ -58,6 +58,10 @@ object BackupJson {
                 .sortedWith(compareBy({ it.position }, { it.id })),
             activities = document.activities.sortedBy { it.id },
             activityTemplates = document.activityTemplates.sortedBy { it.id },
+            scheduleRules = document.scheduleRules.sortedBy { it.id },
+            scheduleOccurrences = document.scheduleOccurrences.sortedBy { it.id },
+            missedWorkDecisions = document.missedWorkDecisions.sortedBy { it.weekStartEpochDay },
+            reminderDeliveries = document.reminderDeliveries.sortedBy { it.id },
         )
         return gsonPretty.toJson(sorted) + "\n"
     }
@@ -125,6 +129,10 @@ object BackupJson {
             scheduleSlots = gsonPretty.fromJsonList(root, "scheduleSlots", Array<BackupScheduleSlot>::class.java),
             activities = gsonPretty.fromJsonList(root, "activities", Array<BackupActivity>::class.java),
             activityTemplates = gsonPretty.fromJsonList(root, "activityTemplates", Array<BackupActivityTemplate>::class.java),
+            scheduleRules = gsonPretty.fromJsonList(root, "scheduleRules", Array<BackupScheduleRule>::class.java),
+            scheduleOccurrences = gsonPretty.fromJsonList(root, "scheduleOccurrences", Array<BackupScheduleOccurrence>::class.java),
+            missedWorkDecisions = gsonPretty.fromJsonList(root, "missedWorkDecisions", Array<BackupMissedWorkDecision>::class.java),
+            reminderDeliveries = gsonPretty.fromJsonList(root, "reminderDeliveries", Array<BackupReminderDelivery>::class.java),
         ).normalized()
     }
 
@@ -246,6 +254,9 @@ object BackupJson {
             preferredDays = prefs.stringList("preferredDays"),
             trainingPlace = prefs.string("trainingPlace", ""),
             lighterWeekStartEpochDay = prefs.longOrNull("lighterWeekStartEpochDay"),
+            reminderOptOut = prefs.bool("reminderOptOut", false),
+            reminderQuietStartHour = prefs.int("reminderQuietStartHour", 22),
+            reminderQuietEndHour = prefs.int("reminderQuietEndHour", 7),
         )
     }
 

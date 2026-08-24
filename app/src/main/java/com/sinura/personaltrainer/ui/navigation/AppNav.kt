@@ -196,6 +196,8 @@ private val LIVE_BAR_HIDDEN_ROUTES = setOf(
 fun PersonalTrainerNav(
     openSessionId: String? = null,
     onOpenSessionConsumed: () -> Unit = {},
+    openOccurrenceId: String? = null,
+    onOpenOccurrenceConsumed: () -> Unit = {},
     settingsViewModel: SettingsViewModel = viewModel(),
     gateViewModel: OnboardingGateViewModel = viewModel(),
 ) {
@@ -397,6 +399,8 @@ fun PersonalTrainerNav(
             ) {
                 composable(Route.Home.path) {
                     HomeScreen(
+                        pendingOccurrenceStartId = openOccurrenceId,
+                        onPendingOccurrenceConsumed = onOpenOccurrenceConsumed,
                         onResumeWorkout = { sessionId ->
                             navController.navigate(Route.ActiveWorkout.create(sessionId)) {
                                 launchSingleTop = true
@@ -474,6 +478,14 @@ fun PersonalTrainerNav(
                         },
                         onOpenLibrary = { navController.navigate(Route.Library.create(null)) },
                         onOpenSettings = { navController.navigate(Route.Settings.path) },
+                        onLogActivity = { mode ->
+                            navController.navigate(Route.ActivityComposer.create(mode))
+                        },
+                        onOpenLiveCardio = { sessionId ->
+                            navController.navigate(Route.LiveCardio.create(sessionId)) {
+                                launchSingleTop = true
+                            }
+                        },
                     )
                 }
                 composable(Route.History.path) {

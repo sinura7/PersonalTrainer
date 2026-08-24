@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
@@ -919,6 +920,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             when (val outcome = container.finishWorkout(sessionId, notes.value)) {
                 is FinishOutcome.Finished -> {
+                    PendingOccurrence.complete(container, outcome.sessionId)
                     error.value = null
                     // The use case clears the process-wide cache; the SavedStateHandle mirror
                     // is scoped to this nav entry and unreachable from anywhere else, so it
@@ -946,6 +948,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             when (container.discardWorkout(sessionId)) {
                 DiscardOutcome.Discarded -> {
+                    PendingOccurrence.forget(container)
                     error.value = null
                     terminalExit = true
                     draftCache.clear(sessionId)

@@ -86,6 +86,37 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun agendaListsIndependentOccurrences() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        val weekStart = com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(
+            com.sinura.personaltrainer.domain.todayEpochDay(),
+        ).previousOrSame(com.sinura.personaltrainer.domain.Weekday.MONDAY)
+        val today = com.sinura.personaltrainer.domain.Weekday.fromEpochDay(
+            com.sinura.personaltrainer.domain.todayEpochDay(),
+        )
+        deps.plannerRepository.addTimedRule(
+            weekday = today,
+            hour = 7,
+            minute = 0,
+            modality = com.sinura.personaltrainer.domain.ScheduleModality.CARDIO,
+        )
+        deps.plannerRepository.addTimedRule(
+            weekday = today,
+            hour = 18,
+            minute = 0,
+            modality = com.sinura.personaltrainer.domain.ScheduleModality.STRENGTH,
+        )
+        deps.plannerRepository.ensureWeek(weekStart)
+        viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        val state = viewModel!!.uiState.first { !it.isLoading && it.agenda.size == 2 }
+        assertEquals(listOf(7, 18), state.agenda.map { it.occurrence.hour })
+        assertEquals(
+            listOf("Cardio", "Strength"),
+            state.agenda.map { it.title },
+        )
+    }
+
+    @Test
     fun requestAnswerReplayArmsPlanOnce() = runBlocking {
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
