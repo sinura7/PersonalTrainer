@@ -562,6 +562,8 @@ Start versus Restore, catalog-only and bodyweight-only files).
   Repositories stay `google()` / `mavenCentral()`.
   `gradle/verification-metadata.xml` checksums the resolved graph.
   [lint-policy.md](architecture/lint-policy.md).
+  Evidence:
+  [P4.6 evidence](foundation-program/evidence/P4.6-lint-supply-chain.md).
 
 **Milestone: Supported Platform Gate.**
 
