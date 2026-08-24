@@ -479,7 +479,8 @@ and close FND-011, FND-014A–C, and the measurement half of FND-038.
   snapshot+encode ≤ 4 s, and encoded size ≤ 8 MiB. A JVM run of the
   fixture encoded in 230 ms / 4.2 MiB and snapshot+encode in 280 ms.
   Whole-document encode stays. Streaming remains P8.5 only if these
-  ceilings fail later.
+  ceilings fail later. Evidence:
+  [P3.7 evidence](foundation-program/evidence/P3.7-scale.md).
 
 Phase 3 does not close until exact before/after fingerprints reconcile
 under the fault matrix (process kill at every journal phase, concurrent
