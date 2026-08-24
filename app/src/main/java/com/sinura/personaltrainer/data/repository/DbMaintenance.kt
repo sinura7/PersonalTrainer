@@ -1,7 +1,7 @@
 package com.sinura.personaltrainer.data.repository
 
 import androidx.room.withTransaction
-import com.sinura.personaltrainer.data.local.TrainerDatabase
+import com.sinura.personaltrainer.data.local.AppRoomDatabase
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.ExerciseMuscleEntity
 import com.sinura.personaltrainer.data.local.entity.SeedMetaEntity
@@ -42,7 +42,7 @@ data class CatalogCollision(
  * check-then-act outside it can read "catalog is current", lose the race to a restore that
  * resets the version to 0, and then skip the reconciliation that restore was depending on.
  */
-class DbMaintenance(private val database: TrainerDatabase) {
+class DbMaintenance(private val database: AppRoomDatabase) {
     private val mutex = Mutex()
 
     /** Run [block] with exclusive access to the catalog. Restore holds this across its wipe. */

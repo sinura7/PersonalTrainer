@@ -217,6 +217,48 @@ def main() -> int:
             if needle not in body:
                 findings.append(f"TimePort.kt  missing {needle}")
 
+    activity_session = os.path.join(
+        ROOT,
+        "app/src/main/java/com/sinura/personaltrainer/domain/ActivitySession.kt",
+    )
+    if not os.path.isfile(activity_session):
+        findings.append("ActivitySession.kt  missing P5.2 activity envelope")
+    else:
+        body = open(activity_session, encoding="utf-8").read()
+        for needle in (
+            "data class ActivitySession",
+            "enum class ActivityOrigin",
+            "data class CardioBlock",
+            "data class StrengthSet",
+        ):
+            if needle not in body:
+                findings.append(f"ActivitySession.kt  missing {needle}")
+
+    temper_db = os.path.join(
+        ROOT,
+        "app/src/main/java/com/sinura/personaltrainer/data/local/TemperDatabase.kt",
+    )
+    if not os.path.isfile(temper_db):
+        findings.append("TemperDatabase.kt  missing P5.3 foundation database")
+    else:
+        body = open(temper_db, encoding="utf-8").read()
+        if ".fallbackToDestructiveMigration" in body:
+            findings.append("TemperDatabase.kt  uses fallbackToDestructiveMigration")
+        for needle in ("ActivitySessionEntity", "FoundationGeneration.VERSION"):
+            if needle not in body:
+                findings.append(f"TemperDatabase.kt  missing {needle}")
+
+    generation = os.path.join(
+        ROOT,
+        "app/src/main/java/com/sinura/personaltrainer/data/local/FoundationGeneration.kt",
+    )
+    if not os.path.isfile(generation):
+        findings.append("FoundationGeneration.kt  missing P5.7 freeze marker")
+    else:
+        body = open(generation, encoding="utf-8").read()
+        if "const val FROZEN = true" not in body:
+            findings.append("FoundationGeneration.kt  FROZEN must stay true after P5.7")
+
     print(f"{len(findings)} sdk-target finding(s)")
     for item in findings:
         print(item)

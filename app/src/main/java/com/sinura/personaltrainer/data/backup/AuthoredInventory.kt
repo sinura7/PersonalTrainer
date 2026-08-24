@@ -17,6 +17,7 @@ data class AuthoredInventory(
     val scheduleSlots: Int,
     val bodyweightEntries: Int,
     val blocks: Int,
+    val activities: Int = 0,
 ) {
     val isEmpty: Boolean
         get() = sessions == 0 &&
@@ -25,14 +26,16 @@ data class AuthoredInventory(
             customExercises == 0 &&
             scheduleSlots == 0 &&
             bodyweightEntries == 0 &&
-            blocks == 0
+            blocks == 0 &&
+            activities == 0
 
     fun describe(): String =
         "$sessions session${plural(sessions)}, $setLogs set${plural(setLogs)}, " +
             "$routines routine${plural(routines)}, $customExercises custom exercise${plural(customExercises)}, " +
             "$scheduleSlots scheduled day${plural(scheduleSlots)}, " +
             "$bodyweightEntries weigh-in${plural(bodyweightEntries)}, " +
-            "$blocks block${plural(blocks)}"
+            "$blocks block${plural(blocks)}, " +
+            "$activities activit${if (activities == 1) "y" else "ies"}"
 
     companion object {
         val EMPTY = AuthoredInventory(0, 0, 0, 0, 0, 0, 0)
@@ -65,6 +68,7 @@ data class AuthoredInventory(
                 scheduleSlots = document.scheduleSlots.size,
                 bodyweightEntries = bodyweight,
                 blocks = current + past.size,
+                activities = document.activities.size,
             )
         }
 
@@ -80,7 +84,7 @@ data class AuthoredInventory(
 
         const val EMPTY_INCOMING_REFUSED =
             "This file has no sessions, sets, routines, custom exercises, " +
-                "schedule, weigh-ins, or blocks. Restoring it would erase the " +
+                "schedule, weigh-ins, blocks, or activities. Restoring it would erase the " +
                 "training data on this phone, so it was refused."
     }
 }

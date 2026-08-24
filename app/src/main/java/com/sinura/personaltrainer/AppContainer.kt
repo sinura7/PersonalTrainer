@@ -6,7 +6,8 @@ import com.sinura.personaltrainer.data.backup.DriveAuthClient
 import com.sinura.personaltrainer.data.backup.DriveRestClient
 import com.sinura.personaltrainer.data.backup.NetworkChecker
 import com.sinura.personaltrainer.data.backup.RestoreJournalStore
-import com.sinura.personaltrainer.data.local.TrainerDatabase
+import com.sinura.personaltrainer.data.local.TemperDatabase
+import com.sinura.personaltrainer.data.repository.ActivityRepository
 import com.sinura.personaltrainer.data.repository.BackupRepository
 import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
@@ -27,7 +28,8 @@ import com.sinura.personaltrainer.workout.StartTrainingDay
 import com.sinura.personaltrainer.workout.WorkoutDraftCache
 
 class AppContainer(context: Context) : AppDependencies {
-    private val database: TrainerDatabase = TrainerDatabase.create(context)
+    private val database: TemperDatabase = TemperDatabase.create(context)
+    val activityRepository: ActivityRepository = ActivityRepository(database)
 
     /**
      * One lock over every wholesale rewrite of the catalog. The startup seed and a restore both
@@ -111,6 +113,7 @@ class AppContainer(context: Context) : AppDependencies {
     override val backupRepository: BackupRepository = BackupRepository(
         localBackupRepository = LocalBackupRepository(
             database = database,
+            activityDao = database.activityDao(),
             preferencesRepository = preferencesRepository,
             // Runs at the wipe choke point: both of these hold a session id that is about to
             // stop existing, and a running rest timer would keep counting for a dead workout.

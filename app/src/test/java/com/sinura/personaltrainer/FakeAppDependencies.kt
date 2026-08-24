@@ -17,7 +17,7 @@ import com.sinura.personaltrainer.data.backup.DriveAuthClient
 import com.sinura.personaltrainer.data.backup.DriveRestClient
 import com.sinura.personaltrainer.data.backup.NetworkChecker
 import com.sinura.personaltrainer.data.backup.RestoreJournalStore
-import com.sinura.personaltrainer.data.local.TrainerDatabase
+import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.repository.BackupRepository
 import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
@@ -59,7 +59,7 @@ class FakeAppDependencies(
     val safetySnapshotDir: File = File(context.cacheDir, "safety-snapshots-${System.nanoTime()}")
         .also { it.mkdirs() },
 ) : AppDependencies {
-    val database: TrainerDatabase = Room.inMemoryDatabaseBuilder(context, TrainerDatabase::class.java)
+    val database: TemperDatabase = Room.inMemoryDatabaseBuilder(context, TemperDatabase::class.java)
         .allowMainThreadQueries()
         .build()
 
@@ -131,6 +131,7 @@ class FakeAppDependencies(
     )
     val localBackupRepository = LocalBackupRepository(
         database = database,
+        activityDao = database.activityDao(),
         preferencesRepository = preferencesRepository,
         onBeforeRestore = {},
         safetySnapshotDir = safetySnapshotDir,

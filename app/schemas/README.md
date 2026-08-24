@@ -1,6 +1,11 @@
 # Room schema history
 
-Every file in this directory is a JSON snapshot of one `TrainerDatabase` version,
+`TrainerDatabase` (legacy, `personal_trainer.db`) and `TemperDatabase`
+(foundation generation, `temper.db`) each have their own folder.
+`TrainerDatabase` v1/v2 stay the migration substrate. `TemperDatabase`
+starts at version 1 — a new generation, not a v2→v3 patch.
+
+Every file in this directory is a JSON snapshot of one database version,
 emitted by Room's annotation processor into `room.schemaLocation`
 (wired in `app/build.gradle.kts`). **These files are committed on purpose.**
 

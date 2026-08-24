@@ -3,12 +3,6 @@ package com.sinura.personaltrainer.data.local
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
-import androidx.room.RoomDatabase
-import com.sinura.personaltrainer.data.local.dao.CatalogDao
-import com.sinura.personaltrainer.data.local.dao.ExerciseDao
-import com.sinura.personaltrainer.data.local.dao.RoutineDao
-import com.sinura.personaltrainer.data.local.dao.ScheduleDao
-import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.ExerciseMuscleEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
@@ -34,12 +28,7 @@ import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
     version = 2,
     exportSchema = true,
 )
-abstract class TrainerDatabase : RoomDatabase() {
-    abstract fun exerciseDao(): ExerciseDao
-    abstract fun routineDao(): RoutineDao
-    abstract fun workoutDao(): WorkoutDao
-    abstract fun catalogDao(): CatalogDao
-    abstract fun scheduleDao(): ScheduleDao
+abstract class TrainerDatabase : AppRoomDatabase() {
 
     companion object {
         fun create(context: Context): TrainerDatabase {

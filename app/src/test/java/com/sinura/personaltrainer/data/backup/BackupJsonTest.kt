@@ -11,7 +11,7 @@ class BackupJsonTest {
     @Test
     fun encodesVersionedHumanReadableJson() {
         val json = BackupJson.encode(sampleDocument())
-        assertTrue(json.contains("\"version\": 2"))
+        assertTrue(json.contains("\"version\": ${BackupJson.CURRENT_VERSION}"))
         assertTrue(json.contains("\"app\": \"personal-trainer\""))
         assertTrue(json.contains("\"weightUnit\": \"lbs\""))
         assertTrue(json.contains("Barbell Back Squat"))

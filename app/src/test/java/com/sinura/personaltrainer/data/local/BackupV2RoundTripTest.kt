@@ -82,7 +82,7 @@ class BackupV2RoundTripTest {
         seedUserData()
 
         val json = BackupJson.encode(local.createSnapshot())
-        assertTrue(json.contains("\"version\": 2"))
+        assertTrue(json.contains("\"version\": ${BackupJson.CURRENT_VERSION}"))
         assertTrue(json.contains("exerciseMuscles"))
         assertTrue(json.contains("scheduleSlots"))
 

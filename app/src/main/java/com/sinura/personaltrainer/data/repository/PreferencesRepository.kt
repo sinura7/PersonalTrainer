@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.sinura.personaltrainer.data.local.FoundationGeneration
 import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.BlockArchive
 import com.sinura.personaltrainer.domain.BodyweightEntry
@@ -631,6 +632,27 @@ class PreferencesRepository(
         }
     }
 
+    val foundationGeneration: Flow<String?> =
+        safePreferences.map { prefs -> prefs[FOUNDATION_GENERATION] }
+
+    /**
+     * ADR-010 cutover: keep only weight unit and rest sound / vibration /
+     * default duration. Everything else, including encoded bodyweight and
+     * block strings, is dropped.
+     */
+    suspend fun resetForFoundationCutover() {
+        val unit = weightUnit.first()
+        val rest = restTimerPreferences.first()
+        dataStore.edit { prefs ->
+            prefs.clear()
+            prefs[WEIGHT_UNIT] = unit.storageKey
+            prefs[REST_SOUND] = rest.soundEnabled
+            prefs[REST_VIBRATE] = rest.vibrationEnabled
+            prefs[REST_DEFAULT] = rest.defaultRestSeconds
+            prefs[FOUNDATION_GENERATION] = FoundationGeneration.NAME
+        }
+    }
+
     private companion object {
         val WEIGHT_UNIT = stringPreferencesKey("weight_unit")
         val TRAINING_GOAL = stringPreferencesKey("training_goal")
@@ -662,6 +684,7 @@ class PreferencesRepository(
         val PREFERRED_DAYS = stringSetPreferencesKey("preferred_days")
         val TRAINING_PLACE = stringPreferencesKey("training_place")
         val LIGHTER_WEEK_START = longPreferencesKey("lighter_week_start_epoch_day")
+        val FOUNDATION_GENERATION = stringPreferencesKey("foundation_generation")
 
         fun preferredDaysFrom(raw: Set<String>?): Set<Weekday> =
             raw.orEmpty().mapNotNull { name ->

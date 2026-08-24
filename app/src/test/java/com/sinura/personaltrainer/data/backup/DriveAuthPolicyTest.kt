@@ -47,11 +47,11 @@ class DriveAuthPolicyTest {
         assertNull(DriveAboutJson.parseAccountEmail("""{"user":{"emailAddress":"  "}}"""))
     }
 
-    private fun source(relative: String): File {
+    private fun source(fileName: String): File {
         val candidates = listOf(
-            File(relative),
-            File("app/$relative"),
-            File("../$relative"),
+            File(fileName),
+            File("app/$fileName"),
+            File("../$fileName"),
         )
         return candidates.first { it.isFile }
     }

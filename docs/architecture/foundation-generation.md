@@ -1,0 +1,43 @@
+# Foundation generation — TemperDatabase, reset, and freeze
+
+- **Status:** Accepted — P5.3–P5.7
+- **Date:** 24 August 2026
+- **Authority:** [FOUNDATION_PROGRAM.md](../FOUNDATION_PROGRAM.md) Phase 5
+- **Does not reopen:** `fallbackToDestructiveMigration`; Room 2.8; Kotlin 2.0.21
+
+This packet is the one authorized cutover from `TrainerDatabase` v2
+(`personal_trainer.db`) to a new database generation.
+
+## Decision
+
+1. **`TemperDatabase` is a new generation.** New name (`temper.db`), new
+   schema folder, new version series starting at 1. It is not a silent
+   v2→v3 patch of `TrainerDatabase`.
+2. **`fallbackToDestructiveMigration` remains prohibited** on both
+   databases. A migration bug fails closed.
+3. **The activity tables persist [ADR-007](ADR-007-activity-model.md).**
+   A unique `liveToken` allows at most one ACTIVE row. Cardio-only
+   sessions store zero strength-set rows and zero legacy `set_logs`.
+4. **One live activity is a transactional invariant.**
+   `ActivityRepository.confirm` runs [ActivityRules](activity-contract.md)
+   inside the same Room transaction as the insert.
+5. **Export version 3 carries `activities` and `activityTemplates`.**
+   v1/v2 files still decode with empty arrays. Live activities are
+   excluded, same rule as unfinished workout sessions.
+6. **The signed development reset (P5.6)** requires an off-device export
+   acknowledgement and irreversible copy. It integrity-checks and seeds
+   `TemperDatabase` *before* deleting `personal_trainer.db` / WAL / SHM.
+   Only weight unit and rest sound / vibration / default duration are
+   preserved. Encoded bodyweight and block strings are dropped.
+7. **After P5.7 the generation is frozen.**
+   `FoundationGeneration.FROZEN` is true. `AppContainer` opens
+   `TemperDatabase` only. A second wipe of the foundation database is a
+   defect. Later schema changes migrate `TemperDatabase` with generated
+   artifacts and tests. `TrainerDatabase` remains for historical v1→v2
+   migration tests.
+
+## Finding coverage
+
+FND-002 is representable and persistable. It still closes at P6.6 when
+History and export surfaces use these types in production UI. FND-019's
+storage direction is established; bodyweight/blocks move in P6.1.

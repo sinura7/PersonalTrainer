@@ -18,6 +18,13 @@ data class BackupDocument(
      */
     val exerciseMuscles: List<BackupExerciseMuscle> = emptyList(),
     val scheduleSlots: List<BackupScheduleSlot> = emptyList(),
+    /**
+     * Foundation-generation activities (P5.5). Defaulted so a v1/v2 file
+     * decodes instead of failing. Live (ACTIVE) activities are excluded
+     * from export, same rule as unfinished workout sessions.
+     */
+    val activities: List<BackupActivity> = emptyList(),
+    val activityTemplates: List<BackupActivityTemplate> = emptyList(),
 ) {
     /**
      * Whether the owner of this backup has plainly already been through the guided setup.
@@ -33,7 +40,10 @@ data class BackupDocument(
      * genuinely never finished setup — and that one should still go to setup.
      */
     fun hasBeenSetUp(): Boolean =
-        preferences.onboardingComplete || routines.isNotEmpty() || sessions.isNotEmpty()
+        preferences.onboardingComplete ||
+            routines.isNotEmpty() ||
+            sessions.isNotEmpty() ||
+            activities.isNotEmpty()
 }
 
 /**
@@ -197,6 +207,83 @@ data class BackupSetLog(
     val rpe: Int?,
     val isWarmup: Boolean,
     val completedAt: Long,
+)
+
+data class BackupCapturedTime(
+    val instantMs: Long,
+    val zoneId: String,
+    val offsetSeconds: Int,
+    val localEpochDay: Long,
+)
+
+data class BackupActivityMuscle(
+    val muscleKey: String,
+    val weight: Double,
+)
+
+data class BackupStrengthSet(
+    val id: String,
+    val setNumber: Int,
+    val weightKg: Double,
+    val reps: Int,
+    val rpe: Int?,
+    val isWarmup: Boolean,
+    val completedAtMs: Long,
+)
+
+data class BackupCardioInterval(
+    val id: String,
+    val sortOrder: Int,
+    val elapsedSeconds: Long,
+    val distanceMeters: Double?,
+    val rpe: Int?,
+)
+
+data class BackupActivityBlock(
+    val id: String,
+    val sortOrder: Int,
+    val kind: String,
+    val exerciseId: String? = null,
+    val exerciseName: String? = null,
+    val loadType: String? = null,
+    val equipment: String? = null,
+    val muscles: List<BackupActivityMuscle> = emptyList(),
+    val sets: List<BackupStrengthSet> = emptyList(),
+    val cardioType: String? = null,
+    val indoor: Boolean? = null,
+    val elapsedSeconds: Long? = null,
+    val movingSeconds: Long? = null,
+    val distanceMeters: Double? = null,
+    val elevationMeters: Double? = null,
+    val heartRateBpm: Int? = null,
+    val energyKj: Double? = null,
+    val rpe: Int? = null,
+    val routeRef: String? = null,
+    val intervals: List<BackupCardioInterval> = emptyList(),
+)
+
+data class BackupActivity(
+    val id: String,
+    val status: String,
+    val origin: String,
+    val source: String,
+    val title: String,
+    val notes: String,
+    val performedStart: BackupCapturedTime,
+    val performedEnd: BackupCapturedTime? = null,
+    val templateId: String? = null,
+    val occurrenceId: String? = null,
+    val createdAtMs: Long,
+    val updatedAtMs: Long,
+    val revision: Long,
+    val blocks: List<BackupActivityBlock> = emptyList(),
+)
+
+data class BackupActivityTemplate(
+    val id: String,
+    val title: String,
+    val notes: String,
+    val blocks: List<BackupActivityBlock> = emptyList(),
 )
 
 data class DriveBackupFile(

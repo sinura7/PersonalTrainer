@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.BuildConfig
+import com.sinura.personaltrainer.data.local.FoundationGeneration
 import com.sinura.personaltrainer.data.backup.BackupEnvelope
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
@@ -234,6 +235,9 @@ fun SettingsScreen(
                 onDeleteSafety = { id -> pendingSafetyDeleteId = id },
             )
             PlanSetupSection(onRerun = viewModel::rerunGuidedSetup)
+            if (BuildConfig.DEBUG) {
+                FoundationGenerationSection()
+            }
             AboutSection()
         }
     }
@@ -920,6 +924,34 @@ private fun PlanSetupSection(onRerun: () -> Unit) {
                 title = PlanSetupCopy.ROW_TITLE,
                 subtitle = PlanSetupCopy.ROW_SUBTITLE,
                 onClick = onRerun,
+            )
+        }
+    }
+}
+
+@Composable
+private fun FoundationGenerationSection() {
+    SettingsGroup(
+        title = "Foundation generation",
+        caption = if (FoundationGeneration.FROZEN) {
+            "The Temper foundation database is frozen. A second development reset is a defect."
+        } else {
+            "This is the one authorized development reset. Keep an export off this device. " +
+                "It cannot be undone. Only weight units and rest sound, vibration, and " +
+                "default duration are kept."
+        },
+    ) {
+        GroupedList {
+            InstrumentRow(
+                title = "Database",
+                trailing = {
+                    Text(
+                        FoundationGeneration.DATABASE_FILE,
+                        style = InstrumentType.numeralSm,
+                        color = TextPrimary,
+                        maxLines = 1,
+                    )
+                },
             )
         }
     }

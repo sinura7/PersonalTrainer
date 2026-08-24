@@ -567,7 +567,7 @@ Start versus Restore, catalog-only and bodyweight-only files).
 
 **Milestone: Supported Platform Gate.**
 
-### Phase 5 — Unified activity spine and one-time foundation reset · pending
+### Phase 5 — Unified activity spine and one-time foundation reset · **done**
 
 Implements [ADR-007](architecture/ADR-007-activity-model.md),
 [ADR-010](architecture/ADR-010-schema-reset-migrations.md), and
@@ -581,18 +581,36 @@ Implements [ADR-007](architecture/ADR-007-activity-model.md),
   [time-seams.md](architecture/time-seams.md).
   Evidence:
   [P5.1 evidence](foundation-program/evidence/P5.1-time-seams.md).
-- **P5.2** Unified domain contract with tests *before* persistence/UI.
+- **P5.2** Unified domain contract with tests *before* persistence/UI. · **done**
   Every FND-002 acceptance case representable.
-- **P5.3** Shadow `TemperDatabase` beside legacy `TrainerDatabase`.
-  No production UI wiring.
-- **P5.4** Repositories and use cases against the shadow database.
-  One live session is a transactional invariant.
-- **P5.5** Target export format and reset rehearsal. No cutover until
-  export/import/recovery work against the shadow database.
-- **P5.6** The signed development reset. Preserve only units and rest
-  preferences. External pre-reset export required.
-- **P5.7** Remove legacy active persistence. Foundation generation frozen.
-  No further reset is authorized.
+  Landed: `ActivitySession` holds strength, cardio, and mixed typed
+  blocks. Cardio needs zero `StrengthSet` rows. Two completed
+  activities can share one local date. Origin, source, and
+  `CapturedCivilTime` travel with the record. `ActivityRules.confirm`
+  is the only write; discarded drafts write nothing.
+  [activity-contract.md](architecture/activity-contract.md).
+  Evidence:
+  [P5.2 evidence](foundation-program/evidence/P5.2-activity-contract.md).
+- **P5.3** Shadow `TemperDatabase` beside legacy `TrainerDatabase`. · **done**
+  New name, new schema folder, new version series. Not a v2→v3 patch.
+  `fallbackToDestructiveMigration` still banned.
+- **P5.4** Repositories and use cases against the shadow database. · **done**
+  One live session is a transactional invariant (`liveToken` +
+  `ActivityRepository.confirm`).
+- **P5.5** Target export format and reset rehearsal. · **done**
+  Backup version 3 carries `activities` / `activityTemplates`. v1/v2
+  still decode. No cutover until export/import/recovery worked against
+  `TemperDatabase`.
+- **P5.6** The signed development reset. · **done**
+  Preserve only units and rest sound / vibration / default duration.
+  External pre-reset export required. Integrity-check and seed before
+  deleting the legacy DB/WAL/SHM.
+- **P5.7** Remove legacy active persistence. · **done**
+  `AppContainer` opens `TemperDatabase` only. Foundation generation
+  frozen. No further reset is authorized.
+  [foundation-generation.md](architecture/foundation-generation.md).
+  Evidence:
+  [P5.3–P5.7 evidence](foundation-program/evidence/P5.3-P5.7-foundation-generation.md).
 
 **Milestone: Foundation Freeze Gate.**
 

@@ -17,8 +17,11 @@ import com.sinura.personaltrainer.data.backup.BackupRoutineExercise
 import com.sinura.personaltrainer.data.backup.BackupScheduleSlot
 import com.sinura.personaltrainer.data.backup.BackupSession
 import com.sinura.personaltrainer.data.backup.BackupSessionExercise
+import com.sinura.personaltrainer.data.backup.BackupActivity
+import com.sinura.personaltrainer.data.backup.BackupActivityTemplate
 import com.sinura.personaltrainer.data.backup.BackupSetLog
-import com.sinura.personaltrainer.data.local.TrainerDatabase
+import com.sinura.personaltrainer.data.local.AppRoomDatabase
+import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.ExerciseMuscleEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
@@ -60,8 +63,9 @@ import java.io.File
  * does, so a failed snapshot can abort without touching Room.
  */
 class LocalBackupRepository(
-    private val database: TrainerDatabase,
+    private val database: AppRoomDatabase,
     private val preferencesRepository: PreferencesRepository,
+    private val activityDao: ActivityDao? = null,
     private val onBeforeRestore: suspend () -> Unit = {},
     safetySnapshotDir: File? = null,
     clock: () -> Long = { System.currentTimeMillis() },
@@ -101,6 +105,7 @@ class LocalBackupRepository(
                     .filter { it.sessionId in finishedIds },
                 credits = database.catalogDao().getAllCredits(),
                 scheduleSlots = database.scheduleDao().getAll(),
+                activityExport = activityDao?.let { ActivityBackupIo.snapshot(it) },
             )
         }
         val exercises = snapshot.exercises
@@ -238,6 +243,8 @@ class LocalBackupRepository(
                     updatedAt = it.updatedAt,
                 )
             },
+            activities = snapshot.activityExport?.first ?: emptyList(),
+            activityTemplates = snapshot.activityExport?.second ?: emptyList(),
         )
     }
 
@@ -250,6 +257,7 @@ class LocalBackupRepository(
                 routines = database.routineDao().getAllRoutines().size,
                 customExercises = database.exerciseDao().getAll().count { it.isCustom },
                 scheduleSlots = database.scheduleDao().count(),
+                activities = activityDao?.sessionCount() ?: 0,
             )
         }
         val log = preferencesRepository.bodyweightLog.first()
@@ -267,6 +275,7 @@ class LocalBackupRepository(
             routines = room.routines,
             customExercises = room.customExercises,
             scheduleSlots = room.scheduleSlots,
+            activities = room.activities,
             bodyweightEntries = bodyweight,
             blocks = pastBlocks.size + if (currentBlock != null) 1 else 0,
         )
@@ -437,6 +446,7 @@ class LocalBackupRepository(
             database.catalogDao().upsertSeedMeta(
                 SeedMetaEntity(id = 1, catalogVersion = 0, pendingCollisions = "[]"),
             )
+            activityDao?.let { ActivityBackupIo.replace(it, document) }
         }
     }
 
@@ -529,6 +539,7 @@ class LocalBackupRepository(
         val sets: List<SetLogEntity>,
         val credits: List<ExerciseMuscleEntity>,
         val scheduleSlots: List<ScheduleSlotEntity>,
+        val activityExport: Pair<List<BackupActivity>, List<BackupActivityTemplate>>?,
     )
 }
 
@@ -538,6 +549,7 @@ private data class RoomAuthored(
     val routines: Int,
     val customExercises: Int,
     val scheduleSlots: Int,
+    val activities: Int,
 )
 
 data class RestoreOutcome(

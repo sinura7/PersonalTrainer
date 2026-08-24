@@ -215,6 +215,47 @@ object BackupValidator {
             }
         }
 
+        val activityIds = HashSet<String>(document.activities.size)
+        document.activities.forEach { activity ->
+            if (isBlank(activity.id)) return invalid("an activity is missing its id")
+            if (!activityIds.add(activity.id)) {
+                return invalid("two activities share the id \"${activity.id}\"")
+            }
+            if (activity.status !in setOf("ACTIVE", "COMPLETED")) {
+                return invalid("an activity has an unknown status")
+            }
+            if (activity.origin !in setOf("LIVE", "BACKDATED", "IMPORTED")) {
+                return invalid("an activity has an unknown origin")
+            }
+            if (isBlank(activity.performedStart.zoneId)) {
+                return invalid("an activity is missing its time zone")
+            }
+            if (activity.blocks.isEmpty()) {
+                return invalid("an activity has no blocks")
+            }
+            activity.blocks.forEach { block ->
+                if (isBlank(block.id)) return invalid("an activity block is missing its id")
+                if (block.kind == "STRENGTH") {
+                    if (isBlank(block.exerciseName) && isBlank(block.exerciseId)) {
+                        return invalid("a strength block is missing its exercise")
+                    }
+                    block.sets.forEach { set ->
+                        if (set.setNumber < 1) return invalid("a strength set has an invalid set number")
+                        if (set.reps < 0) return invalid("a strength set has negative reps")
+                    }
+                } else if (block.kind == "CARDIO") {
+                    if ((block.elapsedSeconds ?: 0L) < 0L) {
+                        return invalid("a cardio block has a negative duration")
+                    }
+                    if (block.sets.isNotEmpty()) {
+                        return invalid("a cardio block carries strength sets")
+                    }
+                } else {
+                    return invalid("an activity block has an unknown kind")
+                }
+            }
+        }
+
         val summary = BackupSummary(
             exercises = document.exercises.size,
             routines = document.routines.size,

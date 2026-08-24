@@ -1,0 +1,51 @@
+package com.sinura.personaltrainer.activity
+
+import com.sinura.personaltrainer.data.repository.ActivityRepository
+import com.sinura.personaltrainer.domain.ActivityBlock
+import com.sinura.personaltrainer.domain.ActivityDraft
+import com.sinura.personaltrainer.domain.ActivityOrigin
+import com.sinura.personaltrainer.domain.ActivityStatus
+import com.sinura.personaltrainer.domain.ActivityWrite
+import com.sinura.personaltrainer.domain.CapturedCivilTime
+import com.sinura.personaltrainer.domain.IdPort
+import com.sinura.personaltrainer.domain.TimePort
+
+class ConfirmActivity(
+    private val repository: ActivityRepository,
+    private val ids: IdPort,
+    private val clock: TimePort,
+) {
+    suspend operator fun invoke(
+        draft: ActivityDraft,
+        now: CapturedCivilTime,
+    ): ActivityWrite = repository.confirm(draft, now, ids, clock)
+}
+
+class StartLiveActivity(
+    private val repository: ActivityRepository,
+    private val ids: IdPort,
+    private val clock: TimePort,
+) {
+    suspend operator fun invoke(
+        title: String,
+        blocks: List<ActivityBlock>,
+        now: CapturedCivilTime,
+    ): ActivityWrite {
+        val draft = ActivityDraft(
+            status = ActivityStatus.ACTIVE,
+            origin = ActivityOrigin.LIVE,
+            title = title,
+            performedStart = now,
+            blocks = blocks,
+        )
+        return repository.confirm(draft, now, ids, clock)
+    }
+}
+
+class DiscardActivity(
+    private val repository: ActivityRepository,
+) {
+    suspend operator fun invoke(sessionId: String) {
+        repository.discard(sessionId)
+    }
+}

@@ -173,6 +173,26 @@ REQUIRED_IN = [
         "DST is explicit",
         "P5.1 review must sign explicit DST resolution",
     ),
+    (
+        "docs/architecture/activity-contract.md",
+        "ActivitySession` is the envelope",
+        "P5.2 review must sign the activity envelope",
+    ),
+    (
+        "docs/architecture/activity-contract.md",
+        "One live activity at a time",
+        "P5.2 review must sign one-live concurrency",
+    ),
+    (
+        "docs/architecture/foundation-generation.md",
+        "TemperDatabase` is a new generation",
+        "P5.3 review must sign the new database generation",
+    ),
+    (
+        "docs/architecture/foundation-generation.md",
+        "the generation is frozen",
+        "P5.7 review must freeze the foundation generation",
+    ),
 ]
 
 ISSUED_FND = [f"FND-{n:03d}" for n in range(1, 49) if n != 37] + [

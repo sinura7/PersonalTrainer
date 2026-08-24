@@ -2,7 +2,7 @@ package com.sinura.personaltrainer.data.repository
 
 import androidx.room.withTransaction
 import com.sinura.personaltrainer.data.backup.RestoreJournal
-import com.sinura.personaltrainer.data.local.TrainerDatabase
+import com.sinura.personaltrainer.data.local.AppRoomDatabase
 import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
@@ -62,7 +62,7 @@ sealed interface StartSessionOutcome {
 }
 
 class WorkoutRepository(
-    private val database: TrainerDatabase,
+    private val database: AppRoomDatabase,
     private val workoutDao: WorkoutDao,
     private val dbMaintenance: DbMaintenance? = null,
     private val restoreInProgress: () -> Boolean = { false },
