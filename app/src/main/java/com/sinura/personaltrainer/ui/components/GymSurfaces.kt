@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -36,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -323,14 +325,20 @@ fun InstrumentRow(
     }
 }
 
+/** Stable semantics for constrained History identity tests (FND-006). */
+object SessionLogTags {
+    const val ROW = "session-log-row"
+    const val TITLE = "session-log-title"
+    const val DATE = "session-log-date"
+    const val METRICS = "session-log-metrics"
+}
+
 /**
  * A finished session, as a readout rather than a receipt.
  *
- * The three numbers a lifter compares between sessions get fixed columns and tabular
- * figures, so they line up down the list and can actually be compared. Previously all three
- * were concatenated into one sentence in body text, and the row's least important line —
- * that sentence — was also its brightest, because it was the only one that forgot to set a
- * colour.
+ * Identity (title, date) owns the first line. Metrics live on a second
+ * line with fixed columns so they still compare down a list — they wrap
+ * before a 360 dp row can erase the workout's name (FND-006).
  */
 @Composable
 fun SessionLogRow(
@@ -345,63 +353,94 @@ fun SessionLogRow(
     onRepeat: (() -> Unit)? = null,
 ) {
     var menuOpen by rememberSaveable(title, dateLabel) { mutableStateOf(false) }
-    InstrumentRow(
-        title = title,
-        modifier = modifier,
-        subtitle = dateLabel,
-        onClick = onClick,
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = Metrics.rowMin)
+            .clickable(onClick = onClick)
+            .padding(horizontal = Metrics.space4, vertical = Metrics.space3)
+            .testTag(SessionLogTags.ROW),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        // Fixed widths, or the columns are not columns. A metric cluster sizes to its own
-        // content, and volume swings from "980" to "12,480" — so without these the sets/kg/min
-        // boundaries drift row by row and the numbers cannot be compared down the list, which
-        // is the entire reason this row exists.
-        MetricCluster(
-            value = workingSets.toString(),
-            label = "sets",
-            modifier = Modifier.width(COUNT_COLUMN),
-        )
-        // Kilograms when the session moved any, reps when it did not — see SetCopy.workColumn.
-        // A calisthenics session sitting in a column of barbell sessions reading "0 kg" would
-        // be the old bodyweight stand-in's failure inverted.
-        val column = SetCopy.workColumn(work, unit)
-        MetricCluster(
-            value = column.value,
-            label = column.label,
-            modifier = Modifier.width(VOLUME_COLUMN),
-        )
-        MetricCluster(
-            value = durationMinutes.toString(),
-            label = "min",
-            modifier = Modifier.width(COUNT_COLUMN),
-        )
-        // Optional, and absent by default: Home's recent list is a glance, not a console, and
-        // an overflow on every row there would put a menu beside three numbers that are the
-        // whole point of the row. History opts in.
-        if (onRepeat != null) {
-            Box {
-                IconButton(onClick = { menuOpen = true }) {
-                    Icon(
-                        Icons.Outlined.MoreVert,
-                        contentDescription = "Session options",
-                        tint = TextSecondary,
-                    )
-                }
-                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                "Repeat workout",
-                                style = InstrumentType.bodyStrong,
-                                color = TextPrimary,
-                            )
-                        },
-                        onClick = {
-                            menuOpen = false
-                            onRepeat()
-                        },
-                    )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+            ) {
+                Text(
+                    title,
+                    modifier = Modifier.testTag(SessionLogTags.TITLE),
+                    style = InstrumentType.title,
+                    color = TextPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    dateLabel,
+                    modifier = Modifier.testTag(SessionLogTags.DATE),
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            // Optional, and absent by default: Home's recent list is a glance, not a console.
+            // History opts in. The menu sits with identity so it cannot steal metric columns.
+            if (onRepeat != null) {
+                Box {
+                    IconButton(onClick = { menuOpen = true }) {
+                        Icon(
+                            Icons.Outlined.MoreVert,
+                            contentDescription = "Session options",
+                            tint = TextSecondary,
+                        )
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    "Repeat workout",
+                                    style = InstrumentType.bodyStrong,
+                                    color = TextPrimary,
+                                )
+                            },
+                            onClick = {
+                                menuOpen = false
+                                onRepeat()
+                            },
+                        )
+                    }
                 }
             }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(SessionLogTags.METRICS),
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            Spacer(Modifier.weight(1f))
+            MetricCluster(
+                value = workingSets.toString(),
+                label = "sets",
+                modifier = Modifier.width(COUNT_COLUMN),
+            )
+            val column = SetCopy.workColumn(work, unit)
+            MetricCluster(
+                value = column.value,
+                label = column.label,
+                modifier = Modifier.width(VOLUME_COLUMN),
+            )
+            MetricCluster(
+                value = durationMinutes.toString(),
+                label = "min",
+                modifier = Modifier.width(COUNT_COLUMN),
+            )
         }
     }
 }

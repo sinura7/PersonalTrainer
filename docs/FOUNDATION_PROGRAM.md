@@ -369,12 +369,17 @@ Status legend: **done** · **next** · pending · gated · skipped
   Evidence:
   [P2.4 evidence](foundation-program/evidence/P2.4-volume-format.md).
 
-#### P2.5 — Identity before metrics
+#### P2.5 — Identity before metrics · **done**
 
 - `SessionLogRow` and `CompactLiftRow` protect title/date; metrics wrap
   first; target weight is the label with kg/lbs as suffix.
 - Constrained Compose tests at 360 dp / font 1.0–2.0.
 - Exit: FND-006 and FND-016 closed.
+- Landed: History rows put title and date on the first line; sets /
+  volume / duration wrap below with fixed columns. Routine rows give
+  the lift name two lines and move reorder to a second line. The load
+  field is labeled Target weight with the unit as suffix. Evidence:
+  [P2.5 evidence](foundation-program/evidence/P2.5-identity-before-metrics.md).
 
 #### P2.6 — Explicit data health
 

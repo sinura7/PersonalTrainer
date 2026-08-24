@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -29,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.Exercise
@@ -46,11 +48,22 @@ import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 
+object CompactLiftCopy {
+    const val TARGET_WEIGHT = "Target weight"
+}
+
+object CompactLiftTags {
+    const val ROW = "compact-lift-row"
+    const val NAME = "compact-lift-name"
+    const val TARGET_WEIGHT = "compact-lift-target-weight"
+}
+
 /**
  * One lift as a horizontal row you can stack, not a card that eats the screen.
  *
- * Collapsed it is a name, sets × reps, and move controls. Expanded it is three
- * fields plus optional weight: sets, reps, rest, and kg.
+ * Identity owns the first line. Sets × reps and reorder sit on a second line
+ * so a long name at 360 dp is still readable (FND-016). Expanded, the load
+ * field is labeled Target weight with the unit as a suffix, not the label.
  */
 @Composable
 fun CompactLiftRow(
@@ -78,14 +91,15 @@ fun CompactLiftRow(
             .fillMaxWidth()
             .clip(shape)
             .background(Surface2)
-            .border(Metrics.hairline, Hairline, shape),
+            .border(Metrics.hairline, Hairline, shape)
+            .testTag(CompactLiftTags.ROW),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = Metrics.rowMin)
                 .clickable(onClick = onToggle)
-                .padding(start = Metrics.space3, end = Metrics.space1),
+                .padding(start = Metrics.space3, end = Metrics.space3, top = Metrics.space2),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
         ) {
@@ -93,9 +107,10 @@ fun CompactLiftRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     exercise.name,
+                    modifier = Modifier.testTag(CompactLiftTags.NAME),
                     style = InstrumentType.title,
                     color = TextPrimary,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
@@ -106,11 +121,20 @@ fun CompactLiftRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = Metrics.space3, end = Metrics.space1),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
             Text(
                 "$sets × $reps",
                 style = InstrumentType.numeralSm,
                 color = TextPrimary,
             )
+            Spacer(Modifier.weight(1f))
             IconButton(onClick = onMoveUp, enabled = canMoveUp) {
                 Icon(
                     Icons.Outlined.KeyboardArrowUp,
@@ -190,15 +214,22 @@ private fun CompactTargetFields(
                 stage()
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-            MiniNumberField("Rest s", restText, Modifier.weight(1f), onCommitTargets) {
-                restText = it.filter(Char::isDigit)
-                stage()
-            }
-            MiniNumberField(unit.suffix, weightText, Modifier.weight(1f), onCommitTargets, allowDecimal = true) {
-                weightText = it.filter { ch -> ch.isDigit() || ch == '.' }
-                stage()
-            }
+        MiniNumberField("Rest s", restText, Modifier.fillMaxWidth(), onCommitTargets) {
+            restText = it.filter(Char::isDigit)
+            stage()
+        }
+        MiniNumberField(
+            label = CompactLiftCopy.TARGET_WEIGHT,
+            value = weightText,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(CompactLiftTags.TARGET_WEIGHT),
+            onFocusLost = onCommitTargets,
+            allowDecimal = true,
+            suffix = unit.suffix,
+        ) {
+            weightText = it.filter { ch -> ch.isDigit() || ch == '.' }
+            stage()
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
             TextButton(onClick = onRemove) {
@@ -220,6 +251,7 @@ private fun MiniNumberField(
     modifier: Modifier,
     onFocusLost: () -> Unit,
     allowDecimal: Boolean = false,
+    suffix: String? = null,
     onValueChange: (String) -> Unit,
 ) {
     var hadFocus by remember { mutableStateOf(false) }
@@ -233,6 +265,9 @@ private fun MiniNumberField(
         },
         singleLine = true,
         textStyle = InstrumentType.numeralSm,
+        suffix = suffix?.let { unit ->
+            { Text(unit, style = InstrumentType.unit, color = TextSecondary) }
+        },
         keyboardOptions = KeyboardOptions(
             keyboardType = if (allowDecimal) KeyboardType.Decimal else KeyboardType.Number,
         ),
