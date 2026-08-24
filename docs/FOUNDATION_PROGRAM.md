@@ -442,7 +442,8 @@ and close FND-011, FND-014A–C, and the measurement half of FND-038.
 - Landed: start, repeat, and `commitRestore` take the maintenance lock.
   A restore journal records staged / wiping / room / prefs. Process
   start finishes an interrupted restore before catalog seed. A live
-  start is refused while that journal is open.
+  start is refused while that journal is open. Evidence:
+  [P3.4 evidence](foundation-program/evidence/P3.4-restore-journal.md).
 - **P3.5** `allowBackup=false` plus explicit exclusion rules.
   Upgrade-in-place must not erase data.
 - **P3.6** Portable authenticated encrypted envelope. Legacy plaintext
