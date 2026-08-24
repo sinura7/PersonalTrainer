@@ -19,6 +19,7 @@ class RestTimerStatePersistenceTest {
             sessionId = "session-1",
             bootMarker = 99L,
             endsAtWallClockMillis = 1_700_000_000_000L,
+            timerId = "timer-1",
         )
 
         persistence.save(state)

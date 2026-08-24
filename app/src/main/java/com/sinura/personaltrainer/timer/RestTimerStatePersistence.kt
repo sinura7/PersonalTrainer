@@ -25,6 +25,7 @@ data class PersistedRestTimer(
     val sessionId: String?,
     val bootMarker: Long,
     val endsAtWallClockMillis: Long,
+    val timerId: String = "",
 )
 
 interface RestTimerStatePersistence {
@@ -48,6 +49,7 @@ class SharedPrefsRestTimerStatePersistence(context: Context) : RestTimerStatePer
             .putString(KEY_SESSION_ID, state.sessionId)
             .putLong(KEY_BOOT_MARKER, state.bootMarker)
             .putLong(KEY_ENDS_AT_WALL, state.endsAtWallClockMillis)
+            .putString(KEY_TIMER_ID, state.timerId)
             .commit()
     }
 
@@ -59,6 +61,7 @@ class SharedPrefsRestTimerStatePersistence(context: Context) : RestTimerStatePer
             sessionId = prefs.getString(KEY_SESSION_ID, null),
             bootMarker = prefs.getLong(KEY_BOOT_MARKER, 0L),
             endsAtWallClockMillis = prefs.getLong(KEY_ENDS_AT_WALL, 0L),
+            timerId = prefs.getString(KEY_TIMER_ID, "").orEmpty(),
         )
     }
 
@@ -72,6 +75,7 @@ class SharedPrefsRestTimerStatePersistence(context: Context) : RestTimerStatePer
         const val KEY_SESSION_ID = "session_id"
         const val KEY_BOOT_MARKER = "boot_marker"
         const val KEY_ENDS_AT_WALL = "ends_at_wall"
+        const val KEY_TIMER_ID = "timer_id"
     }
 }
 
@@ -85,14 +89,15 @@ sealed interface RestTimerRehydration {
         val endsAtElapsedRealtime: Long,
         val totalSeconds: Int,
         val sessionId: String?,
+        val timerId: String,
     ) : RestTimerRehydration
 
     /** Rest ended while the process was dead, recently enough to still be worth announcing. */
     data class Expired(
         val sessionId: String?,
         val lateByMs: Long,
-        /** The stored end instant, used as the completion dedupe key. */
         val endsAtElapsedRealtime: Long,
+        val timerId: String,
     ) : RestTimerRehydration
 }
 
@@ -117,23 +122,26 @@ object RestTimerRehydrator {
         val currentBootMarker = nowWallClockMillis - nowElapsedRealtime
         val sameBoot = kotlin.math.abs(stored.bootMarker - currentBootMarker) < BOOT_MARKER_TOLERANCE_MS
 
-        val remainingMs = if (sameBoot) {
-            stored.endsAtElapsedRealtime - nowElapsedRealtime
-        } else {
-            // Rebooted: elapsedRealtime restarted, so only the wall clock still locates the end.
-            stored.endsAtWallClockMillis - nowWallClockMillis
+        if (!sameBoot) {
+            // A rest shorter than a gym set is meaningless after a different boot.
+            // Do not rebase it onto the new elapsedRealtime or fire a late alert.
+            return RestTimerRehydration.None
         }
+
+        val remainingMs = stored.endsAtElapsedRealtime - nowElapsedRealtime
 
         return when {
             remainingMs > 0L -> RestTimerRehydration.Running(
                 endsAtElapsedRealtime = nowElapsedRealtime + remainingMs,
                 totalSeconds = stored.totalSeconds,
                 sessionId = stored.sessionId,
+                timerId = stored.timerId,
             )
             -remainingMs <= LATE_ALERT_GRACE_MS -> RestTimerRehydration.Expired(
                 sessionId = stored.sessionId,
                 lateByMs = -remainingMs,
                 endsAtElapsedRealtime = stored.endsAtElapsedRealtime,
+                timerId = stored.timerId,
             )
             else -> RestTimerRehydration.None
         }
@@ -145,11 +153,13 @@ object RestTimerRehydrator {
         sessionId: String?,
         nowElapsedRealtime: Long = SystemClock.elapsedRealtime(),
         nowWallClockMillis: Long = System.currentTimeMillis(),
+        timerId: String = "",
     ): PersistedRestTimer = PersistedRestTimer(
         endsAtElapsedRealtime = endsAtElapsedRealtime,
         totalSeconds = totalSeconds,
         sessionId = sessionId,
         bootMarker = nowWallClockMillis - nowElapsedRealtime,
         endsAtWallClockMillis = nowWallClockMillis + (endsAtElapsedRealtime - nowElapsedRealtime),
+        timerId = timerId,
     )
 }

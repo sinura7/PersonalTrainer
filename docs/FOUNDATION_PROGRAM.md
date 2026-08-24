@@ -314,7 +314,7 @@ Status legend: **done** · **next** · pending · gated · skipped
 
 ### Phase 2 — Current strength-product trust defects · pending
 
-#### P2.1 — Identity-safe rest completion
+#### P2.1 — Identity-safe rest completion · **done**
 
 - Unique timer ID through state, persistence, alarm, service, completion.
 - Atomic claim only on matching ID and due elapsed realtime.
@@ -322,6 +322,11 @@ Status legend: **done** · **next** · pending · gated · skipped
   duplicate receiver, same-boot recovery, reboot clear, concurrency.
 - Exit: exactly one cue per timer ID; no stale delivery can end a current
   rest.
+- Landed: `RestTimerClaimLedger` claims only a matching, due, unclaimed
+  id. Start and adjust mint a new id; restore keeps the persisted one.
+  A different boot clears a short rest instead of rebasing it. Alarm
+  extras carry the id. Coverage floor timer 14→17. Evidence:
+  [P2.1 evidence](foundation-program/evidence/P2.1-rest-timer-identity.md).
 
 #### P2.2 — Policy-compliant exact-alarm capability
 

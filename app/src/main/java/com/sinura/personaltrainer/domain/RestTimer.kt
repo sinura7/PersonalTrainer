@@ -24,10 +24,55 @@ data class RestTimerSnapshot(
     val endsAtElapsedRealtime: Long = 0L,
     val totalSeconds: Int = 0,
     val sessionId: String? = null,
+    /** Generation of this rest. A stale alarm carries a different id and cannot complete it. */
+    val timerId: String = "",
 ) {
     fun remainingSeconds(nowElapsedRealtime: Long): Int {
         if (!running) return 0
         return RestTimer.remainingSeconds(endsAtElapsedRealtime, nowElapsedRealtime)
+    }
+}
+
+/** What a completion attempt decided, before any alert plays. */
+enum class RestTimerClaim {
+    /** This id matches the current rest, is due, and has not been claimed. */
+    CLAIMED,
+
+    /** This id already produced the cue. */
+    ALREADY_CLAIMED,
+
+    /** This id is not the current rest. Ignore it. */
+    STALE,
+
+    /** This id is current but elapsed realtime has not reached the deadline. Reschedule. */
+    EARLY,
+}
+
+/**
+ * Atomic claim ledger for rest completion.
+ *
+ * Three delivery paths can notice that rest is over. Only the first matching,
+ * due attempt for an id may announce. An old id cannot clear a replacement.
+ */
+class RestTimerClaimLedger {
+    private val lock = Any()
+    private val claimed = linkedSetOf<String>()
+
+    fun decide(
+        incomingId: String,
+        expectedId: String,
+        nowElapsedRealtime: Long,
+        deadlineElapsedRealtime: Long,
+    ): RestTimerClaim = synchronized(lock) {
+        if (incomingId.isBlank() || incomingId != expectedId) return RestTimerClaim.STALE
+        if (incomingId in claimed) return RestTimerClaim.ALREADY_CLAIMED
+        if (nowElapsedRealtime < deadlineElapsedRealtime) return RestTimerClaim.EARLY
+        claimed += incomingId
+        RestTimerClaim.CLAIMED
+    }
+
+    fun reset() {
+        synchronized(lock) { claimed.clear() }
     }
 }
 

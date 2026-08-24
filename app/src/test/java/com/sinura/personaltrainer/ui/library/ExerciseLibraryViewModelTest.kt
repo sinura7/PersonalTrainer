@@ -228,9 +228,15 @@ class ExerciseLibraryViewModelTest {
         val vm = createViewModel()
         val family = vm.uiState.first { it.families.isNotEmpty() }.families.first()
         vm.toggleFamily(family.movementKey)
-        assertTrue(vm.uiState.value.expandedFamilies.contains(family.movementKey))
+        assertTrue(
+            vm.uiState.first { it.expandedFamilies.contains(family.movementKey) }
+                .expandedFamilies.contains(family.movementKey),
+        )
         vm.toggleFamily(family.movementKey)
-        assertFalse(vm.uiState.value.expandedFamilies.contains(family.movementKey))
+        assertFalse(
+            vm.uiState.first { !it.expandedFamilies.contains(family.movementKey) }
+                .expandedFamilies.contains(family.movementKey),
+        )
     }
 
     private fun createViewModel(): ExerciseLibraryViewModel =

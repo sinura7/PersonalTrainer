@@ -82,7 +82,7 @@ class RoutineEditorViewModelTest {
     @Test
     fun missingRoutineResolvesMissingWithUserMessage() = runBlocking {
         val vm = createViewModel("gone")
-        val state = vm.uiState.first { it.missing }
+        val state = vm.uiState.first { it.missing && it.error != null }
         assertEquals("This routine is no longer available.", state.error)
         assertFalse(state.isLoading)
     }

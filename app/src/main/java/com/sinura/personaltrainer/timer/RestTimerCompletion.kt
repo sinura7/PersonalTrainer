@@ -2,7 +2,10 @@ package com.sinura.personaltrainer.timer
 
 import android.app.NotificationManager
 import android.content.Context
+import android.os.SystemClock
 import com.sinura.personaltrainer.PersonalTrainerApp
+import com.sinura.personaltrainer.domain.RestTimerClaim
+import com.sinura.personaltrainer.domain.RestTimerClaimLedger
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import kotlinx.coroutines.flow.first
 
@@ -10,28 +13,39 @@ import kotlinx.coroutines.flow.first
  * The one place rest completion happens.
  *
  * Three independent paths can notice that rest is over — the wakeup alarm (the reliable one,
- * screen off), the service's 250ms tick (screen on), and the service's in-process backstop —
- * and all of them funnel here. [completeOnce] makes that safe: whichever arrives first wins
- * and the others are no-ops, so the user never gets a doubled alert.
- *
- * The guard is keyed on the timer's end instant rather than a plain boolean so that a genuine
- * NEXT rest is never swallowed by the previous one's completion.
+ * screen off), the service's 250ms tick (screen on), and same-boot rehydration of an expired
+ * rest — and all of them funnel here. [completeOnce] claims by timer id: whichever matching,
+ * due attempt arrives first wins and the others are no-ops.
  */
 object RestTimerCompletion {
-    private val lock = Any()
-    private var lastCompletedEndsAt = Long.MIN_VALUE
+    internal val ledger = RestTimerClaimLedger()
 
     /**
-     * @return true if this call performed the completion, false if another path already did.
+     * @return true if this call performed the completion, false if another path already did
+     *   or the attempt was stale/early.
      */
     suspend fun completeOnce(
         context: Context,
-        endsAtElapsedRealtime: Long,
+        incomingTimerId: String,
+        expectedTimerId: String,
+        deadlineElapsedRealtime: Long,
         sessionId: String?,
+        nowElapsedRealtime: Long = SystemClock.elapsedRealtime(),
     ): Boolean {
-        synchronized(lock) {
-            if (lastCompletedEndsAt == endsAtElapsedRealtime) return false
-            lastCompletedEndsAt = endsAtElapsedRealtime
+        val decision = ledger.decide(
+            incomingId = incomingTimerId,
+            expectedId = expectedTimerId,
+            nowElapsedRealtime = nowElapsedRealtime,
+            deadlineElapsedRealtime = deadlineElapsedRealtime,
+        )
+        when (decision) {
+            RestTimerClaim.STALE, RestTimerClaim.ALREADY_CLAIMED -> return false
+            RestTimerClaim.EARLY -> {
+                val app = context.applicationContext as? PersonalTrainerApp
+                app?.container?.restTimerController?.rescheduleCurrent()
+                return false
+            }
+            RestTimerClaim.CLAIMED -> Unit
         }
         val appContext = context.applicationContext
         val app = appContext as? PersonalTrainerApp
@@ -58,8 +72,8 @@ object RestTimerCompletion {
         return true
     }
 
-    /** Lets a fresh rest complete normally after a previous one was announced. */
+    /** Test seam. Production claims by id, so a new rest does not need this. */
     fun reset() {
-        synchronized(lock) { lastCompletedEndsAt = Long.MIN_VALUE }
+        ledger.reset()
     }
 }

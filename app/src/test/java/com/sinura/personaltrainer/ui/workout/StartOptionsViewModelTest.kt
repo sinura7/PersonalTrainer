@@ -252,7 +252,11 @@ class StartOptionsViewModelTest {
         vm.discardInProgress()
 
         eventually {
-            if (deps.workoutRepository.getInProgress() == null) true else null
+            true.takeIf {
+                deps.workoutRepository.getInProgress() == null &&
+                    deps.workoutDraftCache.get(fixture.session.id) == null &&
+                    !deps.restTimerStore.current().running
+            }
         }
         assertFalse(deps.restTimerStore.current().running)
         assertNull(deps.workoutDraftCache.get(fixture.session.id))

@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.timer
 
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
+import com.sinura.personaltrainer.util.IdFactory
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 class RestTimerStore(
     private val persistence: RestTimerStatePersistence? = null,
+    private val ids: IdFactory = IdFactory.Uuid,
 ) {
     private val snapshotState = MutableStateFlow(RestTimerSnapshot())
     val snapshot: StateFlow<RestTimerSnapshot> = snapshotState.asStateFlow()
@@ -33,6 +35,7 @@ class RestTimerStore(
                 endsAtElapsedRealtime = nowElapsedRealtime + safe * 1000L,
                 totalSeconds = safe,
                 sessionId = sessionId,
+                timerId = ids.newId(),
             ),
             nowElapsedRealtime,
             nowWallClockMillis,
@@ -66,6 +69,7 @@ class RestTimerStore(
                 endsAtElapsedRealtime = nowElapsedRealtime + next * 1000L,
                 totalSeconds = maxOf(current.totalSeconds, next),
                 sessionId = current.sessionId,
+                timerId = ids.newId(),
             ),
             nowElapsedRealtime,
             nowWallClockMillis,
@@ -79,6 +83,7 @@ class RestTimerStore(
         sessionId: String?,
         nowElapsedRealtime: Long,
         nowWallClockMillis: Long = System.currentTimeMillis(),
+        timerId: String,
     ) {
         publish(
             RestTimerSnapshot(
@@ -86,6 +91,7 @@ class RestTimerStore(
                 endsAtElapsedRealtime = endsAtElapsedRealtime,
                 totalSeconds = totalSeconds.coerceAtLeast(1),
                 sessionId = sessionId,
+                timerId = timerId,
             ),
             nowElapsedRealtime,
             nowWallClockMillis,
@@ -110,6 +116,7 @@ class RestTimerStore(
                 sessionId = next.sessionId,
                 nowElapsedRealtime = nowElapsedRealtime,
                 nowWallClockMillis = nowWallClockMillis,
+                timerId = next.timerId,
             ),
         )
     }

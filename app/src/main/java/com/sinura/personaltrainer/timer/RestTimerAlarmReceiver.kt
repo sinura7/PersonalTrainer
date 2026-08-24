@@ -50,19 +50,23 @@ class RestTimerAlarmReceiver : BroadcastReceiver() {
             null
         }
 
+        val incomingTimerId = intent.getStringExtra(RestTimerService.EXTRA_TIMER_ID).orEmpty()
+
         // Prefer live state; fall back to disk when the alarm resurrected a dead process.
-        val endsAt: Long
+        val expectedTimerId: String
+        val deadline: Long
         val sessionId: String?
         if (snapshot != null && snapshot.running) {
-            endsAt = snapshot.endsAtElapsedRealtime
+            expectedTimerId = snapshot.timerId
+            deadline = snapshot.endsAtElapsedRealtime
             sessionId = snapshot.sessionId
         } else if (stored != null) {
-            endsAt = stored.endsAtElapsedRealtime
+            expectedTimerId = stored.timerId
+            deadline = stored.endsAtElapsedRealtime
             sessionId = stored.sessionId
         } else {
             // Neither live nor on disk: this rest was already completed and cleared by the
             // in-app path, and this is a cancelled alarm that was already in flight.
-            // Announcing here would be a second alert for the same rest.
             releaseAndFinish(wakeLock, pendingResult)
             return
         }
@@ -70,7 +74,13 @@ class RestTimerAlarmReceiver : BroadcastReceiver() {
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             try {
                 withTimeoutOrNull(WAKELOCK_TIMEOUT_MS) {
-                    RestTimerCompletion.completeOnce(appContext, endsAt, sessionId)
+                    RestTimerCompletion.completeOnce(
+                        context = appContext,
+                        incomingTimerId = incomingTimerId,
+                        expectedTimerId = expectedTimerId,
+                        deadlineElapsedRealtime = deadline,
+                        sessionId = sessionId,
+                    )
                 }
             } catch (_: Exception) {
                 // Never let an alert failure crash the receiver.

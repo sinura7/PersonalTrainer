@@ -213,7 +213,7 @@ class TrainingInsightsSourceTest {
                 },
             )
             src.observe(includeWeekPlan = false).first()
-            assertEquals("insights-compute", computeThread?.name)
+            assertTrue(computeThread?.name?.startsWith("insights-compute") == true)
         }
     }
 

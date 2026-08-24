@@ -15,7 +15,7 @@ class RestTimerRehydratorTest {
         sessionId: String? = "s1",
         bootMarker: Long,
         endsAtWall: Long,
-    ) = PersistedRestTimer(endsAtElapsed, total, sessionId, bootMarker, endsAtWall)
+    ) = PersistedRestTimer(endsAtElapsed, total, sessionId, bootMarker, endsAtWall, timerId = "timer-1")
 
     @Test
     fun nothingStoredMeansNothingToRecover() {
@@ -38,12 +38,11 @@ class RestTimerRehydratorTest {
         assertEquals(50_000L, running.endsAtElapsedRealtime)
         assertEquals(90, running.totalSeconds)
         assertEquals("s1", running.sessionId)
+        assertEquals("timer-1", running.timerId)
     }
 
     @Test
-    fun afterRebootTheWallClockRebasesTheTimer() {
-        // Reboot: elapsedRealtime restarted near zero, so the stored elapsed value is
-        // meaningless and only endsAtWallClock still locates the end of the rest.
+    fun afterRebootAShortRestIsCleared() {
         val oldWall = 1_700_000_000_000L
         val oldBoot = oldWall - 500_000L
         val newWall = oldWall + 40_000L
@@ -53,9 +52,7 @@ class RestTimerRehydratorTest {
             nowElapsedRealtime = newElapsed,
             nowWallClockMillis = newWall,
         )
-        assertTrue(outcome is RestTimerRehydration.Running)
-        // 20s of rest was left when the phone came back up.
-        assertEquals(newElapsed + 20_000L, (outcome as RestTimerRehydration.Running).endsAtElapsedRealtime)
+        assertEquals(RestTimerRehydration.None, outcome)
     }
 
     @Test
@@ -75,6 +72,7 @@ class RestTimerRehydratorTest {
         // receiver's call for the same rest is recognised as already handled.
         assertEquals(95_000L, expired.endsAtElapsedRealtime)
         assertEquals("s1", expired.sessionId)
+        assertEquals("timer-1", expired.timerId)
     }
 
     @Test

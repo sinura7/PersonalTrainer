@@ -27,12 +27,12 @@ import android.os.SystemClock
 class RestTimerAlarmScheduler(context: Context) {
     private val appContext = context.applicationContext
 
-    fun schedule(endsAtElapsedRealtime: Long, sessionId: String?) {
+    fun schedule(endsAtElapsedRealtime: Long, sessionId: String?, timerId: String) {
         val alarmManager = appContext.getSystemService(AlarmManager::class.java) ?: return
         val remainingMs = endsAtElapsedRealtime - SystemClock.elapsedRealtime()
         if (remainingMs <= 0L) return
         val triggerAtWallClock = System.currentTimeMillis() + remainingMs
-        val operation = alarmIntent(sessionId, mutableForUpdate = false) ?: return
+        val operation = alarmIntent(sessionId, timerId) ?: return
         try {
             alarmManager.setAlarmClock(
                 AlarmManager.AlarmClockInfo(triggerAtWallClock, showIntent(sessionId)),
@@ -55,7 +55,7 @@ class RestTimerAlarmScheduler(context: Context) {
 
     fun cancel() {
         val alarmManager = appContext.getSystemService(AlarmManager::class.java) ?: return
-        val operation = alarmIntent(sessionId = null, mutableForUpdate = true) ?: return
+        val operation = alarmIntent(sessionId = null, timerId = "") ?: return
         try {
             alarmManager.cancel(operation)
             operation.cancel()
@@ -64,9 +64,10 @@ class RestTimerAlarmScheduler(context: Context) {
         }
     }
 
-    private fun alarmIntent(sessionId: String?, mutableForUpdate: Boolean): PendingIntent? {
+    private fun alarmIntent(sessionId: String?, timerId: String): PendingIntent? {
         val intent = Intent(appContext, RestTimerAlarmReceiver::class.java)
             .setAction(RestTimerAlarmReceiver.ACTION_REST_COMPLETE)
+            .putExtra(RestTimerService.EXTRA_TIMER_ID, timerId)
             .apply { sessionId?.let { putExtra(RestTimerService.EXTRA_SESSION_ID, it) } }
         // FLAG_UPDATE_CURRENT keeps one canonical alarm: rescheduling replaces, never stacks.
         val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE

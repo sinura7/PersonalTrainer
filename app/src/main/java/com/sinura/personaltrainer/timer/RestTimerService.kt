@@ -177,11 +177,15 @@ class RestTimerService : Service() {
         handler.removeCallbacks(completeRunnable)
         handler.removeCallbacks(tickRunnable)
         val state = controller.snapshot.value
-        val endsAt = state.endsAtElapsedRealtime
-        val sessionId = state.sessionId
         scope.launch {
             // Idempotent: if the wakeup alarm already announced this rest, this is a no-op.
-            RestTimerCompletion.completeOnce(applicationContext, endsAt, sessionId)
+            RestTimerCompletion.completeOnce(
+                context = applicationContext,
+                incomingTimerId = state.timerId,
+                expectedTimerId = state.timerId,
+                deadlineElapsedRealtime = state.endsAtElapsedRealtime,
+                sessionId = state.sessionId,
+            )
             stopNow()
         }
     }
@@ -240,5 +244,6 @@ class RestTimerService : Service() {
         const val ACTION_ADD_15 = "com.sinura.personaltrainer.timer.ADD_15"
         const val ACTION_MINUS_15 = "com.sinura.personaltrainer.timer.MINUS_15"
         const val EXTRA_SESSION_ID = "sessionId"
+        const val EXTRA_TIMER_ID = "timerId"
     }
 }

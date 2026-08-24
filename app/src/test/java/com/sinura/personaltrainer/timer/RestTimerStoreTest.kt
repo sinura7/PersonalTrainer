@@ -105,10 +105,40 @@ class RestTimerStoreTest {
             totalSeconds = 90,
             sessionId = "s1",
             nowElapsedRealtime = 20_000L,
+            timerId = "timer-restored",
         )
         val snap = store.current()
         assertTrue(snap.running)
         assertEquals(30, snap.remainingSeconds(20_000L))
         assertEquals("s1", snap.sessionId)
+        assertEquals("timer-restored", snap.timerId)
+    }
+
+    @Test
+    fun startAndAdjustMintDistinctTimerIdsAndRestoreKeepsTheId() {
+        var n = 0
+        val store = RestTimerStore(ids = { "timer-${++n}" })
+        store.start(60, "s", nowElapsedRealtime = 0L)
+        val first = store.current().timerId
+        store.adjust(15, nowElapsedRealtime = 5_000L)
+        val second = store.current().timerId
+        assertEquals("timer-1", first)
+        assertEquals("timer-2", second)
+        store.restore(
+            endsAtElapsedRealtime = 80_000L,
+            totalSeconds = 90,
+            sessionId = "s",
+            nowElapsedRealtime = 10_000L,
+            timerId = first,
+        )
+        assertEquals(first, store.current().timerId)
+    }
+
+    @Test
+    fun persistenceWritesTheTimerId() {
+        val persistence = FakePersistence()
+        val store = RestTimerStore(persistence = persistence, ids = { "timer-persist" })
+        store.start(90, "s1", nowElapsedRealtime = 1_000L, nowWallClockMillis = 1_700_000_000_000L)
+        assertEquals("timer-persist", persistence.saved?.timerId)
     }
 }

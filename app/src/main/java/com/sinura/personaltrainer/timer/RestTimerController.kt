@@ -51,8 +51,6 @@ class RestTimerController(
     }.distinctUntilChanged()
 
     override fun start(totalSeconds: Int, sessionId: String?) {
-        // A new rest must be allowed to announce even though the previous one just did.
-        RestTimerCompletion.reset()
         store.start(totalSeconds, sessionId, SystemClock.elapsedRealtime())
         scheduleAlarmForCurrent()
         dispatch(RestTimerService.ACTION_SYNC)
@@ -97,12 +95,12 @@ class RestTimerController(
         )
         return when (outcome) {
             is RestTimerRehydration.Running -> {
-                RestTimerCompletion.reset()
                 store.restore(
                     endsAtElapsedRealtime = outcome.endsAtElapsedRealtime,
                     totalSeconds = outcome.totalSeconds,
                     sessionId = outcome.sessionId,
                     nowElapsedRealtime = SystemClock.elapsedRealtime(),
+                    timerId = outcome.timerId,
                 )
                 scheduleAlarmForCurrent()
                 dispatch(RestTimerService.ACTION_SYNC)
@@ -112,10 +110,15 @@ class RestTimerController(
                 // Rest ended while the process was dead, but recently enough to still matter.
                 // This is the alarm-woke-a-dead-process path, so it must alert with sound and
                 // vibration, not just a notification — completeOnce owns that, and its
-                // idempotence guard means the receiver's own call moments later is a no-op.
-                val endsAtKey = outcome.endsAtElapsedRealtime
+                // id claim means the receiver's own call moments later is a no-op.
                 announceScope.launch {
-                    RestTimerCompletion.completeOnce(appContext, endsAtKey, outcome.sessionId)
+                    RestTimerCompletion.completeOnce(
+                        context = appContext,
+                        incomingTimerId = outcome.timerId,
+                        expectedTimerId = outcome.timerId,
+                        deadlineElapsedRealtime = outcome.endsAtElapsedRealtime,
+                        sessionId = outcome.sessionId,
+                    )
                 }
                 false
             }
@@ -126,10 +129,14 @@ class RestTimerController(
         }
     }
 
+    override fun rescheduleCurrent() {
+        scheduleAlarmForCurrent()
+    }
+
     private fun scheduleAlarmForCurrent() {
         val state = store.current()
         if (!state.running) return
-        alarms.schedule(state.endsAtElapsedRealtime, state.sessionId)
+        alarms.schedule(state.endsAtElapsedRealtime, state.sessionId, state.timerId)
     }
 
     private fun dispatch(action: String) {

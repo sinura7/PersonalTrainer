@@ -21,4 +21,7 @@ interface RestTimerGateway {
     fun adjust(deltaSeconds: Int)
     fun stop(fromService: Boolean = false)
     fun rehydrate(): Boolean
+
+    /** Current-but-early delivery asks the live rest to be scheduled again. */
+    fun rescheduleCurrent() {}
 }
