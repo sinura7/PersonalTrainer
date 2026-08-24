@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.domain.LighterWeek
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -52,11 +53,18 @@ class ProgressViewModelTest {
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
         viewModel = ProgressViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
-        viewModel!!.markLighterWeek()
         val weekStart = deps.preferencesRepository.schedulePreferences.first().weekStart
         val expected = LighterWeek.weekStartEpochDay(today = LocalDate.now(), weekStart = weekStart)
+        viewModel!!.markLighterWeek()
         val marked = withTimeout(5_000) {
-            deps.preferencesRepository.lighterWeekStartEpochDay.first { it == expected }
+            while (true) {
+                dispatcher.scheduler.advanceUntilIdle()
+                deps.preferencesRepository.lighterWeekStartEpochDay.first()
+                    ?.takeIf { it == expected }
+                    ?.let { return@withTimeout it }
+                delay(10)
+            }
+            error("unreachable")
         }
         assertEquals(expected, marked)
     }

@@ -87,6 +87,7 @@ suspend fun insertTestExercise(
     id: String,
     name: String,
     muscleGroup: String = "Back",
+    isCustom: Boolean = false,
 ): Exercise {
     deps.database.exerciseDao().insertAll(
         listOf(
@@ -95,7 +96,7 @@ suspend fun insertTestExercise(
                 name = name,
                 muscleGroup = muscleGroup,
                 notes = "",
-                isCustom = false,
+                isCustom = isCustom,
                 nameKey = name.lowercase(),
             ),
         ),

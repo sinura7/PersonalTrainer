@@ -284,13 +284,17 @@ Status legend: **done** · **next** · pending · gated · skipped
   from the bar, recreates Summary, then deletes and undoes a set with the
   original id and `completedAt` restored. Full device lane: 22/22.
 
-#### P1.5 — Routine, library, onboarding, and exercise ViewModels
+#### P1.5 — Routine, library, onboarding, and exercise ViewModels · **done**
 
 - Dedicated tests for Routine Editor, Custom Week, Exercise Library,
   Exercise Detail, Onboarding Gate.
 - Inventory `*ViewModel.kt` against dedicated tests; every omission needs
   an explicit rationale.
 - Exit: FND-025 has no unexplained screen ViewModel gaps.
+- Landed: 41 Room/DataStore-backed contracts across the five named
+  surfaces. `AppViewModel` is the only `*ViewModel.kt` without a suite,
+  as the shared base class. Inventory:
+  [P1.5 evidence](foundation-program/evidence/P1.5-viewmodel-inventory.md).
 
 #### P1.6 — `TrainingInsightsSource` as a runtime publisher
 
