@@ -636,7 +636,16 @@ class PreferencesRepository(
                 it <= OnboardingAnswers.MAX_BODYWEIGHT_KG
         } ?: return
         bodyweightDao?.let { dao ->
-            dao.upsert(BodyweightEntryEntity(epochDay, clean, nowMs()))
+            val now = com.sinura.personaltrainer.util.JvmTime.captureNow()
+            dao.upsert(
+                BodyweightEntryEntity(
+                    epochDay = epochDay,
+                    kg = clean,
+                    recordedAtMs = now.instantMillis,
+                    zoneId = now.zoneId,
+                    offsetSeconds = now.offsetSeconds,
+                ),
+            )
             val all = dao.getAll()
             if (all.size > BodyweightLog.MAX_ENTRIES) {
                 all.dropLast(BodyweightLog.MAX_ENTRIES).forEach { extra ->
@@ -851,12 +860,17 @@ class PreferencesRepository(
 private fun BodyweightEntry.toEntity(recordedAtMs: Long) = BodyweightEntryEntity(
     epochDay = epochDay,
     kg = kg,
-    recordedAtMs = recordedAtMs,
+    recordedAtMs = if (this.recordedAtMs > 0L) this.recordedAtMs else recordedAtMs,
+    zoneId = zoneId.ifBlank { "UTC" },
+    offsetSeconds = offsetSeconds,
 )
 
 private fun BodyweightEntryEntity.toDomain() = BodyweightEntry(
     epochDay = epochDay,
     kg = kg,
+    recordedAtMs = recordedAtMs,
+    zoneId = zoneId,
+    offsetSeconds = offsetSeconds,
 )
 
 private fun TrainingBlock.toEntity(isCurrent: Boolean, archivedAtMs: Long?) = TrainingBlockEntity(

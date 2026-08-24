@@ -5,6 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.util.toCivilYearMonth
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -181,6 +182,64 @@ class TrainingCalendarBuilderTest {
         assertTrue(padding.sessionIds.isNotEmpty())
         assertEquals(1f, padding.intensity, 0.0001f)
         assertTrue(grid.weeks.flatten().all { it.intensity in 0f..1f })
+    }
+
+    @Test
+    fun summariesBuildAMonthWithoutMaterializingSets() {
+        val summary = SessionSummary(
+            id = "a",
+            routineId = null,
+            routineName = "Push",
+            date = at("2026-08-10T10:00:00Z"),
+            finishedAt = at("2026-08-10T10:00:00Z"),
+            durationMinutes = 40,
+            workingSets = 4,
+            volumeKg = 500.0,
+            localEpochDay = LocalDate.of(2026, 8, 10).toEpochDay(),
+        )
+        val grid = TrainingCalendarBuilder.buildSummaries(
+            month = august.toCivilYearMonth(),
+            summaries = listOf(summary),
+            weekStart = Weekday.MONDAY,
+        )
+        val day = grid.day(LocalDate.of(2026, 8, 10))
+        assertTrue(day.trained)
+        assertEquals(listOf("a"), day.sessionIds)
+        assertEquals(4, grid.workingSets)
+        assertEquals(500.0, day.work.volumeKg, 0.0001)
+    }
+
+    @Test
+    fun summaryActivitiesDoNotCountAsWorkoutSessionIds() {
+        val activity = SessionSummary(
+            id = "run-1",
+            routineId = null,
+            routineName = "Easy run",
+            date = at("2026-08-10T10:00:00Z"),
+            finishedAt = at("2026-08-10T10:00:00Z"),
+            durationMinutes = 40,
+            workingSets = 0,
+            volumeKg = 0.0,
+            localEpochDay = LocalDate.of(2026, 8, 10).toEpochDay(),
+            cardioSeconds = 2_400L,
+            kind = HistoryKind.ACTIVITY,
+        )
+        val empty = TrainingCalendarBuilder.buildSummaries(
+            month = august.toCivilYearMonth(),
+            summaries = emptyList(),
+            weekStart = Weekday.MONDAY,
+        )
+        assertEquals(0, empty.trainedDays)
+        assertTrue(empty.weeks.flatten().all { it.intensity == 0f })
+        val grid = TrainingCalendarBuilder.buildSummaries(
+            month = august.toCivilYearMonth(),
+            summaries = listOf(activity),
+            weekStart = Weekday.MONDAY,
+        )
+        val day = grid.day(LocalDate.of(2026, 8, 10))
+        assertTrue(day.sessionIds.isEmpty())
+        assertEquals(listOf("run-1"), day.activityIds)
+        assertEquals(1, grid.trainedDays)
     }
 
     @Test

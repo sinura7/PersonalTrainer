@@ -14,6 +14,7 @@ import com.sinura.personaltrainer.data.backup.SafetySnapshotStore
 import com.sinura.personaltrainer.data.backup.BackupPreferences
 import com.sinura.personaltrainer.data.backup.BackupRoutine
 import com.sinura.personaltrainer.data.backup.BackupRoutineExercise
+import com.sinura.personaltrainer.data.backup.BackupMeasurableGoal
 import com.sinura.personaltrainer.data.backup.BackupMissedWorkDecision
 import com.sinura.personaltrainer.data.backup.BackupReminderDelivery
 import com.sinura.personaltrainer.data.backup.BackupScheduleOccurrence
@@ -26,7 +27,9 @@ import com.sinura.personaltrainer.data.backup.BackupActivityTemplate
 import com.sinura.personaltrainer.data.backup.BackupSetLog
 import com.sinura.personaltrainer.data.local.AppRoomDatabase
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
+import com.sinura.personaltrainer.data.local.dao.GoalDao
 import com.sinura.personaltrainer.data.local.dao.PlannerDao
+import com.sinura.personaltrainer.data.local.entity.MeasurableGoalEntity
 import com.sinura.personaltrainer.data.local.entity.MissedWorkDecisionEntity
 import com.sinura.personaltrainer.data.local.entity.ReminderDeliveryEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleOccurrenceEntity
@@ -76,6 +79,7 @@ class LocalBackupRepository(
     private val preferencesRepository: PreferencesRepository,
     private val activityDao: ActivityDao? = null,
     private val plannerDao: PlannerDao? = null,
+    private val goalDao: GoalDao? = null,
     private val onBeforeRestore: suspend () -> Unit = {},
     safetySnapshotDir: File? = null,
     clock: () -> Long = { System.currentTimeMillis() },
@@ -124,6 +128,7 @@ class LocalBackupRepository(
                         deliveries = dao.getDeliveries(),
                     )
                 },
+                goals = goalDao?.getAll().orEmpty(),
             )
         }
         val exercises = snapshot.exercises
@@ -270,6 +275,7 @@ class LocalBackupRepository(
             scheduleOccurrences = snapshot.plannerExport?.occurrences.orEmpty().map { it.toBackup() },
             missedWorkDecisions = snapshot.plannerExport?.decisions.orEmpty().map { it.toBackup() },
             reminderDeliveries = snapshot.plannerExport?.deliveries.orEmpty().map { it.toBackup() },
+            measurableGoals = snapshot.goals.map { it.toBackup() },
         )
     }
 
@@ -346,6 +352,7 @@ class LocalBackupRepository(
             plannerDao?.deleteAllOccurrences()
             plannerDao?.deleteAllDecisions()
             plannerDao?.deleteAllRules()
+            goalDao?.deleteAll()
             database.scheduleDao().deleteAll()
             database.routineDao().deleteAllRoutineExercises()
             database.routineDao().deleteAllRoutines()
@@ -545,6 +552,11 @@ class LocalBackupRepository(
                     )
                 }
             }
+            goalDao?.let { dao ->
+                if (document.measurableGoals.isNotEmpty()) {
+                    dao.upsertAll(document.measurableGoals.map { it.toEntity() })
+                }
+            }
         }
     }
 
@@ -642,6 +654,7 @@ class LocalBackupRepository(
         val scheduleSlots: List<ScheduleSlotEntity>,
         val activityExport: Pair<List<BackupActivity>, List<BackupActivityTemplate>>?,
         val plannerExport: PlannerExport?,
+        val goals: List<MeasurableGoalEntity> = emptyList(),
     )
 }
 
@@ -688,6 +701,38 @@ private fun MissedWorkDecisionEntity.toBackup() = BackupMissedWorkDecision(
     weekStartEpochDay = weekStartEpochDay,
     choice = choice,
     decidedAtMs = decidedAtMs,
+)
+
+private fun MeasurableGoalEntity.toBackup() = BackupMeasurableGoal(
+    id = id,
+    kind = kind,
+    targetValue = targetValue,
+    exerciseId = exerciseId,
+    exerciseName = exerciseName,
+    period = period,
+    instantMs = instantMs,
+    zoneId = zoneId,
+    offsetSeconds = offsetSeconds,
+    localEpochDay = localEpochDay,
+    paused = paused,
+    createdAtMs = createdAtMs,
+    updatedAtMs = updatedAtMs,
+)
+
+private fun BackupMeasurableGoal.toEntity() = MeasurableGoalEntity(
+    id = id,
+    kind = kind,
+    targetValue = targetValue,
+    exerciseId = exerciseId,
+    exerciseName = exerciseName,
+    period = period,
+    instantMs = instantMs,
+    zoneId = zoneId,
+    offsetSeconds = offsetSeconds,
+    localEpochDay = localEpochDay,
+    paused = paused,
+    createdAtMs = createdAtMs,
+    updatedAtMs = updatedAtMs,
 )
 
 private fun ReminderDeliveryEntity.toBackup() = BackupReminderDelivery(

@@ -47,7 +47,6 @@ import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.workout.DiscardOutcome
 import com.sinura.personaltrainer.workout.StartDayOutcome
 import com.sinura.personaltrainer.domain.Weekday
-import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.Dispatchers
@@ -55,8 +54,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -101,6 +103,7 @@ data class PlanUiState(
  * whenever you logged anything. Here a suggestion is visibly a suggestion until you accept it,
  * and accepting it is the only thing in the class that writes a slot.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class PlanViewModel @JvmOverloads constructor(
     application: Application,
     container: AppDependencies = application.appContainer(),
@@ -108,11 +111,40 @@ class PlanViewModel @JvmOverloads constructor(
     private val actionError = MutableStateFlow<String?>(null)
     private val proposals = MutableStateFlow<List<SuggestedTrainingDay>>(emptyList())
 
-    private val insights: StateFlow<TrainingInsights?> = container.trainingInsights.observeShared()
+    private     val insights: StateFlow<TrainingInsights?> = container.trainingInsights.observeShared()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = null,
+        )
+
+    private val completedBlockSessions = container.preferencesRepository.trainingBlock
+        .flatMapLatest { block ->
+            flow {
+                val today = todayEpochDay()
+                if (block == null || !block.isCompleteOn(today)) {
+                    emit(emptyList())
+                    return@flow
+                }
+                val zone = JvmTime.defaultZoneId()
+                emit(
+                    container.workoutRepository.sessionsBetween(
+                        minDateMs = JvmTime.startOfDayMillis(
+                            CivilDate.fromEpochDay(block.startEpochDay),
+                            zone,
+                        ),
+                        maxDateMs = JvmTime.startOfDayMillis(
+                            CivilDate.fromEpochDay(block.endExclusiveEpochDay),
+                            zone,
+                        ) - 1,
+                    ),
+                )
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList(),
         )
 
     val uiState: StateFlow<PlanUiState> = combine(
@@ -125,9 +157,19 @@ class PlanViewModel @JvmOverloads constructor(
             combine(
                 container.preferencesRepository.bodyweightLog,
                 container.preferencesRepository.lighterWeekStartEpochDay,
-            ) { log, lighterStart -> log to lighterStart },
-        ) { preferences, block, unit, logAndLighter ->
-            SettingsAndBlock(preferences, block, unit, logAndLighter.first, logAndLighter.second)
+                completedBlockSessions,
+            ) { log, lighterStart, blockSessions ->
+                Triple(log, lighterStart, blockSessions)
+            },
+        ) { preferences, block, unit, extras ->
+            SettingsAndBlock(
+                preferences,
+                block,
+                unit,
+                extras.first,
+                extras.second,
+                extras.third,
+            )
         },
         combine(
             proposals,
@@ -161,10 +203,7 @@ class PlanViewModel @JvmOverloads constructor(
             routines = current.routines,
             preferences = settings.preferences,
             inProgress = inProgress,
-            loggedEpochDays = current.history
-                .filter { it.isFinished }
-                .map { Instant.ofEpochMilli(it.date).atZone(zone).toLocalDate().toEpochDay() }
-                .toSet(),
+            loggedEpochDays = current.summaries.map { it.localEpochDay }.toSet(),
             proposals = previewed,
             block = settings.block,
             blockReview = settings.block
@@ -172,7 +211,7 @@ class PlanViewModel @JvmOverloads constructor(
                 ?.let { finished ->
                     BlockReviewBuilder.build(
                         block = finished,
-                        sessions = current.history,
+                        sessions = settings.blockSessions,
                         unit = settings.unit,
                         bodyweightLog = settings.bodyweightLog,
                     )
@@ -653,5 +692,6 @@ class PlanViewModel @JvmOverloads constructor(
         val unit: WeightUnit,
         val bodyweightLog: List<BodyweightEntry>,
         val lighterWeekStart: Long?,
+        val blockSessions: List<WorkoutSession>,
     )
 }

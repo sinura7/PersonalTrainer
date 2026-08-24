@@ -5,7 +5,6 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.DataHealth
-import com.sinura.personaltrainer.domain.WorkoutSession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -74,7 +73,7 @@ class HistoryViewModelTest {
         val empty = historyListFromHealth(DataHealth.Available(emptyList()))
         assertFalse(empty.unavailable)
         assertFalse(empty.stale)
-        assertTrue(empty.sessions.isEmpty())
+        assertTrue(empty.summaries.isEmpty())
     }
 
     @Test
@@ -82,26 +81,25 @@ class HistoryViewModelTest {
         val unread = historyListFromHealth(DataHealth.Unavailable("workout history"))
         assertTrue(unread.unavailable)
         assertFalse(unread.stale)
-        assertTrue(unread.sessions.isEmpty())
+        assertTrue(unread.summaries.isEmpty())
     }
 
     @Test
     fun laterHistoryFailureKeepsSessionsAndMarksStale() {
-        val session = WorkoutSession(
+        val summary = com.sinura.personaltrainer.domain.SessionSummary(
             id = "s1",
             routineId = null,
             routineName = "Push",
             date = 1L,
-            notes = "",
-            durationMinutes = 40,
-            startedAt = 1L,
             finishedAt = 2L,
-            exercises = emptyList(),
-            sets = emptyList(),
+            durationMinutes = 40,
+            workingSets = 0,
+            volumeKg = 0.0,
+            localEpochDay = 1L,
         )
-        val stale = historyListFromHealth(DataHealth.Degraded(listOf(session), "workout history"))
+        val stale = historyListFromHealth(DataHealth.Degraded(listOf(summary), "workout history"))
         assertFalse(stale.unavailable)
         assertTrue(stale.stale)
-        assertEquals("s1", stale.sessions.single().id)
+        assertEquals("s1", stale.summaries.single().id)
     }
 }

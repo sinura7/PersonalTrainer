@@ -20,6 +20,7 @@ import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
 import com.sinura.personaltrainer.data.repository.LocalBackupRepository
 import com.sinura.personaltrainer.data.repository.OnboardingApplier
+import com.sinura.personaltrainer.data.repository.GoalRepository
 import com.sinura.personaltrainer.data.repository.PlannerRepository
 import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
@@ -55,6 +56,7 @@ class AppContainer(context: Context) : AppDependencies {
     override val routineRepository: RoutineRepository = RoutineRepository(database.routineDao())
     /** The week the user pinned. Nothing else in the app is allowed to write it. */
     override val scheduleRepository: ScheduleRepository = ScheduleRepository(database.scheduleDao())
+    override val goalRepository: GoalRepository = GoalRepository(database.goalDao())
     override val plannerRepository: PlannerRepository = PlannerRepository(
         database = database,
         scheduler = WorkManagerReminderScheduler(context),
@@ -143,6 +145,7 @@ class AppContainer(context: Context) : AppDependencies {
             database = database,
             activityDao = database.activityDao(),
             plannerDao = database.plannerDao(),
+            goalDao = database.goalDao(),
             preferencesRepository = preferencesRepository,
             // Runs at the wipe choke point: both of these hold a session id that is about to
             // stop existing, and a running rest timer would keep counting for a dead workout.

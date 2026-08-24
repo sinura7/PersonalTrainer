@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.data.local
 
 import android.content.Context
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.data.backup.BackupJson
@@ -24,6 +25,11 @@ import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.Weekday
+import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -56,6 +62,7 @@ class BackupV2RoundTripTest {
     private lateinit var preferences: PreferencesRepository
     private lateinit var local: LocalBackupRepository
     private lateinit var maintenance: DbMaintenance
+    private lateinit var prefsScope: CoroutineScope
 
     @Before
     fun setUp() {
@@ -64,7 +71,14 @@ class BackupV2RoundTripTest {
             .allowMainThreadQueries()
             .build()
         maintenance = DbMaintenance(database)
-        preferences = PreferencesRepository(context)
+        prefsScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+        val store = PreferenceDataStoreFactory.create(
+            scope = prefsScope,
+            produceFile = {
+                File(context.cacheDir, "backup-v2-${System.nanoTime()}.preferences_pb")
+            },
+        )
+        preferences = PreferencesRepository(context, store)
         local = LocalBackupRepository(
             database = database,
             preferencesRepository = preferences,
@@ -73,6 +87,7 @@ class BackupV2RoundTripTest {
 
     @After
     fun tearDown() {
+        prefsScope.cancel()
         database.close()
     }
 

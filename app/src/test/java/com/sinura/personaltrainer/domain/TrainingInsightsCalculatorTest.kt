@@ -112,6 +112,47 @@ class TrainingInsightsCalculatorTest {
     }
 
     @Test
+    fun suppliedSummariesAreEchoedAndMissingOnesAreDerived() {
+        val history = listOf(detachedSet(now - 1L * 24 * 60 * 60 * 1000))
+        val supplied = SessionSummary(
+            id = "supplied",
+            routineId = null,
+            routineName = "Supplied",
+            date = now,
+            finishedAt = now,
+            durationMinutes = 30,
+            workingSets = 3,
+            volumeKg = 300.0,
+            localEpochDay = 20_000L,
+        )
+        val echoed = TrainingInsightsCalculator.compute(
+            input(history = history).copy(summaries = listOf(supplied)),
+        )
+        assertEquals(listOf("supplied"), echoed.summaries.map { it.id })
+        val derived = TrainingInsightsCalculator.compute(input(history = history))
+        assertEquals(listOf("s1"), derived.summaries.map { it.id })
+        assertTrue(derived.recommendations.isNotEmpty())
+        assertTrue(derived.recommendations.all { it.trace != null })
+    }
+
+    @Test
+    fun hintsCarryALocalTrace() {
+        val hint = ProgressionHint(
+            exerciseId = "ex-1",
+            exerciseName = "Squat",
+            lastWeightKg = 100.0,
+            lastReps = 5,
+            targetReps = 5,
+            suggestedWeightKg = 102.5,
+            action = ProgressionAction.INCREASE,
+        )
+        val insights = TrainingInsightsCalculator.compute(input(hints = listOf(hint)))
+        assertEquals(1, insights.hints.size)
+        assertNotNull(insights.hints.single().trace)
+        assertEquals("progression-ex-1", insights.hints.single().trace!!.ruleId)
+    }
+
+    @Test
     fun skippingTheWeekPlanIsNotAFailure() {
         val insights = TrainingInsightsCalculator.compute(input(includeWeekPlan = false))
         assertNull(insights.weekPlan)

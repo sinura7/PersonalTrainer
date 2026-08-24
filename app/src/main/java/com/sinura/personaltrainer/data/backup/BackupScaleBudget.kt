@@ -5,7 +5,8 @@ package com.sinura.personaltrainer.data.backup
  *
  * The fixture is 500 finished sessions and 15,000 sets. Encode and snapshot
  * stay in-memory until a measured run on this fixture exceeds a budget.
- * Streaming is P8.5, and only if these numbers fail.
+ * P8.5 re-measured the same whole-document path. Streaming stays off
+ * unless a later run exceeds these numbers.
  *
  * Times are JVM-host ceilings with headroom. They are not phone SLAs.
  */

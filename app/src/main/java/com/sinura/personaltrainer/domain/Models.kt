@@ -205,6 +205,7 @@ data class ProgressionHint(
      * rep" instead of "+2.5 kg" for a push-up, and neither of them has the exercise to hand.
      */
     val loadType: LoadType? = null,
+    val trace: RuleTrace? = null,
 )
 
 enum class ProgressionAction {

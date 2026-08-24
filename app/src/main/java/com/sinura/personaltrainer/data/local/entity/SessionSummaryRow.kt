@@ -1,0 +1,13 @@
+package com.sinura.personaltrainer.data.local.entity
+
+/** SQL aggregate of a finished session. No set rows. */
+data class SessionSummaryRow(
+    val id: String,
+    val routineId: String?,
+    val routineName: String?,
+    val date: Long,
+    val finishedAt: Long?,
+    val durationMinutes: Int,
+    val workingSets: Int,
+    val volumeKg: Double,
+)

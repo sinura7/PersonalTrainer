@@ -132,3 +132,43 @@ val MIGRATION_TEMPER_2_3 = object : Migration(2, 3) {
         )
     }
 }
+
+/**
+ * Temper v3 → v4: measurable goals with captured civil time, and the
+ * four-tuple on bodyweight entries (P8.1 / P8.2 / ADR-011). Additive.
+ */
+val MIGRATION_TEMPER_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `measurable_goals` (" +
+                "`id` TEXT NOT NULL, " +
+                "`kind` TEXT NOT NULL, " +
+                "`targetValue` REAL NOT NULL, " +
+                "`exerciseId` TEXT, " +
+                "`exerciseName` TEXT, " +
+                "`period` TEXT NOT NULL, " +
+                "`instantMs` INTEGER NOT NULL, " +
+                "`zoneId` TEXT NOT NULL, " +
+                "`offsetSeconds` INTEGER NOT NULL, " +
+                "`localEpochDay` INTEGER NOT NULL, " +
+                "`paused` INTEGER NOT NULL, " +
+                "`createdAtMs` INTEGER NOT NULL, " +
+                "`updatedAtMs` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`id`))",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_measurable_goals_kind` " +
+                "ON `measurable_goals` (`kind`)",
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS `index_measurable_goals_period` " +
+                "ON `measurable_goals` (`period`)",
+        )
+        db.execSQL(
+            "ALTER TABLE `bodyweight_entries` ADD COLUMN `zoneId` TEXT NOT NULL DEFAULT 'UTC'",
+        )
+        db.execSQL(
+            "ALTER TABLE `bodyweight_entries` ADD COLUMN `offsetSeconds` INTEGER NOT NULL DEFAULT 0",
+        )
+    }
+}

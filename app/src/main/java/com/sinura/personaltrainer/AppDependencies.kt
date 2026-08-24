@@ -11,6 +11,7 @@ import com.sinura.personaltrainer.data.repository.ExerciseRepository
 import com.sinura.personaltrainer.data.repository.OnboardingApplier
 import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
+import com.sinura.personaltrainer.data.repository.GoalRepository
 import com.sinura.personaltrainer.data.repository.PlannerRepository
 import com.sinura.personaltrainer.data.repository.ScheduleRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
@@ -38,6 +39,7 @@ interface AppDependencies {
     val routineRepository: RoutineRepository
     val scheduleRepository: ScheduleRepository
     val plannerRepository: PlannerRepository
+    val goalRepository: GoalRepository
     val workoutRepository: WorkoutRepository
     val preferencesRepository: PreferencesRepository
     val onboardingApplier: OnboardingApplier

@@ -6,7 +6,9 @@ import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.data.repository.ScheduleRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
+import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.toInsightSession
+import com.sinura.personaltrainer.domain.toSummary
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.CoachPreferences
@@ -123,17 +125,32 @@ class TrainingInsightsSource(
         combine(
             combine(
                 combine(
-                    workoutRepository.observeHistory(),
-                    activityRepository?.observeCompleted() ?: flowOf(emptyList()),
-                ) { sessions, activities ->
-                    sessions + activities.mapNotNull { it.toInsightSession() }
-                },
+                    combine(
+                        workoutRepository.observeSessionSummaries(),
+                        activityRepository?.observeCompleted() ?: flowOf(emptyList()),
+                    ) { summaries, activities ->
+                        summaries + activities.filter { it.isCompleted }.map { it.toSummary() }
+                    },
+                    combine(
+                        workoutRepository.observeFinishedSince(nowMs() - WINDOW_MS),
+                        activityRepository?.observeCompleted() ?: flowOf(emptyList()),
+                    ) { sessions, activities ->
+                        sessions + activities.mapNotNull { it.toInsightSession() }
+                    },
+                ) { summaries, windowed -> summaries to windowed },
                 routineRepository.observeAll(),
                 exerciseRepository.observeAll(),
                 preferencesRepository.schedulePreferences,
                 preferencesRepository.weightUnit,
-            ) { history, routines, exercises, preferences, unit ->
-                Sources(history, routines, exercises.associateBy { it.id }, preferences, unit)
+            ) { historyAndSummaries, routines, exercises, preferences, unit ->
+                Sources(
+                    history = historyAndSummaries.second,
+                    summaries = historyAndSummaries.first,
+                    routines = routines,
+                    exercises = exercises.associateBy { it.id },
+                    preferences = preferences,
+                    unit = unit,
+                )
             },
             scheduleRepository.observeSlots(),
             combine(
@@ -168,6 +185,7 @@ class TrainingInsightsSource(
         compute(
             TrainingInsightsInput(
                 history = sources.history,
+                summaries = sources.summaries,
                 routines = sources.routines,
                 exerciseCatalog = sources.exercises,
                 hints = hints,
@@ -186,10 +204,13 @@ class TrainingInsightsSource(
     internal companion object {
         /** Long enough to survive a rotation or a tab switch, short enough not to hold work. */
         const val SHARE_GRACE_MS = 5_000L
+        /** Body heat's widest window. Coach is 14 days inside this. */
+        const val WINDOW_MS = 30L * 24 * 60 * 60 * 1000
     }
 
     private data class Sources(
         val history: List<WorkoutSession>,
+        val summaries: List<SessionSummary> = emptyList(),
         val routines: List<Routine>,
         val exercises: Map<String, Exercise>,
         val preferences: SchedulePreferences,

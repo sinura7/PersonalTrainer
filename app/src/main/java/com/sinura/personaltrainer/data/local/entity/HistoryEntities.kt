@@ -9,6 +9,8 @@ data class BodyweightEntryEntity(
     @PrimaryKey val epochDay: Long,
     val kg: Double,
     val recordedAtMs: Long,
+    val zoneId: String = "UTC",
+    val offsetSeconds: Int = 0,
 )
 
 @Entity(

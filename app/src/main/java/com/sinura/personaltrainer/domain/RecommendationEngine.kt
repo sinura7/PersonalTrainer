@@ -37,6 +37,7 @@ data class TrainingRecommendation(
     val actionExerciseId: String? = null,
     val actionExerciseName: String? = null,
     val rankScore: Int,
+    val trace: RuleTrace? = null,
 ) {
     /**
      * Whether tapping this card can actually take the user somewhere.

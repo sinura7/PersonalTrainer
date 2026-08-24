@@ -147,7 +147,7 @@ forever.
 | T7 | **Safety snapshot fails, restore continues** | Closed: a verified snapshot is a restore precondition. Failure aborts before Room is touched. Settings lists, exports, restores through preview, and deletes retained copies. Paths stay off the screen. | Verified snapshot is a restore precondition. Failure aborts. Snapshots are listable/exportable/restorable from Settings. | P3.3 |
 | T8 | **Start versus restore race** | Closed: start, repeat, and restore share the maintenance lock. A start that arrives while a restore journal is open is refused. | One coordinator serializes start/repeat and restore. | P3.4 |
 | T9 | **Process death mid-restore** | Closed: staged/wiping/room/prefs journal. Process start finishes Room-committed work. Failure copy names the committed state. | Journaled phases. Success means the committed state. Failure states are recoverable and named. | P3.4 |
-| T10 | **Scale / whole-document encode** | Measured: 500 sessions / 15,000 sets encode in 230 ms / 4.2 MiB on the JVM host; snapshot+encode 280 ms. Under signed ceilings (2 s / 2 s / 4 s / 8 MiB). Whole-document encode stays. | Measure, then stream only if budgets fail. | P3.7 done; P8.5 if ceilings fail |
+| T10 | **Scale / whole-document encode** | Re-measured at P8.5 on export v5 (empty goals array): 500 / 15,000 still under signed ceilings (2 s / 2 s / 4 s / 8 MiB). Whole-document encode stays. | Measure, then stream only if budgets fail. | P3.7 + P8.5 done |
 | T11 | **Support / diagnostics leak** | `AppLog` is local. No field bundle exists yet. | Default remains no telemetry. Any future bundle is redacted (ADR-009 §16). | P12.1 |
 | T12 | **Commercial privacy copy drift** | No published privacy policy or Play Data Safety narrative. | P12.2 must match this inventory and ADR-009, not the shipping Auto Backup default. | P12.2 |
 
@@ -184,7 +184,7 @@ They must not say:
 | FND-014B | T6 records the catalog-only / authored-count hole | P3.2 |
 | FND-014A | T7 is closed: verified snapshot, Settings recovery | done — P3.3 |
 | FND-014C | T8–T9 are closed: one lock, journaled recover | done — P3.4 |
-| FND-038 | T10 measured; signed ceilings hold | measurement closed — P3.7. Stream in P8.5 only if ceilings fail |
+| FND-038 | T10 re-measured at P8.5; signed ceilings hold | closed — P3.7 + P8.5. No streaming rewrite |
 | FND-030 | T12 records missing commercial privacy copy | P12.2 |
 | FND-012 | Incremental sync remains gated by ADR-009 §14 | Phase 11 after its start gate |
 

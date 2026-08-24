@@ -34,22 +34,23 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.AnalyticsHorizon
 import com.sinura.personaltrainer.domain.DataHealthCopy
+import com.sinura.personaltrainer.domain.HistoryKind
+import com.sinura.personaltrainer.domain.HorizonTotals
 import com.sinura.personaltrainer.domain.PrSummaryRow
+import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.SetCopy
+import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
-import com.sinura.personaltrainer.domain.ActivitySession
-import com.sinura.personaltrainer.domain.HistoryKind
-import com.sinura.personaltrainer.domain.WorkoutSession
-import com.sinura.personaltrainer.domain.cardioMinutes
-import com.sinura.personaltrainer.domain.strengthWork
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.HairlineDivider
+import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
@@ -69,9 +70,7 @@ import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.workout.StartOptionsSheet
 import com.sinura.personaltrainer.util.toYearMonth
 import java.text.DateFormat
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Date
 
@@ -125,6 +124,11 @@ fun HistoryScreen(
                 style = InstrumentType.display,
                 color = TextPrimary,
             )
+            HorizonPicker(
+                horizon = state.horizon,
+                totals = state.horizonTotals,
+                onSelect = viewModel::setHorizon,
+            )
 
             when {
                 state.isLoading -> {
@@ -141,7 +145,7 @@ fun HistoryScreen(
                             .padding(Metrics.gutter),
                     )
                 }
-                state.sessions.isEmpty() && state.activities.isEmpty() -> {
+                state.summaries.isEmpty() -> {
                     EmptyState(
                         title = "No sessions yet",
                         body = "Finish a workout or log cardio and it lands here.",
@@ -285,17 +289,12 @@ fun HistoryScreen(
 
     val dayEpoch = selectedDayEpoch
     if (dayEpoch != null) {
-        val zone = remember { ZoneId.systemDefault() }
-        val daySessions = state.sessions.filter { session ->
-            Instant.ofEpochMilli(session.date).atZone(zone).toLocalDate().toEpochDay() == dayEpoch
-        }
-        val dayActivities = state.activities.filter { it.localEpochDay == dayEpoch }
-        if (daySessions.isEmpty() && dayActivities.isEmpty()) {
+        val daySummaries = state.summaries.filter { it.localEpochDay == dayEpoch }
+        if (daySummaries.isEmpty()) {
             selectedDayEpoch = null
         } else {
             DaySessionsSheet(
-                sessions = daySessions,
-                activities = dayActivities,
+                summaries = daySummaries,
                 dateLabel = DAY_FORMAT.format(LocalDate.ofEpochDay(dayEpoch)),
                 unit = unit,
                 dateFormat = dateFormat,
@@ -343,11 +342,62 @@ fun HistoryScreen(
  * look exactly like one. This is the disambiguation, and it exists so that tapping a day is
  * never a guess about which workout you are about to open.
  */
+@Composable
+private fun HorizonPicker(
+    horizon: AnalyticsHorizon,
+    totals: HorizonTotals?,
+    onSelect: (AnalyticsHorizon) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Metrics.gutter)
+            .padding(bottom = Metrics.space3),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+            AnalyticsHorizon.entries.forEach { entry ->
+                InstrumentChip(
+                    label = entry.label,
+                    selected = horizon == entry,
+                    onClick = { onSelect(entry) },
+                )
+            }
+        }
+        totals?.let { numbers ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space5),
+            ) {
+                MetricCluster(
+                    value = numbers.sessionCount.toString(),
+                    label = "sessions",
+                    horizontalAlignment = Alignment.Start,
+                )
+                MetricCluster(
+                    value = numbers.trainedDays.toString(),
+                    label = "days",
+                    horizontalAlignment = Alignment.Start,
+                )
+                MetricCluster(
+                    value = numbers.workingSets.toString(),
+                    label = "sets",
+                    horizontalAlignment = Alignment.Start,
+                )
+                MetricCluster(
+                    value = numbers.activeMinutes.toString(),
+                    label = "min",
+                    horizontalAlignment = Alignment.Start,
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DaySessionsSheet(
-    sessions: List<WorkoutSession>,
-    activities: List<ActivitySession>,
+    summaries: List<SessionSummary>,
     dateLabel: String,
     unit: WeightUnit,
     dateFormat: DateFormat,
@@ -366,33 +416,31 @@ private fun DaySessionsSheet(
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
                 Kicker(dateLabel)
                 Text(
-                    "${sessions.size + activities.size} sessions",
+                    "${summaries.size} sessions",
                     style = InstrumentType.title,
                     color = TextPrimary,
                 )
             }
             GroupedList {
-                sessions.forEachIndexed { index, session ->
+                summaries.forEachIndexed { index, summary ->
                     if (index > 0) HairlineDivider()
                     SessionLogRow(
-                        title = session.routineName ?: "Workout",
-                        dateLabel = dateFormat.format(Date(session.date)),
-                        workingSets = session.sets.count { !it.isWarmup },
-                        work = remember(session) { session.work() },
-                        durationMinutes = session.durationMinutes,
-                        onClick = { onOpenSession(session.id) },
-                        unit = unit,
-                    )
-                }
-                activities.forEachIndexed { index, activity ->
-                    if (index > 0 || sessions.isNotEmpty()) HairlineDivider()
-                    SessionLogRow(
-                        title = activity.title,
-                        dateLabel = dateFormat.format(Date(activity.performedStart.instantMillis)),
-                        workingSets = activity.strengthSetCount(),
-                        work = remember(activity) { activity.strengthWork() },
-                        durationMinutes = activity.cardioMinutes(),
-                        onClick = { onOpenActivity(activity.id) },
+                        title = summary.routineName ?: if (summary.kind == HistoryKind.ACTIVITY) {
+                            "Cardio"
+                        } else {
+                            "Workout"
+                        },
+                        dateLabel = dateFormat.format(Date(summary.finishedAt ?: summary.date)),
+                        workingSets = summary.workingSets,
+                        work = SetWork(volumeKg = summary.volumeKg, bodyweightReps = 0),
+                        durationMinutes = summary.durationMinutes,
+                        onClick = {
+                            if (summary.kind == HistoryKind.ACTIVITY) {
+                                onOpenActivity(summary.id)
+                            } else {
+                                onOpenSession(summary.id)
+                            }
+                        },
                         unit = unit,
                     )
                 }

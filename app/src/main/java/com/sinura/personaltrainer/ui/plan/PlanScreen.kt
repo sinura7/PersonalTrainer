@@ -242,6 +242,7 @@ fun PlanScreen(
     onWorkoutStarted: (String) -> Unit,
     onOpenLibrary: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenGoals: () -> Unit = {},
     onLogActivity: (String) -> Unit = {},
     onOpenLiveCardio: (String) -> Unit = {},
     viewModel: PlanViewModel = viewModel(),
@@ -371,6 +372,13 @@ fun PlanScreen(
                             )
                         }
                         Text(week.summary, style = InstrumentType.caption, color = TextTertiary)
+                        TextButton(onClick = onOpenGoals, contentPadding = PaddingValues(0.dp)) {
+                            Text(
+                                "Goals  \u203a",
+                                style = InstrumentType.bodyStrong,
+                                color = TextSecondary,
+                            )
+                        }
                     }
                 }
             }

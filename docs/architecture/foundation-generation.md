@@ -14,8 +14,9 @@ This packet is the one authorized cutover from `TrainerDatabase` v2
    schema folder, new version series that started at 1. P6.1 migrated
    it to version 2 (bodyweight entries and training blocks). P7.1
    migrated it to version 3 (schedule rules, occurrences, missed-work
-   decisions, reminder deliveries). It is not a silent v2→v3 patch of
-   `TrainerDatabase`.
+   decisions, reminder deliveries). P8.1 migrated it to version 4
+   (measurable goals and the bodyweight four-tuple). It is not a silent
+   v2→v3 patch of `TrainerDatabase`.
 2. **`fallbackToDestructiveMigration` remains prohibited** on both
    databases. A migration bug fails closed.
 3. **The activity tables persist [ADR-007](ADR-007-activity-model.md).**
@@ -24,11 +25,12 @@ This packet is the one authorized cutover from `TrainerDatabase` v2
 4. **One live activity is a transactional invariant.**
    `ActivityRepository.confirm` runs [ActivityRules](activity-contract.md)
    inside the same Room transaction as the insert.
-5. **Export version 4 carries planner arrays** (`scheduleRules`,
-   `scheduleOccurrences`, `missedWorkDecisions`, `reminderDeliveries`)
-   on top of version 3's `activities` and `activityTemplates`.
-   v1/v2/v3 files still decode with empty arrays. Live activities are
-   excluded, same rule as unfinished workout sessions.
+5. **Export version 5 carries measurable goals** on top of version 4's
+   planner arrays (`scheduleRules`, `scheduleOccurrences`,
+   `missedWorkDecisions`, `reminderDeliveries`) and version 3's
+   `activities` / `activityTemplates`. v1–v4 files still decode with
+   empty `measurableGoals`. Live activities are excluded, same rule as
+   unfinished workout sessions.
 6. **The signed development reset (P5.6)** requires an off-device export
    acknowledgement and irreversible copy. It integrity-checks and seeds
    `TemperDatabase` *before* deleting `personal_trainer.db` / WAL / SHM.
@@ -46,5 +48,6 @@ This packet is the one authorized cutover from `TrainerDatabase` v2
 FND-002 closed at P6.6: History, calendar, insights, and detail read
 completed activities. FND-019 closed at P6.1: bodyweight and training
 blocks are Room tables on `TemperDatabase` v2. P7.1 migrated that
-generation to v3 without a second wipe. `FoundationGeneration.FROZEN`
-stays true.
+   generation to v3, and P8.1 to v4, without a second wipe.
+   `FoundationGeneration.FROZEN` stays true. Generated `4.json` is
+   committed. Export version is 5.

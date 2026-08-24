@@ -1,10 +1,16 @@
 package com.sinura.personaltrainer.ui.progress
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.RecommendationAction
@@ -12,6 +18,7 @@ import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.Volt
@@ -39,6 +46,39 @@ fun RecommendationCard(
         Kicker(recommendation.kicker)
         Text(recommendation.title, style = InstrumentType.title, color = TextPrimary)
         Text(recommendation.reason, style = InstrumentType.body, color = TextSecondary)
+        recommendation.trace?.let { trace ->
+            var showWhy by remember(recommendation.id) { mutableStateOf(false) }
+            TextButton(onClick = { showWhy = !showWhy }) {
+                Text(
+                    if (showWhy) "Hide why" else "Why",
+                    style = InstrumentType.bodyStrong,
+                    color = Volt,
+                )
+            }
+            if (showWhy) {
+                Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+                    Text(
+                        trace.reasonCodes.joinToString(separator = " · "),
+                        style = InstrumentType.caption,
+                        color = TextSecondary,
+                    )
+                    trace.facts.forEach { fact ->
+                        Text(
+                            "${fact.name}: ${fact.value}",
+                            style = InstrumentType.caption,
+                            color = TextSecondary,
+                        )
+                    }
+                    trace.thresholds.forEach { threshold ->
+                        Text(
+                            "${threshold.name}: ${threshold.value}",
+                            style = InstrumentType.caption,
+                            color = TextSecondary,
+                        )
+                    }
+                }
+            }
+        }
         if (recommendation.hasDestination) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

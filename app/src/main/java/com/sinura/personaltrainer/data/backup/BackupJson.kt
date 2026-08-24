@@ -13,7 +13,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 object BackupJson {
-    const val CURRENT_VERSION = 4
+    const val CURRENT_VERSION = 5
     const val APP_ID = "personal-trainer"
     const val FOLDER_NAME = "PersonalTrainer Backups"
     const val FILE_PREFIX = "personal-trainer-backup-"
@@ -62,6 +62,7 @@ object BackupJson {
             scheduleOccurrences = document.scheduleOccurrences.sortedBy { it.id },
             missedWorkDecisions = document.missedWorkDecisions.sortedBy { it.weekStartEpochDay },
             reminderDeliveries = document.reminderDeliveries.sortedBy { it.id },
+            measurableGoals = document.measurableGoals.sortedBy { it.id },
         )
         return gsonPretty.toJson(sorted) + "\n"
     }
@@ -133,6 +134,7 @@ object BackupJson {
             scheduleOccurrences = gsonPretty.fromJsonList(root, "scheduleOccurrences", Array<BackupScheduleOccurrence>::class.java),
             missedWorkDecisions = gsonPretty.fromJsonList(root, "missedWorkDecisions", Array<BackupMissedWorkDecision>::class.java),
             reminderDeliveries = gsonPretty.fromJsonList(root, "reminderDeliveries", Array<BackupReminderDelivery>::class.java),
+            measurableGoals = gsonPretty.fromJsonList(root, "measurableGoals", Array<BackupMeasurableGoal>::class.java),
         ).normalized()
     }
 

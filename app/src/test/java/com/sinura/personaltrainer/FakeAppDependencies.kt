@@ -32,6 +32,7 @@ import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
 import com.sinura.personaltrainer.data.repository.LocalBackupRepository
 import com.sinura.personaltrainer.data.repository.OnboardingApplier
+import com.sinura.personaltrainer.data.repository.GoalRepository
 import com.sinura.personaltrainer.data.repository.PlannerRepository
 import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
@@ -83,6 +84,7 @@ class FakeAppDependencies(
     )
     override val routineRepository: RoutineRepository = RoutineRepository(database.routineDao())
     override val scheduleRepository: ScheduleRepository = ScheduleRepository(database.scheduleDao())
+    override val goalRepository: GoalRepository = GoalRepository(database.goalDao())
     override val plannerRepository: PlannerRepository = PlannerRepository(
         database = database,
         scheduler = NoOpReminderScheduler(),
@@ -163,6 +165,7 @@ class FakeAppDependencies(
         database = database,
         activityDao = database.activityDao(),
         plannerDao = database.plannerDao(),
+        goalDao = database.goalDao(),
         preferencesRepository = preferencesRepository,
         onBeforeRestore = {},
         safetySnapshotDir = safetySnapshotDir,

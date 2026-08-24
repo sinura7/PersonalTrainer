@@ -23,6 +23,10 @@ import com.sinura.personaltrainer.timer.PersistedCardioTimer
 import com.sinura.personaltrainer.util.IdFactory
 import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
+import com.sinura.personaltrainer.domain.DailyProjectionBuilder
+import com.sinura.personaltrainer.domain.GoalCopy
+import com.sinura.personaltrainer.domain.GoalProgress
+import com.sinura.personaltrainer.domain.GoalSnapshot
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.Routine
@@ -68,6 +72,7 @@ data class HomeUiState(
     val agenda: List<com.sinura.personaltrainer.domain.AgendaItem> = emptyList(),
     val missedWorkPrompt: Boolean = false,
     val overdueCount: Int = 0,
+    val goalSnapshot: GoalSnapshot? = null,
 )
 
 class HomeViewModel @JvmOverloads constructor(
@@ -81,20 +86,31 @@ class HomeViewModel @JvmOverloads constructor(
         container.workoutRepository.observeInProgress(),
         actionError,
         combine(
-            container.preferencesRepository.trainingBlock,
-            container.preferencesRepository.lighterWeekStartEpochDay,
             combine(
-                container.plannerRepository.observeOccurrences(),
-                container.plannerRepository.observeRules(),
-                container.plannerRepository.observeDecisions(),
-            ) { occurrences, rules, decisions -> Triple(occurrences, rules, decisions) },
-        ) { block, lighterStart, planner -> Triple(block, lighterStart, planner) },
+                container.preferencesRepository.trainingBlock,
+                container.preferencesRepository.lighterWeekStartEpochDay,
+                combine(
+                    container.plannerRepository.observeOccurrences(),
+                    container.plannerRepository.observeRules(),
+                    container.plannerRepository.observeDecisions(),
+                ) { occurrences, rules, decisions -> Triple(occurrences, rules, decisions) },
+            ) { block, lighterStart, planner -> Triple(block, lighterStart, planner) },
+            combine(
+                container.goalRepository.observeAll(),
+                container.preferencesRepository.schedulePreferences,
+                container.preferencesRepository.bodyweightLog,
+                container.workoutRepository.observeBestWorkingWeights(),
+            ) { goals, preferences, log, bests ->
+                GoalInputs(goals, preferences, log.lastOrNull()?.kg, bests)
+            },
+        ) { plannerBlock, goals -> plannerBlock to goals },
     ) { insights, inProgress, error, extras ->
-        val block = extras.first
-        val lighterStart = extras.second
-        val occurrences = extras.third.first
-        val rules = extras.third.second
-        val decisions = extras.third.third
+        val block = extras.first.first
+        val lighterStart = extras.first.second
+        val occurrences = extras.first.third.first
+        val rules = extras.first.third.second
+        val decisions = extras.first.third.third
+        val goalInputs = extras.second
         val today = todayEpochDay()
         val now = JvmTime.captureNow()
         val nowMinutes = DailyAgenda.minutesOfDay(
@@ -113,7 +129,9 @@ class HomeViewModel @JvmOverloads constructor(
             isLoading = false,
             inProgress = inProgress,
             routines = insights.routines,
-            recentSessions = insights.history.take(3),
+            recentSessions = insights.history
+                .sortedByDescending { it.performedAtMs() }
+                .take(3),
             readyToProgress = insights.hints,
             heatSnapshot = insights.snapshot,
             // Home already devotes a section to the ready-to-progress lifts, so the card that
@@ -122,10 +140,7 @@ class HomeViewModel @JvmOverloads constructor(
                 rec.id == "progression-ready" && insights.hints.isNotEmpty()
             },
             weekPlan = insights.weekPlan,
-            loggedEpochDays = insights.history
-                .filter { it.isFinished }
-                .map { todayEpochDay(it.date) }
-                .toSet(),
+            loggedEpochDays = insights.summaries.map { it.localEpochDay }.toSet(),
             block = block,
             lighterWeek = LighterWeek.isCurrent(
                 lighterStart,
@@ -135,6 +150,19 @@ class HomeViewModel @JvmOverloads constructor(
             agenda = DailyAgenda.forDay(today, occurrences, rules),
             missedWorkPrompt = MissedWorkPolicy.promptNeeded(overdue, decision),
             overdueCount = overdue.size,
+            goalSnapshot = GoalCopy.featured(
+                goalInputs.goals.map { goal ->
+                    GoalProgress.measure(
+                        goal = goal,
+                        projections = DailyProjectionBuilder.project(insights.summaries),
+                        today = CivilDate.fromEpochDay(today),
+                        weekStart = goalInputs.preferences.weekStart,
+                        trainingDaysPerWeek = goalInputs.preferences.trainingDaysPerWeek,
+                        latestBodyweightKg = goalInputs.latestBodyweightKg,
+                        liftBestKg = goal.exerciseId?.let { goalInputs.bestWeights[it] },
+                    )
+                },
+            ),
         )
     }
         // Same reason as Plan: this transform walks every finished session to build the logged
@@ -337,4 +365,11 @@ class HomeViewModel @JvmOverloads constructor(
     }
 
     data class BlockedStart(val day: SuggestedTrainingDay, val sessionId: String)
+
+    private data class GoalInputs(
+        val goals: List<com.sinura.personaltrainer.domain.MeasurableGoal>,
+        val preferences: com.sinura.personaltrainer.domain.SchedulePreferences,
+        val latestBodyweightKg: Double?,
+        val bestWeights: Map<String, Double>,
+    )
 }

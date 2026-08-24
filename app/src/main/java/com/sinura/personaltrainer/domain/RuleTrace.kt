@@ -1,0 +1,77 @@
+package com.sinura.personaltrainer.domain
+
+/**
+ * Structured local explanation (ADR-008 / P8.4). Produced with the
+ * advice. A later API may narrate this object; it may not invent a
+ * new load or plan.
+ */
+data class TraceFact(
+    val name: String,
+    val value: String,
+)
+
+data class TraceThreshold(
+    val name: String,
+    val value: String,
+)
+
+data class RuleTrace(
+    val ruleId: String,
+    val version: Int = VERSION,
+    val action: String,
+    val reasonCodes: List<String>,
+    val evidenceStartEpochDay: Long,
+    val evidenceEndEpochDay: Long,
+    val facts: List<TraceFact>,
+    val thresholds: List<TraceThreshold>,
+    val alternatives: List<String>,
+    val generatedAtMs: Long,
+) {
+    companion object {
+        const val VERSION = 1
+
+        fun forRecommendation(
+            recommendation: TrainingRecommendation,
+            nowMs: Long,
+            evidenceStartEpochDay: Long,
+            evidenceEndEpochDay: Long,
+        ): RuleTrace = RuleTrace(
+            ruleId = recommendation.id,
+            version = VERSION,
+            action = recommendation.action?.name ?: "NONE",
+            reasonCodes = listOf(recommendation.kicker),
+            evidenceStartEpochDay = evidenceStartEpochDay,
+            evidenceEndEpochDay = evidenceEndEpochDay,
+            facts = listOf(
+                TraceFact("title", recommendation.title),
+                TraceFact("reason", recommendation.reason),
+            ),
+            thresholds = emptyList(),
+            alternatives = emptyList(),
+            generatedAtMs = nowMs,
+        )
+
+        fun forHint(hint: ProgressionHint, nowMs: Long, todayEpochDay: Long): RuleTrace =
+            RuleTrace(
+                ruleId = "progression-${hint.exerciseId}",
+                version = VERSION,
+                action = hint.action.name,
+                reasonCodes = buildList {
+                    add(hint.action.name)
+                    if (hint.rpeHold) add("RPE_HOLD")
+                    if (hint.lighterHold) add("LIGHTER_HOLD")
+                },
+                evidenceStartEpochDay = todayEpochDay,
+                evidenceEndEpochDay = todayEpochDay,
+                facts = listOf(
+                    TraceFact("exercise", hint.exerciseName),
+                    TraceFact("lastWeightKg", hint.lastWeightKg.toString()),
+                    TraceFact("suggestedWeightKg", hint.suggestedWeightKg.toString()),
+                    TraceFact("lastReps", hint.lastReps.toString()),
+                ),
+                thresholds = listOf(TraceThreshold("targetReps", hint.targetReps.toString())),
+                alternatives = emptyList(),
+                generatedAtMs = nowMs,
+            )
+    }
+}

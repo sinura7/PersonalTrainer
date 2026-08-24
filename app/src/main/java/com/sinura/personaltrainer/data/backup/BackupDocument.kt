@@ -34,6 +34,8 @@ data class BackupDocument(
     val scheduleOccurrences: List<BackupScheduleOccurrence> = emptyList(),
     val missedWorkDecisions: List<BackupMissedWorkDecision> = emptyList(),
     val reminderDeliveries: List<BackupReminderDelivery> = emptyList(),
+    /** v5 measurable goals (P8.2). Defaulted so v1–v4 files still decode. */
+    val measurableGoals: List<BackupMeasurableGoal> = emptyList(),
 ) {
     /**
      * Whether the owner of this backup has plainly already been through the guided setup.
@@ -341,6 +343,22 @@ data class BackupReminderDelivery(
     val occurrenceId: String,
     val scheduledAtMs: Long,
     val status: String,
+    val createdAtMs: Long,
+    val updatedAtMs: Long,
+)
+
+data class BackupMeasurableGoal(
+    val id: String,
+    val kind: String,
+    val targetValue: Double,
+    val exerciseId: String? = null,
+    val exerciseName: String? = null,
+    val period: String,
+    val instantMs: Long,
+    val zoneId: String,
+    val offsetSeconds: Int,
+    val localEpochDay: Long,
+    val paused: Boolean = false,
     val createdAtMs: Long,
     val updatedAtMs: Long,
 )

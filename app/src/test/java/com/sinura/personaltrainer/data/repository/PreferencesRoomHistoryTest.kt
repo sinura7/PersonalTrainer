@@ -33,7 +33,10 @@ class PreferencesRoomHistoryTest {
     fun recordBodyweightWritesRoomAndReadsItBack() = runBlocking {
         deps.preferencesRepository.recordBodyweight(82.5, 20_000L)
         val log = deps.preferencesRepository.bodyweightLog.first()
-        assertEquals(listOf(BodyweightEntry(20_000L, 82.5)), log)
+        assertEquals(1, log.size)
+        assertEquals(20_000L, log.single().epochDay)
+        assertEquals(82.5, log.single().kg, 0.0)
+        assertTrue(log.single().zoneId.isNotBlank())
         assertEquals(1, deps.database.bodyweightDao().count())
     }
 
@@ -48,7 +51,17 @@ class PreferencesRoomHistoryTest {
 
     @Test
     fun importCopiesEncodedDataStoreHistoryOnce() = runBlocking {
-        val isolated = PreferencesRepository(ApplicationProvider.getApplicationContext())
+        val isolated = PreferencesRepository(
+            ApplicationProvider.getApplicationContext(),
+            androidx.datastore.preferences.core.PreferenceDataStoreFactory.create(
+                produceFile = {
+                    java.io.File(
+                        ApplicationProvider.getApplicationContext<Context>().cacheDir,
+                        "isolated-prefs-${System.nanoTime()}.preferences_pb",
+                    )
+                },
+            ),
+        )
         isolated.recordBodyweight(80.0, 19_000L)
         isolated.beginBlock(TrainingBlock(19_000L, 12), 19_000L)
 

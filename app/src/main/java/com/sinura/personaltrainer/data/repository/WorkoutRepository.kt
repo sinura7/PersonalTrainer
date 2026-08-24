@@ -96,6 +96,38 @@ class WorkoutRepository(
     fun observeHistory(): Flow<List<WorkoutSession>> =
         observeHistoryHealth().presentValues()
 
+    fun observeSessionSummaries(): Flow<List<com.sinura.personaltrainer.domain.SessionSummary>> =
+        workoutDao.observeSessionSummaries().map { rows ->
+            rows.map { row ->
+                com.sinura.personaltrainer.domain.SessionSummary(
+                    id = row.id,
+                    routineId = row.routineId,
+                    routineName = row.routineName,
+                    date = row.date,
+                    finishedAt = row.finishedAt,
+                    durationMinutes = row.durationMinutes,
+                    workingSets = row.workingSets,
+                    volumeKg = row.volumeKg,
+                    localEpochDay = com.sinura.personaltrainer.util.JvmTime
+                        .civilDate(row.date).epochDay,
+                )
+            }
+        }
+
+    fun observeSessionSummariesHealth(): Flow<DataHealth<List<com.sinura.personaltrainer.domain.SessionSummary>>> =
+        observeSessionSummaries().observeHealth("workout history")
+
+    fun observeBestWorkingWeights(): Flow<Map<String, Double>> =
+        workoutDao.observeBestWorkingWeights().map { rows ->
+            rows.associate { it.exerciseId to it.bestKg }
+        }
+
+    fun observeFinishedSince(minDateMs: Long): Flow<List<WorkoutSession>> =
+        workoutDao.observeFinishedSessionsSince(minDateMs).map { list -> list.map { it.toDomain() } }
+
+    suspend fun sessionsBetween(minDateMs: Long, maxDateMs: Long): List<WorkoutSession> =
+        workoutDao.getFinishedSessionsBetween(minDateMs, maxDateMs).map { it.toDomain() }
+
     fun observeSession(id: String): Flow<WorkoutSession?> =
         workoutDao.observeSession(id).map { it?.toDomain() }
             .observeHealth("the active session")

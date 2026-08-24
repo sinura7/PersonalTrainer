@@ -8,6 +8,7 @@ import androidx.room.Transaction
 import androidx.room.Update
 import com.sinura.personaltrainer.data.local.entity.ExerciseRecencyRow
 import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
+import com.sinura.personaltrainer.data.local.entity.SessionSummaryRow
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
 import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
@@ -18,6 +19,29 @@ interface WorkoutDao {
     @Transaction
     @Query("SELECT * FROM workout_sessions WHERE finishedAt IS NOT NULL ORDER BY date DESC")
     fun observeFinishedSessions(): Flow<List<SessionWithDetails>>
+
+    @Query(
+        """
+        SELECT s.id AS id, s.routineId AS routineId, s.routineName AS routineName,
+               s.date AS date, s.finishedAt AS finishedAt, s.durationMinutes AS durationMinutes,
+               COALESCE(SUM(CASE WHEN l.isWarmup = 0 THEN 1 ELSE 0 END), 0) AS workingSets,
+               COALESCE(SUM(CASE WHEN l.isWarmup = 0 THEN l.weightKg * l.reps ELSE 0 END), 0) AS volumeKg
+        FROM workout_sessions s
+        LEFT JOIN set_logs l ON l.sessionId = s.id
+        WHERE s.finishedAt IS NOT NULL
+        GROUP BY s.id
+        ORDER BY s.date DESC
+        """,
+    )
+    fun observeSessionSummaries(): Flow<List<SessionSummaryRow>>
+
+    @Transaction
+    @Query("SELECT * FROM workout_sessions WHERE finishedAt IS NOT NULL AND date >= :minDateMs ORDER BY date DESC")
+    fun observeFinishedSessionsSince(minDateMs: Long): Flow<List<SessionWithDetails>>
+
+    @Transaction
+    @Query("SELECT * FROM workout_sessions WHERE finishedAt IS NOT NULL AND date >= :minDateMs AND date <= :maxDateMs ORDER BY date DESC")
+    suspend fun getFinishedSessionsBetween(minDateMs: Long, maxDateMs: Long): List<SessionWithDetails>
 
     @Transaction
     @Query("SELECT * FROM workout_sessions WHERE id = :id")
@@ -222,6 +246,22 @@ interface WorkoutDao {
         """,
     )
     suspend fun lastTargetReps(exerciseId: String): Int?
+
+    /**
+     * Best finished working weight per lift. One aggregate, no set graph
+     * (P8.2 lift-target goals).
+     */
+    @Query(
+        """
+        SELECT sl.exerciseId AS exerciseId, MAX(sl.weightKg) AS bestKg
+        FROM set_logs sl
+        JOIN workout_sessions ws ON ws.id = sl.sessionId
+        WHERE sl.isWarmup = 0
+          AND ws.finishedAt IS NOT NULL
+        GROUP BY sl.exerciseId
+        """,
+    )
+    fun observeBestWorkingWeights(): Flow<List<ExerciseBestWeightRow>>
 
     @Query("SELECT COUNT(*) FROM set_logs WHERE exerciseId = :exerciseId")
     suspend fun countSetsForExercise(exerciseId: String): Int

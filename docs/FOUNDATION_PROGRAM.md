@@ -668,18 +668,29 @@ Implements [ADR-007](architecture/ADR-007-activity-model.md),
 
 **Milestone: Offline Planner Beta.**
 
-### Phase 8 — Measurable goals, bounded analytics, rule traces, and scale · pending
+### Phase 8 — Measurable goals, bounded analytics, rule traces, and scale · done
 
-- **P8.1** Deterministic daily projections and paging. Home/Plan no
-  longer materialize every set. Addresses FND-010.
+- **P8.1** Deterministic daily projections and paging. · **done**
+  Home/Plan read session summaries, not every set. Goals and
+  bodyweight persist the ADR-011 four-tuple. Addresses FND-010 and
+  the remaining FND-039 write path.
 - **P8.2** Typed measurable goals: adherence, session count, active
   minutes, lift target, cardio duration/distance, optional bodyweight.
-  No punitive streaks. Not a fifth tab.
-- **P8.3** Comparable horizons including year and all-time. Closes
-  FND-009.
-- **P8.4** Structured local `RuleTrace`. No remote API in this packet.
+  · **done**
+  No punitive streaks. Pushed route from Home/Plan, not a fifth tab.
+  Home shows at most one compact snapshot.
+- **P8.3** Comparable horizons including year and all-time. · **done**
+  History chips: This week / This month / This year / All time.
+  Body heat stays This week / Last 30 days. Closes FND-009.
+- **P8.4** Structured local `RuleTrace`. · **done**
+  Recommendations and progression hints emit a trace. UI renders
+  Why offline. No remote API.
 - **P8.5** Performance and bounded export on a reference dataset of at
-  least 500 sessions / 15,000 sets. Closes FND-010 and FND-038.
+  least 500 sessions / 15,000 sets. · **done**
+  Whole-document encode stays. Ceilings still hold. Closes FND-010
+  and FND-038.
+  Evidence:
+  [P8.1–P8.5 evidence](foundation-program/evidence/P8.1-P8.5-local-fitness.md).
 
 **Milestone: Complete Local Fitness Beta.**
 

@@ -67,6 +67,7 @@ import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.history.HistoryScreen
 import com.sinura.personaltrainer.ui.exercise.ExerciseDetailScreen
 import com.sinura.personaltrainer.ui.history.SessionDetailScreen
+import com.sinura.personaltrainer.ui.goals.GoalsScreen
 import com.sinura.personaltrainer.ui.home.HomeScreen
 import com.sinura.personaltrainer.ui.library.ExerciseLibraryScreen
 import com.sinura.personaltrainer.ui.progress.ProgressScreen
@@ -124,6 +125,7 @@ sealed class Route(val path: String) {
         fun create(activityId: String): String = "activity-summary/$activityId"
     }
     data object Settings : Route("settings")
+    data object Goals : Route("goals")
     data object Progress : Route("progress")
     data object Library : Route("library") {
         /**
@@ -420,6 +422,7 @@ fun PersonalTrainerNav(
                         onOpenHistory = { goToTab(Route.History.path) },
                         onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
                         onOpenSettings = { navController.navigate(Route.Settings.path) },
+                        onOpenGoals = { navController.navigate(Route.Goals.path) },
                     )
                 }
                 composable(Route.Progress.path) {
@@ -465,6 +468,9 @@ fun PersonalTrainerNav(
                         viewModel = settingsViewModel,
                     )
                 }
+                composable(Route.Goals.path) {
+                    GoalsScreen(onBack = { navController.popBackStack() })
+                }
                 composable(Route.Routines.path) {
                     PlanScreen(
                         onCreateRoutine = { navController.navigate(Route.RoutineEditor.create("new")) },
@@ -478,6 +484,7 @@ fun PersonalTrainerNav(
                         },
                         onOpenLibrary = { navController.navigate(Route.Library.create(null)) },
                         onOpenSettings = { navController.navigate(Route.Settings.path) },
+                        onOpenGoals = { navController.navigate(Route.Goals.path) },
                         onLogActivity = { mode ->
                             navController.navigate(Route.ActivityComposer.create(mode))
                         },

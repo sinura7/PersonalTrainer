@@ -120,6 +120,69 @@ object TrainingCalendarBuilder {
         )
     }
 
+    /**
+     * Same month grid from session summaries — no set graph (P8.1).
+     *
+     * Attribution uses each summary's captured [SessionSummary.localEpochDay],
+     * not the device zone of the later read.
+     */
+    fun buildSummaries(
+        month: CivilYearMonth,
+        summaries: List<SessionSummary>,
+        weekStart: Weekday = Weekday.MONDAY,
+    ): TrainingMonth {
+        val byDate = summaries.groupBy { CivilDate.fromEpochDay(it.localEpochDay) }
+        val inMonthDates = byDate.keys
+            .filter { CivilYearMonth.from(it) == month }
+            .toSet()
+        val busiest = inMonthDates.maxOfOrNull { date ->
+            byDate[date].orEmpty().sumOf { it.workingSets }
+        } ?: 0
+
+        val first = month.atDay(1).previousOrSame(weekStart)
+        val lastDayOfMonth = month.atEndOfMonth()
+        val weeks = mutableListOf<List<CalendarDay>>()
+        var cursor = first
+        while (cursor <= lastDayOfMonth) {
+            weeks += (0 until DAYS_IN_WEEK).map { offset ->
+                val date = cursor.plusDays(offset.toLong())
+                val dayRows = byDate[date].orEmpty()
+                val sets = dayRows.sumOf { it.workingSets }
+                CalendarDay(
+                    date = date,
+                    inMonth = CivilYearMonth.from(date) == month,
+                    sessionIds = dayRows.filter { it.kind != HistoryKind.ACTIVITY }.map { it.id },
+                    activityIds = dayRows.filter { it.kind == HistoryKind.ACTIVITY }.map { it.id },
+                    work = SetWork(
+                        volumeKg = dayRows.sumOf { it.volumeKg },
+                        bodyweightReps = 0,
+                    ),
+                    intensity = if (busiest > 0) {
+                        (sets.toDouble() / busiest).toFloat().coerceIn(0f, 1f)
+                    } else {
+                        0f
+                    },
+                )
+            }
+            cursor = cursor.plusDays(DAYS_IN_WEEK.toLong())
+        }
+
+        return TrainingMonth(
+            month = month,
+            weeks = weeks,
+            trainedDays = inMonthDates.size,
+            work = SetWork(
+                volumeKg = inMonthDates.sumOf { date ->
+                    byDate[date].orEmpty().sumOf { it.volumeKg }
+                },
+                bodyweightReps = 0,
+            ),
+            workingSets = inMonthDates.sumOf { date ->
+                byDate[date].orEmpty().sumOf { it.workingSets }
+            },
+        )
+    }
+
     /** Column headings, in the order [build] lays the weeks out. */
     fun weekdayOrder(weekStart: Weekday): List<Weekday> =
         (0 until DAYS_IN_WEEK).map { weekStart.plus(it.toLong()) }

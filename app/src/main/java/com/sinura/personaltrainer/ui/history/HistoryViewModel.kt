@@ -6,25 +6,33 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.repository.RepeatOutcome
-import com.sinura.personaltrainer.domain.DataHealth
-import com.sinura.personaltrainer.domain.PrSummaryRow
+import com.sinura.personaltrainer.domain.AnalyticsHorizon
 import com.sinura.personaltrainer.domain.ActivitySession
+import com.sinura.personaltrainer.domain.BlockReview
+import com.sinura.personaltrainer.domain.BlockReviewBuilder
+import com.sinura.personaltrainer.domain.BodyweightEntry
+import com.sinura.personaltrainer.domain.CivilDate
+import com.sinura.personaltrainer.domain.DailyProjectionBuilder
+import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.HistoryMonthGroup
+import com.sinura.personaltrainer.domain.HorizonMath
+import com.sinura.personaltrainer.domain.HorizonTotals
+import com.sinura.personaltrainer.domain.PrSummaryRow
+import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.TrainingCalendarBuilder
+import com.sinura.personaltrainer.domain.TrainingBlock
+import com.sinura.personaltrainer.domain.TrainingMonth
+import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.groupHistoryByMonth
 import com.sinura.personaltrainer.domain.prSummary
 import com.sinura.personaltrainer.domain.toHistoryEntry
 import com.sinura.personaltrainer.domain.toInsightSession
-import com.sinura.personaltrainer.domain.BlockReview
-import com.sinura.personaltrainer.domain.BodyweightEntry
-import com.sinura.personaltrainer.domain.BlockReviewBuilder
-import com.sinura.personaltrainer.domain.SchedulePreferences
-import com.sinura.personaltrainer.domain.TrainingBlock
-import com.sinura.personaltrainer.domain.WeightUnit
-import com.sinura.personaltrainer.domain.TrainingMonth
-import com.sinura.personaltrainer.domain.Weekday
-import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.domain.toSummary
+import com.sinura.personaltrainer.domain.todayEpochDay
+import com.sinura.personaltrainer.insights.TrainingInsightsSource
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.util.toCivilYearMonth
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +43,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -44,26 +53,16 @@ data class HistoryUiState(
     val isLoading: Boolean = true,
     val unavailable: Boolean = false,
     val stale: Boolean = false,
-    val sessions: List<WorkoutSession> = emptyList(),
-    val activities: List<ActivitySession> = emptyList(),
-    /** The same sessions, grouped for the list. Derived, never a second query. */
+    val summaries: List<SessionSummary> = emptyList(),
     val monthGroups: List<HistoryMonthGroup> = emptyList(),
-    /** The standing records, newest first — what History could never tell you before. */
     val records: List<PrSummaryRow> = emptyList(),
     val calendar: TrainingMonth = TrainingMonth(month = YearMonth.now().toCivilYearMonth()),
     val weekStart: Weekday = Weekday.MONDAY,
-    /** Blocks already finished, newest first. Empty until one has been. */
     val pastBlocks: List<FinishedBlock> = emptyList(),
+    val horizon: AnalyticsHorizon = AnalyticsHorizon.MONTH,
+    val horizonTotals: HorizonTotals? = null,
 )
 
-/**
- * A finished block and what it came to.
- *
- * The review is rebuilt from the session history each time rather than stored: the archive
- * keeps two numbers per block, and every session those numbers span is still in the database.
- * A stored summary would be a second source of truth that went stale the moment an old session
- * was edited — and editing an old session is a thing this app deliberately allows.
- */
 data class FinishedBlock(
     val block: TrainingBlock,
     val review: BlockReview,
@@ -74,17 +73,9 @@ class HistoryViewModel @JvmOverloads constructor(
     application: Application,
     container: AppDependencies = application.appContainer(),
 ) : AppViewModel(application, container) {
-    /**
-     * Which month the calendar is showing. Held in the ViewModel rather than the composition so
-     * paging back through a year survives rotation and process death.
-     */
     private val visibleMonth = MutableStateFlow(YearMonth.now())
+    private val horizon = MutableStateFlow(AnalyticsHorizon.MONTH)
 
-    /**
-     * One-shot navigation held as state rather than a captured callback: the repeat writes a
-     * session row before the destination is known, and a lambda captured into that coroutine
-     * belongs to a composition that may already be gone.
-     */
     private val _navigateToSession = MutableStateFlow<String?>(null)
     val navigateToSession: StateFlow<String?> = _navigateToSession.asStateFlow()
 
@@ -96,59 +87,95 @@ class HistoryViewModel @JvmOverloads constructor(
 
     private val historyRetry = MutableStateFlow(0)
 
-    val uiState: StateFlow<HistoryUiState> = historyRetry.flatMapLatest {
-        combine(
-            combine(
-                container.workoutRepository.observeHistoryHealth(),
-                container.activityRepository.observeCompleted(),
-            ) { health, activities -> health to activities },
-            combine(
-                container.preferencesRepository.schedulePreferences,
-                container.preferencesRepository.pastBlocks,
-                container.preferencesRepository.weightUnit,
-                container.preferencesRepository.bodyweightLog,
-            ) { preferences, blocks, unit, log -> Settings(preferences, blocks, unit, log) },
-            visibleMonth,
-        ) { historyAndActivities, settings, month ->
-            val health = historyAndActivities.first
-            val activities = historyAndActivities.second
-            val list = historyListFromHealth(health)
-            if (list.unavailable) {
-                return@combine HistoryUiState(isLoading = false, unavailable = true)
-            }
-            val sessions = list.sessions
-            val insightSessions = sessions + activities.mapNotNull { it.toInsightSession() }
-            val preferences = settings.preferences
-            HistoryUiState(
-                isLoading = false,
-                stale = list.stale,
-                sessions = sessions,
-                activities = activities,
-                monthGroups = groupHistoryByMonth(
-                    sessions.map { it.toHistoryEntry() } + activities.map { it.toHistoryEntry() },
-                ),
-                records = prSummary(insightSessions),
-                calendar = TrainingCalendarBuilder.build(
-                    month = month.toCivilYearMonth(),
-                    sessions = sessions,
-                    activities = activities,
-                    weekStart = preferences.weekStart,
-                ),
-                weekStart = preferences.weekStart,
-                pastBlocks = settings.blocks
+    private val pastBlockReviews = combine(
+        container.preferencesRepository.pastBlocks,
+        container.preferencesRepository.weightUnit,
+        container.preferencesRepository.bodyweightLog,
+    ) { blocks, unit, log -> PastBlockInputs(blocks, unit, log) }
+        .flatMapLatest { inputs ->
+            flow {
+                val zone = JvmTime.defaultZoneId()
+                val reviews = inputs.blocks
                     .asReversed()
                     .map { block ->
+                        val startMs = JvmTime.startOfDayMillis(
+                            CivilDate.fromEpochDay(block.startEpochDay),
+                            zone,
+                        )
+                        val endMs = JvmTime.startOfDayMillis(
+                            CivilDate.fromEpochDay(block.endExclusiveEpochDay),
+                            zone,
+                        ) - 1
+                        val sessions = container.workoutRepository.sessionsBetween(
+                            minDateMs = startMs,
+                            maxDateMs = endMs,
+                        )
                         FinishedBlock(
                             block = block,
                             review = BlockReviewBuilder.build(
                                 block = block,
-                                sessions = insightSessions,
-                                unit = settings.unit,
-                                bodyweightLog = settings.bodyweightLog,
+                                sessions = sessions,
+                                unit = inputs.unit,
+                                bodyweightLog = inputs.bodyweightLog,
                             ),
                         )
                     }
-                    .filterNot { it.review.isEmpty },
+                    .filterNot { it.review.isEmpty }
+                emit(reviews)
+            }
+        }
+
+    val uiState: StateFlow<HistoryUiState> = historyRetry.flatMapLatest {
+        combine(
+            combine(
+                container.workoutRepository.observeSessionSummariesHealth(),
+                container.activityRepository.observeCompleted(),
+                container.workoutRepository.observeFinishedSince(
+                    System.currentTimeMillis() - TrainingInsightsSource.WINDOW_MS,
+                ),
+            ) { health, activities, windowed ->
+                HistoryReads(health, activities, windowed)
+            },
+            combine(
+                container.preferencesRepository.schedulePreferences,
+                pastBlockReviews,
+            ) { preferences, reviews -> preferences to reviews },
+            visibleMonth,
+            horizon,
+        ) { reads, settings, month, selectedHorizon ->
+            val list = historyListFromHealth(reads.health)
+            if (list.unavailable) {
+                return@combine HistoryUiState(isLoading = false, unavailable = true)
+            }
+            val activitySummaries = reads.activities
+                .filter { it.isCompleted }
+                .map { it.toSummary() }
+            val allSummaries = list.summaries + activitySummaries
+            val preferences = settings.first
+            val projections = DailyProjectionBuilder.project(allSummaries)
+            val today = CivilDate.fromEpochDay(todayEpochDay())
+            HistoryUiState(
+                isLoading = false,
+                stale = list.stale,
+                summaries = allSummaries,
+                monthGroups = groupHistoryByMonth(allSummaries.map { it.toHistoryEntry() }),
+                records = prSummary(
+                    reads.windowed + reads.activities.mapNotNull { it.toInsightSession() },
+                ),
+                calendar = TrainingCalendarBuilder.buildSummaries(
+                    month = month.toCivilYearMonth(),
+                    summaries = allSummaries,
+                    weekStart = preferences.weekStart,
+                ),
+                weekStart = preferences.weekStart,
+                pastBlocks = settings.second,
+                horizon = selectedHorizon,
+                horizonTotals = HorizonMath.totals(
+                    horizon = selectedHorizon,
+                    projections = projections,
+                    today = today,
+                    weekStart = preferences.weekStart,
+                ),
             )
         }
     }
@@ -164,18 +191,14 @@ class HistoryViewModel @JvmOverloads constructor(
     }
 
     fun showNextMonth() {
-        // Never past the current month: nothing is ever logged in the future.
         val next = visibleMonth.value.plusMonths(1)
         if (next <= YearMonth.now()) visibleMonth.value = next
     }
 
-    /**
-     * Starts a fresh session shaped like an old one.
-     *
-     * The outcome is three-way on purpose. A repeat that quietly resumed whatever session
-     * happened to be open would be the worst of the three: the lifter taps "Repeat Push Day"
-     * and lands in Tuesday's half-finished Legs, with no signal that anything went wrong.
-     */
+    fun setHorizon(value: AnalyticsHorizon) {
+        horizon.value = value
+    }
+
     fun repeatSession(sessionId: String) {
         viewModelScope.launch {
             runCatchingCancellable { container.workoutRepository.repeatSession(sessionId) }
@@ -215,8 +238,13 @@ class HistoryViewModel @JvmOverloads constructor(
         historyRetry.value += 1
     }
 
-    private data class Settings(
-        val preferences: SchedulePreferences,
+    private data class HistoryReads(
+        val health: DataHealth<List<SessionSummary>>,
+        val activities: List<ActivitySession>,
+        val windowed: List<com.sinura.personaltrainer.domain.WorkoutSession>,
+    )
+
+    private data class PastBlockInputs(
         val blocks: List<TrainingBlock>,
         val unit: WeightUnit,
         val bodyweightLog: List<BodyweightEntry>,
@@ -226,27 +254,26 @@ class HistoryViewModel @JvmOverloads constructor(
 internal data class HistoryListState(
     val unavailable: Boolean,
     val stale: Boolean,
-    val sessions: List<WorkoutSession>,
+    val summaries: List<SessionSummary>,
 )
 
-/** Empty is a successful list. Unavailable is a first-read fault, never emptiness. */
 internal fun historyListFromHealth(
-    health: DataHealth<List<WorkoutSession>>,
+    health: DataHealth<List<SessionSummary>>,
 ): HistoryListState = when (health) {
     is DataHealth.Unavailable -> HistoryListState(
         unavailable = true,
         stale = false,
-        sessions = emptyList(),
+        summaries = emptyList(),
     )
     is DataHealth.Available -> HistoryListState(
         unavailable = false,
         stale = false,
-        sessions = health.value,
+        summaries = health.value,
     )
     is DataHealth.Degraded -> HistoryListState(
         unavailable = false,
         stale = true,
-        sessions = health.lastValue,
+        summaries = health.lastValue,
     )
 }
 

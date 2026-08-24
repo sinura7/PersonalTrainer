@@ -22,6 +22,9 @@ package com.sinura.personaltrainer.domain
 data class BodyweightEntry(
     val epochDay: Long,
     val kg: Double,
+    val recordedAtMs: Long = 0L,
+    val zoneId: String = "",
+    val offsetSeconds: Int = 0,
 )
 
 object BodyweightLog {

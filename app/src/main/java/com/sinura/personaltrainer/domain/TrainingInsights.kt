@@ -40,6 +40,12 @@ data class TrainingInsights(
      */
     val history: List<WorkoutSession> = emptyList(),
 
+    /**
+     * All-time finished sessions without set graphs (P8.1). Home and Plan
+     * read dates and counts from here, never from [history].
+     */
+    val summaries: List<SessionSummary> = emptyList(),
+
     /** Likewise: the routines this pass was computed from. */
     val routines: List<Routine> = emptyList(),
     val snapshot: BodyHeatSnapshot? = null,
@@ -53,6 +59,7 @@ data class TrainingInsights(
 
 data class TrainingInsightsInput(
     val history: List<WorkoutSession>,
+    val summaries: List<SessionSummary> = emptyList(),
     val routines: List<Routine>,
     /**
      * Fallback muscle mapping for sets whose exercise is no longer attached to their session.
@@ -85,9 +92,13 @@ object TrainingInsightsCalculator {
     fun compute(input: TrainingInsightsInput): TrainingInsights {
         val failures = linkedSetOf<InsightFailure>()
 
-        val hints = input.hints ?: run {
+        val todayEpochDay = input.time.civilDate(input.nowMs, input.zoneId).epochDay
+        val evidenceStart = todayEpochDay - 13
+        val hints = (input.hints ?: run {
             failures += InsightFailure.PROGRESSION
             emptyList()
+        }).map { hint ->
+            hint.copy(trace = hint.trace ?: RuleTrace.forHint(hint, input.nowMs, todayEpochDay))
         }
 
         val snapshot = recoverWith(TAG, "The muscle heat snapshot", null) {
@@ -135,7 +146,16 @@ object TrainingInsightsCalculator {
             )
         }.let { derived ->
             if (derived == null) failures += InsightFailure.RECOMMENDATIONS
-            derived.orEmpty()
+            derived.orEmpty().map { rec ->
+                rec.copy(
+                    trace = rec.trace ?: RuleTrace.forRecommendation(
+                        recommendation = rec,
+                        nowMs = input.nowMs,
+                        evidenceStartEpochDay = evidenceStart,
+                        evidenceEndEpochDay = todayEpochDay,
+                    ),
+                )
+            }
         }
 
         // The week is READ here, not invented. The planner used to run on this line, from a
@@ -166,6 +186,11 @@ object TrainingInsightsCalculator {
 
         return TrainingInsights(
             history = input.history,
+            summaries = input.summaries.ifEmpty {
+                input.history.filter { it.isFinished }.map {
+                    it.toSummary(input.time, input.zoneId)
+                }
+            },
             routines = input.routines,
             snapshot = snapshot,
             hints = hints,

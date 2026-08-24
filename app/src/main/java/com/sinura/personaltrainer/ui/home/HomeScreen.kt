@@ -27,6 +27,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.GoalCopy
+import com.sinura.personaltrainer.domain.GoalSnapshot
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.MastheadCopy
@@ -39,6 +41,7 @@ import com.sinura.personaltrainer.domain.nextSessionReason
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.ui.components.GroupedList
+import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.HairlineDivider
@@ -68,6 +71,7 @@ fun HomeScreen(
     onOpenHistory: () -> Unit,
     onOpenExercise: (String) -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenGoals: () -> Unit = {},
     onLogActivity: (String) -> Unit = {},
     onOpenLiveCardio: (String) -> Unit = {},
     pendingOccurrenceStartId: String? = null,
@@ -264,6 +268,13 @@ fun HomeScreen(
                     },
                     onClick = onOpenPlan,
                 )
+                state.goalSnapshot?.let { snapshot ->
+                    GoalSnapshotCard(
+                        snapshot = snapshot,
+                        unit = unit,
+                        onClick = onOpenGoals,
+                    )
+                } ?: LinkRow(label = "Goals", onClick = onOpenGoals)
             }
         }
         if (plan != null) {
@@ -324,6 +335,28 @@ fun HomeScreen(
  * Deliberately quiet: these are the two places Home hands off to another tab, and neither
  * competes with the hero for the eye.
  */
+@Composable
+private fun GoalSnapshotCard(
+    snapshot: GoalSnapshot,
+    unit: WeightUnit,
+    onClick: () -> Unit,
+) {
+    val goal = snapshot.goal
+    GymCard(onClick = onClick) {
+        Kicker(if (goal.paused) "Goal · paused" else "Goal")
+        Text(
+            goal.exerciseName?.takeIf { it.isNotBlank() } ?: goal.kind.label,
+            style = InstrumentType.title,
+            color = TextPrimary,
+        )
+        Text(
+            GoalCopy.progressLine(snapshot, unit),
+            style = InstrumentType.body,
+            color = if (snapshot.met) Volt else TextSecondary,
+        )
+    }
+}
+
 @Composable
 private fun LinkRow(label: String, onClick: () -> Unit, trailing: String? = null) {
     TextButton(onClick = onClick, contentPadding = PaddingValues(0.dp)) {

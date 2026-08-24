@@ -50,7 +50,9 @@ schedules cannot be honest without a captured zone.
   session to the Tokyo local date even if the phone is later in New York.
 - “Today” on Home is the device’s current local date. That is a *now*
   question, not a rewrite of captured history.
-- FND-039 closes only when write paths persist the four-tuple in (1).
+- FND-039 closes when write paths persist the four-tuple in (1). P8.1
+  persists it on goal periods and bodyweight entries; activity and
+  occurrence writes already did.
 
 ## Review questions
 
