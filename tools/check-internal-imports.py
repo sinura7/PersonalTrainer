@@ -40,7 +40,7 @@ TOP_DECL_RE = re.compile(
     r"^(?:@\w+(?:\([^)]*\))?\s*)*"
     # `const` belongs here: a top-level `internal const val` is a perfectly importable
     # declaration, and leaving the modifier out made every import of one read as unresolved.
-    r"(?:public\s+|internal\s+|private\s+|const\s+|expect\s+|actual\s+|open\s+|abstract\s+|sealed\s+|data\s+|value\s+|enum\s+|annotation\s+|inline\s+|suspend\s+|external\s+)*"
+    r"(?:public\s+|internal\s+|private\s+|const\s+|expect\s+|actual\s+|open\s+|abstract\s+|sealed\s+|data\s+|value\s+|enum\s+|annotation\s+|inline\s+|suspend\s+|external\s+|fun\s+)*"
     r"(?:class|object|interface|fun|val|var|typealias)\s+"
     r"(?:<[^>]*>\s+)?"
     r"(?:[\w.<>?]+\.)?"          # receiver on an extension

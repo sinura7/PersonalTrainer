@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
@@ -47,6 +48,10 @@ import com.sinura.personaltrainer.ui.theme.Warn
 private val BAR_HEIGHT = 56.dp
 private val RAIL_WIDTH = 3.dp
 private val RAIL_HEIGHT = 24.dp
+
+object LiveSessionBarTestTags {
+    const val ROOT = "live-session-bar"
+}
 
 /**
  * The one live-session surface in the app.
@@ -84,6 +89,7 @@ fun LiveSessionBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(BAR_HEIGHT)
+                .testTag(LiveSessionBarTestTags.ROOT)
                 .clickable(onClickLabel = "Back to the workout", onClick = onResume)
                 .padding(horizontal = Metrics.gutter),
             verticalAlignment = Alignment.CenterVertically,

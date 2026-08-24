@@ -118,6 +118,11 @@ class SessionDetailViewModel @JvmOverloads constructor(
         // The database write is not launched here. See the debounce collector in init.
     }
 
+    /** Flushes the debounce tail before this back-stack entry is removed. */
+    fun persistNotesForExit() {
+        viewModelScope.launch { writeNotes(notes.value) }
+    }
+
     private suspend fun writeNotes(value: String) {
         if (sessionId.isBlank()) return
         // Null means the row has not been read yet, so what is on disk is unknown. Writing

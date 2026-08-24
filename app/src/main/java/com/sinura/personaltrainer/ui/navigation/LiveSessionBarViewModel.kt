@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.LiveSessionRules
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.AppClock
 import com.sinura.personaltrainer.workout.DiscardOutcome
 import com.sinura.personaltrainer.workout.FinishOutcome
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -48,11 +49,12 @@ data class LiveSessionBarUiState(
 class LiveSessionBarViewModel @JvmOverloads constructor(
     application: Application,
     container: AppDependencies = application.appContainer(),
+    private val clock: AppClock = AppClock.System,
 ) : AppViewModel(application, container) {
 
     private val ticker = flow {
         while (true) {
-            emit(System.currentTimeMillis())
+            emit(clock.nowMs())
             delay(1_000)
         }
     }

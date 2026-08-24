@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.history
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -38,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -73,6 +75,11 @@ import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import java.text.DateFormat
 import java.util.Date
 
+object SessionDetailTestTags {
+    const val CONTENT = "session-detail-content"
+    const val EDIT_SET = "session-detail-edit-set"
+}
+
 /**
  * A finished session, and — as of this phase — a correctable one.
  *
@@ -98,6 +105,12 @@ fun SessionDetailScreen(
     val deletedSet by viewModel.deletedSet.collectAsStateWithLifecycle()
     val navigateToSession by viewModel.navigateToSession.collectAsStateWithLifecycle()
     val blockedRepeat by viewModel.blockedRepeat.collectAsStateWithLifecycle()
+    val leave = {
+        viewModel.persistNotesForExit()
+        onBack()
+    }
+
+    BackHandler(onBack = leave)
     val session = state.session
     val unit = LocalWeightUnit.current
     val dateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
@@ -151,7 +164,7 @@ fun SessionDetailScreen(
                     .padding(end = Metrics.space2, bottom = Metrics.space2),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = onBack) {
+                IconButton(onClick = leave) {
                     Icon(
                         Icons.AutoMirrored.Outlined.ArrowBack,
                         contentDescription = "Back",
@@ -218,7 +231,7 @@ fun SessionDetailScreen(
                         title = "Session not found",
                         body = "This workout is no longer on this phone.",
                         actionLabel = "Back",
-                        onAction = onBack,
+                        onAction = leave,
                         modifier = Modifier.padding(Metrics.gutter),
                     )
                 }
@@ -230,7 +243,9 @@ fun SessionDetailScreen(
                     }
                     val workingSets = session.sets.count { !it.isWarmup }
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag(SessionDetailTestTags.CONTENT),
                         contentPadding = PaddingValues(
                             start = Metrics.gutter,
                             end = Metrics.gutter,
@@ -541,7 +556,10 @@ private fun SetRow(set: SetLog, unit: WeightUnit, loadClass: LoadClass, onEdit: 
             label = "reps",
             modifier = Modifier.width(REPS_COLUMN),
         )
-        TextButton(onClick = onEdit) {
+        TextButton(
+            onClick = onEdit,
+            modifier = Modifier.testTag(SessionDetailTestTags.EDIT_SET),
+        ) {
             Text("Edit", style = InstrumentType.bodyStrong, color = TextSecondary)
         }
     }

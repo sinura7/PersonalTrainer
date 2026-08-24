@@ -50,6 +50,12 @@ sealed interface RepeatOutcome {
     data class Failed(val message: String) : RepeatOutcome
 }
 
+/** Transactional answer to "start this exact thing", never a silent resume. */
+sealed interface StartSessionOutcome {
+    data class Started(val session: WorkoutSession) : StartSessionOutcome
+    data class Blocked(val inProgress: WorkoutSession) : StartSessionOutcome
+}
+
 class WorkoutRepository(
     private val database: TrainerDatabase,
     private val workoutDao: WorkoutDao,
@@ -77,7 +83,13 @@ class WorkoutRepository(
 
     suspend fun getSession(id: String): WorkoutSession? = workoutDao.getSession(id)?.toDomain()
 
-    suspend fun startRoutine(routine: Routine): WorkoutSession {
+    suspend fun startRoutine(routine: Routine): WorkoutSession =
+        when (val outcome = startRoutineSafely(routine)) {
+            is StartSessionOutcome.Started -> outcome.session
+            is StartSessionOutcome.Blocked -> outcome.inProgress
+        }
+
+    suspend fun startRoutineSafely(routine: Routine): StartSessionOutcome {
         val now = System.currentTimeMillis()
         val session = WorkoutSessionEntity(
             id = UUID.randomUUID().toString(),
@@ -101,12 +113,26 @@ class WorkoutRepository(
                 restSeconds = item.restSeconds,
             )
         }
-        val sessionId = insertSessionIfIdle(session, exercises)
-        return workoutDao.getSession(sessionId)?.toDomain()
-            ?: error("Could not start that workout.")
+        return materializeStart(insertSessionIfIdle(session, exercises))
     }
 
-    suspend fun startFreeWorkout(focusTitle: String? = null): WorkoutSession {
+    private suspend fun materializeStart(result: SessionInsert): StartSessionOutcome {
+        val loaded = workoutDao.getSession(result.sessionId)?.toDomain()
+            ?: error("Could not start that workout.")
+        return if (result.inserted) {
+            StartSessionOutcome.Started(loaded)
+        } else {
+            StartSessionOutcome.Blocked(loaded)
+        }
+    }
+
+    suspend fun startFreeWorkout(focusTitle: String? = null): WorkoutSession =
+        when (val outcome = startFreeWorkoutSafely(focusTitle)) {
+            is StartSessionOutcome.Started -> outcome.session
+            is StartSessionOutcome.Blocked -> outcome.inProgress
+        }
+
+    suspend fun startFreeWorkoutSafely(focusTitle: String? = null): StartSessionOutcome {
         val now = System.currentTimeMillis()
         val focus = focusTitle?.trim().orEmpty()
         val session = WorkoutSessionEntity(
@@ -119,9 +145,7 @@ class WorkoutRepository(
             startedAt = now,
             finishedAt = null,
         )
-        val sessionId = insertSessionIfIdle(session, emptyList())
-        return workoutDao.getSession(sessionId)?.toDomain()
-            ?: error("Could not start that workout.")
+        return materializeStart(insertSessionIfIdle(session, emptyList()))
     }
 
     /**
@@ -166,10 +190,10 @@ class WorkoutRepository(
             )
         }
 
-        val startedId = insertSessionIfIdle(session, exercises)
-        if (startedId != newId) {
-            val running = workoutDao.getSessionRow(startedId)
-            return RepeatOutcome.Blocked(startedId, running?.routineName)
+        val inserted = insertSessionIfIdle(session, exercises)
+        if (!inserted.inserted) {
+            val running = workoutDao.getSessionRow(inserted.sessionId)
+            return RepeatOutcome.Blocked(inserted.sessionId, running?.routineName)
         }
         return RepeatOutcome.Started(newId)
     }
@@ -180,16 +204,20 @@ class WorkoutRepository(
     private suspend fun insertSessionIfIdle(
         session: WorkoutSessionEntity,
         exercises: List<SessionExerciseEntity>,
-    ): String {
+    ): SessionInsert {
         return database.withTransaction {
-            workoutDao.getInProgressSession()?.id?.let { return@withTransaction it }
+            workoutDao.getInProgressSession()?.id?.let {
+                return@withTransaction SessionInsert(it, inserted = false)
+            }
             workoutDao.upsertSession(session)
             if (exercises.isNotEmpty()) {
                 workoutDao.insertSessionExercises(exercises)
             }
-            session.id
+            SessionInsert(session.id, inserted = true)
         }
     }
+
+    private data class SessionInsert(val sessionId: String, val inserted: Boolean)
 
     /**
      * Adds a lift to a live session with targets suited to it.

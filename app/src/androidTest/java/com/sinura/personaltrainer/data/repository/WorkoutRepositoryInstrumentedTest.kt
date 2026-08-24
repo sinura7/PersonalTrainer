@@ -67,6 +67,20 @@ class WorkoutRepositoryInstrumentedTest {
     }
 
     @Test
+    fun startRoutineSafelyReportsBlockedInsteadOfResuming() = runBlocking {
+        val routine = insertRoutineWithSquat()
+
+        val first = repository.startRoutineSafely(routine)
+        assertTrue(first is StartSessionOutcome.Started)
+        val started = (first as StartSessionOutcome.Started).session
+
+        val second = repository.startRoutineSafely(routine)
+        assertTrue(second is StartSessionOutcome.Blocked)
+        assertEquals(started.id, (second as StartSessionOutcome.Blocked).inProgress.id)
+        assertEquals(started.id, repository.getInProgress()?.id)
+    }
+
+    @Test
     fun loggedSetSurvivesFinishIntoHistory() = runBlocking {
         val routine = insertRoutineWithSquat()
         val live = repository.startRoutine(routine)

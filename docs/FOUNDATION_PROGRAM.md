@@ -266,7 +266,7 @@ Status legend: **done** · **next** · pending · gated · skipped
   emissions could recreate a cleared finish/discard draft. Full device lane:
   20/20.
 
-#### P1.4 — Session lifecycle and repair ViewModels
+#### P1.4 — Session lifecycle and repair ViewModels · **done**
 
 - Suites for Start Options, Live Session Bar, Session Detail, Workout
   Summary: blocked start, free/routine/suggested start, staleness,
@@ -275,6 +275,14 @@ Status legend: **done** · **next** · pending · gated · skipped
 - Physical smoke: leave/resume, finish from bar, repair/undo, rotate
   summary.
 - Exit: these orchestration surfaces have direct contracts.
+- Landed: `StartSessionOutcome` makes a second start `Blocked` instead of
+  silently resuming. Start Options, `StartTrainingDay`, and the live bar
+  consume that outcome. Session Detail flushes notes on back. Direct
+  contracts: Start Options 10, Live Session Bar 7, Session Detail 14,
+  Workout Summary 5, plus start-day, finish/discard, and repository
+  start/repair suites. Device smoke leaves, resumes from the bar, finishes
+  from the bar, recreates Summary, then deletes and undoes a set with the
+  original id and `completedAt` restored. Full device lane: 22/22.
 
 #### P1.5 — Routine, library, onboarding, and exercise ViewModels
 

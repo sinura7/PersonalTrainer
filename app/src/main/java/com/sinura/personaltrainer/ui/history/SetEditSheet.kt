@@ -17,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.SetLog
@@ -28,6 +29,10 @@ import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
+
+object SetEditTestTags {
+    const val DELETE = "set-edit-delete"
+}
 
 /**
  * One set, in a sheet, long after the workout ended.
@@ -119,7 +124,9 @@ fun SetEditSheet(
             if (onDelete != null) {
                 TextButton(
                     onClick = onDelete,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(SetEditTestTags.DELETE),
                 ) {
                     Text("Delete set", style = InstrumentType.bodyStrong, color = Danger)
                 }

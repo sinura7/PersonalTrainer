@@ -76,7 +76,7 @@ TOP_DECL_RE = re.compile(
     # `internal const val FIGURE_ASPECT` is not indexed as a declaration, so a sibling file in
     # the same package using it is reported as an unresolved name. The sibling checker learned
     # this first; this one had the identical hole.
-    r"|data\s+|value\s+|enum\s+|annotation\s+|inline\s+|suspend\s+|external\s+|const\s+)*)"
+    r"|data\s+|value\s+|enum\s+|annotation\s+|inline\s+|suspend\s+|external\s+|const\s+|fun\s+)*)"
     r"(?:class|object|interface|fun|val|var|typealias)\s+"
     r"(?:<[^>]*>\s+)?"
     r"(?:[\w.<>?]+\.)?"          # receiver on an extension

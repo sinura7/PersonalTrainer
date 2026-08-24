@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.workout
 
 import com.sinura.personaltrainer.data.repository.RoutineRepository
+import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.domain.StartDayDecision
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
@@ -50,12 +51,22 @@ class StartTrainingDay(
                 StartDayDecision.Rest -> StartDayOutcome.Ignored
                 is StartDayDecision.Blocked -> StartDayOutcome.Blocked(decision.inProgressSessionId)
                 is StartDayDecision.RoutineGone -> StartDayOutcome.Failed(decision.message)
-                // startRoutine/startFreeWorkout resolve the start race inside a transaction, so
-                // the read above is a shortcut for the message, not the guard.
-                is StartDayDecision.StartRoutine ->
-                    StartDayOutcome.Open(workoutRepository.startRoutine(decision.routine).id)
-                is StartDayDecision.StartFree ->
-                    StartDayOutcome.Open(workoutRepository.startFreeWorkout(decision.focusTitle).id)
+                // The read above gives the immediate message. The transactional outcome still
+                // owns the race where another start lands between that read and this write.
+                is StartDayDecision.StartRoutine -> when (
+                    val outcome = workoutRepository.startRoutineSafely(decision.routine)
+                ) {
+                    is StartSessionOutcome.Started -> StartDayOutcome.Open(outcome.session.id)
+                    is StartSessionOutcome.Blocked ->
+                        StartDayOutcome.Blocked(outcome.inProgress.id)
+                }
+                is StartDayDecision.StartFree -> when (
+                    val outcome = workoutRepository.startFreeWorkoutSafely(decision.focusTitle)
+                ) {
+                    is StartSessionOutcome.Started -> StartDayOutcome.Open(outcome.session.id)
+                    is StartSessionOutcome.Blocked ->
+                        StartDayOutcome.Blocked(outcome.inProgress.id)
+                }
             }
         }.getOrElse { thrown ->
             AppLog.w(TAG, "Starting ${day.focusTitle} failed", thrown)

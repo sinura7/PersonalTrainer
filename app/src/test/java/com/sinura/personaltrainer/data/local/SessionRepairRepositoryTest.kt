@@ -4,11 +4,16 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
+import com.sinura.personaltrainer.data.local.entity.RoutineEntity
+import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
 import com.sinura.personaltrainer.data.repository.RepeatOutcome
+import com.sinura.personaltrainer.data.repository.RoutineRepository
+import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
+import com.sinura.personaltrainer.domain.Routine
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -119,6 +124,48 @@ class SessionRepairRepositoryTest {
     }
 
     // -----------------------------------------------------------------------
+    // Start — never a silent resume
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun startRoutineSafelyStartsWhenIdleAndBlocksWhenLive() = runBlocking {
+        val routine = insertExercisePlan()
+
+        val first = repository.startRoutineSafely(routine)
+        assertTrue(first is StartSessionOutcome.Started)
+        val started = (first as StartSessionOutcome.Started).session
+        assertEquals(ROUTINE, started.routineId)
+        assertEquals(1, started.exercises.size)
+
+        val second = repository.startRoutineSafely(routine)
+        assertTrue(second is StartSessionOutcome.Blocked)
+        assertEquals(started.id, (second as StartSessionOutcome.Blocked).inProgress.id)
+        assertEquals(started.id, repository.getInProgress()?.id)
+    }
+
+    @Test
+    fun startFreeWorkoutSafelyStartsWhenIdleAndBlocksWhenLive() = runBlocking {
+        val first = repository.startFreeWorkoutSafely("Pull")
+        assertTrue(first is StartSessionOutcome.Started)
+        val started = (first as StartSessionOutcome.Started).session
+        assertEquals("Pull", started.routineName)
+        assertTrue(started.exercises.isEmpty())
+
+        val second = repository.startFreeWorkoutSafely("Push")
+        assertTrue(second is StartSessionOutcome.Blocked)
+        assertEquals(started.id, (second as StartSessionOutcome.Blocked).inProgress.id)
+        assertEquals("Pull", repository.getInProgress()?.routineName)
+    }
+
+    @Test
+    fun legacyStartReturnsTheLiveSessionWithoutSayingItWasBlocked() = runBlocking {
+        val routine = insertExercisePlan()
+        val live = repository.startRoutine(routine)
+        val compat = repository.startRoutine(routine)
+        assertEquals(live.id, compat.id)
+    }
+
+    // -----------------------------------------------------------------------
     // Repeat
     // -----------------------------------------------------------------------
 
@@ -226,6 +273,31 @@ class SessionRepairRepositoryTest {
     // Fixtures
     // -----------------------------------------------------------------------
 
+    private suspend fun insertExercisePlan(): Routine {
+        database.routineDao().upsertRoutine(
+            RoutineEntity(
+                id = ROUTINE,
+                name = "Lower",
+                notes = "",
+                createdAt = START,
+                updatedAt = START,
+            ),
+        )
+        database.routineDao().upsertRoutineExercise(
+            RoutineExerciseEntity(
+                id = "re-squat",
+                routineId = ROUTINE,
+                exerciseId = SQUAT,
+                sortOrder = 0,
+                targetSets = 3,
+                targetReps = 5,
+                targetWeightKg = 140.0,
+                restSeconds = 120,
+            ),
+        )
+        return checkNotNull(RoutineRepository(database.routineDao()).getById(ROUTINE))
+    }
+
     private fun exerciseRow(id: String) = ExerciseEntity(
         id = id,
         name = id.replaceFirstChar { it.uppercase() },
@@ -300,6 +372,7 @@ class SessionRepairRepositoryTest {
     private companion object {
         const val SESSION = "session-1"
         const val LIVE_SESSION = "session-live"
+        const val ROUTINE = "routine-lower"
         const val SQUAT = "squat"
         const val BENCH = "bench"
         const val START = 1_700_000_000_000L

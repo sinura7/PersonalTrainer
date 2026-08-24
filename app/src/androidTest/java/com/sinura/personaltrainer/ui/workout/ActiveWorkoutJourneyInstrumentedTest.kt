@@ -24,6 +24,9 @@ import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.timer.RestTimerService
+import com.sinura.personaltrainer.ui.history.SessionDetailTestTags
+import com.sinura.personaltrainer.ui.history.SetEditTestTags
+import com.sinura.personaltrainer.ui.navigation.LiveSessionBarTestTags
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -155,6 +158,105 @@ class ActiveWorkoutJourneyInstrumentedTest {
                     .any { it.id == fixture.sessionId }
             },
         )
+    }
+
+    @Test
+    fun leaveResume_finishFromBar_rotateSummary_andRepairUndo() {
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithText(fixture.routineName)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        runBlocking(Dispatchers.IO) {
+            container.workoutRepository.logSet(
+                sessionId = fixture.sessionId,
+                exerciseId = fixture.exercise.id,
+                weightKg = 100.0,
+                reps = 5,
+                rpe = null,
+                isWarmup = false,
+            )
+        }
+        compose.waitUntil(10_000) {
+            compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH) and isEnabled())
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+
+        compose.onNodeWithContentDescription("Exit workout").performClick()
+        compose.onNodeWithText("Keep and exit").performClick()
+        compose.waitUntil(10_000) {
+            compose.onAllNodes(hasTestTag(LiveSessionBarTestTags.ROOT))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        val leftOpen = runBlocking(Dispatchers.IO) {
+            checkNotNull(container.workoutRepository.getSession(fixture.sessionId))
+        }
+        assertNull(leftOpen.finishedAt)
+        assertEquals(fixture.sessionId, runBlocking(Dispatchers.IO) {
+            container.workoutRepository.getInProgress()?.id
+        })
+
+        compose.onNodeWithTag(LiveSessionBarTestTags.ROOT).performClick()
+        compose.waitUntil(10_000) {
+            compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithContentDescription("Exit workout").performClick()
+        compose.onNodeWithText("Keep and exit").performClick()
+        compose.onNodeWithContentDescription("Workout actions").performClick()
+        compose.onNodeWithText("Finish workout").performClick()
+
+        compose.waitUntil(15_000) {
+            runBlocking(Dispatchers.IO) {
+                container.workoutRepository.getSession(fixture.sessionId)?.finishedAt != null
+            }
+        }
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithText("WORKOUT COMPLETE")
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("WORKOUT COMPLETE").assertIsDisplayed()
+        compose.activityRule.scenario.recreate()
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithText("WORKOUT COMPLETE")
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithContentDescription("Total volume 500 kg").assertIsDisplayed()
+        assertNull(runBlocking(Dispatchers.IO) { container.workoutRepository.getInProgress() })
+
+        val original = runBlocking(Dispatchers.IO) {
+            checkNotNull(container.workoutRepository.getSession(fixture.sessionId)).sets.single()
+        }
+        compose.onNodeWithText("See full session").performClick()
+        compose.waitUntil(15_000) {
+            compose.onAllNodes(hasTestTag(SessionDetailTestTags.EDIT_SET))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag(SessionDetailTestTags.CONTENT)
+            .performScrollToNode(hasTestTag(SessionDetailTestTags.EDIT_SET))
+        compose.onNodeWithTag(SessionDetailTestTags.EDIT_SET).performClick()
+        compose.onNodeWithTag(SetEditTestTags.DELETE).performClick()
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText("Undo").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.waitUntil(10_000) {
+            runBlocking(Dispatchers.IO) {
+                container.workoutRepository.getSession(fixture.sessionId)?.sets.isNullOrEmpty()
+            }
+        }
+        compose.onNodeWithText("Undo").performClick()
+        compose.waitUntil(10_000) {
+            runBlocking(Dispatchers.IO) {
+                container.workoutRepository.getSession(fixture.sessionId)?.sets?.singleOrNull()?.id ==
+                    original.id
+            }
+        }
+        val restored = runBlocking(Dispatchers.IO) {
+            checkNotNull(container.workoutRepository.getSession(fixture.sessionId)).sets.single()
+        }
+        assertEquals(original.id, restored.id)
+        assertEquals(original.completedAt, restored.completedAt)
+        assertEquals(100.0, restored.weightKg, 0.0001)
+        compose.onNodeWithText("Set 1").assertIsDisplayed()
     }
 
     private fun seedBeforeActivityLaunch() {

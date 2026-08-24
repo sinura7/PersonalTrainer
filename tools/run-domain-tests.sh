@@ -118,9 +118,12 @@ TESTS=app/src/test/java/com/sinura/personaltrainer
 # its test directory below runnable; the two lists move together.
 EXTRA_MAIN="$SRC/workout/WorkoutDraftCache.kt $SRC/workout/WorkoutDraftRecovery.kt \
             $SRC/timer/RestTimerStore.kt $SRC/timer/RestTimerStatePersistence.kt"
-# Timer tests are named: RestTimerStatePersistenceTest is Robolectric and cannot
-# compile against these stubs. Keep it out of this lane; Gradle still runs it.
-EXTRA_TESTS="$TESTS/util $TESTS/workout \
+# Workout and timer tests are named: StartTrainingDayTest, WorkoutLifecycleUseCasesTest,
+# and RestTimerStatePersistenceTest are Robolectric and cannot compile against these
+# stubs. Keep them out of this lane; Gradle still runs them.
+EXTRA_TESTS="$TESTS/util \
+             $TESTS/workout/WorkoutDraftCacheTest.kt \
+             $TESTS/workout/WorkoutDraftRecoveryTest.kt \
              $TESTS/timer/RestTimerStoreTest.kt \
              $TESTS/timer/RestTimerRehydratorTest.kt"
 

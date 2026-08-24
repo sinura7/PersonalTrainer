@@ -11,6 +11,7 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.OwnedLiftResolver
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.workout.DiscardOutcome
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 private const val TAG = "PT/StartOptionsVM"
+private const val START_BLOCKED_MESSAGE = "A workout is already in progress."
 
 data class StartOptionsUiState(
     val isLoading: Boolean = true,
@@ -112,9 +114,7 @@ class StartOptionsViewModel @JvmOverloads constructor(
                 return@launch
             }
             try {
-                val session = container.workoutRepository.startRoutine(routine)
-                error.value = null
-                _navigateToSession.value = session.id
+                handleStart(container.workoutRepository.startRoutineSafely(routine))
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "startRoutine failed", thrown)
                 error.value = "Could not start that routine. Try again."
@@ -134,7 +134,12 @@ class StartOptionsViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             try {
                 val focus = OwnedLiftResolver.primaryMuscleOf(exercise)?.displayName
-                val session = container.workoutRepository.startFreeWorkout(focusTitle = focus)
+                val outcome = container.workoutRepository.startFreeWorkoutSafely(focusTitle = focus)
+                if (outcome is StartSessionOutcome.Blocked) {
+                    error.value = START_BLOCKED_MESSAGE
+                    return@launch
+                }
+                val session = (outcome as StartSessionOutcome.Started).session
                 val defaults = AddDefaults.forExercise(exercise)
                 container.workoutRepository.addExerciseToSession(
                     sessionId = session.id,
@@ -172,12 +177,22 @@ class StartOptionsViewModel @JvmOverloads constructor(
     fun startFree() {
         viewModelScope.launch {
             try {
-                val session = container.workoutRepository.startFreeWorkout()
-                error.value = null
-                _navigateToSession.value = session.id
+                handleStart(container.workoutRepository.startFreeWorkoutSafely())
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "startFree failed", thrown)
                 error.value = "Could not start a free workout. Try again."
+            }
+        }
+    }
+
+    private fun handleStart(outcome: StartSessionOutcome) {
+        when (outcome) {
+            is StartSessionOutcome.Started -> {
+                error.value = null
+                _navigateToSession.value = outcome.session.id
+            }
+            is StartSessionOutcome.Blocked -> {
+                error.value = START_BLOCKED_MESSAGE
             }
         }
     }
