@@ -455,7 +455,8 @@ and close FND-011, FND-014A–C, and the measurement half of FND-038.
   `backup_rules.xml` and `data_extraction_rules.xml`. Both exclude
   every store in the threat-model inventory, including device-transfer.
   File-backed Room close/reopen keeps the session. `FLAG_ALLOW_BACKUP`
-  is unset on the debug package.
+  is unset on the debug package. Evidence:
+  [P3.5 evidence](foundation-program/evidence/P3.5-auto-backup.md).
 - **P3.6** Portable authenticated encrypted envelope. Legacy plaintext
   import kept; plaintext export becomes a warned advanced choice.
 - **P3.7** Benchmark backup on a 500-session / 15,000-set fixture before
