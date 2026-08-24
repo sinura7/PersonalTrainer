@@ -457,8 +457,18 @@ and close FND-011, FND-014A–C, and the measurement half of FND-038.
   File-backed Room close/reopen keeps the session. `FLAG_ALLOW_BACKUP`
   is unset on the debug package. Evidence:
   [P3.5 evidence](foundation-program/evidence/P3.5-auto-backup.md).
-- **P3.6** Portable authenticated encrypted envelope. Legacy plaintext
-  import kept; plaintext export becomes a warned advanced choice.
+
+#### P3.6 — Portable authenticated encrypted envelope · **done**
+
+- Versioned envelope using reviewed platform cryptography, random
+  salt/nonce, and a password-based KDF. Device-bound keys are
+  forbidden. Custom crypto is forbidden.
+- Legacy plaintext import is kept. Plaintext export is a warned
+  advanced choice.
+- Landed: default file and Drive export wrap the backup JSON in
+  PBKDF2-HMAC-SHA256 + AES-256-GCM. Import detects the envelope and
+  asks for the password. A file without `version` cannot decode as an
+  empty catalog. Existing plaintext files still restore.
 - **P3.7** Benchmark backup on a 500-session / 15,000-set fixture before
   any streaming rewrite. Stream only if signed budgets fail.
 

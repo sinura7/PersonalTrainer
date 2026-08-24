@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.backup.AuthoredInventory
+import com.sinura.personaltrainer.data.backup.BackupEnvelope
 import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
@@ -63,13 +64,20 @@ data class BackupUiState(
     /** No stamp, or older than 14 days. Caption nags; Export stays the tap. */
     val backupStale: Boolean = true,
     val safetySnapshots: List<SafetySnapshotMeta> = emptyList(),
+    val pendingProtect: BackupProtectKind? = null,
+    val pendingUnlock: Boolean = false,
+    val pendingPlaintextWarning: Boolean = false,
+    val launchExportPicker: Boolean = false,
 )
+
+enum class BackupProtectKind { FILE_EXPORT, DRIVE_BACKUP }
 
 private const val TAG = "PT/SettingsVM"
 
 class SettingsViewModel @JvmOverloads constructor(
     application: Application,
     container: AppDependencies = application.appContainer(),
+    private val envelopeIterations: Int = BackupEnvelope.DEFAULT_ITERATIONS,
 ) : AppViewModel(application, container) {
     val weightUnit: StateFlow<WeightUnit> = container.preferencesRepository.weightUnit
         .stateIn(
@@ -184,6 +192,11 @@ class SettingsViewModel @JvmOverloads constructor(
     private val backups = MutableStateFlow<List<DriveBackupFile>>(emptyList())
     private val safetySnapshots = MutableStateFlow<List<SafetySnapshotMeta>>(emptyList())
     private val pendingPlan = MutableStateFlow<RestorePlan?>(null)
+    private val dialogs = MutableStateFlow(BackupDialogs())
+    private var heldPassword: CharArray? = null
+    private var pendingCiphertext: String? = null
+    private var pendingCipherName: String? = null
+    private var plaintextKind: BackupProtectKind? = null
     private var resolutionWaiter: CompletableDeferred<Boolean>? = null
 
     /**
@@ -213,9 +226,12 @@ class SettingsViewModel @JvmOverloads constructor(
         ) { email, lastAt, lastName, restoreAt, restoreName ->
             BackupMeta(email, lastAt, lastName, restoreAt, restoreName)
         },
-        combine(isBusy, busyLabel, status, error, pendingPlan) { busy, label, note, err, plan ->
-            BackupFlags(busy, label, note, err, plan?.toPreview())
-        },
+        combine(
+            combine(isBusy, busyLabel, status, error, pendingPlan) { busy, label, note, err, plan ->
+                BackupFlags(busy, label, note, err, plan?.toPreview())
+            },
+            dialogs,
+        ) { flags, gate -> flags.copy(dialogs = gate) },
         backups,
         container.workoutRepository.observeInProgress(),
         safetySnapshots,
@@ -235,6 +251,10 @@ class SettingsViewModel @JvmOverloads constructor(
             sessionLive = live != null,
             backupStale = BackupPrompt.isStale(meta.lastAt, System.currentTimeMillis()),
             safetySnapshots = snaps,
+            pendingProtect = flags.dialogs.protect,
+            pendingUnlock = flags.dialogs.unlock,
+            pendingPlaintextWarning = flags.dialogs.plaintextWarning,
+            launchExportPicker = flags.dialogs.launchExportPicker,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -320,11 +340,93 @@ class SettingsViewModel @JvmOverloads constructor(
         }
     }
 
+    fun beginFileExport() {
+        dialogs.value = BackupDialogs(protect = BackupProtectKind.FILE_EXPORT)
+    }
+
+    fun beginDriveBackup() {
+        dialogs.value = BackupDialogs(protect = BackupProtectKind.DRIVE_BACKUP)
+    }
+
+    fun beginPlaintextExport() {
+        plaintextKind = dialogs.value.protect ?: BackupProtectKind.FILE_EXPORT
+        wipeHeldPassword()
+        dialogs.value = BackupDialogs(plaintextWarning = true)
+    }
+
+    fun cancelProtect() {
+        wipeHeldPassword()
+        plaintextKind = null
+        dialogs.value = BackupDialogs()
+    }
+
+    fun cancelPlaintextWarning() {
+        plaintextKind = null
+        dialogs.value = BackupDialogs()
+    }
+
+    fun confirmPlaintextWarning(activity: Activity? = null) {
+        val kind = plaintextKind ?: BackupProtectKind.FILE_EXPORT
+        plaintextKind = null
+        wipeHeldPassword()
+        when (kind) {
+            BackupProtectKind.FILE_EXPORT ->
+                dialogs.value = BackupDialogs(launchExportPicker = true)
+            BackupProtectKind.DRIVE_BACKUP -> {
+                dialogs.value = BackupDialogs()
+                if (activity != null) createBackup(activity)
+            }
+        }
+    }
+
+    /**
+     * Accepts a new backup password. File export then opens the picker.
+     * Drive upload starts here when [activity] is present.
+     */
+    fun submitProtect(password: String, confirm: String, activity: Activity? = null): Boolean {
+        val reason = BackupEnvelope.validateNewPassword(password, confirm)
+        if (reason != null) {
+            error.value = reason
+            return false
+        }
+        wipeHeldPassword()
+        heldPassword = password.toCharArray()
+        val kind = dialogs.value.protect
+        plaintextKind = null
+        dialogs.value = when (kind) {
+            BackupProtectKind.FILE_EXPORT -> BackupDialogs(launchExportPicker = true)
+            BackupProtectKind.DRIVE_BACKUP, null -> BackupDialogs()
+        }
+        if (kind == BackupProtectKind.DRIVE_BACKUP && activity != null) {
+            createBackup(activity)
+        }
+        return true
+    }
+
+    fun onExportPickerLaunched() {
+        dialogs.value = dialogs.value.copy(launchExportPicker = false)
+    }
+
     fun createBackup(activity: Activity) {
+        val password = heldPassword
+        heldPassword = null
         runBackupAction("Uploading backup…") {
-            val file = container.backupRepository.createBackup(activity, ::awaitResolution)
-            backups.value = listOf(file) + backups.value.filterNot { it.id == file.id }
-            status.value = "Backup saved as ${file.name}." + unfinishedWorkoutNote()
+            try {
+                val file = container.backupRepository.createBackup(
+                    activity,
+                    ::awaitResolution,
+                    password = password,
+                    iterations = envelopeIterations,
+                )
+                backups.value = listOf(file) + backups.value.filterNot { it.id == file.id }
+                status.value = if (password != null) {
+                    "Protected backup saved as ${file.name}." + unfinishedWorkoutNote()
+                } else {
+                    "Backup saved as ${file.name}." + unfinishedWorkoutNote()
+                }
+            } finally {
+                password?.fill('\u0000')
+            }
         }
     }
 
@@ -341,11 +443,12 @@ class SettingsViewModel @JvmOverloads constructor(
 
     fun requestRestore(activity: Activity, file: DriveBackupFile) {
         runBackupAction("Checking backup…") {
-            pendingPlan.value = container.backupRepository.prepareDriveRestore(
+            val raw = container.backupRepository.downloadDriveBackup(
                 activity,
                 file,
                 ::awaitResolution,
             )
+            ingestRaw(raw, file.name)
         }
     }
 
@@ -426,21 +529,36 @@ class SettingsViewModel @JvmOverloads constructor(
     fun exportFileName(): String = BackupJson.fileName()
 
     fun exportToFile(uri: Uri) {
+        val password = heldPassword
+        heldPassword = null
         runBackupAction("Saving backup file…") {
-            val json = container.backupRepository.exportJson()
-            withContext(Dispatchers.IO) {
-                val resolver = getApplication<Application>().contentResolver
-                resolver.openOutputStream(uri, "wt")?.use { stream ->
-                    stream.write(json.toByteArray(Charsets.UTF_8))
-                    stream.flush()
-                } ?: throw BackupException("Couldn't write to that location. Pick another folder.")
+            try {
+                val payload = if (password != null) {
+                    container.backupRepository.exportProtected(password, envelopeIterations)
+                } else {
+                    container.backupRepository.exportJson()
+                }
+                withContext(Dispatchers.IO) {
+                    val resolver = getApplication<Application>().contentResolver
+                    resolver.openOutputStream(uri, "wt")?.use { stream ->
+                        stream.write(payload.toByteArray(Charsets.UTF_8))
+                        stream.flush()
+                    } ?: throw BackupException("Couldn't write to that location. Pick another folder.")
+                }
+                container.preferencesRepository.setLastBackup(
+                    displayName(uri),
+                    System.currentTimeMillis(),
+                )
+                status.value = if (password != null) {
+                    "Protected backup saved to your chosen file. It opens with the password you chose." +
+                        unfinishedWorkoutNote()
+                } else {
+                    "Backup saved to your chosen file. Anyone who can read it can read your history." +
+                        unfinishedWorkoutNote()
+                }
+            } finally {
+                password?.fill('\u0000')
             }
-            container.preferencesRepository.setLastBackup(
-                displayName(uri),
-                System.currentTimeMillis(),
-            )
-            status.value = "Backup saved to your chosen file. It restores without signing in." +
-                unfinishedWorkoutNote()
         }
     }
 
@@ -453,11 +571,43 @@ class SettingsViewModel @JvmOverloads constructor(
                     stream.readBytes().toString(Charsets.UTF_8)
                 } ?: throw BackupException("Couldn't read that file. Pick another one.")
             }
-            pendingPlan.value = container.backupRepository.prepareRestore(
-                json,
-                sourceName = displayName(uri),
-            )
+            ingestRaw(json, displayName(uri))
         }
+    }
+
+    fun unlockPending(password: String) {
+        val raw = pendingCiphertext ?: return
+        val name = pendingCipherName ?: return
+        runBackupAction("Checking backup…") {
+            pendingPlan.value = container.backupRepository.prepareRestore(
+                raw,
+                sourceName = name,
+                password = password.toCharArray(),
+            )
+            pendingCiphertext = null
+            pendingCipherName = null
+            dialogs.value = BackupDialogs()
+        }
+    }
+
+    fun cancelUnlock() {
+        pendingCiphertext = null
+        pendingCipherName = null
+        dialogs.value = BackupDialogs()
+    }
+
+    private suspend fun ingestRaw(raw: String, sourceName: String, password: CharArray? = null) {
+        if (BackupEnvelope.looksLike(raw) && password == null) {
+            pendingCiphertext = raw
+            pendingCipherName = sourceName
+            dialogs.value = BackupDialogs(unlock = true)
+            return
+        }
+        pendingPlan.value = container.backupRepository.prepareRestore(
+            raw,
+            sourceName = sourceName,
+            password = password,
+        )
     }
 
     fun cancelFileRestore() {
@@ -515,7 +665,15 @@ class SettingsViewModel @JvmOverloads constructor(
         // A waiter still parked when the ViewModel dies would keep its coroutine suspended.
         resolutionWaiter?.complete(false)
         resolutionWaiter = null
+        wipeHeldPassword()
+        pendingCiphertext = null
+        pendingCipherName = null
         super.onCleared()
+    }
+
+    private fun wipeHeldPassword() {
+        heldPassword?.fill('\u0000')
+        heldPassword = null
     }
 
     private fun runBackupAction(label: String, block: suspend () -> Unit) {
@@ -558,6 +716,14 @@ class SettingsViewModel @JvmOverloads constructor(
         val status: String?,
         val error: String?,
         val pendingPreview: RestorePreviewUi?,
+        val dialogs: BackupDialogs = BackupDialogs(),
+    )
+
+    private data class BackupDialogs(
+        val protect: BackupProtectKind? = null,
+        val unlock: Boolean = false,
+        val plaintextWarning: Boolean = false,
+        val launchExportPicker: Boolean = false,
     )
 }
 

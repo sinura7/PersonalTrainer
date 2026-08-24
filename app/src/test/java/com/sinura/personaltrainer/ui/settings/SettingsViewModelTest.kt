@@ -162,10 +162,11 @@ class SettingsViewModelTest {
 
         viewModel!!.deleteSafetySnapshot(snap.id)
         val empty = withTimeout(5_000) {
-            viewModel!!.backupState.first { it.safetySnapshots.isEmpty() && it.status != null }
+            viewModel!!.backupState.first {
+                it.safetySnapshots.isEmpty() && it.status?.contains("deleted") == true
+            }
         }
         assertTrue(empty.safetySnapshots.isEmpty())
-        assertTrue(empty.status?.contains("deleted") == true)
     }
 
     @Test
@@ -189,5 +190,46 @@ class SettingsViewModelTest {
         assertEquals(SafetySnapshotMeta.TITLE, preview.pendingPreview?.sourceName)
         assertTrue(preview.pendingPreview?.body?.contains("This file:") == true)
         assertTrue(preview.pendingPreview?.body?.contains("saved first") == true)
+    }
+
+    @Test
+    fun fileExportAsksForAPasswordThenOpensThePicker() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        viewModel = SettingsViewModel(
+            ApplicationProvider.getApplicationContext<Application>(),
+            deps,
+            envelopeIterations = 1_000,
+        )
+        viewModel!!.backupState.first()
+        viewModel!!.beginFileExport()
+        val protect = withTimeout(5_000) {
+            viewModel!!.backupState.first { it.pendingProtect == BackupProtectKind.FILE_EXPORT }
+        }
+        assertEquals(BackupProtectKind.FILE_EXPORT, protect.pendingProtect)
+        assertFalse(viewModel!!.submitProtect("short", "short"))
+        assertTrue(viewModel!!.submitProtect("long-enough", "long-enough"))
+        val picker = withTimeout(5_000) {
+            viewModel!!.backupState.first { it.launchExportPicker }
+        }
+        assertTrue(picker.launchExportPicker)
+        assertFalse(picker.pendingProtect != null)
+    }
+
+    @Test
+    fun plaintextExportWarnsBeforeOpeningThePicker() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.backupState.first()
+        viewModel!!.beginFileExport()
+        viewModel!!.beginPlaintextExport()
+        val warned = withTimeout(5_000) {
+            viewModel!!.backupState.first { it.pendingPlaintextWarning }
+        }
+        assertTrue(warned.pendingPlaintextWarning)
+        viewModel!!.confirmPlaintextWarning()
+        val picker = withTimeout(5_000) {
+            viewModel!!.backupState.first { it.launchExportPicker }
+        }
+        assertTrue(picker.launchExportPicker)
     }
 }

@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.data.backup.AuthoredInventory
 import com.sinura.personaltrainer.data.backup.BackupDocument
+import com.sinura.personaltrainer.data.backup.BackupEnvelope
 import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.BackupExercise
 import com.sinura.personaltrainer.data.backup.BackupJson
@@ -63,6 +64,31 @@ class RestorePrepareTest {
         assertEquals(before.finishedAt, after.finishedAt)
         assertEquals(1, plan.local.sessions)
         assertTrue(plan.incoming.sessions >= 1)
+    }
+
+    @Test
+    fun protectedExportRoundTripsThroughPrepare() = runBlocking {
+        seedTestWorkout(
+            deps,
+            finish = true,
+            loggedSets = listOf(TestSetInput(100.0, 5)),
+        )
+        val password = "correct-horse".toCharArray()
+        val envelope = deps.backupRepository.exportProtected(password, iterations = 1_000)
+        assertTrue(BackupEnvelope.looksLike(envelope))
+        try {
+            deps.backupRepository.prepareRestore(envelope, sourceName = "locked.json")
+            fail("envelope without a password must ask, not decode")
+        } catch (thrown: BackupException) {
+            assertEquals(BackupEnvelope.NEED_PASSWORD, thrown.message)
+        }
+        val plan = deps.backupRepository.prepareRestore(
+            envelope,
+            sourceName = "locked.json",
+            password = password,
+        )
+        assertTrue(plan.incoming.sessions >= 1)
+        assertEquals(plan.local.sessions, plan.incoming.sessions)
     }
 
     @Test

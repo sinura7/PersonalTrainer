@@ -23,6 +23,8 @@ object BackupJson {
     private const val DAMAGED =
         "This backup file is damaged or incomplete, so nothing was changed."
 
+    internal fun notABackupMessage(): String = NOT_A_BACKUP
+
     private val gsonPretty: Gson = GsonBuilder()
         .setPrettyPrinting()
         .serializeNulls()

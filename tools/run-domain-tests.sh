@@ -148,7 +148,8 @@ case "$CP" in
   *gson*)
     BACKUP="app/src/main/java/com/sinura/personaltrainer/data/backup"
     for f in BackupDocument.kt BackupJson.kt BackupValidator.kt AuthoredInventory.kt \
-             SafetySnapshot.kt SafetySnapshotStore.kt RestoreJournal.kt RestoreJournalStore.kt; do
+             SafetySnapshot.kt SafetySnapshotStore.kt RestoreJournal.kt RestoreJournalStore.kt \
+             BackupEnvelope.kt; do
       [ -f "$BACKUP/$f" ] || { echo "FAILED: $BACKUP/$f is missing." >&2; exit 1; }
       BACKUP_SRC="$BACKUP_SRC $BACKUP/$f"
     done

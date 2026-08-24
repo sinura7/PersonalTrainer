@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.IntentSender
 import com.sinura.personaltrainer.data.backup.AuthoredInventory
 import com.sinura.personaltrainer.data.backup.BackupDocument
+import com.sinura.personaltrainer.data.backup.BackupEnvelope
 import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.BackupSummary
@@ -49,12 +50,19 @@ class BackupRepository(
     suspend fun createBackup(
         activity: Activity,
         launchResolution: suspend (IntentSender) -> Boolean,
+        password: CharArray? = null,
+        iterations: Int = BackupEnvelope.DEFAULT_ITERATIONS,
     ): DriveBackupFile = withContext(Dispatchers.IO) {
         networkChecker.requireOnline()
         val session = driveAuthClient.authorize(activity, launchResolution)
         preferencesRepository.setDriveAccountEmail(session.email)
         val snapshot = localBackupRepository.createSnapshot()
         val json = BackupJson.encode(snapshot)
+        val payload = if (password != null) {
+            BackupEnvelope.wrap(json, password, iterations)
+        } else {
+            json
+        }
         val fileName = BackupJson.fileName()
         val folderId = driveRestClient.ensureBackupFolder(
             accessToken = session.accessToken,
@@ -65,7 +73,7 @@ class BackupRepository(
             accessToken = session.accessToken,
             folderId = folderId,
             fileName = fileName,
-            json = json,
+            json = payload,
         )
         preferencesRepository.setLastBackup(uploaded.name, System.currentTimeMillis())
         uploaded
@@ -100,20 +108,36 @@ class BackupRepository(
         result
     }
 
+    suspend fun downloadDriveBackup(
+        activity: Activity,
+        file: DriveBackupFile,
+        launchResolution: suspend (IntentSender) -> Boolean,
+    ): String = withContext(Dispatchers.IO) {
+        networkChecker.requireOnline()
+        val session = driveAuthClient.authorize(activity, launchResolution)
+        driveRestClient.downloadBackup(session.accessToken, file.id)
+    }
+
     suspend fun prepareDriveRestore(
         activity: Activity,
         file: DriveBackupFile,
         launchResolution: suspend (IntentSender) -> Boolean,
+        password: CharArray? = null,
     ): RestorePlan = withContext(Dispatchers.IO) {
-        networkChecker.requireOnline()
-        val session = driveAuthClient.authorize(activity, launchResolution)
-        val json = driveRestClient.downloadBackup(session.accessToken, file.id)
-        prepareRestore(json, sourceName = file.name)
+        val raw = downloadDriveBackup(activity, file, launchResolution)
+        prepareRestore(raw, sourceName = file.name, password = password)
     }
 
-    /** Serialises the current database for a local file export. */
+    /** Serialises the current database for a local plaintext export. */
     suspend fun exportJson(): String = withContext(Dispatchers.IO) {
         BackupJson.encode(localBackupRepository.createSnapshot())
+    }
+
+    suspend fun exportProtected(
+        password: CharArray,
+        iterations: Int = BackupEnvelope.DEFAULT_ITERATIONS,
+    ): String = withContext(Dispatchers.IO) {
+        BackupEnvelope.wrap(exportJson(), password, iterations)
     }
 
     suspend fun authoredInventory(): AuthoredInventory = withContext(Dispatchers.IO) {
@@ -143,9 +167,10 @@ class BackupRepository(
         json: String,
         sourceName: String,
         allowEmptyDestructiveRestore: Boolean = false,
+        password: CharArray? = null,
     ): RestorePlan = withContext(Dispatchers.IO) {
         refuseIfLive()
-        val document = BackupJson.decode(json)
+        val document = BackupJson.decode(BackupEnvelope.open(json, password))
         val local = localBackupRepository.authoredInventory()
         val summary = validateOrThrow(document, local, allowEmptyDestructiveRestore)
         RestorePlan(
@@ -288,8 +313,9 @@ class BackupRepository(
         json: String,
         sourceName: String,
         allowEmptyDestructiveRestore: Boolean = false,
+        password: CharArray? = null,
     ): RestoreResult = commitRestore(
-        prepareRestore(json, sourceName, allowEmptyDestructiveRestore),
+        prepareRestore(json, sourceName, allowEmptyDestructiveRestore, password),
     )
 
     private suspend fun refuseIfLive() {

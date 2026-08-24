@@ -19,8 +19,10 @@ irreplaceable, and only one of them is in this repository:
 Your training history is on the old phone. Recover it in this order:
 
 1. **If you can still open the app on the old phone:** Settings → Backup & restore →
-   **Export to file**. Save it somewhere off the phone (Drive, email it to yourself,
-   a computer). This file is plain JSON and needs no Google account to restore.
+   **Export to file**. Choose a password (or, as an advanced choice, export
+   without one). Save it somewhere off the phone (Drive, email it to yourself,
+   a computer). A protected file restores with that password and needs no
+   Google account. A plaintext file is readable by anyone who has it.
 2. **If the old phone is gone but you used Drive backup:** install the app on the new
    phone, Settings → Sign in with Google → View existing backups → restore the newest.
 3. **If the old phone is gone and you never backed up:** the history is gone. Nothing in
@@ -31,7 +33,8 @@ Install the app on the new phone first (see [SETUP.md](../SETUP.md)), then resto
 > Android Auto Backup is **not** the recovery path. The shipping manifest
 > disables it (`allowBackup=false` plus exclusion rules). Existing OS
 > copies taken before that change are not recalled and are not a
-> supported channel. Export to file is the copy that counts. Google
+> supported channel. Export to file is the copy that counts. Default
+> export is password-protected; plaintext is an advanced choice. Google
 > Drive, if you used it, is a whole-file **backup**, not a sync. The
 > signed inventory is
 > [backup-threat-model.md](architecture/backup-threat-model.md).

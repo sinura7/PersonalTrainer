@@ -24,9 +24,10 @@ on them.
    landed in P3.5. Existing OS copies are not recalled.
 3. **Existing OS backups are not retroactively recalled.** They are luck, not
    a plan, and after P3.5 they are not a supported channel.
-4. **App-layer plaintext export and Drive payloads expose fitness and
-   bodyweight data.** Do not claim they are private. Do not claim Android
-   Keystore encryption is portable to another device. Encryption is P3.6.
+4. **App-layer export defaults to a portable authenticated encrypted
+   envelope.** Legacy plaintext import is kept. Plaintext export is a
+   warned advanced choice. Do not claim a password-protected file is
+   private. Do not claim Android Keystore encryption is portable.
 5. **Restore honesty** is P3.2–P3.4: preview authored counts, verified
    snapshots, journaled commit, start/restore serialization.
 6. **No automatic telemetry.** A future diagnostic bundle is P12.1 and must
@@ -93,18 +94,23 @@ backup/restore stamps; rest-timer runtime state.
 ### 4.2 SAF export / import
 
 - Settings → Export to file / Import file.
-- Format: pretty-printed plaintext JSON (`BackupJson`, `version = 2`,
-  `app = "personal-trainer"`).
+- Default export: versioned envelope (`temper-backup-envelope`) wrapping
+  the same `BackupJson` document. KDF is PBKDF2-HMAC-SHA256 (210,000
+  iterations). Cipher is AES-256-GCM with a random salt and nonce.
+  Password is typed at export and at import; it is not stored.
+- Advanced export: plaintext JSON after an explicit warning. Anyone who
+  can read that file can read bodyweight and the full finished history.
+- Import accepts both shapes. An envelope without a password asks;
+  it does not decode as a catalog.
 - No Google account. Written to a user-chosen URI; no app-private temp file.
-- Anyone who can read that file can read bodyweight and the full finished
-  history.
 
 ### 4.3 Optional Google Drive backup
 
 - Scope: `https://www.googleapis.com/auth/drive.file` only.
 - Folder name: `PersonalTrainer Backups`. File prefix:
   `personal-trainer-backup-`.
-- Same plaintext JSON as SAF. App properties: `app=personal-trainer`,
+- Default upload is the same envelope as SAF. Advanced upload without a
+  password is the plaintext JSON. App properties: `app=personal-trainer`,
   `kind=backup`.
 - Token is memory-only and cleared on sign-out. Email is stored in
   DataStore so Settings can show who is signed in.
@@ -135,8 +141,8 @@ forever.
 | T1 | **Device theft, screen locked** | Room/DataStore are app-private. A locked device is the platform's lock. No app-layer DB encryption. | Keep relying on the platform lock for at-rest on-device files. Do not invent device-bound encryption for portable backups. | none — accepted platform posture |
 | T2 | **Unlocked or shared device** | Any app or person with the unlocked phone can open Temper and read history, or Export to file. | Product stays single-user, no in-app lock screen in Phase 3. Do not pretend otherwise. | none — out of scope |
 | T3 | **Android Auto Backup / D2D transfer** | Closed: `allowBackup=false` plus domain and named-store excludes for cloud backup and device-transfer. Already-taken OS copies are not recalled. | Disable the channel. Document that already-taken OS copies are not recalled. | P3.5 |
-| T4 | **File leak of a SAF/Drive JSON** | Plaintext. Complete finished history + bodyweight if those rows exist. | Warn. Offer a portable authenticated encrypted envelope. Keep legacy plaintext import. Plaintext export becomes an advanced choice. | P3.6 |
-| T5 | **Drive account or `drive.file` folder compromise** | Attacker with the Google account can read/replace files this app created. `drive.file` cannot list the rest of Drive. | Keep `drive.file`. Say **backup**, never sync. Encryption (P3.6) reduces payload value. | P3.6; P12.2 copy |
+| T4 | **File leak of a SAF/Drive JSON** | Closed for the default path: envelope is AES-256-GCM. Legacy plaintext still imports. Advanced plaintext export is warned. A password-protected file is readable by anyone who has the password. | Warn. Offer a portable authenticated encrypted envelope. Keep legacy plaintext import. Plaintext export is an advanced choice. | P3.6 |
+| T5 | **Drive account or `drive.file` folder compromise** | Default Drive upload is the same envelope. An advanced plaintext upload is still readable with the Google account. `drive.file` cannot list the rest of Drive. | Keep `drive.file`. Say **backup**, never sync. Encryption reduces payload value on the default path. | P3.6; P12.2 copy |
 | T6 | **Catalog-only or bodyweight-blind restore** | A file that is only the seeded catalog passes the empty guard and can wipe authored sessions. Local bodyweight/blocks do not count as “has data.” | Authored-data counts on both sides. Catalog-only cannot wipe history through the normal path. | P3.2 |
 | T7 | **Safety snapshot fails, restore continues** | Closed: a verified snapshot is a restore precondition. Failure aborts before Room is touched. Settings lists, exports, restores through preview, and deletes retained copies. Paths stay off the screen. | Verified snapshot is a restore precondition. Failure aborts. Snapshots are listable/exportable/restorable from Settings. | P3.3 |
 | T8 | **Start versus restore race** | Closed: start, repeat, and restore share the maintenance lock. A start that arrives while a restore journal is open is refused. | One coordinator serializes start/repeat and restore. | P3.4 |
@@ -153,7 +159,9 @@ Current-voice documents may say:
 - Drive is optional whole-file **backup**, not sync.
 - Auto Backup is **disabled** in the shipping manifest. Existing OS
   copies are not recalled and are not a supported channel.
-- Export and Drive JSON are plaintext today.
+- Default export and Drive backup are a password-protected envelope.
+  Plaintext is an advanced warned choice. Legacy plaintext files still
+  import.
 - Restore refuses while a workout is live.
 - A verified safety copy is required before restore teardown. Copies
   are listable from Settings. Failure aborts the restore.
@@ -164,13 +172,15 @@ They must not say:
 
 - Drive syncs two phones.
 - Auto Backup is how you move to a new phone.
-- The JSON is private or encrypted.
+- The JSON is private. A password-protected file is readable by anyone
+  who has the password. A plaintext file is readable by anyone who has
+  the file.
 
 ## 7. Finding coverage
 
 | Finding | This inventory | Remaining implementation |
 |---|---|---|
-| FND-011 | Threat model covers device theft (T1–T2), Auto Backup (T3 closed), file leak (T4), and Drive (T5) | P3.6 envelope |
+| FND-011 | Threat model covers device theft (T1–T2), Auto Backup (T3 closed), file leak (T4 closed), and Drive (T5 reduced) | done — P3.1 + P3.5 + P3.6 |
 | FND-014B | T6 records the catalog-only / authored-count hole | P3.2 |
 | FND-014A | T7 is closed: verified snapshot, Settings recovery | done — P3.3 |
 | FND-014C | T8–T9 are closed: one lock, journaled recover | done — P3.4 |
@@ -178,7 +188,8 @@ They must not say:
 | FND-030 | T12 records missing commercial privacy copy | P12.2 |
 | FND-012 | Incremental sync remains gated by ADR-009 §14 | Phase 11 after its start gate |
 
-P3.1 closes the **inventory** half of FND-011. It does not close the finding.
+P3.1 closed the **inventory** half of FND-011. P3.5 closed the
+manifest half. P3.6 closed the envelope half. The finding is closed.
 
 ## 8. Review questions
 

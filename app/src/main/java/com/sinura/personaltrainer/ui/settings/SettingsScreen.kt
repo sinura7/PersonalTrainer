@@ -26,11 +26,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -45,10 +48,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.BuildConfig
+import com.sinura.personaltrainer.data.backup.BackupEnvelope
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
 import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
@@ -126,7 +132,16 @@ fun SettingsScreen(
     // the signing key is ever lost, this is still a complete way in and out of the data.
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument(BackupJson.MIME_TYPE),
-    ) { uri -> uri?.let(viewModel::exportToFile) }
+    ) { uri ->
+        if (uri != null) viewModel.exportToFile(uri) else viewModel.cancelProtect()
+    }
+
+    LaunchedEffect(backup.launchExportPicker) {
+        if (backup.launchExportPicker) {
+            exportLauncher.launch(viewModel.exportFileName())
+            viewModel.onExportPickerLaunched()
+        }
+    }
 
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
@@ -202,10 +217,11 @@ fun SettingsScreen(
                 dateTimeFormat = dateTimeFormat,
                 onSignIn = { viewModel.signIn(activity) },
                 onSignOut = { viewModel.signOut(activity) },
-                onCreateBackup = { viewModel.createBackup(activity) },
+                onCreateBackup = { viewModel.beginDriveBackup() },
                 onRefresh = { viewModel.refreshBackups(activity) },
                 onRestore = { file -> viewModel.requestRestore(activity, file) },
-                onExportFile = { exportLauncher.launch(viewModel.exportFileName()) },
+                onExportFile = { viewModel.beginFileExport() },
+                onExportPlaintext = { viewModel.beginPlaintextExport() },
                 onImportFile = {
                     // Some file managers hand back JSON as octet-stream or text/plain.
                     importLauncher.launch(arrayOf(BackupJson.MIME_TYPE, "text/plain", "*/*"))
@@ -230,6 +246,37 @@ fun SettingsScreen(
             destructive = true,
             onConfirm = { viewModel.confirmRestore() },
             onDismiss = viewModel::cancelRestore,
+        )
+    }
+
+    backup.pendingProtect?.let { kind ->
+        ProtectBackupDialog(
+            drive = kind == BackupProtectKind.DRIVE_BACKUP,
+            onConfirm = { password, confirm ->
+                viewModel.submitProtect(password, confirm, activity)
+            },
+            onAdvanced = viewModel::beginPlaintextExport,
+            onDismiss = viewModel::cancelProtect,
+        )
+    }
+
+    if (backup.pendingUnlock) {
+        UnlockBackupDialog(
+            onConfirm = viewModel::unlockPending,
+            onDismiss = viewModel::cancelUnlock,
+        )
+    }
+
+    if (backup.pendingPlaintextWarning) {
+        ConfirmActionDialog(
+            title = "Export without a password?",
+            body = "Anyone who can read this file can read your training history " +
+                "and bodyweight. A password is the only thing that keeps it from " +
+                "being readable.",
+            confirmLabel = "Export anyway",
+            destructive = true,
+            onConfirm = { viewModel.confirmPlaintextWarning(activity) },
+            onDismiss = viewModel::cancelPlaintextWarning,
         )
     }
 
@@ -586,6 +633,7 @@ private fun BackupRestoreSection(
     onRefresh: () -> Unit,
     onRestore: (DriveBackupFile) -> Unit,
     onExportFile: () -> Unit,
+    onExportPlaintext: () -> Unit,
     onImportFile: () -> Unit,
     onExportSafety: (String) -> Unit,
     onRestoreSafety: (String) -> Unit,
@@ -661,6 +709,16 @@ private fun BackupRestoreSection(
             onClick = onExportFile,
             enabled = !state.isBusy,
         )
+        TextButton(
+            onClick = onExportPlaintext,
+            enabled = !state.isBusy,
+        ) {
+            Text(
+                "Export without a password",
+                style = InstrumentType.caption,
+                color = if (state.isBusy) TextTertiary else TextSecondary,
+            )
+        }
         val restoreBlocked = state.isBusy || state.sessionLive
         GroupedList {
             InstrumentRow(
@@ -891,6 +949,138 @@ private fun AboutSection() {
             }
         }
     }
+}
+
+@Composable
+private fun ProtectBackupDialog(
+    drive: Boolean,
+    onConfirm: (String, String) -> Boolean,
+    onAdvanced: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var password by rememberSaveable { mutableStateOf("") }
+    var confirm by rememberSaveable { mutableStateOf("") }
+    var invalid by rememberSaveable { mutableStateOf<String?>(null) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                if (drive) "Protect this Drive backup?" else "Protect this backup?",
+                style = InstrumentType.title,
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                Text(
+                    "The file opens on another phone only with this password. " +
+                        "It is not stored on this device.",
+                    style = InstrumentType.body,
+                    color = TextSecondary,
+                )
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = {
+                        password = it
+                        invalid = null
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Password") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    textStyle = InstrumentType.body,
+                )
+                OutlinedTextField(
+                    value = confirm,
+                    onValueChange = {
+                        confirm = it
+                        invalid = null
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Confirm password") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    textStyle = InstrumentType.body,
+                )
+                invalid?.let { Text(it, style = InstrumentType.caption, color = Danger) }
+                TextButton(onClick = onAdvanced) {
+                    Text(
+                        if (drive) "Upload without a password" else "Export without a password",
+                        style = InstrumentType.caption,
+                        color = TextSecondary,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val reason = BackupEnvelope.validateNewPassword(password, confirm)
+                    if (reason != null) {
+                        invalid = reason
+                    } else {
+                        onConfirm(password, confirm)
+                    }
+                },
+            ) {
+                Text(
+                    if (drive) "Upload protected backup" else "Save protected file",
+                    style = InstrumentType.bodyStrong,
+                    color = Volt,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", style = InstrumentType.bodyStrong, color = TextSecondary)
+            }
+        },
+    )
+}
+
+@Composable
+private fun UnlockBackupDialog(
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var password by rememberSaveable { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("This backup is protected", style = InstrumentType.title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                Text(
+                    "Enter the password chosen when this file was saved.",
+                    style = InstrumentType.body,
+                    color = TextSecondary,
+                )
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Password") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    textStyle = InstrumentType.body,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(password) },
+                enabled = password.isNotEmpty(),
+            ) {
+                Text("Open backup", style = InstrumentType.bodyStrong, color = Volt)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", style = InstrumentType.bodyStrong, color = TextSecondary)
+            }
+        },
+    )
 }
 
 private fun Context.findActivity(): Activity {
