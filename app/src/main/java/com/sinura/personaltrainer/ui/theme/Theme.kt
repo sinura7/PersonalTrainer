@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.ui.theme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 
 /**
@@ -92,12 +93,15 @@ private val InstrumentColorScheme = darkColorScheme(
  */
 @Composable
 fun PersonalTrainerTheme(
+    reduceMotion: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    MaterialTheme(
-        colorScheme = InstrumentColorScheme,
-        typography = Typography,
-        shapes = InstrumentShapes,
-        content = content,
-    )
+    CompositionLocalProvider(LocalReducedMotion provides reduceMotion) {
+        MaterialTheme(
+            colorScheme = InstrumentColorScheme,
+            typography = Typography,
+            shapes = InstrumentShapes,
+            content = content,
+        )
+    }
 }

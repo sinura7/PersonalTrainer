@@ -209,7 +209,7 @@ Status legend: **done** · **next** · pending · gated · skipped
 
 ### Phase 1 — Truthful test, review, and visual evidence substrate · **next**
 
-#### P1.1 — Repair the device lane and one local verification command · **done** (code; device lane pending emulator)
+#### P1.1 — Repair the device lane and one local verification command · **done**
 
 - Fix `InstrumentationSmokeTest` so it validates the generated debug
   target instead of hardcoding the release package.
@@ -225,12 +225,12 @@ Status legend: **done** · **next** · pending · gated · skipped
   Compose UI-test deps; `AppClock` / `IdFactory` + sharedTest fakes;
   `tools/verify.sh`; JaCoCo floors; lint baseline with new-warning-as-error.
   Gate probes: broken test, 99% domain floor, unused string resource — all
-  failed as required, then discarded. This environment's API 29 emulator
-  stayed `offline` (KVM was granted; adb never reached `device`), so
-  `connectedDebugAndroidTest` remains a phone/emulator milestone, not a
-  merge fiction. FND-004 is closed in code.
+  failed as required, then discarded. The full API 29
+  `connectedDebugAndroidTest` lane ran 15/15 with the generated `.debug`
+  target after booting the emulator without unusable nested acceleration.
+  FND-004 is closed in code and executed evidence.
 
-#### P1.2 — Page/state preview and screenshot infrastructure
+#### P1.2 — Page/state preview and screenshot infrastructure · **done**
 
 - Reusable fixtures: loading, empty, populated, error, long identity,
   large metrics, active/resting, permission-denied.
@@ -239,6 +239,12 @@ Status legend: **done** · **next** · pending · gated · skipped
   chosen. Two unchanged runs stably equivalent; a token change diffs.
 - Exit: later UI packets can attach deterministic visual evidence;
   foundation for FND-043 exists.
+- Landed: debug-only state fixtures for all nine required state classes;
+  reusable 360/412/600 dp, font-2.0, RTL, and reduced-motion profiles;
+  `LocalReducedMotion`; a Compose `captureToImage` golden harness; and an
+  API 29 baseline. Two captures in one run and a second fresh install were
+  pixel-identical. Changing the gallery accent from Volt to Warn produced
+  a bounded, located diff rather than repainting the page.
 
 #### P1.3 — Characterize Active Workout before refactoring
 

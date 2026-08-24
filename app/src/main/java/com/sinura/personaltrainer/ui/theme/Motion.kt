@@ -4,6 +4,17 @@ import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.spring
+import androidx.compose.runtime.staticCompositionLocalOf
+
+/**
+ * Accessibility setting consumed by previews now and by the page-level
+ * reduced-motion pass in Phase 9.
+ *
+ * Defining the seam here prevents screenshot fixtures from inventing a
+ * second motion policy. Existing animations keep their current behavior
+ * until each is deliberately mapped in that pass.
+ */
+val LocalReducedMotion = staticCompositionLocalOf { false }
 
 /**
  * The motion vocabulary.
