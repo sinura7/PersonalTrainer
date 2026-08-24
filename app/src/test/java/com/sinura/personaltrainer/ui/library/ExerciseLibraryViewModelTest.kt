@@ -93,8 +93,12 @@ class ExerciseLibraryViewModelTest {
         val vm = createViewModel()
         vm.uiState.first { !it.isLoading }
         vm.seedMuscleFromRoute(CanonicalMuscle.QUADRICEPS)
-        assertEquals(CanonicalMuscle.QUADRICEPS, vm.uiState.value.selectedMuscle)
+        assertEquals(
+            CanonicalMuscle.QUADRICEPS,
+            eventually { vm.uiState.value.selectedMuscle },
+        )
         vm.onMuscleSelected(null)
+        vm.uiState.first { it.selectedMuscle == null }
         vm.seedMuscleFromRoute(CanonicalMuscle.QUADRICEPS)
         assertNull(vm.uiState.value.selectedMuscle)
     }

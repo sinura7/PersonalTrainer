@@ -38,6 +38,7 @@ class SharedPrefsRestTimerStatePersistence(context: Context) : RestTimerStatePer
     private val prefs = context.applicationContext
         .getSharedPreferences("rest_timer_state", Context.MODE_PRIVATE)
 
+    @Suppress("ApplySharedPref")
     override fun save(state: PersistedRestTimer) {
         // commit(), not apply(): the alarm is scheduled on the next line of
         // RestTimerController.start(), and RestTimerAlarmReceiver treats a missing
@@ -65,6 +66,7 @@ class SharedPrefsRestTimerStatePersistence(context: Context) : RestTimerStatePer
         )
     }
 
+    @Suppress("ApplySharedPref")
     override fun clear() {
         prefs.edit().clear().commit()
     }

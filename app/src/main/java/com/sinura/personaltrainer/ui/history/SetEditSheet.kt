@@ -13,6 +13,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -68,8 +70,8 @@ fun SetEditSheet(
     // Keyed on the set being edited: the sheet is one composable serving every row, so without
     // the key, opening set 2 after set 1 would show set 1's numbers.
     val key = initial?.id ?: ADD_MODE_KEY
-    var weightKg by rememberSaveable(key) { mutableStateOf(initial?.weightKg ?: prefillWeightKg) }
-    var reps by rememberSaveable(key) { mutableStateOf(initial?.reps ?: prefillReps) }
+    var weightKg by rememberSaveable(key) { mutableDoubleStateOf(initial?.weightKg ?: prefillWeightKg) }
+    var reps by rememberSaveable(key) { mutableIntStateOf(initial?.reps ?: prefillReps) }
     var rpe by rememberSaveable(key) { mutableStateOf(initial?.rpe) }
     var isWarmup by rememberSaveable(key) { mutableStateOf(initial?.isWarmup ?: false) }
 

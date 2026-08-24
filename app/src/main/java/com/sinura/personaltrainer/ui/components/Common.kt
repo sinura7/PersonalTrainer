@@ -382,9 +382,9 @@ private fun NumeralWell(
     incrementLabel: String,
     onDecrement: () -> Unit,
     onIncrement: () -> Unit,
+    modifier: Modifier = Modifier,
     typeHint: String? = null,
     plateCaption: String? = null,
-    modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier

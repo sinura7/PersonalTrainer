@@ -130,7 +130,9 @@ object PreMigrationSnapshot {
         return true
     }
 
+    @Suppress("ApplySharedPref")
     private fun writeMarker(prefs: SharedPreferences) {
+        // commit() is the durable write: the next open reads this marker.
         prefs.edit().putInt(KEY_LAST_OPENED_SCHEMA, TARGET_SCHEMA).commit()
     }
 

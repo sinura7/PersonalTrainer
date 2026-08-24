@@ -118,7 +118,9 @@ for c in "check-internal-imports.py app/src/main/java" \
          "check-import-hygiene.py" \
          "check-doc-authority.py" \
          "check-backup-policy.py" \
-         "check-sdk-target.py"; do
+         "check-sdk-target.py" \
+         "check-lint-policy.py" \
+         "check-supply-chain.py"; do
     step "$c"
     # shellcheck disable=SC2086
     python3 tools/$c || fail "$c"

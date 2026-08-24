@@ -53,6 +53,7 @@ No ADR may leave a schema, scheduling, privacy, or entitlement choice as TBD.
 | [compose-toolchain.md](compose-toolchain.md) | P4.3 signed Compose BOM / Material / Navigation / compiler matrix. |
 | [persistence-toolchain.md](persistence-toolchain.md) | P4.4 signed Room / DataStore matrix. Schema v1/v2 hashes stay. |
 | [drive-auth.md](drive-auth.md) | P4.5 Drive authorization: AuthorizationClient + drive.file; Google Sign-In gone. |
+| [lint-policy.md](lint-policy.md) | P4.6 local lint waivers and supply-chain checksum ledger. |
 
 ## Permanent refusals that remain in force
 

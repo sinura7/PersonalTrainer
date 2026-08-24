@@ -37,4 +37,4 @@ stays Google-free.
 
 ## Finding coverage
 
-FND-028 is closed. FND-027 continues into P4.6 lint / supply-chain.
+FND-028 is closed. FND-027 closes with P4.6.

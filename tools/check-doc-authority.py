@@ -153,6 +153,16 @@ REQUIRED_IN = [
         "Scope stays `drive.file`",
         "P4.5 review must keep the Drive scope",
     ),
+    (
+        "docs/architecture/lint-policy.md",
+        "The only project-level disabled ids are the signed waivers below",
+        "P4.6 review must sign the lint waiver set",
+    ),
+    (
+        "docs/architecture/lint-policy.md",
+        "gradle/verification-metadata.xml",
+        "P4.6 review must require the checksum ledger",
+    ),
 ]
 
 ISSUED_FND = [f"FND-{n:03d}" for n in range(1, 49) if n != 37] + [

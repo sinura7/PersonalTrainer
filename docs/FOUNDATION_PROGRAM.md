@@ -488,7 +488,7 @@ Start versus Restore, catalog-only and bodyweight-only files).
 
 **Milestone: Trustworthy Strength Gate.**
 
-### Phase 4 — Supported Android/toolchain baseline · **in progress**
+### Phase 4 — Supported Android/toolchain baseline · **done**
 
 #### P4.1 — Compile/target SDK 36 · **done**
 
@@ -551,8 +551,17 @@ Start versus Restore, catalog-only and bodyweight-only files).
   [drive-auth.md](architecture/drive-auth.md).
   Evidence:
   [P4.5 evidence](foundation-program/evidence/P4.5-drive-auth.md).
-- **P4.6** Supply-chain controls and zero-unwaived-warning local lint
-  policy. Hosted runners still not the gate. Closes FND-026, FND-027.
+
+#### P4.6 — Supply-chain and local lint policy · **done**
+
+- Supply-chain controls and zero-unwaived-warning local lint policy.
+  Hosted runners still not the gate. Closes FND-026, FND-027.
+- Landed: lint is `warningsAsErrors` with an empty baseline. The only
+  project-level disables are signed waivers
+  (`AndroidGradlePluginVersion`, `GradleDependency`, `UseKtx`).
+  Repositories stay `google()` / `mavenCentral()`.
+  `gradle/verification-metadata.xml` checksums the resolved graph.
+  [lint-policy.md](architecture/lint-policy.md).
 
 **Milestone: Supported Platform Gate.**
 

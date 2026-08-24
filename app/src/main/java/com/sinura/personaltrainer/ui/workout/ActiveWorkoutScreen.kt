@@ -1107,7 +1107,9 @@ private fun rememberRestNotificationsEnabled(): Boolean {
             onConfirm = {
                 decided = true
                 showWhy = false
-                launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                if (Build.VERSION.SDK_INT >= 33) {
+                    launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
             },
             onDismiss = {
                 decided = true

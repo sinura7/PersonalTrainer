@@ -88,17 +88,12 @@ object RestTimerAlerts {
     private fun vibrate(context: Context) {
         try {
             val vibrator = vibrator(context) ?: return
-            if (Build.VERSION.SDK_INT >= 26) {
-                vibrator.vibrate(
-                    VibrationEffect.createWaveform(COMPLETE_PATTERN, -1),
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                        .build(),
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                vibrator.vibrate(COMPLETE_PATTERN, -1)
-            }
+            vibrator.vibrate(
+                VibrationEffect.createWaveform(COMPLETE_PATTERN, -1),
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .build(),
+            )
         } catch (_: Exception) {
             // Vibration is optional.
         }
