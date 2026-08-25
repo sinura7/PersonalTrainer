@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.CardioBlock
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CivilDate
+import com.sinura.personaltrainer.domain.CustomWeekPolicy
 import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.ExistingLayoutMatcher
 import com.sinura.personaltrainer.domain.MissedWorkChoice
@@ -42,6 +43,8 @@ import com.sinura.personaltrainer.domain.WeekTwoCopy
 import com.sinura.personaltrainer.domain.WeeklySchedulePlan
 import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.data.repository.StartSessionOutcome
+import com.sinura.personaltrainer.domain.ScheduleConfidence
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.workout.DiscardOutcome
@@ -255,12 +258,19 @@ class PlanViewModel @JvmOverloads constructor(
     private val _navigateToComposer = MutableStateFlow<String?>(null)
     val navigateToComposer: StateFlow<String?> = _navigateToComposer.asStateFlow()
 
+    private val _navigateToEditor = MutableStateFlow<String?>(null)
+    val navigateToEditor: StateFlow<String?> = _navigateToEditor.asStateFlow()
+
     fun onCardioNavigationHandled() {
         _navigateToCardio.value = null
     }
 
     fun onComposerNavigationHandled() {
         _navigateToComposer.value = null
+    }
+
+    fun onEditorNavigationHandled() {
+        _navigateToEditor.value = null
     }
 
     init {
@@ -320,6 +330,31 @@ class PlanViewModel @JvmOverloads constructor(
     fun swapRoutine(slotId: String, routineId: String) {
         write("Could not swap that day's routine. Try again.") {
             container.scheduleRepository.swapRoutine(slotId, routineId)
+            refreshPlanner()
+        }
+    }
+
+    /**
+     * Manual week-build: name the weekday, pin it, then open the editor
+     * so lifts / sets / reps are added on that day. Reuses an unpinned
+     * routine already named for the weekday.
+     */
+    fun buildDay(epochDay: Long) {
+        write("Could not build that day. Try again.") {
+            val weekday = dayOfWeekFor(epochDay)
+            val name = CustomWeekPolicy.routineName(weekday)
+            val pinnedIds = uiState.value.week?.days?.mapNotNull { it.routineId }?.toSet().orEmpty()
+            val reusable = uiState.value.routines.firstOrNull { routine ->
+                routine.name.equals(name, ignoreCase = true) && routine.id !in pinnedIds
+            }
+            val routineId = reusable?.id ?: container.routineRepository.create(name).id
+            container.scheduleRepository.pin(
+                routineId = routineId,
+                focusKind = null,
+                anchorDay = weekday,
+            )
+            refreshPlanner()
+            _navigateToEditor.value = routineId
         }
     }
 
@@ -439,6 +474,41 @@ class PlanViewModel @JvmOverloads constructor(
         }
     }
 
+    /**
+     * Empty session on this calendar day. Does not bind the plan row —
+     * finishing it must leave the scheduled occurrence Planned so the
+     * evening session can still run.
+     */
+    fun startFreeWorkout() {
+        viewModelScope.launch {
+            PendingOccurrence.forget(container)
+            when (val outcome = container.workoutRepository.startFreeWorkoutSafely()) {
+                is StartSessionOutcome.Started -> {
+                    actionError.value = null
+                    _navigateToSession.value = outcome.session.id
+                }
+                is StartSessionOutcome.Blocked ->
+                    _blockedByInProgress.value = BlockedStart(
+                        day = SuggestedTrainingDay(
+                            epochDay = todayEpochDay(),
+                            dayOfWeek = Weekday.fromEpochDay(todayEpochDay()),
+                            isRest = false,
+                            focusKind = SessionFocusKind.FULL_BODY,
+                            focusTitle = "Free workout",
+                            routineId = null,
+                            routineName = "Free workout",
+                            reason = "",
+                            emphasisMuscles = emptyList(),
+                            confidence = ScheduleConfidence.HIGH,
+                        ),
+                        sessionId = outcome.inProgress.id,
+                    )
+                is StartSessionOutcome.Unavailable ->
+                    actionError.value = outcome.message
+            }
+        }
+    }
+
     fun addMorningCardio(epochDay: Long) {
         write("Could not add morning cardio. Try again.") {
             container.plannerRepository.addTimedRule(
@@ -543,8 +613,10 @@ class PlanViewModel @JvmOverloads constructor(
         }
     }
 
-    fun agendaFor(epochDay: Long): List<AgendaItem> =
-        DailyAgenda.forDay(epochDay, uiState.value.occurrences, uiState.value.rules)
+    fun agendaFor(epochDay: Long): List<AgendaItem> {
+        val names = uiState.value.routines.associate { it.id to it.name }
+        return DailyAgenda.forDay(epochDay, uiState.value.occurrences, uiState.value.rules, names)
+    }
 
     private suspend fun start(day: SuggestedTrainingDay) {
         when (val outcome = container.startTrainingDay(day)) {
@@ -675,10 +747,8 @@ class PlanViewModel @JvmOverloads constructor(
     data class BlockedStart(val day: SuggestedTrainingDay, val sessionId: String)
 
     private suspend fun refreshPlanner() {
-        container.plannerRepository.syncSlotsToRules()
         val prefs = container.preferencesRepository.schedulePreferences.first()
-        val today = CivilDate.fromEpochDay(todayEpochDay())
-        container.plannerRepository.ensureWeek(today.previousOrSame(prefs.weekStart))
+        container.plannerRepository.publishPinnedWeek(prefs.weekStart, todayEpochDay())
     }
 
     private data class PlannerSnapshot(

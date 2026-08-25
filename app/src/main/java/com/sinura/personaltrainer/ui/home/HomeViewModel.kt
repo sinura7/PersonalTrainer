@@ -153,7 +153,12 @@ class HomeViewModel @JvmOverloads constructor(
                 insights.weekPlan?.weekStartEpochDay,
             ),
             error = error,
-            agenda = DailyAgenda.forDay(today, occurrences, rules),
+            agenda = DailyAgenda.forDay(
+                today,
+                occurrences,
+                rules,
+                insights.routines.associate { it.id to it.name },
+            ),
             missedWorkPrompt = MissedWorkPolicy.promptNeeded(overdue, decision),
             overdueCount = overdue.size,
             goalSnapshot = GoalCopy.featured(

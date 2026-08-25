@@ -71,6 +71,22 @@ class PlannerRepositoryTest {
     }
 
     @Test
+    fun syncUpsertsRoutineIdWhenASlotIsSwapped() = runBlocking {
+        val push = deps.routineRepository.create(name = "Push")
+        val pull = deps.routineRepository.create(name = "Pull")
+        deps.scheduleRepository.pin(push.id, null, Weekday.MONDAY)
+        deps.plannerRepository.syncSlotsToRules()
+        val before = deps.plannerRepository.rules().single()
+        assertEquals(push.id, before.routineId)
+        deps.scheduleRepository.swapRoutine(deps.scheduleRepository.slots().single().id, pull.id)
+        deps.plannerRepository.syncSlotsToRules()
+        val after = deps.plannerRepository.rules().single()
+        assertEquals(pull.id, after.routineId)
+        assertEquals(before.id, after.id)
+        assertEquals(18, after.hour)
+    }
+
+    @Test
     fun keepDatesPersistsOneDecision() = runBlocking {
         deps.scheduleRepository.pin(null, SessionFocusKind.LEGS, Weekday.MONDAY)
         deps.plannerRepository.importSlotsIfNeeded()

@@ -121,12 +121,16 @@ data class ReminderPreferences(
 data class AgendaItem(
     val occurrence: ScheduleOccurrence,
     val rule: ScheduleRule?,
+    val routineName: String? = null,
 ) {
     val title: String
         get() = when (rule?.modality ?: ScheduleModality.STRENGTH) {
             ScheduleModality.CARDIO -> "Cardio"
             ScheduleModality.MIXED -> "Mixed"
-            ScheduleModality.STRENGTH -> rule?.focusKind?.label ?: "Strength"
+            ScheduleModality.STRENGTH ->
+                routineName?.takeIf { it.isNotBlank() }
+                    ?: rule?.focusKind?.label
+                    ?: "Strength"
         }
 
     val timeLabel: String =

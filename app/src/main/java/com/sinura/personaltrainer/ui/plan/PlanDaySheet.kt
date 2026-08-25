@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.plan
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
@@ -11,13 +12,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.AgendaItem
+import com.sinura.personaltrainer.domain.CustomWeekPolicy
 import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.ScheduleModality
@@ -37,16 +41,13 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 /**
- * One day of the week, and everything you can do to it.
+ * One weekday of the plan: build it, or start what is already on it.
  *
- * All pin management lives here rather than on the strip. The strip is seven cells wide on a
- * phone; hanging long-press menus off cells that size makes destructive actions reachable by
- * accident and puts the app's most consequential controls in its smallest touch targets. A tap
- * opens this, and this has room to name what each action does.
+ * Open days are built here — named after the weekday, lifts and targets
+ * in the editor, cardio as a second occurrence. Home then shows that
+ * day's work. A free session on the same date does not consume the plan.
  *
- * What the sheet offers is a function of one thing: whether the day is behind you. A past day
- * is a record and gets no actions at all — the way to change what happened is History, not the
- * plan.
+ * Past days are a record and get no actions.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,7 +56,6 @@ fun PlanDaySheet(
     routines: List<Routine>,
     isPast: Boolean,
     logged: Boolean,
-    onStart: () -> Unit,
     onPinRoutine: (String) -> Unit,
     onPinFocus: (SessionFocusKind) -> Unit,
     onSwapRoutine: (String) -> Unit,
@@ -65,6 +65,9 @@ fun PlanDaySheet(
     occurrences: List<AgendaItem> = emptyList(),
     onStartOccurrence: (String) -> Unit = {},
     onAddMorningCardio: () -> Unit = {},
+    onBuildDay: () -> Unit = {},
+    onStartFree: () -> Unit = {},
+    sessionLive: Boolean = false,
 ) {
     var picking by rememberSaveable(day.epochDay) { mutableStateOf(Picker.NONE) }
     val pinned = !day.isRest
@@ -91,10 +94,10 @@ fun PlanDaySheet(
                 )
                 Text(
                     when {
-                        logged -> "Logged."
+                        logged -> "Logged. The plan for later today still stands."
                         pinned -> day.reason
                         isPast -> "No session logged."
-                        else -> "Nothing pinned here yet."
+                        else -> "Build ${CustomWeekPolicy.routineName(day.dayOfWeek)} — lifts, sets, reps. Cardio can sit on the same day."
                     },
                     style = InstrumentType.caption,
                     color = TextSecondary,
@@ -105,44 +108,69 @@ fun PlanDaySheet(
                 GroupedList {
                     occurrences.forEachIndexed { index, item ->
                         if (index > 0) HairlineDivider()
+                        val canStart = !isPast &&
+                            !sessionLive &&
+                            item.occurrence.status == OccurrenceStatus.PLANNED
                         InstrumentRow(
                             title = "${item.timeLabel}  ·  ${item.title}",
-                            subtitle = item.occurrence.status.name.lowercase().replaceFirstChar { it.titlecase() },
+                            subtitle = item.occurrence.status.name.lowercase()
+                                .replaceFirstChar { it.titlecase() },
                             onClick = {
-                                if (!isPast && item.occurrence.status == OccurrenceStatus.PLANNED) {
-                                    onStartOccurrence(item.occurrence.id)
-                                }
+                                if (canStart) onStartOccurrence(item.occurrence.id)
                             },
                         )
+                        if (canStart) {
+                            PrimaryGymButton(
+                                text = "Start ${item.title}",
+                                onClick = { onStartOccurrence(item.occurrence.id) },
+                            )
+                        }
                     }
                 }
             }
 
             if (isPast) return@Column
 
-            val hasCardio = occurrences.any { it.rule?.modality == ScheduleModality.CARDIO }
-            if (!hasCardio) {
+            if (sessionLive) {
+                Text(
+                    "Finish or discard the live session first.",
+                    style = InstrumentType.body,
+                    color = TextPrimary,
+                )
+            } else if (!pinned) {
+                PrimaryGymButton(
+                    text = "Build ${CustomWeekPolicy.routineName(day.dayOfWeek)}",
+                    onClick = onBuildDay,
+                )
                 GroupedList {
                     InstrumentRow(
-                        title = "Add morning cardio",
-                        subtitle = "A second occurrence on this day. Starts at 07:00.",
-                        onClick = onAddMorningCardio,
+                        title = "Pin a routine…",
+                        subtitle = "Use one you already named.",
+                        onClick = { picking = if (picking == Picker.ROUTINE) Picker.NONE else Picker.ROUTINE },
+                    )
+                    HairlineDivider()
+                    InstrumentRow(
+                        title = "Pin a focus…",
+                        subtitle = "For a day you know the shape of but not the lifts.",
+                        onClick = { picking = if (picking == Picker.FOCUS) Picker.NONE else Picker.FOCUS },
                     )
                 }
-            }
-
-            if (pinned) {
-                PrimaryGymButton(
-                    // "Train again" rather than "Start" once the day is done: the button still
-                    // works, and pretending the session has not happened would be the lie.
-                    text = if (logged) "Train again" else "Start ${day.routineName ?: day.focusTitle}",
-                    onClick = onStart,
-                )
+            } else {
+                val hasCardio = occurrences.any { it.rule?.modality == ScheduleModality.CARDIO }
+                if (!hasCardio) {
+                    GroupedList {
+                        InstrumentRow(
+                            title = "Add morning cardio",
+                            subtitle = "A second occurrence on this day. Starts at 07:00. Does not replace the lifts.",
+                            onClick = onAddMorningCardio,
+                        )
+                    }
+                }
                 GroupedList {
                     if (onEditRoutine != null) {
                         InstrumentRow(
                             title = "Edit lifts",
-                            subtitle = "Swap, change sets and reps, or reorder.",
+                            subtitle = "Sets, reps, bodyweight work, reorder.",
                             onClick = onEditRoutine,
                         )
                         HairlineDivider()
@@ -158,18 +186,14 @@ fun PlanDaySheet(
                         onClick = onUnpin,
                     )
                 }
-            } else {
-                GroupedList {
-                    InstrumentRow(
-                        title = "Pin a routine…",
-                        onClick = { picking = if (picking == Picker.ROUTINE) Picker.NONE else Picker.ROUTINE },
-                    )
-                    HairlineDivider()
-                    InstrumentRow(
-                        title = "Pin a focus…",
-                        subtitle = "For a day you know the shape of but not the lifts.",
-                        onClick = { picking = if (picking == Picker.FOCUS) Picker.NONE else Picker.FOCUS },
-                    )
+            }
+
+            if (!sessionLive) {
+                TextButton(
+                    onClick = onStartFree,
+                    contentPadding = PaddingValues(0.dp),
+                ) {
+                    Text(FREE_WORKOUT, style = InstrumentType.bodyStrong, color = TextSecondary)
                 }
             }
 
@@ -199,7 +223,7 @@ private fun RoutinePicker(routines: List<Routine>, onPick: (String) -> Unit) {
         Kicker("Routines")
         if (routines.isEmpty()) {
             Text(
-                "Create a routine on this tab first, then pin it here.",
+                "Build the day above, or create a routine on this tab first.",
                 style = InstrumentType.caption,
                 color = TextSecondary,
             )
@@ -242,6 +266,8 @@ private fun dateLabel(epochDay: Long): String =
     DATE_FORMAT.format(LocalDate.ofEpochDay(epochDay))
 
 private enum class Picker { NONE, ROUTINE, FOCUS, SWAP }
+
+private const val FREE_WORKOUT = "Start a free workout"
 
 private val PINNABLE_FOCUS = listOf(
     SessionFocusKind.PUSH,

@@ -11,12 +11,20 @@ object DailyAgenda {
         epochDay: Long,
         occurrences: List<ScheduleOccurrence>,
         rules: List<ScheduleRule>,
+        routineNames: Map<String, String> = emptyMap(),
     ): List<AgendaItem> {
         val byId = rules.associateBy { it.id }
         return occurrences
             .filter { it.localEpochDay == epochDay }
             .sortedWith(compareBy({ it.minutesOfDay }, { it.id }))
-            .map { occurrence -> AgendaItem(occurrence, byId[occurrence.ruleId]) }
+            .map { occurrence ->
+                val rule = byId[occurrence.ruleId]
+                AgendaItem(
+                    occurrence = occurrence,
+                    rule = rule,
+                    routineName = rule?.routineId?.let { routineNames[it] },
+                )
+            }
     }
 
     fun startable(items: List<AgendaItem>): List<AgendaItem> =

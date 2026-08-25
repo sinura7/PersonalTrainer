@@ -254,6 +254,7 @@ fun PlanScreen(
     val navigateToSession by viewModel.navigateToSession.collectAsStateWithLifecycle()
     val navigateToCardio by viewModel.navigateToCardio.collectAsStateWithLifecycle()
     val navigateToComposer by viewModel.navigateToComposer.collectAsStateWithLifecycle()
+    val navigateToEditor by viewModel.navigateToEditor.collectAsStateWithLifecycle()
     val blocked by viewModel.blockedByInProgress.collectAsStateWithLifecycle()
     val dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM)
     val today = remember { todayEpochDay() }
@@ -276,6 +277,11 @@ fun PlanScreen(
         val mode = navigateToComposer ?: return@LaunchedEffect
         onLogActivity(mode)
         viewModel.onComposerNavigationHandled()
+    }
+    LaunchedEffect(navigateToEditor) {
+        val id = navigateToEditor ?: return@LaunchedEffect
+        onOpenRoutine(id)
+        viewModel.onEditorNavigationHandled()
     }
 
     Column(
@@ -427,7 +433,7 @@ fun PlanScreen(
                 item(key = "routines-empty") {
                     EmptyState(
                         title = "Build your first plan",
-                        body = "Name a routine, add lifts and targets, then pin it to a day above.",
+                        body = "Open a weekday on the strip. Name that day, add lifts, sets and reps. Cardio can sit on the same day.",
                         actionLabel = "Create a routine",
                         onAction = onCreateRoutine,
                     )
@@ -470,10 +476,6 @@ fun PlanScreen(
             routines = state.routines,
             isPast = sheetDay.epochDay < today,
             logged = sheetDay.epochDay in state.loggedEpochDays,
-            onStart = {
-                openDay = null
-                viewModel.startDay(sheetDay)
-            },
             onPinRoutine = { routineId ->
                 openDay = null
                 viewModel.pinRoutine(sheetDay.epochDay, routineId)
@@ -506,6 +508,15 @@ fun PlanScreen(
                 openDay = null
                 viewModel.addMorningCardio(sheetDay.epochDay)
             },
+            onBuildDay = {
+                openDay = null
+                viewModel.buildDay(sheetDay.epochDay)
+            },
+            onStartFree = {
+                openDay = null
+                viewModel.startFreeWorkout()
+            },
+            sessionLive = state.inProgress != null,
         )
     }
 

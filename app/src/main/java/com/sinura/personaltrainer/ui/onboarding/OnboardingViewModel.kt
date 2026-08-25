@@ -315,6 +315,12 @@ class OnboardingViewModel @JvmOverloads constructor(
                         runCatchingCancellable { container.preferencesRepository.setWeightUnit(unit) }
                             .onFailure { AppLog.w(TAG, "Saving the weight unit failed", it) }
                     }
+                    runCatchingCancellable {
+                        container.plannerRepository.publishPinnedWeek(
+                            weekStart.value,
+                            LocalDate.now().toEpochDay(),
+                        )
+                    }.onFailure { AppLog.w(TAG, "Publishing the plan to Home failed", it) }
                     error.value = null
                     _finished.value = true
                 }

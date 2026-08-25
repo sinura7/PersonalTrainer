@@ -74,12 +74,12 @@ class PlannerRepository(
         val rules = dao.getRules().map { it.toDomain() }
         val now = time.nowMillis()
         val slotIds = slots.map { it.id }.toSet()
-        val importedIds = rules.map { it.id }.filter { it.startsWith("rule-") }.toSet()
-        val toInsert = slots.mapNotNull { slot ->
-            val id = SlotRuleImport.ruleIdForSlot(slot.id)
-            if (rules.any { it.id == id }) null else SlotRuleImport.ruleFromSlot(slot, now)
+        val byId = rules.associateBy { it.id }
+        val toUpsert = slots.mapNotNull { slot ->
+            SlotRuleImport.upsertFromSlot(byId[SlotRuleImport.ruleIdForSlot(slot.id)], slot, now)
         }
-        if (toInsert.isNotEmpty()) dao.upsertRules(toInsert.map { it.toEntity() })
+        if (toUpsert.isNotEmpty()) dao.upsertRules(toUpsert.map { it.toEntity() })
+        val importedIds = rules.map { it.id }.filter { it.startsWith("rule-") }.toSet()
         for (ruleId in importedIds) {
             val slotId = ruleId.removePrefix("rule-")
             if (slotId !in slotIds && rules.firstOrNull { it.id == ruleId }?.modality == ScheduleModality.STRENGTH) {
@@ -138,6 +138,11 @@ class PlannerRepository(
             scheduleRemindersLocked(week, rules, nowMs)
             week
         }
+    }
+
+    suspend fun publishPinnedWeek(weekStart: Weekday, todayEpochDay: Long) {
+        syncSlotsToRules()
+        ensureWeek(CivilDate.fromEpochDay(todayEpochDay).previousOrSame(weekStart))
     }
 
     suspend fun applyMissedWork(

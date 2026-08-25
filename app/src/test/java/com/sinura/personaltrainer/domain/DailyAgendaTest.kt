@@ -34,6 +34,19 @@ class DailyAgendaTest {
     }
 
     @Test
+    fun strengthTitlePrefersTheRoutineName() {
+        val day = 20_000L
+        val planned = occ("s", "r-s", day, 18)
+        val items = DailyAgenda.forDay(
+            day,
+            listOf(planned),
+            listOf(rule("r-s", ScheduleModality.STRENGTH).copy(routineId = "routine-1")),
+            mapOf("routine-1" to "Monday"),
+        )
+        assertEquals("Monday", items.single().title)
+    }
+
+    @Test
     fun minutesOfDayClamps() {
         assertEquals(0, DailyAgenda.minutesOfDay(0L, 0L))
         assertEquals(90, DailyAgenda.minutesOfDay(90 * 60_000L, 0L))

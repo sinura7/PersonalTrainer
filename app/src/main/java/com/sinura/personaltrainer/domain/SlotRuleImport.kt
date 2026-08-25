@@ -34,4 +34,27 @@ object SlotRuleImport {
 
     fun rulesFromSlots(slots: List<ScheduleSlot>, nowMs: Long): List<ScheduleRule> =
         slots.mapNotNull { ruleFromSlot(it, nowMs) }
+
+    /**
+     * Slot pin fields that a later swap or re-pin must copy onto the
+     * imported rule. Hour, modality and reminder stay as the rule already
+     * has them — those are not slot columns.
+     */
+    fun upsertFromSlot(existing: ScheduleRule?, slot: ScheduleSlot, nowMs: Long): ScheduleRule? {
+        val desired = ruleFromSlot(slot, nowMs) ?: return null
+        if (existing == null) return desired
+        if (
+            existing.weekday == desired.weekday &&
+            existing.routineId == desired.routineId &&
+            existing.focusKind == desired.focusKind
+        ) {
+            return null
+        }
+        return existing.copy(
+            weekday = desired.weekday,
+            routineId = desired.routineId,
+            focusKind = desired.focusKind,
+            updatedAtMs = nowMs,
+        )
+    }
 }

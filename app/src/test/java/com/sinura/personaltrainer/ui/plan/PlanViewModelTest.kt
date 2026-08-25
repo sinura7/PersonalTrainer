@@ -184,6 +184,92 @@ class PlanViewModelTest {
     }
 
     @Test
+    fun buildDayNamesTheWeekdayPinsItAndOpensTheEditor() = runBlocking {
+        val today = LocalDate.now(ZoneId.systemDefault())
+        val monday = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+        val insights = MutableStateFlow(
+            TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
+        )
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+
+        viewModel!!.buildDay(monday.toEpochDay())
+        dispatcher.scheduler.advanceUntilIdle()
+        val editorId = withTimeout(5_000) {
+            viewModel!!.navigateToEditor.first { it != null }!!
+        }
+        val routine = deps.routineRepository.getById(editorId)!!
+        assertEquals("Monday", routine.name)
+        assertEquals(editorId, deps.scheduleRepository.slots().single().routineId)
+        val rule = withTimeout(5_000) {
+            deps.plannerRepository.observeRules().first { it.isNotEmpty() }.single()
+        }
+        assertEquals(editorId, rule.routineId)
+        assertEquals(
+            com.sinura.personaltrainer.domain.OccurrenceStatus.PLANNED,
+            deps.plannerRepository.occurrencesBetween(monday.toEpochDay(), monday.toEpochDay())
+                .single().status,
+        )
+    }
+
+    @Test
+    fun swapRoutineRefreshesTheImportedRule() = runBlocking {
+        val today = LocalDate.now(ZoneId.systemDefault())
+        val monday = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+        val insights = MutableStateFlow(
+            TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
+        )
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        val push = deps.routineRepository.create("Push")
+        val pull = deps.routineRepository.create("Pull")
+        viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.pinRoutine(monday.toEpochDay(), push.id)
+        withTimeout(5_000) {
+            viewModel!!.uiState.first { it.rules.any { rule -> rule.routineId == push.id } }
+        }
+        val slotId = deps.scheduleRepository.slots().single().id
+        viewModel!!.swapRoutine(slotId, pull.id)
+        dispatcher.scheduler.advanceUntilIdle()
+        withTimeout(5_000) {
+            deps.plannerRepository.observeRules().first { rows ->
+                rows.any { it.routineId == pull.id }
+            }
+        }
+        assertEquals(pull.id, deps.plannerRepository.rules().single().routineId)
+    }
+
+    @Test
+    fun freeWorkoutLeavesThePlannedOccurrenceOpen() = runBlocking {
+        val today = LocalDate.now(ZoneId.systemDefault())
+        val insights = MutableStateFlow(
+            TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(
+                today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)),
+            )),
+        )
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.pinFocus(today.toEpochDay(), SessionFocusKind.PUSH)
+        withTimeout(5_000) {
+            viewModel!!.uiState.first { it.rules.isNotEmpty() }
+        }
+        viewModel!!.startFreeWorkout()
+        val sessionId = withTimeout(5_000) {
+            viewModel!!.navigateToSession.first { it != null }!!
+        }
+        val session = deps.workoutRepository.getSession(sessionId)!!
+        assertEquals("Free workout", session.routineName)
+        assertTrue(session.exercises.isEmpty())
+        assertEquals(
+            com.sinura.personaltrainer.domain.OccurrenceStatus.PLANNED,
+            deps.plannerRepository.occurrencesBetween(today.toEpochDay(), today.toEpochDay())
+                .single().status,
+        )
+    }
+
+    @Test
     fun pendingAnswerReplayReplaysWithoutCreating() = runBlocking {
         val insights = MutableStateFlow(TrainingInsights())
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
