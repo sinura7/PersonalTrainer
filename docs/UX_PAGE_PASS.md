@@ -103,6 +103,8 @@ keeps the draft.
 - Finish stays enabled on **any logged set**, including warmup-only.
 - In-set empties are `compact` — the Temper mark does not sit mid-set.
 - Leave copy points at the **bar and the rest notification**, never Home.
+- Leave actions are stacked buttons. **Keep and exit** is the one Volt.
+  Stay is a quiet control. Discard stays Danger ink and still confirms.
 - **Log sits above the system nav.** Scaffold's bottomBar is edge-to-edge.
   This route hides the tab bar, so the log dock owns `navigationBarsPadding`
   the same way the tab bar and live bar already do.
@@ -304,6 +306,8 @@ Record every deviation here. Oldest stay; do not delete.
 17. **Pinned Log / Done sit above the system nav.** The tab bar is gone on
     those routes; the dock owns the inset. A Log under the three-button
     bar is a miss.
+18. **Leave-workout Keep and exit is the Volt.** Stay is a real control.
+    Discard stays Danger ink, not a second filled button, and still confirms.
 
 ---
 

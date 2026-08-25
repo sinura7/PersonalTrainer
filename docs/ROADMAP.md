@@ -25,6 +25,8 @@
 > dump `Planned`. Missed-work Keep the dates is the one Volt. Gym-floor
 > errors say lift, not exercise. Active-workout Log and summary Done sit
 > above the system navigation inset (three-button / gesture pill).
+> Leave-workout Keep and exit is the filled Volt; Stay is a real control;
+> Discard stays Danger ink and still confirms.
 
 Derived from the full audit of 19 Aug 2026 ([AUDIT.md](AUDIT.md)). Phases land in order;
 each one ends at a gate that must be verified before the next begins.

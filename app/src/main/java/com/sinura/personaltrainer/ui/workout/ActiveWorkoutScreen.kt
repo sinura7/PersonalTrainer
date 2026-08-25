@@ -29,7 +29,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -98,6 +97,7 @@ import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.components.LeaveWorkoutDialog
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.NotesBlock
 import com.sinura.personaltrainer.ui.components.PersonalRecordBanner
@@ -506,49 +506,20 @@ fun ActiveWorkoutScreen(
     }
 
     if (confirmLeave) {
-        AlertDialog(
-            onDismissRequest = { confirmLeave = false },
-            title = { Text("Leave workout?", style = InstrumentType.title) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                    Text(
-                        "Your sets and rest keep running. The bar at the bottom of any other " +
-                            "screen brings you back — or tap the rest notification.",
-                        style = InstrumentType.body,
-                        color = TextSecondary,
-                    )
-                    // Discarding is destructive and deliberately NOT a dialog button: it sits
-                    // apart from the two safe actions and routes through its own named confirm,
-                    // so it can never be hit by mis-tapping next to "Keep and exit".
-                    TextButton(
-                        onClick = {
-                            confirmLeave = false
-                            confirmDiscard = true
-                        },
-                        contentPadding = PaddingValues(horizontal = 0.dp, vertical = Metrics.space1),
-                    ) {
-                        Text(
-                            "Discard this workout instead",
-                            style = InstrumentType.bodyStrong,
-                            color = Danger,
-                        )
-                    }
-                }
+        // X, system back, and Finish-disabled empty sessions all land here. Keep is the
+        // gym-floor leave; Discard still opens the named confirm below.
+        LeaveWorkoutDialog(
+            onKeepAndExit = {
+                confirmLeave = false
+                viewModel.persistDraftForExit()
+                onExit()
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        confirmLeave = false
-                        viewModel.persistDraftForExit()
-                        onExit()
-                    },
-                ) { Text("Keep and exit", style = InstrumentType.bodyStrong, color = Volt) }
+            onStay = { confirmLeave = false },
+            onDiscardInstead = {
+                confirmLeave = false
+                confirmDiscard = true
             },
-            dismissButton = {
-                TextButton(onClick = { confirmLeave = false }) {
-                    Text("Stay", style = InstrumentType.bodyStrong, color = TextSecondary)
-                }
-            },
+            onDismiss = { confirmLeave = false },
         )
     }
 
@@ -570,34 +541,21 @@ fun ActiveWorkoutScreen(
 
     if (confirmDiscard) {
         val loggedSets = session?.sets?.size ?: 0
-        AlertDialog(
-            onDismissRequest = { confirmDiscard = false },
-            title = { Text("Discard this workout?", style = InstrumentType.title) },
-            text = {
-                Text(
-                    if (loggedSets > 0) {
-                        "This deletes the session and its $loggedSets logged " +
-                            (if (loggedSets == 1) "set" else "sets") + ". This cannot be undone."
-                    } else {
-                        "This deletes the session. This cannot be undone."
-                    },
-                    style = InstrumentType.body,
-                    color = TextSecondary,
-                )
+        ConfirmActionDialog(
+            title = "Discard this workout?",
+            body = if (loggedSets > 0) {
+                "This deletes the session and its $loggedSets logged " +
+                    (if (loggedSets == 1) "set" else "sets") + ". This cannot be undone."
+            } else {
+                "This deletes the session. This cannot be undone."
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        confirmDiscard = false
-                        viewModel.discardWorkout()
-                    },
-                ) { Text("Discard", style = InstrumentType.bodyStrong, color = Danger) }
+            confirmLabel = "Discard",
+            destructive = true,
+            onConfirm = {
+                confirmDiscard = false
+                viewModel.discardWorkout()
             },
-            dismissButton = {
-                TextButton(onClick = { confirmDiscard = false }) {
-                    Text("Cancel", style = InstrumentType.bodyStrong, color = TextSecondary)
-                }
-            },
+            onDismiss = { confirmDiscard = false },
         )
     }
 }
