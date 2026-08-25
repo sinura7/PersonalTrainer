@@ -1,5 +1,6 @@
 # P12 field operations
 
+- **Implementation commit:** `4040067`
 - **Evidence date:** 25 August 2026
 - **Application:** `com.sinura.personaltrainer.debug`
 
@@ -25,6 +26,8 @@ Published:
 ## P12.3 / FND-029
 
 Release `isMinifyEnabled` and `isShrinkResources` are true.
+`./gradlew assembleRelease bundleRelease` succeeded. Unsigned release
+APK is 2.9 MB (debug APK 24 MB). Release AAB is 6.5 MB.
 `tools/check-version-code.py` keeps `versionCode` at or above the
 released floor (currently 1). `versionCode` is not bumped here — that
 happens when a public artifact is cut.

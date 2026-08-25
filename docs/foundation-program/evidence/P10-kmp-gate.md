@@ -1,5 +1,6 @@
 # P10 KMP — gate hold
 
+- **Implementation commit:** `4040067`
 - **Evidence date:** 25 August 2026
 - **Decision:** [ADR-003](../../architecture/ADR-003-shipping-platform.md)
 
