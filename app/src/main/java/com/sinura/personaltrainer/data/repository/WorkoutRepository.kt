@@ -117,6 +117,11 @@ class WorkoutRepository(
     fun observeSessionSummariesHealth(): Flow<DataHealth<List<com.sinura.personaltrainer.domain.SessionSummary>>> =
         observeSessionSummaries().observeHealth("workout history")
 
+    fun observeLastLogged(): Flow<Map<String, Long>> =
+        workoutDao.observeLastLogged().map { rows ->
+            rows.associate { it.exerciseId to it.lastLoggedAt }
+        }
+
     fun observeBestWorkingWeights(): Flow<Map<String, Double>> =
         workoutDao.observeBestWorkingWeights().map { rows ->
             rows.associate { it.exerciseId to it.bestKg }

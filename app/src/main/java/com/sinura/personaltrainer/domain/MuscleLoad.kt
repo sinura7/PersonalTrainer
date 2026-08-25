@@ -166,6 +166,62 @@ data class BodyHeatSnapshot(
         if (hasAnyWorkingSets) return this
         return if (summaries.any { it.hasLoggedWork() }) copy(hasAnyWorkingSets = true) else this
     }
+
+    /**
+     * Heat stays on the windowed graph. Recency must not: a muscle last
+     * trained 40 days ago is not "Not trained yet."
+     */
+    fun rememberLifetimeRecency(
+        lastTrainedByMuscle: Map<CanonicalMuscle, Long>,
+        nowMs: Long,
+        time: TimePort = JvmTime,
+        zoneId: String = time.defaultZoneId(),
+    ): BodyHeatSnapshot {
+        if (lastTrainedByMuscle.isEmpty()) return this
+        return copy(
+            loads = loads.map { load ->
+                val lifetime = lastTrainedByMuscle[load.muscle] ?: return@map load
+                val current = load.lastTrainedAtMs
+                if (current != null && current >= lifetime) load
+                else load.copy(
+                    lastTrainedAtMs = lifetime,
+                    daysSinceLastTrained = MuscleLoadCalculator.daysSince(
+                        lifetime,
+                        nowMs,
+                        time,
+                        zoneId,
+                    ),
+                )
+            },
+        )
+    }
+}
+
+/** Last logged working set per muscle, from the exercise recency query. */
+object MuscleRecency {
+    fun byMuscle(
+        lastLoggedAtByExerciseId: Map<String, Long>,
+        catalog: Map<String, Exercise>,
+    ): Map<CanonicalMuscle, Long> {
+        val out = mutableMapOf<CanonicalMuscle, Long>()
+        lastLoggedAtByExerciseId.forEach { (exerciseId, atMs) ->
+            val exercise = catalog[exerciseId] ?: return@forEach
+            musclesOf(exercise).forEach { muscle ->
+                val previous = out[muscle]
+                if (previous == null || atMs > previous) out[muscle] = atMs
+            }
+        }
+        return out
+    }
+
+    fun musclesOf(exercise: Exercise): List<CanonicalMuscle> {
+        val fromJunction = exercise.muscles.mapNotNull { credit ->
+            MuscleNormalizer.resolveKey(credit.muscleKey)
+        }
+        if (fromJunction.isNotEmpty()) return fromJunction.distinct()
+        val derived = MuscleNormalizer.primaryOf(exercise.muscleGroup)
+        return listOf(derived)
+    }
 }
 
 /**

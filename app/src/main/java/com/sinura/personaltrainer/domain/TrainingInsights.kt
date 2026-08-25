@@ -82,6 +82,8 @@ data class TrainingInsightsInput(
     val zoneId: String = time.defaultZoneId(),
     /** Progress has no week plan to show; skipping it keeps a wide history window cheap. */
     val includeWeekPlan: Boolean = true,
+    /** Last set per exercise, unwindowed. Overlay for Body recency older than 30 days. */
+    val lastLoggedAtByExerciseId: Map<String, Long> = emptyMap(),
 )
 
 /**
@@ -113,6 +115,15 @@ object TrainingInsightsCalculator {
                 weekStart = input.preferences.weekStart,
             )
         }?.rememberLifetimeWork(input.summaries)
+            ?.rememberLifetimeRecency(
+                lastTrainedByMuscle = MuscleRecency.byMuscle(
+                    input.lastLoggedAtByExerciseId,
+                    input.exerciseCatalog,
+                ),
+                nowMs = input.nowMs,
+                time = input.time,
+                zoneId = input.zoneId,
+            )
         if (snapshot == null) failures += InsightFailure.HEAT
 
         // The coach reasons from its own fixed 14-day basis, not from the display snapshot —

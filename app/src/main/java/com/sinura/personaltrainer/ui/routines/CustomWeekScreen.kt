@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.CustomWeekDayMark
@@ -94,7 +95,10 @@ fun CustomWeekScreen(
                     .padding(start = Metrics.space2, end = Metrics.space2, bottom = Metrics.space2),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = onBack) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.testTag(CustomWeekTags.BACK),
+                ) {
                     Icon(
                         Icons.AutoMirrored.Outlined.ArrowBack,
                         contentDescription = "Back",
@@ -141,6 +145,7 @@ fun CustomWeekScreen(
                             actionLabel = "Add lifts",
                             onAction = { viewModel.setPickerVisible(true) },
                             compact = true,
+                            actionTag = CustomWeekTags.ADD_LIFTS,
                             modifier = Modifier.padding(top = Metrics.space4),
                         )
                     }
@@ -173,7 +178,9 @@ fun CustomWeekScreen(
                         SecondaryGymButton(
                             text = "Add lifts",
                             onClick = { viewModel.setPickerVisible(true) },
-                            modifier = Modifier.padding(top = Metrics.space2),
+                            modifier = Modifier
+                                .padding(top = Metrics.space2)
+                                .testTag(CustomWeekTags.ADD_LIFTS),
                             height = Metrics.touchMin,
                         )
                     }
@@ -195,6 +202,7 @@ fun CustomWeekScreen(
                             viewModel.confirm()
                         }
                     },
+                    modifier = Modifier.testTag(CustomWeekTags.CONFIRM),
                     enabled = state.canConfirm && !state.applying,
                 )
                 if (restCaption != null && state.trainingDays > 0) {
@@ -300,4 +308,10 @@ private fun WeekDayStrip(
             }
         }
     }
+}
+
+object CustomWeekTags {
+    const val BACK = "custom-week-back"
+    const val ADD_LIFTS = "custom-week-add-lifts"
+    const val CONFIRM = "custom-week-confirm"
 }

@@ -20,6 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.CardioType
@@ -123,9 +124,13 @@ fun ActivityComposerScreen(
                 PrimaryGymButton(
                     text = if (state.saving) "Saving…" else "Save",
                     onClick = viewModel::save,
+                    modifier = Modifier.testTag(ComposerTags.SAVE),
                     enabled = !state.saving,
                 )
-                TextButton(onClick = onBack) { Text("Cancel") }
+                TextButton(
+                    onClick = onBack,
+                    modifier = Modifier.testTag(ComposerTags.CANCEL),
+                ) { Text("Cancel") }
             }
         }
     }
@@ -217,3 +222,8 @@ private fun CivilDate.toJavaLocalDate(): java.time.LocalDate =
 
 private val DATE_FORMAT: DateTimeFormatter =
     DateTimeFormatter.ofPattern("EEE d MMM yyyy", Locale.US)
+
+object ComposerTags {
+    const val SAVE = "activity-composer-save"
+    const val CANCEL = "activity-composer-cancel"
+}

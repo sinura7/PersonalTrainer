@@ -111,6 +111,7 @@ fun EmptyState(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
     compact: Boolean = false,
+    actionTag: String? = null,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -126,15 +127,22 @@ fun EmptyState(
         )
         Text(body, style = InstrumentType.body, color = TextSecondary)
         if (actionLabel != null && onAction != null) {
+            val actionModifier =
+                if (actionTag != null) Modifier.testTag(actionTag) else Modifier
             if (compact) {
                 TextButton(
                     onClick = onAction,
+                    modifier = actionModifier,
                     contentPadding = PaddingValues(0.dp),
                 ) {
                     Text(actionLabel, style = InstrumentType.bodyStrong, color = Volt)
                 }
             } else {
-                PrimaryGymButton(text = actionLabel, onClick = onAction)
+                PrimaryGymButton(
+                    text = actionLabel,
+                    onClick = onAction,
+                    modifier = actionModifier,
+                )
             }
         }
     }

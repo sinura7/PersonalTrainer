@@ -143,15 +143,21 @@ class TrainingInsightsSource(
                     },
                 ) { summaries, windowed -> summaries to windowed },
                 routineRepository.observeAll(),
-                exerciseRepository.observeAll(),
+                combine(
+                    exerciseRepository.observeAll(),
+                    workoutRepository.observeLastLogged(),
+                ) { exercises, lastLogged ->
+                    exercises.associateBy { it.id } to lastLogged
+                },
                 preferencesRepository.schedulePreferences,
                 preferencesRepository.weightUnit,
-            ) { historyAndSummaries, routines, exercises, preferences, unit ->
+            ) { historyAndSummaries, routines, catalogAndRecency, preferences, unit ->
                 Sources(
                     history = historyAndSummaries.second,
                     summaries = historyAndSummaries.first,
                     routines = routines,
-                    exercises = exercises.associateBy { it.id },
+                    exercises = catalogAndRecency.first,
+                    lastLoggedAtByExerciseId = catalogAndRecency.second,
                     preferences = preferences,
                     unit = unit,
                 )
@@ -192,6 +198,7 @@ class TrainingInsightsSource(
                 summaries = sources.summaries,
                 routines = sources.routines,
                 exerciseCatalog = sources.exercises,
+                lastLoggedAtByExerciseId = sources.lastLoggedAtByExerciseId,
                 hints = hints,
                 preferences = sources.preferences,
                 unit = sources.unit,
@@ -217,6 +224,7 @@ class TrainingInsightsSource(
         val summaries: List<SessionSummary> = emptyList(),
         val routines: List<Routine>,
         val exercises: Map<String, Exercise>,
+        val lastLoggedAtByExerciseId: Map<String, Long> = emptyMap(),
         val preferences: SchedulePreferences,
         val unit: WeightUnit,
         /** Defaulted so the inner five-way combine keeps constructing this unchanged. */

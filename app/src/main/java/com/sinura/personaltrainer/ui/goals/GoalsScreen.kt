@@ -137,7 +137,7 @@ fun GoalsScreen(
 }
 
 @Composable
-private fun GoalsHeader(
+internal fun GoalsHeader(
     onBack: () -> Unit,
     onToggleAdd: () -> Unit,
     adding: Boolean,

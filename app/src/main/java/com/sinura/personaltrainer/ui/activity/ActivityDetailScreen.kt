@@ -13,6 +13,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.CardioBlock
@@ -41,6 +42,7 @@ fun ActivityDetailScreen(
                 body = "That activity is no longer on this phone.",
                 actionLabel = "Back",
                 onAction = onBack,
+                actionTag = ActivityDetailTags.DONE,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
@@ -91,7 +93,14 @@ fun ActivityDetailScreen(
                             CardioRows(block)
                         }
                     }
-                    item { TextButton(onClick = onBack) { Text("Done") } }
+                    item {
+                        TextButton(
+                            onClick = onBack,
+                            modifier = Modifier.testTag(ActivityDetailTags.DONE),
+                        ) {
+                            Text("Done")
+                        }
+                    }
                 }
             }
         }
@@ -119,4 +128,8 @@ private fun CardioRows(block: CardioBlock) {
         title = block.type.name.lowercase().replaceFirstChar { it.uppercase() },
         subtitle = "$minutes min$distance",
     )
+}
+
+object ActivityDetailTags {
+    const val DONE = "activity-detail-done"
 }

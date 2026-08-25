@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.style.TextOverflow
@@ -299,7 +300,9 @@ fun ExerciseDetailScreen(
                         SecondaryGymButton(
                             text = "Add to a routine",
                             onClick = { routinePickerOpen = true },
-                            modifier = Modifier.padding(top = SECTION_LEAD),
+                            modifier = Modifier
+                                .padding(top = SECTION_LEAD)
+                                .testTag(ExerciseDetailTags.ADD_TO_ROUTINE),
                             height = Metrics.touchMin,
                         )
                     }
@@ -388,7 +391,7 @@ private fun liftCountLabel(count: Int): String =
     if (count == 1) "1 lift" else "$count lifts"
 
 @Composable
-private fun ExerciseDetailHeader(
+internal fun ExerciseDetailHeader(
     name: String,
     /** Null while loading, or when the lift has been deleted from under this screen. */
     exercise: Exercise?,
@@ -401,7 +404,10 @@ private fun ExerciseDetailHeader(
             .padding(start = Metrics.space2, end = Metrics.space4, bottom = Metrics.space2),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onBack) {
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier.testTag(ExerciseDetailTags.BACK),
+        ) {
             Icon(
                 Icons.AutoMirrored.Outlined.ArrowBack,
                 contentDescription = "Back",
@@ -698,4 +704,9 @@ private fun groupedRowShape(index: Int, count: Int): Shape = when {
     index == 0 -> RoundedCornerShape(topStart = Radius.sm, topEnd = Radius.sm)
     index == count - 1 -> RoundedCornerShape(bottomStart = Radius.sm, bottomEnd = Radius.sm)
     else -> RectangleShape
+}
+
+object ExerciseDetailTags {
+    const val BACK = "exercise-detail-back"
+    const val ADD_TO_ROUTINE = "exercise-detail-add-to-routine"
 }

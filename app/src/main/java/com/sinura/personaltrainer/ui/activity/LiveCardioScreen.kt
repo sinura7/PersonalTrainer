@@ -13,6 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.CardioType
@@ -62,11 +65,7 @@ fun LiveCardioScreen(
             verticalArrangement = Arrangement.spacedBy(Metrics.space4),
         ) {
             Text(state.session?.title ?: "Cardio", style = InstrumentType.title, color = TextPrimary)
-            Text(
-                LiveSessionRules.formatElapsed(state.elapsedSeconds),
-                style = InstrumentType.display,
-                color = TextPrimary,
-            )
+            ElapsedReadout(elapsedSeconds = state.elapsedSeconds)
             Text("Process death keeps this clock. Reboot keeps the last honest elapsed.", style = InstrumentType.caption, color = TextSecondary)
             state.error?.let { GymErrorBanner(it) }
             Kicker("Type")
@@ -88,10 +87,37 @@ fun LiveCardioScreen(
             PrimaryGymButton(
                 text = if (state.finishing) "Finishing…" else "Finish",
                 onClick = viewModel::finish,
+                modifier = Modifier.testTag(CardioTags.FINISH),
                 enabled = !state.finishing,
             )
             TextButton(onClick = viewModel::discard) { Text("Discard") }
             TextButton(onClick = onExit) { Text("Leave running") }
         }
     }
+}
+
+/**
+ * A clock TalkBack can read on demand. It must not announce every tick.
+ */
+@Composable
+internal fun ElapsedReadout(
+    elapsedSeconds: Long,
+    modifier: Modifier = Modifier,
+) {
+    val formatted = LiveSessionRules.formatElapsed(elapsedSeconds)
+    Text(
+        formatted,
+        style = InstrumentType.display,
+        color = TextPrimary,
+        modifier = modifier
+            .testTag(CardioTags.ELAPSED)
+            .clearAndSetSemantics {
+                contentDescription = "Elapsed $formatted"
+            },
+    )
+}
+
+object CardioTags {
+    const val ELAPSED = "live-cardio-elapsed"
+    const val FINISH = "live-cardio-finish"
 }

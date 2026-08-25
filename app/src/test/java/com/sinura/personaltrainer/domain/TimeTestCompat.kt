@@ -141,8 +141,10 @@ fun DeloadSignal.detect(
 
 fun TrainingInsightsInput(
     history: List<WorkoutSession>,
+    summaries: List<SessionSummary> = emptyList(),
     routines: List<Routine>,
     exerciseCatalog: Map<String, Exercise>,
+    lastLoggedAtByExerciseId: Map<String, Long> = emptyMap(),
     hints: List<ProgressionHint>?,
     preferences: SchedulePreferences,
     slots: List<ScheduleSlot> = emptyList(),
@@ -155,8 +157,10 @@ fun TrainingInsightsInput(
 ): TrainingInsightsInput {
     val input = TrainingInsightsInput(
         history = history,
+        summaries = summaries,
         routines = routines,
         exerciseCatalog = exerciseCatalog,
+        lastLoggedAtByExerciseId = lastLoggedAtByExerciseId,
         hints = hints,
         preferences = preferences,
         slots = slots,

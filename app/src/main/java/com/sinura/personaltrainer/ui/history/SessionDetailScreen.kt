@@ -78,7 +78,13 @@ import java.util.Date
 object SessionDetailTestTags {
     const val CONTENT = "session-detail-content"
     const val EDIT_SET = "session-detail-edit-set"
+    const val BACK = "session-detail-back"
+    const val OPTIONS = "session-detail-options"
+    const val DELETE = "session-detail-delete"
 }
+
+internal fun sessionDeleteTitle(routineName: String?): String =
+    routineName?.takeIf { it.isNotBlank() }?.let { "Delete $it?" } ?: "Delete this session?"
 
 /**
  * A finished session, and — as of this phase — a correctable one.
@@ -164,7 +170,10 @@ fun SessionDetailScreen(
                     .padding(end = Metrics.space2, bottom = Metrics.space2),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = leave) {
+                IconButton(
+                    onClick = leave,
+                    modifier = Modifier.testTag(SessionDetailTestTags.BACK),
+                ) {
                     Icon(
                         Icons.AutoMirrored.Outlined.ArrowBack,
                         contentDescription = "Back",
@@ -183,7 +192,10 @@ fun SessionDetailScreen(
                     // Two whole-session verbs, one of them destructive: an overflow rather than
                     // two more controls competing with the session's own numbers.
                     Box {
-                        IconButton(onClick = { menuOpen = true }) {
+                        IconButton(
+                            onClick = { menuOpen = true },
+                            modifier = Modifier.testTag(SessionDetailTestTags.OPTIONS),
+                        ) {
                             Icon(
                                 Icons.Outlined.MoreVert,
                                 contentDescription = "Session options",
@@ -216,6 +228,7 @@ fun SessionDetailScreen(
                                     menuOpen = false
                                     confirmDelete = true
                                 },
+                                modifier = Modifier.testTag(SessionDetailTestTags.DELETE),
                             )
                         }
                     }
@@ -362,7 +375,7 @@ fun SessionDetailScreen(
     if (confirmDelete && session != null) {
         val total = session.sets.size
         ConfirmActionDialog(
-            title = "Delete this session?",
+            title = sessionDeleteTitle(session.routineName),
             body = "This deletes the session and its $total logged " +
                 (if (total == 1) "set" else "sets") + " from history. This cannot be undone.",
             confirmLabel = "Delete",

@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -372,7 +373,7 @@ private fun RecordMark(record: Boolean) {
 
 /** Pinned, so leaving the reward screen never requires scrolling past the reward. */
 @Composable
-private fun SummaryActions(onDone: () -> Unit, onOpenSession: () -> Unit) {
+internal fun SummaryActions(onDone: () -> Unit, onOpenSession: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -380,9 +381,22 @@ private fun SummaryActions(onDone: () -> Unit, onOpenSession: () -> Unit) {
             .padding(horizontal = Metrics.gutter, vertical = Metrics.space3),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        PrimaryGymButton(text = "Done", onClick = onDone)
-        SecondaryGymButton(text = "See full session", onClick = onOpenSession)
+        PrimaryGymButton(
+            text = "Done",
+            onClick = onDone,
+            modifier = Modifier.testTag(SummaryTags.DONE),
+        )
+        SecondaryGymButton(
+            text = "See full session",
+            onClick = onOpenSession,
+            modifier = Modifier.testTag(SummaryTags.OPEN_SESSION),
+        )
     }
+}
+
+object SummaryTags {
+    const val DONE = "summary-done"
+    const val OPEN_SESSION = "summary-open-session"
 }
 
 /**

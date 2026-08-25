@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -137,6 +138,7 @@ fun RoutineEditorScreen(
                         actionLabel = "Add lifts",
                         onAction = { viewModel.setPickerVisible(true) },
                         compact = true,
+                        actionTag = RoutineEditorTags.ADD_LIFTS,
                         modifier = Modifier.padding(top = Metrics.space4),
                     )
                 }
@@ -181,7 +183,9 @@ fun RoutineEditorScreen(
                     SecondaryGymButton(
                         text = "Add lifts",
                         onClick = { viewModel.setPickerVisible(true) },
-                        modifier = Modifier.padding(top = Metrics.space2),
+                        modifier = Modifier
+                            .padding(top = Metrics.space2)
+                            .testTag(RoutineEditorTags.ADD_LIFTS),
                         height = Metrics.touchMin,
                     )
                 }
@@ -261,7 +265,7 @@ fun RoutineEditorScreen(
  * line reads back what was stored, which is a truer confirmation than a banner.
  */
 @Composable
-private fun RoutineEditorHeader(onBack: () -> Unit) {
+internal fun RoutineEditorHeader(onBack: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -269,7 +273,10 @@ private fun RoutineEditorHeader(onBack: () -> Unit) {
             .padding(start = Metrics.space2, end = Metrics.space2, bottom = Metrics.space2),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onBack) {
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier.testTag(RoutineEditorTags.BACK),
+        ) {
             Icon(
                 Icons.AutoMirrored.Outlined.ArrowBack,
                 contentDescription = "Back",
@@ -278,6 +285,11 @@ private fun RoutineEditorHeader(onBack: () -> Unit) {
         }
         Kicker("Routine", modifier = Modifier.weight(1f))
     }
+}
+
+object RoutineEditorTags {
+    const val BACK = "routine-editor-back"
+    const val ADD_LIFTS = "routine-editor-add-lifts"
 }
 
 /**

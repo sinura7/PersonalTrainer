@@ -13,7 +13,8 @@ class AccessibilityMatrixTest {
             listOf(
                 "home", "body", "plan", "history", "library", "settings",
                 "active-strength", "active-cardio", "active-mixed",
-                "routine-editor", "summary", "session-detail", "exercise-detail",
+                "routine-editor", "custom-week", "summary", "session-detail",
+                "exercise-detail", "activity-detail", "activity-composer",
                 "goals", "onboarding", "annual-analytics",
             ),
         ))
