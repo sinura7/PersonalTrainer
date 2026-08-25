@@ -9,7 +9,7 @@ Weights are stored in kilograms and can be shown as kg or lbs.
 
 The current program — what is being built next, and the decisions that bind it — is
 [docs/FOUNDATION_PROGRAM.md](docs/FOUNDATION_PROGRAM.md). This README describes the
-shipping strength logger.
+local fitness beta on the debug install.
 
 The Play Store is not required: build and install from Android Studio, or sideload a signed
 APK and let Obtainium watch GitHub Releases.
@@ -51,14 +51,20 @@ need no configuration.
 
 Four tabs — **Home · Body · Plan · History**. Library is a pushed route, not a tab.
 
-- **Home** — today's plan and one next-session act. A live session is resumed from the
-  live bar, not from a Home Resume button.
+- **Home** — today's plan and one next-session act. Last session and days
+  since come from all-time summaries. A live session is resumed from the
+  live bar, not from a Home Resume button. Library and Goals are links, not tabs.
 - **Body** — muscle heat from real working sets over **This week** or **Last 30 days**,
-  muscle detail, rule-based recommendations. The coach basis is a fixed trailing 14 days.
+  muscle detail, rule-based recommendations above the map. The coach basis is a
+  fixed trailing 14 days. An empty heat window is not “never trained.”
 - **Plan** — the pinned week and the routines that fill it. Suggest / Replay / Tune /
   Lighter week are four different acts.
-- **History** — finished sessions, calendar, personal records.
+- **History** — finished sessions, calendar, personal records, and
+  comparable Week / Month / Year / All time totals.
 - **Library** (pushed) — search the lift list, filter by muscle, add custom exercises.
+- **Goals** (pushed) — typed targets. Pause is first-class. No punitive streaks.
+- **Activities** — strength, cardio, or mixed; live or backdated. One live
+  activity at a time. Two timed items can sit on one day.
 - **Logging** — weight + reps, optional RPE and warm-up, suggested next weight.
 - **Rest timer** — foreground service + notification so rest keeps running when the app
   is minimized; 1:00 / 1:30 / 2:00 / custom presets; sound and vibration when rest ends.
@@ -80,9 +86,9 @@ in progress. Drive does not merge two phones. Android Auto Backup is
 **disabled** in the shipping manifest. It is not the recovery path. Existing OS
 copies are not recalled. Use Export to file.
 
-Training works offline. A backup is only read when you ask for one. Cardio, backdated
-new activities, timed two-a-day schedules, and measurable goals are the foundation
-program's target, not shipping behavior.
+Training works offline. A backup is only read when you ask for one. Cardio,
+backdated activities, timed two-a-day schedules, and measurable goals ship
+on this debug build. Phase 10 (KMP) and Phase 11 (sync) stay gated.
 
 ## Version and updates
 
@@ -100,7 +106,7 @@ Store, no app bundle, no split APKs.
 ## Architecture
 
 ```
-data/local       Room entities, DAOs, TrainerDatabase (v2)
+data/local       Room entities, DAOs, TemperDatabase (v4, frozen)
 data/repository  the only classes that touch DAOs
 data/backup      backup document, JSON codec, validator, Drive backup client
 domain           pure Kotlin — models, units, muscle heat, recommendations, planner, progression

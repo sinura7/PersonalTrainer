@@ -19,6 +19,25 @@ Debug and release are **separate apps**. Debug is `com.sinura.personaltrainer.de
 Release stays `com.sinura.personaltrainer`. Different signing keys, different
 databases, different icons.
 
+### Studio checkpoint for this branch
+
+Checkout `cursor/phase-1-device-lane-b87f`. Select the **debug** run
+configuration and press **Run ▶**. The icon is **Temper Debug**. It will
+not open, overwrite, or see a release **Temper** install. Leave release
+on the phone.
+
+Walk this once, in order:
+
+1. Home — last session, days since, Start, Library, Goals.
+2. Start today's plan (or Start a workout), log a set, rest, finish.
+3. Body — This week / Last 30 days. Recommendations sit above the map.
+4. Plan — pin, replay, or suggest a week. Two timed items can share a day.
+5. History — Week / Month / Year / All time chips, then a session row.
+6. Settings — export a file. Do not restore over a phone that holds real history.
+
+P9.6 Body / Plan / History / Library page passes and physical TalkBack
+are still open. Do not expect a fifth tab or cloud sync.
+
 **The next debug Run ▶ is a new install.** It will not open, overwrite, or even
 see the release history. The new icon is labelled **Temper Debug**. Release
 stays **Temper**. You will have two icons. If an *old* debug is still on the
@@ -32,7 +51,7 @@ nothing to make room for.
 
 ```
 app/src/main/java/com/sinura/personaltrainer/
-  data/local        Room entities, DAOs, TrainerDatabase
+  data/local        Room entities, DAOs, TemperDatabase
   data/repository   repositories — the only things that touch DAOs
   data/backup       backup document, JSON codec, validator, Drive client
   domain            pure Kotlin: models, units, heat, recommendations, planner, progression
@@ -281,16 +300,20 @@ emulator lane as the truth check precisely so this substitution is legal.
 
 ## Things that will bite you
 
-**Database schema changes.** The database is version 2 with schema export on. Changing any
-`@Entity` means: bump `version`, write a `Migration`, and commit the new
-`app/schemas/…/<n>.json`. Never add `fallbackToDestructiveMigration` — it silently erases
-the training history this app exists to accumulate.
+**Database schema changes.** The foundation database is `TemperDatabase`
+(`temper.db`), version 4, frozen. Changing any `@Entity` means: bump
+`FoundationGeneration.VERSION`, write a `TemperMigrations` migration, and
+commit `app/schemas/com.sinura.personaltrainer.data.local.TemperDatabase/<n>.json`.
+Never add `fallbackToDestructiveMigration` — it silently erases the
+training history this app exists to accumulate.
 
-> **`2.json` is committed.** `app/schemas/com.sinura.personaltrainer.data.local.TrainerDatabase/2.json`
-> is the Room-generated v2 baseline (`identityHash` `3eedd530…`). Do not hand-edit it.
-> A later version still requires a real `./gradlew :app:assembleDebug` so Room can write
-> `<n>.json` — inventing an identityHash is a crash loop on a phone with no destructive
-> fallback. See `docs/MIGRATION_REHEARSAL.md`.
+> **Legacy `2.json` is still committed.**
+> `app/schemas/com.sinura.personaltrainer.data.local.TrainerDatabase/2.json`
+> is the Room-generated v2 baseline (`identityHash` `3eedd530…`) for the
+> leftover file. Do not hand-edit it. A later Temper version still
+> requires a real `./gradlew :app:assembleDebug` so Room can write
+> `<n>.json` — inventing an identityHash is a crash loop on a phone with
+> no destructive fallback. See `docs/MIGRATION_REHEARSAL.md`.
 
 **The rest timer cannot be tested with the screen on.** Its whole job is firing while the
 phone sleeps. Verify with the screen off and the phone untouched; force Doze with

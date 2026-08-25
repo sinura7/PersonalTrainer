@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.util.toCivilDate
 import java.time.LocalDate
@@ -47,6 +48,15 @@ class ProgressViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
         if (::deps.isInitialized) deps.close()
         Dispatchers.resetMain()
+    }
+
+    @Test
+    fun firstMapUsesTheStoredHeatWindow() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps.preferencesRepository.setHeatWindow(HeatWindow.LAST_30_DAYS)
+        viewModel = ProgressViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        val state = viewModel!!.uiState.first { !it.isLoading }
+        assertEquals(HeatWindow.LAST_30_DAYS, state.window)
     }
 
     @Test

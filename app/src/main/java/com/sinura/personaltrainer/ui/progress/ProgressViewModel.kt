@@ -14,8 +14,8 @@ import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -39,12 +39,6 @@ class ProgressViewModel @JvmOverloads constructor(
     container: AppDependencies = application.appContainer(),
 ) : AppViewModel(application, container) {
     /**
-     * Seeded from the stored preference, so the map opens on the window you last chose rather
-     * than resetting to a default every time the process dies.
-     */
-    private val window = MutableStateFlow(HeatWindow.CURRENT_WEEK)
-
-    /**
      * Forces a recompute without changing the window.
      *
      * Retry cannot be expressed as `setWindow(currentWindow)`: a StateFlow conflates a write
@@ -55,41 +49,42 @@ class ProgressViewModel @JvmOverloads constructor(
      */
     private val refreshAt = MutableStateFlow(0L)
 
-    val uiState: StateFlow<ProgressUiState> = container.trainingInsights
-        .observe(window = window, refresh = refreshAt, includeWeekPlan = false)
-        .map { insights ->
-            ProgressUiState(
-                isLoading = false,
-                // Read back from the insights rather than from `window`: the body map and the
-                // chip that labels it must never describe different windows mid-switch.
-                window = insights.snapshot?.window ?: window.value,
-                snapshot = insights.snapshot,
-                recommendations = insights.recommendations,
-                error = "Couldn’t load the body map. Try switching the window."
-                    .takeIf { insights.failed(InsightFailure.HEAT) },
-                notice = when {
-                    insights.failed(InsightFailure.PROGRESSION) ->
-                        "Couldn’t check which lifts are ready to progress."
-                    insights.failed(InsightFailure.RECOMMENDATIONS) ->
-                        "Couldn’t work out this week’s suggestions."
-                    else -> null
-                },
-            )
-        }
+    /**
+     * The stored chip is the input, not a later correction. Seeding
+     * [HeatWindow.CURRENT_WEEK] and overwriting in `init` flashed the
+     * wrong window on every Body open.
+     */
+    val uiState: StateFlow<ProgressUiState> = combine(
+        container.preferencesRepository.heatWindow,
+        container.trainingInsights.observe(
+            window = container.preferencesRepository.heatWindow,
+            refresh = refreshAt,
+            includeWeekPlan = false,
+        ),
+    ) { stored, insights ->
+        ProgressUiState(
+            isLoading = false,
+            window = insights.snapshot?.window ?: stored,
+            snapshot = insights.snapshot,
+            recommendations = insights.recommendations,
+            error = "Couldn’t load the body map. Try switching the window."
+                .takeIf { insights.failed(InsightFailure.HEAT) },
+            notice = when {
+                insights.failed(InsightFailure.PROGRESSION) ->
+                    "Couldn’t check which lifts are ready to progress."
+                insights.failed(InsightFailure.RECOMMENDATIONS) ->
+                    "Couldn’t work out this week’s suggestions."
+                else -> null
+            },
+        )
+    }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = ProgressUiState(),
         )
 
-    init {
-        viewModelScope.launch {
-            window.value = container.preferencesRepository.heatWindow.first()
-        }
-    }
-
     fun setWindow(value: HeatWindow) {
-        window.value = value
         viewModelScope.launch { container.preferencesRepository.setHeatWindow(value) }
     }
 

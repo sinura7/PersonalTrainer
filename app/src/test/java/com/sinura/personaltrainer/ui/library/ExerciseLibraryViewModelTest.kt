@@ -149,7 +149,10 @@ class ExerciseLibraryViewModelTest {
         assertEquals(custom.id, eventually { vm.uiState.value.pendingDelete?.id })
         vm.confirmDelete()
         eventually { true.takeIf { deps.exerciseRepository.getById(custom.id) == null } }
-        assertEquals("Deleted My fly.", vm.uiState.value.message)
+        assertEquals(
+            "Deleted My fly.",
+            eventually { vm.uiState.value.message.takeIf { it == "Deleted My fly." } },
+        )
         assertNull(vm.uiState.value.pendingDelete)
     }
 
@@ -211,7 +214,10 @@ class ExerciseLibraryViewModelTest {
         }
         assertEquals(squat.id, saved.exercises.single().exercise.id)
         assertTrue(saved.exercises.single().targetSets >= 1)
-        assertEquals("Added ${squat.name} to ${routine.name}.", vm.uiState.value.message)
+        assertEquals(
+            "Added ${squat.name} to ${routine.name}.",
+            eventually { vm.uiState.value.message.takeIf { it == "Added ${squat.name} to ${routine.name}." } },
+        )
     }
 
     @Test
