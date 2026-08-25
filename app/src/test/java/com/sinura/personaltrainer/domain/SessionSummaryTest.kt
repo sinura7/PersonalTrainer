@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -226,6 +227,8 @@ class SessionSummaryTest {
         assertEquals(SetCopy.NOTHING_YET, empty.value)
         assertEquals(12L, summary(id = "gap", localEpochDay = 100).daysSince(112))
         assertEquals(0L, summary(id = "today", localEpochDay = 112).daysSince(112))
+        assertTrue(summary(id = "work", volumeKg = 100.0).hasLoggedWork())
+        assertFalse(summary(id = "none", volumeKg = 0.0).hasLoggedWork())
     }
 
     private fun summary(

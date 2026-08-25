@@ -112,7 +112,7 @@ object TrainingInsightsCalculator {
                 exerciseCatalog = input.exerciseCatalog,
                 weekStart = input.preferences.weekStart,
             )
-        }
+        }?.rememberLifetimeWork(input.summaries)
         if (snapshot == null) failures += InsightFailure.HEAT
 
         // The coach reasons from its own fixed 14-day basis, not from the display snapshot —

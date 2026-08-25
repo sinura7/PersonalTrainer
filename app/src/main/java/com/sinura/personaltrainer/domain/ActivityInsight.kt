@@ -7,6 +7,19 @@ package com.sinura.personaltrainer.domain
  * Cardio-only activities return null. Mixed activities contribute only
  * their strength sets.
  */
+/**
+ * Strength graphs for heat and coach. Workouts arrive already windowed;
+ * activities must use the same cutoff or old mixed sessions overweight
+ * the 30-day pass.
+ */
+fun windowedInsightHistory(
+    sessions: List<WorkoutSession>,
+    activities: List<ActivitySession>,
+    minPerformedAtMs: Long,
+): List<WorkoutSession> = sessions + activities.mapNotNull { activity ->
+    activity.toInsightSession()?.takeIf { it.performedAtMs() >= minPerformedAtMs }
+}
+
 fun ActivitySession.toInsightSession(): WorkoutSession? {
     if (strengthBlocks.isEmpty()) return null
     val exercises = strengthBlocks.mapIndexed { index, block ->

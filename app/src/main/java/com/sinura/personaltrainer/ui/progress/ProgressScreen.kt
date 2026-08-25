@@ -139,9 +139,15 @@ fun ProgressScreen(
                     }
                     if (!snapshot.hasWindowWorkingSets) {
                         item(key = "window-empty") {
+                            val anyRecency = snapshot.loads.any { it.lastTrainedAtMs != null }
                             Text(
-                                "You haven’t logged a working set ${state.window.sentenceLabel()}. " +
-                                    "Each muscle below still shows how long ago it was last trained.",
+                                if (anyRecency) {
+                                    "You haven’t logged a working set ${state.window.sentenceLabel()}. " +
+                                        "Each muscle below still shows how long ago it was last trained."
+                                } else {
+                                    "You haven’t logged a working set ${state.window.sentenceLabel()}. " +
+                                        "The map is cold until you do. History still has older sessions."
+                                },
                                 style = InstrumentType.body,
                                 color = TextSecondary,
                             )

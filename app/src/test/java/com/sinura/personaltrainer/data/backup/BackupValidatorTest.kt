@@ -367,6 +367,39 @@ class BackupValidatorTest {
         )
     }
 
+    @Test
+    fun acceptsADocumentWithAValidMeasurableGoal() {
+        val result = BackupValidator.validate(
+            sample().copy(measurableGoals = listOf(goal())),
+            localHasData = true,
+        )
+        assertTrue(result is BackupValidation.Valid)
+    }
+
+    @Test
+    fun rejectsAGoalWithAnUnknownKind() {
+        assertInvalid(
+            sample().copy(measurableGoals = listOf(goal(kind = "STREAK"))),
+            "unknown kind",
+        )
+    }
+
+    @Test
+    fun rejectsAGoalWithAnUnknownPeriod() {
+        assertInvalid(
+            sample().copy(measurableGoals = listOf(goal(period = "FOREVER"))),
+            "unknown period",
+        )
+    }
+
+    @Test
+    fun rejectsAGoalWithANonPositiveTarget() {
+        assertInvalid(
+            sample().copy(measurableGoals = listOf(goal(targetValue = 0.0))),
+            "invalid target",
+        )
+    }
+
     // ---- helpers ----
 
     private fun assertInvalid(document: BackupDocument, expectedFragment: String) {
@@ -454,6 +487,25 @@ class BackupValidatorTest {
 
     private fun sessionExercise(sessionId: String = "s1") =
         BackupSessionExercise("se1", sessionId, "ex-squat", 0, 3, 5, 80.0, 90)
+
+    private fun goal(
+        id: String = "goal-1",
+        kind: String = "SESSION_COUNT",
+        targetValue: Double = 4.0,
+        period: String = "WEEK",
+    ) = BackupMeasurableGoal(
+        id = id,
+        kind = kind,
+        targetValue = targetValue,
+        period = period,
+        instantMs = t0,
+        zoneId = "UTC",
+        offsetSeconds = 0,
+        localEpochDay = 20_000L,
+        paused = false,
+        createdAtMs = t0,
+        updatedAtMs = t0,
+    )
 
     private fun setLog(
         id: String = "set1",

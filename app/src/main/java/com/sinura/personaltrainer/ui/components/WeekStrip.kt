@@ -29,7 +29,6 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
-import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import java.time.LocalDate
 
@@ -79,7 +78,6 @@ private fun WeekCell(
 ) {
     val dayOfMonth = remember(day.epochDay) { LocalDate.ofEpochDay(day.epochDay).dayOfMonth }
     val pinned = !day.isRest
-    val shown = if (pinned) day else proposal
     val label = when {
         pinned -> day.routineName ?: day.focusTitle
         proposal != null -> proposal.routineName ?: proposal.focusTitle
@@ -103,23 +101,19 @@ private fun WeekCell(
         )
         Kicker(
             day.dayOfWeek.shortLabel().take(1),
-            color = if (isToday) Volt else TextTertiary,
+            color = if (isToday) Volt else TextSecondary,
         )
         Text(
             dayOfMonth.toString(),
             style = InstrumentType.numeralSm,
-            color = if (shown != null) TextPrimary else TextTertiary,
+            color = TextPrimary,
         )
         Text(
             label,
             style = InstrumentType.caption,
             // A proposal is quieter than a pin, so a previewed week never looks like a decided
-            // one: the difference is visible before you read a word of it.
-            color = when {
-                pinned -> TextSecondary
-                proposal != null -> TextTertiary
-                else -> TextTertiary
-            },
+            // one. Quiet is [TextSecondary], not [TextTertiary]: these cells are tappable.
+            color = TextSecondary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

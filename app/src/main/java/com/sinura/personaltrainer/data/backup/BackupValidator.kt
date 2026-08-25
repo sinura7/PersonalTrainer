@@ -1,6 +1,8 @@
 package com.sinura.personaltrainer.data.backup
 
 import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.GoalKind
+import com.sinura.personaltrainer.domain.GoalPeriod
 import com.sinura.personaltrainer.domain.LoadType
 
 /** Counts shown to the user before they agree to overwrite everything. */
@@ -43,6 +45,8 @@ object BackupValidator {
 
     private val EQUIPMENT_STORAGE: Set<String> = EquipmentType.entries.map { it.name }.toSet()
     private val LOAD_TYPE_STORAGE: Set<String> = LoadType.entries.map { it.name }.toSet()
+    private val GOAL_KIND_STORAGE: Set<String> = GoalKind.entries.map { it.name }.toSet()
+    private val GOAL_PERIOD_STORAGE: Set<String> = GoalPeriod.entries.map { it.name }.toSet()
 
     private const val GENERIC_CORRUPT =
         "This backup file is damaged or incomplete, so nothing was changed."
@@ -284,6 +288,27 @@ object BackupValidator {
                 } else {
                     return invalid("an activity block has an unknown kind")
                 }
+            }
+        }
+
+        val goalIds = HashSet<String>(document.measurableGoals.size)
+        document.measurableGoals.forEach { goal ->
+            if (isBlank(goal.id)) return invalid("a goal is missing its id")
+            if (!goalIds.add(goal.id)) {
+                return invalid("two goals share the id \"${goal.id}\"")
+            }
+            if (goal.kind !in GOAL_KIND_STORAGE) {
+                return invalid("a goal has an unknown kind")
+            }
+            if (goal.period !in GOAL_PERIOD_STORAGE) {
+                return invalid("a goal has an unknown period")
+            }
+            if (goal.targetValue.isNaN() || goal.targetValue.isInfinite() || goal.targetValue <= 0.0) {
+                return invalid("a goal has an invalid target")
+            }
+            if (isBlank(goal.zoneId)) return invalid("a goal is missing its time zone")
+            if (goal.instantMs < MIN_PLAUSIBLE_EPOCH_MS) {
+                return invalid("a goal has an implausible timestamp")
             }
         }
 

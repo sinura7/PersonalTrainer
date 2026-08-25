@@ -653,7 +653,7 @@ fun PersonalTrainerNav(
  * lavender pill sliding under the active icon, on a container a step lighter than the window
  * it sits on. Here the bar *is* the window colour, separated by one hairline, and the active
  * destination is marked the way an instrument marks a live channel — a volt tick over the
- * icon, with the icon and its label in the accent and every other tab in [TextTertiary].
+ * icon, with the icon and its label in the accent and every other tab in [TextSecondary].
  *
  * No ripple: a bloom spreading out of a 24dp icon is Material's own signature, and on a
  * near-black field a pressed fill says the same thing without the animation.

@@ -112,6 +112,26 @@ class TrainingInsightsCalculatorTest {
     }
 
     @Test
+    fun lifetimeSummariesKeepTheBodyMapFromLookingUntrained() {
+        val old = SessionSummary(
+            id = "ancient",
+            routineId = null,
+            routineName = "Pull",
+            date = now - 80L * 24 * 60 * 60 * 1000,
+            finishedAt = now - 80L * 24 * 60 * 60 * 1000,
+            durationMinutes = 40,
+            workingSets = 12,
+            volumeKg = 4_000.0,
+            localEpochDay = 19_920L,
+        )
+        val insights = TrainingInsightsCalculator.compute(
+            input(history = emptyList()).copy(summaries = listOf(old)),
+        )
+        assertTrue(insights.snapshot!!.hasAnyWorkingSets)
+        assertFalse(insights.snapshot!!.hasWindowWorkingSets)
+    }
+
+    @Test
     fun suppliedSummariesAreEchoedAndMissingOnesAreDerived() {
         val history = listOf(detachedSet(now - 1L * 24 * 60 * 60 * 1000))
         val supplied = SessionSummary(

@@ -7,8 +7,8 @@ import com.sinura.personaltrainer.data.repository.ScheduleRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.domain.SessionSummary
-import com.sinura.personaltrainer.domain.toInsightSession
 import com.sinura.personaltrainer.domain.toSummary
+import com.sinura.personaltrainer.domain.windowedInsightHistory
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.CoachPreferences
@@ -135,7 +135,11 @@ class TrainingInsightsSource(
                         workoutRepository.observeFinishedSince(nowMs() - WINDOW_MS),
                         activityRepository?.observeCompleted() ?: flowOf(emptyList()),
                     ) { sessions, activities ->
-                        sessions + activities.mapNotNull { it.toInsightSession() }
+                        windowedInsightHistory(
+                            sessions = sessions,
+                            activities = activities,
+                            minPerformedAtMs = nowMs() - WINDOW_MS,
+                        )
                     },
                 ) { summaries, windowed -> summaries to windowed },
                 routineRepository.observeAll(),

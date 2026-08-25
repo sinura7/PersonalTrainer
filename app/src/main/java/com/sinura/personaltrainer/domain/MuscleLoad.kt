@@ -156,6 +156,16 @@ data class BodyHeatSnapshot(
 
     val mapLoads: List<MuscleLoadSummary>
         get() = CanonicalMuscle.bodyMapOrder.map { load(it) }
+
+    /**
+     * Heat math stays on the windowed graph. "Have I ever trained" must
+     * not: a 31-day gap would otherwise blank Body while History still
+     * lists the last session.
+     */
+    fun rememberLifetimeWork(summaries: List<SessionSummary>): BodyHeatSnapshot {
+        if (hasAnyWorkingSets) return this
+        return if (summaries.any { it.hasLoggedWork() }) copy(hasAnyWorkingSets = true) else this
+    }
 }
 
 /**

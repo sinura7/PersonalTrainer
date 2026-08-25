@@ -62,6 +62,9 @@ fun List<SessionSummary>.latest(): SessionSummary? =
 fun SessionSummary.daysSince(todayEpoch: Long): Long =
     (todayEpoch - localEpochDay).coerceAtLeast(0L)
 
+fun SessionSummary.hasLoggedWork(): Boolean =
+    workingSets > 0 || volumeKg > 0.0 || cardioSeconds > 0L
+
 /**
  * The Home last-session numeral. Summaries do not carry bodyweight-rep
  * totals, so a zero-volume day falls back to working sets or cardio
