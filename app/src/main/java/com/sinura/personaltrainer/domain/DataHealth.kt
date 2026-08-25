@@ -47,6 +47,10 @@ object DataHealthCopy {
             "Do not start a new workout until this list is readable."
     const val RETRY = "Retry"
 
+    const val ROUTINE_EDITOR_TITLE = "Routine unavailable"
+    const val ROUTINE_EDITOR_BODY =
+        "This routine could not be read. Retry, or go back to the list and open it again."
+
     const val SETTINGS_TITLE = "Settings unavailable"
     const val SETTINGS_BODY =
         "Could not read whether setup is finished. Retry. This is not a first install."

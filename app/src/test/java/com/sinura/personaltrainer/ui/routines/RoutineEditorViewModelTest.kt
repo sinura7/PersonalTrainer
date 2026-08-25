@@ -3,8 +3,12 @@ package com.sinura.personaltrainer.ui.routines
 import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
+import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.data.local.dao.RoutineDao
+import com.sinura.personaltrainer.data.local.relation.RoutineWithExercises
+import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
@@ -85,6 +89,38 @@ class RoutineEditorViewModelTest {
         val state = vm.uiState.first { it.missing && it.error != null }
         assertEquals("This routine is no longer available.", state.error)
         assertFalse(state.isLoading)
+    }
+
+    @Test
+    fun existingRoutineHydrationFailureBecomesErrorNotStuckLoading() = runBlocking {
+        // N8: when the opening read of an existing routine throws, the editor used to sit on a
+        // spinner forever. It must now resolve to an explicit, non-loading error state.
+        val fixture = seedTestWorkout(deps)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val gate = FailureGate(shouldFail = true)
+        val vm = createViewModel(fixture.routine.id, container = failingHydration(gate))
+
+        val state = vm.uiState.first { it.failed }
+        assertFalse(state.isLoading)
+        assertFalse(state.missing)
+    }
+
+    @Test
+    fun retryAfterHydrationFailureLoadsTheRoutine() = runBlocking {
+        val fixture = seedTestWorkout(deps)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val gate = FailureGate(shouldFail = true)
+        val vm = createViewModel(fixture.routine.id, container = failingHydration(gate))
+        vm.uiState.first { it.failed }
+
+        gate.shouldFail = false
+        vm.retryHydration()
+
+        val recovered = vm.uiState.first { !it.failed && it.routine != null }
+        assertFalse(recovered.isLoading)
+        assertFalse(recovered.missing)
+        assertEquals(fixture.routine.id, recovered.routine?.id)
+        assertEquals(fixture.routine.name, recovered.name)
     }
 
     @Test
@@ -257,12 +293,39 @@ class RoutineEditorViewModelTest {
         assertTrue(closed.pendingAddIds.isEmpty())
     }
 
-    private fun createViewModel(routineId: String): RoutineEditorViewModel =
+    private fun createViewModel(
+        routineId: String,
+        container: AppDependencies = deps,
+    ): RoutineEditorViewModel =
         RoutineEditorViewModel(
             application = ApplicationProvider.getApplicationContext<Application>(),
             savedStateHandle = SavedStateHandle(mapOf("routineId" to routineId)),
-            container = deps,
+            container = container,
         ).also { viewModel = it }
+
+    /**
+     * A copy of the graph whose routine reads throw on demand, so the editor's hydration failure
+     * branch can be exercised. Only [RoutineDao.getById] — the opening read — is made to fail;
+     * everything else runs against the real in-memory database.
+     */
+    private fun failingHydration(gate: FailureGate): AppDependencies {
+        val repo = RoutineRepository(FailingGetByIdDao(deps.database.routineDao(), gate))
+        return object : AppDependencies by deps {
+            override val routineRepository: RoutineRepository = repo
+        }
+    }
+
+    private class FailureGate(var shouldFail: Boolean)
+
+    private class FailingGetByIdDao(
+        private val delegate: RoutineDao,
+        private val gate: FailureGate,
+    ) : RoutineDao by delegate {
+        override suspend fun getById(id: String): RoutineWithExercises? {
+            if (gate.shouldFail) error("boom: Room could not read routine $id")
+            return delegate.getById(id)
+        }
+    }
 
     private suspend fun awaitRoutine(predicate: (Routine) -> Boolean): Routine =
         eventually {
