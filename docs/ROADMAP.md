@@ -14,8 +14,9 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
-> 25 Aug 2026 — routine builder: numbered cart, then horizontal session cards
-> (sets/reps/rest expand on tap). Plan/Home already read that order.
+> 25 Aug 2026 — routine builder: numbered cart, then horizontal session cards.
+> Every face on a card is labeled (order, identity, work, rest, load). Plan/Home
+> speak the same 1 · 2 · 3 preview.
 
 Derived from the full audit of 19 Aug 2026 ([AUDIT.md](AUDIT.md)). Phases land in order;
 each one ends at a gate that must be verified before the next begins.

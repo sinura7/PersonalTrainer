@@ -52,6 +52,7 @@ import com.sinura.personaltrainer.domain.ExercisePickerMode
 import com.sinura.personaltrainer.domain.ExercisePickerState
 import com.sinura.personaltrainer.domain.LiftCart
 import com.sinura.personaltrainer.domain.MuscleGroups
+import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -127,6 +128,13 @@ fun ExercisePickerSheet(
                 verticalArrangement = Arrangement.spacedBy(Metrics.space3),
             ) {
                 Text(title, style = InstrumentType.title, color = TextPrimary)
+                if (multiSelect) {
+                    Text(
+                        SessionOrderCopy.PICKER_HINT,
+                        style = InstrumentType.caption,
+                        color = TextSecondary,
+                    )
+                }
                 ExerciseSearchField(
                     value = query,
                     onValueChange = { onEvent(ExercisePickerEvent.QueryChanged(it)) },
@@ -134,17 +142,25 @@ fun ExercisePickerSheet(
                 )
             }
             if (multiSelect && cart.isNotEmpty()) {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = Metrics.gutter),
-                    horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                Column(
                     modifier = Modifier.padding(bottom = Metrics.space3),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space2),
                 ) {
-                    itemsIndexed(cart, key = { _, exercise -> exercise.id }) { index, exercise ->
-                        InstrumentChip(
-                            label = "${index + 1}  ${exercise.name}",
-                            selected = true,
-                            onClick = { onEvent(ExercisePickerEvent.Toggled(exercise)) },
-                        )
+                    Kicker(
+                        SessionOrderCopy.CART,
+                        modifier = Modifier.padding(horizontal = Metrics.gutter),
+                    )
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = Metrics.gutter),
+                        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    ) {
+                        itemsIndexed(cart, key = { _, exercise -> exercise.id }) { index, exercise ->
+                            InstrumentChip(
+                                label = "${index + 1}  ${exercise.name}",
+                                selected = true,
+                                onClick = { onEvent(ExercisePickerEvent.Toggled(exercise)) },
+                            )
+                        }
                     }
                 }
             }

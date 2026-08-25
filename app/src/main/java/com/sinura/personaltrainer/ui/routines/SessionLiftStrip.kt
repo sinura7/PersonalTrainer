@@ -29,7 +29,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.RestTimer
+import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
+import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.ThumbSize
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -43,6 +48,7 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.VoltDim
+import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 
 data class SessionLiftItem(
     val id: String,
@@ -56,6 +62,7 @@ data class SessionLiftItem(
 object SessionLiftTags {
     const val STRIP = "session-lift-strip"
     const val EDITOR = "session-lift-editor"
+    const val HINT = "session-lift-hint"
     fun card(id: String) = "session-lift-card-$id"
 }
 
@@ -67,9 +74,9 @@ object SessionLiftCopy {
 /**
  * The session as a numbered strip of cards, not a stack of full-width rows.
  *
- * Order is the session: 1, 2, 3 left to right. Tap a card and the sets, reps,
- * rest and load open under the strip — the same fields [CompactLiftRow] uses,
- * so the 360 dp identity test on that row still has a home.
+ * Every face on a card has a job: order, identity, work, rest, and load when
+ * it exists. Tap opens the same target fields [CompactLiftRow] uses, so the
+ * 360 dp identity test on that row still has a home.
  */
 @Composable
 fun SessionLiftStrip(
@@ -108,78 +115,124 @@ fun SessionLiftStrip(
                 )
             }
         }
-        if (selected != null) {
-            val shape = RoundedCornerShape(Radius.sm)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(shape)
-                    .background(Surface2)
-                    .border(Metrics.emphasisBorder, Volt, shape)
-                    .testTag(SessionLiftTags.EDITOR),
+        if (selected == null) {
+            Text(
+                SessionOrderCopy.TAP_TO_SET,
+                modifier = Modifier.testTag(SessionLiftTags.HINT),
+                style = InstrumentType.body,
+                color = TextSecondary,
+            )
+        } else {
+            SessionLiftEditor(
+                item = selected,
+                number = selectedIndex + 1,
+                total = lifts.size,
+                canMoveEarlier = selectedIndex > 0,
+                canMoveLater = selectedIndex in 0 until lifts.lastIndex,
+                canSwap = canSwap(selected.id),
+                onMoveEarlier = { onMoveEarlier(selected.id) },
+                onMoveLater = { onMoveLater(selected.id) },
+                onRemove = { onRemove(selected.id) },
+                onSwap = { onSwap(selected.id) },
+                onStageTargets = { sets, reps, rest, kg ->
+                    onStageTargets(selected.id, sets, reps, rest, kg)
+                },
+                onCommitTargets = { onCommitTargets(selected.id) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SessionLiftEditor(
+    item: SessionLiftItem,
+    number: Int,
+    total: Int,
+    canMoveEarlier: Boolean,
+    canMoveLater: Boolean,
+    canSwap: Boolean,
+    onMoveEarlier: () -> Unit,
+    onMoveLater: () -> Unit,
+    onRemove: () -> Unit,
+    onSwap: () -> Unit,
+    onStageTargets: (Int?, Int?, Int?, Double?) -> Unit,
+    onCommitTargets: () -> Unit,
+) {
+    val shape = RoundedCornerShape(Radius.sm)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Surface2)
+            .border(Metrics.emphasisBorder, Volt, shape)
+            .testTag(SessionLiftTags.EDITOR),
+    ) {
+        Column(
+            modifier = Modifier.padding(
+                start = Metrics.space3,
+                end = Metrics.space3,
+                top = Metrics.space3,
+            ),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+        ) {
+            Kicker(SessionOrderCopy.liftIndex(number, total))
+            Text(
+                item.exercise.name,
+                style = InstrumentType.title,
+                color = TextPrimary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                item.exercise.muscleGroup,
+                style = InstrumentType.caption,
+                color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        CompactTargetFields(
+            rowKey = item.id,
+            sets = item.sets,
+            reps = item.reps,
+            restSeconds = item.restSeconds,
+            targetWeightKg = item.targetWeightKg,
+            onStageTargets = onStageTargets,
+            onCommitTargets = onCommitTargets,
+            onRemove = onRemove,
+            onSwap = if (canSwap) onSwap else null,
+        )
+        Kicker(
+            SessionOrderCopy.ORDER,
+            modifier = Modifier.padding(horizontal = Metrics.space3),
+        )
+        Row(
+            modifier = Modifier.padding(
+                start = Metrics.space2,
+                end = Metrics.space2,
+                bottom = Metrics.space2,
+            ),
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
+            TextButton(
+                onClick = onMoveEarlier,
+                enabled = canMoveEarlier,
             ) {
                 Text(
-                    selected.exercise.name,
-                    modifier = Modifier.padding(
-                        start = Metrics.space3,
-                        end = Metrics.space3,
-                        top = Metrics.space3,
-                    ),
-                    style = InstrumentType.title,
-                    color = TextPrimary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                    SessionLiftCopy.MOVE_EARLIER,
+                    style = InstrumentType.bodyStrong,
+                    color = if (canMoveEarlier) TextSecondary else TextTertiary,
                 )
-                CompactTargetFields(
-                    rowKey = selected.id,
-                    sets = selected.sets,
-                    reps = selected.reps,
-                    restSeconds = selected.restSeconds,
-                    targetWeightKg = selected.targetWeightKg,
-                    onStageTargets = { sets, reps, rest, kg ->
-                        onStageTargets(selected.id, sets, reps, rest, kg)
-                    },
-                    onCommitTargets = { onCommitTargets(selected.id) },
-                    onRemove = { onRemove(selected.id) },
-                    onSwap = if (canSwap(selected.id)) {
-                        { onSwap(selected.id) }
-                    } else {
-                        null
-                    },
+            }
+            TextButton(
+                onClick = onMoveLater,
+                enabled = canMoveLater,
+            ) {
+                Text(
+                    SessionLiftCopy.MOVE_LATER,
+                    style = InstrumentType.bodyStrong,
+                    color = if (canMoveLater) TextSecondary else TextTertiary,
                 )
-                Row(
-                    modifier = Modifier.padding(
-                        start = Metrics.space2,
-                        end = Metrics.space2,
-                        bottom = Metrics.space2,
-                    ),
-                    horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-                ) {
-                    TextButton(
-                        onClick = { onMoveEarlier(selected.id) },
-                        enabled = selectedIndex > 0,
-                    ) {
-                        Text(
-                            SessionLiftCopy.MOVE_EARLIER,
-                            style = InstrumentType.bodyStrong,
-                            color = if (selectedIndex > 0) TextSecondary else TextTertiary,
-                        )
-                    }
-                    TextButton(
-                        onClick = { onMoveLater(selected.id) },
-                        enabled = selectedIndex in 0 until lifts.lastIndex,
-                    ) {
-                        Text(
-                            SessionLiftCopy.MOVE_LATER,
-                            style = InstrumentType.bodyStrong,
-                            color = if (selectedIndex in 0 until lifts.lastIndex) {
-                                TextSecondary
-                            } else {
-                                TextTertiary
-                            },
-                        )
-                    }
-                }
             }
         }
     }
@@ -193,45 +246,91 @@ private fun SessionLiftCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val unit = LocalWeightUnit.current
+    val restClock = RestTimer.formatClock(item.restSeconds)
+    val loadKg = item.targetWeightKg
+    val loadDisplay = loadKg?.let { kg -> WeightConverter.formatLabel(kg, unit) }
+    val spoken = SessionOrderCopy.cardSpoken(
+        number = number,
+        name = item.exercise.name,
+        muscleGroup = item.exercise.muscleGroup,
+        sets = item.sets,
+        reps = item.reps,
+        restClock = restClock,
+        load = loadDisplay,
+    )
     val shape = RoundedCornerShape(Radius.sm)
-    val label = "$number. ${item.exercise.name}"
-        Column(
-            modifier = modifier
-                .width(CARD_WIDTH)
-                .heightIn(min = Metrics.rowMin)
-                .clip(shape)
-                .background(if (selected) VoltDim else Surface2)
-                .border(
-                    if (selected) Metrics.emphasisBorder else Metrics.hairline,
-                    if (selected) Volt else Hairline,
-                    shape,
-                )
-                .semantics(mergeDescendants = true) {
-                    contentDescription = label
-                }
-                .clickable(onClick = onClick)
-                .testTag(SessionLiftTags.card(item.id))
-                .padding(Metrics.space2),
-            verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    Column(
+        modifier = modifier
+            .width(CARD_WIDTH)
+            .heightIn(min = Metrics.rowMin)
+            .clip(shape)
+            .background(if (selected) VoltDim else Surface2)
+            .border(
+                if (selected) Metrics.emphasisBorder else Metrics.hairline,
+                if (selected) Volt else Hairline,
+                shape,
+            )
+            .semantics(mergeDescendants = true) {
+                contentDescription = spoken
+            }
+            .clickable(onClick = onClick)
+            .testTag(SessionLiftTags.card(item.id))
+            .padding(Metrics.space3),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
         ) {
             CartBadge(number = number, selected = selected)
             ExerciseThumb(
                 exercise = item.exercise,
                 size = ThumbSize.header,
             )
-            Text(
-                item.exercise.name,
-                style = InstrumentType.title,
-                color = TextPrimary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
+        }
+        Text(
+            item.exercise.name,
+            style = InstrumentType.title,
+            color = TextPrimary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            item.exercise.muscleGroup,
+            style = InstrumentType.caption,
+            color = TextSecondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
+            MetricCluster(
+                value = "${item.sets} × ${item.reps}",
+                label = SessionOrderCopy.WORK,
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.Start,
             )
-            Text(
-                "${item.sets} × ${item.reps}",
-                style = InstrumentType.numeralSm,
-                color = TextPrimary,
+            MetricCluster(
+                value = restClock,
+                label = SessionOrderCopy.REST,
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.Start,
             )
         }
+        if (loadKg != null) {
+            MetricCluster(
+                value = WeightConverter.formatDisplayNumber(
+                    WeightConverter.toDisplayValue(loadKg, unit),
+                ),
+                label = SessionOrderCopy.LOAD,
+                unit = unit.suffix,
+                horizontalAlignment = Alignment.Start,
+            )
+        }
+    }
 }
 
 @Composable
@@ -242,7 +341,7 @@ internal fun CartBadge(
 ) {
     Box(
         modifier = modifier
-            .size(Metrics.space5)
+            .size(Metrics.space6)
             .clip(CircleShape)
             .background(if (selected) Volt else Surface1)
             .border(Metrics.hairline, if (selected) Volt else Hairline, CircleShape),
@@ -251,9 +350,9 @@ internal fun CartBadge(
         Text(
             number.toString(),
             style = InstrumentType.caption,
-            color = if (selected) Pit else TextSecondary,
+            color = if (selected) Pit else TextPrimary,
         )
     }
 }
 
-private val CARD_WIDTH = 140.dp
+private val CARD_WIDTH = 156.dp

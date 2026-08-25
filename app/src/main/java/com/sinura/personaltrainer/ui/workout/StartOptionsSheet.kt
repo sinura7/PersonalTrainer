@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.GroupedList
@@ -280,7 +281,7 @@ private fun RoutineRow(routine: Routine, onStart: () -> Unit) {
         )
     } else {
         val lifts = remember(routine) {
-            routine.exercises.take(LIFTS_PREVIEWED).joinToString(" · ") { it.exercise.name }
+            SessionOrderCopy.numberedPreview(routine.exercises.map { it.exercise.name })
         }
         val plannedSets = remember(routine) {
             routine.exercises.sumOf { it.targetSets.coerceAtLeast(1) }
@@ -326,8 +327,6 @@ private fun estimatedMinutes(routine: Routine): Int {
     return ((seconds + SECONDS_PER_MINUTE / 2) / SECONDS_PER_MINUTE).coerceAtLeast(1)
 }
 
-
-private const val LIFTS_PREVIEWED = 3
 
 // A rough working minute per set: the rest interval the routine asks for, plus the time the
 // set itself takes. An estimate the user can sanity-check, not a promise.

@@ -41,6 +41,7 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
 import com.sinura.personaltrainer.domain.ExercisePickerState
+import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.NotesBlock
 import com.sinura.personaltrainer.ui.components.NotesKind
@@ -149,7 +150,7 @@ fun RoutineEditorScreen(
                 item(key = "empty") {
                     EmptyState(
                         title = "Add your first lift",
-                        body = "Targets stay on the routine. Start it from Home when you’re in the gym.",
+                        body = SessionOrderCopy.EMPTY_EDITOR_BODY,
                         actionLabel = "Add lifts",
                         onAction = { viewModel.setPickerVisible(true) },
                         compact = true,
@@ -160,7 +161,7 @@ fun RoutineEditorScreen(
             } else {
                 item(key = "lifts-label") {
                     Kicker(
-                        "Lifts",
+                        SessionOrderCopy.sectionLabel(exercises.size),
                         modifier = Modifier.padding(top = Metrics.space4, bottom = Metrics.space1),
                     )
                 }

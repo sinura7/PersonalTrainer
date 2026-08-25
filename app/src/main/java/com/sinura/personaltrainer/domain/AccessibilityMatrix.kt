@@ -106,7 +106,7 @@ object AccessibilityMatrix {
             title = "Routine editor",
             states = requiredStates,
             voltAction = "Add lifts — edits write through",
-            talkBackNotes = "Back leaves. There is no Save: every edit writes itself.",
+            talkBackNotes = "Cards are numbered in session order. Tap a card to set work. Back leaves. There is no Save: every edit writes itself.",
             automatedEvidence = true,
         ),
         PagePass(
@@ -114,7 +114,7 @@ object AccessibilityMatrix {
             title = "Custom week",
             states = requiredStates,
             voltAction = "Use this week · N training",
-            talkBackNotes = "Confirm writes the week. Back leaves the draft.",
+            talkBackNotes = "Confirm writes the week. Cards are numbered in session order. Back leaves the draft.",
             automatedEvidence = true,
         ),
         PagePass(

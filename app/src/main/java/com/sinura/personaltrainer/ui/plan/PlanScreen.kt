@@ -44,6 +44,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.WeekTwoCopy
 import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
 import com.sinura.personaltrainer.domain.todayEpochDay
@@ -652,7 +653,7 @@ private fun RoutineRow(
     onDelete: () -> Unit,
 ) {
     val view = LocalView.current
-    val preview = routine.exercises.take(PREVIEW_LIFTS).joinToString(" · ") { it.exercise.name }
+    val preview = SessionOrderCopy.numberedPreview(routine.exercises.map { it.exercise.name })
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -681,7 +682,7 @@ private fun RoutineRow(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                preview.ifEmpty { "No lifts yet" },
+                preview,
                 style = InstrumentType.body,
                 color = TextSecondary,
                 maxLines = 1,
@@ -803,8 +804,6 @@ object PlanTags {
     const val TUNE_SPOKEN = "Tune week preferences"
     const val LIBRARY_SPOKEN = "Library"
 }
-
-private const val PREVIEW_LIFTS = 3
 
 /** Thicker than a hairline so the filled portion reads as a position, thin enough not to be a bar. */
 private val BLOCK_RULE_HEIGHT = 3.dp

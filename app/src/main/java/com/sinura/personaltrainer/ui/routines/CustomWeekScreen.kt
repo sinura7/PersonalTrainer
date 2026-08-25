@@ -40,6 +40,7 @@ import com.sinura.personaltrainer.domain.ExercisePickerMode
 import com.sinura.personaltrainer.domain.ExercisePickerState
 import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.OnboardingPreviewCopy
+import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
@@ -140,7 +141,7 @@ fun CustomWeekScreen(
                     item {
                         EmptyState(
                             title = "No lifts on ${state.selectedDay.shortLabel()}",
-                            body = "Add every exercise for this day, then move to the next.",
+                            body = SessionOrderCopy.EMPTY_WEEK_BODY,
                             actionLabel = "Add lifts",
                             onAction = { viewModel.setPickerVisible(true) },
                             compact = true,
@@ -149,7 +150,7 @@ fun CustomWeekScreen(
                         )
                     }
                 } else {
-                    item { Kicker("${state.selectedDay.shortLabel()} · ${lifts.size}") }
+                    item { Kicker(SessionOrderCopy.daySection(state.selectedDay.shortLabel(), lifts.size)) }
                     item {
                         SessionLiftStrip(
                             lifts = lifts.map { item ->
@@ -210,7 +211,7 @@ fun CustomWeekScreen(
                     enabled = state.canConfirm && !state.applying,
                 )
                 if (restCaption != null && state.trainingDays > 0) {
-                    Text(restCaption, style = InstrumentType.caption, color = TextTertiary)
+                    Text(restCaption, style = InstrumentType.caption, color = TextSecondary)
                 }
             }
         }

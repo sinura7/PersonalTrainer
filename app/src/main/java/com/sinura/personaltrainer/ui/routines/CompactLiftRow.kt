@@ -34,7 +34,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.Exercise
-import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
@@ -50,6 +49,7 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
 
 object CompactLiftCopy {
     const val TARGET_WEIGHT = "Target weight"
+    const val REST = "Rest"
 }
 
 object CompactLiftTags {
@@ -199,11 +199,6 @@ internal fun CompactTargetFields(
         modifier = Modifier.padding(start = Metrics.space3, end = Metrics.space3, bottom = Metrics.space3),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        Text(
-            RestTimer.formatClock(restSeconds),
-            style = InstrumentType.caption,
-            color = TextTertiary,
-        )
         Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
             MiniNumberField("Sets", setsText, Modifier.weight(1f), onCommitTargets) {
                 setsText = it.filter(Char::isDigit)
@@ -214,7 +209,13 @@ internal fun CompactTargetFields(
                 stage()
             }
         }
-        MiniNumberField("Rest s", restText, Modifier.fillMaxWidth(), onCommitTargets) {
+        MiniNumberField(
+            label = CompactLiftCopy.REST,
+            value = restText,
+            modifier = Modifier.fillMaxWidth(),
+            onFocusLost = onCommitTargets,
+            suffix = "s",
+        ) {
             restText = it.filter(Char::isDigit)
             stage()
         }

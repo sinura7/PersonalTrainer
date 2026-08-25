@@ -25,6 +25,7 @@ import com.sinura.personaltrainer.domain.CustomWeekPolicy
 import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.ScheduleModality
+import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.ui.components.GroupedList
@@ -170,7 +171,7 @@ fun PlanDaySheet(
                     if (onEditRoutine != null) {
                         InstrumentRow(
                             title = "Edit lifts",
-                            subtitle = "Sets, reps, bodyweight work, reorder.",
+                            subtitle = SessionOrderCopy.EDIT_LIFTS_SUBTITLE,
                             onClick = onEditRoutine,
                         )
                         HairlineDivider()

@@ -11,6 +11,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.WeekTwoCopy
 import com.sinura.personaltrainer.ui.components.GymCard
@@ -96,7 +97,7 @@ fun ThisWeekCard(
         )
         if (hasPlan && lifts.isNotEmpty()) {
             Text(
-                lifts.joinToString("  ·  "),
+                SessionOrderCopy.numberedPreview(lifts),
                 style = InstrumentType.body,
                 color = TextSecondary,
                 maxLines = 1,
