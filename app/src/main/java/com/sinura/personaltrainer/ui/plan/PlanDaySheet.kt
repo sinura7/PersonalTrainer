@@ -22,12 +22,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.CustomWeekPolicy
+import com.sinura.personaltrainer.domain.HomeToday
 import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
+import com.sinura.personaltrainer.domain.sessionLiftNames
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentChip
@@ -106,21 +108,22 @@ fun PlanDaySheet(
             }
 
             if (occurrences.isNotEmpty()) {
+                val startTagId = HomeToday.startTagOccurrenceId(occurrences)
                 GroupedList {
                     occurrences.forEachIndexed { index, item ->
                         if (index > 0) HairlineDivider()
                         val canStart = !isPast &&
                             !sessionLive &&
                             item.occurrence.status == OccurrenceStatus.PLANNED
+                        val names = sessionLiftNames(item.rule?.routineId, routines)
                         InstrumentRow(
                             title = "${item.timeLabel}  ·  ${item.title}",
-                            subtitle = item.occurrence.status.name.lowercase()
-                                .replaceFirstChar { it.titlecase() },
+                            subtitle = SessionOrderCopy.occurrenceLine(item.occurrence.status, names),
                             onClick = {
                                 if (canStart) onStartOccurrence(item.occurrence.id)
                             },
                         )
-                        if (canStart) {
+                        if (canStart && item.occurrence.id == startTagId) {
                             PrimaryGymButton(
                                 text = "Start ${item.title}",
                                 onClick = { onStartOccurrence(item.occurrence.id) },

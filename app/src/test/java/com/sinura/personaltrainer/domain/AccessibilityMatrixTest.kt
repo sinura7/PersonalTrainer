@@ -30,6 +30,10 @@ class AccessibilityMatrixTest {
             assertTrue(page.id, page.automatedEvidence)
             assertFalse("physical TalkBack is still outstanding", page.physicalTalkBack)
         }
+        assertEquals(
+            "Start today's planned session. Free workout stays quiet.",
+            AccessibilityMatrix.page("home").voltAction,
+        )
     }
 
     @Test

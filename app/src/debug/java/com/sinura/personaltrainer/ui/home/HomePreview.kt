@@ -10,7 +10,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.CapturedCivilTime
+import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.OccurrenceStatus
+import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.RoutineExercise
 import com.sinura.personaltrainer.domain.ScheduleConfidence
 import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.ScheduleOccurrence
@@ -55,6 +58,7 @@ private fun HomePopulatedPreview() {
                 sessionLive = false,
                 onStartOccurrence = {},
                 onStartFree = {},
+                routines = HomePreviewFixtures.routines,
             )
             LinkRow(label = "Goals", onClick = {})
             LinkRow(label = "Library", onClick = {})
@@ -107,6 +111,7 @@ private fun HomeReducedMotionPreview() {
                 sessionLive = false,
                 onStartOccurrence = {},
                 onStartFree = {},
+                routines = HomePreviewFixtures.routines,
             )
         }
     }
@@ -162,7 +167,41 @@ internal object HomePreviewFixtures {
         ),
         AgendaItem(
             occurrence = occurrence("occ-pm", "rule-lift", hour = 18),
-            rule = rule("rule-lift", ScheduleModality.STRENGTH, SessionFocusKind.PUSH),
+            rule = rule(
+                "rule-lift",
+                ScheduleModality.STRENGTH,
+                SessionFocusKind.PUSH,
+                routineId = "r-push",
+            ),
+            routineName = "Upper strength",
+        ),
+    )
+
+    val routines: List<Routine> = listOf(
+        Routine(
+            id = "r-push",
+            name = "Upper strength",
+            notes = "",
+            createdAt = 0L,
+            updatedAt = 0L,
+            exercises = listOf("Squat", "Row", "Bench").mapIndexed { index, name ->
+                RoutineExercise(
+                    id = "item-$index",
+                    routineId = "r-push",
+                    exercise = Exercise(
+                        id = "ex-$index",
+                        name = name,
+                        muscleGroup = "Chest",
+                        notes = "",
+                        isCustom = false,
+                    ),
+                    sortOrder = index,
+                    targetSets = 3,
+                    targetReps = 5,
+                    targetWeightKg = null,
+                    restSeconds = 90,
+                )
+            },
         ),
     )
 
@@ -186,6 +225,7 @@ internal object HomePreviewFixtures {
         id: String,
         modality: ScheduleModality,
         focusKind: SessionFocusKind? = null,
+        routineId: String? = null,
     ) = ScheduleRule(
         id = id,
         weekday = Weekday.MONDAY,
@@ -193,6 +233,7 @@ internal object HomePreviewFixtures {
         minute = 0,
         modality = modality,
         focusKind = focusKind,
+        routineId = routineId,
         createdAtMs = 1L,
         updatedAtMs = 1L,
     )

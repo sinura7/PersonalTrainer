@@ -149,6 +149,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
     }
 
     fun selectDay(day: Weekday) {
+        if (applying.value) return
         userPickedDay = true
         selectedDay.value = day
     }
@@ -167,6 +168,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
     }
 
     fun setPickerVisible(visible: Boolean) {
+        if (visible && applying.value) return
         showPicker.value = visible
         if (!visible) {
             searchQuery.value = ""
@@ -179,10 +181,12 @@ class CustomWeekViewModel @JvmOverloads constructor(
     }
 
     fun togglePendingAdd(exercise: Exercise) {
+        if (applying.value) return
         pendingAddIds.value = LiftCart.toggle(pendingAddIds.value, exercise.id)
     }
 
     fun confirmPendingAdd() {
+        if (applying.value) return
         val selected = LiftCart.sanitize(pendingAddIds.value)
         if (selected.isEmpty()) return
         val day = selectedDay.value
@@ -211,6 +215,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
     }
 
     fun createAndSelect(name: String, muscleGroup: String) {
+        if (applying.value) return
         viewModelScope.launch {
             if (name.isBlank()) {
                 error.value = "Exercise name is required."
@@ -241,16 +246,19 @@ class CustomWeekViewModel @JvmOverloads constructor(
     }
 
     fun moveLift(itemId: String, direction: Int) {
+        if (applying.value) return
         val day = selectedDay.value
         days.value = days.value + (day to CustomWeekPolicy.move(days.value[day].orEmpty(), itemId, direction))
     }
 
     fun removeLift(itemId: String) {
+        if (applying.value) return
         val day = selectedDay.value
         days.value = days.value + (day to days.value[day].orEmpty().filterNot { it.id == itemId })
     }
 
     fun stageTargets(itemId: String, sets: Int?, reps: Int?, rest: Int?, weightKg: Double?) {
+        if (applying.value) return
         val day = selectedDay.value
         days.value = days.value + (
             day to CustomWeekPolicy.updateTargets(days.value[day].orEmpty(), itemId, sets, reps, rest, weightKg)
@@ -260,9 +268,11 @@ class CustomWeekViewModel @JvmOverloads constructor(
     fun confirm() {
         if (applying.value || !CustomWeekPolicy.canConfirm(days.value)) return
         applying.value = true
+        showPicker.value = false
+        val snapshot = days.value
         viewModelScope.launch {
             val result = container.onboardingApplier.applyCustom(
-                days = days.value,
+                days = snapshot,
                 weekStart = weekStart.value,
                 today = LocalDate.now(),
                 answers = guidedAnswers,

@@ -18,10 +18,11 @@ object SessionOrderCopy {
     const val PICKER_HINT = "Tap in the order you'll lift. 1 is first."
     const val TAP_TO_SET = "Tap a lift to set sets, reps, rest and load."
     const val EMPTY_EDITOR_BODY =
-        "Tap lifts in the order you'll do them. Accept to line them on this day."
+        "Tap lifts in the order you'll do them. Add puts them on this day."
     const val EMPTY_WEEK_BODY =
         "Tap lifts in the order you'll do them, then move to the next day."
     const val EDIT_LIFTS_SUBTITLE = "Tap a card for sets, reps, rest and load."
+    const val AGENDA_SEPARATE = "Morning and evening stay separate."
 
     fun liftIndex(number: Int, total: Int): String = "Lift $number of $total"
 
@@ -39,6 +40,15 @@ object SessionOrderCopy {
         val rest = names.size - cap
         // Count first so a one-line ellipsis cannot eat the remainder.
         return if (rest > 0) "${names.size} lifts · $shown" else shown
+    }
+
+    /**
+     * Agenda and Plan day rows. When the routine is known, the order is the
+     * line; status only fills in when there are no lifts to name.
+     */
+    fun occurrenceLine(status: OccurrenceStatus, names: List<String>): String {
+        if (names.isNotEmpty()) return numberedPreview(names)
+        return status.name.lowercase().replaceFirstChar { it.titlecase() }
     }
 
     fun cardSpoken(

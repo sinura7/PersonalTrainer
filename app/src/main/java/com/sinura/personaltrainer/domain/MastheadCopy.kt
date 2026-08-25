@@ -46,6 +46,29 @@ object MastheadCopy {
         return "$noun · $liftCount ${if (liftCount == 1) "LIFT" else "LIFTS"}"
     }
 
+    /**
+     * Lift count that may appear in the masthead. Bound to the startable
+     * strength routine when the agenda owns today. Cardio and mixed never
+     * inherit a leftover strength count. Empty agenda falls back to the
+     * leftover slot day's routine.
+     */
+    fun headlineLiftCount(
+        agenda: List<AgendaItem>,
+        leftoverDay: SuggestedTrainingDay?,
+        routines: List<Routine>,
+    ): Int? {
+        val startable = DailyAgenda.startable(agenda)
+        val strength = startable.firstOrNull {
+            (it.rule?.modality ?: ScheduleModality.STRENGTH) == ScheduleModality.STRENGTH
+        }
+        val routineId = when {
+            strength != null -> strength.rule?.routineId
+            startable.isNotEmpty() -> null
+            else -> leftoverDay?.takeUnless { it.isRest }?.routineId
+        }
+        return sessionLiftNames(routineId, routines).size.takeIf { it > 0 }
+    }
+
     private fun startableHeadline(agenda: List<AgendaItem>, liftCount: Int?): String? {
         val startable = DailyAgenda.startable(agenda)
         if (startable.isEmpty()) return null
@@ -57,7 +80,9 @@ object MastheadCopy {
             ScheduleModality.MIXED -> "MIXED DAY"
             else -> "STRENGTH DAY"
         }
-        if (liftCount == null || liftCount <= 0) return noun
+        val strength = (item.rule?.modality ?: ScheduleModality.STRENGTH) ==
+            ScheduleModality.STRENGTH
+        if (!strength || liftCount == null || liftCount <= 0) return noun
         return "$noun · $liftCount ${if (liftCount == 1) "LIFT" else "LIFTS"}"
     }
 
@@ -90,8 +115,14 @@ fun featuredSession(
 fun leftoverLiftNames(
     featured: SuggestedTrainingDay?,
     routines: List<Routine>,
+): List<String> = sessionLiftNames(featured?.routineId, routines)
+
+/** Session order for a routine id, empty when the routine cannot be resolved. */
+fun sessionLiftNames(
+    routineId: String?,
+    routines: List<Routine>,
 ): List<String> {
-    val id = featured?.routineId ?: return emptyList()
+    val id = routineId ?: return emptyList()
     return routines.firstOrNull { it.id == id }
         ?.exercises.orEmpty()
         .map { it.exercise.name }

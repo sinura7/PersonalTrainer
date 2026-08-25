@@ -14,6 +14,9 @@ import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.HomeToday
 import com.sinura.personaltrainer.domain.OccurrenceStatus
+import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.sessionLiftNames
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.HairlineDivider
@@ -31,6 +34,9 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
  *
  * Morning cardio and evening strength are two rows. Completing one does
  * not start or hide the other. One live activity still blocks a second start.
+ * One filled Volt starts the next planned row (strength preferred); other
+ * planned rows stay tappable. Strength rows speak the same numbered order
+ * Plan and the editor already built.
  */
 @Composable
 fun DailyAgendaCard(
@@ -38,39 +44,38 @@ fun DailyAgendaCard(
     sessionLive: Boolean,
     onStartOccurrence: (String) -> Unit,
     onStartFree: () -> Unit,
+    routines: List<Routine> = emptyList(),
 ) {
     val startTagId = HomeToday.startTagOccurrenceId(items)
     GymCard {
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
             Kicker("Today")
-            Text(
-                "Morning and evening stay separate.",
-                style = InstrumentType.caption,
-                color = TextSecondary,
-            )
+            if (items.size > 1) {
+                Text(
+                    SessionOrderCopy.AGENDA_SEPARATE,
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                )
+            }
             GroupedList {
                 items.forEachIndexed { index, item ->
                     if (index > 0) HairlineDivider()
                     val planned = item.occurrence.status == OccurrenceStatus.PLANNED
+                    val names = sessionLiftNames(item.rule?.routineId, routines)
                     InstrumentRow(
                         title = "${item.timeLabel}  ·  ${item.title}",
-                        subtitle = item.occurrence.status.name.lowercase().replaceFirstChar { it.titlecase() },
+                        subtitle = SessionOrderCopy.occurrenceLine(item.occurrence.status, names),
                         onClick = {
                             if (planned && !sessionLive) onStartOccurrence(item.occurrence.id)
                         },
                     )
-                    if (planned && !sessionLive) {
-                        val tagged = item.occurrence.id == startTagId
+                    if (planned && !sessionLive && item.occurrence.id == startTagId) {
                         PrimaryGymButton(
                             text = "Start ${item.title}",
                             onClick = { onStartOccurrence(item.occurrence.id) },
-                            modifier = if (tagged) {
-                                Modifier
-                                    .testTag(HomeTags.START)
-                                    .semantics { contentDescription = PLANNED_SESSION }
-                            } else {
-                                Modifier
-                            },
+                            modifier = Modifier
+                                .testTag(HomeTags.START)
+                                .semantics { contentDescription = PLANNED_SESSION },
                         )
                     }
                 }

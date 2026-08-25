@@ -168,7 +168,8 @@ previews.
 
 - `HomeMasthead` — date, day-state headline, Settings.
 - `HomeStatRow` — last-session and days-since tiles.
-- `ThisWeekCard` — planned/rest/empty/live hero variants.
+- `DailyAgendaCard` — today's occurrences; one Volt Start; numbered lift order.
+- `ThisWeekCard` — empty-agenda leftover: planned/rest/empty/live hero variants.
 - `ReadyToProgressSection` — actionable progression hints.
 - `LinkRow` — low-emphasis destinations.
 
@@ -229,7 +230,8 @@ previews.
 ### Routine and custom-week editing
 
 - `RoutineEditorHeader` / `RoutineTitleField` — identity.
-- `CompactLiftRow` — collapsed/expanded prescribed lift.
+- `SessionLiftStrip` — numbered horizontal session cards; tap opens targets.
+- `CompactLiftRow` — identity-before-metrics instrumented row (not the production editor).
 - `CompactTargetFields` — sets, reps, rest, target load.
 - `MiniNumberField` — inline numeric input.
 - `SwapExerciseSheet` — movement-family alternative.

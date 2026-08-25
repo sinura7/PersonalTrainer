@@ -16,10 +16,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -66,7 +63,6 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
-import com.sinura.personaltrainer.ui.workout.StartOptionsSheet
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -112,8 +108,6 @@ fun HomeScreen(
     val blocked by viewModel.blockedByInProgress.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
     val inProgress = state.inProgress
-    // Home owns the sheet's visibility now that there is no interstitial to navigate to.
-    var startOptionsOpen by rememberSaveable { mutableStateOf(false) }
 
     // Starting a planned day while another session is live is a question, not something the
     // app answers on the user's behalf. Composed before the loading return so it survives a
@@ -141,9 +135,7 @@ fun HomeScreen(
     // derivation cannot tell them apart on its own — an unpinned day and a rest day are the
     // same object.
     val hasPlan = plan?.days?.any { !it.isRest } == true
-    val liftCount = todayDay?.routineId?.let { routineId ->
-        state.routines.firstOrNull { it.id == routineId }?.exercises?.size
-    }
+    val liftCount = MastheadCopy.headlineLiftCount(state.agenda, todayDay, state.routines)
     val nextDay = plan?.nextTrainingOnOrAfter(today)
     // The session Home is actually talking about. One derivation, shared by the card's headline
     // and by the lift list underneath it — see featuredSession.
@@ -222,32 +214,28 @@ fun HomeScreen(
                         sessionLive = inProgress != null,
                         onStartOccurrence = viewModel::startOccurrence,
                         onStartFree = { viewModel.startFreeWorkout() },
+                        routines = state.routines,
                     )
                     HomeToday.Surface.WEEK_FALLBACK -> ThisWeekCard(
-                    day = todayDay,
-                    nextDay = nextDay,
-                    loggedToday = loggedToday,
-                    sessionLive = inProgress != null,
-                    hasRoutines = state.routines.isNotEmpty(),
-                    lifts = leftoverLiftNames(featured, state.routines),
-                    reason = nextSessionReason(featured, state.recommendations),
-                    onSuggestWeek = {
-                        viewModel.requestWeekSuggestion()
-                        onOpenPlan()
-                    },
-                    onReplayAnswers = {
-                        viewModel.requestAnswerReplay()
-                        onOpenPlan()
-                    },
-                    onPrimary = {
-                        val target = todayDay?.takeUnless { it.isRest }
-                        // One tap starts today's Plan routine. Free logging is [onStartFree].
-                        when {
-                            inProgress != null || target == null -> startOptionsOpen = true
-                            else -> viewModel.startSuggestedDay(target)
-                        }
-                    },
-                    onStartFree = { viewModel.startFreeWorkout() },
+                        day = todayDay,
+                        nextDay = nextDay,
+                        loggedToday = loggedToday,
+                        sessionLive = inProgress != null,
+                        hasRoutines = state.routines.isNotEmpty(),
+                        lifts = leftoverLiftNames(featured, state.routines),
+                        reason = nextSessionReason(featured, state.recommendations),
+                        onSuggestWeek = {
+                            viewModel.requestWeekSuggestion()
+                            onOpenPlan()
+                        },
+                        onReplayAnswers = {
+                            viewModel.requestAnswerReplay()
+                            onOpenPlan()
+                        },
+                        onPrimary = {
+                            todayDay?.takeUnless { it.isRest }?.let(viewModel::startSuggestedDay)
+                        },
+                        onStartFree = { viewModel.startFreeWorkout() },
                     )
                 }
                 // The card body no longer navigates. A whole-card tap that went to the plan,
@@ -320,21 +308,6 @@ fun HomeScreen(
         item {
             LinkRow(label = "Training calendar", onClick = onOpenHistory)
         }
-    }
-
-    if (startOptionsOpen) {
-        StartOptionsSheet(
-            onDismiss = { startOptionsOpen = false },
-            onWorkoutStarted = onResumeWorkout,
-            todayDay = todayDay,
-            onStartToday = todayDay?.takeUnless { it.isRest }?.let { target ->
-                { viewModel.startSuggestedDay(target) }
-            },
-            onLogPast = { onLogActivity("strength") },
-            onLogCardio = { onLogActivity("cardio") },
-            onLogMixed = { onLogActivity("mixed") },
-            onOpenLiveActivity = onOpenLiveCardio,
-        )
     }
 }
 

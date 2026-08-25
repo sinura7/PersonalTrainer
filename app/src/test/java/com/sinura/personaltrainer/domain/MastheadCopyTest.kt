@@ -143,9 +143,133 @@ class MastheadCopyTest {
             MastheadCopy.headline(
                 day(SessionFocusKind.RECOVERY).copy(isRest = true),
                 loggedToday = false,
-                liftCount = null,
+                liftCount = 4,
                 agenda = listOf(cardio),
             ),
+        )
+    }
+
+    @Test
+    fun leftoverStrengthCountDoesNotAttachToACardioAgenda() {
+        val cardio = AgendaItem(
+            occurrence = ScheduleOccurrence(
+                id = "c",
+                ruleId = "r-c",
+                status = OccurrenceStatus.PLANNED,
+                captured = CapturedCivilTime(1L, "UTC", 0, 20_000L),
+                hour = 7,
+                minute = 0,
+                createdAtMs = 1L,
+                updatedAtMs = 1L,
+            ),
+            rule = ScheduleRule(
+                id = "r-c",
+                weekday = Weekday.MONDAY,
+                hour = 7,
+                minute = 0,
+                modality = ScheduleModality.CARDIO,
+                createdAtMs = 1L,
+                updatedAtMs = 1L,
+            ),
+        )
+        val leftover = day(SessionFocusKind.PUSH)
+        val routines = listOf(
+            Routine(
+                id = "r1",
+                name = "Push",
+                notes = "",
+                createdAt = 0L,
+                updatedAt = 0L,
+                exercises = listOf(
+                    RoutineExercise(
+                        id = "item-0",
+                        routineId = "r1",
+                        exercise = Exercise(
+                            id = "ex-0",
+                            name = "Bench",
+                            muscleGroup = "Chest",
+                            notes = "",
+                            isCustom = false,
+                        ),
+                        sortOrder = 0,
+                        targetSets = 3,
+                        targetReps = 5,
+                        targetWeightKg = null,
+                        restSeconds = 90,
+                    ),
+                ),
+            ),
+        )
+        assertEquals(
+            null,
+            MastheadCopy.headlineLiftCount(listOf(cardio), leftover, routines),
+        )
+        assertEquals(
+            "CARDIO DAY",
+            MastheadCopy.headline(
+                leftover,
+                loggedToday = false,
+                liftCount = MastheadCopy.headlineLiftCount(listOf(cardio), leftover, routines),
+                agenda = listOf(cardio),
+            ),
+        )
+    }
+
+    @Test
+    fun strengthAgendaLiftCountComesFromTheOccurrenceRoutine() {
+        val evening = AgendaItem(
+            occurrence = ScheduleOccurrence(
+                id = "s",
+                ruleId = "r-s",
+                status = OccurrenceStatus.PLANNED,
+                captured = CapturedCivilTime(1L, "UTC", 0, 20_000L),
+                hour = 18,
+                minute = 0,
+                createdAtMs = 1L,
+                updatedAtMs = 1L,
+            ),
+            rule = ScheduleRule(
+                id = "r-s",
+                weekday = Weekday.MONDAY,
+                hour = 18,
+                minute = 0,
+                modality = ScheduleModality.STRENGTH,
+                focusKind = SessionFocusKind.PUSH,
+                routineId = "r-evening",
+                createdAtMs = 1L,
+                updatedAtMs = 1L,
+            ),
+        )
+        val routines = listOf(
+            Routine(
+                id = "r-evening",
+                name = "Evening",
+                notes = "",
+                createdAt = 0L,
+                updatedAt = 0L,
+                exercises = List(4) { index ->
+                    RoutineExercise(
+                        id = "item-$index",
+                        routineId = "r-evening",
+                        exercise = Exercise(
+                            id = "ex-$index",
+                            name = "Lift $index",
+                            muscleGroup = "Chest",
+                            notes = "",
+                            isCustom = false,
+                        ),
+                        sortOrder = index,
+                        targetSets = 3,
+                        targetReps = 5,
+                        targetWeightKg = null,
+                        restSeconds = 90,
+                    )
+                },
+            ),
+        )
+        assertEquals(
+            4,
+            MastheadCopy.headlineLiftCount(listOf(evening), day(SessionFocusKind.LEGS), routines),
         )
     }
 
@@ -377,6 +501,19 @@ class FeaturedSessionTest {
             "4 lifts · 1 Squat · 2 Row · 3 Bench",
             SessionOrderCopy.numberedPreview(names),
         )
+    }
+
+    @Test
+    fun sessionLiftNamesFollowTheRoutineIdNotTheLeftoverDay() {
+        val names = sessionLiftNames(
+            "r-evening",
+            listOf(
+                routine(id = "r-leftover", names = listOf("Curl")),
+                routine(id = "r-evening", names = listOf("Squat", "Row")),
+            ),
+        )
+        assertEquals(listOf("Squat", "Row"), names)
+        assertEquals(emptyList<String>(), sessionLiftNames(null, emptyList()))
     }
 
     private fun day(isRest: Boolean, name: String?): SuggestedTrainingDay = SuggestedTrainingDay(

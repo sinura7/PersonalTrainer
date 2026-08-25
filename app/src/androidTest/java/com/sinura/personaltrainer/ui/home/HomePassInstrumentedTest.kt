@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -21,7 +22,10 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.CapturedCivilTime
+import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.OccurrenceStatus
+import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.RoutineExercise
 import com.sinura.personaltrainer.domain.ScheduleConfidence
 import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.ScheduleOccurrence
@@ -100,6 +104,7 @@ class HomePassInstrumentedTest {
                 sessionLive = false,
                 onStartOccurrence = {},
                 onStartFree = {},
+                routines = listOf(PUSH_ROUTINE),
             )
             LinkRow(
                 label = "Goals",
@@ -112,6 +117,26 @@ class HomePassInstrumentedTest {
         compose.onNodeWithTag(HomeTags.FREE).assertIsDisplayed()
         compose.onNodeWithContentDescription("Start a free workout").assertIsDisplayed()
         compose.onNodeWithTag(HomeTags.GOALS).assertIsDisplayed()
+        compose.onNodeWithText("Morning and evening stay separate.").assertDoesNotExist()
+    }
+
+    @Test
+    fun twoADayKeepsOneVoltAndShowsTheLiftOrder() {
+        setConstrainedContent(fontScale = 1f) {
+            DailyAgendaCard(
+                items = listOf(CARDIO_ITEM, STRENGTH_ITEM),
+                sessionLive = false,
+                onStartOccurrence = {},
+                onStartFree = {},
+                routines = listOf(PUSH_ROUTINE),
+            )
+        }
+        compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Start today's planned session").assertIsDisplayed()
+        compose.onNodeWithText("Start Push").assertIsDisplayed()
+        compose.onNodeWithText("Start Cardio").assertDoesNotExist()
+        compose.onNodeWithText("Morning and evening stay separate.").assertIsDisplayed()
+        compose.onNodeWithText("1 Squat · 2 Row").assertIsDisplayed()
     }
 
     @Test
@@ -207,9 +232,56 @@ class HomePassInstrumentedTest {
                 minute = 0,
                 modality = ScheduleModality.STRENGTH,
                 focusKind = SessionFocusKind.PUSH,
+                routineId = "r-push",
                 createdAtMs = 1L,
                 updatedAtMs = 1L,
             ),
+        )
+        val CARDIO_ITEM = AgendaItem(
+            occurrence = ScheduleOccurrence(
+                id = "occ-am",
+                ruleId = "rule-cardio",
+                status = OccurrenceStatus.PLANNED,
+                captured = CapturedCivilTime(1L, "UTC", 0, TODAY),
+                hour = 7,
+                minute = 0,
+                createdAtMs = 1L,
+                updatedAtMs = 1L,
+            ),
+            rule = ScheduleRule(
+                id = "rule-cardio",
+                weekday = Weekday.MONDAY,
+                hour = 7,
+                minute = 0,
+                modality = ScheduleModality.CARDIO,
+                createdAtMs = 1L,
+                updatedAtMs = 1L,
+            ),
+        )
+        val PUSH_ROUTINE = Routine(
+            id = "r-push",
+            name = "Push",
+            notes = "",
+            createdAt = 0L,
+            updatedAt = 0L,
+            exercises = listOf("Squat", "Row").mapIndexed { index, name ->
+                RoutineExercise(
+                    id = "item-$index",
+                    routineId = "r-push",
+                    exercise = Exercise(
+                        id = "ex-$index",
+                        name = name,
+                        muscleGroup = "Quads",
+                        notes = "",
+                        isCustom = false,
+                    ),
+                    sortOrder = index,
+                    targetSets = 3,
+                    targetReps = 5,
+                    targetWeightKg = null,
+                    restSeconds = 90,
+                )
+            },
         )
         val TODAY_DAY = SuggestedTrainingDay(
             epochDay = TODAY,

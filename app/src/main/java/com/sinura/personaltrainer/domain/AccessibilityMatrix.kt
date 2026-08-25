@@ -33,7 +33,7 @@ object AccessibilityMatrix {
             id = "home",
             title = "Home",
             states = requiredStates,
-            voltAction = "Start today's planned session, or Start a free workout",
+            voltAction = "Start today's planned session. Free workout stays quiet.",
             talkBackNotes = "Last session and days-since tiles merge into one name each.",
             automatedEvidence = true,
         ),

@@ -155,6 +155,7 @@ fun CustomWeekScreen(
                             actionLabel = "Add lifts",
                             onAction = { viewModel.setPickerVisible(true) },
                             compact = true,
+                            actionEnabled = !state.applying,
                             actionTag = CustomWeekTags.ADD_LIFTS,
                             modifier = Modifier.padding(top = Metrics.space4),
                         )
@@ -196,6 +197,7 @@ fun CustomWeekScreen(
                             modifier = Modifier
                                 .padding(top = Metrics.space2)
                                 .testTag(CustomWeekTags.ADD_LIFTS),
+                            enabled = !state.applying,
                             height = Metrics.touchMin,
                         )
                     }

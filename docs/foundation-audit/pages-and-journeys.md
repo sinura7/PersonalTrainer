@@ -124,7 +124,7 @@ warning.
 - all seven days fit at the audited 360 dp width;
 - empty state has a direct Add lifts action;
 - one picker supports multi-add;
-- `CompactLiftRow` aligns the custom builder with the routine editor.
+- `SessionLiftStrip` lines the custom builder with the routine editor.
 
 **Friction and gaps**
 
@@ -143,15 +143,16 @@ Runtime evidence:
 ### 4.1 Home
 
 **Files:** [`HomeScreen.kt`](../../app/src/main/java/com/sinura/personaltrainer/ui/home/HomeScreen.kt),
+[`DailyAgendaCard.kt`](../../app/src/main/java/com/sinura/personaltrainer/ui/home/DailyAgendaCard.kt),
 [`ThisWeekCard.kt`](../../app/src/main/java/com/sinura/personaltrainer/ui/home/ThisWeekCard.kt)
 
 **Job:** State today and provide the shortest valid next action.
 
-**Reads:** shared training insights, derived week, progression hints, current block, in-progress
+**Reads:** shared training insights, derived week, today's occurrences, progression hints, current block, in-progress
 session.
 
-**Writes/actions:** start suggested day, open alternate start sheet, request week suggestion
-or answer replay, navigate to Settings/Plan/History/Exercise Detail.
+**Writes/actions:** start the tagged planned occurrence (or leftover suggested day), start a free workout, request week suggestion
+or answer replay, navigate to Settings/Plan/History/Exercise Detail. Alternate starts (log past, live cardio) open `StartOptionsSheet` from Body, History, or Plan — not from Home.
 
 **Hero states**
 
@@ -159,9 +160,9 @@ or answer replay, navigate to Settings/Plan/History/Exercise Detail.
 |---|---|
 | Empty week, no routines | Suggest a week |
 | Empty week, routines exist | Use stored answers again |
-| Planned today | Start this session |
-| Rest day | Quiet Start anyway |
-| Already trained today | Quiet Start another |
+| Agenda today | One Volt: Start {title} (strength preferred). Numbered lift order on the strength row. |
+| Leftover planned today | Start this session |
+| Rest day / already trained leftover | Quiet Start a free workout |
 | Workout live | No Start; use live bar |
 
 **What works**
@@ -170,14 +171,12 @@ or answer replay, navigate to Settings/Plan/History/Exercise Detail.
 - masthead communicates the day’s reality instead of branding;
 - planned session starts in one tap;
 - live state does not lie;
-- progression links lead to the relevant lift.
+- progression links lead to the relevant lift;
+- agenda and leftover never compete: occurrences own today.
 
 **Friction and gaps**
 
-- no combined agenda for two activities in one day;
-- no reminder/adherence state;
-- no direct Library route, which can slow first-week discovery;
-- no goal progress or annual summary;
+- reminder/adherence state is a Plan/missed-work prompt, not Home chrome;
 - the “Last session” tiles are empty on first use without teaching what will populate them.
 
 Runtime evidence: [Home](evidence/04-home.png).
@@ -363,7 +362,7 @@ Runtime evidence: [expanded family](evidence/08-library.png).
 ### 5.3 Routine Editor
 
 **Files:** [`RoutineEditorScreen.kt`](../../app/src/main/java/com/sinura/personaltrainer/ui/routines/RoutineEditorScreen.kt),
-[`CompactLiftRow.kt`](../../app/src/main/java/com/sinura/personaltrainer/ui/routines/CompactLiftRow.kt)
+[`SessionLiftStrip.kt`](../../app/src/main/java/com/sinura/personaltrainer/ui/routines/SessionLiftStrip.kt)
 
 **Job:** Edit one reusable strength routine.
 
@@ -378,7 +377,7 @@ remove confirmation.
 
 - changes persist without a misleading Save button;
 - no Start action competes with editing;
-- compact rows expose targets and movement controls;
+- numbered session cards expose targets and movement controls;
 - an empty new stub can be cleaned up on exit.
 
 **Runtime friction**

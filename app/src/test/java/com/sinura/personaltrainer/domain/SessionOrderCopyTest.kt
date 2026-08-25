@@ -23,6 +23,26 @@ class SessionOrderCopyTest {
     }
 
     @Test
+    fun occurrenceLinePrefersSessionOrderOverStatus() {
+        assertEquals(
+            "1 Squat · 2 Row",
+            SessionOrderCopy.occurrenceLine(OccurrenceStatus.PLANNED, listOf("Squat", "Row")),
+        )
+        assertEquals(
+            "Done",
+            SessionOrderCopy.occurrenceLine(OccurrenceStatus.DONE, emptyList()),
+        )
+        assertEquals(
+            SessionOrderCopy.AGENDA_SEPARATE,
+            "Morning and evening stay separate.",
+        )
+        assertEquals(
+            SessionOrderCopy.EMPTY_EDITOR_BODY,
+            "Tap lifts in the order you'll do them. Add puts them on this day.",
+        )
+    }
+
+    @Test
     fun sectionAndLiftIndexNameTheJob() {
         assertEquals("Session · 1 lift", SessionOrderCopy.sectionLabel(1))
         assertEquals("Session · 4 lifts", SessionOrderCopy.sectionLabel(4))

@@ -121,9 +121,15 @@ and pinned Done.
 
 **Floor findings**
 
-- Planned + not logged → volt “Start this session”.
-- Rest → quiet “Start anyway”. Already trained → quiet “Start another”
-  *(a second filled Start after TRAINED TODAY reads as “it didn’t save”)*.
+- Agenda exists → `DailyAgendaCard` is the only today-surface. Volt is
+  `Start {title}` on the next planned row (strength preferred). That row
+  also shows the numbered lift order. Free workout stays quiet.
+- Two-a-day: one Volt. The other planned row stays tappable, not a second
+  filled Start.
+- Empty agenda leftover → `ThisWeekCard`. Planned + not logged → volt
+  “Start this session”. Rest / already trained → quiet “Start a free workout”.
+  ~~Rest → quiet “Start anyway”. Already trained → quiet “Start another”~~
+  *(those labels never shipped on the leftover card; free is the honest second path)*.
 - **Live → no Start at all.** The card names the plan. The bar is the way back.
   ~~Card never knows about live, so it still says Start.~~ That Start would lie.
 

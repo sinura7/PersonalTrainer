@@ -14,14 +14,13 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
-> 25 Aug 2026 — routine builder: numbered cart, then horizontal session cards.
-> Every face on a card is labeled (order, identity, work, rest, load). Plan/Home
-> speak the same 1 · 2 · 3 preview. Sessions longer than three open with
-> the lift count so a one-line ellipsis cannot hide the remainder.
-> Cart confirm is idempotent, keeps a just-created lift, and will not silently
-> drop unknown ids. Leave joins every in-flight editor write before discarding
-> a stub. A staged load does not survive a swap. Empty picker order matches
-> the live session (recency). Add lifts is disabled while Confirm is writing.
+> 25 Aug 2026 — Home agenda speaks the session you built. Strength rows
+> show the same 1 · 2 · 3 order as Plan and the editor. A two-a-day keeps
+> one Volt Start (strength preferred); other planned rows stay tappable.
+> The masthead never prints CARDIO DAY · N LIFTS. Editor empty copy says
+> Add, matching the picker. Custom-week Add lifts is disabled while Confirm
+> writes. Home does not host the start-options sheet — Body, History, and
+> Plan still do.
 
 Derived from the full audit of 19 Aug 2026 ([AUDIT.md](AUDIT.md)). Phases land in order;
 each one ends at a gate that must be verified before the next begins.

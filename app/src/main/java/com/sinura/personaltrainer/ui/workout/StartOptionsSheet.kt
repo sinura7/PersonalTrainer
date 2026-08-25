@@ -49,8 +49,10 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
  * workout began — and, because it needed to handle the case where a session was already
  * running, it quietly became a third place in the app that offered to resume one.
  *
- * The common case skips it now: Home's hero starts today's plan directly. This is what
- * "everything else" looks like, and it opens over the screen you were on.
+ * The common case skips it now: Home starts today's plan in one tap
+ * (agenda when it exists, leftover slot week otherwise). This is what
+ * "everything else" looks like, and it opens over the screen you were on
+ * — Body, History, or Plan. Home itself does not host this sheet.
  *
  * While a session is live the sheet shows no starts at all. That is not a duplicate of the
  * live session bar: this is a modal surface the user deliberately opened, so it owes them an
