@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
@@ -84,6 +86,7 @@ fun PreferenceBlock(
                     label = LighterWeek.TUNE_LABEL,
                     selected = lighterWeek,
                     onClick = { onLighterWeek(!lighterWeek) },
+                    modifier = Modifier.testTag(PlanTags.LIGHTER),
                 )
                 Text(
                     "Same lifts. The bar does not climb.",

@@ -27,6 +27,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -146,7 +149,10 @@ private fun GoalsHeader(
             .padding(start = Metrics.space2, end = Metrics.space2, bottom = Metrics.space2),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onBack) {
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier.testTag(GoalsTags.BACK),
+        ) {
             Icon(
                 Icons.AutoMirrored.Outlined.ArrowBack,
                 contentDescription = "Back",
@@ -160,7 +166,14 @@ private fun GoalsHeader(
             color = TextPrimary,
             maxLines = 1,
         )
-        TextButton(onClick = onToggleAdd) {
+        TextButton(
+            onClick = onToggleAdd,
+            modifier = Modifier
+                .testTag(GoalsTags.ADD)
+                .semantics {
+                    contentDescription = if (adding) "Cancel add goal" else "Add a goal"
+                },
+        ) {
             Text(
                 if (adding) "Cancel" else "Add",
                 style = InstrumentType.bodyStrong,
@@ -320,4 +333,9 @@ private fun parseTarget(kind: GoalKind, raw: String, unit: WeightUnit): Double? 
             com.sinura.personaltrainer.domain.WeightConverter.toKg(parsed, unit)
         else -> parsed
     }
+}
+
+object GoalsTags {
+    const val BACK = "goals-back"
+    const val ADD = "goals-add"
 }

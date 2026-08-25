@@ -34,9 +34,10 @@ Walk this once, in order:
 4. Plan — pin, replay, or suggest a week. Two timed items can share a day.
 5. History — Week / Month / Year / All time chips, then a session row.
 6. Settings — export a file. Do not restore over a phone that holds real history.
+   Share diagnostics is optional and redacted.
 
-P9.6 Body / Plan / History / Library page passes and physical TalkBack
-are still open. Do not expect a fifth tab or cloud sync.
+P9.6 page passes are on this branch. Physical TalkBack is still required
+before Public Candidate. Do not expect a fifth tab or cloud sync.
 
 **The next debug Run ▶ is a new install.** It will not open, overwrite, or even
 see the release history. The new icon is labelled **Temper Debug**. Release

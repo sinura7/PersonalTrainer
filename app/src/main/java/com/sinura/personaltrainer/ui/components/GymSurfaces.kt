@@ -369,13 +369,15 @@ fun SessionLogRow(
     onRepeat: (() -> Unit)? = null,
 ) {
     var menuOpen by rememberSaveable(title, dateLabel) { mutableStateOf(false) }
+    val spoken = sessionRowSpoken(title, dateLabel, workingSets, work, durationMinutes, unit)
     Column(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = Metrics.rowMin)
             .clickable(onClick = onClick)
             .padding(horizontal = Metrics.space4, vertical = Metrics.space3)
-            .testTag(SessionLogTags.ROW),
+            .testTag(SessionLogTags.ROW)
+            .semantics(mergeDescendants = true) { contentDescription = spoken },
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
         Row(
@@ -464,3 +466,16 @@ fun SessionLogRow(
 /** Column widths for [SessionLogRow], so its three metrics line up down a list. */
 private val COUNT_COLUMN = 48.dp
 private val VOLUME_COLUMN = 88.dp
+
+fun sessionRowSpoken(
+    title: String,
+    dateLabel: String,
+    workingSets: Int,
+    work: SetWork,
+    durationMinutes: Int,
+    unit: WeightUnit,
+): String {
+    val column = SetCopy.workColumn(work, unit)
+    return "$title, $dateLabel, $workingSets sets, ${column.value} ${column.label}, " +
+        "$durationMinutes min"
+}

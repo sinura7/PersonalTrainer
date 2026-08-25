@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -542,6 +543,7 @@ private fun PreviewStep(
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
                 PrimaryGymButton(
                     text = if (state.applying) "Building…" else "Use this plan",
+                    modifier = Modifier.testTag(OnboardingTags.USE_PLAN),
                     onClick = {
                         if (CustomWeekPolicy.isFullWeek(state.answers.daysPerWeek)) {
                             pendingFullWeek = true
@@ -614,4 +616,8 @@ private fun QuestionTitle(title: String, blurb: String) {
         Text(title, style = InstrumentType.title, color = TextPrimary)
         Text(blurb, style = InstrumentType.body, color = TextSecondary)
     }
+}
+
+object OnboardingTags {
+    const val USE_PLAN = "onboarding-use-plan"
 }

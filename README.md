@@ -36,6 +36,10 @@ need no configuration.
 | [docs/architecture/backup-threat-model.md](docs/architecture/backup-threat-model.md) | signed backup/privacy inventory (P3.1) |
 | [docs/foundation-audit/](docs/foundation-audit/README.md) | canonical current-state audit (23 August 2026) |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | project layout, running tests, what will bite you |
+| [docs/PRIVACY.md](docs/PRIVACY.md) | what Temper stores, backup, diagnostics, no default telemetry |
+| [docs/DATA_SAFETY.md](docs/DATA_SAFETY.md) | Play Data safety answers |
+| [docs/SUPPORT.md](docs/SUPPORT.md) | how to report a defect without sending a database |
+| [docs/COMMERCIAL_BOUNDARY.md](docs/COMMERCIAL_BOUNDARY.md) | local core is never paywalled |
 | [SETUP.md](SETUP.md) | release keystore, Google Drive OAuth, building a signed APK |
 | [docs/RECOVERY.md](docs/RECOVERY.md) | **new phone, dead laptop, lost keystore — read before you need it** |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | *historical* — how the strength logger was built |
@@ -76,7 +80,7 @@ Four tabs — **Home · Body · Plan · History**. Library is a pushed route, no
   (`IncrementTable`), never a converted "+5.5 lbs". A back-off set never lowers next
   session's suggestion. Bodyweight lifts are told to add a rep.
 - **Settings** — kg/lbs display, rest sound/vibration and default rest, backup and
-  restore, current app version.
+  restore, user-triggered diagnostics, current app version.
 
 **Backup, not sync.** Export/import a file with no Google account, or make an
 optional whole-file Google Drive **backup**. The default export is a

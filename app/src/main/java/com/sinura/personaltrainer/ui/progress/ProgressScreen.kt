@@ -23,6 +23,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.SetCopy
@@ -193,7 +196,7 @@ fun ProgressScreen(
                         GymSectionHeader("Muscles", modifier = Modifier.padding(top = Metrics.space5))
                     }
                     item(key = "muscles") {
-                        GroupedList {
+                        GroupedList(modifier = Modifier.testTag(BodyTags.MUSCLES)) {
                             muscleRows(snapshot).forEachIndexed { index, load ->
                                 if (index > 0) HairlineDivider()
                                 MuscleHeatRow(
@@ -264,6 +267,12 @@ private fun ProgressHeader(
                     label = entry.pickerLabel,
                     selected = window == entry,
                     onClick = { onSelectWindow(entry) },
+                    modifier = Modifier.testTag(
+                        when (entry) {
+                            HeatWindow.CURRENT_WEEK -> BodyTags.WINDOW_WEEK
+                            HeatWindow.LAST_30_DAYS -> BodyTags.WINDOW_30
+                        },
+                    ),
                 )
             }
         }
@@ -353,6 +362,12 @@ private fun MuscleDetailSheet(
             SecondaryGymButton(
                 text = "Find ${load.muscle.catalogLabel.lowercase()} lifts",
                 onClick = onFindLifts,
+                modifier = Modifier
+                    .testTag(BodyTags.FIND_LIFTS)
+                    .semantics {
+                        contentDescription =
+                            "Find ${load.muscle.catalogLabel.lowercase()} lifts"
+                    },
             )
         }
     }

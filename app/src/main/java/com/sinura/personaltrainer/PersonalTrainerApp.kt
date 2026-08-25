@@ -2,6 +2,8 @@ package com.sinura.personaltrainer
 
 import android.app.Application
 import com.sinura.personaltrainer.data.local.PreMigrationSnapshot
+import com.sinura.personaltrainer.diagnostics.DiagnosticRedaction
+import com.sinura.personaltrainer.diagnostics.DiagnosticRing
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.reminder.ReminderNotifications
 import com.sinura.personaltrainer.timer.RestTimerNotifications
@@ -30,6 +32,7 @@ class PersonalTrainerApp : Application() {
         // Room instance and Room migrates on open, so a copy taken any later is a copy of the
         // already-migrated file — and that copy is the only rollback path the v2 migration has.
         PreMigrationSnapshot.ensure(this)
+        installDiagnosticCapture()
         container = AppContainer(this)
         // Created up front (not lazily on first rest) so the channels exist for the user to
         // configure, and so the legacy sounding "rest complete" channel is deleted even if
@@ -70,6 +73,26 @@ class PersonalTrainerApp : Application() {
                 AppLog.e(TAG, "Seeding the default exercise catalog failed", error)
             }
         }
+    }
+
+    private fun installDiagnosticCapture() {
+        AppLog.onError = { tag, error -> recordDiagnostic(tag, error) }
+        val previous = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, error ->
+            recordDiagnostic("PT/Uncaught", error)
+            previous?.uncaughtException(thread, error)
+        }
+    }
+
+    private fun recordDiagnostic(tag: String, error: Throwable) {
+        DiagnosticRing.shared.record(
+            DiagnosticRedaction.fromThrowable(
+                error = error,
+                tag = tag,
+                nowMs = System.currentTimeMillis(),
+                id = java.util.UUID.randomUUID().toString(),
+            ),
+        )
     }
 
     private companion object {

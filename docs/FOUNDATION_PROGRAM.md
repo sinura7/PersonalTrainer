@@ -711,53 +711,67 @@ Implements [ADR-007](architecture/ADR-007-activity-model.md),
   Closes FND-036.
   Evidence:
   [P9.1–P9.5 evidence](foundation-program/evidence/P9.1-P9.5-coherence.md).
-- **P9.6** Page-by-page final passes as separate PRs. · **in progress**
-  Home is the first page: last-session tiles read all-time summaries,
-  not the 30-day heat graph; Start, Library, Goals, and the stat tiles
-  have TalkBack names; 360 dp / font 2.0 stays readable. Body no longer
-  treats a 30-day-empty heat window as “never trained.” Plan, History,
-  and Library remain later pages. FND-044 is still evidence-only — no
+- **P9.6** Page-by-page final passes as separate PRs. · **done**
+  Home, Body, Plan, History, Library, Settings, Goals, onboarding, and
+  the active-workout Volt act have named controls, one Volt action, and
+  360 dp / font 2.0 evidence. Body map hotspots are a sighted shortcut;
+  TalkBack uses the 48 dp muscle rows (FND-023). Plan recovery is one
+  Volt command; Tune / Lighter stay disclosed (FND-031). Library stays
+  a pushed route (FND-032). FND-044 remains evidence-only — no
   Switch/FAB/menu skin without a golden mismatch.
   Evidence:
   [P9.6 Home evidence](foundation-program/evidence/P9.6-home.md),
-  [audit follow-up](foundation-program/evidence/P9.6-audit-followup.md).
-- **P9.7** Full accessibility closure matrix. Physical TalkBack required
-  for public-candidate sign-off. Closes FND-021, FND-022, FND-023, FND-043.
-  · **pending**
+  [audit follow-up](foundation-program/evidence/P9.6-audit-followup.md),
+  [P9.6 remaining pages](foundation-program/evidence/P9.6-remaining-pages.md).
+- **P9.7** Full accessibility closure matrix. · **done in code**
+  `AccessibilityMatrix` inventories every page packet. Automated
+  semantics and constrained-layout tests exist. Physical TalkBack is
+  still required before FND-021 / FND-022 / FND-023 / FND-043 close and
+  before Android Public Candidate is claimed.
+  Evidence:
+  [P9.7 accessibility matrix](foundation-program/evidence/P9.7-accessibility-matrix.md).
 
-**Milestone: Android Public Candidate.** No cloud dependency.
+**Milestone: Android Public Candidate.** Not claimed — physical TalkBack
+is still open. No cloud dependency.
 
-### Phase 10 — Optional KMP shared-rules proof · gated
+### Phase 10 — Optional KMP shared-rules proof · gated (correctly not started)
 
 Starts only when [ADR-003](architecture/ADR-003-shipping-platform.md) fires.
+An iOS client is not a signed product decision. No `commonMain` module
+was added.
+Evidence:
+[P10 gate hold](foundation-program/evidence/P10-kmp-gate.md).
 
-- **P10.1** Stable models and pure tests in `commonMain`. Android consumer
-  and Apple simulator compile/test. No iOS UI required.
-
-### Phase 11 — Optional encrypted incremental sync · gated
+### Phase 11 — Optional encrypted incremental sync · gated (correctly not started)
 
 Starts only when [ADR-009](architecture/ADR-009-backup-privacy-sync.md) §14
-fires.
+fires. Local product, tombstones, KMP decision, and backend review are
+not all accepted. FND-012 stays open.
+Evidence:
+[P11 gate hold](foundation-program/evidence/P11-sync-gate.md).
 
-- **P11.1–P11.6** Per-entity protocol, outbox, fake-transport proof, E2EE
-  identity, sync UI, two-device adversarial audit.
-- Exit: FND-012 closes only when no set can disappear or duplicate
-  silently.
-
-### Phase 12 — Field operations, release hardening, commercialization · pending
+### Phase 12 — Field operations, release hardening, commercialization · in progress
 
 May run without Phases 10–11 if those gates have not fired. Must not claim
 sync or KMP that does not exist.
 
-- **P12.1** Privacy-preserving user-triggered diagnostics. Closes FND-014.
+- **P12.1** Privacy-preserving user-triggered diagnostics. · **done**
+  Closes FND-014. Settings → Share diagnostics. Canary tests prove
+  redaction.
 - **P12.2** Privacy, Data Safety, health, support, commercial-boundary
-  documents. Closes FND-030, FND-047, FND-048 as published posture.
+  documents. · **done**
+  Closes FND-030, FND-047, FND-048 as published posture.
 - **P12.3** R8, shrinking, signed APK and AAB, monotonic `versionCode`.
-  Closes FND-029.
-- **P12.4** Final Play/release rehearsal. Do not publish with a pending
-  physical, privacy, accessibility, or data-survival critical/high gate.
+  · **done in code**
+  Release minify and resource shrinking are on. `versionCode` stays 1
+  until a real public artifact is cut. Closes the code half of FND-029.
+- **P12.4** Final Play/release rehearsal. · **blocked**
+  Do not publish with a pending physical TalkBack gate. Commercial
+  Release Candidate is not claimed.
+  Evidence:
+  [P12 field operations](foundation-program/evidence/P12-field-operations.md).
 
-**Milestone: Commercial Release Candidate.**
+**Milestone: Commercial Release Candidate.** Not claimed.
 
 ## 7. Finding disposition map
 

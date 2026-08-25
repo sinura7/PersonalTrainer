@@ -43,6 +43,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -101,7 +104,10 @@ fun ExerciseLibraryScreen(
                     .padding(end = Metrics.gutter, bottom = Metrics.space2),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = onBack) {
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.testTag(LibraryTags.BACK),
+                ) {
                     Icon(
                         Icons.AutoMirrored.Outlined.ArrowBack,
                         contentDescription = "Back",
@@ -120,6 +126,7 @@ fun ExerciseLibraryScreen(
             if (state.visibleExercises.isNotEmpty()) {
                 FloatingActionButton(
                     onClick = viewModel::openCreate,
+                    modifier = Modifier.testTag(LibraryTags.FAB),
                     containerColor = Volt,
                     contentColor = Pit,
                     // Depth is the surface ladder here, and a shadow on near-black is
@@ -153,7 +160,12 @@ fun ExerciseLibraryScreen(
                         value = state.query,
                         onValueChange = viewModel::onQueryChange,
                         placeholder = "Name or muscle",
-                        modifier = Modifier.padding(horizontal = Metrics.gutter),
+                        modifier = Modifier
+                            .padding(horizontal = Metrics.gutter)
+                            .testTag(LibraryTags.SEARCH)
+                            .semantics {
+                                contentDescription = LibraryTags.SEARCH_SPOKEN
+                            },
                     )
                     // Two rows, muscle over equipment, because they answer different questions
                     // and AND-combine: "chest" then "machine" is how someone with a bad shoulder
@@ -610,3 +622,10 @@ private fun AddToRoutineSheet(
 
 private fun liftCountLabel(count: Int): String =
     if (count == 1) "1 lift" else "$count lifts"
+
+object LibraryTags {
+    const val BACK = "library-back"
+    const val SEARCH = "library-search"
+    const val FAB = "library-create"
+    const val SEARCH_SPOKEN = "Search exercises by name or muscle"
+}

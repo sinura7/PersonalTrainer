@@ -36,6 +36,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -372,7 +375,11 @@ fun PlanScreen(
                             )
                         }
                         Text(week.summary, style = InstrumentType.caption, color = TextTertiary)
-                        TextButton(onClick = onOpenGoals, contentPadding = PaddingValues(0.dp)) {
+                        TextButton(
+                            onClick = onOpenGoals,
+                            contentPadding = PaddingValues(0.dp),
+                            modifier = Modifier.testTag(PlanTags.GOALS),
+                        ) {
                             Text(
                                 "Goals  \u203a",
                                 style = InstrumentType.bodyStrong,
@@ -396,7 +403,7 @@ fun PlanScreen(
                 }
             }
 
-            if (state.proposals.isEmpty()) {
+            item(key = "commands") {
                 val hasOpenDay = week?.hasOpenTrainingSlot(
                     todayEpochDay = today,
                     trainingDayIndices = WeeklySchedulePlanner.trainingDayIndices(
@@ -404,65 +411,16 @@ fun PlanScreen(
                     ),
                 ) == true
                 val hasPins = week?.days?.any { !it.isRest } == true
-                val hasRoutines = state.routines.isNotEmpty()
-                if (!hasPins && hasRoutines) {
-                    item(key = "replay") {
-                        // Empty week with programs already here: replay is the recovery.
-                        // Suggest stays, quiet — heat-shaped fills are the other path.
-                        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                            PrimaryGymButton(
-                                text = WeekTwoCopy.VOLT,
-                                onClick = viewModel::replayStoredAnswers,
-                            )
-                            Text(
-                                WeekTwoCopy.CAPTION,
-                                style = InstrumentType.caption,
-                                color = TextSecondary,
-                            )
-                            TextButton(onClick = viewModel::suggestFills) {
-                                Text(
-                                    "Suggest a week",
-                                    style = InstrumentType.bodyStrong,
-                                    color = TextSecondary,
-                                )
-                            }
-                        }
-                    }
-                } else if (hasOpenDay) {
-                    item(key = "suggest") {
-                        // Empty week, no routines: same words and weight as Home.
-                        // Week with pins: quiet — filling holes is not the page's one act.
-                        if (!hasPins) {
-                            PrimaryGymButton(
-                                text = "Suggest a week",
-                                onClick = viewModel::suggestFills,
-                            )
-                        } else {
-                            TextButton(onClick = viewModel::suggestFills) {
-                                Text(
-                                    "Suggest a week",
-                                    style = InstrumentType.bodyStrong,
-                                    color = TextSecondary,
-                                )
-                            }
-                        }
-                    }
-                }
-            } else {
-                item(key = "accept") {
-                    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                        Kicker("Suggested")
-                        Text(
-                            "Nothing is pinned until you confirm.",
-                            style = InstrumentType.caption,
-                            color = TextSecondary,
-                        )
-                        PrimaryGymButton(text = "Use this week", onClick = viewModel::acceptFills)
-                        TextButton(onClick = viewModel::dismissFills) {
-                            Text("Dismiss", style = InstrumentType.bodyStrong, color = TextSecondary)
-                        }
-                    }
-                }
+                PlanRecoveryCommands(
+                    hasPins = hasPins,
+                    hasRoutines = state.routines.isNotEmpty(),
+                    hasOpenDay = hasOpenDay,
+                    hasProposals = state.proposals.isNotEmpty(),
+                    onReplay = viewModel::replayStoredAnswers,
+                    onSuggest = viewModel::suggestFills,
+                    onAccept = viewModel::acceptFills,
+                    onDismiss = viewModel::dismissFills,
+                )
             }
 
             if (state.routines.isEmpty()) {
@@ -577,7 +535,7 @@ fun PlanScreen(
 }
 
 @Composable
-private fun PlanHeader(
+internal fun PlanHeader(
     tuning: Boolean,
     canCreate: Boolean,
     onToggleTune: () -> Unit,
@@ -639,14 +597,26 @@ private fun PlanHeaderActions(
     onCreate: () -> Unit,
     onOpenLibrary: () -> Unit,
 ) {
-    TextButton(onClick = onToggleTune) {
+    TextButton(
+        onClick = onToggleTune,
+        modifier = Modifier
+            .testTag(PlanTags.TUNE)
+            .semantics {
+                contentDescription = if (tuning) "Done tuning week" else PlanTags.TUNE_SPOKEN
+            },
+    ) {
         Text(
             if (tuning) "Done" else "Tune",
             style = InstrumentType.bodyStrong,
             color = if (tuning) Volt else TextSecondary,
         )
     }
-    TextButton(onClick = onOpenLibrary) {
+    TextButton(
+        onClick = onOpenLibrary,
+        modifier = Modifier
+            .testTag(PlanTags.LIBRARY)
+            .semantics { contentDescription = PlanTags.LIBRARY_SPOKEN },
+    ) {
         Text("Library", style = InstrumentType.bodyStrong, color = TextSecondary)
     }
     if (canCreate) {
@@ -717,6 +687,110 @@ private fun RoutineRow(
 private fun routineUpdatedLabel(routine: Routine, dateFormat: DateFormat): String? {
     if (routine.updatedAt <= 0L) return null
     return "Updated ${dateFormat.format(Date(routine.updatedAt))}"
+}
+
+/**
+ * FND-031: one Volt command at a time. Replay recovers an empty week that
+ * already has routines. Suggest fills holes. Use this week confirms a
+ * proposal. Tune and Lighter stay behind the header so they cannot stack
+ * with the recovery act.
+ */
+@Composable
+internal fun PlanRecoveryCommands(
+    hasPins: Boolean,
+    hasRoutines: Boolean,
+    hasOpenDay: Boolean,
+    hasProposals: Boolean,
+    onReplay: () -> Unit,
+    onSuggest: () -> Unit,
+    onAccept: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
+        when {
+            hasProposals -> {
+                Kicker("Suggested")
+                Text(
+                    "Nothing is pinned until you confirm.",
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                )
+                PrimaryGymButton(
+                    text = "Use this week",
+                    onClick = onAccept,
+                    modifier = Modifier.testTag(PlanTags.USE_WEEK),
+                )
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.testTag(PlanTags.DISMISS),
+                ) {
+                    Text("Dismiss", style = InstrumentType.bodyStrong, color = TextSecondary)
+                }
+            }
+            !hasPins && hasRoutines -> {
+                PrimaryGymButton(
+                    text = WeekTwoCopy.VOLT,
+                    onClick = onReplay,
+                    modifier = Modifier
+                        .testTag(PlanTags.REPLAY)
+                        .semantics { contentDescription = WeekTwoCopy.VOLT },
+                )
+                Text(
+                    WeekTwoCopy.CAPTION,
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                )
+                TextButton(
+                    onClick = onSuggest,
+                    modifier = Modifier.testTag(PlanTags.SUGGEST),
+                ) {
+                    Text(
+                        "Suggest a week",
+                        style = InstrumentType.bodyStrong,
+                        color = TextSecondary,
+                    )
+                }
+            }
+            hasOpenDay && !hasPins -> {
+                PrimaryGymButton(
+                    text = "Suggest a week",
+                    onClick = onSuggest,
+                    modifier = Modifier
+                        .testTag(PlanTags.SUGGEST)
+                        .semantics { contentDescription = "Suggest a week" },
+                )
+            }
+            hasOpenDay -> {
+                TextButton(
+                    onClick = onSuggest,
+                    modifier = Modifier.testTag(PlanTags.SUGGEST),
+                ) {
+                    Text(
+                        "Suggest a week",
+                        style = InstrumentType.bodyStrong,
+                        color = TextSecondary,
+                    )
+                }
+            }
+        }
+    }
+}
+
+object PlanTags {
+    const val TUNE = "plan-tune"
+    const val LIBRARY = "plan-library"
+    const val REPLAY = "plan-replay"
+    const val SUGGEST = "plan-suggest"
+    const val USE_WEEK = "plan-use-week"
+    const val DISMISS = "plan-dismiss"
+    const val GOALS = "plan-goals"
+    const val LIGHTER = "plan-lighter"
+    const val TUNE_SPOKEN = "Tune week preferences"
+    const val LIBRARY_SPOKEN = "Library"
 }
 
 private const val PREVIEW_LIFTS = 3

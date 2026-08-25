@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -343,7 +346,8 @@ fun HistoryScreen(
  * never a guess about which workout you are about to open.
  */
 @Composable
-private fun HorizonPicker(
+@OptIn(ExperimentalLayoutApi::class)
+internal fun HorizonPicker(
     horizon: AnalyticsHorizon,
     totals: HorizonTotals?,
     onSelect: (AnalyticsHorizon) -> Unit,
@@ -355,12 +359,16 @@ private fun HorizonPicker(
             .padding(bottom = Metrics.space3),
         verticalArrangement = Arrangement.spacedBy(Metrics.space3),
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
             AnalyticsHorizon.entries.forEach { entry ->
                 InstrumentChip(
                     label = entry.label,
                     selected = horizon == entry,
                     onClick = { onSelect(entry) },
+                    modifier = Modifier.testTag(HistoryTags.horizon(entry)),
                 )
             }
         }
@@ -581,3 +589,17 @@ private fun groupedRowShape(index: Int, count: Int): Shape = when {
 
 /** Month and year: a block spans months, and the day it started on is not the point. */
 private val BLOCK_MONTH: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM yyyy")
+
+object HistoryTags {
+    const val WEEK = "history-horizon-week"
+    const val MONTH = "history-horizon-month"
+    const val YEAR = "history-horizon-year"
+    const val ALL = "history-horizon-all"
+
+    fun horizon(horizon: AnalyticsHorizon): String = when (horizon) {
+        AnalyticsHorizon.WEEK -> WEEK
+        AnalyticsHorizon.MONTH -> MONTH
+        AnalyticsHorizon.YEAR -> YEAR
+        AnalyticsHorizon.ALL_TIME -> ALL
+    }
+}

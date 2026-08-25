@@ -27,9 +27,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.SetCopy
@@ -77,6 +77,9 @@ fun BodyMapCard(
                     label = option.label,
                     selected = view == option,
                     onClick = { onViewChange(option) },
+                    modifier = Modifier.testTag(
+                        if (option == BodyView.FRONT) BodyTags.VIEW_FRONT else BodyTags.VIEW_BACK,
+                    ),
                 )
             }
         }
@@ -86,7 +89,11 @@ fun BodyMapCard(
                 .height(PANEL_HEIGHT)
                 .clip(RoundedCornerShape(Radius.lg))
                 .background(Surface1)
-                .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.lg)),
+                .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.lg))
+                .testTag(BodyTags.MAP)
+                .semantics {
+                    contentDescription = BodyTags.MAP_SPOKEN
+                },
             contentAlignment = Alignment.Center,
         ) {
             // The figure owns a fixed ratio rather than the card's width. Every plate below is
@@ -120,7 +127,6 @@ fun BodyMapCard(
                     // Invisible tap targets. The plate fill lives on the canvas so the
                     // geometry can stay polygonal; these boxes only have to be hittable.
                     key(spot.muscle, spot.left) {
-                        val load = snapshot.load(spot.muscle)
                         Box(
                             modifier = Modifier
                                 .offset(
@@ -131,12 +137,10 @@ fun BodyMapCard(
                                     width = figureWidth * spot.width,
                                     height = figureHeight * spot.height,
                                 )
-                                .semantics {
-                                    contentDescription =
-                                        "${spot.muscle.displayName}, ${load.band.legendLabel} load"
-                                    role = Role.Button
-                                }
-                                .clickable { onSelect(spot.muscle) },
+                                // Sighted shortcut only. Anatomy plates sit under 48 dp
+                                // (FND-023). TalkBack uses the muscle rows under the map.
+                                .clickable { onSelect(spot.muscle) }
+                                .clearAndSetSemantics { },
                         )
                     }
                 }
@@ -207,9 +211,13 @@ fun MuscleHeatRow(
         animationSpec = instrumentTween(Motion.BASE),
         label = "row-${load.muscle.name}",
     )
+    val spoken = muscleRowSpoken(load, unit)
     InstrumentRow(
         title = load.muscle.displayName,
-        modifier = modifier.background(if (selected) SurfacePressed else Color.Transparent),
+        modifier = modifier
+            .background(if (selected) SurfacePressed else Color.Transparent)
+            .testTag(BodyTags.muscle(load.muscle))
+            .semantics(mergeDescendants = true) { contentDescription = spoken },
         subtitle = recencyLabel(load),
         onClick = onClick,
         leading = {
@@ -217,7 +225,7 @@ fun MuscleHeatRow(
                 modifier = Modifier
                     .size(width = HEAT_SWATCH_WIDTH, height = HEAT_SWATCH_HEIGHT)
                     .background(fill)
-                    .semantics { contentDescription = "${load.band.legendLabel} load" },
+                    .clearAndSetSemantics { },
             )
         },
     ) {
@@ -234,6 +242,28 @@ fun recencyLabel(load: MuscleLoadSummary): String = when (val days = load.daysSi
     0 -> "Trained today"
     1 -> "1 day ago"
     else -> "$days days ago"
+}
+
+/** One TalkBack name for the reliable 48 dp muscle row (FND-023). */
+fun muscleRowSpoken(load: MuscleLoadSummary, unit: WeightUnit): String {
+    val column = SetCopy.workColumn(load.work, unit)
+    return "${load.muscle.displayName}, ${recencyLabel(load)}, " +
+        "${load.band.legendLabel} load, ${load.workingSets} sets, " +
+        "${column.value} ${column.label}"
+}
+
+object BodyTags {
+    const val MAP = "body-map"
+    const val MAP_SPOKEN =
+        "Body map illustration. Use the muscle list below to open a muscle."
+    const val MUSCLES = "body-muscles"
+    const val WINDOW_WEEK = "body-window-week"
+    const val WINDOW_30 = "body-window-30"
+    const val FIND_LIFTS = "body-find-lifts"
+    const val VIEW_FRONT = "body-view-front"
+    const val VIEW_BACK = "body-view-back"
+
+    fun muscle(muscle: CanonicalMuscle): String = "body-muscle-${muscle.name}"
 }
 
 private val PANEL_HEIGHT = 440.dp

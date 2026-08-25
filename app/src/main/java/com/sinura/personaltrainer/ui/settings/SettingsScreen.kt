@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.ui.settings
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -47,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -55,6 +57,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.BuildConfig
 import com.sinura.personaltrainer.data.local.FoundationGeneration
+import com.sinura.personaltrainer.diagnostics.DiagnosticMetadata
 import com.sinura.personaltrainer.data.backup.BackupEnvelope
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
@@ -243,6 +246,18 @@ fun SettingsScreen(
             if (BuildConfig.DEBUG) {
                 FoundationGenerationSection()
             }
+            DiagnosticsSection(
+                onShare = {
+                    val send = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_SUBJECT, "Temper diagnostics")
+                        putExtra(Intent.EXTRA_TEXT, DiagnosticMetadata.bundle(context))
+                    }
+                    runCatching {
+                        context.startActivity(Intent.createChooser(send, "Share diagnostics"))
+                    }
+                },
+            )
             AboutSection()
         }
     }
@@ -335,10 +350,11 @@ private fun SettingsHeader(onBack: () -> Unit) {
 private fun SettingsGroup(
     title: String,
     caption: String,
+    modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap),
     ) {
         Kicker(title)
@@ -564,6 +580,7 @@ private fun ReminderPrefsSection(
         title = "Workout reminders",
         caption = "Best-effort reminders. Not exact alarms. Quiet hours are 22:00–07:00. " +
             "Permission is never asked during setup.",
+        modifier = Modifier.testTag(SettingsTags.REMINDERS),
     ) {
         GroupedList {
             InstrumentRow(
@@ -737,6 +754,7 @@ private fun BackupRestoreSection(
             text = "Export to file",
             onClick = onExportFile,
             enabled = !state.isBusy,
+            modifier = Modifier.testTag(SettingsTags.EXPORT_FILE),
         )
         TextButton(
             onClick = onExportPlaintext,
@@ -983,6 +1001,23 @@ private fun FoundationGenerationSection() {
 }
 
 @Composable
+private fun DiagnosticsSection(onShare: () -> Unit) {
+    SettingsGroup(
+        title = "Diagnostics",
+        caption = "Nothing is sent automatically. A shared bundle names the app, schema, " +
+            "and device, plus event IDs, exception classes, and Temper stack frames. It " +
+            "never includes workout names, weights, notes, bodyweight, emails, tokens, " +
+            "or backup files.",
+    ) {
+        SecondaryGymButton(
+            text = "Share diagnostics",
+            onClick = onShare,
+            modifier = Modifier.testTag(SettingsTags.SHARE_DIAGNOSTICS),
+        )
+    }
+}
+
+@Composable
 private fun AboutSection() {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
         TemperMark(size = 64.dp)
@@ -1151,3 +1186,9 @@ private fun Context.findActivity(): Activity {
 
 private val SPINNER_SIZE = 20.dp
 private val SPINNER_STROKE = 2.dp
+
+object SettingsTags {
+    const val EXPORT_FILE = "settings-export-file"
+    const val SHARE_DIAGNOSTICS = "settings-share-diagnostics"
+    const val REMINDERS = "settings-reminders"
+}

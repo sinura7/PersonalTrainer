@@ -24,11 +24,23 @@ object AppLog {
     var sink: (priority: Int, tag: String, message: String, error: Throwable?) -> Unit =
         ::androidSink
 
+    /**
+     * Local diagnostic hook. Receives the tag and throwable only — never the
+     * message — so a bundle cannot copy workout names out of a log line.
+     */
+    @Volatile
+    var onError: ((tag: String, error: Throwable) -> Unit)? = null
+
     fun d(tag: String, message: String) = sink(DEBUG, tag, message, null)
 
     fun w(tag: String, message: String, error: Throwable? = null) = sink(WARN, tag, message, error)
 
-    fun e(tag: String, message: String, error: Throwable? = null) = sink(ERROR, tag, message, error)
+    fun e(tag: String, message: String, error: Throwable? = null) {
+        if (error != null) {
+            runCatching { onError?.invoke(tag, error) }
+        }
+        sink(ERROR, tag, message, error)
+    }
 
     private fun androidSink(priority: Int, tag: String, message: String, error: Throwable?) {
         try {
