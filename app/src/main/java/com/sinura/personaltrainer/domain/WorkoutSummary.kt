@@ -68,7 +68,7 @@ object WorkoutSummaryBuilder {
                     exerciseId = exerciseId,
                     exerciseName = sets.first().exerciseName,
                     loadClass = loadClass,
-                    topSet = topSetOf(records),
+                    topSet = topSetOf(records, loadClass),
                     workingSets = records.size,
                     volumeKg = work.volumeKg,
                     bodyweightReps = work.bodyweightReps,
@@ -112,9 +112,10 @@ object WorkoutSummaryBuilder {
         return broken
     }
 
-    private fun topSetOf(records: List<ExerciseSetRecord>): ExerciseSetRecord? {
+    private fun topSetOf(records: List<ExerciseSetRecord>, loadClass: LoadClass): ExerciseSetRecord? {
         val top = ProgressionBasis.topWorkingSet(
             records.map { WorkingSetCandidate(it.weightKg, it.reps, it.completedAt) },
+            loadClass.weightMeaning,
         ) ?: return null
         return records.first {
             it.weightKg == top.weightKg && it.reps == top.reps && it.completedAt == top.completedAt

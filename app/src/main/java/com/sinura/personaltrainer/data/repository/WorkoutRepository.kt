@@ -721,10 +721,12 @@ class WorkoutRepository(
             excludeSessionId = excludeSessionId,
             limit = RpeModifier.RPE_HOLD_SESSIONS,
         )
+        val weightMeaning = loadClassOf(exerciseId).weightMeaning
         return sessionIds.map { sessionId ->
             val sets = workoutDao.workingSetsForExerciseInSession(sessionId, exerciseId)
             val top = ProgressionBasis.topWorkingSet(
                 sets.map { WorkingSetCandidate(it.weightKg, it.reps, it.completedAt) },
+                weightMeaning,
             ) ?: return@map null
             sets.firstOrNull {
                 it.weightKg == top.weightKg && it.reps == top.reps && it.completedAt == top.completedAt
@@ -921,7 +923,7 @@ class WorkoutRepository(
             ?: return null
         val candidates = workoutDao.workingSetsForExerciseInSession(sessionId, exerciseId)
             .map { WorkingSetCandidate(it.weightKg, it.reps, it.completedAt) }
-        return ProgressionBasis.topWorkingSet(candidates)
+        return ProgressionBasis.topWorkingSet(candidates, loadClassOf(exerciseId).weightMeaning)
     }
 }
 
