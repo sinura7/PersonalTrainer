@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -728,6 +729,10 @@ private fun WorkoutHeader(
  * The button is pinned while the entry panel scrolls, so after reviewing the set list a
  * lifter could face a full-width commit button whose payload was nowhere on screen. Echoing
  * the draft in the label means the tap is never blind.
+ *
+ * Scaffold's bottomBar draws edge-to-edge. The tab bar is gone on this route, so this
+ * dock owns the system-nav inset the same way the tab bar and live bar already do —
+ * otherwise Log sits under the three-button nav / gesture pill.
  */
 @Composable
 private fun LogBar(
@@ -741,6 +746,7 @@ private fun LogBar(
         modifier = Modifier
             .fillMaxWidth()
             .background(Pit)
+            .navigationBarsPadding()
             .padding(horizontal = Metrics.gutter, vertical = Metrics.space3),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {

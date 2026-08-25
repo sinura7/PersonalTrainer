@@ -103,6 +103,9 @@ keeps the draft.
 - Finish stays enabled on **any logged set**, including warmup-only.
 - In-set empties are `compact` — the Temper mark does not sit mid-set.
 - Leave copy points at the **bar and the rest notification**, never Home.
+- **Log sits above the system nav.** Scaffold's bottomBar is edge-to-edge.
+  This route hides the tab bar, so the log dock owns `navigationBarsPadding`
+  the same way the tab bar and live bar already do.
 
 ### 2 — Summary · **done**
 
@@ -110,8 +113,10 @@ keeps the draft.
 
 **Gate.** Done → Home. Back cannot reopen a dead session.
 
-No change this pass. The screen already leads with volume, gold for records only,
-and pinned Done.
+**Floor findings**
+
+- Pinned Done sits above the system nav (`navigationBarsPadding`), not
+  under the three-button bar / gesture pill.
 
 ### 3 — Home · **done**
 
@@ -296,6 +301,9 @@ Record every deviation here. Oldest stay; do not delete.
 14. **Never print `Planned`.** Numbered lift order, “No lifts yet”, or “Ready”.
 15. **Missed-work Keep the dates is the Volt.** Recurrence is not a gym word.
 16. **Lift, not exercise**, on gym-floor errors and the empty session body.
+17. **Pinned Log / Done sit above the system nav.** The tab bar is gone on
+    those routes; the dock owns the inset. A Log under the three-button
+    bar is a miss.
 
 ---
 

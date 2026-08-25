@@ -23,7 +23,8 @@
 > Plan still do. The sheet now starts today’s plan itself (same occurrence
 > binding Home uses). Plan free opens that sheet. Agenda/Plan rows never
 > dump `Planned`. Missed-work Keep the dates is the one Volt. Gym-floor
-> errors say lift, not exercise.
+> errors say lift, not exercise. Active-workout Log and summary Done sit
+> above the system navigation inset (three-button / gesture pill).
 
 Derived from the full audit of 19 Aug 2026 ([AUDIT.md](AUDIT.md)). Phases land in order;
 each one ends at a gate that must be verified before the next begins.

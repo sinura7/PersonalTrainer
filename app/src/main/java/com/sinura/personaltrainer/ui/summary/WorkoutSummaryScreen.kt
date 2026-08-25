@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -371,13 +372,15 @@ private fun RecordMark(record: Boolean) {
     )
 }
 
-/** Pinned, so leaving the reward screen never requires scrolling past the reward. */
+/** Pinned, so leaving the reward screen never requires scrolling past the reward.
+ *  Owns the system-nav inset: this route has no tab bar. */
 @Composable
 internal fun SummaryActions(onDone: () -> Unit, onOpenSession: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(Pit)
+            .navigationBarsPadding()
             .padding(horizontal = Metrics.gutter, vertical = Metrics.space3),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
