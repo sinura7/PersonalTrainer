@@ -711,7 +711,14 @@ Implements [ADR-007](architecture/ADR-007-activity-model.md),
   Closes FND-036.
   Evidence:
   [P9.1–P9.5 evidence](foundation-program/evidence/P9.1-P9.5-coherence.md).
-- **P9.6** Page-by-page final passes as separate PRs. · **pending**
+- **P9.6** Page-by-page final passes as separate PRs. · **in progress**
+  Home is the first page: last-session tiles read all-time summaries,
+  not the 30-day heat graph; Start, Library, Goals, and the stat tiles
+  have TalkBack names; 360 dp / font 2.0 stays readable. Body, Plan,
+  History, and Library remain later pages. FND-044 is still
+  evidence-only — no Switch/FAB/menu skin without a golden mismatch.
+  Evidence:
+  [P9.6 Home evidence](foundation-program/evidence/P9.6-home.md).
 - **P9.7** Full accessibility closure matrix. Physical TalkBack required
   for public-candidate sign-off. Closes FND-021, FND-022, FND-023, FND-043.
   · **pending**
