@@ -14,10 +14,12 @@
 #   domain — always. domain/, util/, logging/ against test/.../domain/.
 #   backup — when a Gson jar is present. BackupDocument/BackupJson/BackupValidator
 #            against test/.../data/backup/. These three files are the only ones in
-#            data/backup/ with no Android imports; the Drive clients are excluded
-#            by name rather than by directory for exactly that reason. The lane
-#            exists because a silent backup defect costs the owner their entire
-#            training history, and four test files sat here never once executed.
+#            data/backup/ with no Android imports; the Drive HTTP clients are
+#            excluded by name rather than by directory for exactly that reason.
+#            DriveAboutJson and DriveFolderJson stay in the lane: they are
+#            Gson-only parsers. The lane exists because a silent backup defect
+#            costs the owner their entire training history, and four test files
+#            sat here never once executed.
 #
 # Usage:  tools/run-domain-tests.sh [jar-dir]
 # jar-dir defaults to $PT_JARS, then to build/test-jars. Required jars:
@@ -149,7 +151,7 @@ case "$CP" in
     BACKUP="app/src/main/java/com/sinura/personaltrainer/data/backup"
     for f in BackupDocument.kt BackupJson.kt BackupValidator.kt AuthoredInventory.kt \
              SafetySnapshot.kt SafetySnapshotStore.kt RestoreJournal.kt RestoreJournalStore.kt \
-             BackupEnvelope.kt BackupScaleBudget.kt DriveAboutJson.kt; do
+             BackupEnvelope.kt BackupScaleBudget.kt DriveAboutJson.kt DriveFolderJson.kt; do
       [ -f "$BACKUP/$f" ] || { echo "FAILED: $BACKUP/$f is missing." >&2; exit 1; }
       BACKUP_SRC="$BACKUP_SRC $BACKUP/$f"
     done
