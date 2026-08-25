@@ -184,7 +184,7 @@ internal fun GoalsHeader(
 }
 
 @Composable
-private fun GoalCard(
+internal fun GoalCard(
     snapshot: GoalSnapshot,
     unit: WeightUnit,
     onPause: () -> Unit,

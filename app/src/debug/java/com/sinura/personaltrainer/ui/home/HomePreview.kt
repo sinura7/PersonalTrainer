@@ -8,12 +8,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import com.sinura.personaltrainer.domain.AgendaItem
+import com.sinura.personaltrainer.domain.CapturedCivilTime
+import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.ScheduleConfidence
+import com.sinura.personaltrainer.domain.ScheduleModality
+import com.sinura.personaltrainer.domain.ScheduleOccurrence
+import com.sinura.personaltrainer.domain.ScheduleRule
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.ui.plan.MissedWorkCard
 import com.sinura.personaltrainer.ui.preview.TemperAccessibilityPreviews
 import com.sinura.personaltrainer.ui.preview.TemperReducedMotionPreview
 import com.sinura.personaltrainer.ui.preview.TemperWidthPreviews
@@ -35,6 +42,18 @@ private fun HomePopulatedPreview() {
                 lastSession = HomePreviewFixtures.lastSession,
                 todayEpoch = HomePreviewFixtures.TODAY,
                 unit = WeightUnit.KG,
+            )
+            MissedWorkCard(
+                overdueCount = 1,
+                onMoveRemaining = {},
+                onAdaptWeek = {},
+                onKeepDates = {},
+                onSkipMissed = {},
+            )
+            DailyAgendaCard(
+                items = HomePreviewFixtures.agenda,
+                sessionLive = false,
+                onStartOccurrence = {},
             )
             ThisWeekCard(
                 day = HomePreviewFixtures.todayDay,
@@ -150,5 +169,47 @@ internal object HomePreviewFixtures {
         reason = "Chest is due.",
         emphasisMuscles = emptyList(),
         confidence = ScheduleConfidence.HIGH,
+    )
+
+    val agenda: List<AgendaItem> = listOf(
+        AgendaItem(
+            occurrence = occurrence("occ-am", "rule-cardio", hour = 7),
+            rule = rule("rule-cardio", ScheduleModality.CARDIO),
+        ),
+        AgendaItem(
+            occurrence = occurrence("occ-pm", "rule-lift", hour = 18),
+            rule = rule("rule-lift", ScheduleModality.STRENGTH, SessionFocusKind.PUSH),
+        ),
+    )
+
+    private fun occurrence(id: String, ruleId: String, hour: Int) = ScheduleOccurrence(
+        id = id,
+        ruleId = ruleId,
+        status = OccurrenceStatus.PLANNED,
+        captured = CapturedCivilTime(
+            instantMillis = 1L,
+            zoneId = "UTC",
+            offsetSeconds = 0,
+            localEpochDay = TODAY,
+        ),
+        hour = hour,
+        minute = 0,
+        createdAtMs = 1L,
+        updatedAtMs = 1L,
+    )
+
+    private fun rule(
+        id: String,
+        modality: ScheduleModality,
+        focusKind: SessionFocusKind? = null,
+    ) = ScheduleRule(
+        id = id,
+        weekday = Weekday.MONDAY,
+        hour = 7,
+        minute = 0,
+        modality = modality,
+        focusKind = focusKind,
+        createdAtMs = 1L,
+        updatedAtMs = 1L,
     )
 }

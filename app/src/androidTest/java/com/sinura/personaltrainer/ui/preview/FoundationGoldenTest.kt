@@ -1,20 +1,14 @@
 package com.sinura.personaltrainer.ui.preview
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.testutil.GoldenCapture
 import com.sinura.personaltrainer.testutil.GoldenImageAssert
-import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.Warn
 import org.junit.Assert.assertEquals
@@ -57,33 +51,22 @@ class FoundationGoldenTest {
 
     @Test
     fun reducedMotionProfileIsObservableByTheFixture() {
-        compose.setContent {
-            PersonalTrainerTheme(reduceMotion = true) {
-                Box(Modifier.size(GalleryWidth, GalleryHeight)) {
-                    FoundationStateGallery()
-                }
-            }
+        GoldenCapture.mount(compose, reduceMotion = true) {
+            FoundationStateGallery()
         }
         compose.onNodeWithText("Reduced motion").assertIsDisplayed()
     }
 
     private fun setGallery(accent: () -> androidx.compose.ui.graphics.Color = { Volt }) {
-        compose.setContent {
-            PersonalTrainerTheme {
-                Box(Modifier.size(GalleryWidth, GalleryHeight)) {
-                    FoundationStateGallery(accent = accent())
-                }
-            }
+        GoldenCapture.mount(compose) {
+            FoundationStateGallery(accent = accent())
         }
-        compose.waitForIdle()
     }
 
     private fun capture(): ImageBitmap =
-        compose.onNodeWithTag(FoundationGalleryTag).captureToImage()
+        GoldenCapture.capture(compose, FoundationGalleryTag)
 
     private companion object {
         const val GalleryGoldenName = "foundation-state-gallery-api29"
-        val GalleryWidth = 360.dp
-        val GalleryHeight = 800.dp
     }
 }
