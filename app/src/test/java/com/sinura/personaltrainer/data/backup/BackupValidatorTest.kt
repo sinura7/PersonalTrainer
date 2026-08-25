@@ -137,7 +137,7 @@ class BackupValidatorTest {
 
     @Test
     fun rejectsImpossibleValues() {
-        assertInvalid(sample().copy(setLogs = listOf(setLog(reps = -1))), "negative reps")
+        assertInvalid(sample().copy(setLogs = listOf(setLog(reps = -1))), "fewer than one rep")
         assertInvalid(sample().copy(setLogs = listOf(setLog(weightKg = -5.0))), "impossible weight")
         assertInvalid(sample().copy(setLogs = listOf(setLog(weightKg = Double.NaN))), "impossible weight")
         assertInvalid(sample().copy(setLogs = listOf(setLog(setNumber = 0))), "invalid set number")
