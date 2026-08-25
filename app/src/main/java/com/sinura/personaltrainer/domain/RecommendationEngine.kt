@@ -83,6 +83,12 @@ data class CoachInputs(
     val nowMs: Long,
     val time: TimePort = JvmTime,
     val zoneId: String = time.defaultZoneId(),
+    /**
+     * The first day of the user's week. The deload signal buckets volume into calendar weeks,
+     * so it has to honour the same week-start the heat window and planner do — one source of
+     * truth, or three surfaces disagree about which week a Sunday-night set belongs to.
+     */
+    val weekStart: Weekday = Weekday.MONDAY,
 )
 
 /**
@@ -319,7 +325,13 @@ object RecommendationEngine {
     }
 
     internal fun deloadSignal(inputs: CoachInputs): TrainingRecommendation? {
-        val finding = DeloadSignal.detect(inputs.history, inputs.nowMs, inputs.time, inputs.zoneId) ?: return null
+        val finding = DeloadSignal.detect(
+            inputs.history,
+            inputs.nowMs,
+            inputs.time,
+            inputs.zoneId,
+            inputs.weekStart,
+        ) ?: return null
         return TrainingRecommendation(
             id = "deload-volume-flat-strength",
             kicker = KICKER_LOAD,

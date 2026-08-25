@@ -28,32 +28,38 @@ object DeloadSignal {
     const val DELOAD_TOP_LIFTS = 3
     const val COMPARISON_DAYS = 14L
 
-    private const val WEEK_MS = 7L * 24 * 60 * 60 * 1000
-
     fun detect(
         history: List<WorkoutSession>,
         nowMs: Long,
         time: TimePort = JvmTime,
         zoneId: String = time.defaultZoneId(),
+        weekStart: Weekday = Weekday.MONDAY,
     ): DeloadFinding? {
         val finished = history.filter { it.isFinished }
         if (finished.isEmpty()) return null
 
-        // Three consecutive weeks ending now, counted in working sets. Bucketed by the same
-        // trainedAt attribution the heat map uses, so a set cannot land in one week here and
-        // another week there.
+        // Three consecutive CALENDAR weeks ending with the week that contains now, counted in
+        // working sets. Bucketed by the same local-date/zone derivation the heat map, exercise
+        // history and schedule use (`civilDate(at, zone).previousOrSame(weekStart)`), so a set
+        // cannot land in one week here and another week there. This used to slice the past into
+        // three rolling 168-hour windows anchored at now, which mis-attributed a session near a
+        // week boundary — a Sunday-night set counted as "this week" — and ignored the zone the
+        // rest of the domain reasons in. Anchoring to the calendar week fixes both.
         //
         // Sets rather than tonnage, for the same reason the heat bands use them: tonnage is not
         // a unit every lift has. It used to price each bodyweight rep at a flat 40 kg, so a
         // week of extra push-ups showed up as hundreds of kilograms of "rising volume"; drop
         // that invention and tonnage instead reads zero for the same week. Sets are the honest
         // measure of how much work went in, and they are the same measure for every lift.
+        val nowWeekStartDay = time.civilDate(nowMs, zoneId).previousOrSame(weekStart).epochDay
         val buckets = DoubleArray(DELOAD_WEEKS)
         finished.forEach { session ->
             session.sets.filterNot { it.isWarmup }.forEach { set ->
                 val at = MuscleLoadCalculator.trainedAtMs(session, set)
-                val weeksBack = ((nowMs - at) / WEEK_MS).toInt()
-                if (at <= nowMs && weeksBack in 0 until DELOAD_WEEKS) {
+                if (at > nowMs) return@forEach
+                val setWeekStartDay = time.civilDate(at, zoneId).previousOrSame(weekStart).epochDay
+                val weeksBack = ((nowWeekStartDay - setWeekStartDay) / Weekday.DAYS_IN_WEEK).toInt()
+                if (weeksBack in 0 until DELOAD_WEEKS) {
                     buckets[weeksBack] += 1.0
                 }
             }
