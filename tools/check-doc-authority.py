@@ -195,6 +195,23 @@ REQUIRED_IN = [
     ),
 ]
 
+# FND-N12 class: a Kotlin comment must not claim a committed Room schema JSON is
+# absent. The exported `app/schemas/**` baselines are the arbiter of every
+# migration, so a source comment saying one of them is missing is drift the same
+# way an obsolete markdown phrase is. Each pattern captures the version it names.
+KOTLIN_ROOTS = (
+    "app/src/main/java",
+    "app/src/test/java",
+    "app/src/androidTest/java",
+)
+SCHEMA_JSON_RE = re.compile(r"^(\d+)\.json$")
+SCHEMA_ABSENT = [
+    re.compile(r"no committed\s+`?(\d+)\.json`?", re.I),
+    re.compile(r"`?(\d+)\.json`?\s+is\s+uncommitted", re.I),
+    re.compile(r"schema for version\s+(\d+)\s+does not exist", re.I),
+]
+SCHEMA_ONLY = re.compile(r"holds\s+`?(\d+)\.json`?\s+only", re.I)
+
 ISSUED_FND = [f"FND-{n:03d}" for n in range(1, 49) if n != 37] + [
     "FND-014A",
     "FND-014B",
@@ -326,6 +343,56 @@ def check_links() -> None:
                     )
 
 
+def committed_schema_versions() -> set[int]:
+    versions: set[int] = set()
+    schema_root = os.path.join(ROOT, "app", "schemas")
+    if not os.path.isdir(schema_root):
+        return versions
+    for dirpath, _dirnames, filenames in os.walk(schema_root):
+        for name in filenames:
+            match = SCHEMA_JSON_RE.match(name)
+            if match:
+                versions.add(int(match.group(1)))
+    return versions
+
+
+def kotlin_sources() -> list[str]:
+    files: list[str] = []
+    for root in KOTLIN_ROOTS:
+        base = os.path.join(ROOT, root)
+        if not os.path.isdir(base):
+            continue
+        for dirpath, _dirnames, filenames in os.walk(base):
+            for name in filenames:
+                if name.endswith(".kt"):
+                    files.append(os.path.join(dirpath, name))
+    return files
+
+
+def check_schema_comments() -> None:
+    committed = committed_schema_versions()
+    if not committed:
+        return
+    for path in kotlin_sources():
+        for number, line in enumerate(read(path).splitlines(), 1):
+            for pattern in SCHEMA_ABSENT:
+                match = pattern.search(line)
+                if match and int(match.group(1)) in committed:
+                    add(
+                        path,
+                        number,
+                        f"comment claims committed schema {match.group(1)}.json is absent: {line.strip()}",
+                    )
+            only = SCHEMA_ONLY.search(line)
+            if only and any(v > int(only.group(1)) for v in committed):
+                add(
+                    path,
+                    number,
+                    "comment says "
+                    f"{only.group(1)}.json is the only committed schema, but a higher version is committed: {line.strip()}",
+                )
+
+
 def main() -> int:
     os.chdir(ROOT)
     check_forbidden()
@@ -333,6 +400,7 @@ def main() -> int:
     check_adrs()
     check_dispositions()
     check_links()
+    check_schema_comments()
     for item in findings:
         print(item)
     print(f"\n{len(findings)} authority finding(s)")

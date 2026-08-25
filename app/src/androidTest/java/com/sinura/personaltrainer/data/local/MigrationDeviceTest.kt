@@ -36,10 +36,9 @@ import org.junit.runner.RunWith
  *     createSql and never runs a line of [MIGRATION_1_2]. Only an upgrade over a real v1
  *     database does, which is exactly what this test is.
  *
- * **Requires `app/schemas/…/2.json`.** [MigrationTestHelper] reads its expectation from the
- * exported schema, and only a real Gradle build can write that file. Until
- * `./gradlew :app:kspDebugKotlin` commits it, this class fails with a missing-schema error —
- * that failure is the round trip still being open, not a defect in the migration.
+ * **Reads `app/schemas/…/2.json`, which is committed.** [MigrationTestHelper] reads its
+ * expectation from that exported schema — the KSP-generated `TrainerDatabase/2.json` baseline —
+ * so this class validates the migration against the same artifact Room checks at open.
  *
  * Runs on an emulator, never the owner's phone: debug and release share an applicationId with
  * different signing keys, so the test APK cannot install beside the real app, and uninstalling

@@ -20,11 +20,10 @@ import org.robolectric.RobolectricTestRunner
  * column by column, index by index, default by default — which is the same comparison Room
  * performs at open, so a mismatch here is exactly the crash loop a phone would see.
  *
- * **Requires `app/schemas/…/2.json`.** MigrationTestHelper reads its expectation from the
- * exported schema, and only a real Gradle build with the Android SDK can write that file. Until
- * the owner's first `./gradlew :app:assembleDebug` on this branch commits it, this class fails
- * with a missing-schema error — that failure is the round-trip still being open, not a defect in
- * the migration.
+ * **Reads `app/schemas/…/2.json`, which is committed.** MigrationTestHelper reads its
+ * expectation from that exported schema — the KSP-generated `TrainerDatabase/2.json` baseline —
+ * so this class validates the migration against the same artifact Room checks at open, not
+ * against anything reasoned about by hand.
  *
  * **Host-OS constraint.** Robolectric 4.14.1 uses native SQLite everywhere except Windows, where
  * it falls back to legacy SQLite 3.7.10 whose `PRAGMA table_info` cannot express composite
