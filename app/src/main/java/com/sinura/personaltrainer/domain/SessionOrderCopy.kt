@@ -14,6 +14,18 @@ object SessionOrderCopy {
     const val LOAD = "Load"
     const val ORDER = "Order"
     const val EMPTY_PREVIEW = "No lifts yet"
+    const val READY = "Ready"
+    const val FREE_WORKOUT = "Start a free workout"
+    const val ADD_LIFT_FAILED = "Could not add that lift. Try again."
+    const val LIFT_NAME_REQUIRED = "Lift name is required."
+    const val CREATE_LIFT_FAILED = "Could not create that lift. Try again."
+    const val SAVE_LIFT_FAILED = "Could not save that lift. Try again."
+    const val REMOVE_LIFT_FAILED = "Could not remove that lift. Try again."
+    const val REORDER_LIFT_FAILED = "Could not reorder that lift. Try again."
+    const val NEED_A_LIFT = "Add at least one lift before starting this routine."
+    const val EMPTY_SESSION_BODY = "Pick the first lift, then log weight and reps."
+    const val CARDIO_ON_THIS_DAY =
+        "Morning cardio on this day. Starts at 07:00. Does not replace the lifts."
 
     const val PICKER_HINT = "Tap in the order you'll lift. 1 is first."
     const val TAP_TO_SET = "Tap a lift to set sets, reps, rest and load."
@@ -44,11 +56,23 @@ object SessionOrderCopy {
 
     /**
      * Agenda and Plan day rows. When the routine is known, the order is the
-     * line; status only fills in when there are no lifts to name.
+     * line. Empty strength is "No lifts yet"; cardio/mixed planned is "Ready".
+     * Never dump a schema enum onto the gym floor.
      */
-    fun occurrenceLine(status: OccurrenceStatus, names: List<String>): String {
+    fun occurrenceLine(
+        status: OccurrenceStatus,
+        names: List<String>,
+        modality: ScheduleModality = ScheduleModality.STRENGTH,
+    ): String {
         if (names.isNotEmpty()) return numberedPreview(names)
-        return status.name.lowercase().replaceFirstChar { it.titlecase() }
+        return when (status) {
+            OccurrenceStatus.PLANNED ->
+                if (modality == ScheduleModality.STRENGTH) EMPTY_PREVIEW else READY
+            OccurrenceStatus.DONE -> "Done"
+            OccurrenceStatus.SKIPPED -> "Skipped"
+            OccurrenceStatus.MISSED -> "Missed"
+            OccurrenceStatus.MOVED -> "Moved"
+        }
     }
 
     fun cardSpoken(

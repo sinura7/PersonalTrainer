@@ -11,6 +11,7 @@ import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.local.relation.RoutineWithExercises
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
@@ -262,7 +263,7 @@ class RoutineEditorViewModelTest {
         vm.uiState.first { !it.isLoading }
 
         vm.createAndSelect("  ", "Back")
-        assertEquals("Exercise name is required.", eventually { vm.uiState.value.error })
+        assertEquals(SessionOrderCopy.LIFT_NAME_REQUIRED, eventually { vm.uiState.value.error })
 
         vm.createAndSelect("Existing lift", "Back")
         assertEquals(

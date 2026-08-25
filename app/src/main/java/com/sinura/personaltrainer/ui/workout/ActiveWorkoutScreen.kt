@@ -80,6 +80,7 @@ import com.sinura.personaltrainer.domain.RpeCopy
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.SessionExercise
+import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
@@ -361,7 +362,7 @@ fun ActiveWorkoutScreen(
                             item(key = "empty-lifts") {
                                 EmptyState(
                                     title = "Add a lift",
-                                    body = "Pick the first exercise, then log weight and reps.",
+                                    body = SessionOrderCopy.EMPTY_SESSION_BODY,
                                     actionLabel = "Add a lift",
                                     onAction = { viewModel.setPickerVisible(true) },
                                     compact = true,

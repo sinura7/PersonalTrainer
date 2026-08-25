@@ -305,9 +305,9 @@ flowchart TD
     ExercisePicker --> Workout
     ExercisePicker --> RoutineEditor
     ExercisePicker --> CustomWeek
-    StartOptions --> Home
     StartOptions --> Body
     StartOptions --> History
+    StartOptions --> Plan
     SetEntry --> Workout
     SetEntry --> SessionEdit
     FigureArt --> BodyMap

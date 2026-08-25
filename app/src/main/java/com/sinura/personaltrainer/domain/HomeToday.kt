@@ -23,4 +23,40 @@ object HomeToday {
             (it.rule?.modality ?: ScheduleModality.STRENGTH) == ScheduleModality.STRENGTH
         }?.occurrence?.id ?: planned.firstOrNull()?.occurrence?.id
     }
+
+    /**
+     * The Start the sheet may offer when Body, History, or Plan open it.
+     * Same preference as Home: a still-planned occurrence first (strength
+     * preferred), else the leftover slot day's routine.
+     */
+    fun sheetStart(
+        agenda: List<AgendaItem>,
+        leftoverDay: SuggestedTrainingDay?,
+        routines: List<Routine>,
+    ): TodaySheetStart? {
+        val tag = startTagOccurrenceId(agenda)
+        if (tag != null) {
+            val item = agenda.first { it.occurrence.id == tag }
+            val names = sessionLiftNames(item.rule?.routineId, routines)
+            return TodaySheetStart(
+                title = item.title,
+                preview = names.takeIf { it.isNotEmpty() }?.let { SessionOrderCopy.numberedPreview(it) },
+                occurrenceId = tag,
+            )
+        }
+        val day = leftoverDay?.takeUnless { it.isRest } ?: return null
+        val names = leftoverLiftNames(day, routines)
+        return TodaySheetStart(
+            title = day.routineName ?: day.focusTitle,
+            preview = names.takeIf { it.isNotEmpty() }?.let { SessionOrderCopy.numberedPreview(it) },
+            leftover = day,
+        )
+    }
 }
+
+data class TodaySheetStart(
+    val title: String,
+    val preview: String? = null,
+    val occurrenceId: String? = null,
+    val leftover: SuggestedTrainingDay? = null,
+)

@@ -143,9 +143,9 @@ fun ThisWeekCard(
                     onClick = onStartFree,
                     modifier = Modifier
                         .testTag(HomeTags.FREE)
-                        .semantics { contentDescription = FREE_WORKOUT },
+                        .semantics { contentDescription = SessionOrderCopy.FREE_WORKOUT },
                 ) {
-                    Text(FREE_WORKOUT, style = InstrumentType.bodyStrong, color = TextSecondary)
+                    Text(SessionOrderCopy.FREE_WORKOUT, style = InstrumentType.bodyStrong, color = TextSecondary)
                 }
             }
         } else if (!sessionLive && trainingToday != null && !loggedToday) {
@@ -162,10 +162,10 @@ fun ThisWeekCard(
                 onClick = onStartFree,
                 modifier = Modifier
                     .testTag(HomeTags.FREE)
-                    .semantics { contentDescription = FREE_WORKOUT },
+                    .semantics { contentDescription = SessionOrderCopy.FREE_WORKOUT },
                 contentPadding = PaddingValues(0.dp),
             ) {
-                Text(FREE_WORKOUT, style = InstrumentType.bodyStrong, color = TextSecondary)
+                Text(SessionOrderCopy.FREE_WORKOUT, style = InstrumentType.bodyStrong, color = TextSecondary)
             }
         } else if (!sessionLive) {
             // Rest day, or already trained: the plan Volt would lie. Free logging is still
@@ -175,13 +175,11 @@ fun ThisWeekCard(
                 modifier = Modifier
                     .padding(top = Metrics.space1)
                     .testTag(HomeTags.FREE)
-                    .semantics { contentDescription = FREE_WORKOUT },
+                    .semantics { contentDescription = SessionOrderCopy.FREE_WORKOUT },
                 contentPadding = PaddingValues(0.dp),
             ) {
-                Text(FREE_WORKOUT, style = InstrumentType.bodyStrong, color = TextSecondary)
+                Text(SessionOrderCopy.FREE_WORKOUT, style = InstrumentType.bodyStrong, color = TextSecondary)
             }
         }
     }
 }
-
-private const val FREE_WORKOUT = "Start a free workout"

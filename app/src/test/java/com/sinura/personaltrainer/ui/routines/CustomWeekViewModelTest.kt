@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.insertTestExercise
@@ -147,7 +148,7 @@ class CustomWeekViewModelTest {
         val state = vm.uiState.value
         assertTrue(state.showPicker)
         assertEquals(listOf("ghost"), state.pendingAddIds)
-        assertEquals("Could not add that exercise. Try again.", state.error)
+        assertEquals(SessionOrderCopy.ADD_LIFT_FAILED, state.error)
         assertTrue(state.selectedLifts.isEmpty())
     }
 
@@ -281,7 +282,7 @@ class CustomWeekViewModelTest {
     fun createAndSelectBlankSurfacesTheNameError() = runBlocking {
         val vm = createViewModel()
         vm.createAndSelect("  ", "Back")
-        assertEquals("Exercise name is required.", eventually { vm.uiState.value.error })
+        assertEquals(SessionOrderCopy.LIFT_NAME_REQUIRED, eventually { vm.uiState.value.error })
         assertTrue(deps.exerciseRepository.observeAll().first().isEmpty())
     }
 

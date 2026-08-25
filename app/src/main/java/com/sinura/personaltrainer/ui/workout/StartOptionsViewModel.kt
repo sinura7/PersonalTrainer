@@ -8,6 +8,19 @@ import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.ActivitySession
+import com.sinura.personaltrainer.domain.ActivityWrite
+import com.sinura.personaltrainer.domain.AgendaItem
+import com.sinura.personaltrainer.domain.DailyAgenda
+import com.sinura.personaltrainer.domain.HomeToday
+import com.sinura.personaltrainer.domain.ScheduleConfidence
+import com.sinura.personaltrainer.domain.ScheduleModality
+import com.sinura.personaltrainer.domain.SessionFocusKind
+import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.SuggestedTrainingDay
+import com.sinura.personaltrainer.domain.TodaySheetStart
+import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.domain.todayEpochDay
+import com.sinura.personaltrainer.workout.StartDayOutcome
 import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.CardioBlock
 import com.sinura.personaltrainer.domain.CardioType
@@ -44,6 +57,8 @@ data class StartOptionsUiState(
     val suggestion: Exercise? = null,
     val suggestionReason: String? = null,
     val error: String? = null,
+    /** Today's plan, when Body / History / Plan open this sheet. Null on rest or empty. */
+    val todayStart: TodaySheetStart? = null,
 )
 
 /**
@@ -80,18 +95,35 @@ class StartOptionsViewModel @JvmOverloads constructor(
             container.workoutRepository.observeInProgress(),
             container.activityRepository.observeLive(),
         ) { workout, activity -> workout to activity },
-        container.routineRepository.observeAll(),
-        suggestedLift,
-        error,
-    ) { live, routines, suggested, err ->
+        combine(
+            container.routineRepository.observeAll(),
+            suggestedLift,
+            error,
+        ) { routines, suggested, err -> Triple(routines, suggested, err) },
+        combine(
+            container.trainingInsights.observeShared(),
+            container.plannerRepository.observeOccurrences(),
+            container.plannerRepository.observeRules(),
+        ) { insights, occurrences, rules -> Triple(insights, occurrences, rules) },
+    ) { live, extras, planner ->
+        val routines = extras.first
+        val today = todayEpochDay()
+        val leftover = planner.first.weekPlan?.dayOn(today)
+        val agenda = DailyAgenda.forDay(
+            today,
+            planner.second,
+            planner.third,
+            routines.associate { it.id to it.name },
+        )
         StartOptionsUiState(
             isLoading = false,
             inProgress = live.first,
             liveActivity = live.second,
             routines = routines,
-            suggestion = suggested?.first,
-            suggestionReason = suggested?.second,
-            error = err,
+            suggestion = extras.second?.first,
+            suggestionReason = extras.second?.second,
+            error = extras.third,
+            todayStart = HomeToday.sheetStart(agenda, leftover, routines),
         )
     }.stateIn(
         scope = viewModelScope,
@@ -186,7 +218,7 @@ class StartOptionsViewModel @JvmOverloads constructor(
                 return@launch
             }
             if (routine.exercises.isEmpty()) {
-                error.value = "Add at least one exercise before starting this routine."
+                error.value = SessionOrderCopy.NEED_A_LIFT
                 return@launch
             }
             try {
@@ -277,6 +309,113 @@ class StartOptionsViewModel @JvmOverloads constructor(
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "startFree failed", thrown)
                 error.value = "Could not start a free workout. Try again."
+            }
+        }
+    }
+
+    /**
+     * Today's plan from this sheet — occurrence when the agenda owns
+     * the day, leftover slot week otherwise. Same binding Home uses.
+     */
+    fun startToday() {
+        val start = uiState.value.todayStart ?: return
+        viewModelScope.launch {
+            try {
+                val occurrenceId = start.occurrenceId
+                if (occurrenceId != null) {
+                    startOccurrence(occurrenceId)
+                    return@launch
+                }
+                val day = start.leftover ?: return@launch
+                PendingOccurrence.bindForPlannedDay(container, day)
+                when (val outcome = container.startTrainingDay(day)) {
+                    is StartDayOutcome.Open -> {
+                        error.value = null
+                        _navigateToSession.value = outcome.sessionId
+                    }
+                    is StartDayOutcome.Blocked -> error.value = START_BLOCKED_MESSAGE
+                    is StartDayOutcome.Failed -> error.value = outcome.message
+                    StartDayOutcome.Ignored -> Unit
+                }
+            } catch (thrown: kotlinx.coroutines.CancellationException) {
+                throw thrown
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "startToday failed", thrown)
+                error.value = "Could not start today's session. Try again."
+            }
+        }
+    }
+
+    private suspend fun startOccurrence(occurrenceId: String) {
+        val occurrence = container.plannerRepository.getOccurrence(occurrenceId) ?: return
+        val rule = container.plannerRepository.getRule(occurrence.ruleId)
+        when (rule?.modality ?: ScheduleModality.STRENGTH) {
+            ScheduleModality.CARDIO -> {
+                PendingOccurrence.forget(container)
+                val now = JvmTime.captureNow()
+                val block = CardioBlock(
+                    id = IdFactory.Uuid.newId(),
+                    sortOrder = 0,
+                    type = CardioType.RUN,
+                    indoor = false,
+                    elapsedSeconds = 0L,
+                    movingSeconds = 0L,
+                    distanceMeters = null,
+                    elevationMeters = null,
+                    heartRateBpm = null,
+                    energyKj = null,
+                    rpe = null,
+                    routeRef = null,
+                )
+                when (val write = container.startLiveActivity("Cardio", listOf(block), now, occurrence.id)) {
+                    is ActivityWrite.Accepted -> {
+                        val nowElapsed = android.os.SystemClock.elapsedRealtime()
+                        val nowWall = System.currentTimeMillis()
+                        container.cardioTimerPersistence.save(
+                            PersistedCardioTimer(
+                                sessionId = write.session.id,
+                                startedAtElapsedRealtime = nowElapsed,
+                                startedAtWallClockMillis = nowWall,
+                                bootMarker = CardioElapsed.bootMarker(nowWall, nowElapsed),
+                            ),
+                        )
+                        error.value = null
+                        _navigateToCardio.value = write.session.id
+                    }
+                    is ActivityWrite.Rejected -> error.value = write.reason
+                }
+            }
+            ScheduleModality.MIXED -> {
+                PendingOccurrence.bind(container, occurrence.id)
+                _navigateToComposer.value = "mixed"
+            }
+            ScheduleModality.STRENGTH -> {
+                PendingOccurrence.bind(container, occurrence.id)
+                val item = AgendaItem(occurrence, rule)
+                val day = SuggestedTrainingDay(
+                    epochDay = occurrence.localEpochDay,
+                    dayOfWeek = Weekday.fromEpochDay(occurrence.localEpochDay),
+                    isRest = false,
+                    focusKind = rule?.focusKind ?: SessionFocusKind.FULL_BODY,
+                    focusTitle = item.title,
+                    routineId = rule?.routineId,
+                    routineName = rule?.routineId?.let { id ->
+                        uiState.value.routines.firstOrNull { it.id == id }?.name
+                    },
+                    reason = "",
+                    emphasisMuscles = emptyList(),
+                    confidence = ScheduleConfidence.HIGH,
+                    slotId = null,
+                )
+                when (val outcome = container.startTrainingDay(day)) {
+                    is StartDayOutcome.Open -> {
+                        error.value = null
+                        _navigateToSession.value = outcome.sessionId
+                    }
+                    is StartDayOutcome.Blocked -> error.value = START_BLOCKED_MESSAGE
+                    is StartDayOutcome.Failed -> error.value = outcome.message
+                    StartDayOutcome.Ignored -> Unit
+                }
             }
         }
     }

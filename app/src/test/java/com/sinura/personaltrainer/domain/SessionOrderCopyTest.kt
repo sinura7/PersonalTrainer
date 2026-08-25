@@ -33,6 +33,36 @@ class SessionOrderCopyTest {
             SessionOrderCopy.occurrenceLine(OccurrenceStatus.DONE, emptyList()),
         )
         assertEquals(
+            SessionOrderCopy.EMPTY_PREVIEW,
+            SessionOrderCopy.occurrenceLine(OccurrenceStatus.PLANNED, emptyList()),
+        )
+        assertEquals(
+            SessionOrderCopy.READY,
+            SessionOrderCopy.occurrenceLine(
+                OccurrenceStatus.PLANNED,
+                emptyList(),
+                ScheduleModality.CARDIO,
+            ),
+        )
+        assertEquals(
+            SessionOrderCopy.READY,
+            SessionOrderCopy.occurrenceLine(
+                OccurrenceStatus.PLANNED,
+                emptyList(),
+                ScheduleModality.MIXED,
+            ),
+        )
+        assertEquals(
+            SessionOrderCopy.EMPTY_PREVIEW,
+            SessionOrderCopy.occurrenceLine(
+                OccurrenceStatus.PLANNED,
+                emptyList(),
+                ScheduleModality.STRENGTH,
+            ),
+        )
+        assertEquals(SessionOrderCopy.FREE_WORKOUT, "Start a free workout")
+        assertEquals(SessionOrderCopy.NEED_A_LIFT, "Add at least one lift before starting this routine.")
+        assertEquals(
             SessionOrderCopy.AGENDA_SEPARATE,
             "Morning and evening stay separate.",
         )

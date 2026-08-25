@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.RecommendationPriority
+import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.testutil.insertTestExercise
@@ -69,6 +70,14 @@ class StartOptionsViewModelTest {
     }
 
     @Test
+    fun emptyWeekHasNoTodayStart() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        val vm = createViewModel()
+        val state = vm.uiState.first { !it.isLoading }
+        assertNull(state.todayStart)
+    }
+
+    @Test
     fun startRoutinePersistsSessionAndEmitsOneShotNavigation() = runBlocking {
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
         val fixture = seedTestWorkout(deps)
@@ -101,7 +110,7 @@ class StartOptionsViewModelTest {
         val empty = deps.routineRepository.create("Empty")
         vm.startRoutine(empty.id)
         assertEquals(
-            "Add at least one exercise before starting this routine.",
+            SessionOrderCopy.NEED_A_LIFT,
             vm.uiState.first { it.error?.startsWith("Add at least") == true }.error,
         )
         assertNull(deps.workoutRepository.getInProgress())

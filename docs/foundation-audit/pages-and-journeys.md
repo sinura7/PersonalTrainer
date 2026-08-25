@@ -522,7 +522,7 @@ Runtime evidence: [populated detail](evidence/15-exercise-detail.png).
 
 | Surface | Hosts | Purpose | Writes |
 |---|---|---|---|
-| `StartOptionsSheet` | Home, Body, History | Routine/free start or return to live workout | Starts/discards session |
+| `StartOptionsSheet` | Body, History, Plan | Today’s plan, routine/free start, or return to live workout | Starts/discards session |
 | `PlanDaySheet` | Plan | Start, edit, swap, or unpin one day | Schedule/session |
 | `MuscleDetailSheet` | Body | Contributors and destinations | None |
 | `DaySessionsSheet` | History | Choose among same-day sessions | None |
@@ -560,7 +560,9 @@ flowchart TD
     Apply --> Home[Home]
 
     Home --> Start[Start today]
-    Home --> StartSheet[Alternate start sheet]
+    Body --> StartSheet[Alternate start sheet]
+    History --> StartSheet
+    Plan --> StartSheet
     Start --> Active[Active workout]
     StartSheet --> Active
     Active --> Log[Log set]

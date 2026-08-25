@@ -15,6 +15,7 @@ import com.sinura.personaltrainer.domain.LiftCart
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.SchedulePreferences
+import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
@@ -199,7 +200,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
             already = days.value[day].orEmpty().map { it.exercise.id }.toSet(),
         )
         if (plan.blocked) {
-            error.value = "Could not add that exercise. Try again."
+            error.value = SessionOrderCopy.ADD_LIFT_FAILED
             return
         }
         pendingAddIds.value = emptyList()
@@ -218,7 +219,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
         if (applying.value) return
         viewModelScope.launch {
             if (name.isBlank()) {
-                error.value = "Exercise name is required."
+                error.value = SessionOrderCopy.LIFT_NAME_REQUIRED
                 return@launch
             }
             runCatchingCancellable {
@@ -240,7 +241,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
                 }
             }.onFailure {
                 AppLog.w(TAG, "createAndSelect failed", it)
-                error.value = "Could not create that exercise. Try again."
+                error.value = SessionOrderCopy.CREATE_LIFT_FAILED
             }
         }
     }

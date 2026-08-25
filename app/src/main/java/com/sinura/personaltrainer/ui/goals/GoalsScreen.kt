@@ -209,7 +209,7 @@ internal fun GoalCard(
         ) {
             TextButton(onClick = onPause) {
                 Text(
-                    if (goal.paused) "Resume" else "Pause",
+                    if (goal.paused) "Unpause" else "Pause",
                     style = InstrumentType.bodyStrong,
                     color = TextSecondary,
                 )

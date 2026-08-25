@@ -143,8 +143,14 @@ and pinned Done.
 
 - Live sheet primary is **“Go to session”**, not “dismiss and find the bar”.
 - Discard from the sheet uses the **same confirm** as the bar.
-- Today’s plan is a **filled button**, not a list row.
-- Free workout is **quiet** so it does not compete with that button.
+- Today’s plan is a **filled button**, not a list row. Body, History, and Plan
+  pass no extra Today args — the sheet reads the same agenda Home uses and
+  starts it (strength preferred, leftover slot week if the agenda is empty).
+  Home itself does not host this sheet.
+- Free workout is **quiet** so it does not compete with that button. One string:
+  `SessionOrderCopy.FREE_WORKOUT`.
+- Status lines never dump a schema enum (`Planned`). Empty strength is
+  “No lifts yet”; cardio/mixed planned is “Ready”.
 
 ### 5 — Plan · **done** (this pass)
 
@@ -161,6 +167,11 @@ and pinned Done.
   *(a button that produces an empty preview is a dead control)*.
 - Confirm is **“Use this week”**. ~~Accept fills~~ — fills is planner jargon.
 - Header New is quiet so it does not compete with that confirm.
+- Free on a Plan day opens `StartOptionsSheet`, not an empty free session.
+- Two-a-day: one Volt Start (strength preferred); other planned rows stay
+  tappable. Same rule as Home.
+- Missed-work: one Volt **Keep the dates**. The other three stay quiet.
+  Copy never says “recurrence”.
 
 ### 6 — Editor · **done** (this pass)
 
@@ -279,6 +290,12 @@ Record every deviation here. Oldest stay; do not delete.
 10. **Body contributor rows open the lift.** A name you cannot tap is a dead end.
 11. **Settings restore is disabled while live**, with a sentence, not only a
     thrown error after the tap.
+12. **The start sheet starts today.** Body, History, and Plan host it. Home
+    does not. Dismissing before `startToday` would cancel the write.
+13. **Plan free is the sheet**, not `startFreeWorkout()` from the day sheet.
+14. **Never print `Planned`.** Numbered lift order, “No lifts yet”, or “Ready”.
+15. **Missed-work Keep the dates is the Volt.** Recurrence is not a gym word.
+16. **Lift, not exercise**, on gym-floor errors and the empty session body.
 
 ---
 

@@ -116,14 +116,21 @@ fun PlanDaySheet(
                             !sessionLive &&
                             item.occurrence.status == OccurrenceStatus.PLANNED
                         val names = sessionLiftNames(item.rule?.routineId, routines)
+                        val tagged = item.occurrence.id == startTagId
                         InstrumentRow(
                             title = "${item.timeLabel}  ·  ${item.title}",
-                            subtitle = SessionOrderCopy.occurrenceLine(item.occurrence.status, names),
-                            onClick = {
-                                if (canStart) onStartOccurrence(item.occurrence.id)
+                            subtitle = SessionOrderCopy.occurrenceLine(
+                                item.occurrence.status,
+                                names,
+                                item.rule?.modality ?: ScheduleModality.STRENGTH,
+                            ),
+                            onClick = if (canStart && !tagged) {
+                                { onStartOccurrence(item.occurrence.id) }
+                            } else {
+                                null
                             },
                         )
-                        if (canStart && item.occurrence.id == startTagId) {
+                        if (canStart && tagged) {
                             PrimaryGymButton(
                                 text = "Start ${item.title}",
                                 onClick = { onStartOccurrence(item.occurrence.id) },
@@ -165,7 +172,7 @@ fun PlanDaySheet(
                     GroupedList {
                         InstrumentRow(
                             title = "Add morning cardio",
-                            subtitle = "A second occurrence on this day. Starts at 07:00. Does not replace the lifts.",
+                            subtitle = SessionOrderCopy.CARDIO_ON_THIS_DAY,
                             onClick = onAddMorningCardio,
                         )
                     }
@@ -197,7 +204,7 @@ fun PlanDaySheet(
                     onClick = onStartFree,
                     contentPadding = PaddingValues(0.dp),
                 ) {
-                    Text(FREE_WORKOUT, style = InstrumentType.bodyStrong, color = TextSecondary)
+                    Text(SessionOrderCopy.FREE_WORKOUT, style = InstrumentType.bodyStrong, color = TextSecondary)
                 }
             }
 
@@ -270,8 +277,6 @@ private fun dateLabel(epochDay: Long): String =
     DATE_FORMAT.format(LocalDate.ofEpochDay(epochDay))
 
 private enum class Picker { NONE, ROUTINE, FOCUS, SWAP }
-
-private const val FREE_WORKOUT = "Start a free workout"
 
 private val PINNABLE_FOCUS = listOf(
     SessionFocusKind.PUSH,

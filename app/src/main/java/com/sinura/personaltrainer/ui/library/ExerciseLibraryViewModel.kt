@@ -20,6 +20,7 @@ import com.sinura.personaltrainer.domain.LibraryFilter
 import com.sinura.personaltrainer.domain.LibraryGrouping
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.SessionOrderCopy
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -271,12 +272,12 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
                         error.value = null
                     }
                     null -> {
-                        error.value = "Could not save that exercise. Try again."
+                        error.value = SessionOrderCopy.SAVE_LIFT_FAILED
                     }
                 }
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "saveEditor failed", thrown)
-                error.value = "Could not save that exercise. Try again."
+                error.value = SessionOrderCopy.SAVE_LIFT_FAILED
             }
         }
     }

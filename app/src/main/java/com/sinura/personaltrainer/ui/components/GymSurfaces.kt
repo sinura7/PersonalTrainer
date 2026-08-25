@@ -324,7 +324,7 @@ fun InstrumentRow(
                 title,
                 style = InstrumentType.title,
                 color = TextPrimary,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             if (subtitle != null) {

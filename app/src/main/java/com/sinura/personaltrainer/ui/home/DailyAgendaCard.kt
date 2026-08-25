@@ -15,6 +15,7 @@ import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.HomeToday
 import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.sessionLiftNames
 import com.sinura.personaltrainer.ui.components.GroupedList
@@ -62,14 +63,21 @@ fun DailyAgendaCard(
                     if (index > 0) HairlineDivider()
                     val planned = item.occurrence.status == OccurrenceStatus.PLANNED
                     val names = sessionLiftNames(item.rule?.routineId, routines)
+                    val tagged = item.occurrence.id == startTagId
                     InstrumentRow(
                         title = "${item.timeLabel}  ·  ${item.title}",
-                        subtitle = SessionOrderCopy.occurrenceLine(item.occurrence.status, names),
-                        onClick = {
-                            if (planned && !sessionLive) onStartOccurrence(item.occurrence.id)
+                        subtitle = SessionOrderCopy.occurrenceLine(
+                            item.occurrence.status,
+                            names,
+                            item.rule?.modality ?: ScheduleModality.STRENGTH,
+                        ),
+                        onClick = if (planned && !sessionLive && !tagged) {
+                            { onStartOccurrence(item.occurrence.id) }
+                        } else {
+                            null
                         },
                     )
-                    if (planned && !sessionLive && item.occurrence.id == startTagId) {
+                    if (planned && !sessionLive && tagged) {
                         PrimaryGymButton(
                             text = "Start ${item.title}",
                             onClick = { onStartOccurrence(item.occurrence.id) },
@@ -91,10 +99,10 @@ fun DailyAgendaCard(
                     onClick = onStartFree,
                     modifier = Modifier
                         .testTag(HomeTags.FREE)
-                        .semantics { contentDescription = FREE_WORKOUT },
+                        .semantics { contentDescription = SessionOrderCopy.FREE_WORKOUT },
                     contentPadding = PaddingValues(0.dp),
                 ) {
-                    Text(FREE_WORKOUT, style = InstrumentType.bodyStrong, color = TextSecondary)
+                    Text(SessionOrderCopy.FREE_WORKOUT, style = InstrumentType.bodyStrong, color = TextSecondary)
                 }
             }
         }
@@ -102,4 +110,3 @@ fun DailyAgendaCard(
 }
 
 private const val PLANNED_SESSION = "Start today's planned session"
-private const val FREE_WORKOUT = "Start a free workout"

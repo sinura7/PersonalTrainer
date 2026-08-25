@@ -75,6 +75,7 @@ import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Volt
+import com.sinura.personaltrainer.ui.workout.StartOptionsSheet
 import java.text.DateFormat
 import java.util.Date
 
@@ -263,6 +264,7 @@ fun PlanScreen(
     var tuning by rememberSaveable { mutableStateOf(false) }
     var openDay by rememberSaveable { mutableStateOf<Long?>(null) }
     var pendingDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
+    var startOptionsOpen by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(navigateToSession) {
         val target = navigateToSession ?: return@LaunchedEffect
@@ -515,9 +517,20 @@ fun PlanScreen(
             },
             onStartFree = {
                 openDay = null
-                viewModel.startFreeWorkout()
+                startOptionsOpen = true
             },
             sessionLive = state.inProgress != null,
+        )
+    }
+
+    if (startOptionsOpen) {
+        StartOptionsSheet(
+            onDismiss = { startOptionsOpen = false },
+            onWorkoutStarted = onWorkoutStarted,
+            onLogPast = { onLogActivity("strength") },
+            onLogCardio = { onLogActivity("cardio") },
+            onLogMixed = { onLogActivity("mixed") },
+            onOpenLiveActivity = onOpenLiveCardio,
         )
     }
 

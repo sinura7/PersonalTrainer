@@ -22,9 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionOrderCopy
-import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
@@ -52,7 +50,8 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
  * The common case skips it now: Home starts today's plan in one tap
  * (agenda when it exists, leftover slot week otherwise). This is what
  * "everything else" looks like, and it opens over the screen you were on
- * — Body, History, or Plan. Home itself does not host this sheet.
+ * — Body, History, or Plan. The sheet itself starts today's plan when
+ * one exists. Home itself does not host this sheet.
  *
  * While a session is live the sheet shows no starts at all. That is not a duplicate of the
  * live session bar: this is a modal surface the user deliberately opened, so it owes them an
@@ -63,9 +62,6 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
 fun StartOptionsSheet(
     onDismiss: () -> Unit,
     onWorkoutStarted: (String) -> Unit,
-    /** Today's slot, pinned on top. Null on a rest day or an empty week. */
-    todayDay: SuggestedTrainingDay? = null,
-    onStartToday: (() -> Unit)? = null,
     onLogPast: () -> Unit = {},
     onLogCardio: () -> Unit = {},
     onLogMixed: () -> Unit = {},
@@ -146,25 +142,23 @@ fun StartOptionsSheet(
                 return@Column
             }
 
-            if (todayDay != null && onStartToday != null && !todayDay.isRest) {
+            val todayStart = state.todayStart
+            if (todayStart != null) {
                 Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
                     Kicker("Today")
                     PrimaryGymButton(
-                        text = "Start ${todayDay.routineName ?: todayDay.focusTitle}",
-                        onClick = {
-                            onDismiss()
-                            onStartToday()
-                        },
+                        text = "Start ${todayStart.title}",
+                        onClick = viewModel::startToday,
                     )
-                    todayDay.reason.takeIf { it.isNotBlank() }?.let { reason ->
-                        Text(reason, style = InstrumentType.caption, color = TextTertiary)
+                    todayStart.preview?.let { preview ->
+                        Text(preview, style = InstrumentType.caption, color = TextTertiary)
                     }
                 }
             }
 
             state.suggestion?.let { lift ->
                 Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
-                    Kicker("SUGGESTED")
+                    Kicker("Suggested")
                     GroupedList {
                         InstrumentRow(
                             title = lift.name,
@@ -279,7 +273,7 @@ private fun RoutineRow(routine: Routine, onStart: () -> Unit) {
     if (routine.exercises.isEmpty()) {
         InstrumentRow(
             title = routine.name,
-            subtitle = "Add at least one lift before starting",
+            subtitle = SessionOrderCopy.NEED_A_LIFT,
         )
     } else {
         val lifts = remember(routine) {
@@ -307,7 +301,7 @@ private fun FreeWorkoutAction(onStart: () -> Unit, modifier: Modifier = Modifier
         TextButton(onClick = onStart, contentPadding = PaddingValues(0.dp)) {
             // Quiet on purpose. Today's plan is the filled start when it is here; a second
             // volt next to it reads as two answers to the same tap.
-            Text("Free workout", style = InstrumentType.bodyStrong, color = TextSecondary)
+            Text(SessionOrderCopy.FREE_WORKOUT, style = InstrumentType.bodyStrong, color = TextSecondary)
         }
         Text(
             "No plan. Add lifts as you go.",

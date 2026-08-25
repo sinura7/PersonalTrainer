@@ -20,6 +20,7 @@ import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineEditorLoad
 import com.sinura.personaltrainer.domain.RoutineEditorPolicy
+import com.sinura.personaltrainer.domain.SessionOrderCopy
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -447,7 +448,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             already = routineFlow.value?.exercises.orEmpty().map { it.exercise.id }.toSet(),
         )
         if (plan.blocked) {
-            error.value = "Could not add that exercise. Try again."
+            error.value = SessionOrderCopy.ADD_LIFT_FAILED
             return
         }
         pendingAddIds.value = emptyList()
@@ -482,7 +483,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                     } catch (thrown: Exception) {
                         AppLog.w(TAG, "addExercise failed", thrown)
                         restorePicker(remaining.map { it.id })
-                        error.value = "Could not add that exercise. Try again."
+                        error.value = SessionOrderCopy.ADD_LIFT_FAILED
                         return@launchWrite
                     }
                 }
@@ -536,7 +537,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 error.value = null
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "addExercise failed", thrown)
-                error.value = "Could not add that exercise. Try again."
+                error.value = SessionOrderCopy.ADD_LIFT_FAILED
             }
         }
     }
@@ -544,7 +545,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     fun createAndSelect(name: String, muscleGroup: String) {
         if (leaving) return
         if (name.isBlank()) {
-            error.value = "Exercise name is required."
+            error.value = SessionOrderCopy.LIFT_NAME_REQUIRED
             return
         }
         launchWrite {
@@ -565,7 +566,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 }
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "createAndSelect failed", thrown)
-                error.value = "Could not create that exercise. Try again."
+                error.value = SessionOrderCopy.CREATE_LIFT_FAILED
             }
         }
     }
@@ -614,7 +615,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 error.value = null
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "removeExercise failed", thrown)
-                error.value = "Could not remove that exercise. Try again."
+                error.value = SessionOrderCopy.REMOVE_LIFT_FAILED
             }
         }
     }
@@ -627,7 +628,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 container.routineRepository.moveExercise(id, itemId, direction)
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "moveExercise failed", thrown)
-                error.value = "Could not reorder that exercise. Try again."
+                error.value = SessionOrderCopy.REORDER_LIFT_FAILED
             }
         }
     }

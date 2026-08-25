@@ -24,6 +24,7 @@ import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SessionEditRules
+import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
@@ -596,7 +597,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 }
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "createAndAddExercise failed", thrown)
-                error.value = "Could not create that exercise. Try again."
+                error.value = SessionOrderCopy.CREATE_LIFT_FAILED
             }
         }
     }

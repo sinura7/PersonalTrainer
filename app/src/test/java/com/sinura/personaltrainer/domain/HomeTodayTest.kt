@@ -37,6 +37,79 @@ class HomeTodayTest {
         assertEquals("c", HomeToday.startTagOccurrenceId(listOf(done, cardio)))
     }
 
+    @Test
+    fun sheetStartPrefersTheTaggedOccurrenceOverTheLeftoverSlot() {
+        val leftover = leftoverDay(isRest = false, name = "Push")
+        val cardio = item("c", ScheduleModality.CARDIO)
+        val start = HomeToday.sheetStart(listOf(cardio), leftover, emptyList())
+        assertEquals("c", start?.occurrenceId)
+        assertEquals("Cardio", start?.title)
+        assertNull(start?.leftover)
+    }
+
+    @Test
+    fun sheetStartUsesTheLeftoverSlotWhenTheAgendaIsEmpty() {
+        val leftover = leftoverDay(isRest = false, name = "Push")
+        val start = HomeToday.sheetStart(emptyList(), leftover, emptyList())
+        assertEquals("Push", start?.title)
+        assertNull(start?.occurrenceId)
+        assertEquals(leftover, start?.leftover)
+    }
+
+    @Test
+    fun sheetStartIsNullOnRestWhenNothingIsPlanned() {
+        val rest = leftoverDay(isRest = true, name = null)
+        assertNull(HomeToday.sheetStart(emptyList(), rest, emptyList()))
+        assertNull(HomeToday.sheetStart(emptyList(), null, emptyList()))
+    }
+
+    @Test
+    fun sheetStartPreviewIsTheNumberedSessionOrder() {
+        val leftover = leftoverDay(isRest = false, name = "Push")
+        val routines = listOf(
+            Routine(
+                id = "r-Push",
+                name = "Push",
+                notes = "",
+                createdAt = 0L,
+                updatedAt = 0L,
+                exercises = listOf("Squat", "Row").mapIndexed { index, name ->
+                    RoutineExercise(
+                        id = "item-$index",
+                        routineId = "r-Push",
+                        exercise = Exercise(
+                            id = "ex-$index",
+                            name = name,
+                            muscleGroup = "Quads",
+                            notes = "",
+                            isCustom = false,
+                        ),
+                        sortOrder = index,
+                        targetSets = 3,
+                        targetReps = 5,
+                        targetWeightKg = null,
+                        restSeconds = 90,
+                    )
+                },
+            ),
+        )
+        val start = HomeToday.sheetStart(emptyList(), leftover, routines)
+        assertEquals("1 Squat · 2 Row", start?.preview)
+    }
+
+    private fun leftoverDay(isRest: Boolean, name: String?) = SuggestedTrainingDay(
+        epochDay = 20_000L,
+        dayOfWeek = Weekday.MONDAY,
+        isRest = isRest,
+        focusKind = SessionFocusKind.PUSH,
+        focusTitle = "Push",
+        routineId = name?.let { "r-$it" },
+        routineName = name,
+        reason = "Pinned to your week.",
+        emphasisMuscles = emptyList(),
+        confidence = ScheduleConfidence.HIGH,
+    )
+
     private fun item(
         id: String,
         modality: ScheduleModality,
