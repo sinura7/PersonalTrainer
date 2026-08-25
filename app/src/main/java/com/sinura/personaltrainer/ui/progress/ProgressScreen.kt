@@ -30,6 +30,8 @@ import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.MuscleLoadSummary
+import com.sinura.personaltrainer.domain.RecommendationIntent
+import com.sinura.personaltrainer.domain.RecommendationIntents
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.BodyView
 import com.sinura.personaltrainer.ui.components.EmptyState
@@ -145,6 +147,33 @@ fun ProgressScreen(
                             )
                         }
                     }
+                    if (state.recommendations.isNotEmpty()) {
+                        item(key = "recommended-header") {
+                            GymSectionHeader("Recommended")
+                        }
+                        items(state.recommendations, key = { it.id }) { rec ->
+                            RecommendationCard(
+                                recommendation = rec,
+                                onClick = {
+                                    when (val intent = RecommendationIntents.from(rec)) {
+                                        is RecommendationIntent.OpenLibrary ->
+                                            onOpenLibrary(intent.muscle)
+                                        is RecommendationIntent.OpenExercise ->
+                                            onOpenExercise(intent.exerciseId)
+                                        RecommendationIntent.StartWorkout ->
+                                            startOptionsOpen = true
+                                        RecommendationIntent.OpenRoutines -> onOpenRoutines()
+                                        RecommendationIntent.OpenBodyMap ->
+                                            selectedName = rec.actionMuscle?.name
+                                        RecommendationIntent.MarkLighterWeek ->
+                                            viewModel.markLighterWeek()
+                                        null -> Unit
+                                    }
+                                },
+                                modifier = Modifier.animateItem(),
+                            )
+                        }
+                    }
                     item(key = "map") {
                         BodyMapCard(
                             snapshot = snapshot,
@@ -153,28 +182,6 @@ fun ProgressScreen(
                             selected = selected,
                             onSelect = { selectedName = it.name },
                         )
-                    }
-                    if (state.recommendations.isNotEmpty()) {
-                        item(key = "recommended-header") {
-                            GymSectionHeader("Recommended", modifier = Modifier.padding(top = Metrics.space5))
-                        }
-                        items(state.recommendations, key = { it.id }) { rec ->
-                            RecommendationCard(
-                                recommendation = rec,
-                                onClick = {
-                                    dispatchRecommendation(
-                                        recommendation = rec,
-                                        onOpenLibrary = onOpenLibrary,
-                                        onOpenExercise = onOpenExercise,
-                                        onStartOptions = { startOptionsOpen = true },
-                                        onOpenRoutines = onOpenRoutines,
-                                        onOpenProgress = { selectedName = rec.actionMuscle?.name },
-                                        onMarkLighterWeek = viewModel::markLighterWeek,
-                                    )
-                                },
-                                modifier = Modifier.animateItem(),
-                            )
-                        }
                     }
                     item(key = "muscles-header") {
                         GymSectionHeader("Muscles", modifier = Modifier.padding(top = Metrics.space5))

@@ -14,6 +14,7 @@ import com.sinura.personaltrainer.reminder.ReminderNotifications
 import com.sinura.personaltrainer.timer.RestTimerService
 import com.sinura.personaltrainer.ui.navigation.PersonalTrainerNav
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
+import com.sinura.personaltrainer.ui.theme.systemReduceMotion
 
 class MainActivity : ComponentActivity() {
     private var openSessionId by mutableStateOf<String?>(null)
@@ -41,7 +42,7 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
         setContent {
-            PersonalTrainerTheme {
+            PersonalTrainerTheme(reduceMotion = systemReduceMotion(this)) {
                 PersonalTrainerNav(
                     openSessionId = openSessionId,
                     onOpenSessionConsumed = { openSessionId = null },

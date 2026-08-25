@@ -1,7 +1,7 @@
 package com.sinura.personaltrainer.ui.progress
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
+import com.sinura.personaltrainer.ui.theme.instrumentTween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -204,7 +204,7 @@ fun MuscleHeatRow(
 ) {
     val fill by animateColorAsState(
         targetValue = heatColor(load.heat),
-        animationSpec = tween(durationMillis = Motion.BASE, easing = Motion.Standard),
+        animationSpec = instrumentTween(Motion.BASE),
         label = "row-${load.muscle.name}",
     )
     InstrumentRow(

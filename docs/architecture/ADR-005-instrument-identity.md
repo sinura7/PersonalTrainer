@@ -22,8 +22,8 @@ were considered and rejected.
 4. Each screen has **one dominant filled Volt action**. Secondary acts are
    quiet. Volt is not a brand wash.
 5. Motion, spacing, shape, and haptics stay on the existing token layer.
-   Reduced-motion behavior is defined in Phase 9; it does not invent a second
-   theme.
+   Reduced motion collapses token durations to zero (`LocalReducedMotion` /
+   system animator scale). It does not invent a second theme.
 6. Stock Material controls may be skinned only when golden or runtime
    evidence shows a visual or behavioral mismatch (FND-044). Taste alone is
    not enough.

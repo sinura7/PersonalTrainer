@@ -98,6 +98,7 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.VoltDim
 import com.sinura.personaltrainer.ui.theme.Warn
+import com.sinura.personaltrainer.ui.theme.instrumentTween
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.delay
@@ -508,7 +509,7 @@ fun StepperButton(
 
     val background by animateColorAsState(
         targetValue = if (pressed) SurfacePressed else Surface2,
-        animationSpec = tween(Motion.TAP),
+        animationSpec = instrumentTween(Motion.TAP),
         label = "stepper-press",
     )
 
@@ -849,7 +850,7 @@ private fun RestRing(
     )
     val sweepColor by animateColorAsState(
         targetValue = accent,
-        animationSpec = tween(Motion.BASE),
+        animationSpec = instrumentTween(Motion.BASE),
         label = "rest-accent",
     )
     val clock = RestTimer.formatClock(remainingSeconds)
@@ -993,7 +994,7 @@ fun InstrumentChip(
     // twice.
     val background by animateColorAsState(
         targetValue = if (selected) VoltDim else Surface2,
-        animationSpec = tween(Motion.TAP),
+        animationSpec = instrumentTween(Motion.TAP),
         label = "chip-fill",
     )
     Box(
@@ -1184,14 +1185,18 @@ fun SecondaryGymButton(
  * during a session and a note added to it a week later are the same affordance with the same
  * words. The write behind [onChange] is debounced by each caller's ViewModel.
  */
+enum class NotesKind { SESSION, PROGRAM }
+
 @Composable
 fun NotesBlock(
     notes: String,
     expanded: Boolean,
     onToggle: () -> Unit,
     onChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    kind: NotesKind = NotesKind.SESSION,
 ) {
-    Column {
+    Column(modifier = modifier) {
         TextButton(onClick = onToggle, contentPadding = PaddingValues(0.dp)) {
             Icon(
                 if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
@@ -1199,7 +1204,7 @@ fun NotesBlock(
                 tint = TextSecondary,
             )
             Text(
-                if (expanded) "Hide notes" else if (notes.isBlank()) "Session notes" else "Session notes · saved",
+                notesToggleLabel(kind = kind, notes = notes, expanded = expanded),
                 style = InstrumentType.bodyStrong,
                 color = TextSecondary,
                 modifier = Modifier.padding(start = Metrics.space2),
@@ -1215,6 +1220,14 @@ fun NotesBlock(
             )
         }
     }
+}
+
+fun notesToggleLabel(kind: NotesKind, notes: String, expanded: Boolean): String = when {
+    expanded -> "Hide notes"
+    kind == NotesKind.PROGRAM && notes.isBlank() -> "Add notes"
+    kind == NotesKind.PROGRAM -> "Notes"
+    notes.isBlank() -> "Session notes"
+    else -> "Session notes · saved"
 }
 
 private val SPINNER_STROKE = 3.dp

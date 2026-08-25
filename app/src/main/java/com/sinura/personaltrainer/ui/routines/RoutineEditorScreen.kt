@@ -15,16 +15,12 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.ExpandLess
-import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,7 +36,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.ExercisePickerEvent
+import com.sinura.personaltrainer.domain.ExercisePickerMode
+import com.sinura.personaltrainer.domain.ExercisePickerState
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
+import com.sinura.personaltrainer.ui.components.NotesBlock
+import com.sinura.personaltrainer.ui.components.NotesKind
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.ExerciseRow
@@ -191,6 +192,7 @@ fun RoutineEditorScreen(
                     expanded = notesOpen,
                     onToggle = { notesOpen = !notesOpen },
                     onChange = viewModel::onNotesChange,
+                    kind = NotesKind.PROGRAM,
                     modifier = Modifier.padding(top = Metrics.space4),
                 )
             }
@@ -199,16 +201,24 @@ fun RoutineEditorScreen(
 
     if (state.showExercisePicker) {
         ExercisePickerSheet(
-            query = state.searchQuery,
-            results = state.searchResults,
-            onQueryChange = viewModel::onSearchQuery,
-            onSelect = { },
-            onCreate = viewModel::createAndSelect,
-            onDismiss = { viewModel.setPickerVisible(false) },
-            title = "Add lifts",
-            selectedIds = state.pendingAddIds,
-            onToggle = viewModel::togglePendingAdd,
-            onConfirmAdd = viewModel::confirmPendingAdd,
+            state = ExercisePickerState(
+                query = state.searchQuery,
+                results = state.searchResults,
+                title = "Add lifts",
+                mode = ExercisePickerMode.MULTI_ADD,
+                selectedIds = state.pendingAddIds,
+            ),
+            onEvent = { event ->
+                when (event) {
+                    is ExercisePickerEvent.QueryChanged -> viewModel.onSearchQuery(event.query)
+                    is ExercisePickerEvent.Selected -> Unit
+                    is ExercisePickerEvent.Created ->
+                        viewModel.createAndSelect(event.name, event.muscleGroup)
+                    is ExercisePickerEvent.Toggled -> viewModel.togglePendingAdd(event.exercise)
+                    ExercisePickerEvent.Confirmed -> viewModel.confirmPendingAdd()
+                    ExercisePickerEvent.Dismissed -> viewModel.setPickerVisible(false)
+                }
+            },
         )
     }
 
@@ -308,46 +318,6 @@ private fun RoutineTitleField(
         HairlineDivider(startIndent = 0.dp)
         if (error != null) {
             Text(error, style = InstrumentType.caption, color = Danger)
-        }
-    }
-}
-
-/** Notes are a programming aside, not the second thing on the screen. */
-@Composable
-private fun NotesBlock(
-    notes: String,
-    expanded: Boolean,
-    onToggle: () -> Unit,
-    onChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier) {
-        TextButton(onClick = onToggle, contentPadding = PaddingValues(0.dp)) {
-            Icon(
-                if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-                contentDescription = null,
-                tint = TextSecondary,
-            )
-            Text(
-                when {
-                    expanded -> "Hide notes"
-                    notes.isBlank() -> "Add notes"
-                    else -> "Notes"
-                },
-                style = InstrumentType.bodyStrong,
-                color = TextSecondary,
-                modifier = Modifier.padding(start = Metrics.space2),
-            )
-        }
-        if (expanded) {
-            OutlinedTextField(
-                value = notes,
-                onValueChange = onChange,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Notes", style = InstrumentType.caption) },
-                textStyle = InstrumentType.body,
-                minLines = 2,
-            )
         }
     }
 }

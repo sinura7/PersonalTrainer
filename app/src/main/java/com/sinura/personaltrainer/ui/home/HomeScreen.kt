@@ -72,6 +72,7 @@ fun HomeScreen(
     onOpenExercise: (String) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenGoals: () -> Unit = {},
+    onOpenLibrary: () -> Unit = {},
     onLogActivity: (String) -> Unit = {},
     onOpenLiveCardio: (String) -> Unit = {},
     pendingOccurrenceStartId: String? = null,
@@ -275,6 +276,7 @@ fun HomeScreen(
                         onClick = onOpenGoals,
                     )
                 } ?: LinkRow(label = "Goals", onClick = onOpenGoals)
+                LinkRow(label = "Library", onClick = onOpenLibrary)
             }
         }
         if (plan != null) {

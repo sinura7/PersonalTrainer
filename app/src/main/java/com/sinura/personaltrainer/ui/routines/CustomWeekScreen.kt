@@ -35,6 +35,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.CustomWeekDayMark
 import com.sinura.personaltrainer.domain.CustomWeekPolicy
+import com.sinura.personaltrainer.domain.ExercisePickerEvent
+import com.sinura.personaltrainer.domain.ExercisePickerMode
+import com.sinura.personaltrainer.domain.ExercisePickerState
 import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.OnboardingPreviewCopy
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -216,16 +219,24 @@ fun CustomWeekScreen(
 
     if (state.showPicker) {
         ExercisePickerSheet(
-            query = state.searchQuery,
-            results = state.searchResults,
-            onQueryChange = viewModel::onSearchQuery,
-            onSelect = { },
-            onCreate = viewModel::createAndSelect,
-            onDismiss = { viewModel.setPickerVisible(false) },
-            title = "Add lifts",
-            selectedIds = state.pendingAddIds,
-            onToggle = viewModel::togglePendingAdd,
-            onConfirmAdd = viewModel::confirmPendingAdd,
+            state = ExercisePickerState(
+                query = state.searchQuery,
+                results = state.searchResults,
+                title = "Add lifts",
+                mode = ExercisePickerMode.MULTI_ADD,
+                selectedIds = state.pendingAddIds,
+            ),
+            onEvent = { event ->
+                when (event) {
+                    is ExercisePickerEvent.QueryChanged -> viewModel.onSearchQuery(event.query)
+                    is ExercisePickerEvent.Selected -> Unit
+                    is ExercisePickerEvent.Created ->
+                        viewModel.createAndSelect(event.name, event.muscleGroup)
+                    is ExercisePickerEvent.Toggled -> viewModel.togglePendingAdd(event.exercise)
+                    ExercisePickerEvent.Confirmed -> viewModel.confirmPendingAdd()
+                    ExercisePickerEvent.Dismissed -> viewModel.setPickerVisible(false)
+                }
+            },
         )
     }
 }

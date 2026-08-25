@@ -82,6 +82,9 @@ import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.ExercisePickerEvent
+import com.sinura.personaltrainer.domain.ExercisePickerMode
+import com.sinura.personaltrainer.domain.ExercisePickerState
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutCopy
@@ -477,16 +480,26 @@ fun ActiveWorkoutScreen(
 
     if (state.showExercisePicker) {
         ExercisePickerSheet(
-            query = state.searchQuery,
-            results = state.searchResults,
-            onQueryChange = viewModel::onSearchQuery,
-            onSelect = viewModel::addExercise,
-            onCreate = viewModel::createAndAddExercise,
-            onDismiss = { viewModel.setPickerVisible(false) },
-            title = if (state.swapping) "Swap lift" else "Add a lift",
-            suggestion = state.suggestion,
-            suggestionReason = state.suggestionReason,
-            siblings = state.swapSiblings,
+            state = ExercisePickerState(
+                query = state.searchQuery,
+                results = state.searchResults,
+                title = if (state.swapping) "Swap lift" else "Add a lift",
+                mode = if (state.swapping) ExercisePickerMode.SWAP else ExercisePickerMode.SINGLE_ADD,
+                suggestion = state.suggestion,
+                suggestionReason = state.suggestionReason,
+                siblings = state.swapSiblings,
+            ),
+            onEvent = { event ->
+                when (event) {
+                    is ExercisePickerEvent.QueryChanged -> viewModel.onSearchQuery(event.query)
+                    is ExercisePickerEvent.Selected -> viewModel.addExercise(event.exercise)
+                    is ExercisePickerEvent.Created ->
+                        viewModel.createAndAddExercise(event.name, event.muscleGroup)
+                    is ExercisePickerEvent.Toggled -> Unit
+                    ExercisePickerEvent.Confirmed -> Unit
+                    ExercisePickerEvent.Dismissed -> viewModel.setPickerVisible(false)
+                }
+            },
         )
     }
 

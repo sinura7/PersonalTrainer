@@ -81,11 +81,13 @@ import com.sinura.personaltrainer.ui.settings.SettingsScreen
 import com.sinura.personaltrainer.ui.summary.WorkoutSummaryScreen
 import com.sinura.personaltrainer.ui.settings.SettingsViewModel
 import com.sinura.personaltrainer.ui.theme.Haptics
+import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.SurfacePressed
-import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.ui.theme.TextSecondary
+import com.sinura.personaltrainer.ui.theme.instrumentTween
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.activity.ActivityComposerScreen
@@ -261,6 +263,10 @@ fun PersonalTrainerNav(
         OnboardingGate.APP -> Unit
     }
 
+    val reduceMotion = LocalReducedMotion.current
+    val screenEnter = if (reduceMotion) EnterTransition.None else ScreenEnter
+    val screenExit = if (reduceMotion) ExitTransition.None else ScreenExit
+    val barMs = if (reduceMotion) 0 else Motion.BASE
     val navController = rememberNavController()
     // Temper plates, not Material house/person/dumbbell/clock. The selected tab is volt
     // through tint; the drawings themselves stay monochrome so heat never sits on the chrome.
@@ -335,10 +341,10 @@ fun PersonalTrainerNav(
                 AnimatedVisibility(
                     visible = showLiveBar,
                     enter = slideInVertically(
-                        animationSpec = tween(Motion.BASE, easing = Motion.Standard),
+                        animationSpec = tween(barMs, easing = Motion.Standard),
                     ) { it },
                     exit = slideOutVertically(
-                        animationSpec = tween(Motion.BASE, easing = Motion.Exit),
+                        animationSpec = tween(barMs, easing = Motion.Exit),
                     ) { it },
                 ) {
                     liveSession?.let { live ->
@@ -367,10 +373,10 @@ fun PersonalTrainerNav(
                 AnimatedVisibility(
                     visible = showBottomBar,
                     enter = slideInVertically(
-                        animationSpec = tween(Motion.BASE, easing = Motion.Standard),
+                        animationSpec = tween(barMs, easing = Motion.Standard),
                     ) { it },
                     exit = slideOutVertically(
-                        animationSpec = tween(Motion.BASE, easing = Motion.Exit),
+                        animationSpec = tween(barMs, easing = Motion.Exit),
                     ) { it },
                 ) {
                     InstrumentNavBar(
@@ -394,10 +400,10 @@ fun PersonalTrainerNav(
                 modifier = Modifier
                     .padding(padding)
                     .consumeWindowInsets(padding),
-                enterTransition = { ScreenEnter },
-                exitTransition = { ScreenExit },
-                popEnterTransition = { ScreenEnter },
-                popExitTransition = { ScreenExit },
+                enterTransition = { screenEnter },
+                exitTransition = { screenExit },
+                popEnterTransition = { screenEnter },
+                popExitTransition = { screenExit },
             ) {
                 composable(Route.Home.path) {
                     HomeScreen(
@@ -423,6 +429,7 @@ fun PersonalTrainerNav(
                         onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
                         onOpenSettings = { navController.navigate(Route.Settings.path) },
                         onOpenGoals = { navController.navigate(Route.Goals.path) },
+                        onOpenLibrary = { navController.navigate(Route.Library.create(null)) },
                     )
                 }
                 composable(Route.Progress.path) {
@@ -698,18 +705,18 @@ private fun NavTab(
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val content by animateColorAsState(
-        targetValue = if (selected) Volt else TextTertiary,
-        animationSpec = tween(Motion.FAST),
+        targetValue = if (selected) Volt else TextSecondary,
+        animationSpec = instrumentTween(Motion.FAST),
         label = "nav-tab-content",
     )
     val tick by animateColorAsState(
         targetValue = if (selected) Volt else Color.Transparent,
-        animationSpec = tween(Motion.FAST),
+        animationSpec = instrumentTween(Motion.FAST),
         label = "nav-tab-tick",
     )
     val background by animateColorAsState(
         targetValue = if (pressed) SurfacePressed else Pit,
-        animationSpec = tween(Motion.TAP),
+        animationSpec = instrumentTween(Motion.TAP),
         label = "nav-tab-press",
     )
 

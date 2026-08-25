@@ -694,17 +694,27 @@ Implements [ADR-007](architecture/ADR-007-activity-model.md),
 
 **Milestone: Complete Local Fitness Beta.**
 
-### Phase 9 — Product coherence, design system, accessibility, IA evidence · pending
+### Phase 9 — Product coherence, design system, accessibility, IA evidence · in progress
 
-- **P9.1** Formal IA user evidence against ADR-006 canonical tasks.
-- **P9.2** Semantic contrast and reduced motion. Closes FND-024 / FND-045
-  as tested decisions.
-- **P9.3** Shared component contracts without false unification.
-- **P9.4** Exercise picker cohesive state/events. Closes FND-035.
-- **P9.5** Typed recommendation intents. Closes FND-036.
-- **P9.6** Page-by-page final passes as separate PRs.
+- **P9.1** Formal IA user evidence against ADR-006 canonical tasks. · **done**
+  T1–T7 have named first-click landings. Four tabs stay. Library and
+  Goals remain pushed. The reconsideration gate is encoded and unfired.
+- **P9.2** Semantic contrast and reduced motion. · **done**
+  Closes FND-024 / FND-045 as tested decisions. `TextTertiary` is not
+  load-bearing. Unselected tabs use `TextSecondary`. Reduced motion
+  collapses token durations.
+- **P9.3** Shared component contracts without false unification. · **done**
+  Session and program notes share `NotesBlock` + `NotesKind`.
+- **P9.4** Exercise picker cohesive state/events. · **done**
+  Closes FND-035.
+- **P9.5** Typed recommendation intents. · **done**
+  Closes FND-036.
+  Evidence:
+  [P9.1–P9.5 evidence](foundation-program/evidence/P9.1-P9.5-coherence.md).
+- **P9.6** Page-by-page final passes as separate PRs. · **pending**
 - **P9.7** Full accessibility closure matrix. Physical TalkBack required
   for public-candidate sign-off. Closes FND-021, FND-022, FND-023, FND-043.
+  · **pending**
 
 **Milestone: Android Public Candidate.** No cloud dependency.
 

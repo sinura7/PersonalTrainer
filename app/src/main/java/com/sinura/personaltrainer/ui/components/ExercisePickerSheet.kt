@@ -46,6 +46,9 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.ExercisePickerEvent
+import com.sinura.personaltrainer.domain.ExercisePickerMode
+import com.sinura.personaltrainer.domain.ExercisePickerState
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -83,45 +86,22 @@ import com.sinura.personaltrainer.ui.theme.VoltDim
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExercisePickerSheet(
-    query: String,
-    results: List<Exercise>,
-    onQueryChange: (String) -> Unit,
-    onSelect: (Exercise) -> Unit,
-    onCreate: (name: String, muscleGroup: String) -> Unit,
-    onDismiss: () -> Unit,
-    title: String = "Add exercise",
-    /**
-     * The coach's pick, pinned above the results.
-     *
-     * One row, not a section: this is the point in the app where a recommendation is most
-     * actionable — you are mid-workout, about to choose something — and it earns exactly one
-     * line for it. Shown only while the search box is empty, so it never sits above results
-     * that contradict what was typed.
-     */
-    suggestion: Exercise? = null,
-    suggestionReason: String? = null,
-    /**
-     * Variants of the lift being swapped, pinned above everything else.
-     *
-     * A swap is almost always "same movement, different kit": the bench is taken, the cable
-     * station is free. Making someone search for "incline dumbbell" to say that, in a list of
-     * 98, is the search this section removes. Empty for a plain add, and hidden once a query
-     * is typed, so it never sits above results that contradict what was searched for.
-     */
-    siblings: List<Exercise> = emptyList(),
-    /**
-     * Lifts already ticked in a multi-add. Empty, and ignored, when [onToggle] is null —
-     * mid-session add stays one tap, one lift.
-     */
-    selectedIds: Set<String> = emptySet(),
-    onToggle: ((Exercise) -> Unit)? = null,
-    onConfirmAdd: (() -> Unit)? = null,
+    state: ExercisePickerState,
+    onEvent: (ExercisePickerEvent) -> Unit,
 ) {
+    val query = state.query
+    val results = state.results
+    val title = state.title
+    val suggestion = state.suggestion
+    val suggestionReason = state.suggestionReason
+    val siblings = if (state.showSiblings) state.siblings else emptyList()
+    val selectedIds = state.selectedIds
+    val multiSelect = state.multiSelect
     val needle = query.trim()
     val canCreate = needle.isNotEmpty() && results.none { it.name.equals(needle, ignoreCase = true) }
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { onEvent(ExercisePickerEvent.Dismissed) },
         // One height, held: the sheet no longer grows and shrinks under the thumb as the
         // result count changes with every keystroke.
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -144,7 +124,7 @@ fun ExercisePickerSheet(
                 Text(title, style = InstrumentType.title, color = TextPrimary)
                 ExerciseSearchField(
                     value = query,
-                    onValueChange = onQueryChange,
+                    onValueChange = { onEvent(ExercisePickerEvent.QueryChanged(it)) },
                     placeholder = "Search, or name a new lift",
                 )
             }
@@ -169,7 +149,13 @@ fun ExercisePickerSheet(
                             PickerLiftRow(
                                 exercise = sibling,
                                 selected = sibling.id in selectedIds,
-                                onClick = { if (onToggle != null) onToggle(sibling) else onSelect(sibling) },
+                                onClick = {
+                                    if (multiSelect) {
+                                        onEvent(ExercisePickerEvent.Toggled(sibling))
+                                    } else {
+                                        onEvent(ExercisePickerEvent.Selected(sibling))
+                                    }
+                                },
                             )
                             HairlineDivider()
                         }
@@ -189,7 +175,13 @@ fun ExercisePickerSheet(
                             PickerLiftRow(
                                 exercise = suggestion,
                                 selected = suggestion.id in selectedIds,
-                                onClick = { if (onToggle != null) onToggle(suggestion) else onSelect(suggestion) },
+                                onClick = {
+                                    if (multiSelect) {
+                                        onEvent(ExercisePickerEvent.Toggled(suggestion))
+                                    } else {
+                                        onEvent(ExercisePickerEvent.Selected(suggestion))
+                                    }
+                                },
                                 subtitle = suggestionReason,
                             )
                             HairlineDivider()
@@ -206,7 +198,7 @@ fun ExercisePickerSheet(
                                 onMuscle = { group = it },
                                 onClick = {
                                     if (MuscleGroups.resolved(group) != null) {
-                                        onCreate(needle, group)
+                                        onEvent(ExercisePickerEvent.Created(needle, group))
                                     }
                                 },
                             )
@@ -233,21 +225,27 @@ fun ExercisePickerSheet(
                             PickerLiftRow(
                                 exercise = exercise,
                                 selected = exercise.id in selectedIds,
-                                onClick = { if (onToggle != null) onToggle(exercise) else onSelect(exercise) },
+                                onClick = {
+                                    if (multiSelect) {
+                                        onEvent(ExercisePickerEvent.Toggled(exercise))
+                                    } else {
+                                        onEvent(ExercisePickerEvent.Selected(exercise))
+                                    }
+                                },
                             )
                             if (index < results.lastIndex) HairlineDivider()
                         }
                     }
                 }
             }
-            if (onConfirmAdd != null) {
+            if (state.mode == ExercisePickerMode.MULTI_ADD) {
                 PrimaryGymButton(
                     text = when (selectedIds.size) {
                         0 -> "Add"
                         1 -> "Add 1 lift"
                         else -> "Add ${selectedIds.size} lifts"
                     },
-                    onClick = onConfirmAdd,
+                    onClick = { onEvent(ExercisePickerEvent.Confirmed) },
                     enabled = selectedIds.isNotEmpty(),
                     modifier = Modifier.padding(
                         horizontal = Metrics.gutter,

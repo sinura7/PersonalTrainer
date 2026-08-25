@@ -1,20 +1,42 @@
 package com.sinura.personaltrainer.ui.theme
 
+import android.content.Context
+import android.provider.Settings
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.SpringSpec
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 
 /**
- * Accessibility setting consumed by previews now and by the page-level
- * reduced-motion pass in Phase 9.
- *
- * Defining the seam here prevents screenshot fixtures from inventing a
- * second motion policy. Existing animations keep their current behavior
- * until each is deliberately mapped in that pass.
+ * System animator scale, previews, and the page-level reduced-motion
+ * pass (P9.2 / FND-045). One policy: durations collapse to zero. This
+ * is not a second theme.
  */
 val LocalReducedMotion = staticCompositionLocalOf { false }
+
+fun systemReduceMotion(context: Context): Boolean {
+    val resolver = context.contentResolver
+    val animator = Settings.Global.getFloat(
+        resolver,
+        Settings.Global.ANIMATOR_DURATION_SCALE,
+        1f,
+    )
+    val transition = Settings.Global.getFloat(
+        resolver,
+        Settings.Global.TRANSITION_ANIMATION_SCALE,
+        1f,
+    )
+    return animator == 0f || transition == 0f
+}
+
+@Composable
+fun <T> instrumentTween(durationMs: Int): FiniteAnimationSpec<T> =
+    if (LocalReducedMotion.current) snap() else tween(durationMs)
 
 /**
  * The motion vocabulary.
@@ -43,6 +65,8 @@ object Motion {
 
     /** One-shot reveals that are meant to be watched, such as a chart drawing in. */
     const val DRAW = 650
+
+    fun durationMs(reduced: Boolean, fullMs: Int): Int = if (reduced) 0 else fullMs
 
     val Standard: Easing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
     val Exit: Easing = CubicBezierEasing(0.3f, 0f, 1f, 1f)

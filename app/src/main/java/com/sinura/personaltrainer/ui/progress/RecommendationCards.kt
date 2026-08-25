@@ -12,8 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import com.sinura.personaltrainer.domain.CanonicalMuscle
-import com.sinura.personaltrainer.domain.RecommendationAction
+import com.sinura.personaltrainer.domain.RecommendationIntents
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -85,7 +84,7 @@ fun RecommendationCard(
                 horizontalArrangement = Arrangement.End,
             ) {
                 Text(
-                    "${actionLabel(recommendation)}  →",
+                    "${RecommendationIntents.actionLabel(recommendation)}  →",
                     style = InstrumentType.bodyStrong,
                     color = Volt,
                 )
@@ -94,55 +93,3 @@ fun RecommendationCard(
     }
 }
 
-/**
- * Names the destination before the tap.
- *
- * Derived from the same [RecommendationAction] that [dispatchRecommendation] switches on, so
- * the label cannot describe one destination while the tap goes to another — and the muscle
- * it names is literally the catalogue filter the library will open with.
- */
-private fun actionLabel(recommendation: TrainingRecommendation): String =
-    when (recommendation.action) {
-        RecommendationAction.OPEN_LIBRARY_MUSCLE -> {
-            val muscle = recommendation.actionMuscle ?: CanonicalMuscle.OTHER
-            "Find ${muscle.catalogLabel.lowercase()} lifts"
-        }
-        RecommendationAction.OPEN_EXERCISE ->
-            recommendation.actionExerciseName?.let { "Open $it" } ?: "Show on the map"
-        RecommendationAction.START_WORKOUT -> "Start a workout"
-        RecommendationAction.OPEN_ROUTINES -> "Open routines"
-        RecommendationAction.OPEN_BODY_MAP -> "Show on the map"
-        RecommendationAction.MARK_LIGHTER_WEEK -> "Mark this week lighter"
-        null -> "Show on the map"
-    }
-
-fun dispatchRecommendation(
-    recommendation: TrainingRecommendation,
-    onOpenLibrary: (CanonicalMuscle?) -> Unit,
-    onOpenExercise: (String) -> Unit,
-    /** Opens the start-options sheet. The interstitial it used to navigate to is gone. */
-    onStartOptions: () -> Unit,
-    onOpenRoutines: () -> Unit,
-    onOpenProgress: () -> Unit,
-    onMarkLighterWeek: () -> Unit = {},
-) {
-    // Belt and braces with the card, which does not make a destination-less recommendation
-    // clickable in the first place. Without this the fall-through below would reach
-    // onOpenProgress with no muscle to select, which reads as "clear the selection".
-    if (!recommendation.hasDestination) return
-    when (recommendation.action) {
-        // The muscle itself, not its label. Display text used to be the wire format here, so a
-        // copy edit could break the filter with nothing failing — the Library would just open
-        // showing everything.
-        RecommendationAction.OPEN_LIBRARY_MUSCLE -> onOpenLibrary(recommendation.actionMuscle)
-        // A card that names a lift opens that lift. Falling back to the muscle filter would
-        // undo the whole point of naming it.
-        RecommendationAction.OPEN_EXERCISE ->
-            recommendation.actionExerciseId?.let(onOpenExercise) ?: onOpenProgress()
-        RecommendationAction.START_WORKOUT -> onStartOptions()
-        RecommendationAction.OPEN_ROUTINES -> onOpenRoutines()
-        RecommendationAction.OPEN_BODY_MAP -> onOpenProgress()
-        RecommendationAction.MARK_LIGHTER_WEEK -> onMarkLighterWeek()
-        null -> onOpenProgress()
-    }
-}
