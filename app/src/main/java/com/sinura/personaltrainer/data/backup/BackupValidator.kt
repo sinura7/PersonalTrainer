@@ -4,6 +4,7 @@ import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.GoalKind
 import com.sinura.personaltrainer.domain.GoalPeriod
 import com.sinura.personaltrainer.domain.LoadType
+import com.sinura.personaltrainer.domain.SessionFocusKind
 
 /** Counts shown to the user before they agree to overwrite everything. */
 data class BackupSummary(
@@ -47,6 +48,7 @@ object BackupValidator {
     private val LOAD_TYPE_STORAGE: Set<String> = LoadType.entries.map { it.name }.toSet()
     private val GOAL_KIND_STORAGE: Set<String> = GoalKind.entries.map { it.name }.toSet()
     private val GOAL_PERIOD_STORAGE: Set<String> = GoalPeriod.entries.map { it.name }.toSet()
+    private val FOCUS_KIND_STORAGE: Set<String> = SessionFocusKind.entries.map { it.name }.toSet()
 
     private const val GENERIC_CORRUPT =
         "This backup file is damaged or incomplete, so nothing was changed."
@@ -127,8 +129,14 @@ object BackupValidator {
             if (line.exerciseId !in exerciseIds) {
                 return invalid("a routine entry uses an exercise that is not in this file")
             }
-            if (line.targetSets < 0 || line.targetReps < 0 || line.restSeconds < 0) {
+            if (line.targetSets < 0 || line.restSeconds < 0) {
                 return invalid("a routine entry has negative targets")
+            }
+            // The editor coerces a routine target to at least one rep (RoutineRepository), so a
+            // stored 0 is a state the app never writes. Accepting it here would restore a target
+            // the app itself would refuse.
+            if (line.targetReps < 1) {
+                return invalid("a routine entry targets fewer than one rep")
             }
             if (!isPlausibleWeight(line.targetWeightKg)) {
                 return invalid("a routine entry has an impossible target weight")
@@ -146,8 +154,13 @@ object BackupValidator {
             if (line.exerciseId !in exerciseIds) {
                 return invalid("a workout entry uses an exercise that is not in this file")
             }
-            if (line.targetSets < 0 || line.targetReps < 0 || line.restSeconds < 0) {
+            if (line.targetSets < 0 || line.restSeconds < 0) {
                 return invalid("a workout entry has negative targets")
+            }
+            // Session targets are seeded from routine targets and updated through the same
+            // coerce-to-at-least-one path, so the app never stores 0. Mirror that here.
+            if (line.targetReps < 1) {
+                return invalid("a workout entry targets fewer than one rep")
             }
             if (!isPlausibleWeight(line.targetWeightKg)) {
                 return invalid("a workout entry has an impossible target weight")
@@ -166,7 +179,9 @@ object BackupValidator {
                 return invalid("a logged set uses an exercise that is not in this file")
             }
             if (set.setNumber < 1) return invalid("a logged set has an invalid set number")
-            if (set.reps < 0) return invalid("a logged set has negative reps")
+            // Logging a set requires reps >= 1 (WorkoutRepository rejects "Reps must be at least
+            // 1" and coerces up), for warmups too. A stored 0 could only come from corruption.
+            if (set.reps < 1) return invalid("a logged set has fewer than one rep")
             if (!isPlausibleWeight(set.weightKg) || set.weightKg < 0.0) {
                 return invalid("a logged set has an impossible weight")
             }
@@ -209,9 +224,21 @@ object BackupValidator {
             if (routineId != null && routineId !in routineIds) {
                 return invalid("a schedule slot points at a routine that is not in this file")
             }
-            // A slot that is neither a routine nor a focus is not "rest" — rest is the absence
-            // of a slot. A row like this can only be corruption.
-            if (routineId == null && isBlank(slot.focusKind)) {
+            // An unknown focus decodes fine but is dropped by ScheduleSlotEntity.toDomain() at
+            // read time (it matches SessionFocusKind by exact name), so a "successful" restore
+            // would silently lose the pin later. Fail loudly here against the real enum names.
+            val focusKind = slot.focusKind
+            if (!isBlank(focusKind) && focusKind !in FOCUS_KIND_STORAGE) {
+                return invalid("a schedule slot has an unknown focus")
+            }
+            // The pin API requires exactly one of routineId/focusKind (XOR; see
+            // ScheduleRepository.pin). A slot that sets both is a state the model has no meaning
+            // for, and a slot that sets neither is not "rest" — rest is the absence of a slot.
+            // Either can only be corruption.
+            if (routineId != null && !isBlank(focusKind)) {
+                return invalid("a schedule slot is both a routine and a focus")
+            }
+            if (routineId == null && isBlank(focusKind)) {
                 return invalid("a schedule slot has neither a routine nor a focus")
             }
             if (slot.createdAt < MIN_PLAUSIBLE_EPOCH_MS || slot.updatedAt < MIN_PLAUSIBLE_EPOCH_MS) {
