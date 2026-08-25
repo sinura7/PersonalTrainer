@@ -199,4 +199,53 @@ class SessionSummaryTest {
         assertEquals("Workout", liftSummary.toHistoryEntry().title)
         assertEquals(0, liftSummary.toHistoryEntry().cardioMinutes)
     }
+
+    @Test
+    fun latestPrefersFinishedAtAndSurvivesAnEmptyWindow() {
+        val older = summary(id = "old", date = 1_000L, finishedAt = 1_100L, volumeKg = 100.0)
+        val newer = summary(id = "new", date = 500L, finishedAt = 2_000L, volumeKg = 200.0)
+        assertEquals("new", listOf(older, newer).latest()?.id)
+        assertEquals(null, emptyList<SessionSummary>().latest())
+    }
+
+    @Test
+    fun homeWorkFallsBackWithoutInventingKilograms() {
+        val loaded = summary(id = "v", volumeKg = 8000.0).homeWork(WeightUnit.KG)
+        assertEquals("8000", loaded.value)
+        assertEquals("kg", loaded.label)
+
+        val bodyweight = summary(id = "bw", volumeKg = 0.0, workingSets = 24).homeWork(WeightUnit.KG)
+        assertEquals("24", bodyweight.value)
+        assertEquals("sets", bodyweight.label)
+
+        val cardio = summary(id = "run", volumeKg = 0.0, cardioSeconds = 2_400L).homeWork(WeightUnit.KG)
+        assertEquals("40", cardio.value)
+        assertEquals("min", cardio.label)
+
+        val empty = summary(id = "none", volumeKg = 0.0).homeWork(WeightUnit.KG)
+        assertEquals(SetCopy.NOTHING_YET, empty.value)
+        assertEquals(12L, summary(id = "gap", localEpochDay = 100).daysSince(112))
+        assertEquals(0L, summary(id = "today", localEpochDay = 112).daysSince(112))
+    }
+
+    private fun summary(
+        id: String,
+        date: Long = 1_000L,
+        finishedAt: Long? = 1_100L,
+        volumeKg: Double = 0.0,
+        workingSets: Int = 0,
+        cardioSeconds: Long = 0L,
+        localEpochDay: Long = 10L,
+    ) = SessionSummary(
+        id = id,
+        routineId = null,
+        routineName = id,
+        date = date,
+        finishedAt = finishedAt,
+        durationMinutes = 40,
+        workingSets = workingSets,
+        volumeKg = volumeKg,
+        localEpochDay = localEpochDay,
+        cardioSeconds = cardioSeconds,
+    )
 }

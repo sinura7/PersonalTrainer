@@ -67,6 +67,7 @@ object InformationArchitecture {
             task = task,
             firstClick = LandingSurface.HISTORY,
             primary = LandingSurface.HISTORY,
+            also = listOf(LandingSurface.HOME),
         )
         CanonicalTask.T5 -> TaskLanding(
             task = task,

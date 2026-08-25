@@ -30,11 +30,13 @@ import com.sinura.personaltrainer.domain.GoalSnapshot
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.domain.WeeklySchedulePlan
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.domain.latest
 import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.workout.DiscardOutcome
 import com.sinura.personaltrainer.workout.StartDayOutcome
@@ -52,7 +54,12 @@ data class HomeUiState(
     val isLoading: Boolean = true,
     val inProgress: WorkoutSession? = null,
     val routines: List<Routine> = emptyList(),
-    val recentSessions: List<WorkoutSession> = emptyList(),
+    /**
+     * The newest finished session from all-time summaries, not the
+     * 30-day heat graph. A workout older than the window must still
+     * answer "when did I last train".
+     */
+    val lastSession: SessionSummary? = null,
     val readyToProgress: List<ProgressionHint> = emptyList(),
     val heatSnapshot: BodyHeatSnapshot? = null,
     val recommendations: List<TrainingRecommendation> = emptyList(),
@@ -60,9 +67,9 @@ data class HomeUiState(
     /**
      * Days that already hold a finished session, so the week strip can mark them.
      *
-     * Derived from the whole history rather than [recentSessions], which is capped at three for
-     * the stat row: a strip that only knew about the last three sessions would leave older days
-     * in the current week looking untrained.
+     * Derived from all-time summaries rather than the heat window: a strip
+     * that only knew about the last 30 days would leave older days in the
+     * current week looking untrained after a travel-week gap.
      */
     val loggedEpochDays: Set<Long> = emptySet(),
     /** The block this week belongs to, or null when the lifter is not in one. */
@@ -129,9 +136,7 @@ class HomeViewModel @JvmOverloads constructor(
             isLoading = false,
             inProgress = inProgress,
             routines = insights.routines,
-            recentSessions = insights.history
-                .sortedByDescending { it.performedAtMs() }
-                .take(3),
+            lastSession = insights.summaries.latest(),
             readyToProgress = insights.hints,
             heatSnapshot = insights.snapshot,
             // Home already devotes a section to the ready-to-progress lifts, so the card that

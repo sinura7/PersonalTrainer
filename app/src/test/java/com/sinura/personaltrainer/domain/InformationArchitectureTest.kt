@@ -30,6 +30,9 @@ class InformationArchitectureTest {
         assertEquals(LandingSurface.HOME, InformationArchitecture.landing(CanonicalTask.T2).firstClick)
         assertEquals(LandingSurface.PLAN, InformationArchitecture.landing(CanonicalTask.T3).firstClick)
         assertEquals(LandingSurface.HISTORY, InformationArchitecture.landing(CanonicalTask.T4).firstClick)
+        assertTrue(
+            InformationArchitecture.landing(CanonicalTask.T4).also.contains(LandingSurface.HOME),
+        )
         assertEquals(LandingSurface.BODY, InformationArchitecture.landing(CanonicalTask.T5).firstClick)
         assertEquals(LandingSurface.HISTORY, InformationArchitecture.landing(CanonicalTask.T6).firstClick)
         assertEquals(LandingSurface.PLAN, InformationArchitecture.landing(CanonicalTask.T7).primary)

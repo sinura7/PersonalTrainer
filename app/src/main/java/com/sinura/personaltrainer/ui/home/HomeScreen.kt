@@ -23,6 +23,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -30,13 +33,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.GoalCopy
 import com.sinura.personaltrainer.domain.GoalSnapshot
 import com.sinura.personaltrainer.domain.LighterWeek
-import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.MastheadCopy
 import com.sinura.personaltrainer.domain.ProgressionHint
+import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
-import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.domain.daysSince
 import com.sinura.personaltrainer.domain.featuredSession
+import com.sinura.personaltrainer.domain.homeWork
 import com.sinura.personaltrainer.domain.nextSessionReason
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.domain.todayEpochDay
@@ -169,7 +173,7 @@ fun HomeScreen(
                     onOpenSettings = onOpenSettings,
                 )
                 HomeStatRow(
-                    lastSession = state.recentSessions.firstOrNull(),
+                    lastSession = state.lastSession,
                     todayEpoch = today,
                     unit = unit,
                 )
@@ -260,6 +264,8 @@ fun HomeScreen(
                 // 12" is where this week sits, and where it sits is what the link goes to see.
                 LinkRow(
                     label = "This week",
+                    onClick = onOpenPlan,
+                    modifier = Modifier.testTag(HomeTags.THIS_WEEK),
                     trailing = state.block?.let { block ->
                         if (block.isCompleteOn(today)) {
                             "Block complete"
@@ -267,7 +273,6 @@ fun HomeScreen(
                             "Week ${block.displayWeekOn(today)} of ${block.weeks}"
                         }
                     },
-                    onClick = onOpenPlan,
                 )
                 state.goalSnapshot?.let { snapshot ->
                     GoalSnapshotCard(
@@ -275,8 +280,16 @@ fun HomeScreen(
                         unit = unit,
                         onClick = onOpenGoals,
                     )
-                } ?: LinkRow(label = "Goals", onClick = onOpenGoals)
-                LinkRow(label = "Library", onClick = onOpenLibrary)
+                } ?: LinkRow(
+                    label = "Goals",
+                    onClick = onOpenGoals,
+                    modifier = Modifier.testTag(HomeTags.GOALS),
+                )
+                LinkRow(
+                    label = "Library",
+                    onClick = onOpenLibrary,
+                    modifier = Modifier.testTag(HomeTags.LIBRARY),
+                )
             }
         }
         if (plan != null) {
@@ -344,7 +357,12 @@ private fun GoalSnapshotCard(
     onClick: () -> Unit,
 ) {
     val goal = snapshot.goal
-    GymCard(onClick = onClick) {
+    GymCard(
+        onClick = onClick,
+        modifier = Modifier
+            .testTag(HomeTags.GOALS)
+            .semantics { contentDescription = "Goals" },
+    ) {
         Kicker(if (goal.paused) "Goal · paused" else "Goal")
         Text(
             goal.exerciseName?.takeIf { it.isNotBlank() } ?: goal.kind.label,
@@ -360,8 +378,17 @@ private fun GoalSnapshotCard(
 }
 
 @Composable
-private fun LinkRow(label: String, onClick: () -> Unit, trailing: String? = null) {
-    TextButton(onClick = onClick, contentPadding = PaddingValues(0.dp)) {
+internal fun LinkRow(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    trailing: String? = null,
+) {
+    TextButton(
+        onClick = onClick,
+        modifier = modifier.semantics { contentDescription = label },
+        contentPadding = PaddingValues(0.dp),
+    ) {
         Text("$label  \u203a", style = InstrumentType.bodyStrong, color = TextSecondary)
         if (trailing != null) {
             Text(
@@ -418,21 +445,18 @@ private fun HomeMasthead(
  *
  * Home had none: a fitness tracker whose first screen was a menu of links, where the largest
  * type on the page was the app's own name. These are the last session's working volume and
- * how long ago it was — both exact from the state Home already holds, unlike a rolling
- * weekly total, which would have to be estimated from the three sessions it receives.
+ * how long ago it was — both exact from all-time summaries, not the 30-day heat graph.
  */
 @Composable
-private fun HomeStatRow(
-    lastSession: WorkoutSession?,
+internal fun HomeStatRow(
+    lastSession: SessionSummary?,
     todayEpoch: Long,
     unit: WeightUnit,
 ) {
     val column = remember(lastSession, unit) {
-        lastSession?.let { session -> SetCopy.workColumn(session.work(), unit) }
+        lastSession?.homeWork(unit)
     }
-    val daysSince = lastSession?.let { session ->
-        (todayEpoch - todayEpochDay(session.date)).coerceAtLeast(0L).toString()
-    }
+    val daysSince = lastSession?.daysSince(todayEpoch)?.toString()
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Metrics.cardGap),
@@ -442,13 +466,17 @@ private fun HomeStatRow(
             value = column?.value ?: NO_VALUE,
             unit = column?.label,
             valueColor = if (column != null) TextPrimary else TextTertiary,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .testTag(HomeTags.LAST_SESSION),
         )
         StatTile(
             label = "Days since",
             value = daysSince ?: NO_VALUE,
             valueColor = if (daysSince != null) TextPrimary else TextTertiary,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .testTag(HomeTags.DAYS_SINCE),
         )
     }
 }
@@ -485,6 +513,16 @@ private fun ReadyToProgressSection(
 }
 
 // The separator is quoted: everything outside quotes in a pattern is a format field.
+object HomeTags {
+    const val LAST_SESSION = "home-last-session"
+    const val DAYS_SINCE = "home-days-since"
+    const val START = "home-start"
+    const val REPLAY = "home-replay"
+    const val LIBRARY = "home-library"
+    const val GOALS = "home-goals"
+    const val THIS_WEEK = "home-this-week"
+}
+
 private const val DATE_LINE_PATTERN = "EEEE '·' d MMM"
 private const val NO_VALUE = "—"
 private const val LIFTS_PREVIEWED = 3

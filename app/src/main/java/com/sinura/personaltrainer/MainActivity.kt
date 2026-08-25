@@ -19,6 +19,7 @@ import com.sinura.personaltrainer.ui.theme.systemReduceMotion
 class MainActivity : ComponentActivity() {
     private var openSessionId by mutableStateOf<String?>(null)
     private var openOccurrenceId by mutableStateOf<String?>(null)
+    private var reduceMotion by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,8 +42,9 @@ class MainActivity : ComponentActivity() {
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
+        reduceMotion = systemReduceMotion(this)
         setContent {
-            PersonalTrainerTheme(reduceMotion = systemReduceMotion(this)) {
+            PersonalTrainerTheme(reduceMotion = reduceMotion) {
                 PersonalTrainerNav(
                     openSessionId = openSessionId,
                     onOpenSessionConsumed = { openSessionId = null },
@@ -55,6 +57,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        reduceMotion = systemReduceMotion(this)
         (application as? PersonalTrainerApp)
             ?.container
             ?.restTimerController

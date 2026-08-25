@@ -38,6 +38,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -253,7 +255,21 @@ fun StatTile(
     valueColor: Color = TextPrimary,
     onClick: (() -> Unit)? = null,
 ) {
-    GymCard(modifier = modifier, onClick = onClick) {
+    val spoken = buildString {
+        append(label)
+        append(", ")
+        append(value)
+        if (!unit.isNullOrBlank()) {
+            append(' ')
+            append(unit)
+        }
+    }
+    GymCard(
+        modifier = modifier.semantics(mergeDescendants = true) {
+            contentDescription = spoken
+        },
+        onClick = onClick,
+    ) {
         Kicker(label)
         Row(verticalAlignment = Alignment.Bottom) {
             Text(

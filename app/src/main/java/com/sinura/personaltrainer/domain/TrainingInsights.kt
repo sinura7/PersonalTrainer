@@ -34,15 +34,16 @@ data class TrainingInsights(
     /**
      * The finished sessions this pass was computed from, echoed back.
      *
-     * Home renders a "recent sessions" strip beside the body map. Collecting the history flow
-     * a second time to get it would run the full deep-graph query twice and — worse — let the
-     * strip and the map disagree, showing a session that the heat beside it has not counted.
+     * Windowed full graphs for heat, coach, and week derivation. Home's
+     * last-session tiles must not read this — a workout older than the
+     * 30-day window would vanish while [summaries] still knows it.
      */
     val history: List<WorkoutSession> = emptyList(),
 
     /**
      * All-time finished sessions without set graphs (P8.1). Home and Plan
-     * read dates and counts from here, never from [history].
+     * read dates, last-session recency, and counts from here, never from
+     * [history].
      */
     val summaries: List<SessionSummary> = emptyList(),
 

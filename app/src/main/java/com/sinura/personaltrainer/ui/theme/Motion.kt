@@ -15,7 +15,8 @@ import androidx.compose.runtime.staticCompositionLocalOf
 /**
  * System animator scale, previews, and the page-level reduced-motion
  * pass (P9.2 / FND-045). One policy: durations collapse to zero. This
- * is not a second theme.
+ * is not a second theme. The host Activity re-reads the scales on
+ * resume so a Settings change is picked up without process death.
  */
 val LocalReducedMotion = staticCompositionLocalOf { false }
 

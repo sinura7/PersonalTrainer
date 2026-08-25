@@ -117,6 +117,35 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun lastSessionReadsAllTimeSummariesWhenTheHeatWindowIsEmpty() = runBlocking {
+        val today = com.sinura.personaltrainer.domain.todayEpochDay()
+        val old = com.sinura.personaltrainer.domain.SessionSummary(
+            id = "ancient-pull",
+            routineId = "r1",
+            routineName = "Pull",
+            date = 1_000L,
+            finishedAt = 1_100L,
+            durationMinutes = 48,
+            workingSets = 16,
+            volumeKg = 9_000.0,
+            localEpochDay = today - 80,
+        )
+        val insights = MutableStateFlow(
+            TrainingInsights(
+                history = emptyList(),
+                summaries = listOf(old),
+            ),
+        )
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+
+        val state = viewModel!!.uiState.first { !it.isLoading }
+        assertEquals("ancient-pull", state.lastSession?.id)
+        assertEquals(today - 80, state.lastSession?.localEpochDay)
+        assertTrue(state.loggedEpochDays.contains(today - 80))
+    }
+
+    @Test
     fun requestAnswerReplayArmsPlanOnce() = runBlocking {
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)

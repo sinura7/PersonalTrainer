@@ -6,6 +6,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
@@ -109,7 +112,10 @@ fun ThisWeekCard(
                 PrimaryGymButton(
                     text = WeekTwoCopy.VOLT,
                     onClick = onReplayAnswers,
-                    modifier = Modifier.padding(top = Metrics.space1),
+                    modifier = Modifier
+                        .padding(top = Metrics.space1)
+                        .testTag(HomeTags.REPLAY)
+                        .semantics { contentDescription = WeekTwoCopy.VOLT },
                 )
                 TextButton(onClick = onSuggestWeek) {
                     Text("Suggest a week", style = InstrumentType.bodyStrong, color = TextSecondary)
@@ -127,7 +133,12 @@ fun ThisWeekCard(
                 )
             }
             if (!sessionLive) {
-                TextButton(onClick = onPrimary) {
+                TextButton(
+                    onClick = onPrimary,
+                    modifier = Modifier
+                        .testTag(HomeTags.START)
+                        .semantics { contentDescription = "Start a workout" },
+                ) {
                     Text("Start a workout", style = InstrumentType.bodyStrong, color = TextSecondary)
                 }
             }
@@ -136,14 +147,22 @@ fun ThisWeekCard(
             PrimaryGymButton(
                 text = "Start this session",
                 onClick = onPrimary,
-                modifier = Modifier.padding(top = Metrics.space1),
+                modifier = Modifier
+                    .padding(top = Metrics.space1)
+                    .testTag(HomeTags.START)
+                    .semantics { contentDescription = "Start today's planned session" },
             )
         } else if (!sessionLive) {
             // Rest day, or already trained: the masthead already said that. A second filled
             // Start reads as "it did not save" or "ignore rest". The sheet is still one tap.
             TextButton(
                 onClick = onPrimary,
-                modifier = Modifier.padding(top = Metrics.space1),
+                modifier = Modifier
+                    .padding(top = Metrics.space1)
+                    .testTag(HomeTags.START)
+                    .semantics {
+                        contentDescription = if (loggedToday) "Start another" else "Start anyway"
+                    },
                 contentPadding = PaddingValues(0.dp),
             ) {
                 Text(

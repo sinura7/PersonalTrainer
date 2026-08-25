@@ -55,6 +55,27 @@ fun ActivitySession.toSummary(): SessionSummary = SessionSummary(
     kind = HistoryKind.ACTIVITY,
 )
 
+/** Newest finished session, including ones older than the heat window. */
+fun List<SessionSummary>.latest(): SessionSummary? =
+    maxByOrNull { it.finishedAt ?: it.date }
+
+fun SessionSummary.daysSince(todayEpoch: Long): Long =
+    (todayEpoch - localEpochDay).coerceAtLeast(0L)
+
+/**
+ * The Home last-session numeral. Summaries do not carry bodyweight-rep
+ * totals, so a zero-volume day falls back to working sets or cardio
+ * minutes instead of inventing kilograms.
+ */
+fun SessionSummary.homeWork(unit: WeightUnit): WorkColumn {
+    if (volumeKg > 0.0) return SetCopy.workColumn(SetWork(volumeKg, 0), unit)
+    if (workingSets > 0) return WorkColumn(workingSets.toString(), "sets")
+    if (cardioSeconds > 0L) {
+        return WorkColumn((cardioSeconds / 60L).coerceAtLeast(1L).toString(), "min")
+    }
+    return SetCopy.workColumn(SetWork.NONE, unit)
+}
+
 fun SessionSummary.toHistoryEntry(): HistoryEntry = HistoryEntry(
     id = id,
     kind = kind,
