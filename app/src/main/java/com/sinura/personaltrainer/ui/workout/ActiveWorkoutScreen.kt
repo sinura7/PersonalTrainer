@@ -911,7 +911,7 @@ private fun LastTimeStrip(
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
         Kicker("Last time · ${relative ?: absolute}")
         LazyRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-            items(summary.sets) { set ->
+            items(summary.sets, key = { it.setId }) { set ->
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(Radius.xs))

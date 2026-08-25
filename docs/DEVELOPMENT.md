@@ -19,25 +19,27 @@ Debug and release are **separate apps**. Debug is `com.sinura.personaltrainer.de
 Release stays `com.sinura.personaltrainer`. Different signing keys, different
 databases, different icons.
 
-### Studio checkpoint for this branch
+### Studio checkpoint
 
-Checkout `cursor/phase-1-device-lane-b87f`. Select the **debug** run
-configuration and press **Run ▶**. The icon is **Temper Debug**. It will
-not open, overwrite, or see a release **Temper** install. Leave release
-on the phone.
+Checkout `trunk` and pull. Select the **debug** run configuration and
+press **Run ▶**. The icon is **Temper Debug**. It will not open,
+overwrite, or see a release **Temper** install. Leave release on the
+phone.
 
 Walk this once, in order:
 
 1. Home — last session, days since, Start, Library, Goals.
 2. Start today's plan (or Start a workout), log a set, rest, finish.
-3. Body — This week / Last 30 days. Recommendations sit above the map.
+3. Body — This week / Last 30 days. A muscle last trained more than
+   30 days ago should still show recency, not "Not trained yet."
+   Recommendations sit above the map.
 4. Plan — pin, replay, or suggest a week. Two timed items can share a day.
 5. History — Week / Month / Year / All time chips, then a session row.
 6. Settings — export a file. Do not restore over a phone that holds real history.
    Share diagnostics is optional and redacted.
 
-P9.6 page passes are on this branch. Physical TalkBack is still required
-before Public Candidate. Do not expect a fifth tab or cloud sync.
+Physical TalkBack is still required before Public Candidate. Do not
+expect a fifth tab or cloud sync.
 
 **The next debug Run ▶ is a new install.** It will not open, overwrite, or even
 see the release history. The new icon is labelled **Temper Debug**. Release

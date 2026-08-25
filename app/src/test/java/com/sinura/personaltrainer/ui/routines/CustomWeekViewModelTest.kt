@@ -7,10 +7,13 @@ import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.domain.Weekday
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -38,6 +41,7 @@ class CustomWeekViewModelTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private lateinit var deps: FakeAppDependencies
     private var viewModel: CustomWeekViewModel? = null
+    private var keepAlive: Job? = null
 
     @Before
     fun setUp() {
@@ -47,6 +51,8 @@ class CustomWeekViewModelTest {
 
     @After
     fun tearDown() {
+        keepAlive?.cancel()
+        keepAlive = null
         runBlocking { viewModel?.clearAndJoinForTest() }
         viewModel = null
         dispatcher.scheduler.advanceUntilIdle()
@@ -201,7 +207,10 @@ class CustomWeekViewModelTest {
         CustomWeekViewModel(
             ApplicationProvider.getApplicationContext<Application>(),
             deps,
-        ).also { viewModel = it }
+        ).also { vm ->
+            viewModel = vm
+            keepAlive = CoroutineScope(dispatcher).launch { vm.uiState.collect { } }
+        }
 
     private suspend fun <T : Any> eventually(block: suspend () -> T?): T =
         withTimeout(5_000) {

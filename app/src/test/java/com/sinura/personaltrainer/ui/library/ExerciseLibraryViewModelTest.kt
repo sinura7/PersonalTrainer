@@ -7,10 +7,13 @@ import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -39,6 +42,7 @@ class ExerciseLibraryViewModelTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private lateinit var deps: FakeAppDependencies
     private var viewModel: ExerciseLibraryViewModel? = null
+    private var keepAlive: Job? = null
 
     @Before
     fun setUp() {
@@ -48,6 +52,8 @@ class ExerciseLibraryViewModelTest {
 
     @After
     fun tearDown() {
+        keepAlive?.cancel()
+        keepAlive = null
         runBlocking { viewModel?.clearAndJoinForTest() }
         viewModel = null
         dispatcher.scheduler.advanceUntilIdle()
@@ -254,7 +260,10 @@ class ExerciseLibraryViewModelTest {
         ExerciseLibraryViewModel(
             ApplicationProvider.getApplicationContext<Application>(),
             deps,
-        ).also { viewModel = it }
+        ).also { vm ->
+            viewModel = vm
+            keepAlive = CoroutineScope(dispatcher).launch { vm.uiState.collect { } }
+        }
 
     private suspend fun <T : Any> eventually(block: suspend () -> T?): T =
         withTimeout(5_000) {

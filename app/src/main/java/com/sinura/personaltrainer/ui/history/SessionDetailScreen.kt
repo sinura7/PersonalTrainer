@@ -289,7 +289,7 @@ fun SessionDetailScreen(
                                 )
                             }
                         }
-                        items(exerciseCards) { (exerciseId, exerciseName) ->
+                        items(exerciseCards, key = { it.first }) { (exerciseId, exerciseName) ->
                             val sets = session.setsFor(exerciseId)
                             val loadClass = session.loadClassOf(exerciseId)
                             val work = SetWork.sum(

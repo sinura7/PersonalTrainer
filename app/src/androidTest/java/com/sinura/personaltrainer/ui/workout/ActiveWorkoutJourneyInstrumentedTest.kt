@@ -116,6 +116,9 @@ class ActiveWorkoutJourneyInstrumentedTest {
             assertFalse(isWarmup)
         }
 
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText("Skip").fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithText("Skip").assertIsDisplayed()
         val timer = container.restTimerStore.current()
         assertTrue(timer.running)

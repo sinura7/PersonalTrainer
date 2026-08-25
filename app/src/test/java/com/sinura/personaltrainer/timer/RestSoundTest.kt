@@ -94,4 +94,13 @@ class RestSoundAssetTest {
             RestTimerPreferences(soundEnabled = true, vibrationEnabled = false),
         )
     }
+
+    @Test
+    fun announceWithVibrationDoesNotThrow() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        RestTimerAlerts.announce(
+            context,
+            RestTimerPreferences(soundEnabled = false, vibrationEnabled = true),
+        )
+    }
 }

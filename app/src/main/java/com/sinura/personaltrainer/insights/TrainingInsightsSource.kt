@@ -119,7 +119,9 @@ class TrainingInsightsSource(
         window: Flow<HeatWindow>,
         refresh: Flow<Any?>,
         includeWeekPlan: Boolean,
-    ): Flow<TrainingInsights> = combine(
+    ): Flow<TrainingInsights> {
+        val completedActivities = activityRepository?.observeCompleted() ?: flowOf(emptyList())
+        return combine(
         // Six sources, five at a time: combine's typed overloads stop at five, so the slot flow
         // is folded in around the original group rather than the group being re-shaped.
         combine(
@@ -127,13 +129,13 @@ class TrainingInsightsSource(
                 combine(
                     combine(
                         workoutRepository.observeSessionSummaries(),
-                        activityRepository?.observeCompleted() ?: flowOf(emptyList()),
+                        completedActivities,
                     ) { summaries, activities ->
                         summaries + activities.filter { it.isCompleted }.map { it.toSummary() }
                     },
                     combine(
                         workoutRepository.observeFinishedSince(nowMs() - WINDOW_MS),
-                        activityRepository?.observeCompleted() ?: flowOf(emptyList()),
+                        completedActivities,
                     ) { sessions, activities ->
                         windowedInsightHistory(
                             sessions = sessions,
@@ -211,6 +213,7 @@ class TrainingInsightsSource(
             ),
         )
     }.flowOn(computeDispatcher)
+    }
 
     internal companion object {
         /** Long enough to survive a rotation or a tab switch, short enough not to hold work. */

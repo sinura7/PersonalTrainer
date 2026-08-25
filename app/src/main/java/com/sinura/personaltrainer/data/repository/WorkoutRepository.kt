@@ -96,6 +96,12 @@ class WorkoutRepository(
     fun observeHistory(): Flow<List<WorkoutSession>> =
         observeHistoryHealth().presentValues()
 
+    /**
+     * Light history rows. [SessionSummary.localEpochDay] is derived from
+     * [SessionSummary.date] in the device default zone at read time. That is
+     * the documented leftover until a freeze-legal ADR-011 column exists on
+     * `workout_sessions`. Do not "fix" it by switching to [SessionSummary.finishedAt].
+     */
     fun observeSessionSummaries(): Flow<List<com.sinura.personaltrainer.domain.SessionSummary>> =
         workoutDao.observeSessionSummaries().map { rows ->
             rows.map { row ->

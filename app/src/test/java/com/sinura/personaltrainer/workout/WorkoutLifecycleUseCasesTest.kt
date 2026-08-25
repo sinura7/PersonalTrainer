@@ -93,4 +93,27 @@ class WorkoutLifecycleUseCasesTest {
         assertNull(deps.workoutDraftCache.get(fixture.session.id))
         assertFalse(deps.restTimerStore.current().running)
     }
+
+    @Test
+    fun finishAndDiscardUseCasesAreReachableWithoutTheWrapper() = runBlocking {
+        val finishFixture = seedTestWorkout(
+            deps,
+            loggedSets = listOf(TestSetInput(80.0, 5)),
+        )
+        val finished = FinishWorkout(
+            workoutRepository = deps.workoutRepository,
+            restTimer = deps.restTimerController,
+            draftCache = deps.workoutDraftCache,
+        )(finishFixture.session.id)
+        assertEquals(FinishOutcome.Finished(finishFixture.session.id), finished)
+
+        val discardFixture = seedTestWorkout(deps)
+        val discarded = DiscardWorkout(
+            workoutRepository = deps.workoutRepository,
+            restTimer = deps.restTimerController,
+            draftCache = deps.workoutDraftCache,
+        )(discardFixture.session.id)
+        assertEquals(DiscardOutcome.Discarded, discarded)
+        assertNull(deps.workoutRepository.getSession(discardFixture.session.id))
+    }
 }
