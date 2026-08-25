@@ -15,15 +15,23 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -93,6 +101,19 @@ fun SessionLiftStrip(
 ) {
     val selected = lifts.firstOrNull { it.id == selectedId }
     val selectedIndex = lifts.indexOfFirst { it.id == selectedId }
+    val listState = rememberLazyListState()
+    var seenCount by remember { mutableIntStateOf(lifts.size) }
+    var seenFirstId by remember { mutableStateOf(lifts.firstOrNull()?.id) }
+    LaunchedEffect(lifts.firstOrNull()?.id, lifts.size) {
+        val firstId = lifts.firstOrNull()?.id
+        if (lifts.size > seenCount && lifts.isNotEmpty()) {
+            listState.animateScrollToItem(seenCount.coerceIn(0, lifts.lastIndex))
+        } else if (firstId != seenFirstId) {
+            listState.scrollToItem(0)
+        }
+        seenCount = lifts.size
+        seenFirstId = firstId
+    }
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
@@ -101,6 +122,7 @@ fun SessionLiftStrip(
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(SessionLiftTags.STRIP),
+            state = listState,
             horizontalArrangement = Arrangement.spacedBy(Metrics.cardGap),
             contentPadding = PaddingValues(vertical = Metrics.space1),
         ) {
@@ -193,7 +215,7 @@ private fun SessionLiftEditor(
             }
         }
         CompactTargetFields(
-            rowKey = item.id,
+            rowKey = "${item.id}:${item.exercise.id}",
             sets = item.sets,
             reps = item.reps,
             restSeconds = item.restSeconds,
@@ -261,19 +283,21 @@ private fun SessionLiftCard(
         load = loadDisplay,
     )
     val shape = RoundedCornerShape(Radius.sm)
+    val isSelected = selected
     Column(
         modifier = modifier
             .width(CARD_WIDTH)
             .heightIn(min = Metrics.rowMin)
             .clip(shape)
-            .background(if (selected) VoltDim else Surface2)
+            .background(if (isSelected) VoltDim else Surface2)
             .border(
-                if (selected) Metrics.emphasisBorder else Metrics.hairline,
-                if (selected) Volt else Hairline,
+                if (isSelected) Metrics.emphasisBorder else Metrics.hairline,
+                if (isSelected) Volt else Hairline,
                 shape,
             )
             .semantics(mergeDescendants = true) {
                 contentDescription = spoken
+                this.selected = isSelected
             }
             .clickable(onClick = onClick)
             .testTag(SessionLiftTags.card(item.id))
@@ -284,7 +308,7 @@ private fun SessionLiftCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
         ) {
-            CartBadge(number = number, selected = selected)
+            CartBadge(number = number, selected = isSelected)
             ExerciseThumb(
                 exercise = item.exercise,
                 size = ThumbSize.header,

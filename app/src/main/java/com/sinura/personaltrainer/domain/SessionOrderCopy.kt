@@ -37,7 +37,8 @@ object SessionOrderCopy {
             "${index + 1} $name"
         }.joinToString(" · ")
         val rest = names.size - cap
-        return if (rest > 0) "$shown · +$rest more" else shown
+        // Count first so a one-line ellipsis cannot eat the remainder.
+        return if (rest > 0) "${names.size} lifts · $shown" else shown
     }
 
     fun cardSpoken(

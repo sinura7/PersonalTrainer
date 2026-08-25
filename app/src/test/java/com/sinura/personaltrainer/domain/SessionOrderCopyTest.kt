@@ -8,7 +8,7 @@ class SessionOrderCopyTest {
     fun numberedPreviewKeepsTapOrderAndEmptyCopy() {
         assertEquals(SessionOrderCopy.EMPTY_PREVIEW, SessionOrderCopy.numberedPreview(emptyList()))
         assertEquals(
-            "1 Squat · 2 Row · 3 Bench · +1 more",
+            "4 lifts · 1 Squat · 2 Row · 3 Bench",
             SessionOrderCopy.numberedPreview(listOf("Squat", "Row", "Bench", "Curl")),
         )
         assertEquals(
@@ -17,7 +17,7 @@ class SessionOrderCopyTest {
         )
         assertEquals("1 Squat", SessionOrderCopy.numberedPreview(listOf("Squat")))
         assertEquals(
-            "1 Squat · +3 more",
+            "4 lifts · 1 Squat",
             SessionOrderCopy.numberedPreview(listOf("Squat", "Row", "Bench", "Curl"), limit = 0),
         )
     }

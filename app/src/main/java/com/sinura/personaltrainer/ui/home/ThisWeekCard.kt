@@ -45,8 +45,9 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
  * the lift list and the reason line, so those moved here, where they sit under the headline
  * they belong to. One card, one tap, more on it than either had alone.
  *
- * @param lifts the first few lift names of the session named above, already resolved. Empty
+ * @param lifts lift names of the session named above, in session order. Empty
  * when the day has no routine attached — a proposed focus rather than a pinned session.
+ * [SessionOrderCopy.numberedPreview] truncates the line.
  * @param reason one line on why it is worth doing, from [com.sinura.personaltrainer.domain
  * .nextSessionReason]. Null when there is nothing worth saying, which is not the same as "".
  * @param sessionLive when a workout is already running. The card still names the plan; it

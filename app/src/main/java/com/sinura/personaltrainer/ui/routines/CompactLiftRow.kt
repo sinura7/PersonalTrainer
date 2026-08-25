@@ -229,7 +229,7 @@ internal fun CompactTargetFields(
             allowDecimal = true,
             suffix = unit.suffix,
         ) {
-            weightText = it.filter { ch -> ch.isDigit() || ch == '.' }
+            weightText = decimalDigits(it)
             stage()
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
@@ -273,4 +273,12 @@ private fun MiniNumberField(
             keyboardType = if (allowDecimal) KeyboardType.Decimal else KeyboardType.Number,
         ),
     )
+}
+
+/** One decimal point. Extra dots used to make the field unparseable and clear the load. */
+internal fun decimalDigits(raw: String): String {
+    val filtered = raw.filter { it.isDigit() || it == '.' }
+    val dot = filtered.indexOf('.')
+    if (dot < 0) return filtered
+    return filtered.take(dot + 1) + filtered.substring(dot + 1).replace(".", "")
 }

@@ -270,6 +270,23 @@ class RoutineEditorViewModelTest {
     }
 
     @Test
+    fun createAndSelectAfterDismissDoesNotLeaveAGhostCart() = runBlocking {
+        val vm = createViewModel("new")
+        vm.uiState.first { !it.isLoading }
+        vm.setPickerVisible(true)
+        vm.setPickerVisible(false)
+        vm.createAndSelect("Good morning", "Hamstrings")
+
+        eventually {
+            true.takeIf {
+                deps.exerciseRepository.observeAll().first().any { it.name == "Good morning" }
+            }
+        }
+        assertTrue(vm.uiState.value.pendingAddIds.isEmpty())
+        assertFalse(vm.uiState.value.showExercisePicker)
+    }
+
+    @Test
     fun confirmPendingAddWritesSelectedLiftsAndClosesThePicker() = runBlocking {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val row = insertTestExercise(deps, "row", "Row")

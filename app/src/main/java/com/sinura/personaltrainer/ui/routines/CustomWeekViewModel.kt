@@ -199,6 +199,10 @@ class CustomWeekViewModel @JvmOverloads constructor(
 
     fun createAndSelect(name: String, muscleGroup: String) {
         viewModelScope.launch {
+            if (name.isBlank()) {
+                error.value = "Exercise name is required."
+                return@launch
+            }
             runCatchingCancellable {
                 when (val result = container.exerciseRepository.createCustom(name, muscleGroup)) {
                     is SaveExerciseResult.DuplicateName ->
@@ -206,9 +210,14 @@ class CustomWeekViewModel @JvmOverloads constructor(
                     is SaveExerciseResult.MissingMuscle ->
                         error.value = MuscleGroups.MISSING_MESSAGE
                     is SaveExerciseResult.Saved -> {
-                        extraCatalog.value = extraCatalog.value + result.exercise
+                        extraCatalog.value = LiftCart.mergeSources(
+                            extraCatalog.value,
+                            listOf(result.exercise),
+                        )
                         catalog.value = LiftCart.mergeSources(catalog.value, extraCatalog.value)
-                        togglePendingAdd(result.exercise)
+                        if (showPicker.value) {
+                            togglePendingAdd(result.exercise)
+                        }
                     }
                 }
             }.onFailure {

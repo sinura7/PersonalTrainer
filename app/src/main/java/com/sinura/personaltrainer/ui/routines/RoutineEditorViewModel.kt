@@ -519,8 +519,13 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                     is SaveExerciseResult.DuplicateName -> error.value = DUPLICATE_NAME_MESSAGE
                     is SaveExerciseResult.MissingMuscle -> error.value = MuscleGroups.MISSING_MESSAGE
                     is SaveExerciseResult.Saved -> {
-                        extraCatalog.value = extraCatalog.value + result.exercise
-                        togglePendingAdd(result.exercise)
+                        extraCatalog.value = LiftCart.mergeSources(
+                            extraCatalog.value,
+                            listOf(result.exercise),
+                        )
+                        if (showPicker.value && !confirmInFlight) {
+                            togglePendingAdd(result.exercise)
+                        }
                         error.value = null
                     }
                 }

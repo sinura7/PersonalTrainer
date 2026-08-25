@@ -250,6 +250,30 @@ class CustomWeekViewModelTest {
     }
 
     @Test
+    fun createAndSelectBlankSurfacesTheNameError() = runBlocking {
+        val vm = createViewModel()
+        vm.createAndSelect("  ", "Back")
+        assertEquals("Exercise name is required.", eventually { vm.uiState.value.error })
+        assertTrue(deps.exerciseRepository.observeAll().first().isEmpty())
+    }
+
+    @Test
+    fun createAndSelectAfterDismissDoesNotLeaveAGhostCart() = runBlocking {
+        val vm = createViewModel()
+        vm.setPickerVisible(true)
+        vm.setPickerVisible(false)
+        vm.createAndSelect("Good morning", "Hamstrings")
+
+        eventually {
+            true.takeIf {
+                deps.exerciseRepository.observeAll().first().any { it.name == "Good morning" }
+            }
+        }
+        assertTrue(vm.uiState.value.pendingAddIds.isEmpty())
+        assertFalse(vm.uiState.value.showPicker)
+    }
+
+    @Test
     fun dismissingThePickerClearsSearchAndPendingAdds() = runBlocking {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val vm = createViewModel()

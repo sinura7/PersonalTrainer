@@ -231,7 +231,6 @@ fun HomeScreen(
                     lifts = featured?.routineId
                         ?.let { id -> state.routines.firstOrNull { it.id == id } }
                         ?.exercises.orEmpty()
-                        .take(LIFTS_PREVIEWED)
                         .map { it.exercise.name },
                     reason = nextSessionReason(featured, state.recommendations),
                     onSuggestWeek = {
@@ -523,4 +522,3 @@ object HomeTags {
 
 private const val DATE_LINE_PATTERN = "EEEE '·' d MMM"
 private const val NO_VALUE = "—"
-private const val LIFTS_PREVIEWED = 3

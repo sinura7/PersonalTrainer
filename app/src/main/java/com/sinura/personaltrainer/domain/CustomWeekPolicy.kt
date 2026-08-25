@@ -120,8 +120,8 @@ object CustomWeekPolicy {
             lift
         } else {
             lift.copy(
-                targetSets = sets?.coerceAtLeast(1) ?: lift.targetSets,
-                targetReps = reps?.coerceAtLeast(1) ?: lift.targetReps,
+                targetSets = sets?.takeIf { it >= 1 } ?: lift.targetSets,
+                targetReps = reps?.takeIf { it >= 1 } ?: lift.targetReps,
                 restSeconds = restSeconds?.coerceAtLeast(0) ?: lift.restSeconds,
                 targetWeightKg = weightKg?.takeIf { it > 0.0 },
             )

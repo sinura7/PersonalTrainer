@@ -137,6 +137,18 @@ class CustomWeekPolicyTest {
         )
         assertEquals(null, cleared.single().targetWeightKg)
         assertEquals(5, cleared.single().targetSets)
+
+        val zeroSets = CustomWeekPolicy.updateTargets(
+            updated,
+            itemId = "a",
+            sets = 0,
+            reps = 0,
+            restSeconds = null,
+            weightKg = 80.0,
+        )
+        assertEquals(5, zeroSets.single().targetSets)
+        assertEquals(5, zeroSets.single().targetReps)
+        assertEquals(180, zeroSets.single().restSeconds)
     }
 
     private fun filledWeek(count: Int): Map<Weekday, List<CustomWeekLift>> =
