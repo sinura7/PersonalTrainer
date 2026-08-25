@@ -62,6 +62,7 @@ class HomePassInstrumentedTest {
                 onSuggestWeek = {},
                 onReplayAnswers = {},
                 onPrimary = {},
+                onStartFree = {},
             )
             LinkRow(
                 label = "Goals",
@@ -77,6 +78,8 @@ class HomePassInstrumentedTest {
         compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
         compose.onNodeWithContentDescription("Start today's planned session").assertIsDisplayed()
         compose.onNodeWithText("Start this session").assertIsDisplayed()
+        compose.onNodeWithTag(HomeTags.FREE).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Start a free workout").assertIsDisplayed()
         compose.onNodeWithTag(HomeTags.GOALS).assertIsDisplayed()
         compose.onNodeWithContentDescription("Goals").assertIsDisplayed()
         compose.onNodeWithTag(HomeTags.LIBRARY).assertIsDisplayed()
@@ -97,12 +100,13 @@ class HomePassInstrumentedTest {
                 onSuggestWeek = {},
                 onReplayAnswers = {},
                 onPrimary = {},
+                onStartFree = {},
             )
         }
         compose.onNodeWithTag(HomeTags.REPLAY).assertIsDisplayed()
         compose.onNodeWithContentDescription(WeekTwoCopy.VOLT).assertIsDisplayed()
-        compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Start a workout").assertIsDisplayed()
+        compose.onNodeWithTag(HomeTags.FREE).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Start a free workout").assertIsDisplayed()
     }
 
     private fun assertHomeAboveFold(fontScale: Float) {

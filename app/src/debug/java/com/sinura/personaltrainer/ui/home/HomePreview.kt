@@ -66,6 +66,7 @@ private fun HomePopulatedPreview() {
                 onSuggestWeek = {},
                 onReplayAnswers = {},
                 onPrimary = {},
+                onStartFree = {},
             )
             LinkRow(label = "Goals", onClick = {})
             LinkRow(label = "Library", onClick = {})
@@ -95,6 +96,7 @@ private fun HomeEmptyPreview() {
                 onSuggestWeek = {},
                 onReplayAnswers = {},
                 onPrimary = {},
+                onStartFree = {},
             )
             LinkRow(label = "Goals", onClick = {})
             LinkRow(label = "Library", onClick = {})
@@ -123,6 +125,7 @@ private fun HomeReducedMotionPreview() {
                 onSuggestWeek = {},
                 onReplayAnswers = {},
                 onPrimary = {},
+                onStartFree = {},
             )
         }
     }

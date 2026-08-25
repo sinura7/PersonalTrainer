@@ -4,7 +4,10 @@ import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.OccurrenceStatus
+import com.sinura.personaltrainer.domain.ScheduleConfidence
 import com.sinura.personaltrainer.domain.ScheduleModality
+import com.sinura.personaltrainer.domain.SessionFocusKind
+import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.Weekday
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -66,6 +69,30 @@ class PendingOccurrenceTest {
         assertEquals("session-strength", after.single { it.hour == 18 }.completedActivityId)
         assertNull(deps.pendingOccurrenceId.value)
         assertNull(deps.preferencesRepository.pendingOccurrenceId.first())
+    }
+
+    @Test
+    fun bindForPlannedDayMatchesThePinnedRoutine() = runBlocking {
+        val routine = deps.routineRepository.create("Push")
+        deps.scheduleRepository.pin(routine.id, null, Weekday.MONDAY)
+        deps.plannerRepository.importSlotsIfNeeded()
+        val occ = deps.plannerRepository.ensureWeek(weekStart, "UTC", 1L).single()
+        PendingOccurrence.bindForPlannedDay(
+            deps,
+            SuggestedTrainingDay(
+                epochDay = weekStart.epochDay,
+                dayOfWeek = Weekday.MONDAY,
+                isRest = false,
+                focusKind = SessionFocusKind.PUSH,
+                focusTitle = "Push",
+                routineId = routine.id,
+                routineName = routine.name,
+                reason = "Planned.",
+                emphasisMuscles = emptyList(),
+                confidence = ScheduleConfidence.HIGH,
+            ),
+        )
+        assertEquals(occ.id, deps.pendingOccurrenceId.value)
     }
 
     @Test

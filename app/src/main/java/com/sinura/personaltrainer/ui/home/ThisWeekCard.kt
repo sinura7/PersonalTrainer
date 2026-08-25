@@ -50,6 +50,8 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
  * @param sessionLive when a workout is already running. The card still names the plan; it
  * does not offer to start or return. The live bar is the only way back — a Start button
  * here would either lie (it cannot start) or become a second Resume.
+ * @param onStartFree empty session the lifter fills as they go. Quiet on purpose so it
+ * does not compete with following today's Plan routine.
  */
 @Composable
 fun ThisWeekCard(
@@ -63,6 +65,7 @@ fun ThisWeekCard(
     onSuggestWeek: () -> Unit,
     onReplayAnswers: () -> Unit,
     onPrimary: () -> Unit,
+    onStartFree: () -> Unit,
 ) {
     val trainingToday = day?.takeUnless { it.isRest }
     val hasPlan = trainingToday != null || nextDay != null
@@ -134,16 +137,16 @@ fun ThisWeekCard(
             }
             if (!sessionLive) {
                 TextButton(
-                    onClick = onPrimary,
+                    onClick = onStartFree,
                     modifier = Modifier
-                        .testTag(HomeTags.START)
-                        .semantics { contentDescription = "Start a workout" },
+                        .testTag(HomeTags.FREE)
+                        .semantics { contentDescription = FREE_WORKOUT },
                 ) {
-                    Text("Start a workout", style = InstrumentType.bodyStrong, color = TextSecondary)
+                    Text(FREE_WORKOUT, style = InstrumentType.bodyStrong, color = TextSecondary)
                 }
             }
         } else if (!sessionLive && trainingToday != null && !loggedToday) {
-            // The only volt on Home: today is planned and has not been trained yet.
+            // The only volt on Home: follow the routine Plan already designed for today.
             PrimaryGymButton(
                 text = "Start this session",
                 onClick = onPrimary,
@@ -152,25 +155,30 @@ fun ThisWeekCard(
                     .testTag(HomeTags.START)
                     .semantics { contentDescription = "Start today's planned session" },
             )
-        } else if (!sessionLive) {
-            // Rest day, or already trained: the masthead already said that. A second filled
-            // Start reads as "it did not save" or "ignore rest". The sheet is still one tap.
             TextButton(
-                onClick = onPrimary,
+                onClick = onStartFree,
                 modifier = Modifier
-                    .padding(top = Metrics.space1)
-                    .testTag(HomeTags.START)
-                    .semantics {
-                        contentDescription = if (loggedToday) "Start another" else "Start anyway"
-                    },
+                    .testTag(HomeTags.FREE)
+                    .semantics { contentDescription = FREE_WORKOUT },
                 contentPadding = PaddingValues(0.dp),
             ) {
-                Text(
-                    if (loggedToday) "Start another" else "Start anyway",
-                    style = InstrumentType.bodyStrong,
-                    color = TextSecondary,
-                )
+                Text(FREE_WORKOUT, style = InstrumentType.bodyStrong, color = TextSecondary)
+            }
+        } else if (!sessionLive) {
+            // Rest day, or already trained: the plan Volt would lie. Free logging is still
+            // the honest second path.
+            TextButton(
+                onClick = onStartFree,
+                modifier = Modifier
+                    .padding(top = Metrics.space1)
+                    .testTag(HomeTags.FREE)
+                    .semantics { contentDescription = FREE_WORKOUT },
+                contentPadding = PaddingValues(0.dp),
+            ) {
+                Text(FREE_WORKOUT, style = InstrumentType.bodyStrong, color = TextSecondary)
             }
         }
     }
 }
+
+private const val FREE_WORKOUT = "Start a free workout"

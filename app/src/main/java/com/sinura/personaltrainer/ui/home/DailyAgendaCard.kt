@@ -6,6 +6,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.OccurrenceStatus
+import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.HairlineDivider
@@ -48,7 +49,13 @@ fun DailyAgendaCard(
                             if (planned && !sessionLive) onStartOccurrence(item.occurrence.id)
                         },
                     )
-                    if (planned && !sessionLive) {
+                    if (
+                        planned &&
+                        !sessionLive &&
+                        item.rule?.modality == ScheduleModality.CARDIO
+                    ) {
+                        // Strength is started from the hero ("follow today's plan").
+                        // Cardio stays independently startable so two-a-day is not buried.
                         PrimaryGymButton(
                             text = "Start ${item.title}",
                             onClick = { onStartOccurrence(item.occurrence.id) },

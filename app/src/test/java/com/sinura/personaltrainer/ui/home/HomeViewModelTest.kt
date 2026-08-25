@@ -4,12 +4,21 @@ import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.PendingOccurrence
+import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.LoadType
+import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.ProgressionAction
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RecommendationPriority
+import com.sinura.personaltrainer.domain.ScheduleConfidence
+import com.sinura.personaltrainer.domain.SessionFocusKind
+import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.domain.TrainingRecommendation
+import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.domain.todayEpochDay
+import com.sinura.personaltrainer.testutil.insertTestExercise
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +30,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -146,6 +156,57 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun plannedStartBindsOccurrenceSoFinishMarksItDone() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        val today = todayEpochDay()
+        val weekday = Weekday.fromEpochDay(today)
+        val weekStart = CivilDate.fromEpochDay(today).previousOrSame(Weekday.MONDAY)
+        val routine = deps.routineRepository.create("Push")
+        val squat = insertTestExercise(deps, "ex-home-squat", "Squat")
+        deps.routineRepository.addExercise(routine.id, squat, 3, 5, 100.0, 90)
+        deps.scheduleRepository.pin(routine.id, null, weekday)
+        deps.plannerRepository.importSlotsIfNeeded()
+        deps.plannerRepository.ensureWeek(weekStart)
+        viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+
+        viewModel!!.startSuggestedDay(plannedDay(today, weekday, routine.id, routine.name))
+        val sessionId = viewModel!!.navigateToSession.first { it != null }!!
+        PendingOccurrence.complete(deps, sessionId)
+
+        val occurrence = deps.plannerRepository.occurrencesBetween(today, today).single()
+        assertEquals(OccurrenceStatus.DONE, occurrence.status)
+        assertEquals(sessionId, occurrence.completedActivityId)
+    }
+
+    @Test
+    fun freeWorkoutOpensAnEmptySessionWithoutMarkingThePlan() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        val today = todayEpochDay()
+        val weekday = Weekday.fromEpochDay(today)
+        val weekStart = CivilDate.fromEpochDay(today).previousOrSame(Weekday.MONDAY)
+        val routine = deps.routineRepository.create("Push")
+        val squat = insertTestExercise(deps, "ex-home-free", "Squat")
+        deps.routineRepository.addExercise(routine.id, squat, 3, 5, 100.0, 90)
+        deps.scheduleRepository.pin(routine.id, null, weekday)
+        deps.plannerRepository.importSlotsIfNeeded()
+        deps.plannerRepository.ensureWeek(weekStart)
+        viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+
+        viewModel!!.startFreeWorkout()
+        val sessionId = viewModel!!.navigateToSession.first { it != null }!!
+        val session = deps.workoutRepository.getSession(sessionId)!!
+        assertEquals("Free workout", session.routineName)
+        assertTrue(session.exercises.isEmpty())
+        assertNull(deps.pendingOccurrenceId.value)
+        assertEquals(
+            OccurrenceStatus.PLANNED,
+            deps.plannerRepository.occurrencesBetween(today, today).single().status,
+        )
+    }
+
+    @Test
     fun requestAnswerReplayArmsPlanOnce() = runBlocking {
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
@@ -163,6 +224,24 @@ class HomeViewModelTest {
         suggestedWeightKg = 102.5,
         action = ProgressionAction.INCREASE,
         loadType = LoadType.EXTERNAL,
+    )
+
+    private fun plannedDay(
+        today: Long,
+        weekday: Weekday,
+        routineId: String,
+        routineName: String,
+    ) = SuggestedTrainingDay(
+        epochDay = today,
+        dayOfWeek = weekday,
+        isRest = false,
+        focusKind = SessionFocusKind.PUSH,
+        focusTitle = "Push",
+        routineId = routineId,
+        routineName = routineName,
+        reason = "Planned.",
+        emphasisMuscles = emptyList(),
+        confidence = ScheduleConfidence.HIGH,
     )
 
     private fun rec(id: String) = TrainingRecommendation(

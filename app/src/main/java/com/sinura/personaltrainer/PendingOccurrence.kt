@@ -1,5 +1,8 @@
 package com.sinura.personaltrainer
 
+import com.sinura.personaltrainer.domain.DailyAgenda
+import com.sinura.personaltrainer.domain.PlannedOccurrence
+import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import kotlinx.coroutines.flow.first
 
 /**
@@ -14,6 +17,18 @@ object PendingOccurrence {
     suspend fun bind(deps: AppDependencies, occurrenceId: String?) {
         deps.pendingOccurrenceId.value = occurrenceId
         deps.preferencesRepository.setPendingOccurrenceId(occurrenceId)
+    }
+
+    /**
+     * Bind the dated strength occurrence that [day] is following, or clear
+     * the binding when this start is not a planned session (free workout,
+     * leftover slot with no occurrence, rest).
+     */
+    suspend fun bindForPlannedDay(deps: AppDependencies, day: SuggestedTrainingDay) {
+        val occurrences = deps.plannerRepository.occurrencesBetween(day.epochDay, day.epochDay)
+        val items = DailyAgenda.forDay(day.epochDay, occurrences, deps.plannerRepository.rules())
+        val match = PlannedOccurrence.matching(day, items)
+        if (match == null) forget(deps) else bind(deps, match.occurrence.id)
     }
 
     suspend fun restore(deps: AppDependencies) {

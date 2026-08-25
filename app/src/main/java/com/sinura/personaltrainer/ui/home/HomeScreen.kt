@@ -247,14 +247,13 @@ fun HomeScreen(
                     },
                     onPrimary = {
                         val target = todayDay?.takeUnless { it.isRest }
-                        // One tap starts today's plan. Everything else — a rest day, an empty
-                        // week, a session already running — is a question, and the sheet is
-                        // where questions get asked.
+                        // One tap starts today's Plan routine. Free logging is [onStartFree].
                         when {
                             inProgress != null || target == null -> startOptionsOpen = true
                             else -> viewModel.startSuggestedDay(target)
                         }
                     },
+                    onStartFree = { viewModel.startFreeWorkout() },
                 )
                 // The card body no longer navigates. A whole-card tap that went to the plan,
                 // with a filled Start inside it, was a mis-tap trap on the most-pressed
@@ -517,6 +516,7 @@ object HomeTags {
     const val LAST_SESSION = "home-last-session"
     const val DAYS_SINCE = "home-days-since"
     const val START = "home-start"
+    const val FREE = "home-free-start"
     const val REPLAY = "home-replay"
     const val LIBRARY = "home-library"
     const val GOALS = "home-goals"

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
+import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.ActivitySession
 import com.sinura.personaltrainer.domain.AddDefaults
@@ -178,6 +179,7 @@ class StartOptionsViewModel @JvmOverloads constructor(
 
     fun startRoutine(routineId: String) {
         viewModelScope.launch {
+            PendingOccurrence.forget(container)
             val routine = container.routineRepository.getById(routineId)
             if (routine == null) {
                 error.value = "That routine is no longer available."
@@ -208,6 +210,7 @@ class StartOptionsViewModel @JvmOverloads constructor(
     fun startSuggested() {
         val exercise = uiState.value.suggestion ?: return
         viewModelScope.launch {
+            PendingOccurrence.forget(container)
             try {
                 val focus = OwnedLiftResolver.primaryMuscleOf(exercise)?.displayName
                 val outcome = container.workoutRepository.startFreeWorkoutSafely(focusTitle = focus)
@@ -266,6 +269,7 @@ class StartOptionsViewModel @JvmOverloads constructor(
 
     fun startFree() {
         viewModelScope.launch {
+            PendingOccurrence.forget(container)
             try {
                 handleStart(container.workoutRepository.startFreeWorkoutSafely())
             } catch (thrown: kotlinx.coroutines.CancellationException) {

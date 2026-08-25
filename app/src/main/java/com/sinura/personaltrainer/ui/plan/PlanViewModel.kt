@@ -434,7 +434,7 @@ class PlanViewModel @JvmOverloads constructor(
 
     fun startDay(day: SuggestedTrainingDay) {
         viewModelScope.launch {
-            PendingOccurrence.forget(container)
+            PendingOccurrence.bindForPlannedDay(container, day)
             start(day)
         }
     }

@@ -38,6 +38,7 @@ import com.sinura.personaltrainer.domain.WeeklySchedulePlan
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.latest
 import com.sinura.personaltrainer.domain.todayEpochDay
+import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.workout.DiscardOutcome
 import com.sinura.personaltrainer.workout.StartDayOutcome
 import kotlinx.coroutines.Dispatchers
@@ -219,8 +220,43 @@ class HomeViewModel @JvmOverloads constructor(
 
     fun startSuggestedDay(day: SuggestedTrainingDay) {
         viewModelScope.launch {
-            PendingOccurrence.forget(container)
+            PendingOccurrence.bindForPlannedDay(container, day)
             start(day)
+        }
+    }
+
+    /**
+     * Empty session the lifter fills in real time. Not today's plan, so the
+     * pending occurrence is cleared — finishing this must not mark a Plan
+     * row DONE.
+     */
+    fun startFreeWorkout() {
+        viewModelScope.launch {
+            PendingOccurrence.forget(container)
+            when (val outcome = container.workoutRepository.startFreeWorkoutSafely()) {
+                is StartSessionOutcome.Started -> {
+                    actionError.value = null
+                    _navigateToSession.value = outcome.session.id
+                }
+                is StartSessionOutcome.Blocked ->
+                    _blockedByInProgress.value = BlockedStart(
+                        day = SuggestedTrainingDay(
+                            epochDay = todayEpochDay(),
+                            dayOfWeek = Weekday.fromEpochDay(todayEpochDay()),
+                            isRest = false,
+                            focusKind = SessionFocusKind.FULL_BODY,
+                            focusTitle = "Free workout",
+                            routineId = null,
+                            routineName = "Free workout",
+                            reason = "",
+                            emphasisMuscles = emptyList(),
+                            confidence = ScheduleConfidence.HIGH,
+                        ),
+                        sessionId = outcome.inProgress.id,
+                    )
+                is StartSessionOutcome.Unavailable ->
+                    actionError.value = outcome.message
+            }
         }
     }
 
@@ -338,7 +374,10 @@ class HomeViewModel @JvmOverloads constructor(
         _blockedByInProgress.value = null
         viewModelScope.launch {
             when (val result = container.discardWorkout(blocked.sessionId)) {
-                DiscardOutcome.Discarded -> start(blocked.day)
+                DiscardOutcome.Discarded -> {
+                    PendingOccurrence.bindForPlannedDay(container, blocked.day)
+                    start(blocked.day)
+                }
                 is DiscardOutcome.Failed -> actionError.value = result.message
             }
         }
