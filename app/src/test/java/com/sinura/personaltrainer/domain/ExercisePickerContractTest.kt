@@ -67,4 +67,32 @@ class ExercisePickerContractTest {
         )
         assertEquals(listOf("ex-2", "ex-1"), state.cart.map { it.id })
     }
+
+    @Test
+    fun cartOmitsIdsTheCatalogCannotResolve() {
+        val state = ExercisePickerState(
+            query = "",
+            results = emptyList(),
+            title = "Add lifts",
+            mode = ExercisePickerMode.MULTI_ADD,
+            selectedOrder = listOf(squat.id, "ghost"),
+            catalog = listOf(squat),
+        )
+        assertEquals(listOf(squat), state.cart)
+        assertEquals(setOf("ex-1", "ghost"), state.selectedIds)
+    }
+
+    @Test
+    fun cartResolvesFromSearchResultsWhenCatalogHasNotCaughtUp() {
+        val state = ExercisePickerState(
+            query = "squat",
+            results = listOf(squat),
+            title = "Add lifts",
+            mode = ExercisePickerMode.MULTI_ADD,
+            selectedOrder = listOf(" ", squat.id, squat.id),
+            catalog = emptyList(),
+        )
+        assertEquals(listOf(squat), state.cart)
+        assertEquals(setOf("ex-1"), state.selectedIds)
+    }
 }

@@ -307,6 +307,70 @@ class RoutineEditorViewModelTest {
         assertEquals(listOf(row.id, squat.id), saved.exercises.map { it.exercise.id })
     }
 
+    @Test
+    fun confirmPendingAddDoesNotDuplicateOnASecondTap() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
+        val vm = createViewModel("new")
+        vm.uiState.first { it.catalog.isNotEmpty() }
+        vm.togglePendingAdd(squat)
+        vm.togglePendingAdd(row)
+        vm.confirmPendingAdd()
+        vm.confirmPendingAdd()
+
+        val saved = awaitRoutine { it.exercises.size == 2 }
+        assertEquals(listOf(squat.id, row.id), saved.exercises.map { it.exercise.id })
+    }
+
+    @Test
+    fun confirmPendingAddKeepsTheCartWhenALiftIsMissingFromTheCatalog() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val vm = createViewModel("new")
+        vm.uiState.first { it.catalog.isNotEmpty() }
+        vm.setPickerVisible(true)
+        vm.togglePendingAdd(squat.copy(id = "ghost", name = "Ghost"))
+        vm.confirmPendingAdd()
+
+        val state = vm.uiState.first { it.error != null }
+        assertTrue(state.showExercisePicker)
+        assertEquals(listOf("ghost"), state.pendingAddIds)
+        assertTrue(deps.routineRepository.observeAll().first().isEmpty())
+    }
+
+    @Test
+    fun confirmPendingAddSkipsLiftsAlreadyOnTheRoutine() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
+        val vm = createViewModel("new")
+        vm.uiState.first { it.catalog.isNotEmpty() }
+        vm.togglePendingAdd(squat)
+        vm.confirmPendingAdd()
+        awaitRoutine { it.exercises.size == 1 }
+
+        vm.setPickerVisible(true)
+        vm.togglePendingAdd(squat)
+        vm.togglePendingAdd(row)
+        vm.confirmPendingAdd()
+
+        val saved = awaitRoutine { it.exercises.size == 2 }
+        assertEquals(listOf(squat.id, row.id), saved.exercises.map { it.exercise.id })
+    }
+
+    @Test
+    fun confirmPendingAddWritesALiftCreatedInThePicker() = runBlocking {
+        val vm = createViewModel("new")
+        vm.uiState.first { !it.isLoading }
+        vm.setPickerVisible(true)
+        vm.createAndSelect("Good morning", "Hamstrings")
+        vm.uiState.first { it.pendingAddIds.isNotEmpty() }
+        vm.confirmPendingAdd()
+
+        val saved = awaitRoutine { it.exercises.size == 1 }
+        assertEquals("Good morning", saved.exercises.single().exercise.name)
+        assertTrue(saved.exercises.single().exercise.isCustom)
+        assertFalse(vm.uiState.value.showExercisePicker)
+    }
+
     private fun createViewModel(
         routineId: String,
         container: AppDependencies = deps,

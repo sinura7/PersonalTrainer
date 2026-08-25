@@ -134,6 +134,49 @@ class CustomWeekViewModelTest {
     }
 
     @Test
+    fun confirmPendingAddKeepsTheCartWhenALiftIsMissingFromTheCatalog() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val vm = createViewModel()
+        vm.uiState.first { it.catalog.isNotEmpty() }
+        vm.setPickerVisible(true)
+        vm.togglePendingAdd(squat.copy(id = "ghost", name = "Ghost"))
+        vm.confirmPendingAdd()
+
+        val state = vm.uiState.value
+        assertTrue(state.showPicker)
+        assertEquals(listOf("ghost"), state.pendingAddIds)
+        assertEquals("Could not add that exercise. Try again.", state.error)
+        assertTrue(state.selectedLifts.isEmpty())
+    }
+
+    @Test
+    fun confirmPendingAddDoesNotDuplicateOnASecondTap() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val vm = createViewModel()
+        vm.uiState.first { it.catalog.isNotEmpty() }
+        vm.togglePendingAdd(squat)
+        vm.confirmPendingAdd()
+        vm.confirmPendingAdd()
+
+        assertEquals(1, vm.uiState.first { it.selectedLifts.size == 1 }.selectedLifts.size)
+        assertFalse(vm.uiState.value.showPicker)
+    }
+
+    @Test
+    fun confirmPendingAddWritesALiftCreatedInThePicker() = runBlocking {
+        val vm = createViewModel()
+        vm.setPickerVisible(true)
+        vm.createAndSelect("Good morning", "Hamstrings")
+        vm.uiState.first { it.pendingAddIds.isNotEmpty() }
+        vm.confirmPendingAdd()
+
+        val staged = vm.uiState.first { it.selectedLifts.size == 1 }
+        assertEquals("Good morning", staged.selectedLifts.single().exercise.name)
+        assertTrue(staged.selectedLifts.single().exercise.isCustom)
+        assertFalse(staged.showPicker)
+    }
+
+    @Test
     fun moveRemoveAndStageTargetsStayInTheDraftUntilConfirm() = runBlocking {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val row = insertTestExercise(deps, "row", "Row")

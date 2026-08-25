@@ -11,11 +11,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -183,13 +182,15 @@ private fun SessionLiftEditor(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                item.exercise.muscleGroup,
-                style = InstrumentType.caption,
-                color = TextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            if (item.exercise.muscleGroup.isNotBlank()) {
+                Text(
+                    item.exercise.muscleGroup,
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         CompactTargetFields(
             rowKey = item.id,
@@ -248,7 +249,7 @@ private fun SessionLiftCard(
 ) {
     val unit = LocalWeightUnit.current
     val restClock = RestTimer.formatClock(item.restSeconds)
-    val loadKg = item.targetWeightKg
+    val loadKg = item.targetWeightKg?.takeIf { it > 0.0 }
     val loadDisplay = loadKg?.let { kg -> WeightConverter.formatLabel(kg, unit) }
     val spoken = SessionOrderCopy.cardSpoken(
         number = number,
@@ -296,13 +297,15 @@ private fun SessionLiftCard(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
-        Text(
-            item.exercise.muscleGroup,
-            style = InstrumentType.caption,
-            color = TextSecondary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        if (item.exercise.muscleGroup.isNotBlank()) {
+            Text(
+                item.exercise.muscleGroup,
+                style = InstrumentType.caption,
+                color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
@@ -339,12 +342,15 @@ internal fun CartBadge(
     selected: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val badgeShape = RoundedCornerShape(percent = 50)
     Box(
         modifier = modifier
-            .size(Metrics.space6)
-            .clip(CircleShape)
+            .heightIn(min = Metrics.space6)
+            .widthIn(min = Metrics.space6)
+            .clip(badgeShape)
             .background(if (selected) Volt else Surface1)
-            .border(Metrics.hairline, if (selected) Volt else Hairline, CircleShape),
+            .border(Metrics.hairline, if (selected) Volt else Hairline, badgeShape)
+            .padding(horizontal = Metrics.space1),
         contentAlignment = Alignment.Center,
     ) {
         Text(

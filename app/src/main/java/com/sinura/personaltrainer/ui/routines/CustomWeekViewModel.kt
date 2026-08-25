@@ -67,6 +67,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
     private val applying = MutableStateFlow(false)
     private val error = MutableStateFlow<String?>(null)
     private val catalog = MutableStateFlow<List<Exercise>>(emptyList())
+    private val extraCatalog = MutableStateFlow<List<Exercise>>(emptyList())
     private var guidedAnswers: OnboardingAnswers? = null
     private var pendingWeightUnit: WeightUnit? = null
     private var userPickedDay = false
@@ -83,7 +84,8 @@ class CustomWeekViewModel @JvmOverloads constructor(
             WeekExtras(results, picker, pending, busy, err)
         },
         catalog,
-    ) { core, extras, lifts ->
+        extraCatalog,
+    ) { core, extras, lifts, extra ->
         CustomWeekUiState(
             selectedDay = core.selectedDay,
             days = core.days,
@@ -91,7 +93,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
             preferredDays = core.preferredDays,
             searchQuery = core.query,
             searchResults = extras.results,
-            catalog = lifts,
+            catalog = LiftCart.mergeSources(lifts, extra),
             showPicker = extras.showPicker,
             pendingAddIds = extras.pendingAddIds,
             applying = extras.applying,
@@ -170,13 +172,26 @@ class CustomWeekViewModel @JvmOverloads constructor(
     }
 
     fun confirmPendingAdd() {
-        val selected = pendingAddIds.value
+        val selected = LiftCart.sanitize(pendingAddIds.value)
         if (selected.isEmpty()) return
-        val incoming = selected.mapNotNull { id -> catalog.value.firstOrNull { it.id == id } }
         val day = selectedDay.value
-        val current = days.value[day].orEmpty()
-        days.value = days.value + (day to CustomWeekPolicy.addLifts(current, incoming) { UUID.randomUUID().toString() })
+        val plan = LiftCart.planConfirm(
+            order = selected,
+            sources = LiftCart.mergeSources(
+                LiftCart.mergeSources(catalog.value, extraCatalog.value),
+                uiState.value.searchResults,
+            ),
+            already = days.value[day].orEmpty().map { it.exercise.id }.toSet(),
+        )
+        if (plan.blocked) {
+            error.value = "Could not add that exercise. Try again."
+            return
+        }
         pendingAddIds.value = emptyList()
+        if (plan.toAdd.isNotEmpty()) {
+            days.value = days.value + (day to CustomWeekPolicy.addLifts(days.value[day].orEmpty(), plan.toAdd) { UUID.randomUUID().toString() })
+        }
+        extraCatalog.value = emptyList()
         showPicker.value = false
         searchQuery.value = ""
         error.value = null
@@ -191,7 +206,8 @@ class CustomWeekViewModel @JvmOverloads constructor(
                     is SaveExerciseResult.MissingMuscle ->
                         error.value = MuscleGroups.MISSING_MESSAGE
                     is SaveExerciseResult.Saved -> {
-                        catalog.value = catalog.value + result.exercise
+                        extraCatalog.value = extraCatalog.value + result.exercise
+                        catalog.value = LiftCart.mergeSources(catalog.value, extraCatalog.value)
                         togglePendingAdd(result.exercise)
                     }
                 }

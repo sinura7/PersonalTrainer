@@ -121,6 +121,11 @@ fun RoutineEditorScreen(
         }
 
         val exercises = state.routine?.exercises.orEmpty()
+        LaunchedEffect(exercises.map { it.id }) {
+            if (expandedLiftId != null && exercises.none { it.id == expandedLiftId }) {
+                expandedLiftId = null
+            }
+        }
 
         LazyColumn(
             modifier = Modifier
@@ -144,6 +149,7 @@ fun RoutineEditorScreen(
             }
             state.error
                 ?.takeUnless { it.contains("name", ignoreCase = true) }
+                ?.takeUnless { state.showExercisePicker }
                 ?.let { message -> item(key = "error") { GymErrorBanner(message) } }
 
             if (exercises.isEmpty()) {
@@ -231,6 +237,7 @@ fun RoutineEditorScreen(
                 mode = ExercisePickerMode.MULTI_ADD,
                 selectedOrder = state.pendingAddIds,
                 catalog = state.catalog,
+                error = state.error,
             ),
             onEvent = { event ->
                 when (event) {
@@ -266,6 +273,7 @@ fun RoutineEditorScreen(
             confirmLabel = "Remove",
             destructive = true,
             onConfirm = {
+                if (expandedLiftId == itemId) expandedLiftId = null
                 viewModel.removeExercise(itemId)
                 pendingRemoveId = null
             },

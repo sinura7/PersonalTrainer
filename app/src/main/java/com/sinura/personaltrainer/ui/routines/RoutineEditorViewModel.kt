@@ -87,9 +87,10 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     private val searchQuery = MutableStateFlow("")
     private val showPicker = MutableStateFlow(false)
     private val error = MutableStateFlow<String?>(null)
+    private val extraCatalog = MutableStateFlow<List<Exercise>>(emptyList())
     private val swapItemId = MutableStateFlow<String?>(null)
     private val pendingAddIds = MutableStateFlow<List<String>>(emptyList())
-    private val createdDuringPicker = mutableListOf<Exercise>()
+    private var confirmInFlight = false
 
     // Shared, not two independent collections: the missing-routine detector below and the
     // uiState chain each used to open their own Room query for the same row.
@@ -174,7 +175,13 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         combine(showPicker, error, load) { picker, err, loadState ->
             EditorFlags(picker, err, loadState.phase)
         },
-        combine(container.exerciseRepository.observeAll(), swapItemId, pendingAddIds) { catalog, swapTarget, pending ->
+        combine(
+            combine(container.exerciseRepository.observeAll(), extraCatalog) { catalog, extra ->
+                LiftCart.mergeSources(catalog, extra)
+            },
+            swapItemId,
+            pendingAddIds,
+        ) { catalog, swapTarget, pending ->
             CatalogExtras(catalog, swapTarget, pending)
         },
     ) { core, extras, catalogExtras ->
@@ -384,48 +391,78 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     fun setPickerVisible(visible: Boolean) {
         if (missing) return
         showPicker.value = visible
-        if (!visible) {
+        if (!visible && !confirmInFlight) {
             searchQuery.value = ""
             pendingAddIds.value = emptyList()
-            createdDuringPicker.clear()
         }
     }
 
     fun togglePendingAdd(exercise: Exercise) {
+        if (confirmInFlight) return
         pendingAddIds.value = LiftCart.toggle(pendingAddIds.value, exercise.id)
     }
 
     fun confirmPendingAdd() {
-        val selected = pendingAddIds.value
+        if (confirmInFlight) return
+        val selected = LiftCart.sanitize(pendingAddIds.value)
         if (selected.isEmpty()) return
-        val catalog = uiState.value.catalog + createdDuringPicker
-        val already = uiState.value.routine?.exercises.orEmpty().map { it.exercise.id }.toSet()
-        val toAdd = selected.mapNotNull { id -> catalog.firstOrNull { it.id == id } }
-            .filter { it.id !in already }
-        viewModelScope.launch {
-            val id = ensureRoutineId() ?: return@launch
-            toAdd.forEach { exercise ->
-                val defaults = AddDefaults.forExercise(exercise)
-                try {
-                    container.routineRepository.addExercise(
-                        routineId = id,
-                        exercise = exercise,
-                        targetSets = defaults.sets,
-                        targetReps = defaults.reps,
-                        targetWeightKg = null,
-                        restSeconds = defaults.restSeconds,
-                    )
-                } catch (thrown: Exception) {
-                    AppLog.w(TAG, "addExercise failed", thrown)
-                    error.value = "Could not add that exercise. Try again."
-                    return@launch
-                }
-            }
-            pendingAddIds.value = emptyList()
-            createdDuringPicker.clear()
+        val snapshot = uiState.value
+        val plan = LiftCart.planConfirm(
+            order = selected,
+            sources = LiftCart.mergeSources(
+                LiftCart.mergeSources(snapshot.catalog, extraCatalog.value),
+                snapshot.searchResults,
+            ),
+            already = routineFlow.value?.exercises.orEmpty().map { it.exercise.id }.toSet(),
+        )
+        if (plan.blocked) {
+            error.value = "Could not add that exercise. Try again."
+            return
+        }
+        pendingAddIds.value = emptyList()
+        if (plan.nothingNew) {
+            extraCatalog.value = emptyList()
             showPicker.value = false
             searchQuery.value = ""
             error.value = null
+            return
+        }
+        confirmInFlight = true
+        showPicker.value = false
+        searchQuery.value = ""
+        viewModelScope.launch {
+            try {
+                val id = ensureRoutineId() ?: run {
+                    pendingAddIds.value = selected
+                    showPicker.value = true
+                    return@launch
+                }
+                val remaining = plan.toAdd.toMutableList()
+                for (exercise in plan.toAdd) {
+                    val defaults = AddDefaults.forExercise(exercise)
+                    try {
+                        container.routineRepository.addExercise(
+                            routineId = id,
+                            exercise = exercise,
+                            targetSets = defaults.sets,
+                            targetReps = defaults.reps,
+                            targetWeightKg = null,
+                            restSeconds = defaults.restSeconds,
+                        )
+                        remaining.remove(exercise)
+                    } catch (thrown: Exception) {
+                        AppLog.w(TAG, "addExercise failed", thrown)
+                        pendingAddIds.value = remaining.map { it.id }
+                        showPicker.value = true
+                        error.value = "Could not add that exercise. Try again."
+                        return@launch
+                    }
+                }
+                extraCatalog.value = emptyList()
+                error.value = null
+            } finally {
+                confirmInFlight = false
+            }
         }
     }
 
@@ -482,7 +519,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                     is SaveExerciseResult.DuplicateName -> error.value = DUPLICATE_NAME_MESSAGE
                     is SaveExerciseResult.MissingMuscle -> error.value = MuscleGroups.MISSING_MESSAGE
                     is SaveExerciseResult.Saved -> {
-                        createdDuringPicker += result.exercise
+                        extraCatalog.value = extraCatalog.value + result.exercise
                         togglePendingAdd(result.exercise)
                         error.value = null
                     }

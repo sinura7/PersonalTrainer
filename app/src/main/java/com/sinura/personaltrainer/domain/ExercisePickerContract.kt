@@ -23,17 +23,19 @@ data class ExercisePickerState(
     val siblings: List<Exercise> = emptyList(),
     val selectedOrder: List<String> = emptyList(),
     val catalog: List<Exercise> = emptyList(),
+    val error: String? = null,
 ) {
     val multiSelect: Boolean get() = mode == ExercisePickerMode.MULTI_ADD
     val showSiblings: Boolean get() = mode == ExercisePickerMode.SWAP && siblings.isNotEmpty()
-    val selectedIds: Set<String> get() = selectedOrder.toSet()
+    val selectedIds: Set<String> get() = LiftCart.sanitize(selectedOrder).toSet()
     val cart: List<Exercise>
-        get() = selectedOrder.mapNotNull { id ->
-            catalog.firstOrNull { it.id == id }
-                ?: results.firstOrNull { it.id == id }
-                ?: siblings.firstOrNull { it.id == id }
-                ?: suggestion?.takeIf { it.id == id }
-        }
+        get() = LiftCart.resolve(
+            selectedOrder,
+            LiftCart.mergeSources(
+                catalog,
+                results + siblings + listOfNotNull(suggestion),
+            ),
+        )
 }
 
 sealed class ExercisePickerEvent {

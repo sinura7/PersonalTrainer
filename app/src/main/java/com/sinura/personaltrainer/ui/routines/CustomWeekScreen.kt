@@ -127,11 +127,21 @@ fun CustomWeekScreen(
                 selected = state.selectedDay,
                 filled = state.days.filter { it.value.isNotEmpty() }.keys,
                 preferred = state.preferredDays,
-                onSelect = viewModel::selectDay,
+                onSelect = { day ->
+                    expandedId = null
+                    viewModel.selectDay(day)
+                },
             )
-            state.error?.let { GymErrorBanner(it) }
+            if (!state.showPicker) {
+                state.error?.let { GymErrorBanner(it) }
+            }
 
             val lifts = state.selectedLifts
+            LaunchedEffect(state.selectedDay, lifts.map { it.id }) {
+                if (expandedId != null && lifts.none { it.id == expandedId }) {
+                    expandedId = null
+                }
+            }
             LazyColumn(
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(bottom = Metrics.space4),
@@ -239,6 +249,7 @@ fun CustomWeekScreen(
                 mode = ExercisePickerMode.MULTI_ADD,
                 selectedOrder = state.pendingAddIds,
                 catalog = state.catalog,
+                error = state.error,
             ),
             onEvent = { event ->
                 when (event) {

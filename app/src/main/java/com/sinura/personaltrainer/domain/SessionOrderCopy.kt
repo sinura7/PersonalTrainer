@@ -32,9 +32,12 @@ object SessionOrderCopy {
 
     fun numberedPreview(names: List<String>, limit: Int = 3): String {
         if (names.isEmpty()) return EMPTY_PREVIEW
-        return names.take(limit).mapIndexed { index, name ->
+        val cap = limit.coerceAtLeast(1)
+        val shown = names.take(cap).mapIndexed { index, name ->
             "${index + 1} $name"
         }.joinToString(" · ")
+        val rest = names.size - cap
+        return if (rest > 0) "$shown · +$rest more" else shown
     }
 
     fun cardSpoken(

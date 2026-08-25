@@ -14,11 +14,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -278,14 +278,20 @@ fun ExercisePickerSheet(
                 }
             }
             if (state.mode == ExercisePickerMode.MULTI_ADD) {
+                if (!state.error.isNullOrBlank()) {
+                    GymErrorBanner(
+                        message = state.error,
+                        modifier = Modifier.padding(horizontal = Metrics.gutter),
+                    )
+                }
                 PrimaryGymButton(
-                    text = when (selectedIds.size) {
+                    text = when (cart.size) {
                         0 -> "Add"
                         1 -> "Add 1 lift"
-                        else -> "Add ${selectedIds.size} lifts"
+                        else -> "Add ${cart.size} lifts"
                     },
                     onClick = { onEvent(ExercisePickerEvent.Confirmed) },
-                    enabled = selectedIds.isNotEmpty(),
+                    enabled = cart.isNotEmpty(),
                     modifier = Modifier.padding(
                         horizontal = Metrics.gutter,
                         vertical = Metrics.space3,
@@ -336,11 +342,14 @@ private fun PickerLiftRow(
 
 @Composable
 private fun PickerCartBadge(number: Int) {
+    val badgeShape = RoundedCornerShape(percent = 50)
     Box(
         modifier = Modifier
-            .size(Metrics.space5)
-            .clip(CircleShape)
-            .background(Volt),
+            .heightIn(min = Metrics.space5)
+            .widthIn(min = Metrics.space5)
+            .clip(badgeShape)
+            .background(Volt)
+            .padding(horizontal = Metrics.space1),
         contentAlignment = Alignment.Center,
     ) {
         Text(

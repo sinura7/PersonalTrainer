@@ -8,11 +8,58 @@ package com.sinura.personaltrainer.domain
  * the same order, so the picker has to keep it.
  */
 object LiftCart {
-    fun toggle(order: List<String>, id: String): List<String> =
-        if (id in order) order.filter { it != id } else order + id
+    fun sanitize(order: List<String>): List<String> {
+        val seen = LinkedHashSet<String>()
+        for (id in order) {
+            val trimmed = id.trim()
+            if (trimmed.isNotEmpty()) seen += trimmed
+        }
+        return seen.toList()
+    }
+
+    fun toggle(order: List<String>, id: String): List<String> {
+        val clean = sanitize(order)
+        val trimmed = id.trim()
+        if (trimmed.isEmpty()) return clean
+        return if (trimmed in clean) clean.filter { it != trimmed } else clean + trimmed
+    }
 
     fun cartNumber(order: List<String>, id: String): Int? {
-        val index = order.indexOf(id)
+        val index = sanitize(order).indexOf(id.trim())
         return if (index >= 0) index + 1 else null
     }
+
+    fun mergeSources(primary: List<Exercise>, extra: List<Exercise>): List<Exercise> {
+        val have = primary.map { it.id }.toSet()
+        return primary + extra.filter { it.id !in have }
+    }
+
+    fun resolve(order: List<String>, sources: List<Exercise>): List<Exercise> {
+        val byId = sources.associateBy { it.id }
+        return sanitize(order).mapNotNull { byId[it] }
+    }
+
+    fun planConfirm(
+        order: List<String>,
+        sources: List<Exercise>,
+        already: Set<String>,
+    ): CartConfirm {
+        val selected = sanitize(order)
+        val byId = sources.associateBy { it.id }
+        val missingIds = selected.filter { it !in byId }
+        if (missingIds.isNotEmpty()) {
+            return CartConfirm(selected = selected, toAdd = emptyList(), missingIds = missingIds)
+        }
+        val toAdd = selected.mapNotNull { byId[it] }.filter { it.id !in already }
+        return CartConfirm(selected = selected, toAdd = toAdd, missingIds = emptyList())
+    }
+}
+
+data class CartConfirm(
+    val selected: List<String>,
+    val toAdd: List<Exercise>,
+    val missingIds: List<String>,
+) {
+    val blocked: Boolean get() = missingIds.isNotEmpty()
+    val nothingNew: Boolean get() = !blocked && toAdd.isEmpty()
 }

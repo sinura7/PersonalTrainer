@@ -16,7 +16,9 @@
 >
 > 25 Aug 2026 — routine builder: numbered cart, then horizontal session cards.
 > Every face on a card is labeled (order, identity, work, rest, load). Plan/Home
-> speak the same 1 · 2 · 3 preview.
+> speak the same 1 · 2 · 3 preview, with `+N more` when the session is longer.
+> Cart confirm is idempotent, keeps a just-created lift, and will not silently
+> drop unknown ids.
 
 Derived from the full audit of 19 Aug 2026 ([AUDIT.md](AUDIT.md)). Phases land in order;
 each one ends at a gate that must be verified before the next begins.
