@@ -107,13 +107,10 @@ fun SessionLiftStrip(
     var seenFirstId by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(lifts.firstOrNull()?.id, lifts.size) {
         val firstId = lifts.firstOrNull()?.id
-        when {
-            seenFirstId != null && firstId != seenFirstId -> {
-                if (lifts.isNotEmpty()) listState.scrollToItem(0)
-            }
-            lifts.size > seenCount && lifts.isNotEmpty() -> {
-                listState.animateScrollToItem(lifts.lastIndex)
-            }
+        when (nextStripScroll(seenFirstId, seenCount, firstId, lifts.size)) {
+            StripScrollTarget.START -> listState.scrollToItem(0)
+            StripScrollTarget.LAST -> listState.animateScrollToItem(lifts.lastIndex)
+            null -> Unit
         }
         seenCount = lifts.size
         seenFirstId = firstId
@@ -392,3 +389,16 @@ internal fun CartBadge(
 }
 
 private val CARD_WIDTH = 156.dp
+
+internal enum class StripScrollTarget { START, LAST }
+
+internal fun nextStripScroll(
+    seenFirstId: String?,
+    seenCount: Int,
+    firstId: String?,
+    size: Int,
+): StripScrollTarget? = when {
+    seenFirstId != null && firstId != seenFirstId && size > 0 -> StripScrollTarget.START
+    size > seenCount && size > 0 -> StripScrollTarget.LAST
+    else -> null
+}

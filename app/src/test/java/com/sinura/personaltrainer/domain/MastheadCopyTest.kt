@@ -360,6 +360,25 @@ class FeaturedSessionTest {
         assertEquals("Pull", featuredSession(today = null, next = day(isRest = false, name = "Pull"))?.routineName)
     }
 
+    @Test
+    fun leftoverLiftNamesPassTheFullSessionToThePreview() {
+        val featured = day(isRest = false, name = "Push")
+        val names = leftoverLiftNames(
+            featured,
+            listOf(
+                routine(
+                    id = "r-Push",
+                    names = listOf("Squat", "Row", "Bench", "Curl"),
+                ),
+            ),
+        )
+        assertEquals(listOf("Squat", "Row", "Bench", "Curl"), names)
+        assertEquals(
+            "4 lifts · 1 Squat · 2 Row · 3 Bench",
+            SessionOrderCopy.numberedPreview(names),
+        )
+    }
+
     private fun day(isRest: Boolean, name: String?): SuggestedTrainingDay = SuggestedTrainingDay(
         epochDay = 20_000L,
         dayOfWeek = Weekday.MONDAY,
@@ -371,5 +390,31 @@ class FeaturedSessionTest {
         reason = "Pinned to your week.",
         emphasisMuscles = emptyList(),
         confidence = ScheduleConfidence.HIGH,
+    )
+
+    private fun routine(id: String, names: List<String>): Routine = Routine(
+        id = id,
+        name = "Push",
+        notes = "",
+        createdAt = 0L,
+        updatedAt = 0L,
+        exercises = names.mapIndexed { index, name ->
+            RoutineExercise(
+                id = "item-$index",
+                routineId = id,
+                exercise = Exercise(
+                    id = "ex-$index",
+                    name = name,
+                    muscleGroup = "Quads",
+                    notes = "",
+                    isCustom = false,
+                ),
+                sortOrder = index,
+                targetSets = 3,
+                targetReps = 5,
+                targetWeightKg = null,
+                restSeconds = 90,
+            )
+        },
     )
 }

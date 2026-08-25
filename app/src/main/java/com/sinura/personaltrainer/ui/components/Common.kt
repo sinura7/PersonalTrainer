@@ -112,6 +112,7 @@ fun EmptyState(
     onAction: (() -> Unit)? = null,
     compact: Boolean = false,
     actionTag: String? = null,
+    actionEnabled: Boolean = true,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -132,15 +133,21 @@ fun EmptyState(
             if (compact) {
                 TextButton(
                     onClick = onAction,
+                    enabled = actionEnabled,
                     modifier = actionModifier,
                     contentPadding = PaddingValues(0.dp),
                 ) {
-                    Text(actionLabel, style = InstrumentType.bodyStrong, color = Volt)
+                    Text(
+                        actionLabel,
+                        style = InstrumentType.bodyStrong,
+                        color = if (actionEnabled) Volt else TextTertiary,
+                    )
                 }
             } else {
                 PrimaryGymButton(
                     text = actionLabel,
                     onClick = onAction,
+                    enabled = actionEnabled,
                     modifier = actionModifier,
                 )
             }

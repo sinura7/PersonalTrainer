@@ -86,6 +86,17 @@ fun featuredSession(
     next: SuggestedTrainingDay?,
 ): SuggestedTrainingDay? = today?.takeUnless { it.isRest } ?: next
 
+/** The leftover card lists this session's lifts, in session order, never a pre-truncated slice. */
+fun leftoverLiftNames(
+    featured: SuggestedTrainingDay?,
+    routines: List<Routine>,
+): List<String> {
+    val id = featured?.routineId ?: return emptyList()
+    return routines.firstOrNull { it.id == id }
+        ?.exercises.orEmpty()
+        .map { it.exercise.name }
+}
+
 /**
  * One line saying why today's session is worth doing.
  *

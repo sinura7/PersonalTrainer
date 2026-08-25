@@ -42,6 +42,7 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.daysSince
 import com.sinura.personaltrainer.domain.featuredSession
 import com.sinura.personaltrainer.domain.homeWork
+import com.sinura.personaltrainer.domain.leftoverLiftNames
 import com.sinura.personaltrainer.domain.nextSessionReason
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.domain.todayEpochDay
@@ -228,10 +229,7 @@ fun HomeScreen(
                     loggedToday = loggedToday,
                     sessionLive = inProgress != null,
                     hasRoutines = state.routines.isNotEmpty(),
-                    lifts = featured?.routineId
-                        ?.let { id -> state.routines.firstOrNull { it.id == id } }
-                        ?.exercises.orEmpty()
-                        .map { it.exercise.name },
+                    lifts = leftoverLiftNames(featured, state.routines),
                     reason = nextSessionReason(featured, state.recommendations),
                     onSuggestWeek = {
                         viewModel.requestWeekSuggestion()

@@ -464,6 +464,93 @@ class RoutineEditorViewModelTest {
         }
     }
 
+    @Test
+    fun addingLiftsBlocksReopeningThePickerUntilConfirmFinishes() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val gate = CompletableDeferred<Unit>()
+        val vm = createViewModel("new", delayedAdd(gate))
+        try {
+            vm.uiState.first { it.catalog.isNotEmpty() }
+            vm.togglePendingAdd(squat)
+            vm.confirmPendingAdd()
+            val busy = vm.uiState.first { it.addingLifts }
+            assertTrue(busy.addingLifts)
+            vm.setPickerVisible(true)
+            assertFalse(vm.uiState.value.showExercisePicker)
+            gate.complete(Unit)
+            val done = vm.uiState.first { !it.addingLifts && it.routine?.exercises?.size == 1 }
+            assertFalse(done.addingLifts)
+        } finally {
+            if (!gate.isCompleted) gate.complete(Unit)
+        }
+    }
+
+    @Test
+    fun leaveWaitsForRemoveSoAnEmptyStubIsDiscarded() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val gate = CompletableDeferred<Unit>()
+        val vm = createViewModel("new", delayedDelete(gate))
+        try {
+            vm.uiState.first { it.catalog.isNotEmpty() }
+            vm.togglePendingAdd(squat)
+            vm.confirmPendingAdd()
+            val created = awaitRoutine { it.exercises.size == 1 }
+            vm.removeExercise(created.exercises.single().id)
+            vm.leave()
+            dispatcher.scheduler.runCurrent()
+            assertFalse(vm.exitRequested.value)
+            assertEquals(1, deps.routineRepository.observeAll().first().single().exercises.size)
+
+            gate.complete(Unit)
+            eventually { true.takeIf { vm.exitRequested.value } }
+            assertTrue(deps.routineRepository.observeAll().first().isEmpty())
+        } finally {
+            if (!gate.isCompleted) gate.complete(Unit)
+        }
+    }
+
+    @Test
+    fun leaveWaitsForAddExerciseSoTheStubIsNotDeletedMidWrite() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val gate = CompletableDeferred<Unit>()
+        val vm = createViewModel("new", delayedAdd(gate))
+        try {
+            vm.uiState.first { it.catalog.isNotEmpty() }
+            vm.addExercise(squat, 3, 5, null, 90)
+            vm.leave()
+            dispatcher.scheduler.runCurrent()
+            assertFalse(vm.exitRequested.value)
+
+            gate.complete(Unit)
+            eventually { true.takeIf { vm.exitRequested.value } }
+            val saved = deps.routineRepository.observeAll().first().single()
+            assertEquals(squat.id, saved.exercises.single().exercise.id)
+        } finally {
+            if (!gate.isCompleted) gate.complete(Unit)
+        }
+    }
+
+    @Test
+    fun aFailedConfirmDoesNotReopenThePickerAfterLeave() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val gate = CompletableDeferred<Unit>()
+        val vm = createViewModel("new", failingAdd(gate))
+        try {
+            vm.uiState.first { it.catalog.isNotEmpty() }
+            vm.setPickerVisible(true)
+            vm.togglePendingAdd(squat)
+            vm.confirmPendingAdd()
+            vm.leave()
+            dispatcher.scheduler.runCurrent()
+            assertFalse(vm.exitRequested.value)
+            gate.complete(Unit)
+            eventually { true.takeIf { vm.exitRequested.value } }
+            assertFalse(vm.uiState.value.showExercisePicker)
+        } finally {
+            if (!gate.isCompleted) gate.complete(Unit)
+        }
+    }
+
     private fun createViewModel(
         routineId: String,
         container: AppDependencies = deps,
@@ -493,6 +580,20 @@ class RoutineEditorViewModelTest {
         }
     }
 
+    private fun delayedDelete(gate: CompletableDeferred<Unit>): AppDependencies {
+        val repo = RoutineRepository(GatedDeleteDao(deps.database.routineDao(), gate))
+        return object : AppDependencies by deps {
+            override val routineRepository: RoutineRepository = repo
+        }
+    }
+
+    private fun failingAdd(gate: CompletableDeferred<Unit>): AppDependencies {
+        val repo = RoutineRepository(GatedFailingUpsertDao(deps.database.routineDao(), gate))
+        return object : AppDependencies by deps {
+            override val routineRepository: RoutineRepository = repo
+        }
+    }
+
     private class GatedUpsertDao(
         private val delegate: RoutineDao,
         private val gate: CompletableDeferred<Unit>,
@@ -500,6 +601,26 @@ class RoutineEditorViewModelTest {
         override suspend fun upsertRoutineExercise(item: RoutineExerciseEntity) {
             gate.await()
             delegate.upsertRoutineExercise(item)
+        }
+    }
+
+    private class GatedDeleteDao(
+        private val delegate: RoutineDao,
+        private val gate: CompletableDeferred<Unit>,
+    ) : RoutineDao by delegate {
+        override suspend fun deleteRoutineExercise(id: String) {
+            gate.await()
+            delegate.deleteRoutineExercise(id)
+        }
+    }
+
+    private class GatedFailingUpsertDao(
+        private val delegate: RoutineDao,
+        private val gate: CompletableDeferred<Unit>,
+    ) : RoutineDao by delegate {
+        override suspend fun upsertRoutineExercise(item: RoutineExerciseEntity) {
+            gate.await()
+            error("boom: add blocked")
         }
     }
 

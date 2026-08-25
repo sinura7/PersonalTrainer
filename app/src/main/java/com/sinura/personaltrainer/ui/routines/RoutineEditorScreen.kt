@@ -160,6 +160,7 @@ fun RoutineEditorScreen(
                         actionLabel = "Add lifts",
                         onAction = { viewModel.setPickerVisible(true) },
                         compact = true,
+                        actionEnabled = !state.addingLifts,
                         actionTag = RoutineEditorTags.ADD_LIFTS,
                         modifier = Modifier.padding(top = Metrics.space4),
                     )
@@ -206,8 +207,9 @@ fun RoutineEditorScreen(
                 // Quiet, after the program. The empty state's filled action is the first add.
                 item(key = "add") {
                     SecondaryGymButton(
-                        text = "Add lifts",
+                        text = if (state.addingLifts) "Adding…" else "Add lifts",
                         onClick = { viewModel.setPickerVisible(true) },
+                        enabled = !state.addingLifts,
                         modifier = Modifier
                             .padding(top = Metrics.space2)
                             .testTag(RoutineEditorTags.ADD_LIFTS),
