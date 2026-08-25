@@ -93,3 +93,28 @@ about preview fixtures.
 
 This foundation closes the substrate portion of FND-043. Page coverage and
 visual acceptance remain P9.6/P9.7.
+
+## Page golden fan-out (MP-11 / DP-0)
+
+`GoldenPageCatalog` names one PNG per `AccessibilityMatrix` page × required
+state: `{pageId}-{state}-api29` (108 names). The committed set today is
+still only `foundation-state-gallery-api29`. Recording those page PNGs is
+an owner emulator gate on `temper-tests-api29` — this VM cannot run
+`connectedDebugAndroidTest`.
+
+Mount every later capture through `GoldenCapture` (360 × 800 dp,
+Instrument theme) so the viewport cannot drift per page.
+
+Debug previews now cover the previously unaudited pieces with real
+composables, not a second layout:
+
+| Surface | Preview file | States drawn |
+|---|---|---|
+| Home + DailyAgenda + MissedWork | `ui/home/HomePreview.kt` | populated (agenda + missed), empty |
+| Goals | `ui/goals/GoalsPreview.kt` | populated, empty, loading, error |
+| Live cardio | `ui/activity/LiveCardioPreview.kt` | active, missing, error |
+| Activity composer | `ui/activity/ActivityComposerPreview.kt` | populated, empty, error |
+
+A later packet records the matching `{page}-{state}-api29` PNGs and adds
+`GoldenImageAssert.assertMatches` callers. Do not add those tests until
+the PNG is committed — a missing asset fails the connected suite.
