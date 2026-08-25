@@ -80,6 +80,75 @@ class MastheadCopyTest {
         assertEquals("TRAINED TODAY", MastheadCopy.headline(null, loggedToday = true, liftCount = null))
     }
 
+    @Test
+    fun aStillPlannedOccurrenceOutranksHavingAlreadyTrained() {
+        val evening = AgendaItem(
+            occurrence = ScheduleOccurrence(
+                id = "s",
+                ruleId = "r-s",
+                status = OccurrenceStatus.PLANNED,
+                captured = CapturedCivilTime(1L, "UTC", 0, 20_000L),
+                hour = 18,
+                minute = 0,
+                createdAtMs = 1L,
+                updatedAtMs = 1L,
+            ),
+            rule = ScheduleRule(
+                id = "r-s",
+                weekday = Weekday.MONDAY,
+                hour = 18,
+                minute = 0,
+                modality = ScheduleModality.STRENGTH,
+                focusKind = SessionFocusKind.PUSH,
+                createdAtMs = 1L,
+                updatedAtMs = 1L,
+            ),
+        )
+        assertEquals(
+            "PUSH DAY · 4 LIFTS",
+            MastheadCopy.headline(
+                day(SessionFocusKind.PUSH),
+                loggedToday = true,
+                liftCount = 4,
+                agenda = listOf(evening),
+            ),
+        )
+    }
+
+    @Test
+    fun plannedAgendaOutranksAShiftedSlotRestDay() {
+        val cardio = AgendaItem(
+            occurrence = ScheduleOccurrence(
+                id = "c",
+                ruleId = "r-c",
+                status = OccurrenceStatus.PLANNED,
+                captured = CapturedCivilTime(1L, "UTC", 0, 20_000L),
+                hour = 7,
+                minute = 0,
+                createdAtMs = 1L,
+                updatedAtMs = 1L,
+            ),
+            rule = ScheduleRule(
+                id = "r-c",
+                weekday = Weekday.MONDAY,
+                hour = 7,
+                minute = 0,
+                modality = ScheduleModality.CARDIO,
+                createdAtMs = 1L,
+                updatedAtMs = 1L,
+            ),
+        )
+        assertEquals(
+            "CARDIO DAY",
+            MastheadCopy.headline(
+                day(SessionFocusKind.RECOVERY).copy(isRest = true),
+                loggedToday = false,
+                liftCount = null,
+                agenda = listOf(cardio),
+            ),
+        )
+    }
+
     private fun day(kind: SessionFocusKind): SuggestedTrainingDay = SuggestedTrainingDay(
         epochDay = 20_000L,
         dayOfWeek = Weekday.MONDAY,

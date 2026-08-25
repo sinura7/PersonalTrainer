@@ -32,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.GoalCopy
 import com.sinura.personaltrainer.domain.GoalSnapshot
+import com.sinura.personaltrainer.domain.HomeToday
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.MastheadCopy
 import com.sinura.personaltrainer.domain.ProgressionHint
@@ -169,6 +170,7 @@ fun HomeScreen(
                         loggedToday = loggedToday,
                         liftCount = liftCount,
                         hasPlan = hasPlan,
+                        agenda = state.agenda,
                     ),
                     onOpenSettings = onOpenSettings,
                 )
@@ -213,19 +215,14 @@ fun HomeScreen(
         }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                if (state.agenda.isNotEmpty()) {
-                    DailyAgendaCard(
+                when (HomeToday.surface(state.agenda)) {
+                    HomeToday.Surface.AGENDA -> DailyAgendaCard(
                         items = state.agenda,
                         sessionLive = inProgress != null,
                         onStartOccurrence = viewModel::startOccurrence,
+                        onStartFree = { viewModel.startFreeWorkout() },
                     )
-                }
-                // The hero carries Home's only filled button, and it never says Resume: while
-                // a session is live the LiveSessionBar is the only surface that returns to it.
-                // The lifts and the reason describe `featured` — the same day the card's own
-                // headline names — because they are derived from one shared rule rather than
-                // from two that agree until one of them changes.
-                ThisWeekCard(
+                    HomeToday.Surface.WEEK_FALLBACK -> ThisWeekCard(
                     day = todayDay,
                     nextDay = nextDay,
                     loggedToday = loggedToday,
@@ -254,7 +251,8 @@ fun HomeScreen(
                         }
                     },
                     onStartFree = { viewModel.startFreeWorkout() },
-                )
+                    )
+                }
                 // The card body no longer navigates. A whole-card tap that went to the plan,
                 // with a filled Start inside it, was a mis-tap trap on the most-pressed
                 // control in the app.

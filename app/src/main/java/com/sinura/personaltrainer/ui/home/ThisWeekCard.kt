@@ -23,7 +23,8 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 
 /**
- * Today's line on Home: what the plan says, and the one button that acts on it.
+ * Empty-agenda leftover on Home: what the slot week says when no occurrence
+ * was generated. When today has an agenda, [DailyAgendaCard] is the only Start.
  *
  * Home used to stack a filled Start/Resume above this card and a second Start below it, all
  * three offering to begin the same session. The card owns the decision now, so the screen has

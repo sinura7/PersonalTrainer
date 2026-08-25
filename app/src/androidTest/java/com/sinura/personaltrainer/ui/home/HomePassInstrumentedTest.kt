@@ -19,7 +19,13 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.sinura.personaltrainer.domain.AgendaItem
+import com.sinura.personaltrainer.domain.CapturedCivilTime
+import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.ScheduleConfidence
+import com.sinura.personaltrainer.domain.ScheduleModality
+import com.sinura.personaltrainer.domain.ScheduleOccurrence
+import com.sinura.personaltrainer.domain.ScheduleRule
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
@@ -84,6 +90,28 @@ class HomePassInstrumentedTest {
         compose.onNodeWithContentDescription("Goals").assertIsDisplayed()
         compose.onNodeWithTag(HomeTags.LIBRARY).assertIsDisplayed()
         compose.onNodeWithContentDescription("Library").assertIsDisplayed()
+    }
+
+    @Test
+    fun agendaStartAndFreeStayNamedAt360Font2() {
+        setConstrainedContent(fontScale = 2f) {
+            DailyAgendaCard(
+                items = listOf(STRENGTH_ITEM),
+                sessionLive = false,
+                onStartOccurrence = {},
+                onStartFree = {},
+            )
+            LinkRow(
+                label = "Goals",
+                onClick = {},
+                modifier = Modifier.testTag(HomeTags.GOALS),
+            )
+        }
+        compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Start today's planned session").assertIsDisplayed()
+        compose.onNodeWithTag(HomeTags.FREE).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Start a free workout").assertIsDisplayed()
+        compose.onNodeWithTag(HomeTags.GOALS).assertIsDisplayed()
     }
 
     @Test
@@ -160,6 +188,28 @@ class HomePassInstrumentedTest {
             workingSets = 16,
             volumeKg = 8_000.0,
             localEpochDay = TODAY - 2,
+        )
+        val STRENGTH_ITEM = AgendaItem(
+            occurrence = ScheduleOccurrence(
+                id = "occ-pm",
+                ruleId = "rule-lift",
+                status = OccurrenceStatus.PLANNED,
+                captured = CapturedCivilTime(1L, "UTC", 0, TODAY),
+                hour = 18,
+                minute = 0,
+                createdAtMs = 1L,
+                updatedAtMs = 1L,
+            ),
+            rule = ScheduleRule(
+                id = "rule-lift",
+                weekday = Weekday.MONDAY,
+                hour = 18,
+                minute = 0,
+                modality = ScheduleModality.STRENGTH,
+                focusKind = SessionFocusKind.PUSH,
+                createdAtMs = 1L,
+                updatedAtMs = 1L,
+            ),
         )
         val TODAY_DAY = SuggestedTrainingDay(
             epochDay = TODAY,

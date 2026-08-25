@@ -16,17 +16,22 @@ object MastheadCopy {
 
     /**
      * @param day today's slot from the derived week, or null when the week is empty.
-     * @param loggedToday whether a session was finished today. Outranks the plan: once you
-     * have trained, "PUSH DAY" is a statement about a thing you already did.
+     * @param loggedToday whether a session was finished today. Outranks the leftover
+     * slot week. A still-planned occurrence outranks both: finishing morning cardio
+     * must not hide evening strength.
      * @param liftCount how many lifts the day's routine holds, or null when it cannot be
      * resolved. Null drops the count rather than inventing one.
+     * @param agenda today's occurrences. When any row is still startable, that is
+     * the sentence — not the slot-week leftover.
      */
     fun headline(
         day: SuggestedTrainingDay?,
         loggedToday: Boolean,
         liftCount: Int?,
         hasPlan: Boolean = true,
+        agenda: List<AgendaItem> = emptyList(),
     ): String {
+        startableHeadline(agenda, liftCount)?.let { return it }
         if (loggedToday) return "TRAINED TODAY"
         // Before the plan question, because the week derivation ALWAYS returns seven days and
         // fills every unpinned one with a rest day. So a brand-new install — no slots, no
@@ -37,6 +42,21 @@ object MastheadCopy {
         if (day == null) return "READY TO TRAIN"
         if (day.isRest) return "REST DAY"
         val noun = nounFor(day.focusKind)
+        if (liftCount == null || liftCount <= 0) return noun
+        return "$noun · $liftCount ${if (liftCount == 1) "LIFT" else "LIFTS"}"
+    }
+
+    private fun startableHeadline(agenda: List<AgendaItem>, liftCount: Int?): String? {
+        val startable = DailyAgenda.startable(agenda)
+        if (startable.isEmpty()) return null
+        val item = startable.firstOrNull {
+            (it.rule?.modality ?: ScheduleModality.STRENGTH) == ScheduleModality.STRENGTH
+        } ?: startable.first()
+        val noun = item.rule?.focusKind?.let { nounFor(it) } ?: when (item.rule?.modality) {
+            ScheduleModality.CARDIO -> "CARDIO DAY"
+            ScheduleModality.MIXED -> "MIXED DAY"
+            else -> "STRENGTH DAY"
+        }
         if (liftCount == null || liftCount <= 0) return noun
         return "$noun · $liftCount ${if (liftCount == 1) "LIFT" else "LIFTS"}"
     }

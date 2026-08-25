@@ -124,6 +124,10 @@ class HomeViewModelTest {
             listOf("Cardio", "Strength"),
             state.agenda.map { it.title },
         )
+        assertEquals(
+            com.sinura.personaltrainer.domain.HomeToday.Surface.AGENDA,
+            com.sinura.personaltrainer.domain.HomeToday.surface(state.agenda),
+        )
     }
 
     @Test

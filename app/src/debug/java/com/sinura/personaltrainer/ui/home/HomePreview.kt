@@ -54,18 +54,6 @@ private fun HomePopulatedPreview() {
                 items = HomePreviewFixtures.agenda,
                 sessionLive = false,
                 onStartOccurrence = {},
-            )
-            ThisWeekCard(
-                day = HomePreviewFixtures.todayDay,
-                nextDay = null,
-                loggedToday = false,
-                lifts = listOf("Bench press", "Chest-supported row", "Cable fly"),
-                reason = "Chest is due.",
-                sessionLive = false,
-                hasRoutines = true,
-                onSuggestWeek = {},
-                onReplayAnswers = {},
-                onPrimary = {},
                 onStartFree = {},
             )
             LinkRow(label = "Goals", onClick = {})
@@ -114,17 +102,10 @@ private fun HomeReducedMotionPreview() {
                 todayEpoch = HomePreviewFixtures.TODAY,
                 unit = WeightUnit.KG,
             )
-            ThisWeekCard(
-                day = HomePreviewFixtures.todayDay,
-                nextDay = null,
-                loggedToday = false,
-                lifts = listOf("Bench press"),
-                reason = "Chest is due.",
+            DailyAgendaCard(
+                items = HomePreviewFixtures.agenda,
                 sessionLive = false,
-                hasRoutines = true,
-                onSuggestWeek = {},
-                onReplayAnswers = {},
-                onPrimary = {},
+                onStartOccurrence = {},
                 onStartFree = {},
             )
         }
