@@ -1,6 +1,6 @@
 # P12 field operations
 
-- **Implementation commit:** `4040067`
+- **Implementation commit:** `499c972`
 - **Evidence date:** 25 August 2026
 - **Application:** `com.sinura.personaltrainer.debug`
 
@@ -26,16 +26,28 @@ Published:
 ## P12.3 / FND-029
 
 Release `isMinifyEnabled` and `isShrinkResources` are true.
-`./gradlew assembleRelease bundleRelease` succeeded. Unsigned release
-APK is 2.9 MB (debug APK 24 MB). Release AAB is 6.5 MB.
-`tools/check-version-code.py` keeps `versionCode` at or above the
-released floor (currently 1). `versionCode` is not bumped here — that
-happens when a public artifact is cut.
+`./gradlew assembleRelease bundleRelease` succeeded earlier on this
+branch. Unsigned release APK is 2.9 MB (debug APK 24 MB). Release AAB
+is 6.5 MB. `tools/check-version-code.py` keeps `versionCode` at or
+above the released floor (currently 1). `versionCode` is not bumped
+here — that happens when a public artifact is cut.
 
-## P12.4
+## P12.4 rehearsal
 
-Play publish is **blocked**. Physical TalkBack, a signed upgrade over
-populated release data on a physical phone, and a clean-clone release
-rehearsal remain open. Do not upload an AAB while those gates are red.
+`tools/check-play-rehearsal.py` is on the preflight. It proves
+`allowBackup=false`, rest FGS `specialUse`,
+`FOREGROUND_SERVICE_SPECIAL_USE`, `SCHEDULE_EXACT_ALARM` (and no
+`USE_EXACT_ALARM`), R8 + resource shrinking, privacy/support/commercial
+docs, the wrong-password unwrap proof, and that Public Candidate still
+requires physical TalkBack.
 
-Commercial Release Candidate is **not claimed**.
+The script then prints, and must keep printing:
+
+```
+BLOCKED: physical TalkBack
+BLOCKED: Android Public Candidate
+BLOCKED: Play upload / Commercial RC
+```
+
+Play publish is **blocked**. Do not upload an AAB. Commercial Release
+Candidate is **not claimed**.

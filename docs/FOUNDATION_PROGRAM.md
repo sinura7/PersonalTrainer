@@ -722,7 +722,8 @@ Implements [ADR-007](architecture/ADR-007-activity-model.md),
   Evidence:
   [P9.6 Home evidence](foundation-program/evidence/P9.6-home.md),
   [audit follow-up](foundation-program/evidence/P9.6-audit-followup.md),
-  [P9.6 remaining pages](foundation-program/evidence/P9.6-remaining-pages.md).
+  [P9.6 remaining pages](foundation-program/evidence/P9.6-remaining-pages.md),
+  [P9.6 page depth](foundation-program/evidence/P9.6-page-depth.md).
 - **P9.7** Full accessibility closure matrix. · **done in code**
   `AccessibilityMatrix` inventories every page packet. Automated
   semantics and constrained-layout tests exist. Physical TalkBack is
@@ -766,8 +767,10 @@ sync or KMP that does not exist.
   Release minify and resource shrinking are on. `versionCode` stays 1
   until a real public artifact is cut. Closes the code half of FND-029.
 - **P12.4** Final Play/release rehearsal. · **blocked**
-  Do not publish with a pending physical TalkBack gate. Commercial
-  Release Candidate is not claimed.
+  Static rehearsal (`tools/check-play-rehearsal.py`) is on the
+  preflight and still prints BLOCKED for physical TalkBack, Public
+  Candidate, and Play upload. Do not publish. Commercial Release
+  Candidate is not claimed.
   Evidence:
   [P12 field operations](foundation-program/evidence/P12-field-operations.md).
 

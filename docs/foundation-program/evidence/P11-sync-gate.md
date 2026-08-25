@@ -1,6 +1,6 @@
 # P11 sync — gate hold
 
-- **Implementation commit:** `4040067`
+- **Implementation commit:** `499c972`
 - **Evidence date:** 25 August 2026
 - **Decision:** [ADR-009](../../architecture/ADR-009-backup-privacy-sync.md) §14
 
