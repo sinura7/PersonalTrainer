@@ -115,6 +115,25 @@ class CustomWeekViewModelTest {
     }
 
     @Test
+    fun confirmPendingAddKeepsReverseTapOrderOnTheSelectedDay() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
+        val vm = createViewModel()
+        vm.uiState.first { it.catalog.size >= 2 }
+
+        vm.selectDay(Weekday.THURSDAY)
+        vm.togglePendingAdd(row)
+        vm.togglePendingAdd(squat)
+        vm.confirmPendingAdd()
+
+        assertEquals(
+            listOf(row.id, squat.id),
+            vm.uiState.first { it.selectedLifts.size == 2 }.selectedLifts.map { it.exercise.id },
+        )
+        assertEquals(Weekday.THURSDAY, vm.uiState.value.selectedDay)
+    }
+
+    @Test
     fun moveRemoveAndStageTargetsStayInTheDraftUntilConfirm() = runBlocking {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val row = insertTestExercise(deps, "row", "Row")
@@ -124,6 +143,7 @@ class CustomWeekViewModelTest {
         vm.togglePendingAdd(row)
         vm.confirmPendingAdd()
         val lifts = vm.uiState.first { it.selectedLifts.size == 2 }.selectedLifts
+        assertEquals(listOf(squat.id, row.id), lifts.map { it.exercise.id })
         val first = lifts.first()
         val second = lifts.last()
 

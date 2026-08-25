@@ -42,12 +42,29 @@ class ExercisePickerContractTest {
             results = listOf(squat),
             title = "Add lifts",
             mode = ExercisePickerMode.MULTI_ADD,
-            selectedIds = setOf(squat.id),
+            selectedOrder = listOf(squat.id),
+            catalog = listOf(squat),
         )
         assertTrue(multi.multiSelect)
         assertEquals(setOf("ex-1"), multi.selectedIds)
+        assertEquals(listOf(squat), multi.cart)
+        assertEquals(1, LiftCart.cartNumber(multi.selectedOrder, squat.id))
         val created = ExercisePickerEvent.Created("Good morning", "Hamstrings")
         assertEquals("Good morning", created.name)
         assertEquals(ExercisePickerEvent.Confirmed, ExercisePickerEvent.Confirmed)
+    }
+
+    @Test
+    fun cartFollowsSelectedOrderNotCatalogOrder() {
+        val row = squat.copy(id = "ex-2", name = "Row")
+        val state = ExercisePickerState(
+            query = "",
+            results = emptyList(),
+            title = "Add lifts",
+            mode = ExercisePickerMode.MULTI_ADD,
+            selectedOrder = listOf(row.id, squat.id),
+            catalog = listOf(squat, row),
+        )
+        assertEquals(listOf("ex-2", "ex-1"), state.cart.map { it.id })
     }
 }

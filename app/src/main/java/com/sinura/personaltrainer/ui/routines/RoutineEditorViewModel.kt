@@ -14,6 +14,7 @@ import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.EditorPhase
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.LibraryGrouping
+import com.sinura.personaltrainer.domain.LiftCart
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineEditorLoad
@@ -47,7 +48,7 @@ data class RoutineEditorUiState(
     val catalog: List<Exercise> = emptyList(),
     /** Non-null while a swap sheet is open, naming the routine row being replaced. */
     val swapItemId: String? = null,
-    val pendingAddIds: Set<String> = emptySet(),
+    val pendingAddIds: List<String> = emptyList(),
     val error: String? = null,
 ) {
     /**
@@ -87,7 +88,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     private val showPicker = MutableStateFlow(false)
     private val error = MutableStateFlow<String?>(null)
     private val swapItemId = MutableStateFlow<String?>(null)
-    private val pendingAddIds = MutableStateFlow<Set<String>>(emptySet())
+    private val pendingAddIds = MutableStateFlow<List<String>>(emptyList())
     private val createdDuringPicker = mutableListOf<Exercise>()
 
     // Shared, not two independent collections: the missing-routine detector below and the
@@ -385,14 +386,13 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         showPicker.value = visible
         if (!visible) {
             searchQuery.value = ""
-            pendingAddIds.value = emptySet()
+            pendingAddIds.value = emptyList()
             createdDuringPicker.clear()
         }
     }
 
     fun togglePendingAdd(exercise: Exercise) {
-        val current = pendingAddIds.value
-        pendingAddIds.value = if (exercise.id in current) current - exercise.id else current + exercise.id
+        pendingAddIds.value = LiftCart.toggle(pendingAddIds.value, exercise.id)
     }
 
     fun confirmPendingAdd() {
@@ -421,7 +421,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                     return@launch
                 }
             }
-            pendingAddIds.value = emptySet()
+            pendingAddIds.value = emptyList()
             createdDuringPicker.clear()
             showPicker.value = false
             searchQuery.value = ""
@@ -621,7 +621,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     private data class CatalogExtras(
         val catalog: List<Exercise>,
         val swapItemId: String?,
-        val pendingAddIds: Set<String>,
+        val pendingAddIds: List<String>,
     )
 
     private data class EditorFlags(

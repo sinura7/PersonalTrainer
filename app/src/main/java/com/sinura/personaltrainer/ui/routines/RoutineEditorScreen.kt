@@ -164,31 +164,34 @@ fun RoutineEditorScreen(
                         modifier = Modifier.padding(top = Metrics.space4, bottom = Metrics.space1),
                     )
                 }
-                itemsIndexed(exercises, key = { _, item -> item.id }) { index, item ->
-                    CompactLiftRow(
-                        exercise = item.exercise,
-                        sets = item.targetSets,
-                        reps = item.targetReps,
-                        restSeconds = item.restSeconds,
-                        targetWeightKg = item.targetWeightKg,
-                        canMoveUp = index > 0,
-                        canMoveDown = index < exercises.lastIndex,
-                        expanded = expandedLiftId == item.id,
-                        onToggle = { expandedLiftId = if (expandedLiftId == item.id) null else item.id },
-                        onMoveUp = { viewModel.moveExercise(item.id, -1) },
-                        onMoveDown = { viewModel.moveExercise(item.id, 1) },
-                        onRemove = { pendingRemoveId = item.id },
-                        onSwap = if (state.swapCandidates(item.exercise.id).isNotEmpty()) {
-                            { viewModel.requestSwap(item.id) }
-                        } else {
-                            null
+                item(key = "lifts-strip") {
+                    SessionLiftStrip(
+                        lifts = exercises.map { item ->
+                            SessionLiftItem(
+                                id = item.id,
+                                exercise = item.exercise,
+                                sets = item.targetSets,
+                                reps = item.targetReps,
+                                restSeconds = item.restSeconds,
+                                targetWeightKg = item.targetWeightKg,
+                            )
                         },
-                        onStageTargets = { sets, reps, rest, kg ->
-                            viewModel.stageTargets(item.id, sets, reps, kg, rest)
+                        selectedId = expandedLiftId,
+                        onSelect = { id ->
+                            expandedLiftId = if (expandedLiftId == id) null else id
                         },
-                        onCommitTargets = { viewModel.commitTargets(item.id) },
-                        modifier = Modifier.animateItem(),
-                        rowKey = item.id,
+                        onMoveEarlier = { id -> viewModel.moveExercise(id, -1) },
+                        onMoveLater = { id -> viewModel.moveExercise(id, 1) },
+                        onRemove = { id -> pendingRemoveId = id },
+                        canSwap = { id ->
+                            val exerciseId = exercises.firstOrNull { it.id == id }?.exercise?.id
+                            exerciseId != null && state.swapCandidates(exerciseId).isNotEmpty()
+                        },
+                        onSwap = { id -> viewModel.requestSwap(id) },
+                        onStageTargets = { id, sets, reps, rest, kg ->
+                            viewModel.stageTargets(id, sets, reps, kg, rest)
+                        },
+                        onCommitTargets = { id -> viewModel.commitTargets(id) },
                     )
                 }
             }
@@ -225,7 +228,8 @@ fun RoutineEditorScreen(
                 results = state.searchResults,
                 title = "Add lifts",
                 mode = ExercisePickerMode.MULTI_ADD,
-                selectedIds = state.pendingAddIds,
+                selectedOrder = state.pendingAddIds,
+                catalog = state.catalog,
             ),
             onEvent = { event ->
                 when (event) {

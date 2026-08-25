@@ -280,16 +280,31 @@ class RoutineEditorViewModelTest {
         vm.togglePendingAdd(squat)
         vm.togglePendingAdd(row)
         vm.togglePendingAdd(row)
-        assertEquals(setOf(squat.id), vm.uiState.first { it.pendingAddIds == setOf(squat.id) }.pendingAddIds)
+        assertEquals(listOf(squat.id), vm.uiState.first { it.pendingAddIds == listOf(squat.id) }.pendingAddIds)
         vm.togglePendingAdd(row)
-        vm.uiState.first { it.pendingAddIds == setOf(squat.id, row.id) }
+        vm.uiState.first { it.pendingAddIds == listOf(squat.id, row.id) }
         vm.confirmPendingAdd()
 
         val saved = awaitRoutine { it.exercises.size == 2 }
-        assertEquals(setOf(squat.id, row.id), saved.exercises.map { it.exercise.id }.toSet())
+        assertEquals(listOf(squat.id, row.id), saved.exercises.map { it.exercise.id })
         val closed = vm.uiState.first { !it.showExercisePicker && it.pendingAddIds.isEmpty() }
         assertFalse(closed.showExercisePicker)
         assertTrue(closed.pendingAddIds.isEmpty())
+    }
+
+    @Test
+    fun confirmPendingAddWritesLiftsInReverseTapOrder() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
+        val vm = createViewModel("new")
+        vm.uiState.first { it.catalog.isNotEmpty() }
+
+        vm.togglePendingAdd(row)
+        vm.togglePendingAdd(squat)
+        vm.confirmPendingAdd()
+
+        val saved = awaitRoutine { it.exercises.size == 2 }
+        assertEquals(listOf(row.id, squat.id), saved.exercises.map { it.exercise.id })
     }
 
     private fun createViewModel(

@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -49,10 +50,12 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
 import com.sinura.personaltrainer.domain.ExercisePickerState
+import com.sinura.personaltrainer.domain.LiftCart
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.theme.TextPrimary
@@ -96,6 +99,8 @@ fun ExercisePickerSheet(
     val suggestionReason = state.suggestionReason
     val siblings = if (state.showSiblings) state.siblings else emptyList()
     val selectedIds = state.selectedIds
+    val selectedOrder = state.selectedOrder
+    val cart = state.cart
     val multiSelect = state.multiSelect
     val needle = query.trim()
     val canCreate = needle.isNotEmpty() && results.none { it.name.equals(needle, ignoreCase = true) }
@@ -128,6 +133,21 @@ fun ExercisePickerSheet(
                     placeholder = "Search, or name a new lift",
                 )
             }
+            if (multiSelect && cart.isNotEmpty()) {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = Metrics.gutter),
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    modifier = Modifier.padding(bottom = Metrics.space3),
+                ) {
+                    itemsIndexed(cart, key = { _, exercise -> exercise.id }) { index, exercise ->
+                        InstrumentChip(
+                            label = "${index + 1}  ${exercise.name}",
+                            selected = true,
+                            onClick = { onEvent(ExercisePickerEvent.Toggled(exercise)) },
+                        )
+                    }
+                }
+            }
             HairlineDivider(startIndent = 0.dp)
             LazyColumn(
                 modifier = Modifier.weight(1f),
@@ -149,6 +169,7 @@ fun ExercisePickerSheet(
                             PickerLiftRow(
                                 exercise = sibling,
                                 selected = sibling.id in selectedIds,
+                                cartNumber = LiftCart.cartNumber(selectedOrder, sibling.id),
                                 onClick = {
                                     if (multiSelect) {
                                         onEvent(ExercisePickerEvent.Toggled(sibling))
@@ -175,6 +196,7 @@ fun ExercisePickerSheet(
                             PickerLiftRow(
                                 exercise = suggestion,
                                 selected = suggestion.id in selectedIds,
+                                cartNumber = LiftCart.cartNumber(selectedOrder, suggestion.id),
                                 onClick = {
                                     if (multiSelect) {
                                         onEvent(ExercisePickerEvent.Toggled(suggestion))
@@ -225,6 +247,7 @@ fun ExercisePickerSheet(
                             PickerLiftRow(
                                 exercise = exercise,
                                 selected = exercise.id in selectedIds,
+                                cartNumber = LiftCart.cartNumber(selectedOrder, exercise.id),
                                 onClick = {
                                     if (multiSelect) {
                                         onEvent(ExercisePickerEvent.Toggled(exercise))
@@ -263,6 +286,7 @@ private fun PickerLiftRow(
     selected: Boolean,
     onClick: () -> Unit,
     subtitle: String? = null,
+    cartNumber: Int? = null,
 ) {
     val shape = RoundedCornerShape(Radius.xs)
     ExerciseRow(
@@ -278,14 +302,37 @@ private fun PickerLiftRow(
         onClick = onClick,
         tag = exercise.equipment.label,
         subtitle = subtitle,
-        trailing = if (selected) {
-            {
-                Text("Selected", style = InstrumentType.caption, color = TextTertiary)
+        trailing = when {
+            cartNumber != null -> {
+                {
+                    PickerCartBadge(cartNumber)
+                }
             }
-        } else {
-            null
+            selected -> {
+                {
+                    Text("Selected", style = InstrumentType.caption, color = TextTertiary)
+                }
+            }
+            else -> null
         },
     )
+}
+
+@Composable
+private fun PickerCartBadge(number: Int) {
+    Box(
+        modifier = Modifier
+            .size(Metrics.space5)
+            .clip(CircleShape)
+            .background(Volt),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            number.toString(),
+            style = InstrumentType.caption,
+            color = Pit,
+        )
+    }
 }
 
 /**

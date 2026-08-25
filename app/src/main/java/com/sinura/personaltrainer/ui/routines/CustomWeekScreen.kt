@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -151,27 +150,32 @@ fun CustomWeekScreen(
                     }
                 } else {
                     item { Kicker("${state.selectedDay.shortLabel()} · ${lifts.size}") }
-                    itemsIndexed(lifts, key = { _, item -> item.id }) { index, item ->
-                        CompactLiftRow(
-                            exercise = item.exercise,
-                            sets = item.targetSets,
-                            reps = item.targetReps,
-                        restSeconds = item.restSeconds,
-                        targetWeightKg = item.targetWeightKg,
-                        canMoveUp = index > 0,
-                            canMoveDown = index < lifts.lastIndex,
-                            expanded = expandedId == item.id,
-                            onToggle = { expandedId = if (expandedId == item.id) null else item.id },
-                            onMoveUp = { viewModel.moveLift(item.id, -1) },
-                            onMoveDown = { viewModel.moveLift(item.id, 1) },
-                            onRemove = { viewModel.removeLift(item.id) },
-                            onSwap = null,
-                            onStageTargets = { sets, reps, rest, kg ->
-                                viewModel.stageTargets(item.id, sets, reps, rest, kg)
+                    item {
+                        SessionLiftStrip(
+                            lifts = lifts.map { item ->
+                                SessionLiftItem(
+                                    id = item.id,
+                                    exercise = item.exercise,
+                                    sets = item.targetSets,
+                                    reps = item.targetReps,
+                                    restSeconds = item.restSeconds,
+                                    targetWeightKg = item.targetWeightKg,
+                                )
+                            },
+                            selectedId = expandedId,
+                            onSelect = { id ->
+                                expandedId = if (expandedId == id) null else id
+                            },
+                            onMoveEarlier = { id -> viewModel.moveLift(id, -1) },
+                            onMoveLater = { id -> viewModel.moveLift(id, 1) },
+                            onRemove = { id ->
+                                if (expandedId == id) expandedId = null
+                                viewModel.removeLift(id)
+                            },
+                            onStageTargets = { id, sets, reps, rest, kg ->
+                                viewModel.stageTargets(id, sets, reps, rest, kg)
                             },
                             onCommitTargets = { },
-                            modifier = Modifier.animateItem(),
-                            rowKey = item.id,
                         )
                     }
                     item {
@@ -232,7 +236,8 @@ fun CustomWeekScreen(
                 results = state.searchResults,
                 title = "Add lifts",
                 mode = ExercisePickerMode.MULTI_ADD,
-                selectedIds = state.pendingAddIds,
+                selectedOrder = state.pendingAddIds,
+                catalog = state.catalog,
             ),
             onEvent = { event ->
                 when (event) {

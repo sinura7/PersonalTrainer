@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.domain.CustomWeekLift
 import com.sinura.personaltrainer.domain.CustomWeekPolicy
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.LiftCart
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.SchedulePreferences
@@ -42,7 +43,7 @@ data class CustomWeekUiState(
     val searchResults: List<Exercise> = emptyList(),
     val catalog: List<Exercise> = emptyList(),
     val showPicker: Boolean = false,
-    val pendingAddIds: Set<String> = emptySet(),
+    val pendingAddIds: List<String> = emptyList(),
     val applying: Boolean = false,
     val error: String? = null,
 ) {
@@ -62,7 +63,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
     private val preferredDays = MutableStateFlow<Set<Weekday>>(emptySet())
     private val searchQuery = MutableStateFlow("")
     private val showPicker = MutableStateFlow(false)
-    private val pendingAddIds = MutableStateFlow<Set<String>>(emptySet())
+    private val pendingAddIds = MutableStateFlow<List<String>>(emptyList())
     private val applying = MutableStateFlow(false)
     private val error = MutableStateFlow<String?>(null)
     private val catalog = MutableStateFlow<List<Exercise>>(emptyList())
@@ -156,7 +157,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
         showPicker.value = visible
         if (!visible) {
             searchQuery.value = ""
-            pendingAddIds.value = emptySet()
+            pendingAddIds.value = emptyList()
         }
     }
 
@@ -165,8 +166,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
     }
 
     fun togglePendingAdd(exercise: Exercise) {
-        val current = pendingAddIds.value
-        pendingAddIds.value = if (exercise.id in current) current - exercise.id else current + exercise.id
+        pendingAddIds.value = LiftCart.toggle(pendingAddIds.value, exercise.id)
     }
 
     fun confirmPendingAdd() {
@@ -176,7 +176,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
         val day = selectedDay.value
         val current = days.value[day].orEmpty()
         days.value = days.value + (day to CustomWeekPolicy.addLifts(current, incoming) { UUID.randomUUID().toString() })
-        pendingAddIds.value = emptySet()
+        pendingAddIds.value = emptyList()
         showPicker.value = false
         searchQuery.value = ""
         error.value = null
@@ -261,7 +261,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
     private data class WeekExtras(
         val results: List<Exercise>,
         val showPicker: Boolean,
-        val pendingAddIds: Set<String>,
+        val pendingAddIds: List<String>,
         val applying: Boolean,
         val error: String?,
     )

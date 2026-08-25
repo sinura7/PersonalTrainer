@@ -167,7 +167,7 @@ fun CompactLiftRow(
 }
 
 @Composable
-private fun CompactTargetFields(
+internal fun CompactTargetFields(
     rowKey: String,
     sets: Int,
     reps: Int,
