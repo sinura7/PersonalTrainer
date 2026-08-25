@@ -25,18 +25,15 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  * The DEFAULT clauses below must match the `@ColumnInfo(defaultValue = ...)` annotations on the
  * entities byte-for-byte, or Room's `validateMigrations` fails on the default-value diff.
  *
- * A NOTE ON WHAT VERIFIES THAT, because the sentence here used to overstate it: it said the
- * committed `2.json` was the arbiter and that its createSql had been copied here rather than
- * reasoned about. There is no committed `2.json`. `app/schemas/` holds `1.json` only, so every
- * clause below — the quoting of 'OTHER' and 'EXTERNAL' especially — was in fact reasoned about,
- * and has never been checked against anything a compiler emitted.
- *
- * Generating it is the first thing to do on a machine with the SDK: `./gradlew
- * :app:kspDebugKotlin` writes `2.json`, and diffing its `exercises` createSql against these
- * ALTER TABLE statements settles the default-value question from the artifact instead of from
- * memory. Until then this file is an argument, not a verified migration — and a fresh install
- * will not tell you either way, because it builds the table from Room's own createSql and never
- * runs a line of this.
+ * WHAT VERIFIES THAT: the committed `2.json` under
+ * `app/schemas/com.sinura.personaltrainer.data.local.TrainerDatabase/`, which Room's KSP
+ * processor emitted from the entities. Both `1.json` and `2.json` are checked in, so this is
+ * not reasoned about in the abstract — its `exercises` createSql spells out exactly the DEFAULT
+ * clauses added below (`equipment ... DEFAULT 'OTHER'`, `loadType ... DEFAULT 'EXTERNAL'`,
+ * `nameKey ... DEFAULT ''`), and `Migration1To2Test` replays this migration and validates the
+ * result against that schema. The default-value question is thereby settled from the artifact a
+ * compiler emitted, not from memory: the quoting of 'OTHER' and 'EXTERNAL' matches `2.json`
+ * byte-for-byte, which is what keeps Room's `validateMigrations` from rejecting them at open.
  */
 val MIGRATION_1_2 = object : Migration(1, 2) {
     override fun migrate(db: SupportSQLiteDatabase) {
