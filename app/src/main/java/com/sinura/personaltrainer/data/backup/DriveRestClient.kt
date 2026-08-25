@@ -83,8 +83,9 @@ class DriveRestClient {
 
     private fun folderExists(accessToken: String, folderId: String): Boolean {
         return try {
-            request(accessToken, "$DRIVE_FILES/$folderId?fields=id,trashed", "GET")
-            true
+            DriveFolderJson.isUsable(
+                request(accessToken, "$DRIVE_FILES/$folderId?fields=id,trashed", "GET"),
+            )
         } catch (_: BackupException) {
             false
         }
