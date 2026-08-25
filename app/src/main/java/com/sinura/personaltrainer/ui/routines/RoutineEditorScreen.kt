@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
@@ -89,6 +90,20 @@ fun RoutineEditorScreen(
     ) { padding ->
         if (state.isLoading) {
             ScreenLoading(modifier = Modifier.padding(padding))
+            return@Scaffold
+        }
+        if (state.failed) {
+            // The opening read threw. Retry re-runs hydration; the header's back arrow is the way
+            // out — the same shape History uses for an unreadable list.
+            EmptyState(
+                title = DataHealthCopy.ROUTINE_EDITOR_TITLE,
+                body = DataHealthCopy.ROUTINE_EDITOR_BODY,
+                actionLabel = DataHealthCopy.RETRY,
+                onAction = { viewModel.retryHydration() },
+                modifier = Modifier
+                    .padding(padding)
+                    .padding(Metrics.gutter),
+            )
             return@Scaffold
         }
         if (state.missing) {

@@ -19,6 +19,7 @@ import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineEditorLoad
 import com.sinura.personaltrainer.domain.RoutineEditorPolicy
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -34,6 +35,8 @@ private const val TAG = "PT/RoutineEditorVM"
 data class RoutineEditorUiState(
     val isLoading: Boolean = true,
     val missing: Boolean = false,
+    /** The opening read of an existing routine threw; the screen offers a retry, not a spinner. */
+    val failed: Boolean = false,
     val routine: Routine? = null,
     val name: String = "",
     val notes: String = "",
@@ -103,8 +106,19 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         container.exerciseRepository.search(query)
     }
 
+    private var hydrateJob: Job? = null
+
     init {
-        viewModelScope.launch {
+        hydrate()
+    }
+
+    /**
+     * Read the routine once, then keep watching it. Split out of `init` so [retryHydration] can
+     * run it again: without that, a hydration failure had no exit but the system back button.
+     */
+    private fun hydrate() {
+        hydrateJob?.cancel()
+        hydrateJob = viewModelScope.launch {
             // getById and the collector below both touch Room; an uncaught failure
             // here would kill the collector and leave the editor frozen with no clue why.
             runCatchingCancellable {
@@ -118,8 +132,22 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 routineFlow.collect { routine ->
                     applyLoad { it.onRoutineEmission(present = routine != null) }
                 }
-            }.onFailure { AppLog.e(TAG, "Loading the routine editor failed", it) }
+            }.onFailure {
+                // Before this, the read simply stopped and `hydrated` stayed false, so the editor
+                // sat on ScreenLoading forever. FAILED turns that dead spinner into a retriable
+                // error state — the new-routine path never reaches here, so it is untouched.
+                AppLog.e(TAG, "Loading the routine editor failed", it)
+                applyLoad { it.markFailed() }
+            }
         }
+    }
+
+    /** Re-read after a failed hydration. No-op unless the editor is actually in FAILED. */
+    fun retryHydration() {
+        if (load.value.phase != EditorPhase.FAILED) return
+        error.value = null
+        applyLoad { it.onRetry() }
+        hydrate()
     }
 
     /**
@@ -152,6 +180,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         RoutineEditorUiState(
             isLoading = extras.phase == EditorPhase.LOADING,
             missing = extras.phase == EditorPhase.MISSING,
+            failed = extras.phase == EditorPhase.FAILED,
             routine = core.routine,
             name = core.name,
             notes = core.notes,

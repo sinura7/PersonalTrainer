@@ -63,4 +63,43 @@ class RoutineEditorLoadTest {
         assertEquals(EditorPhase.MISSING, newRoutine.markMissing().phase)
         assertEquals(EditorPhase.MISSING, existing.markMissing().phase)
     }
+
+    @Test
+    fun aFailedOpeningReadLeavesLoadingForAnExplicitError() {
+        // The bug this guards: a throwing hydration left `hydrated` false forever, so the editor
+        // sat on LOADING with no way out. FAILED is a distinct, actionable state.
+        assertEquals(EditorPhase.FAILED, existing.markFailed().phase)
+    }
+
+    @Test
+    fun markFailedDoesNotTearDownAnEditorThatAlreadyHydrated() {
+        // A read that throws after the routine is on screen must not wipe it.
+        val hydrated = existing.onInitialRead(found = true)
+        assertEquals(EditorPhase.EDITING, hydrated.markFailed().phase)
+    }
+
+    @Test
+    fun aNewRoutineNeverFails() {
+        // Nothing is read for a brand-new routine, so there is nothing that can fail to read.
+        assertEquals(EditorPhase.EDITING, newRoutine.markFailed().phase)
+    }
+
+    @Test
+    fun missingWinsOverAFailedRead() {
+        val gone = existing.onInitialRead(found = false)
+        assertEquals(EditorPhase.MISSING, gone.markFailed().phase)
+    }
+
+    @Test
+    fun retryDropsAFailedEditorBackToLoading() {
+        val failed = existing.markFailed()
+        assertEquals(EditorPhase.FAILED, failed.phase)
+        assertEquals(EditorPhase.LOADING, failed.onRetry().phase)
+    }
+
+    @Test
+    fun retryIsANoOpWhenNothingFailed() {
+        assertEquals(EditorPhase.LOADING, existing.onRetry().phase)
+        assertEquals(EditorPhase.EDITING, newRoutine.onRetry().phase)
+    }
 }

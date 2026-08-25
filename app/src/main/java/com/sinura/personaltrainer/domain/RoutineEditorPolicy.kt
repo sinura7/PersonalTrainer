@@ -120,6 +120,15 @@ enum class EditorPhase {
 
     /** The row is gone: deleted, restored over, or the id was stale on arrival. Terminal. */
     MISSING,
+
+    /**
+     * The opening read of an existing routine threw before it could hydrate. Distinct from
+     * MISSING: the row may well be there, but Room could not answer, so the editor cannot say
+     * it is gone. Retriable — a retry drops back to LOADING and reads again — rather than
+     * terminal, and it exists so a failed hydration surfaces an error the user can act on
+     * instead of a spinner that never resolves.
+     */
+    FAILED,
 }
 
 /**
@@ -139,10 +148,12 @@ data class RoutineEditorLoad(
     val loadedExisting: Boolean = false,
     val sawRoutine: Boolean = false,
     val missing: Boolean = false,
+    val failed: Boolean = false,
 ) {
     val phase: EditorPhase
         get() = when {
             missing -> EditorPhase.MISSING
+            failed -> EditorPhase.FAILED
             !hydrated -> EditorPhase.LOADING
             else -> EditorPhase.EDITING
         }
@@ -163,4 +174,16 @@ data class RoutineEditorLoad(
 
     /** The row turned out to be gone during an action this screen took. */
     fun markMissing(): RoutineEditorLoad = copy(missing = true)
+
+    /**
+     * The opening read threw. Only meaningful before hydration: once the editor is EDITING there
+     * is real data on screen, and once MISSING the routine's absence is already settled, so
+     * neither is torn down for a late read failure. A new routine has nothing to read and so
+     * never reaches here.
+     */
+    fun markFailed(): RoutineEditorLoad =
+        if (hydrated || missing || failed) this else copy(failed = true)
+
+    /** Drop a FAILED editor back to LOADING so hydration can be attempted again. */
+    fun onRetry(): RoutineEditorLoad = if (failed) copy(failed = false) else this
 }
