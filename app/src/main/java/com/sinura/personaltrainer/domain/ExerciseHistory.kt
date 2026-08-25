@@ -182,6 +182,7 @@ object ExerciseHistoryBuilder {
         val work = SetWork.sum(records.map { SetWork.of(it.weightKg, it.reps, loadClass) })
         val top = ProgressionBasis.topWorkingSet(
             records.map { WorkingSetCandidate(it.weightKg, it.reps, it.completedAt) },
+            loadClass.weightMeaning,
         )
         val topRecord = top?.let { chosen ->
             records.first {
