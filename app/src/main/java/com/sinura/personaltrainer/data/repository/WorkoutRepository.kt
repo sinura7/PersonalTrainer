@@ -430,38 +430,44 @@ class WorkoutRepository(
         rpe: Int?,
         isWarmup: Boolean,
     ): LoggedSet {
-        val current = workoutDao.getSession(sessionId)
-            ?: error("This workout is no longer available.")
-        if (current.session.finishedAt != null) {
-            error("This workout is already finished.")
+        // Count-then-insert must be one Room transaction. Two overlapping logSet calls
+        // (or a log overlapping a delete/renumber) used to both read the same count and
+        // write the same setNumber — duplicate numbers under concurrency or process death.
+        val entity = database.withTransaction {
+            val current = workoutDao.getSession(sessionId)
+                ?: error("This workout is no longer available.")
+            if (current.session.finishedAt != null) {
+                error("This workout is already finished.")
+            }
+            if (reps < 1) error("Reps must be at least 1.")
+            val violation = SetLogRules.validate(weightKg, reps, isWarmup, loadTypeOf(current, exerciseId))
+            if (violation != null) error(violation)
+            val nextNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
+            val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else 0.0
+            val safeReps = reps.coerceAtLeast(1)
+            val completedAt = System.currentTimeMillis()
+            val row = SetLogEntity(
+                id = UUID.randomUUID().toString(),
+                sessionId = sessionId,
+                exerciseId = exerciseId,
+                setNumber = nextNumber,
+                weightKg = safeWeight,
+                reps = safeReps,
+                rpe = rpe,
+                isWarmup = isWarmup,
+                completedAt = completedAt,
+            )
+            workoutDao.insertSet(row)
+            row
         }
-        if (reps < 1) error("Reps must be at least 1.")
-        val violation = SetLogRules.validate(weightKg, reps, isWarmup, loadTypeOf(current, exerciseId))
-        if (violation != null) error(violation)
-        val nextNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
-        val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else 0.0
-        val safeReps = reps.coerceAtLeast(1)
-        val completedAt = System.currentTimeMillis()
-        val entity = SetLogEntity(
-            id = UUID.randomUUID().toString(),
-            sessionId = sessionId,
-            exerciseId = exerciseId,
-            setNumber = nextNumber,
-            weightKg = safeWeight,
-            reps = safeReps,
-            rpe = rpe,
-            isWarmup = isWarmup,
-            completedAt = completedAt,
-        )
-        workoutDao.insertSet(entity)
         return LoggedSet(
             setId = entity.id,
-            records = if (isWarmup) {
+            records = if (entity.isWarmup) {
                 // A warm-up is preparation, not work. It is excluded from volume, from the
                 // heat map and from records, and announcing one as a PR would be a lie.
                 emptySet()
             } else {
-                recordsBrokenBy(exerciseId, sessionId, safeWeight, safeReps, completedAt)
+                recordsBrokenBy(exerciseId, sessionId, entity.weightKg, entity.reps, entity.completedAt)
             },
         )
     }
@@ -504,20 +510,24 @@ class WorkoutRepository(
      * costs nothing until it is needed.
      */
     suspend fun deleteSet(setId: String): DeletedSet? {
-        val deleted = workoutDao.getSet(setId) ?: return null
-        workoutDao.deleteSet(setId)
-        renumber(deleted.sessionId, deleted.exerciseId)
-        return DeletedSet(
-            setId = deleted.id,
-            sessionId = deleted.sessionId,
-            exerciseId = deleted.exerciseId,
-            setNumber = deleted.setNumber,
-            weightKg = deleted.weightKg,
-            reps = deleted.reps,
-            rpe = deleted.rpe,
-            isWarmup = deleted.isWarmup,
-            completedAt = deleted.completedAt,
-        )
+        // Delete and renumber are one write. A committed delete with a half-applied
+        // renumber left a gap that the next logSet would then share a number with.
+        return database.withTransaction {
+            val deleted = workoutDao.getSet(setId) ?: return@withTransaction null
+            workoutDao.deleteSet(setId)
+            renumber(deleted.sessionId, deleted.exerciseId)
+            DeletedSet(
+                setId = deleted.id,
+                sessionId = deleted.sessionId,
+                exerciseId = deleted.exerciseId,
+                setNumber = deleted.setNumber,
+                weightKg = deleted.weightKg,
+                reps = deleted.reps,
+                rpe = deleted.rpe,
+                isWarmup = deleted.isWarmup,
+                completedAt = deleted.completedAt,
+            )
+        }
     }
 
     /**
@@ -528,21 +538,23 @@ class WorkoutRepository(
      * record. No-ops if the session has since gone.
      */
     suspend fun restoreSet(set: DeletedSet) {
-        if (workoutDao.getSessionRow(set.sessionId) == null) return
-        workoutDao.insertSet(
-            SetLogEntity(
-                id = set.setId,
-                sessionId = set.sessionId,
-                exerciseId = set.exerciseId,
-                setNumber = set.setNumber,
-                weightKg = set.weightKg,
-                reps = set.reps,
-                rpe = set.rpe,
-                isWarmup = set.isWarmup,
-                completedAt = set.completedAt,
-            ),
-        )
-        renumber(set.sessionId, set.exerciseId)
+        database.withTransaction {
+            if (workoutDao.getSessionRow(set.sessionId) == null) return@withTransaction
+            workoutDao.insertSet(
+                SetLogEntity(
+                    id = set.setId,
+                    sessionId = set.sessionId,
+                    exerciseId = set.exerciseId,
+                    setNumber = set.setNumber,
+                    weightKg = set.weightKg,
+                    reps = set.reps,
+                    rpe = set.rpe,
+                    isWarmup = set.isWarmup,
+                    completedAt = set.completedAt,
+                ),
+            )
+            renumber(set.sessionId, set.exerciseId)
+        }
     }
 
     private suspend fun renumber(sessionId: String, exerciseId: String) {
@@ -570,32 +582,34 @@ class WorkoutRepository(
         rpe: Int?,
         isWarmup: Boolean,
     ) {
-        val current = workoutDao.getSession(sessionId)
-            ?: error("This workout is no longer available.")
-        val session = current.session
-        val finishedAt = session.finishedAt ?: error("This workout is still in progress.")
-        if (reps < 1) error("Reps must be at least 1.")
-        val violation = SetLogRules.validate(weightKg, reps, isWarmup, loadTypeOf(current, exerciseId))
-        if (violation != null) error(violation)
-        val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else 0.0
-        val nextNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
-        workoutDao.insertSet(
-            SetLogEntity(
-                id = UUID.randomUUID().toString(),
-                sessionId = sessionId,
-                exerciseId = exerciseId,
-                setNumber = nextNumber,
-                weightKg = safeWeight,
-                reps = reps.coerceAtLeast(1),
-                rpe = rpe,
-                isWarmup = isWarmup,
-                completedAt = FinishedSessionEdits.timestampForAddedSet(
-                    startedAt = session.startedAt,
-                    finishedAt = finishedAt,
-                    lastCompletedAt = current.sets.maxOfOrNull { it.set.completedAt },
+        database.withTransaction {
+            val current = workoutDao.getSession(sessionId)
+                ?: error("This workout is no longer available.")
+            val session = current.session
+            val finishedAt = session.finishedAt ?: error("This workout is still in progress.")
+            if (reps < 1) error("Reps must be at least 1.")
+            val violation = SetLogRules.validate(weightKg, reps, isWarmup, loadTypeOf(current, exerciseId))
+            if (violation != null) error(violation)
+            val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else 0.0
+            val nextNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
+            workoutDao.insertSet(
+                SetLogEntity(
+                    id = UUID.randomUUID().toString(),
+                    sessionId = sessionId,
+                    exerciseId = exerciseId,
+                    setNumber = nextNumber,
+                    weightKg = safeWeight,
+                    reps = reps.coerceAtLeast(1),
+                    rpe = rpe,
+                    isWarmup = isWarmup,
+                    completedAt = FinishedSessionEdits.timestampForAddedSet(
+                        startedAt = session.startedAt,
+                        finishedAt = finishedAt,
+                        lastCompletedAt = current.sets.maxOfOrNull { it.set.completedAt },
+                    ),
                 ),
-            ),
-        )
+            )
+        }
     }
 
     /**
