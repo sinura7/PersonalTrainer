@@ -154,6 +154,7 @@ object TrainingInsightsCalculator {
                     nowMs = input.nowMs,
                     time = input.time,
                     zoneId = input.zoneId,
+                    weekStart = input.preferences.weekStart,
                 ),
             )
         }.let { derived ->

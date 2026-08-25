@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.domain
 
+import java.time.LocalDate
 import java.time.ZoneOffset
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -91,6 +92,102 @@ class DeloadSignalTest {
             squatSession("s$index", now - index * DAY - HOUR, sets = 4, weightKg = 100.0)
         }
         assertNull(DeloadSignal.detect(comeback, now, zone))
+    }
+
+    // ---------------------------------------------------------------------------------------
+    // Calendar-week attribution (N6). The three-week window is anchored to the calendar week
+    // that contains now, in the caller's zone — not to three rolling 168-hour slices ending at
+    // the instant now. 2024-01-01 is a Monday, so these weeks line up cleanly on the default
+    // Monday week-start: week 1 = Jan 1-7, week 2 = Jan 8-14, week 3 = Jan 15-21.
+    // ---------------------------------------------------------------------------------------
+
+    @Test
+    fun threeConsecutiveCalendarWeeksRisingFires() {
+        val now = ms(LocalDate.of(2024, 1, 17), 12) // Wednesday of week 3
+        val history =
+            setsOn(LocalDate.of(2024, 1, 16), count = 9, tag = "w3") + // week 3
+                setsOn(LocalDate.of(2024, 1, 10), count = 6, tag = "w2") + // week 2
+                setsOn(LocalDate.of(2024, 1, 3), count = 4, tag = "w1") // week 1
+        val finding = DeloadSignal.detect(history, now, ZoneOffset.UTC)
+        assertNotNull(finding)
+        // 9 vs 4 sets is a 125% rise from oldest to newest.
+        assertEquals(125, finding!!.setRisePercent)
+    }
+
+    @Test
+    fun aLateWeekSessionStaysInItsCalendarWeekNotTheRollingWindow() {
+        // The exact shape the old rolling window got wrong. now is Wednesday of week 3; the
+        // three Sunday-night sets sit in the last hours of week 2. A calendar bucket keeps them
+        // in week 2, so weekly sets read 5 / 9 / 4 — this week DIPPED, nothing to flag. The old
+        // rolling 168h window counted anything within ~62h of now as "this week", pulling those
+        // Sunday sets forward to read 8 / 6 / 4 and wrongly firing the deload card.
+        val now = ms(LocalDate.of(2024, 1, 17), 12)
+        val history =
+            setsOn(LocalDate.of(2024, 1, 16), count = 5, tag = "w3") +
+                setsOn(LocalDate.of(2024, 1, 14), hour = 22, count = 3, tag = "sun") + // week 2, late
+                setsOn(LocalDate.of(2024, 1, 10), count = 6, tag = "w2") +
+                setsOn(LocalDate.of(2024, 1, 3), count = 4, tag = "w1")
+        assertNull(DeloadSignal.detect(history, now, ZoneOffset.UTC))
+    }
+
+    @Test
+    fun aGapWeekBreaksTheStreak() {
+        // Volume in week 3 and week 1 but nothing in week 2. Three CONSECUTIVE weeks is the
+        // rule; an empty middle week is not a rising streak.
+        val now = ms(LocalDate.of(2024, 1, 17), 12)
+        val history =
+            setsOn(LocalDate.of(2024, 1, 16), count = 9, tag = "w3") +
+                setsOn(LocalDate.of(2024, 1, 3), count = 4, tag = "w1")
+        assertNull(DeloadSignal.detect(history, now, ZoneOffset.UTC))
+    }
+
+    @Test
+    fun weekAttributionRespectsTheZone() {
+        // One fixed set of instants, read in two zones. The three "boundary" sets happen at
+        // 23:30 UTC on the last Sunday of week 2. In UTC they belong to week 2, so the weekly
+        // totals dip this week (5 / 9 / 4) and nothing fires. Shift the reader an hour east and
+        // the same instants are 00:30 Monday — week 3 — so the totals rise (8 / 6 / 4) and the
+        // card fires. The bucketing follows the zone, exactly as the rest of the domain does.
+        val now = ms(LocalDate.of(2024, 1, 17), 12)
+        val history =
+            setsOn(LocalDate.of(2024, 1, 16), count = 5, tag = "w3") +
+                setsOn(LocalDate.of(2024, 1, 14), hour = 23, minute = 30, count = 3, tag = "sun") +
+                setsOn(LocalDate.of(2024, 1, 10), count = 6, tag = "w2") +
+                setsOn(LocalDate.of(2024, 1, 3), count = 4, tag = "w1")
+        assertNull(DeloadSignal.detect(history, now, ZoneOffset.UTC))
+        assertNotNull(DeloadSignal.detect(history, now, ZoneOffset.ofHours(1)))
+    }
+
+    @Test
+    fun detectionIsDeterministic() {
+        val now = ms(LocalDate.of(2024, 1, 17), 12)
+        val history =
+            setsOn(LocalDate.of(2024, 1, 16), count = 9, tag = "w3") +
+                setsOn(LocalDate.of(2024, 1, 10), count = 6, tag = "w2") +
+                setsOn(LocalDate.of(2024, 1, 3), count = 4, tag = "w1")
+        assertEquals(
+            DeloadSignal.detect(history, now, ZoneOffset.UTC),
+            DeloadSignal.detect(history, now, ZoneOffset.UTC),
+        )
+    }
+
+    private fun ms(date: LocalDate, hour: Int, minute: Int = 0): Long =
+        date.atTime(hour, minute).toInstant(ZoneOffset.UTC).toEpochMilli()
+
+    /** [count] one-set squat sessions on [date], each an hour apart, all 100 kg for 5 reps. */
+    private fun setsOn(
+        date: LocalDate,
+        count: Int,
+        hour: Int = 10,
+        minute: Int = 0,
+        tag: String,
+    ): List<WorkoutSession> = (0 until count).map { index ->
+        squatSession(
+            id = "$tag-$index",
+            at = ms(date, hour, minute) + index * 60_000L,
+            sets = 1,
+            weightKg = 100.0,
+        )
     }
 
     /**
