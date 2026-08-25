@@ -34,6 +34,23 @@ object LiftCart {
         return primary + extra.filter { it.id !in have }
     }
 
+    /**
+     * A just-created lift has to appear in the picker before Room's catalog
+     * flow catches up. Once it is in [results], extra is a duplicate, not a pin.
+     */
+    fun visibleResults(
+        results: List<Exercise>,
+        extra: List<Exercise>,
+        query: String,
+    ): List<Exercise> {
+        val needle = query.trim()
+        val gap = extra.filter { exercise ->
+            results.none { it.id == exercise.id } &&
+                (needle.isEmpty() || exercise.name.contains(needle, ignoreCase = true))
+        }
+        return mergeSources(gap, results)
+    }
+
     fun resolve(order: List<String>, sources: List<Exercise>): List<Exercise> {
         val byId = sources.associateBy { it.id }
         return sanitize(order).mapNotNull { byId[it] }

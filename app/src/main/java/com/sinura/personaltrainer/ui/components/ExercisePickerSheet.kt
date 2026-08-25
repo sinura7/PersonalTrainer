@@ -251,7 +251,7 @@ fun ExercisePickerSheet(
                         }
                     }
                 }
-                if (results.isEmpty()) {
+                if (results.isEmpty() && !canCreate) {
                     item(key = "empty") {
                         EmptyState(
                             title = if (needle.isEmpty()) "Search the library" else "No matches",

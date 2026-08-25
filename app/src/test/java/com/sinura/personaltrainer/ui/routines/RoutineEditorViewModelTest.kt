@@ -7,11 +7,14 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.local.dao.RoutineDao
+import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.local.relation.RoutineWithExercises
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -388,6 +391,79 @@ class RoutineEditorViewModelTest {
         assertFalse(vm.uiState.value.showExercisePicker)
     }
 
+    @Test
+    fun emptyPickerLeadsWithTheLiftLoggedMostRecently() = runBlocking {
+        seedTestWorkout(
+            deps,
+            exerciseId = "zz-squat",
+            exerciseName = "ZZ Squat",
+            loggedSets = listOf(TestSetInput(weightKg = 100.0, reps = 5)),
+            finish = true,
+        )
+        insertTestExercise(deps, "aa-bench", "AA Bench", muscleGroup = "Chest")
+        val vm = createViewModel("new")
+        val state = vm.uiState.first {
+            it.searchResults.size >= 2 && it.searchResults.first().name == "ZZ Squat"
+        }
+        assertEquals("ZZ Squat", state.searchResults.first().name)
+    }
+
+    @Test
+    fun createAndSelectAppearsInPickerResultsBeforeTheCatalogCatchesUp() = runBlocking {
+        val vm = createViewModel("new")
+        vm.uiState.first { !it.isLoading }
+        vm.setPickerVisible(true)
+        vm.createAndSelect("Good morning", "Hamstrings")
+        val state = vm.uiState.first { it.pendingAddIds.isNotEmpty() }
+        assertTrue(state.searchResults.any { it.name == "Good morning" })
+    }
+
+    @Test
+    fun stagedLoadDoesNotSurviveASwapWhenLeaving() = runBlocking {
+        val fixture = seedTestWorkout(deps, targetSets = 3, targetReps = 5, targetWeightKg = 100.0)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val replacement = insertTestExercise(deps, "front-squat", "Front squat", muscleGroup = "Quads")
+        val vm = createViewModel(fixture.routine.id)
+        val item = vm.uiState.first { it.routine?.exercises?.size == 1 }.routine!!.exercises.single()
+
+        vm.stageTargets(item.id, targetSets = 3, targetReps = 5, targetWeightKg = 80.0, restSeconds = 90)
+        vm.requestSwap(item.id)
+        vm.swapExercise(replacement)
+        vm.uiState.first { it.routine?.exercises?.singleOrNull()?.exercise?.id == replacement.id }
+
+        vm.leave()
+        eventually { true.takeIf { vm.exitRequested.value } }
+        val stored = checkNotNull(deps.routineRepository.getById(fixture.routine.id))
+        assertEquals(replacement.id, stored.exercises.single().exercise.id)
+        assertNull(stored.exercises.single().targetWeightKg)
+        assertEquals(3, stored.exercises.single().targetSets)
+        assertEquals(5, stored.exercises.single().targetReps)
+    }
+
+    @Test
+    fun leaveWaitsForConfirmSoANewRoutineIsNotDeletedMidAdd() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
+        val gate = CompletableDeferred<Unit>()
+        val vm = createViewModel("new", delayedAdd(gate))
+        try {
+            vm.uiState.first { it.catalog.size >= 2 }
+            vm.togglePendingAdd(squat)
+            vm.togglePendingAdd(row)
+            vm.confirmPendingAdd()
+            vm.leave()
+            dispatcher.scheduler.runCurrent()
+            assertFalse(vm.exitRequested.value)
+
+            gate.complete(Unit)
+            eventually { true.takeIf { vm.exitRequested.value } }
+            val saved = deps.routineRepository.observeAll().first().single()
+            assertEquals(listOf(squat.id, row.id), saved.exercises.map { it.exercise.id })
+        } finally {
+            if (!gate.isCompleted) gate.complete(Unit)
+        }
+    }
+
     private fun createViewModel(
         routineId: String,
         container: AppDependencies = deps,
@@ -407,6 +483,23 @@ class RoutineEditorViewModelTest {
         val repo = RoutineRepository(FailingGetByIdDao(deps.database.routineDao(), gate))
         return object : AppDependencies by deps {
             override val routineRepository: RoutineRepository = repo
+        }
+    }
+
+    private fun delayedAdd(gate: CompletableDeferred<Unit>): AppDependencies {
+        val repo = RoutineRepository(GatedUpsertDao(deps.database.routineDao(), gate))
+        return object : AppDependencies by deps {
+            override val routineRepository: RoutineRepository = repo
+        }
+    }
+
+    private class GatedUpsertDao(
+        private val delegate: RoutineDao,
+        private val gate: CompletableDeferred<Unit>,
+    ) : RoutineDao by delegate {
+        override suspend fun upsertRoutineExercise(item: RoutineExerciseEntity) {
+            gate.await()
+            delegate.upsertRoutineExercise(item)
         }
     }
 

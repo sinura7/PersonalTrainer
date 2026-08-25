@@ -22,6 +22,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -102,14 +103,17 @@ fun SessionLiftStrip(
     val selected = lifts.firstOrNull { it.id == selectedId }
     val selectedIndex = lifts.indexOfFirst { it.id == selectedId }
     val listState = rememberLazyListState()
-    var seenCount by remember { mutableIntStateOf(lifts.size) }
-    var seenFirstId by remember { mutableStateOf(lifts.firstOrNull()?.id) }
+    var seenCount by remember { mutableIntStateOf(0) }
+    var seenFirstId by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(lifts.firstOrNull()?.id, lifts.size) {
         val firstId = lifts.firstOrNull()?.id
-        if (lifts.size > seenCount && lifts.isNotEmpty()) {
-            listState.animateScrollToItem(seenCount.coerceIn(0, lifts.lastIndex))
-        } else if (firstId != seenFirstId) {
-            listState.scrollToItem(0)
+        when {
+            seenFirstId != null && firstId != seenFirstId -> {
+                if (lifts.isNotEmpty()) listState.scrollToItem(0)
+            }
+            lifts.size > seenCount && lifts.isNotEmpty() -> {
+                listState.animateScrollToItem(lifts.lastIndex)
+            }
         }
         seenCount = lifts.size
         seenFirstId = firstId
@@ -214,17 +218,19 @@ private fun SessionLiftEditor(
                 )
             }
         }
-        CompactTargetFields(
-            rowKey = "${item.id}:${item.exercise.id}",
-            sets = item.sets,
-            reps = item.reps,
-            restSeconds = item.restSeconds,
-            targetWeightKg = item.targetWeightKg,
-            onStageTargets = onStageTargets,
-            onCommitTargets = onCommitTargets,
-            onRemove = onRemove,
-            onSwap = if (canSwap) onSwap else null,
-        )
+        key("${item.id}:${item.exercise.id}") {
+            CompactTargetFields(
+                rowKey = "${item.id}:${item.exercise.id}",
+                sets = item.sets,
+                reps = item.reps,
+                restSeconds = item.restSeconds,
+                targetWeightKg = item.targetWeightKg,
+                onStageTargets = onStageTargets,
+                onCommitTargets = onCommitTargets,
+                onRemove = onRemove,
+                onSwap = if (canSwap) onSwap else null,
+            )
+        }
         Kicker(
             SessionOrderCopy.ORDER,
             modifier = Modifier.padding(horizontal = Metrics.space3),

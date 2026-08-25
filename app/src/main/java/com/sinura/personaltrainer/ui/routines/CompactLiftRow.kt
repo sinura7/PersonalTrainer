@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -151,17 +152,19 @@ fun CompactLiftRow(
             }
         }
         if (expanded) {
-            CompactTargetFields(
-                rowKey = rowKey,
-                sets = sets,
-                reps = reps,
-                restSeconds = restSeconds,
-                targetWeightKg = targetWeightKg,
-                onStageTargets = onStageTargets,
-                onCommitTargets = onCommitTargets,
-                onRemove = onRemove,
-                onSwap = onSwap,
-            )
+            key(rowKey) {
+                CompactTargetFields(
+                    rowKey = rowKey,
+                    sets = sets,
+                    reps = reps,
+                    restSeconds = restSeconds,
+                    targetWeightKg = targetWeightKg,
+                    onStageTargets = onStageTargets,
+                    onCommitTargets = onCommitTargets,
+                    onRemove = onRemove,
+                    onSwap = onSwap,
+                )
+            }
         }
     }
 }

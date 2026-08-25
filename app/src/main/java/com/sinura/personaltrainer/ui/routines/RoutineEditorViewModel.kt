@@ -13,6 +13,7 @@ import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
 import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.EditorPhase
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.ExerciseOrdering
 import com.sinura.personaltrainer.domain.LibraryGrouping
 import com.sinura.personaltrainer.domain.LiftCart
 import com.sinura.personaltrainer.domain.MuscleGroups
@@ -91,6 +92,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     private val swapItemId = MutableStateFlow<String?>(null)
     private val pendingAddIds = MutableStateFlow<List<String>>(emptyList())
     private var confirmInFlight = false
+    private var confirmJob: Job? = null
+    private var leaving = false
 
     // Shared, not two independent collections: the missing-routine detector below and the
     // uiState chain each used to open their own Room query for the same row.
@@ -104,8 +107,14 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         if (id == null) flowOf(null) else container.routineRepository.observeById(id)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    private val resultsFlow = searchQuery.flatMapLatest { query ->
-        container.exerciseRepository.search(query)
+    private val resultsFlow = combine(
+        searchQuery.flatMapLatest { query ->
+            container.exerciseRepository.search(query)
+        },
+        container.exerciseRepository.observeLastLogged(),
+        searchQuery,
+    ) { results, lastLogged, query ->
+        if (query.isBlank()) ExerciseOrdering.pickerOrder(results, lastLogged) else results
     }
 
     private var hydrateJob: Job? = null
@@ -177,12 +186,18 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         },
         combine(
             combine(container.exerciseRepository.observeAll(), extraCatalog) { catalog, extra ->
-                LiftCart.mergeSources(catalog, extra)
+                catalog to extra
             },
             swapItemId,
             pendingAddIds,
-        ) { catalog, swapTarget, pending ->
-            CatalogExtras(catalog, swapTarget, pending)
+        ) { sources, swapTarget, pending ->
+            val (incoming, extra) = sources
+            CatalogExtras(
+                catalog = LiftCart.mergeSources(incoming, extra),
+                extra = extra,
+                swapItemId = swapTarget,
+                pendingAddIds = pending,
+            )
         },
     ) { core, extras, catalogExtras ->
         RoutineEditorUiState(
@@ -193,7 +208,11 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             name = core.name,
             notes = core.notes,
             searchQuery = core.query,
-            searchResults = core.results,
+            searchResults = LiftCart.visibleResults(
+                results = core.results,
+                extra = catalogExtras.extra,
+                query = core.query,
+            ),
             showExercisePicker = extras.showPicker,
             catalog = catalogExtras.catalog,
             swapItemId = catalogExtras.swapItemId,
@@ -224,12 +243,16 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         val itemId = swapItemId.value ?: return
         val routineId = routineId.value ?: return
         swapItemId.value = null
+        val dropped = stagedTargets.remove(itemId)
         viewModelScope.launch {
             runCatchingCancellable {
-                error.value = container.routineRepository.swapExercise(routineId, itemId, replacement)
+                val message = container.routineRepository.swapExercise(routineId, itemId, replacement)
+                error.value = message
+                if (message != null && dropped != null) stagedTargets[itemId] = dropped
             }.onFailure {
                 AppLog.w(TAG, "swapExercise failed", it)
                 error.value = "Could not swap that lift. Try again."
+                if (dropped != null) stagedTargets[itemId] = dropped
             }
         }
     }
@@ -339,11 +362,10 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     }
 
     fun leave() {
+        if (leaving) return
+        leaving = true
         viewModelScope.launch {
-            // Order matters twice over. Targets go first, while the routine and its rows are
-            // certainly still there. Then discardEmptyStub, which deletes an empty routine
-            // created this session and clears its id, so persistDetailsOnExit finds nothing to
-            // write to rather than resurrecting a name onto a row on its way out.
+            confirmJob?.join()
             flushStagedTargets()
             discardEmptyStub()
             persistDetailsOnExit()
@@ -390,6 +412,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
 
     fun setPickerVisible(visible: Boolean) {
         if (missing) return
+        if (visible && (confirmInFlight || leaving)) return
         showPicker.value = visible
         if (!visible && !confirmInFlight) {
             searchQuery.value = ""
@@ -403,7 +426,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     }
 
     fun confirmPendingAdd() {
-        if (confirmInFlight) return
+        if (confirmInFlight || leaving) return
         val selected = LiftCart.sanitize(pendingAddIds.value)
         if (selected.isEmpty()) return
         val snapshot = uiState.value
@@ -421,7 +444,6 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         }
         pendingAddIds.value = emptyList()
         if (plan.nothingNew) {
-            extraCatalog.value = emptyList()
             showPicker.value = false
             searchQuery.value = ""
             error.value = null
@@ -430,7 +452,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         confirmInFlight = true
         showPicker.value = false
         searchQuery.value = ""
-        viewModelScope.launch {
+        confirmJob = viewModelScope.launch {
             try {
                 val id = ensureRoutineId() ?: run {
                     pendingAddIds.value = selected
@@ -458,7 +480,9 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                         return@launch
                     }
                 }
-                extraCatalog.value = emptyList()
+                extraCatalog.value = extraCatalog.value.filter { extra ->
+                    extra.id !in plan.toAdd.map { it.id }.toSet()
+                }
                 error.value = null
             } finally {
                 confirmInFlight = false
@@ -575,6 +599,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             val id = ensureRoutineId() ?: return@launch
             try {
                 container.routineRepository.removeExercise(itemId, id)
+                stagedTargets.remove(itemId)
                 error.value = null
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "removeExercise failed", thrown)
@@ -662,6 +687,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
 
     private data class CatalogExtras(
         val catalog: List<Exercise>,
+        val extra: List<Exercise>,
         val swapItemId: String?,
         val pendingAddIds: List<String>,
     )

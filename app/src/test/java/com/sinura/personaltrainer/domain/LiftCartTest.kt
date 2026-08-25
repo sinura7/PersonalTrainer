@@ -80,4 +80,25 @@ class LiftCartTest {
         assertEquals(listOf("ghost"), missing.missingIds)
         assertTrue(missing.toAdd.isEmpty())
     }
+
+    @Test
+    fun visibleResultsGapFillsUntilTheCatalogCatchesUp() {
+        val created = squat.copy(id = "new", name = "Good morning")
+        assertEquals(
+            listOf("new", "squat"),
+            LiftCart.visibleResults(listOf(squat), listOf(created), "").map { it.id },
+        )
+        assertEquals(
+            listOf("squat", "new"),
+            LiftCart.visibleResults(listOf(squat, created), listOf(created), "").map { it.id },
+        )
+        assertEquals(
+            listOf("squat"),
+            LiftCart.visibleResults(listOf(squat), listOf(created), "squ").map { it.id },
+        )
+        assertEquals(
+            listOf("new"),
+            LiftCart.visibleResults(emptyList(), listOf(created), "good").map { it.id },
+        )
+    }
 }

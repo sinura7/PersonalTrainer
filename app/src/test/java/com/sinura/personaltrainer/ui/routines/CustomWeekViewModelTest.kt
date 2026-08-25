@@ -5,7 +5,9 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.insertTestExercise
+import com.sinura.personaltrainer.testutil.seedTestWorkout
 import com.sinura.personaltrainer.domain.Weekday
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -174,6 +176,32 @@ class CustomWeekViewModelTest {
         assertEquals("Good morning", staged.selectedLifts.single().exercise.name)
         assertTrue(staged.selectedLifts.single().exercise.isCustom)
         assertFalse(staged.showPicker)
+    }
+
+    @Test
+    fun emptyPickerLeadsWithTheLiftLoggedMostRecently() = runBlocking {
+        seedTestWorkout(
+            deps,
+            exerciseId = "zz-squat",
+            exerciseName = "ZZ Squat",
+            loggedSets = listOf(TestSetInput(weightKg = 100.0, reps = 5)),
+            finish = true,
+        )
+        insertTestExercise(deps, "aa-bench", "AA Bench", muscleGroup = "Chest")
+        val vm = createViewModel()
+        val state = vm.uiState.first {
+            it.searchResults.size >= 2 && it.searchResults.first().name == "ZZ Squat"
+        }
+        assertEquals("ZZ Squat", state.searchResults.first().name)
+    }
+
+    @Test
+    fun createAndSelectAppearsInPickerResultsBeforeTheCatalogCatchesUp() = runBlocking {
+        val vm = createViewModel()
+        vm.setPickerVisible(true)
+        vm.createAndSelect("Good morning", "Hamstrings")
+        val state = vm.uiState.first { it.pendingAddIds.isNotEmpty() }
+        assertTrue(state.searchResults.any { it.name == "Good morning" })
     }
 
     @Test

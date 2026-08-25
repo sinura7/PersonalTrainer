@@ -19,7 +19,9 @@
 > speak the same 1 · 2 · 3 preview. Sessions longer than three open with
 > the lift count so a one-line ellipsis cannot hide the remainder.
 > Cart confirm is idempotent, keeps a just-created lift, and will not silently
-> drop unknown ids.
+> drop unknown ids. Leave waits for an in-flight Add so a new stub is not
+> deleted mid-write. A staged load does not survive a swap. Empty picker
+> order matches the live session (recency).
 
 Derived from the full audit of 19 Aug 2026 ([AUDIT.md](AUDIT.md)). Phases land in order;
 each one ends at a gate that must be verified before the next begins.

@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.domain.CustomWeekLift
 import com.sinura.personaltrainer.domain.CustomWeekPolicy
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.ExerciseOrdering
 import com.sinura.personaltrainer.domain.LiftCart
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.OnboardingAnswers
@@ -72,8 +73,14 @@ class CustomWeekViewModel @JvmOverloads constructor(
     private var pendingWeightUnit: WeightUnit? = null
     private var userPickedDay = false
 
-    private val resultsFlow = searchQuery.flatMapLatest { query ->
-        container.exerciseRepository.search(query)
+    private val resultsFlow = combine(
+        searchQuery.flatMapLatest { query ->
+            container.exerciseRepository.search(query)
+        },
+        container.exerciseRepository.observeLastLogged(),
+        searchQuery,
+    ) { results, lastLogged, query ->
+        if (query.isBlank()) ExerciseOrdering.pickerOrder(results, lastLogged) else results
     }
 
     val uiState: StateFlow<CustomWeekUiState> = combine(
@@ -92,7 +99,11 @@ class CustomWeekViewModel @JvmOverloads constructor(
             weekStart = core.weekStart,
             preferredDays = core.preferredDays,
             searchQuery = core.query,
-            searchResults = extras.results,
+            searchResults = LiftCart.visibleResults(
+                results = extras.results,
+                extra = extra,
+                query = core.query,
+            ),
             catalog = LiftCart.mergeSources(lifts, extra),
             showPicker = extras.showPicker,
             pendingAddIds = extras.pendingAddIds,
@@ -191,7 +202,9 @@ class CustomWeekViewModel @JvmOverloads constructor(
         if (plan.toAdd.isNotEmpty()) {
             days.value = days.value + (day to CustomWeekPolicy.addLifts(days.value[day].orEmpty(), plan.toAdd) { UUID.randomUUID().toString() })
         }
-        extraCatalog.value = emptyList()
+        extraCatalog.value = extraCatalog.value.filter { extra ->
+            extra.id !in plan.toAdd.map { it.id }.toSet()
+        }
         showPicker.value = false
         searchQuery.value = ""
         error.value = null
