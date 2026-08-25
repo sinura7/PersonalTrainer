@@ -116,8 +116,7 @@ class RoutineEditorViewModelTest {
         gate.shouldFail = false
         vm.retryHydration()
 
-        val recovered = vm.uiState.first { !it.failed && it.routine != null }
-        assertFalse(recovered.isLoading)
+        val recovered = vm.uiState.first { !it.failed && !it.isLoading && it.routine != null }
         assertFalse(recovered.missing)
         assertEquals(fixture.routine.id, recovered.routine?.id)
         assertEquals(fixture.routine.name, recovered.name)
