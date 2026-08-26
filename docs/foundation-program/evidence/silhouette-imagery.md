@@ -28,15 +28,17 @@ Commissioned line-art, Coil, WebP, VectorDrawable packs, or writing `imageKey`
 on catalog rows. `imageKey` stays null and is still only ever read inside
 `ExerciseThumb`.
 
-Each library pose is a pictogram person: one trunk, limbs that grow out of
-its end-caps, then Heat3 on the working limb, then kit. Heat does not
-replace the body with a second pile of plates. The Body figure is still the
-standing muscle map (outline under live plates) — that is a heat diagram,
-not a pose tile.
+Each library pose is an athletic plate person: a filled torso (wide
+shoulders, nipped waist), tapered limbs that grow out of its corners,
+inner muscle plates (pecs, abs, delts, quad teardrops), then Heat3 on
+the working plates, then kit. Unlit inner plates stay Steel on the
+SteelDim silhouette so the map is there even when that lift is not
+heating them. The Body figure is still the standing muscle map
+(outline under live plates) — that is a heat diagram, not a pose tile.
 
 ## Gate (this packet)
 
-- `./gradlew testDebugUnitTest` — 1331 tests, 0 failures
+- `./gradlew testDebugUnitTest` — 1332 tests, 0 failures
 - `./gradlew assembleDebug` — pass
 - `tools/preflight.sh` — OK; 922 domain tests; named-args 0 mismatches
 
