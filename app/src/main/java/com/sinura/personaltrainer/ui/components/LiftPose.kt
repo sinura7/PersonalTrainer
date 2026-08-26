@@ -178,12 +178,12 @@ internal fun poseAndKitPoints(
 
 private const val NECK_W1 = 0.050f
 private const val NECK_W2 = 0.056f
-private const val THIGH_W1 = 0.108f
+private const val THIGH_W1 = 0.118f
 private const val THIGH_W2 = 0.078f
-private const val CALF_W1 = 0.074f
+private const val CALF_W1 = 0.078f
 private const val CALF_W2 = 0.048f
-private const val ARM_W1 = 0.086f
-private const val ARM_W2 = 0.068f
+private const val ARM_W1 = 0.100f
+private const val ARM_W2 = 0.070f
 private const val FORE_W1 = 0.062f
 private const val FORE_W2 = 0.046f
 
@@ -212,6 +212,12 @@ private data class Figure(
 ) {
     val midS: Pair<Float, Float> get() = lerp(sL, sR, 0.5f)
     val midH: Pair<Float, Float> get() = lerp(hL, hR, 0.5f)
+    // Plant limbs inside the torso so quadratic smoothing of the
+    // shoulder/hip corners cannot open a pit-coloured gap.
+    val armRootL: Pair<Float, Float> get() = lerp(sL, midS, 0.10f).let { it.first to (it.second + 0.008f) }
+    val armRootR: Pair<Float, Float> get() = lerp(sR, midS, 0.10f).let { it.first to (it.second + 0.008f) }
+    val legRootL: Pair<Float, Float> get() = lerp(hL, midH, 0.08f)
+    val legRootR: Pair<Float, Float> get() = lerp(hR, midH, 0.08f)
 }
 
 private fun figureFor(pose: LiftPose): Figure = when (pose) {
@@ -356,28 +362,28 @@ private fun Figure.structure(): List<PoseInk> {
     ink += fill(if (side) torsoSide(sL, hL, depth) else torsoFront(sL, sR, hL, hR), null)
     ink += taper(head, midS, NECK_W1, NECK_W2, null)
     ink += oval(head, headRx, headRy, null)
-    ink += taper(hL, kL, THIGH_W1, THIGH_W2, null)
-    ink += taper(hR, kR, THIGH_W1, THIGH_W2, null)
+    ink += taper(legRootL, kL, THIGH_W1, THIGH_W2, null)
+    ink += taper(legRootR, kR, THIGH_W1, THIGH_W2, null)
     ink += taper(kL, aL, CALF_W1, CALF_W2, null)
     ink += taper(kR, aR, CALF_W1, CALF_W2, null)
-    ink += oval(hL, 0.052f, 0.044f, null)
-    ink += oval(hR, 0.052f, 0.044f, null)
-    ink += oval(kL, 0.044f, 0.038f, null)
-    ink += oval(kR, 0.044f, 0.038f, null)
-    ink += taper(sL, eL, ARM_W1, ARM_W2, null)
+    ink += oval(hL, 0.058f, 0.050f, null)
+    ink += oval(hR, 0.058f, 0.050f, null)
+    ink += oval(kL, 0.046f, 0.040f, null)
+    ink += oval(kR, 0.046f, 0.040f, null)
+    ink += taper(armRootL, eL, ARM_W1, ARM_W2, null)
     ink += taper(eL, wL, FORE_W1, FORE_W2, null)
     if (!side) {
-        ink += taper(sR, eR, ARM_W1, ARM_W2, null)
+        ink += taper(armRootR, eR, ARM_W1, ARM_W2, null)
         ink += taper(eR, wR, FORE_W1, FORE_W2, null)
     }
-    ink += oval(eL, 0.034f, 0.032f, null)
-    if (!side) ink += oval(eR, 0.034f, 0.032f, null)
+    ink += oval(eL, 0.036f, 0.034f, null)
+    if (!side) ink += oval(eR, 0.036f, 0.034f, null)
     ink += oval(wL, handRx, handRy, null)
     if (!side) ink += oval(wR, handRx, handRy, null)
     ink += oval(aL, footRx, footRy, null)
     ink += oval(aR, footRx, footRy, null)
-    ink += oval(sL, 0.042f, 0.038f, null)
-    if (!side) ink += oval(sR, 0.042f, 0.038f, null)
+    ink += oval(sL, 0.055f, 0.048f, null)
+    if (!side) ink += oval(sR, 0.055f, 0.048f, null)
     return ink
 }
 
@@ -576,14 +582,18 @@ private fun torsoFront(
     val waist = top + (bot - top) * 0.58f
     return listOf(
         sL,
+        (sL.first - 0.018f) to (sL.second + 0.024f),
         (cx - sw * 0.35f) to (top - 0.010f),
         (cx + sw * 0.35f) to (top - 0.010f),
+        (sR.first + 0.018f) to (sR.second + 0.024f),
         sR,
         (cx + sw * 0.92f) to chest,
-        (cx + hw * 0.70f) to waist,
+        (cx + hw * 0.78f) to waist,
+        (hR.first + 0.012f) to (hR.second - 0.006f),
         hR,
         hL,
-        (cx - hw * 0.70f) to waist,
+        (hL.first - 0.012f) to (hL.second - 0.006f),
+        (cx - hw * 0.78f) to waist,
         (cx - sw * 0.92f) to chest,
     )
 }
