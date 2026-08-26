@@ -30,6 +30,10 @@ object DailyAgenda {
     fun startable(items: List<AgendaItem>): List<AgendaItem> =
         items.filter { it.occurrence.status == OccurrenceStatus.PLANNED }
 
+    /** Days with two or more scheduled rows — the week-strip second mark. */
+    fun twoADayEpochDays(occurrences: List<ScheduleOccurrence>): Set<Long> =
+        occurrences.groupingBy { it.localEpochDay }.eachCount().filterValues { it >= 2 }.keys
+
     fun minutesOfDay(nowMs: Long, startOfDayMs: Long): Int =
         ((nowMs - startOfDayMs) / 60_000L).toInt().coerceIn(0, 24 * 60 - 1)
 }

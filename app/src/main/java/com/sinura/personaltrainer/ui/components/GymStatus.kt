@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -8,6 +9,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -25,17 +27,21 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.DangerContainer
 import com.sinura.personaltrainer.ui.theme.GoldContainer
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.PrGold
@@ -189,9 +195,21 @@ fun PersonalRecordBanner(
     modifier: Modifier = Modifier,
 ) {
     var visible by remember { mutableStateOf(false) }
+    val reduced = LocalReducedMotion.current
+    var flash by remember { mutableFloatStateOf(if (reduced) 0f else 1f) }
 
-    LaunchedEffect(headline, detail) {
+    LaunchedEffect(headline, detail, reduced) {
         visible = true
+        if (reduced) {
+            flash = 0f
+        } else {
+            flash = 1f
+            animate(
+                initialValue = 1f,
+                targetValue = 0f,
+                animationSpec = tween(durationMillis = 900, delayMillis = 120),
+            ) { value, _ -> flash = value }
+        }
     }
 
     AnimatedVisibility(
@@ -201,16 +219,32 @@ fun PersonalRecordBanner(
         exit = fadeOut(tween(Motion.FAST)),
         modifier = modifier,
     ) {
-        InstrumentBanner(
-            accent = PrGold,
-            container = GoldContainer,
-            title = headline,
-            body = detail,
-            icon = {
-                Icon(Icons.Outlined.EmojiEvents, contentDescription = null, tint = PrGold)
-            },
-            onDismiss = onDismiss,
-        )
+        val shape = RoundedCornerShape(Radius.md)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .drawBehind {
+                    if (reduced) return@drawBehind
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(PrGold.copy(alpha = 0.18f), Color.Transparent),
+                        ),
+                        radius = size.minDimension.coerceAtLeast(1f),
+                    )
+                }
+                .border(Metrics.hairline, PrGold.copy(alpha = 0.35f + 0.65f * flash), shape),
+        ) {
+            InstrumentBanner(
+                accent = PrGold,
+                container = GoldContainer,
+                title = headline,
+                body = detail,
+                icon = {
+                    Icon(Icons.Outlined.EmojiEvents, contentDescription = null, tint = PrGold)
+                },
+                onDismiss = onDismiss,
+            )
+        }
     }
 }
 

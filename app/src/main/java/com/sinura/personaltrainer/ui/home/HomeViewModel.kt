@@ -81,6 +81,7 @@ data class HomeUiState(
     val missedWorkPrompt: Boolean = false,
     val overdueCount: Int = 0,
     val goalSnapshot: GoalSnapshot? = null,
+    val twoADayEpochDays: Set<Long> = emptySet(),
 )
 
 class HomeViewModel @JvmOverloads constructor(
@@ -174,6 +175,7 @@ class HomeViewModel @JvmOverloads constructor(
                     )
                 },
             ),
+            twoADayEpochDays = DailyAgenda.twoADayEpochDays(weekOcc),
         )
     }
         // Same reason as Plan: this transform walks every finished session to build the logged

@@ -2,7 +2,11 @@ package com.sinura.personaltrainer.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -12,6 +16,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -50,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
@@ -87,6 +93,7 @@ import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.Pit
+import com.sinura.personaltrainer.ui.theme.PrGold
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.RestCyan
 import com.sinura.personaltrainer.ui.theme.Surface1
@@ -99,6 +106,7 @@ import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.VoltDim
 import com.sinura.personaltrainer.ui.theme.Warn
 import com.sinura.personaltrainer.ui.theme.instrumentTween
+import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.delay
@@ -707,6 +715,17 @@ fun RestDock(
 
     val safeRemaining = remainingSeconds.coerceAtLeast(0)
     val urgent = running && safeRemaining <= URGENT_SECONDS
+    val reduceMotion = LocalReducedMotion.current
+    val pulse = rememberInfiniteTransition(label = "rest-pulse")
+    val pulseScale by pulse.animateFloat(
+        initialValue = 1f,
+        targetValue = if (urgent && !reduceMotion) 1.015f else 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "rest-ring-pulse",
+    )
 
     // One tick per second through the final stretch, so the end of the rest can be felt with
     // the phone face-down on a bench.
@@ -732,11 +751,13 @@ fun RestDock(
         return
     }
 
-    // Cyan, which the palette defines as "recovery and rest-day identity". Not gold — that
-    // means a record broke and nothing else — and not volt, because Home's rest strip already
-    // labels a running timer in cyan and one timer should not change colour with the screen
-    // you happen to be looking at.
-    val accent = if (urgent) Warn else RestCyan
+    // Cyan while the clock runs. Warn in the last ten seconds. Gold only when rest is done —
+    // the same gold as a record, for the finished flash, then the dock returns to idle.
+    val accent = when {
+        justFinished -> PrGold
+        urgent -> Warn
+        else -> RestCyan
+    }
 
     Column(
         modifier = modifier
@@ -750,23 +771,34 @@ fun RestDock(
             horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            RestRing(
-                remainingSeconds = if (justFinished) 0 else safeRemaining,
-                totalSeconds = totalSeconds,
-                accent = accent,
-                showClock = false,
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+            Box(
+                modifier = Modifier.graphicsLayer {
+                    scaleX = pulseScale
+                    scaleY = pulseScale
+                },
             ) {
-                Kicker(if (justFinished) "Back to the bar" else "Rest", color = accent)
-                Text(
-                    RestTimer.formatClock(if (justFinished) 0 else safeRemaining),
-                    style = InstrumentType.numeralXl,
-                    color = TextPrimary,
-                    maxLines = 2,
+                RestRing(
+                    remainingSeconds = if (justFinished) 0 else safeRemaining,
+                    totalSeconds = totalSeconds,
+                    accent = accent,
+                    showClock = false,
+                    finished = justFinished,
                 )
+            }
+            BoxWithConstraints(modifier = Modifier.weight(1f)) {
+                val useHero = maxWidth >= HERO_CLOCK_MIN_WIDTH &&
+                    LocalDensity.current.fontScale <= HERO_CLOCK_MAX_FONT
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+                ) {
+                    Kicker(if (justFinished) "Back to the bar" else "Rest", color = accent)
+                    Text(
+                        RestTimer.formatClock(if (justFinished) 0 else safeRemaining),
+                        style = if (useHero) InstrumentType.numeralHero else InstrumentType.numeralXl,
+                        color = TextPrimary,
+                        maxLines = 2,
+                    )
+                }
             }
         }
         if (running) {
@@ -849,6 +881,7 @@ private fun RestRing(
     totalSeconds: Int,
     accent: Color,
     showClock: Boolean = true,
+    finished: Boolean = false,
 ) {
     val target = if (totalSeconds > 0) {
         (remainingSeconds.toFloat() / totalSeconds.toFloat()).coerceIn(0f, 1f)
@@ -876,6 +909,9 @@ private fun RestRing(
         contentAlignment = Alignment.Center,
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
+            if (finished) {
+                drawCircle(color = PrGold.copy(alpha = 0.28f))
+            }
             val stroke = RING_STROKE.toPx()
             val inset = stroke / 2f
             val arcSize = Size(size.width - stroke, size.height - stroke)
@@ -1255,3 +1291,5 @@ private const val URGENT_SECONDS = 10
 private val RING_SIZE = 200.dp
 private val RING_SIZE_COMPACT = 88.dp
 private val RING_STROKE = 10.dp
+private val HERO_CLOCK_MIN_WIDTH = 168.dp
+private const val HERO_CLOCK_MAX_FONT = 1.2f

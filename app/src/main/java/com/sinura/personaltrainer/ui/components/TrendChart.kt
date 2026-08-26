@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.ui.components
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,6 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -17,8 +21,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
@@ -27,7 +33,10 @@ import com.sinura.personaltrainer.ui.theme.ChartNow
 import com.sinura.personaltrainer.ui.theme.ChartPast
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.Motion
+import com.sinura.personaltrainer.ui.theme.PrGold
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
@@ -59,6 +68,7 @@ fun TrendBars(
     modifier: Modifier = Modifier,
     height: Dp = 72.dp,
     contentDescription: String? = null,
+    progress: Float = 1f,
 ) {
     if (values.isEmpty()) return
     val max = values.maxOrNull() ?: 0.0
@@ -77,34 +87,36 @@ fun TrendBars(
                 },
             ),
     ) {
-        val count = values.size
-        // A single bar filling the full width reads as a block, not a trend; cap the share
-        // any one bar takes so a first week still looks like the start of a series.
-        val slot = size.width / count.coerceAtLeast(MIN_SLOTS)
-        val barWidth = (slot * BAR_SHARE).coerceAtLeast(1f)
-        val radius = CornerRadius(barWidth / 2f, barWidth / 2f)
+        clipRect(right = size.width * progress.coerceIn(0f, 1f)) {
+            val count = values.size
+            // A single bar filling the full width reads as a block, not a trend; cap the share
+            // any one bar takes so a first week still looks like the start of a series.
+            val slot = size.width / count.coerceAtLeast(MIN_SLOTS)
+            val barWidth = (slot * BAR_SHARE).coerceAtLeast(1f)
+            val radius = CornerRadius(barWidth / 2f, barWidth / 2f)
 
-        // One hairline baseline, instead of a full-height track behind every bar. Those
-        // tracks turned each week into "percent of my best week achieved", which is the
-        // vocabulary of a habit meter, not of a measurement.
-        drawRect(
-            color = Hairline,
-            topLeft = Offset(0f, size.height - 1f),
-            size = Size(size.width, 1f),
-        )
-
-        values.forEachIndexed { index, value ->
-            val fraction = if (max > 0.0) (value / max).toFloat() else 0f
-            val barHeight = (size.height * fraction).coerceAtLeast(if (value > 0.0) MIN_BAR_PX else 0f)
-            if (barHeight <= 0f) return@forEachIndexed
-            val left = slot * index + (slot - barWidth) / 2f
-            drawRoundRect(
-                brush = brush,
-                topLeft = Offset(left, size.height - barHeight),
-                size = Size(barWidth, barHeight),
-                cornerRadius = radius,
-                alpha = if (index == values.lastIndex) 1f else PAST_ALPHA,
+            // One hairline baseline, instead of a full-height track behind every bar. Those
+            // tracks turned each week into "percent of my best week achieved", which is the
+            // vocabulary of a habit meter, not of a measurement.
+            drawRect(
+                color = Hairline,
+                topLeft = Offset(0f, size.height - 1f),
+                size = Size(size.width, 1f),
             )
+
+            values.forEachIndexed { index, value ->
+                val fraction = if (max > 0.0) (value / max).toFloat() else 0f
+                val barHeight = (size.height * fraction).coerceAtLeast(if (value > 0.0) MIN_BAR_PX else 0f)
+                if (barHeight <= 0f) return@forEachIndexed
+                val left = slot * index + (slot - barWidth) / 2f
+                drawRoundRect(
+                    brush = brush,
+                    topLeft = Offset(left, size.height - barHeight),
+                    size = Size(barWidth, barHeight),
+                    cornerRadius = radius,
+                    alpha = if (index == values.lastIndex) 1f else PAST_ALPHA,
+                )
+            }
         }
     }
 }
@@ -122,10 +134,14 @@ fun LineTrend(
     modifier: Modifier = Modifier,
     height: Dp = 96.dp,
     contentDescription: String? = null,
+    progress: Float = 1f,
+    prValue: Double? = null,
 ) {
     if (values.isEmpty()) return
-    val min = values.min()
-    val max = values.max()
+    val seriesMin = values.min()
+    val seriesMax = values.max()
+    val min = minOf(seriesMin, prValue ?: seriesMin)
+    val max = maxOf(seriesMax, prValue ?: seriesMax)
     // A flat series still needs a domain with width, or every point lands on one pixel.
     val span = (max - min).takeIf { it > EPSILON } ?: (max.takeIf { it > EPSILON }?.times(FLAT_SPAN_SHARE) ?: 1.0)
     val pad = span * DOMAIN_PAD_SHARE
@@ -145,49 +161,66 @@ fun LineTrend(
                 },
             ),
     ) {
-        val inset = DOT_RADIUS_PX * 2f
-        val usableHeight = size.height - inset * 2f
-        val step = if (values.size > 1) size.width / (values.size - 1) else 0f
+        clipRect(right = size.width * progress.coerceIn(0f, 1f)) {
+            val inset = DOT_RADIUS_PX * 2f
+            val usableHeight = size.height - inset * 2f
+            val step = if (values.size > 1) size.width / (values.size - 1) else 0f
 
-        fun pointAt(index: Int): Offset {
-            val fraction = ((values[index] - low) / range).toFloat().coerceIn(0f, 1f)
-            val x = if (values.size > 1) step * index else size.width / 2f
-            return Offset(x, inset + usableHeight * (1f - fraction))
-        }
-
-        val points = values.indices.map(::pointAt)
-
-        // Area under the line, fading out downward: it gives the stroke a body without
-        // implying the area itself is the quantity.
-        if (points.size > 1) {
-            val area = Path().apply {
-                moveTo(points.first().x, size.height)
-                points.forEach { lineTo(it.x, it.y) }
-                lineTo(points.last().x, size.height)
-                close()
+            fun yFor(value: Double): Float {
+                val fraction = ((value - low) / range).toFloat().coerceIn(0f, 1f)
+                return inset + usableHeight * (1f - fraction)
             }
-            drawPath(
-                path = area,
-                brush = Brush.verticalGradient(
-                    listOf(ChartNow.copy(alpha = AREA_ALPHA), Color.Transparent),
-                ),
-            )
 
-            val line = Path().apply {
-                moveTo(points.first().x, points.first().y)
-                points.drop(1).forEach { lineTo(it.x, it.y) }
+            fun pointAt(index: Int): Offset {
+                val x = if (values.size > 1) step * index else size.width / 2f
+                return Offset(x, yFor(values[index]))
             }
-            drawPath(
-                path = line,
-                brush = Brush.horizontalGradient(listOf(ChartPast, ChartNow)),
-                style = Stroke(width = LINE_WIDTH_PX, cap = StrokeCap.Round),
-            )
-        }
 
-        // Only the latest point is marked. Dotting every point turns a trend into a
-        // scatter and hides which one is now.
-        points.lastOrNull()?.let { last ->
-            drawCircle(color = ChartNow, radius = DOT_RADIUS_PX, center = last)
+            prValue?.let { mark ->
+                val y = yFor(mark)
+                drawLine(
+                    color = PrGold,
+                    start = Offset(0f, y),
+                    end = Offset(size.width, y),
+                    strokeWidth = 2f,
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 10f), 0f),
+                )
+            }
+
+            val points = values.indices.map(::pointAt)
+
+            // Area under the line, fading out downward: it gives the stroke a body without
+            // implying the area itself is the quantity.
+            if (points.size > 1) {
+                val area = Path().apply {
+                    moveTo(points.first().x, size.height)
+                    points.forEach { lineTo(it.x, it.y) }
+                    lineTo(points.last().x, size.height)
+                    close()
+                }
+                drawPath(
+                    path = area,
+                    brush = Brush.verticalGradient(
+                        listOf(ChartNow.copy(alpha = AREA_ALPHA), Color.Transparent),
+                    ),
+                )
+
+                val line = Path().apply {
+                    moveTo(points.first().x, points.first().y)
+                    points.drop(1).forEach { lineTo(it.x, it.y) }
+                }
+                drawPath(
+                    path = line,
+                    brush = Brush.horizontalGradient(listOf(ChartPast, ChartNow)),
+                    style = Stroke(width = LINE_WIDTH_PX, cap = StrokeCap.Round),
+                )
+            }
+
+            // Only the latest point is marked. Dotting every point turns a trend into a
+            // scatter and hides which one is now.
+            points.lastOrNull()?.let { last ->
+                drawCircle(color = ChartNow, radius = DOT_RADIUS_PX, center = last)
+            }
         }
     }
 }
@@ -214,7 +247,21 @@ fun LabelledTrend(
     deltaIsGain: Boolean = true,
     line: Boolean = false,
     contentDescription: String? = null,
+    prValue: Double? = null,
 ) {
+    val reduced = LocalReducedMotion.current
+    val progress = remember { Animatable(if (reduced) 1f else 0f) }
+    LaunchedEffect(values, reduced) {
+        if (reduced) {
+            progress.snapTo(1f)
+        } else {
+            progress.snapTo(0f)
+            progress.animateTo(
+                1f,
+                tween(durationMillis = Motion.DRAW, easing = Motion.Standard),
+            )
+        }
+    }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
         Kicker(title)
         if (headlineValue != null) {
@@ -250,9 +297,18 @@ fun LabelledTrend(
             }
         }
         if (line) {
-            LineTrend(values = values, contentDescription = contentDescription)
+            LineTrend(
+                values = values,
+                contentDescription = contentDescription,
+                progress = progress.value,
+                prValue = prValue,
+            )
         } else {
-            TrendBars(values = values, contentDescription = contentDescription)
+            TrendBars(
+                values = values,
+                contentDescription = contentDescription,
+                progress = progress.value,
+            )
         }
         Row(
             modifier = Modifier.fillMaxWidth(),

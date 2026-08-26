@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
@@ -21,9 +22,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
+import com.sinura.personaltrainer.ui.theme.HairlineStrong
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Radius
@@ -49,6 +53,7 @@ fun WeekStrip(
     loggedEpochDays: Set<Long>,
     today: Long,
     onOpenDay: (Long) -> Unit,
+    twoADayEpochDays: Set<Long> = emptySet(),
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -60,6 +65,7 @@ fun WeekStrip(
                 proposal = proposals[day.epochDay],
                 isToday = day.epochDay == today,
                 logged = day.epochDay in loggedEpochDays,
+                twoADay = day.epochDay in twoADayEpochDays,
                 onClick = { onOpenDay(day.epochDay) },
                 modifier = Modifier.weight(1f),
             )
@@ -73,6 +79,7 @@ private fun WeekCell(
     proposal: SuggestedTrainingDay?,
     isToday: Boolean,
     logged: Boolean,
+    twoADay: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -99,6 +106,15 @@ private fun WeekCell(
                 .size(width = TODAY_MARKER_WIDTH, height = TODAY_MARKER_HEIGHT)
                 .background(if (isToday) Volt else Color.Transparent),
         )
+        if (twoADay) {
+            Box(
+                modifier = Modifier
+                    .size(TWO_A_DAY_MARK)
+                    .clip(CircleShape)
+                    .background(HairlineStrong)
+                    .semantics { contentDescription = "Two sessions" },
+            )
+        }
         Kicker(
             day.dayOfWeek.shortLabel().take(1),
             color = if (isToday) Volt else TextSecondary,
@@ -134,3 +150,4 @@ private fun WeekCell(
 private val TODAY_MARKER_WIDTH = 16.dp
 private val TODAY_MARKER_HEIGHT = 3.dp
 private val LOGGED_TICK = 12.dp
+private val TWO_A_DAY_MARK = 4.dp

@@ -14,6 +14,12 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 26 Aug 2026 — Further-design of gym-floor chrome: composer Save dock,
+> kind-aware live bar, one Volt on workout/plan/summary, honest Why and
+> History totals, reminder quiet hours, rest gold-finish, PR glow, set
+> GroupedList, chart PR line, un-nested Home agenda, week-strip two-a-day
+> mark. Not a restyle. ADR-005 / ADR-006 stay closed.
+>
 > 26 Aug 2026 — Activity composer Save is the one Volt. Type chips speak
 > Run / Ride / Walk via CardioCopy, not `RUN`. Weight fields follow
 > LocalWeightUnit. Add set / Add cardio are secondary controls. Remove is

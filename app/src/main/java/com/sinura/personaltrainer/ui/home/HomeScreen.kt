@@ -284,6 +284,7 @@ fun HomeScreen(
                         proposals = emptyMap(),
                         loggedEpochDays = state.loggedEpochDays,
                         today = today,
+                        twoADayEpochDays = state.twoADayEpochDays,
                         onOpenDay = { onOpenPlan() },
                     )
                     if (state.lighterWeek) {

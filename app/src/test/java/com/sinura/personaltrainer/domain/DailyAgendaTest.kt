@@ -53,6 +53,19 @@ class DailyAgendaTest {
         assertEquals(24 * 60 - 1, DailyAgenda.minutesOfDay(100 * 60 * 60_000L, 0L))
     }
 
+    @Test
+    fun twoADayMarksOnlyDaysWithTwoOccurrences() {
+        val day = 20_000L
+        val marked = DailyAgenda.twoADayEpochDays(
+            listOf(
+                occ("c", "r-c", day, 7),
+                occ("s", "r-s", day, 18),
+                occ("x", "r-x", day + 1, 7),
+            ),
+        )
+        assertEquals(setOf(day), marked)
+    }
+
     private fun rule(id: String, modality: ScheduleModality) = ScheduleRule(
         id = id,
         weekday = Weekday.MONDAY,

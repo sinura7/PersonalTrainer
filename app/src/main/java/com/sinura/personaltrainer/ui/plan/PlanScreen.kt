@@ -42,6 +42,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.MissedWorkCopy
 import com.sinura.personaltrainer.domain.Routine
@@ -372,6 +373,7 @@ fun PlanScreen(
                         proposals = proposalsByDay,
                         loggedEpochDays = state.loggedEpochDays,
                         today = today,
+                        twoADayEpochDays = DailyAgenda.twoADayEpochDays(state.occurrences),
                         onOpenDay = { openDay = it },
                     )
                 }

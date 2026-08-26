@@ -580,6 +580,7 @@ private fun CoachingSection(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ReminderPrefsSection(
     preferences: com.sinura.personaltrainer.domain.ReminderPreferences,
