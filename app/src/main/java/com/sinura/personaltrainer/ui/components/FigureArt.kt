@@ -150,7 +150,7 @@ internal fun smoothPlatePath(
     for (i in 0 until n) {
         val corner = px(i)
         val next = mid(i, (i + 1) % n)
-        quadraticBezierTo(corner.x, corner.y, next.x, next.y)
+        quadraticTo(corner.x, corner.y, next.x, next.y)
     }
     close()
 }

@@ -120,8 +120,8 @@ private fun skull(cx: Float, cy: Float, rx: Float = 0.06f, ry: Float = 0.05f): P
     var i = 0
     while (i < n) {
         val a = (Math.PI * 2.0 * i / n) - Math.PI / 2.0
-        xy[i * 2] = (cx + rx * kotlin.math.cos(a)).toFloat()
-        xy[i * 2 + 1] = (cy + ry * kotlin.math.sin(a)).toFloat()
+        xy[i * 2] = (cx + rx * kotlin.math.cos(a)).toFloat().coerceIn(0f, 1f)
+        xy[i * 2 + 1] = (cy + ry * kotlin.math.sin(a)).toFloat().coerceIn(0f, 1f)
         i++
     }
     return p(null, *xy)
@@ -305,11 +305,18 @@ private val CARRY = listOf(
     p(CanonicalMuscle.BICEPS, 0.82f, 0.28f, 0.70f, 0.28f, 0.72f, 0.68f, 0.84f, 0.68f),
 )
 
-private fun bar(y: Float, left: Float = 0.08f, right: Float = 0.92f) = listOf(
-    poly(left, y - 0.018f, right, y - 0.018f, right, y + 0.018f, left, y + 0.018f),
-    poly(left, y - 0.07f, left + 0.08f, y - 0.07f, left + 0.08f, y + 0.07f, left, y + 0.07f),
-    poly(right - 0.08f, y - 0.07f, right, y - 0.07f, right, y + 0.07f, right - 0.08f, y + 0.07f),
-)
+private fun bar(y: Float, left: Float = 0.08f, right: Float = 0.92f): List<List<Pair<Float, Float>>> {
+    val half = 0.018f
+    val plate = 0.07f
+    val cy = y.coerceIn(plate, 1f - plate)
+    val l = left.coerceIn(0f, 1f)
+    val r = right.coerceIn(0f, 1f)
+    return listOf(
+        poly(l, cy - half, r, cy - half, r, cy + half, l, cy + half),
+        poly(l, cy - plate, l + 0.08f, cy - plate, l + 0.08f, cy + plate, l, cy + plate),
+        poly(r - 0.08f, cy - plate, r, cy - plate, r, cy + plate, r - 0.08f, cy + plate),
+    )
+}
 
 private fun bell(cx: Float, cy: Float) = poly(
     cx - 0.07f, cy - 0.05f, cx + 0.07f, cy - 0.05f,

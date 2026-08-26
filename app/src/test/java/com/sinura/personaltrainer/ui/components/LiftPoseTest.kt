@@ -56,14 +56,16 @@ class LiftPoseTest {
 
     @Test
     fun poseAndKitStayInsideTheSquare() {
+        val outside = ArrayList<String>()
         LiftPose.entries.filter { it != LiftPose.ANATOMY }.forEach { pose ->
             EquipmentType.entries.forEach { equipment ->
                 poseAndKitPoints(pose, equipment).forEach { (x, y) ->
-                    assertTrue("$pose $equipment x=$x", x in 0f..1f)
-                    assertTrue("$pose $equipment y=$y", y in 0f..1f)
+                    if (x !in 0f..1f) outside += "$pose $equipment x=$x"
+                    if (y !in 0f..1f) outside += "$pose $equipment y=$y"
                 }
             }
         }
+        assertTrue(outside.joinToString(separator = "\n"), outside.isEmpty())
     }
 
     @Test
