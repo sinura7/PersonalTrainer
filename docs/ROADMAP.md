@@ -20,7 +20,8 @@
 > controls have no emphasised fill. One-live confirm shares the start
 > lock; History/Goals/insights read activity summaries; named-args
 > ignores Compose `path(fill)`; bodyweight backup keeps the ADR-011
-> four-tuple. ADR-005 stays closed. Evidence:
+> four-tuple. Restore refuses live cardio as well as live strength.
+> ADR-005 stays closed. Evidence:
 > [AUDIT-hygiene.md](foundation-program/evidence/AUDIT-hygiene.md).
 >
 > 26 Aug 2026 — Further-design of gym-floor chrome: composer Save dock,
