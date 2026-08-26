@@ -6,12 +6,12 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.ActivityOrigin
+import com.sinura.personaltrainer.domain.ActivityWrite
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.Exercise
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -107,15 +107,12 @@ class ActivityComposerViewModelTest {
     fun removeStrengthDropsTheLineWithoutSaving() = runBlocking {
         val exercise = seedLift()
         viewModel = composer("strength")
-        val keepAlive = launch { viewModel!!.uiState.collect { } }
-        try {
-            viewModel!!.addStrength(exercise, 100.0, 5)
-            assertEquals(1, viewModel!!.uiState.value.strength.size)
-            viewModel!!.removeStrength(0)
-            assertEquals(0, viewModel!!.uiState.value.strength.size)
-        } finally {
-            keepAlive.cancel()
-        }
+        viewModel!!.addStrength(exercise, 100.0, 5)
+        viewModel!!.removeStrength(0)
+        val write = viewModel!!.confirmDraft()
+        assertTrue(write is ActivityWrite.Rejected)
+        assertEquals("Nothing to save.", (write as ActivityWrite.Rejected).reason)
+        assertEquals(null, viewModel!!.savedId.value)
     }
 
     @Test
