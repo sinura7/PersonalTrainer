@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.LighterWeek
+import com.sinura.personaltrainer.domain.MissedWorkCopy
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.WeekTwoCopy
@@ -111,7 +112,7 @@ private fun BlockLine(
         ) {
             Kicker(
                 if (complete) "Block complete" else "Week $week of ${block.weeks}",
-                color = if (complete) Volt else TextSecondary,
+                color = TextSecondary,
             )
             if (complete) {
                 TextButton(onClick = onStartNext, contentPadding = PaddingValues(0.dp)) {
@@ -131,7 +132,7 @@ private fun BlockLine(
                 modifier = Modifier
                     .fillMaxWidth(block.progressOn(today).coerceIn(0f, 1f))
                     .fillMaxHeight()
-                    .background(if (complete) Volt else TextTertiary),
+                    .background(TextTertiary),
             )
         }
         if (complete) {
@@ -425,6 +426,7 @@ fun PlanScreen(
                     hasRoutines = state.routines.isNotEmpty(),
                     hasOpenDay = hasOpenDay,
                     hasProposals = state.proposals.isNotEmpty(),
+                    quiet = MissedWorkCopy.suppressRecoveryVolt(state.missedWorkPrompt),
                     onReplay = viewModel::replayStoredAnswers,
                     onSuggest = viewModel::suggestFills,
                     onAccept = viewModel::acceptFills,
@@ -731,6 +733,7 @@ internal fun PlanRecoveryCommands(
     onAccept: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    quiet: Boolean = false,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -744,9 +747,10 @@ internal fun PlanRecoveryCommands(
                     style = InstrumentType.caption,
                     color = TextSecondary,
                 )
-                PrimaryGymButton(
+                RecoveryCommand(
                     text = "Use this week",
                     onClick = onAccept,
+                    quiet = quiet,
                     modifier = Modifier.testTag(PlanTags.USE_WEEK),
                 )
                 TextButton(
@@ -757,12 +761,12 @@ internal fun PlanRecoveryCommands(
                 }
             }
             !hasPins && hasRoutines -> {
-                PrimaryGymButton(
+                RecoveryCommand(
                     text = WeekTwoCopy.VOLT,
                     onClick = onReplay,
-                    modifier = Modifier
-                        .testTag(PlanTags.REPLAY)
-                        .semantics { contentDescription = WeekTwoCopy.VOLT },
+                    quiet = quiet,
+                    spoken = WeekTwoCopy.VOLT,
+                    modifier = Modifier.testTag(PlanTags.REPLAY),
                 )
                 Text(
                     WeekTwoCopy.CAPTION,
@@ -781,12 +785,12 @@ internal fun PlanRecoveryCommands(
                 }
             }
             hasOpenDay && !hasPins -> {
-                PrimaryGymButton(
+                RecoveryCommand(
                     text = "Suggest a week",
                     onClick = onSuggest,
-                    modifier = Modifier
-                        .testTag(PlanTags.SUGGEST)
-                        .semantics { contentDescription = "Suggest a week" },
+                    quiet = quiet,
+                    spoken = "Suggest a week",
+                    modifier = Modifier.testTag(PlanTags.SUGGEST),
                 )
             }
             hasOpenDay -> {
@@ -802,6 +806,32 @@ internal fun PlanRecoveryCommands(
                 }
             }
         }
+    }
+}
+
+/**
+ * Missed-work Keep-the-dates is the Volt while that prompt is up.
+ * Replay / Suggest / Use this week stay named, just not filled.
+ */
+@Composable
+private fun RecoveryCommand(
+    text: String,
+    onClick: () -> Unit,
+    quiet: Boolean,
+    modifier: Modifier = Modifier,
+    spoken: String? = null,
+) {
+    val tagged = if (spoken != null) {
+        modifier.semantics { contentDescription = spoken }
+    } else {
+        modifier
+    }
+    if (quiet) {
+        TextButton(onClick = onClick, modifier = tagged) {
+            Text(text, style = InstrumentType.bodyStrong, color = TextSecondary)
+        }
+    } else {
+        PrimaryGymButton(text = text, onClick = onClick, modifier = tagged)
     }
 }
 

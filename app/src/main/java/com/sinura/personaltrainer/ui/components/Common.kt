@@ -775,7 +775,7 @@ fun RestDock(
                 horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
                 RestControl("−15s", onClick = { onAdjust(-15) }, modifier = Modifier.weight(1f))
-                RestControl("Skip", onClick = onSkip, modifier = Modifier.weight(1f), emphasised = true)
+                RestControl("Skip", onClick = onSkip, modifier = Modifier.weight(1f))
                 RestControl("+15s", onClick = { onAdjust(15) }, modifier = Modifier.weight(1f))
             }
         }
@@ -826,7 +826,6 @@ fun RestIdleRow(
             label = "Start rest",
             onClick = onStart,
             modifier = Modifier.fillMaxWidth(),
-            emphasised = true,
         )
     }
 

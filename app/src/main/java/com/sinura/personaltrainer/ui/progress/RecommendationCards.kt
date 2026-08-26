@@ -20,7 +20,6 @@ import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
-import com.sinura.personaltrainer.ui.theme.Volt
 
 /**
  * A recommendation, as coaching rather than as a lint entry.
@@ -51,7 +50,7 @@ fun RecommendationCard(
                 Text(
                     if (showWhy) "Hide why" else "Why",
                     style = InstrumentType.bodyStrong,
-                    color = Volt,
+                    color = TextSecondary,
                 )
             }
             if (showWhy) {
@@ -86,7 +85,7 @@ fun RecommendationCard(
                 Text(
                     "${RecommendationIntents.actionLabel(recommendation)}  →",
                     style = InstrumentType.bodyStrong,
-                    color = Volt,
+                    color = TextSecondary,
                 )
             }
         }
