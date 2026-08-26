@@ -26,6 +26,8 @@ Compose-drawn plates. This packet keeps that decision and raises the density.
 
 Commissioned line-art, Coil, WebP, VectorDrawable packs, or writing `imageKey`
 on catalog rows. `imageKey` stays null and is still only ever read inside
+`ExerciseThumb`.
+
 ## Gate (this packet)
 
 - `./gradlew testDebugUnitTest` — 1329 tests, 0 failures
