@@ -3,6 +3,13 @@
    <configuration>
       <verify-metadata>true</verify-metadata>
       <verify-signatures>false</verify-signatures>
+      <!-- Studio Go-to-Declaration pulls these. They are not on the APK classpath.
+           Keep verify-metadata on; do not disable the ledger to make sync work. -->
+      <trusted-artifacts>
+         <trust file=".*-javadoc[.]jar" regex="true"/>
+         <trust file=".*-sources[.]jar" regex="true"/>
+         <trust group="gradle" name="gradle" file=".*-src[.]zip" regex="true"/>
+      </trusted-artifacts>
    </configuration>
    <components>
       <component group="androidx.activity" name="activity" version="1.12.4">

@@ -42,6 +42,10 @@ folder even though minSdk is 26.
    versions.
 3. `gradle/verification-metadata.xml` checksums the resolved graph
    (`sha256`). A missing or unverified artifact fails the local build.
+   Android Studio source/javadoc attachments and the Gradle distribution
+   `-src.zip` are trusted artifacts (not on the APK classpath). Do not
+   set `verify-metadata` false or `org.gradle.dependency.verification=off`
+   to make Studio sync.
 
 ## Finding coverage
 

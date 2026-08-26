@@ -14,6 +14,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 26 Aug 2026 — Studio sync may request `-sources.jar` / javadoc / the
+> Gradle `-src.zip`. Those stay trusted artifacts. The checksum ledger
+> stays on; do not disable verification to install debug.
+>
 > 26 Aug 2026 — Activity composer Save is the one Volt. Type chips speak
 > Run / Ride / Walk via CardioCopy, not `RUN`. Weight fields follow
 > LocalWeightUnit. Add set / Add cardio are secondary controls. Remove is

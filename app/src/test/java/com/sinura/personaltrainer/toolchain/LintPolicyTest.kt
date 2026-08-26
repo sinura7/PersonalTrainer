@@ -26,6 +26,9 @@ class LintPolicyTest {
         val ledger = source("gradle/verification-metadata.xml").readText()
         assertTrue(ledger.contains("<verify-metadata>true</verify-metadata>"))
         assertTrue(ledger.contains("<sha256"))
+        assertTrue(ledger.contains("""<trust file=".*-sources[.]jar" regex="true"/>"""))
+        assertTrue(ledger.contains("""<trust file=".*-javadoc[.]jar" regex="true"/>"""))
+        assertTrue(ledger.contains("""<trust group="gradle" name="gradle" file=".*-src[.]zip" regex="true"/>"""))
     }
 
     private fun source(relative: String): File {
