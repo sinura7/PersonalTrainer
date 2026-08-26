@@ -317,6 +317,7 @@ class LocalBackupRepository(
 
     suspend fun inProgressSessionId(): String? =
         database.workoutDao().getInProgressSession()?.id
+            ?: activityDao?.getLive()?.id
 
     /**
      * Overwrites everything. The only irreversible operation in the app.

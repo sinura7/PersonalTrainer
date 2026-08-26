@@ -52,7 +52,6 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
-import com.sinura.personaltrainer.ui.theme.Volt
 
 @Composable
 fun GoalsScreen(
@@ -194,7 +193,7 @@ internal fun GoalsHeader(
             Text(
                 if (adding) "Cancel" else "Add",
                 style = InstrumentType.bodyStrong,
-                color = if (adding) Volt else TextSecondary,
+                color = TextSecondary,
             )
         }
     }

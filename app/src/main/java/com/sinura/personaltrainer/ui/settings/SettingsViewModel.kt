@@ -255,7 +255,10 @@ class SettingsViewModel @JvmOverloads constructor(
             dialogs,
         ) { flags, gate -> flags.copy(dialogs = gate) },
         backups,
-        container.workoutRepository.observeInProgress(),
+        combine(
+            container.workoutRepository.observeInProgress(),
+            container.activityRepository.observeLive(),
+        ) { workout, activity -> workout != null || activity != null },
         safetySnapshots,
     ) { meta, flags, files, live, snaps ->
         BackupUiState(
@@ -270,7 +273,7 @@ class SettingsViewModel @JvmOverloads constructor(
             status = flags.status,
             error = flags.error,
             pendingPreview = flags.pendingPreview,
-            sessionLive = live != null,
+            sessionLive = live,
             backupStale = BackupPrompt.isStale(meta.lastAt, System.currentTimeMillis()),
             safetySnapshots = snaps,
             pendingProtect = flags.dialogs.protect,

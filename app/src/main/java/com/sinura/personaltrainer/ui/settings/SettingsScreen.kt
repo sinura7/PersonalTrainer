@@ -808,7 +808,7 @@ private fun BackupRestoreSection(
         if (state.sessionLive) {
             Text(
                 "Finish or discard the live session before restoring. A restore would " +
-                    "delete the workout you are standing in.",
+                    "delete the session you are standing in.",
                 style = InstrumentType.caption,
                 color = Warn,
             )

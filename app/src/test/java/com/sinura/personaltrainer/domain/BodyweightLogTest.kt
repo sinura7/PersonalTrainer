@@ -40,6 +40,18 @@ class BodyweightLogTest {
     }
 
     @Test
+    fun aZoneIdWithColonsRoundTripsBecauseZoneStaysLast() {
+        val stamped = BodyweightEntry(
+            epochDay = 20_000,
+            kg = 78.0,
+            recordedAtMs = 1_713_441_600_000L,
+            zoneId = "UTC+09:00",
+            offsetSeconds = 32_400,
+        )
+        assertEquals(listOf(stamped), BodyweightLog.decode(BodyweightLog.encode(listOf(stamped))))
+    }
+
+    @Test
     fun nothingLoggedIsNoEntries() {
         assertEquals(emptyList<BodyweightEntry>(), BodyweightLog.decode(null))
         assertEquals(emptyList<BodyweightEntry>(), BodyweightLog.decode(""))

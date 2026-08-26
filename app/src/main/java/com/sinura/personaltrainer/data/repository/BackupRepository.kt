@@ -324,7 +324,7 @@ class BackupRepository(
         }
         if (liveId != null) {
             throw BackupException(
-                "You have a workout in progress. Finish or discard it before restoring, " +
+                "You have a session in progress. Finish or discard it before restoring, " +
                     "so a restore can't delete the session you're standing in.",
             )
         }

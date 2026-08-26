@@ -39,7 +39,11 @@ class OneLiveCrossLaneTest {
         val started = deps.startLiveActivity("Cardio", listOf(cardioBlock()), now)
         assertTrue(started is ActivityWrite.Accepted)
         val outcome = deps.workoutRepository.startFreeWorkoutSafely("Push")
-        assertTrue(outcome.toString().contains("One live") || outcome is com.sinura.personaltrainer.data.repository.StartSessionOutcome.Unavailable)
+        assertTrue(outcome is StartSessionOutcome.Unavailable)
+        assertEquals(
+            "One live activity at a time.",
+            (outcome as StartSessionOutcome.Unavailable).message,
+        )
     }
 
     @Test

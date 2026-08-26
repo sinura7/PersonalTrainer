@@ -29,8 +29,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Restore is disabled while a session is live. That flag must come from the
- * in-progress row, not from a remembered backup status.
+ * Restore is disabled while a session is live — strength or cardio.
+ * That flag must come from the live row, not from a remembered backup status.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -63,6 +63,42 @@ class SettingsViewModelTest {
         assertFalse(idle.sessionLive)
 
         deps.workoutRepository.startFreeWorkout("Legs")
+        val live = withTimeout(5_000) {
+            viewModel!!.backupState.first { it.sessionLive }
+        }
+        assertTrue(live.sessionLive)
+    }
+
+    @Test
+    fun liveCardioMarksRestoreBlocked() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+
+        val idle = withTimeout(5_000) { viewModel!!.backupState.first() }
+        assertFalse(idle.sessionLive)
+
+        val now = com.sinura.personaltrainer.util.JvmTime.captureNow()
+        val started = deps.startLiveActivity(
+            "Easy run",
+            listOf(
+                com.sinura.personaltrainer.domain.CardioBlock(
+                    id = "blk-live",
+                    sortOrder = 0,
+                    type = com.sinura.personaltrainer.domain.CardioType.RUN,
+                    indoor = false,
+                    elapsedSeconds = 0,
+                    movingSeconds = 0,
+                    distanceMeters = null,
+                    elevationMeters = null,
+                    heartRateBpm = null,
+                    energyKj = null,
+                    rpe = null,
+                    routeRef = null,
+                ),
+            ),
+            now,
+        )
+        assertTrue(started is com.sinura.personaltrainer.domain.ActivityWrite.Accepted)
         val live = withTimeout(5_000) {
             viewModel!!.backupState.first { it.sessionLive }
         }
