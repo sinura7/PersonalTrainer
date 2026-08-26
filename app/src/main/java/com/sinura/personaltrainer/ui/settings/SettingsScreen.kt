@@ -39,6 +39,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,6 +54,10 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.BuildConfig
@@ -68,6 +73,7 @@ import com.sinura.personaltrainer.domain.DayLabel
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.PlanSetupCopy
+import com.sinura.personaltrainer.domain.ReminderCopy
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
@@ -207,8 +213,11 @@ fun SettingsScreen(
                 onClearBodyweight = viewModel::clearBodyweight,
             )
             ReminderPrefsSection(
-                optOut = reminderPrefs.optOut,
+                preferences = reminderPrefs,
+                notificationsEnabled = rememberNotificationsEnabled(),
                 onOptOut = viewModel::setReminderOptOut,
+                onQuietHours = viewModel::setReminderQuietHours,
+                onOpenNotificationSettings = { openAppNotificationSettings(context) },
             )
             RestTimerPrefsSection(
                 preferences = restPrefs,
@@ -573,21 +582,76 @@ private fun CoachingSection(
 
 @Composable
 private fun ReminderPrefsSection(
-    optOut: Boolean,
+    preferences: com.sinura.personaltrainer.domain.ReminderPreferences,
+    notificationsEnabled: Boolean,
     onOptOut: (Boolean) -> Unit,
+    onQuietHours: (Int, Int) -> Unit,
+    onOpenNotificationSettings: () -> Unit,
 ) {
+    val enabled = !preferences.optOut
     SettingsGroup(
         title = "Workout reminders",
-        caption = "Best-effort reminders. Not exact alarms. Quiet hours are 22:00–07:00. " +
-            "Permission is never asked during setup.",
+        caption = "Best-effort reminders. Not exact alarms. Permission is never asked during setup.",
         modifier = Modifier.testTag(SettingsTags.REMINDERS),
     ) {
+        if (enabled && !notificationsEnabled) {
+            GymNoticeBanner(
+                title = ReminderCopy.PERMISSION_TITLE,
+                body = ReminderCopy.PERMISSION_BODY,
+                actionLabel = ReminderCopy.PERMISSION_ACTION,
+                onAction = onOpenNotificationSettings,
+            )
+        }
         GroupedList {
             InstrumentRow(
-                title = "Turn reminders off",
-                subtitle = "Stops new reminder work. Rest alerts are unchanged.",
-                trailing = { Switch(checked = optOut, onCheckedChange = onOptOut) },
+                title = ReminderCopy.SWITCH_TITLE,
+                subtitle = ReminderCopy.SWITCH_SUBTITLE,
+                trailing = {
+                    Switch(
+                        checked = enabled,
+                        onCheckedChange = { on -> onOptOut(!on) },
+                    )
+                },
             )
+            HairlineDivider()
+            Column(
+                modifier = Modifier.padding(
+                    start = Metrics.space4,
+                    end = Metrics.space4,
+                    top = Metrics.space3,
+                    bottom = Metrics.space4,
+                ),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+            ) {
+                Text(
+                    ReminderCopy.quietHoursLine(
+                        preferences.quietStartHour,
+                        preferences.quietEndHour,
+                    ),
+                    style = InstrumentType.body,
+                    color = TextSecondary,
+                )
+                Kicker(ReminderCopy.QUIET_START)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                    ReminderCopy.startChoices(preferences.quietStartHour).forEach { hour ->
+                        InstrumentChip(
+                            label = ReminderCopy.hourLabel(hour),
+                            selected = preferences.quietStartHour == hour,
+                            onClick = { onQuietHours(hour, preferences.quietEndHour) },
+                        )
+                    }
+                }
+                Kicker(ReminderCopy.QUIET_END)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                    ReminderCopy.endChoices(preferences.quietEndHour).forEach { hour ->
+                        InstrumentChip(
+                            label = ReminderCopy.hourLabel(hour),
+                            selected = preferences.quietEndHour == hour,
+                            onClick = { onQuietHours(preferences.quietStartHour, hour) },
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -1182,6 +1246,40 @@ private fun Context.findActivity(): Activity {
         current = current.baseContext
     }
     error("Settings must run in an Activity")
+}
+
+@Composable
+private fun rememberNotificationsEnabled(): Boolean {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var enabled by remember {
+        mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
+    }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                enabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    return enabled
+}
+
+private fun openAppNotificationSettings(context: Context) {
+    val intent = Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+        .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    try {
+        context.startActivity(intent)
+    } catch (_: Exception) {
+        context.startActivity(
+            Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                .setData(android.net.Uri.fromParts("package", context.packageName, null))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    }
 }
 
 private val SPINNER_SIZE = 20.dp

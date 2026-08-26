@@ -116,6 +116,14 @@ class SettingsViewModel @JvmOverloads constructor(
         }
     }
 
+    fun setReminderQuietHours(startHour: Int, endHour: Int) {
+        viewModelScope.launch {
+            runCatchingCancellable {
+                container.preferencesRepository.setReminderQuietHours(startHour, endHour)
+            }.onFailure { AppLog.w(TAG, "Saving reminder quiet hours failed", it) }
+        }
+    }
+
     /**
      * Honest inexact copy + Settings tap. Shown only after rest is used or
      * configured, and only while the policy would take the best-effort path.

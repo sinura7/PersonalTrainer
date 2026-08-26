@@ -38,12 +38,14 @@ import com.sinura.personaltrainer.domain.GoalKind
 import com.sinura.personaltrainer.domain.GoalPeriod
 import com.sinura.personaltrainer.domain.GoalSnapshot
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -59,6 +61,7 @@ fun GoalsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var adding by rememberSaveable { mutableStateOf(false) }
+    var pendingDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
@@ -126,13 +129,27 @@ fun GoalsScreen(
                                         paused = !snapshot.goal.paused,
                                     )
                                 },
-                                onDelete = { viewModel.delete(snapshot.goal.id) },
+                                onDelete = { pendingDeleteId = snapshot.goal.id },
                             )
                         }
                     }
                 }
             }
         }
+    }
+
+    pendingDeleteId?.let { id ->
+        ConfirmActionDialog(
+            title = GoalCopy.DELETE_TITLE,
+            body = GoalCopy.DELETE_BODY,
+            confirmLabel = GoalCopy.DELETE_CONFIRM,
+            destructive = true,
+            onConfirm = {
+                viewModel.delete(id)
+                pendingDeleteId = null
+            },
+            onDismiss = { pendingDeleteId = null },
+        )
     }
 }
 
@@ -302,16 +319,15 @@ private fun AddGoalCard(
             }
         }
         val target = parseTarget(kind, targetText, unit)
-        TextButton(
+        PrimaryGymButton(
+            text = "Save goal",
             onClick = {
                 if (target != null) {
                     onAdd(kind, target, period, exerciseId, exerciseName)
                 }
             },
             enabled = target != null && (kind != GoalKind.LIFT_TARGET || exerciseId != null),
-        ) {
-            Text("Save goal", style = InstrumentType.bodyStrong, color = Volt)
-        }
+        )
     }
 }
 
