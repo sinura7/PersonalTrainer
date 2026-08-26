@@ -14,13 +14,14 @@ import kotlin.math.min
 /**
  * One posed silhouette for a lift family.
  *
- * A person is a pictogram: one trunk, limbs that grow out of its end-caps,
- * a head. Heat recolors the working limb, it does not replace the body with
- * a second pile of plates. Kit sits in the hands. Families share a pose so
- * 101 lifts stay one person.
+ * A person is an athletic plate figure: a torso (wide shoulders, nipped
+ * waist, hips), tapered limbs that grow out of its corners, inner muscle
+ * plates, then kit in the hands. Heat recolors those inner plates — pecs,
+ * abs, delts, quad teardrops — it does not replace the body. Families
+ * share a pose so 101 lifts stay one person.
  *
  * Body heat stays on the standing [drawTemperFigure]. Thumbs are identity:
- * the pose plus a fixed Heat3 on the working parts.
+ * the pose plus a fixed Heat3 on the working plates.
  */
 internal enum class LiftPose {
     SQUAT,
@@ -77,8 +78,11 @@ internal data class PosePlate(
 )
 
 /**
- * One mark of a pictogram. Canvas and the SVG board paint this list so the
+ * One mark of a posed figure. Canvas and the SVG board paint this list so the
  * geometry the tests dump is the geometry the thumb draws.
+ *
+ * [Limb] is the kit language (bar shafts). The person is [Fill] (torso,
+ * pecs) plus [Taper] (limbs that thin toward the joint).
  */
 internal sealed class PoseInk {
     abstract val muscle: CanonicalMuscle?
@@ -89,6 +93,21 @@ internal sealed class PoseInk {
         val x2: Float,
         val y2: Float,
         val width: Float,
+        override val muscle: CanonicalMuscle?,
+    ) : PoseInk()
+
+    data class Taper(
+        val x1: Float,
+        val y1: Float,
+        val x2: Float,
+        val y2: Float,
+        val w1: Float,
+        val w2: Float,
+        override val muscle: CanonicalMuscle?,
+    ) : PoseInk()
+
+    data class Fill(
+        val points: List<Pair<Float, Float>>,
         override val muscle: CanonicalMuscle?,
     ) : PoseInk()
 
@@ -119,7 +138,7 @@ internal sealed class PoseInk {
 internal fun personInk(pose: LiftPose): List<PoseInk> {
     if (pose == LiftPose.ANATOMY) return emptyList()
     val figure = figureFor(pose)
-    return figure.structure() + heatFor(pose, figure)
+    return figure.structure() + anatomyFor(pose, figure)
 }
 
 internal fun kitInk(pose: LiftPose, equipment: EquipmentType): List<PoseInk> =
@@ -157,16 +176,16 @@ internal fun poseAndKitPoints(
 ): List<Pair<Float, Float>> =
     platesForPose(pose).flatMap { it.points } + kitPlates(pose, equipment).flatten()
 
-private const val HEAD_R = 0.052f
-private const val NECK_W = 0.044f
-private const val TRUNK_W = 0.145f
-private const val THIGH_W = 0.088f
-private const val CALF_W = 0.070f
-private const val ARM_W = 0.070f
-private const val FORE_W = 0.054f
-private const val HAND_R = 0.024f
-private const val FOOT_RX = 0.046f
-private const val FOOT_RY = 0.016f
+private const val NECK_W1 = 0.050f
+private const val NECK_W2 = 0.056f
+private const val THIGH_W1 = 0.108f
+private const val THIGH_W2 = 0.078f
+private const val CALF_W1 = 0.074f
+private const val CALF_W2 = 0.048f
+private const val ARM_W1 = 0.086f
+private const val ARM_W2 = 0.068f
+private const val FORE_W1 = 0.062f
+private const val FORE_W2 = 0.046f
 
 private data class Figure(
     val head: Pair<Float, Float>,
@@ -183,10 +202,13 @@ private data class Figure(
     val aL: Pair<Float, Float>,
     val aR: Pair<Float, Float>,
     val side: Boolean = false,
-    val headR: Float = HEAD_R,
-    val trunkW: Float = TRUNK_W,
-    val footRx: Float = FOOT_RX,
-    val footRy: Float = FOOT_RY,
+    val depth: Float = 0.10f,
+    val headRx: Float = 0.046f,
+    val headRy: Float = 0.052f,
+    val handRx: Float = 0.028f,
+    val handRy: Float = 0.022f,
+    val footRx: Float = 0.055f,
+    val footRy: Float = 0.018f,
 ) {
     val midS: Pair<Float, Float> get() = lerp(sL, sR, 0.5f)
     val midH: Pair<Float, Float> get() = lerp(hL, hR, 0.5f)
@@ -194,307 +216,281 @@ private data class Figure(
 
 private fun figureFor(pose: LiftPose): Figure = when (pose) {
     LiftPose.SQUAT -> Figure(
-        head = 0.50f to 0.150f,
-        sL = 0.405f to 0.255f, sR = 0.595f to 0.255f,
-        eL = 0.28f to 0.195f, eR = 0.72f to 0.195f,
-        wL = 0.20f to 0.165f, wR = 0.80f to 0.165f,
-        hL = 0.405f to 0.50f, hR = 0.595f to 0.50f,
-        kL = 0.28f to 0.68f, kR = 0.72f to 0.68f,
-        aL = 0.32f to 0.90f, aR = 0.68f to 0.90f,
+        head = 0.50f to 0.145f,
+        sL = 0.34f to 0.255f, sR = 0.66f to 0.255f,
+        eL = 0.24f to 0.195f, eR = 0.76f to 0.195f,
+        wL = 0.18f to 0.160f, wR = 0.82f to 0.160f,
+        hL = 0.36f to 0.50f, hR = 0.64f to 0.50f,
+        kL = 0.26f to 0.68f, kR = 0.74f to 0.68f,
+        aL = 0.30f to 0.90f, aR = 0.70f to 0.90f,
+        footRx = 0.058f,
     )
     LiftPose.HINGE -> Figure(
-        head = 0.72f to 0.24f,
-        sL = 0.56f to 0.34f, sR = 0.54f to 0.37f,
+        head = 0.74f to 0.22f,
+        sL = 0.56f to 0.33f, sR = 0.53f to 0.36f,
         eL = 0.62f to 0.50f, eR = 0.58f to 0.52f,
-        wL = 0.68f to 0.64f, wR = 0.64f to 0.66f,
-        hL = 0.40f to 0.50f, hR = 0.38f to 0.53f,
+        wL = 0.70f to 0.64f, wR = 0.66f to 0.66f,
+        hL = 0.40f to 0.50f, hR = 0.37f to 0.53f,
         kL = 0.44f to 0.70f, kR = 0.38f to 0.72f,
         aL = 0.42f to 0.90f, aR = 0.36f to 0.90f,
-        side = true, trunkW = 0.125f, footRx = 0.058f,
+        side = true, depth = 0.095f, headRx = 0.042f, headRy = 0.048f, footRx = 0.062f,
     )
     LiftPose.LUNGE -> Figure(
-        head = 0.50f to 0.105f,
-        sL = 0.405f to 0.225f, sR = 0.595f to 0.225f,
-        eL = 0.28f to 0.40f, eR = 0.72f to 0.40f,
-        wL = 0.24f to 0.56f, wR = 0.76f to 0.56f,
-        hL = 0.44f to 0.44f, hR = 0.56f to 0.44f,
-        kL = 0.32f to 0.60f, kR = 0.60f to 0.68f,
-        aL = 0.28f to 0.76f, aR = 0.58f to 0.90f,
+        head = 0.50f to 0.100f,
+        sL = 0.35f to 0.225f, sR = 0.65f to 0.225f,
+        eL = 0.26f to 0.40f, eR = 0.74f to 0.40f,
+        wL = 0.22f to 0.56f, wR = 0.78f to 0.56f,
+        hL = 0.42f to 0.44f, hR = 0.58f to 0.44f,
+        kL = 0.30f to 0.60f, kR = 0.60f to 0.68f,
+        aL = 0.26f to 0.76f, aR = 0.58f to 0.90f,
     )
     LiftPose.HORIZONTAL_PRESS -> Figure(
-        head = 0.14f to 0.40f,
-        sL = 0.30f to 0.40f, sR = 0.30f to 0.455f,
-        eL = 0.30f to 0.24f, eR = 0.32f to 0.28f,
-        wL = 0.30f to 0.10f, wR = 0.32f to 0.14f,
-        hL = 0.56f to 0.42f, hR = 0.56f to 0.475f,
+        head = 0.13f to 0.39f,
+        sL = 0.30f to 0.39f, sR = 0.30f to 0.45f,
+        eL = 0.30f to 0.22f, eR = 0.33f to 0.26f,
+        wL = 0.30f to 0.09f, wR = 0.33f to 0.13f,
+        hL = 0.56f to 0.42f, hR = 0.56f to 0.48f,
         kL = 0.72f to 0.56f, kR = 0.74f to 0.60f,
         aL = 0.78f to 0.84f, aR = 0.80f to 0.84f,
-        side = true, headR = 0.048f, trunkW = 0.118f, footRx = 0.058f,
+        side = true, depth = 0.092f, headRx = 0.042f, headRy = 0.048f, footRx = 0.062f,
     )
     LiftPose.VERTICAL_PRESS -> Figure(
-        head = 0.50f to 0.215f,
-        sL = 0.405f to 0.335f, sR = 0.595f to 0.335f,
-        eL = 0.30f to 0.175f, eR = 0.70f to 0.175f,
-        wL = 0.32f to 0.068f, wR = 0.68f to 0.068f,
-        hL = 0.405f to 0.52f, hR = 0.595f to 0.52f,
-        kL = 0.40f to 0.72f, kR = 0.60f to 0.72f,
-        aL = 0.40f to 0.92f, aR = 0.60f to 0.92f,
+        head = 0.50f to 0.210f,
+        sL = 0.35f to 0.335f, sR = 0.65f to 0.335f,
+        eL = 0.28f to 0.170f, eR = 0.72f to 0.170f,
+        wL = 0.30f to 0.065f, wR = 0.70f to 0.065f,
+        hL = 0.38f to 0.52f, hR = 0.62f to 0.52f,
+        kL = 0.39f to 0.72f, kR = 0.61f to 0.72f,
+        aL = 0.39f to 0.92f, aR = 0.61f to 0.92f,
     )
     LiftPose.FLY -> Figure(
-        head = 0.50f to 0.115f,
-        sL = 0.405f to 0.255f, sR = 0.595f to 0.255f,
-        eL = 0.20f to 0.32f, eR = 0.80f to 0.32f,
-        wL = 0.08f to 0.38f, wR = 0.92f to 0.38f,
-        hL = 0.405f to 0.50f, hR = 0.595f to 0.50f,
-        kL = 0.40f to 0.72f, kR = 0.60f to 0.72f,
-        aL = 0.40f to 0.92f, aR = 0.60f to 0.92f,
+        head = 0.50f to 0.110f,
+        sL = 0.35f to 0.250f, sR = 0.65f to 0.250f,
+        eL = 0.18f to 0.32f, eR = 0.82f to 0.32f,
+        wL = 0.07f to 0.38f, wR = 0.93f to 0.38f,
+        hL = 0.38f to 0.50f, hR = 0.62f to 0.50f,
+        kL = 0.39f to 0.72f, kR = 0.61f to 0.72f,
+        aL = 0.39f to 0.92f, aR = 0.61f to 0.92f,
     )
     LiftPose.VERTICAL_PULL -> Figure(
-        head = 0.50f to 0.275f,
-        sL = 0.405f to 0.375f, sR = 0.595f to 0.375f,
-        eL = 0.24f to 0.175f, eR = 0.76f to 0.175f,
-        wL = 0.18f to 0.075f, wR = 0.82f to 0.075f,
-        hL = 0.405f to 0.56f, hR = 0.595f to 0.56f,
-        kL = 0.40f to 0.74f, kR = 0.60f to 0.74f,
-        aL = 0.40f to 0.92f, aR = 0.60f to 0.92f,
+        head = 0.50f to 0.270f,
+        sL = 0.35f to 0.375f, sR = 0.65f to 0.375f,
+        eL = 0.22f to 0.170f, eR = 0.78f to 0.170f,
+        wL = 0.16f to 0.072f, wR = 0.84f to 0.072f,
+        hL = 0.38f to 0.56f, hR = 0.62f to 0.56f,
+        kL = 0.39f to 0.74f, kR = 0.61f to 0.74f,
+        aL = 0.39f to 0.92f, aR = 0.61f to 0.92f,
     )
     LiftPose.HORIZONTAL_PULL -> Figure(
-        head = 0.70f to 0.17f,
-        sL = 0.54f to 0.28f, sR = 0.52f to 0.31f,
-        eL = 0.40f to 0.30f, eR = 0.44f to 0.34f,
-        wL = 0.28f to 0.34f, wR = 0.32f to 0.38f,
-        hL = 0.42f to 0.50f, hR = 0.40f to 0.53f,
+        head = 0.72f to 0.16f,
+        sL = 0.54f to 0.27f, sR = 0.51f to 0.30f,
+        eL = 0.38f to 0.30f, eR = 0.42f to 0.34f,
+        wL = 0.26f to 0.34f, wR = 0.30f to 0.38f,
+        hL = 0.42f to 0.50f, hR = 0.39f to 0.53f,
         kL = 0.46f to 0.70f, kR = 0.40f to 0.72f,
         aL = 0.44f to 0.90f, aR = 0.38f to 0.90f,
-        side = true, trunkW = 0.125f, footRx = 0.058f,
+        side = true, depth = 0.094f, headRx = 0.042f, headRy = 0.048f, footRx = 0.062f,
     )
     LiftPose.ARM_CURL -> Figure(
-        head = 0.50f to 0.095f,
-        sL = 0.405f to 0.235f, sR = 0.595f to 0.235f,
-        eL = 0.30f to 0.46f, eR = 0.70f to 0.46f,
-        wL = 0.26f to 0.28f, wR = 0.74f to 0.28f,
-        hL = 0.405f to 0.50f, hR = 0.595f to 0.50f,
-        kL = 0.40f to 0.72f, kR = 0.60f to 0.72f,
-        aL = 0.40f to 0.92f, aR = 0.60f to 0.92f,
+        head = 0.50f to 0.092f,
+        sL = 0.35f to 0.230f, sR = 0.65f to 0.230f,
+        eL = 0.28f to 0.46f, eR = 0.72f to 0.46f,
+        wL = 0.24f to 0.27f, wR = 0.76f to 0.27f,
+        hL = 0.38f to 0.50f, hR = 0.62f to 0.50f,
+        kL = 0.39f to 0.72f, kR = 0.61f to 0.72f,
+        aL = 0.39f to 0.92f, aR = 0.61f to 0.92f,
     )
     LiftPose.ARM_EXT -> Figure(
-        head = 0.50f to 0.215f,
-        sL = 0.405f to 0.335f, sR = 0.595f to 0.335f,
-        eL = 0.42f to 0.115f, eR = 0.58f to 0.115f,
-        wL = 0.47f to 0.255f, wR = 0.53f to 0.255f,
-        hL = 0.405f to 0.52f, hR = 0.595f to 0.52f,
-        kL = 0.40f to 0.72f, kR = 0.60f to 0.72f,
-        aL = 0.40f to 0.92f, aR = 0.60f to 0.92f,
+        head = 0.50f to 0.210f,
+        sL = 0.35f to 0.335f, sR = 0.65f to 0.335f,
+        eL = 0.40f to 0.110f, eR = 0.60f to 0.110f,
+        wL = 0.46f to 0.250f, wR = 0.54f to 0.250f,
+        hL = 0.38f to 0.52f, hR = 0.62f to 0.52f,
+        kL = 0.39f to 0.72f, kR = 0.61f to 0.72f,
+        aL = 0.39f to 0.92f, aR = 0.61f to 0.92f,
     )
     LiftPose.HIP -> Figure(
-        head = 0.14f to 0.60f,
-        sL = 0.28f to 0.56f, sR = 0.28f to 0.61f,
+        head = 0.13f to 0.60f,
+        sL = 0.28f to 0.55f, sR = 0.28f to 0.60f,
         eL = 0.20f to 0.70f, eR = 0.22f to 0.74f,
         wL = 0.14f to 0.82f, wR = 0.16f to 0.84f,
-        hL = 0.50f to 0.34f, hR = 0.50f to 0.39f,
+        hL = 0.50f to 0.33f, hR = 0.50f to 0.38f,
         kL = 0.68f to 0.48f, kR = 0.70f to 0.52f,
         aL = 0.80f to 0.70f, aR = 0.82f to 0.72f,
-        side = true, headR = 0.048f, trunkW = 0.118f, footRx = 0.058f,
+        side = true, depth = 0.092f, headRx = 0.042f, headRy = 0.048f, footRx = 0.062f,
     )
     LiftPose.CORE_FLOOR -> Figure(
-        head = 0.24f to 0.27f,
-        sL = 0.34f to 0.38f, sR = 0.36f to 0.42f,
-        eL = 0.42f to 0.24f, eR = 0.44f to 0.28f,
-        wL = 0.52f to 0.20f, wR = 0.54f to 0.24f,
+        head = 0.22f to 0.26f,
+        sL = 0.34f to 0.37f, sR = 0.36f to 0.41f,
+        eL = 0.42f to 0.22f, eR = 0.44f to 0.26f,
+        wL = 0.54f to 0.18f, wR = 0.56f to 0.22f,
         hL = 0.48f to 0.62f, hR = 0.50f to 0.66f,
         kL = 0.66f to 0.46f, kR = 0.68f to 0.50f,
         aL = 0.80f to 0.58f, aR = 0.82f to 0.62f,
-        side = true, headR = 0.048f, trunkW = 0.125f, footRx = 0.058f,
+        side = true, depth = 0.094f, headRx = 0.042f, headRy = 0.048f, footRx = 0.062f,
     )
     LiftPose.SEATED_MACHINE -> Figure(
-        head = 0.38f to 0.13f,
-        sL = 0.36f to 0.26f, sR = 0.42f to 0.28f,
+        head = 0.38f to 0.125f,
+        sL = 0.36f to 0.255f, sR = 0.42f to 0.275f,
         eL = 0.52f to 0.30f, eR = 0.54f to 0.34f,
         wL = 0.64f to 0.28f, wR = 0.66f to 0.32f,
         hL = 0.40f to 0.50f, hR = 0.44f to 0.54f,
         kL = 0.62f to 0.50f, kR = 0.64f to 0.54f,
         aL = 0.64f to 0.76f, aR = 0.66f to 0.78f,
-        side = true, trunkW = 0.125f, footRx = 0.058f,
+        side = true, depth = 0.092f, headRx = 0.042f, headRy = 0.048f, footRx = 0.062f,
     )
     LiftPose.CARRY -> Figure(
-        head = 0.50f to 0.088f,
-        sL = 0.395f to 0.215f, sR = 0.605f to 0.215f,
-        eL = 0.28f to 0.42f, eR = 0.72f to 0.42f,
-        wL = 0.26f to 0.62f, wR = 0.74f to 0.62f,
-        hL = 0.405f to 0.48f, hR = 0.595f to 0.48f,
-        kL = 0.40f to 0.70f, kR = 0.60f to 0.70f,
-        aL = 0.40f to 0.92f, aR = 0.60f to 0.92f,
+        head = 0.50f to 0.085f,
+        sL = 0.34f to 0.215f, sR = 0.66f to 0.215f,
+        eL = 0.26f to 0.42f, eR = 0.74f to 0.42f,
+        wL = 0.24f to 0.62f, wR = 0.76f to 0.62f,
+        hL = 0.38f to 0.48f, hR = 0.62f to 0.48f,
+        kL = 0.39f to 0.70f, kR = 0.61f to 0.70f,
+        aL = 0.39f to 0.92f, aR = 0.61f to 0.92f,
     )
     LiftPose.ANATOMY -> error("standing anatomy is drawTemperFigure")
 }
 
 private fun Figure.structure(): List<PoseInk> {
-    val ink = ArrayList<PoseInk>(24)
-    ink += limb(midS, midH, trunkW, null)
-    ink += limb(head, midS, NECK_W, null)
-    ink += limb(hL, kL, THIGH_W, null)
-    ink += limb(hR, kR, THIGH_W, null)
-    ink += limb(kL, aL, CALF_W, null)
-    ink += limb(kR, aR, CALF_W, null)
-    ink += limb(sL, eL, ARM_W, null)
-    ink += limb(eL, wL, FORE_W, null)
+    val ink = ArrayList<PoseInk>(28)
+    ink += fill(if (side) torsoSide(sL, hL, depth) else torsoFront(sL, sR, hL, hR), null)
+    ink += taper(head, midS, NECK_W1, NECK_W2, null)
+    ink += oval(head, headRx, headRy, null)
+    ink += taper(hL, kL, THIGH_W1, THIGH_W2, null)
+    ink += taper(hR, kR, THIGH_W1, THIGH_W2, null)
+    ink += taper(kL, aL, CALF_W1, CALF_W2, null)
+    ink += taper(kR, aR, CALF_W1, CALF_W2, null)
+    ink += oval(hL, 0.052f, 0.044f, null)
+    ink += oval(hR, 0.052f, 0.044f, null)
+    ink += oval(kL, 0.044f, 0.038f, null)
+    ink += oval(kR, 0.044f, 0.038f, null)
+    ink += taper(sL, eL, ARM_W1, ARM_W2, null)
+    ink += taper(eL, wL, FORE_W1, FORE_W2, null)
     if (!side) {
-        ink += limb(sR, eR, ARM_W, null)
-        ink += limb(eR, wR, FORE_W, null)
+        ink += taper(sR, eR, ARM_W1, ARM_W2, null)
+        ink += taper(eR, wR, FORE_W1, FORE_W2, null)
     }
-    // Joint caps so thigh/calf and arm/forearm read as one limb, not two pills.
-    ink += dot(kL, THIGH_W / 2f, null)
-    ink += dot(kR, THIGH_W / 2f, null)
-    ink += dot(eL, ARM_W / 2f, null)
-    if (!side) ink += dot(eR, ARM_W / 2f, null)
-    ink += dot(hL, THIGH_W / 2f, null)
-    ink += dot(hR, THIGH_W / 2f, null)
-    ink += dot(sL, ARM_W / 2f, null)
-    if (!side) ink += dot(sR, ARM_W / 2f, null)
-    ink += dot(head, headR, null)
-    ink += dot(wL, HAND_R, null)
-    if (!side) ink += dot(wR, HAND_R, null)
+    ink += oval(eL, 0.034f, 0.032f, null)
+    if (!side) ink += oval(eR, 0.034f, 0.032f, null)
+    ink += oval(wL, handRx, handRy, null)
+    if (!side) ink += oval(wR, handRx, handRy, null)
     ink += oval(aL, footRx, footRy, null)
     ink += oval(aR, footRx, footRy, null)
+    ink += oval(sL, 0.042f, 0.038f, null)
+    if (!side) ink += oval(sR, 0.042f, 0.038f, null)
     return ink
 }
 
-private fun heatFor(pose: LiftPose, f: Figure): List<PoseInk> {
-    val midS = f.midS
-    val midH = f.midH
-    fun trunk(from: Float, to: Float, w: Float, m: CanonicalMuscle) =
-        limb(lerp(midS, midH, from), lerp(midS, midH, to), w, m)
-    return when (pose) {
-        LiftPose.SQUAT -> listOf(
-            limb(f.hL, f.kL, THIGH_W, CanonicalMuscle.QUADRICEPS),
-            limb(f.hR, f.kR, THIGH_W, CanonicalMuscle.QUADRICEPS),
-            trunk(0.78f, 1f, f.trunkW * 0.85f, CanonicalMuscle.GLUTES),
-            trunk(0.25f, 0.65f, f.trunkW * 0.62f, CanonicalMuscle.CORE),
-            limb(f.sL, f.eL, ARM_W, CanonicalMuscle.SHOULDERS),
-            limb(f.sR, f.eR, ARM_W, CanonicalMuscle.SHOULDERS),
-            limb(f.kL, f.aL, CALF_W, CanonicalMuscle.CALVES),
-            limb(f.kR, f.aR, CALF_W, CanonicalMuscle.CALVES),
-            limb(f.eL, f.wL, FORE_W, CanonicalMuscle.BICEPS),
-            limb(f.eR, f.wR, FORE_W, CanonicalMuscle.BICEPS),
-        )
-        LiftPose.HINGE -> listOf(
-            trunk(0.75f, 1f, f.trunkW, CanonicalMuscle.GLUTES),
-            limb(f.hL, f.kL, THIGH_W, CanonicalMuscle.HAMSTRINGS),
-            trunk(0.10f, 0.55f, 0.090f, CanonicalMuscle.BACK),
-            trunk(0.40f, 0.75f, 0.070f, CanonicalMuscle.CORE),
-            limb(f.hR, f.kR, THIGH_W * 0.9f, CanonicalMuscle.QUADRICEPS),
-            limb(f.kL, f.aL, CALF_W, CanonicalMuscle.CALVES),
-            limb(f.eL, f.wL, FORE_W, CanonicalMuscle.BICEPS),
-            limb(f.sL, f.eL, ARM_W, CanonicalMuscle.SHOULDERS),
-        )
+private fun anatomyFor(pose: LiftPose, f: Figure): List<PoseInk> {
+    val base = if (f.side) f.sideMap() else f.frontMap()
+    val extras = when (pose) {
+        LiftPose.VERTICAL_PULL -> f.backWings()
         LiftPose.LUNGE -> listOf(
-            limb(f.hR, f.kR, THIGH_W, CanonicalMuscle.QUADRICEPS),
-            limb(f.hL, f.kL, THIGH_W, CanonicalMuscle.HAMSTRINGS),
-            trunk(0.80f, 1f, f.trunkW * 0.85f, CanonicalMuscle.GLUTES),
-            trunk(0.20f, 0.60f, f.trunkW * 0.62f, CanonicalMuscle.CORE),
-            limb(f.sL, f.eL, ARM_W, CanonicalMuscle.SHOULDERS),
-            limb(f.sR, f.eR, ARM_W, CanonicalMuscle.SHOULDERS),
-            limb(f.kR, f.aR, CALF_W, CanonicalMuscle.CALVES),
-            limb(f.kL, f.aL, CALF_W, CanonicalMuscle.CALVES),
+            taper(lerp(f.hL, f.kL, 0.08f), lerp(f.hL, f.kL, 0.90f), 0.060f, 0.042f, CanonicalMuscle.HAMSTRINGS),
         )
-        LiftPose.HORIZONTAL_PRESS -> listOf(
-            trunk(0.05f, 0.40f, 0.100f, CanonicalMuscle.CHEST),
-            limb(f.sL, f.eL, ARM_W, CanonicalMuscle.SHOULDERS),
-            limb(f.eL, f.wL, FORE_W, CanonicalMuscle.TRICEPS),
-            trunk(0.40f, 0.75f, 0.075f, CanonicalMuscle.CORE),
-            trunk(0.80f, 1f, 0.100f, CanonicalMuscle.GLUTES),
-            limb(f.hL, f.kL, THIGH_W, CanonicalMuscle.QUADRICEPS),
-        )
-        LiftPose.VERTICAL_PRESS -> listOf(
-            limb(f.sL, f.eL, ARM_W, CanonicalMuscle.SHOULDERS),
-            limb(f.sR, f.eR, ARM_W, CanonicalMuscle.SHOULDERS),
-            limb(f.eL, f.wL, FORE_W, CanonicalMuscle.TRICEPS),
-            limb(f.eR, f.wR, FORE_W, CanonicalMuscle.TRICEPS),
-            trunk(0.20f, 0.65f, f.trunkW * 0.62f, CanonicalMuscle.CORE),
-            trunk(0.80f, 1f, f.trunkW * 0.85f, CanonicalMuscle.GLUTES),
-            limb(f.hL, f.kL, THIGH_W, CanonicalMuscle.QUADRICEPS),
-            limb(f.hR, f.kR, THIGH_W, CanonicalMuscle.QUADRICEPS),
-        )
-        LiftPose.FLY -> listOf(
-            trunk(0.00f, 0.40f, f.trunkW * 0.78f, CanonicalMuscle.CHEST),
-            limb(f.sL, f.eL, ARM_W, CanonicalMuscle.SHOULDERS),
-            limb(f.sR, f.eR, ARM_W, CanonicalMuscle.SHOULDERS),
-            trunk(0.40f, 0.70f, f.trunkW * 0.58f, CanonicalMuscle.CORE),
-            limb(f.hL, f.kL, THIGH_W, CanonicalMuscle.QUADRICEPS),
-            limb(f.hR, f.kR, THIGH_W, CanonicalMuscle.QUADRICEPS),
-            limb(f.eL, f.wL, FORE_W, CanonicalMuscle.BICEPS),
-            limb(f.eR, f.wR, FORE_W, CanonicalMuscle.BICEPS),
-        )
-        LiftPose.VERTICAL_PULL -> listOf(
-            trunk(0.00f, 0.50f, f.trunkW * 0.80f, CanonicalMuscle.BACK),
-            limb(f.eL, f.wL, FORE_W, CanonicalMuscle.BICEPS),
-            limb(f.eR, f.wR, FORE_W, CanonicalMuscle.BICEPS),
-            limb(f.sL, f.eL, ARM_W, CanonicalMuscle.SHOULDERS),
-            limb(f.sR, f.eR, ARM_W, CanonicalMuscle.SHOULDERS),
-            trunk(0.45f, 0.75f, f.trunkW * 0.58f, CanonicalMuscle.CORE),
-            trunk(0.80f, 1f, f.trunkW * 0.85f, CanonicalMuscle.GLUTES),
-            limb(f.hL, f.kL, THIGH_W, CanonicalMuscle.QUADRICEPS),
-            limb(f.hR, f.kR, THIGH_W, CanonicalMuscle.QUADRICEPS),
-        )
-        LiftPose.HORIZONTAL_PULL -> listOf(
-            trunk(0.08f, 0.50f, 0.095f, CanonicalMuscle.BACK),
-            limb(f.sL, f.eL, ARM_W, CanonicalMuscle.SHOULDERS),
-            limb(f.eL, f.wL, FORE_W, CanonicalMuscle.BICEPS),
-            trunk(0.45f, 0.75f, 0.075f, CanonicalMuscle.CORE),
-            trunk(0.80f, 1f, 0.110f, CanonicalMuscle.GLUTES),
-            limb(f.hL, f.kL, THIGH_W, CanonicalMuscle.HAMSTRINGS),
-        )
-        LiftPose.ARM_CURL -> listOf(
-            limb(f.sL, f.eL, ARM_W, CanonicalMuscle.BICEPS),
-            limb(f.sR, f.eR, ARM_W, CanonicalMuscle.BICEPS),
-            dot(f.sL, 0.036f, CanonicalMuscle.SHOULDERS),
-            dot(f.sR, 0.036f, CanonicalMuscle.SHOULDERS),
-            trunk(0.20f, 0.65f, f.trunkW * 0.62f, CanonicalMuscle.CORE),
-            limb(f.hL, f.kL, THIGH_W, CanonicalMuscle.QUADRICEPS),
-            limb(f.hR, f.kR, THIGH_W, CanonicalMuscle.QUADRICEPS),
-        )
-        LiftPose.ARM_EXT -> listOf(
-            limb(f.sL, f.eL, ARM_W, CanonicalMuscle.TRICEPS),
-            limb(f.sR, f.eR, ARM_W, CanonicalMuscle.TRICEPS),
-            dot(f.sL, 0.036f, CanonicalMuscle.SHOULDERS),
-            dot(f.sR, 0.036f, CanonicalMuscle.SHOULDERS),
-            trunk(0.20f, 0.65f, f.trunkW * 0.62f, CanonicalMuscle.CORE),
-            limb(f.hL, f.kL, THIGH_W, CanonicalMuscle.QUADRICEPS),
-            limb(f.hR, f.kR, THIGH_W, CanonicalMuscle.QUADRICEPS),
-        )
-        LiftPose.HIP -> listOf(
-            trunk(0.80f, 1f, f.trunkW, CanonicalMuscle.GLUTES),
-            limb(f.hL, f.kL, THIGH_W, CanonicalMuscle.HAMSTRINGS),
-            trunk(0.25f, 0.65f, 0.080f, CanonicalMuscle.CORE),
-            limb(f.sL, f.eL, ARM_W, CanonicalMuscle.SHOULDERS),
-            limb(f.hR, f.kR, THIGH_W * 0.9f, CanonicalMuscle.QUADRICEPS),
-        )
-        LiftPose.CORE_FLOOR -> listOf(
-            trunk(0.15f, 0.70f, 0.095f, CanonicalMuscle.CORE),
-            limb(f.sL, f.eL, ARM_W, CanonicalMuscle.SHOULDERS),
-            trunk(0.80f, 1f, 0.110f, CanonicalMuscle.GLUTES),
-            limb(f.hL, f.kL, THIGH_W, CanonicalMuscle.QUADRICEPS),
-        )
-        LiftPose.SEATED_MACHINE -> listOf(
-            limb(f.hL, f.kL, THIGH_W, CanonicalMuscle.QUADRICEPS),
-            limb(f.kL, f.aL, CALF_W, CanonicalMuscle.HAMSTRINGS),
-            trunk(0.80f, 1f, 0.110f, CanonicalMuscle.GLUTES),
-            trunk(0.20f, 0.60f, 0.080f, CanonicalMuscle.CORE),
-            limb(f.sL, f.eL, ARM_W, CanonicalMuscle.SHOULDERS),
-            limb(f.kR, f.aR, CALF_W, CanonicalMuscle.CALVES),
-        )
-        LiftPose.CARRY -> listOf(
-            trunk(0.20f, 0.65f, f.trunkW * 0.62f, CanonicalMuscle.CORE),
-            limb(f.sL, f.eL, ARM_W, CanonicalMuscle.SHOULDERS),
-            limb(f.sR, f.eR, ARM_W, CanonicalMuscle.SHOULDERS),
-            limb(f.hL, f.kL, THIGH_W, CanonicalMuscle.QUADRICEPS),
-            limb(f.hR, f.kR, THIGH_W, CanonicalMuscle.QUADRICEPS),
-            limb(f.eL, f.wL, FORE_W, CanonicalMuscle.BICEPS),
-            limb(f.eR, f.wR, FORE_W, CanonicalMuscle.BICEPS),
-        )
-        LiftPose.ANATOMY -> emptyList()
+        else -> emptyList()
     }
+    return (base + extras).heatOnTop(pose)
 }
+
+private fun List<PoseInk>.heatOnTop(pose: LiftPose): List<PoseInk> {
+    val muscle = when (pose) {
+        LiftPose.SQUAT, LiftPose.LUNGE, LiftPose.SEATED_MACHINE -> CanonicalMuscle.QUADRICEPS
+        LiftPose.HINGE, LiftPose.HIP -> CanonicalMuscle.GLUTES
+        LiftPose.HORIZONTAL_PRESS, LiftPose.FLY -> CanonicalMuscle.CHEST
+        LiftPose.VERTICAL_PRESS -> CanonicalMuscle.SHOULDERS
+        LiftPose.VERTICAL_PULL, LiftPose.HORIZONTAL_PULL -> CanonicalMuscle.BACK
+        LiftPose.ARM_CURL -> CanonicalMuscle.BICEPS
+        LiftPose.ARM_EXT -> CanonicalMuscle.TRICEPS
+        LiftPose.CORE_FLOOR, LiftPose.CARRY -> CanonicalMuscle.CORE
+        LiftPose.ANATOMY -> return this
+    }
+    return filter { it.muscle != muscle } + filter { it.muscle == muscle }
+}
+
+private fun Figure.frontMap(): List<PoseInk> {
+    val chest = lerp(midS, midH, 0.20f)
+    val abs1 = lerp(midS, midH, 0.40f)
+    val abs2 = lerp(midS, midH, 0.54f)
+    val abs3 = lerp(midS, midH, 0.68f)
+    val waistY = lerp(midS, midH, 0.38f).second
+    return listOf(
+        oval(sL, 0.038f, 0.034f, CanonicalMuscle.SHOULDERS),
+        oval(sR, 0.038f, 0.034f, CanonicalMuscle.SHOULDERS),
+        taper(lerp(sL, eL, 0.18f), lerp(sL, eL, 0.92f), 0.046f, 0.036f, CanonicalMuscle.TRICEPS),
+        taper(lerp(sR, eR, 0.18f), lerp(sR, eR, 0.92f), 0.046f, 0.036f, CanonicalMuscle.TRICEPS),
+        taper(lerp(sL, eL, 0.12f), lerp(sL, eL, 0.82f), 0.064f, 0.048f, CanonicalMuscle.BICEPS),
+        oval(lerp(sL, eL, 0.42f), 0.028f, 0.022f, CanonicalMuscle.BICEPS),
+        taper(lerp(sR, eR, 0.12f), lerp(sR, eR, 0.82f), 0.064f, 0.048f, CanonicalMuscle.BICEPS),
+        oval(lerp(sR, eR, 0.42f), 0.028f, 0.022f, CanonicalMuscle.BICEPS),
+        fill(pec(chest.first - 0.004f, chest.second, -1f), CanonicalMuscle.CHEST),
+        fill(pec(chest.first + 0.004f, chest.second, 1f), CanonicalMuscle.CHEST),
+        oval(abs1.first - 0.022f to abs1.second, 0.020f, 0.016f, CanonicalMuscle.CORE),
+        oval(abs1.first + 0.022f to abs1.second, 0.020f, 0.016f, CanonicalMuscle.CORE),
+        oval(abs2.first - 0.021f to abs2.second, 0.019f, 0.015f, CanonicalMuscle.CORE),
+        oval(abs2.first + 0.021f to abs2.second, 0.019f, 0.015f, CanonicalMuscle.CORE),
+        oval(abs3.first - 0.018f to abs3.second, 0.017f, 0.014f, CanonicalMuscle.CORE),
+        oval(abs3.first + 0.018f to abs3.second, 0.017f, 0.014f, CanonicalMuscle.CORE),
+        taper(
+            midS.first - 0.072f to waistY,
+            hL.first + 0.012f to (hL.second - 0.02f),
+            0.028f, 0.022f, CanonicalMuscle.CORE,
+        ),
+        taper(
+            midS.first + 0.072f to waistY,
+            hR.first - 0.012f to (hR.second - 0.02f),
+            0.028f, 0.022f, CanonicalMuscle.CORE,
+        ),
+        oval(midH.first - 0.038f to (midH.second - 0.012f), 0.042f, 0.032f, CanonicalMuscle.GLUTES),
+        oval(midH.first + 0.038f to (midH.second - 0.012f), 0.042f, 0.032f, CanonicalMuscle.GLUTES),
+        taper(lerp(kL, aL, 0.10f), lerp(kL, aL, 0.62f), 0.058f, 0.034f, CanonicalMuscle.CALVES),
+        taper(lerp(kR, aR, 0.10f), lerp(kR, aR, 0.62f), 0.058f, 0.034f, CanonicalMuscle.CALVES),
+        taper(lerp(hL, kL, 0.06f), lerp(hL, kL, 0.86f), 0.078f, 0.054f, CanonicalMuscle.QUADRICEPS),
+        taper(lerp(hL, kL, 0.18f), lerp(hL, kL, 0.72f), 0.042f, 0.032f, CanonicalMuscle.QUADRICEPS),
+        taper(lerp(hR, kR, 0.06f), lerp(hR, kR, 0.86f), 0.078f, 0.054f, CanonicalMuscle.QUADRICEPS),
+        taper(lerp(hR, kR, 0.18f), lerp(hR, kR, 0.72f), 0.042f, 0.032f, CanonicalMuscle.QUADRICEPS),
+    )
+}
+
+private fun Figure.sideMap(): List<PoseInk> {
+    val chest = lerp(sL, hL, 0.20f)
+    val glute = lerp(sL, hL, 0.86f)
+    val glute2 = lerp(sL, hL, 0.90f)
+    return listOf(
+        oval(sL, 0.038f, 0.034f, CanonicalMuscle.SHOULDERS),
+        taper(lerp(sL, hL, 0.04f), lerp(sL, hL, 0.38f), 0.072f, 0.060f, CanonicalMuscle.BACK),
+        taper(lerp(sL, hL, 0.36f), lerp(sL, hL, 0.72f), 0.056f, 0.044f, CanonicalMuscle.BACK),
+        fill(
+            listOf(
+                (chest.first + 0.012f) to (chest.second - 0.034f),
+                (chest.first + 0.058f) to (chest.second - 0.008f),
+                (chest.first + 0.048f) to (chest.second + 0.028f),
+                (chest.first + 0.008f) to (chest.second + 0.018f),
+                (chest.first - 0.006f) to (chest.second - 0.008f),
+            ),
+            CanonicalMuscle.CHEST,
+        ),
+        oval(lerp(sL, hL, 0.48f), 0.032f, 0.042f, CanonicalMuscle.CORE),
+        oval(lerp(sL, hL, 0.62f), 0.028f, 0.032f, CanonicalMuscle.CORE),
+        taper(lerp(sL, eL, 0.18f), lerp(sL, eL, 0.92f), 0.044f, 0.034f, CanonicalMuscle.TRICEPS),
+        taper(lerp(sL, eL, 0.12f), lerp(sL, eL, 0.82f), 0.056f, 0.042f, CanonicalMuscle.BICEPS),
+        oval(lerp(sL, eL, 0.42f), 0.024f, 0.020f, CanonicalMuscle.BICEPS),
+        taper(lerp(hR, kR, 0.06f), lerp(hR, kR, 0.86f), 0.068f, 0.046f, CanonicalMuscle.QUADRICEPS),
+        taper(lerp(kL, aL, 0.10f), lerp(kL, aL, 0.62f), 0.054f, 0.032f, CanonicalMuscle.CALVES),
+        taper(lerp(hL, kL, 0.06f), lerp(hL, kL, 0.86f), 0.076f, 0.050f, CanonicalMuscle.HAMSTRINGS),
+        taper(lerp(hL, kL, 0.16f), lerp(hL, kL, 0.70f), 0.044f, 0.034f, CanonicalMuscle.HAMSTRINGS),
+        oval(glute, 0.058f, 0.050f, CanonicalMuscle.GLUTES),
+        oval((glute2.first - 0.01f) to (glute2.second + 0.012f), 0.040f, 0.032f, CanonicalMuscle.GLUTES),
+    )
+}
+
+private fun Figure.backWings(): List<PoseInk> = listOf(
+    oval(lerp(midS, midH, 0.18f), 0.070f, 0.036f, CanonicalMuscle.BACK),
+    taper(0.36f to 0.40f, 0.42f to 0.54f, 0.058f, 0.038f, CanonicalMuscle.BACK),
+    taper(0.64f to 0.40f, 0.58f to 0.54f, 0.058f, 0.038f, CanonicalMuscle.BACK),
+    taper(0.40f to 0.46f, 0.46f to 0.56f, 0.040f, 0.028f, CanonicalMuscle.BACK),
+    taper(0.60f to 0.46f, 0.54f to 0.56f, 0.040f, 0.028f, CanonicalMuscle.BACK),
+)
 
 private fun DrawScope.paintInk(ink: PoseInk, color: Color) {
     val w = size.width
@@ -507,6 +503,18 @@ private fun DrawScope.paintInk(ink: PoseInk, color: Color) {
             end = Offset(ink.x2 * w, ink.y2 * h),
             strokeWidth = ink.width * m,
             cap = StrokeCap.Round,
+        )
+        is PoseInk.Taper -> drawPath(
+            path = smoothPlatePath(
+                capsule(ink.x1, ink.y1, ink.x2, ink.y2, ink.w1 / 2f, ink.w2 / 2f),
+                w,
+                h,
+            ),
+            color = color,
+        )
+        is PoseInk.Fill -> drawPath(
+            path = smoothPlatePath(ink.points, w, h),
+            color = color,
         )
         is PoseInk.Dot -> drawCircle(
             color = color,
@@ -527,8 +535,10 @@ private fun DrawScope.paintInk(ink: PoseInk, color: Color) {
     }
 }
 
-private fun PoseInk.toPlate(): PosePlate = when (this) {
+internal fun PoseInk.toPlate(): PosePlate = when (this) {
     is PoseInk.Limb -> PosePlate(muscle, capsule(x1, y1, x2, y2, width / 2f, width / 2f))
+    is PoseInk.Taper -> PosePlate(muscle, capsule(x1, y1, x2, y2, w1 / 2f, w2 / 2f))
+    is PoseInk.Fill -> PosePlate(muscle, points.map { clamp(it.first, it.second) })
     is PoseInk.Dot -> PosePlate(muscle, ovalPoints(x, y, r, r))
     is PoseInk.Oval -> PosePlate(muscle, ovalPoints(x, y, rx, ry))
     is PoseInk.Rect -> PosePlate(
@@ -537,18 +547,80 @@ private fun PoseInk.toPlate(): PosePlate = when (this) {
     )
 }
 
-private fun limb(
+private fun taper(
     a: Pair<Float, Float>,
     b: Pair<Float, Float>,
-    width: Float,
+    w1: Float,
+    w2: Float,
     muscle: CanonicalMuscle?,
-) = PoseInk.Limb(a.first, a.second, b.first, b.second, width, muscle)
+) = PoseInk.Taper(a.first, a.second, b.first, b.second, w1, w2, muscle)
 
-private fun dot(p: Pair<Float, Float>, r: Float, muscle: CanonicalMuscle?) =
-    PoseInk.Dot(p.first, p.second, r, muscle)
+private fun fill(points: List<Pair<Float, Float>>, muscle: CanonicalMuscle?) =
+    PoseInk.Fill(points.map { clamp(it.first, it.second) }, muscle)
 
 private fun oval(p: Pair<Float, Float>, rx: Float, ry: Float, muscle: CanonicalMuscle?) =
     PoseInk.Oval(p.first, p.second, rx, ry, muscle)
+
+private fun torsoFront(
+    sL: Pair<Float, Float>,
+    sR: Pair<Float, Float>,
+    hL: Pair<Float, Float>,
+    hR: Pair<Float, Float>,
+): List<Pair<Float, Float>> {
+    val cx = (sL.first + sR.first) * 0.5f
+    val top = (sL.second + sR.second) * 0.5f
+    val bot = (hL.second + hR.second) * 0.5f
+    val sw = (sR.first - sL.first) * 0.5f
+    val hw = (hR.first - hL.first) * 0.5f
+    val chest = top + (bot - top) * 0.28f
+    val waist = top + (bot - top) * 0.58f
+    return listOf(
+        sL,
+        (cx - sw * 0.35f) to (top - 0.010f),
+        (cx + sw * 0.35f) to (top - 0.010f),
+        sR,
+        (cx + sw * 0.92f) to chest,
+        (cx + hw * 0.70f) to waist,
+        hR,
+        hL,
+        (cx - hw * 0.70f) to waist,
+        (cx - sw * 0.92f) to chest,
+    )
+}
+
+private fun torsoSide(
+    s: Pair<Float, Float>,
+    h: Pair<Float, Float>,
+    depth: Float,
+): List<Pair<Float, Float>> {
+    val mid = lerp(s, h, 0.30f)
+    val waist = lerp(s, h, 0.58f)
+    val glute = lerp(s, h, 0.90f)
+    return listOf(
+        (s.first - depth * 0.40f) to (s.second - 0.016f),
+        (s.first + depth * 0.55f) to (s.second - 0.004f),
+        (mid.first + depth * 1.20f) to mid.second,
+        (waist.first + depth * 0.55f) to waist.second,
+        (h.first + depth * 0.42f) to (h.second + 0.004f),
+        (h.first - depth * 0.20f) to (h.second + 0.022f),
+        (glute.first - depth * 1.10f) to glute.second,
+        (waist.first - depth * 0.90f) to waist.second,
+        (mid.first - depth * 0.95f) to mid.second,
+        (s.first - depth * 1.00f) to (s.second + 0.018f),
+    )
+}
+
+private fun pec(cx: Float, cy: Float, side: Float): List<Pair<Float, Float>> {
+    val s = side
+    return listOf(
+        (cx + s * 0.004f) to (cy - 0.036f),
+        (cx + s * 0.050f) to (cy - 0.022f),
+        (cx + s * 0.058f) to (cy + 0.006f),
+        (cx + s * 0.038f) to (cy + 0.036f),
+        (cx + s * 0.008f) to (cy + 0.024f),
+        (cx + s * 0.006f) to (cy - 0.006f),
+    )
+}
 
 private fun lerp(a: Pair<Float, Float>, b: Pair<Float, Float>, t: Float): Pair<Float, Float> =
     (a.first + (b.first - a.first) * t) to (a.second + (b.second - a.second) * t)
@@ -585,7 +657,7 @@ private fun capsule(
     y2: Float,
     r1: Float,
     r2: Float,
-    cap: Int = 6,
+    cap: Int = 8,
 ): List<Pair<Float, Float>> {
     val dx = x2 - x1
     val dy = y2 - y1

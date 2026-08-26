@@ -76,8 +76,20 @@ class LiftPoseTest {
                 platesForPose(pose).any { it.muscle == null },
             )
             assertTrue(
-                "$pose has no trunk",
-                personInk(pose).any { it is PoseInk.Limb && it.muscle == null },
+                "$pose has no torso",
+                personInk(pose).any { it is PoseInk.Fill && it.muscle == null },
+            )
+        }
+    }
+
+    @Test
+    fun everyPoseHasInnerMusclePlates() {
+        LiftPose.entries.filter { it != LiftPose.ANATOMY }.forEach { pose ->
+            val inner = personInk(pose).count { it.muscle != null }
+            assertTrue("$pose only has $inner inner plates", inner >= 12)
+            assertTrue(
+                "$pose has no tapered limbs",
+                personInk(pose).any { it is PoseInk.Taper && it.muscle == null },
             )
         }
     }
@@ -98,23 +110,24 @@ private data class PoseCell(
     val pose: LiftPose,
     val equipment: EquipmentType,
     val primary: CanonicalMuscle,
+    val secondaries: Set<CanonicalMuscle>,
 )
 
 private val POSE_BOARD = listOf(
-    PoseCell("Squat", LiftPose.SQUAT, EquipmentType.BARBELL, CanonicalMuscle.QUADRICEPS),
-    PoseCell("Hinge", LiftPose.HINGE, EquipmentType.BARBELL, CanonicalMuscle.GLUTES),
-    PoseCell("Lunge", LiftPose.LUNGE, EquipmentType.DUMBBELL, CanonicalMuscle.QUADRICEPS),
-    PoseCell("H. press", LiftPose.HORIZONTAL_PRESS, EquipmentType.BARBELL, CanonicalMuscle.CHEST),
-    PoseCell("V. press", LiftPose.VERTICAL_PRESS, EquipmentType.DUMBBELL, CanonicalMuscle.SHOULDERS),
-    PoseCell("Fly", LiftPose.FLY, EquipmentType.DUMBBELL, CanonicalMuscle.CHEST),
-    PoseCell("V. pull", LiftPose.VERTICAL_PULL, EquipmentType.BODYWEIGHT, CanonicalMuscle.BACK),
-    PoseCell("Row", LiftPose.HORIZONTAL_PULL, EquipmentType.BARBELL, CanonicalMuscle.BACK),
-    PoseCell("Curl", LiftPose.ARM_CURL, EquipmentType.DUMBBELL, CanonicalMuscle.BICEPS),
-    PoseCell("Ext", LiftPose.ARM_EXT, EquipmentType.CABLE, CanonicalMuscle.TRICEPS),
-    PoseCell("Hip", LiftPose.HIP, EquipmentType.BARBELL, CanonicalMuscle.GLUTES),
-    PoseCell("Core", LiftPose.CORE_FLOOR, EquipmentType.BODYWEIGHT, CanonicalMuscle.CORE),
-    PoseCell("Machine", LiftPose.SEATED_MACHINE, EquipmentType.MACHINE, CanonicalMuscle.QUADRICEPS),
-    PoseCell("Carry", LiftPose.CARRY, EquipmentType.DUMBBELL, CanonicalMuscle.CORE),
+    PoseCell("Squat", LiftPose.SQUAT, EquipmentType.BARBELL, CanonicalMuscle.QUADRICEPS, setOf(CanonicalMuscle.GLUTES, CanonicalMuscle.CORE)),
+    PoseCell("Hinge", LiftPose.HINGE, EquipmentType.BARBELL, CanonicalMuscle.GLUTES, setOf(CanonicalMuscle.HAMSTRINGS, CanonicalMuscle.BACK)),
+    PoseCell("Lunge", LiftPose.LUNGE, EquipmentType.DUMBBELL, CanonicalMuscle.QUADRICEPS, setOf(CanonicalMuscle.HAMSTRINGS, CanonicalMuscle.GLUTES, CanonicalMuscle.CORE)),
+    PoseCell("H. press", LiftPose.HORIZONTAL_PRESS, EquipmentType.BARBELL, CanonicalMuscle.CHEST, setOf(CanonicalMuscle.SHOULDERS, CanonicalMuscle.TRICEPS)),
+    PoseCell("V. press", LiftPose.VERTICAL_PRESS, EquipmentType.DUMBBELL, CanonicalMuscle.SHOULDERS, setOf(CanonicalMuscle.TRICEPS, CanonicalMuscle.CORE)),
+    PoseCell("Fly", LiftPose.FLY, EquipmentType.DUMBBELL, CanonicalMuscle.CHEST, setOf(CanonicalMuscle.SHOULDERS)),
+    PoseCell("V. pull", LiftPose.VERTICAL_PULL, EquipmentType.BODYWEIGHT, CanonicalMuscle.BACK, setOf(CanonicalMuscle.BICEPS, CanonicalMuscle.SHOULDERS)),
+    PoseCell("Row", LiftPose.HORIZONTAL_PULL, EquipmentType.BARBELL, CanonicalMuscle.BACK, setOf(CanonicalMuscle.BICEPS, CanonicalMuscle.SHOULDERS)),
+    PoseCell("Curl", LiftPose.ARM_CURL, EquipmentType.DUMBBELL, CanonicalMuscle.BICEPS, setOf(CanonicalMuscle.SHOULDERS, CanonicalMuscle.CORE)),
+    PoseCell("Ext", LiftPose.ARM_EXT, EquipmentType.CABLE, CanonicalMuscle.TRICEPS, setOf(CanonicalMuscle.SHOULDERS)),
+    PoseCell("Hip", LiftPose.HIP, EquipmentType.BARBELL, CanonicalMuscle.GLUTES, setOf(CanonicalMuscle.HAMSTRINGS, CanonicalMuscle.CORE)),
+    PoseCell("Core", LiftPose.CORE_FLOOR, EquipmentType.BODYWEIGHT, CanonicalMuscle.CORE, setOf(CanonicalMuscle.SHOULDERS)),
+    PoseCell("Machine", LiftPose.SEATED_MACHINE, EquipmentType.MACHINE, CanonicalMuscle.QUADRICEPS, setOf(CanonicalMuscle.GLUTES, CanonicalMuscle.HAMSTRINGS)),
+    PoseCell("Carry", LiftPose.CARRY, EquipmentType.DUMBBELL, CanonicalMuscle.CORE, setOf(CanonicalMuscle.SHOULDERS, CanonicalMuscle.QUADRICEPS)),
 )
 
 private const val PIT = "#07090B"
@@ -135,7 +148,7 @@ private fun silhouetteBoardSvg(): String {
     val sb = StringBuilder()
     sb.append("""<svg xmlns="http://www.w3.org/2000/svg" width="$width" height="$height" viewBox="0 0 $width $height">""")
     sb.append("""<rect width="100%" height="100%" fill="$PIT"/>""")
-    sb.append("""<text x="$pad" y="22" fill="$INK" font-family="sans-serif" font-size="13">Library poses — pictogram person, heat on the working limbs</text>""")
+    sb.append("""<text x="$pad" y="22" fill="$INK" font-family="sans-serif" font-size="13">Library poses — athletic torso, tapered limbs, muscle plates inside</text>""")
     POSE_BOARD.forEachIndexed { i, cellData ->
         val col = i % cols
         val row = i / cols
@@ -170,7 +183,7 @@ private fun poseCellSvg(cell: PoseCell, x: Int, y: Int, size: Int): String {
     val sb = StringBuilder()
     sb.append("""<g transform="translate($x $y)">""")
     sb.append("""<rect width="$size" height="$size" rx="6" fill="$SURFACE" stroke="#39434A" stroke-width="1"/>""")
-    val secondaries = personInk(cell.pose).mapNotNull { it.muscle }.filter { it != cell.primary }.toSet()
+    val secondaries = cell.secondaries
     fun color(muscle: CanonicalMuscle?): Pair<String, String> = when (muscle) {
         null -> STEEL to "1"
         cell.primary -> HEAT to "1"
@@ -249,6 +262,10 @@ private fun inkEl(
             """<line x1="${x(ink.x1)}" y1="${y(ink.y1)}" x2="${x(ink.x2)}" y2="${y(ink.y2)}" """ +
                 """stroke="$color" stroke-opacity="$opacity" stroke-width="${ink.width * m}" """ +
                 """stroke-linecap="round"/>"""
+        is PoseInk.Taper ->
+            pathEl(ink.toPlate().points, width, height, ox, oy, color, opacity)
+        is PoseInk.Fill ->
+            pathEl(ink.toPlate().points, width, height, ox, oy, color, opacity)
         is PoseInk.Dot ->
             """<circle cx="${x(ink.x)}" cy="${y(ink.y)}" r="${ink.r * m}" """ +
                 """fill="$color" fill-opacity="$opacity"/>"""

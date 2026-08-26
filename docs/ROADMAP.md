@@ -14,8 +14,9 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
-> 26 Aug 2026 — Library thumbs are pictogram people (one trunk, limbs from the
-> end-caps, Heat3 on the working limb, kit in the hands). Body heat stays the
+> 26 Aug 2026 — Library thumbs are athletic plate people (torso with a
+> nipped waist, tapered limbs from the corners, inner muscle plates,
+> Heat3 on the working plates, kit in the hands). Body heat stays the
 > standing plate figure. Customs with no family still stand. No PNG pack.
 >
 > 26 Aug 2026 — Activity composer Save is the one Volt. Type chips speak
