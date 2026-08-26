@@ -5,6 +5,7 @@ import androidx.room.withTransaction
 import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.mapper.toDomain
+import com.sinura.personaltrainer.data.mapper.toSummary
 import com.sinura.personaltrainer.domain.ActivityBlock
 import com.sinura.personaltrainer.domain.ActivityDraft
 import com.sinura.personaltrainer.domain.ActivityOrigin
@@ -16,6 +17,7 @@ import com.sinura.personaltrainer.domain.ActivityTemplate
 import com.sinura.personaltrainer.domain.ActivityWrite
 import com.sinura.personaltrainer.domain.CapturedCivilTime
 import com.sinura.personaltrainer.domain.IdPort
+import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.TimePort
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -23,7 +25,11 @@ import kotlinx.coroutines.flow.map
 class ActivityRepository(
     private val database: TemperDatabase,
     private val dao: ActivityDao = database.activityDao(),
+    private val dbMaintenance: DbMaintenance? = null,
 ) {
+    private suspend fun <T> serialized(block: suspend () -> T): T =
+        dbMaintenance?.withMaintenanceLock(block) ?: block()
+
     fun observeLive(): Flow<ActivitySession?> =
         dao.observeLive().map { row ->
             row?.let { dao.getSessionGraph(it.id)?.toDomain() }
@@ -41,29 +47,37 @@ class ActivityRepository(
     fun observeCompleted(): Flow<List<ActivitySession>> =
         dao.observeCompletedGraphs().map { rows -> rows.map { it.toDomain() } }
 
+    fun observeCompletedSummaries(): Flow<List<SessionSummary>> =
+        dao.observeCompletedSummaries().map { rows -> rows.map { it.toSummary() } }
+
+    fun observeCompletedGraphsSince(minPerformedAtMs: Long): Flow<List<ActivitySession>> =
+        dao.observeCompletedGraphsSince(minPerformedAtMs).map { rows -> rows.map { it.toDomain() } }
+
     suspend fun onLocalDate(localEpochDay: Long): List<ActivitySession> =
-        ActivityQueries.onLocalDate(all(), localEpochDay)
+        dao.graphsOnLocalDate(localEpochDay).map { it.toDomain() }
 
     suspend fun completedOn(localEpochDay: Long): List<ActivitySession> =
-        ActivityQueries.completedOn(all(), localEpochDay)
+        ActivityQueries.completedOn(onLocalDate(localEpochDay), localEpochDay)
 
     /**
      * The only durable write. Domain rules run inside the same
      * transaction as the insert so a second live start cannot land.
+     * The maintenance lock is the same lock strength starts take, so a
+     * cardio confirm and a routine start cannot both pass the idle check.
      */
     suspend fun confirm(
         draft: ActivityDraft,
         now: CapturedCivilTime,
         ids: IdPort,
         clock: TimePort,
-    ): ActivityWrite {
-        return database.withTransaction {
+    ): ActivityWrite = serialized {
+        database.withTransaction {
             if ((draft.origin == ActivityOrigin.LIVE || draft.status == ActivityStatus.ACTIVE) &&
                 database.workoutDao().getInProgressSession() != null
             ) {
                 return@withTransaction ActivityWrite.Rejected("One live activity at a time.")
             }
-            val existing = dao.getAllGraphs().map { it.toDomain() }
+            val existing = listOfNotNull(getLive())
             when (val write = ActivityRules.confirm(draft, existing, now, ids, clock)) {
                 is ActivityWrite.Rejected -> write
                 is ActivityWrite.Accepted -> {
@@ -92,9 +106,11 @@ class ActivityRepository(
     }
 
     suspend fun discard(sessionId: String) {
-        database.withTransaction {
-            val row = dao.getSessionRow(sessionId) ?: return@withTransaction
-            if (row.status == "ACTIVE") dao.deleteSession(sessionId)
+        serialized {
+            database.withTransaction {
+                val row = dao.getSessionRow(sessionId) ?: return@withTransaction
+                if (row.status == "ACTIVE") dao.deleteSession(sessionId)
+            }
         }
     }
 
@@ -108,8 +124,8 @@ class ActivityRepository(
         now: CapturedCivilTime,
         clock: TimePort,
         blocks: List<ActivityBlock>? = null,
-    ): ActivityWrite {
-        return database.withTransaction {
+    ): ActivityWrite = serialized {
+        database.withTransaction {
             val graph = dao.getSessionGraph(sessionId)
                 ?: return@withTransaction ActivityWrite.Rejected("That session is gone.")
             val session = graph.toDomain()

@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.data.local.entity.ActivityBlockEntity
 import com.sinura.personaltrainer.data.local.entity.ActivityCardioIntervalEntity
 import com.sinura.personaltrainer.data.local.entity.ActivitySessionEntity
 import com.sinura.personaltrainer.data.local.entity.ActivityStrengthSetEntity
+import com.sinura.personaltrainer.data.local.entity.ActivitySummaryRow
 import com.sinura.personaltrainer.data.local.entity.ActivityTemplateEntity
 import com.sinura.personaltrainer.data.local.relation.ActivitySessionGraph
 import com.sinura.personaltrainer.data.local.relation.ActivityTemplateGraph
@@ -17,10 +18,10 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ActivityDao {
-    @Query("SELECT * FROM activity_sessions WHERE status = 'ACTIVE' LIMIT 1")
+    @Query("SELECT * FROM activity_sessions WHERE liveToken = 'LIVE' LIMIT 1")
     suspend fun getLive(): ActivitySessionEntity?
 
-    @Query("SELECT * FROM activity_sessions WHERE status = 'ACTIVE' LIMIT 1")
+    @Query("SELECT * FROM activity_sessions WHERE liveToken = 'LIVE' LIMIT 1")
     fun observeLive(): Flow<ActivitySessionEntity?>
 
     @Query("SELECT * FROM activity_sessions WHERE id = :id")
@@ -37,6 +38,48 @@ interface ActivityDao {
     @Transaction
     @Query("SELECT * FROM activity_sessions WHERE status = 'COMPLETED' ORDER BY performedStartInstantMs DESC")
     fun observeCompletedGraphs(): Flow<List<ActivitySessionGraph>>
+
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM activity_sessions
+        WHERE status = 'COMPLETED' AND performedStartInstantMs >= :minMs
+        ORDER BY performedStartInstantMs DESC
+        """,
+    )
+    fun observeCompletedGraphsSince(minMs: Long): Flow<List<ActivitySessionGraph>>
+
+    @Query(
+        """
+        SELECT s.id AS id,
+               s.title AS title,
+               s.performedStartInstantMs AS date,
+               s.performedEndInstantMs AS finishedAt,
+               s.performedStartLocalEpochDay AS localEpochDay,
+               COALESCE((
+                   SELECT COUNT(*) FROM activity_blocks b
+                   INNER JOIN activity_strength_sets st ON st.blockId = b.id
+                   WHERE b.sessionId = s.id AND st.isWarmup = 0
+               ), 0) AS workingSets,
+               COALESCE((
+                   SELECT SUM(st.weightKg * st.reps) FROM activity_blocks b
+                   INNER JOIN activity_strength_sets st ON st.blockId = b.id
+                   WHERE b.sessionId = s.id AND st.isWarmup = 0
+               ), 0) AS volumeKg,
+               COALESCE((
+                   SELECT SUM(b.elapsedSeconds) FROM activity_blocks b
+                   WHERE b.sessionId = s.id AND b.kind = 'CARDIO'
+               ), 0) AS cardioSeconds,
+               (
+                   SELECT SUM(b.distanceMeters) FROM activity_blocks b
+                   WHERE b.sessionId = s.id AND b.kind = 'CARDIO'
+               ) AS cardioDistanceMeters
+        FROM activity_sessions s
+        WHERE s.status = 'COMPLETED'
+        ORDER BY s.performedStartInstantMs DESC
+        """,
+    )
+    fun observeCompletedSummaries(): Flow<List<ActivitySummaryRow>>
 
     @Transaction
     @Query("SELECT * FROM activity_sessions WHERE performedStartLocalEpochDay = :localEpochDay ORDER BY performedStartInstantMs")

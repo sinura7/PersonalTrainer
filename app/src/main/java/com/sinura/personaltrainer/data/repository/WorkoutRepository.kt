@@ -196,7 +196,7 @@ class WorkoutRepository(
                     restSeconds = item.restSeconds,
                 )
             }
-            materializeStart(insertSessionIfIdle(session, exercises))
+            startInserted(session, exercises)
             }
         } catch (thrown: kotlinx.coroutines.CancellationException) {
             throw thrown
@@ -240,7 +240,7 @@ class WorkoutRepository(
                 startedAt = now,
                 finishedAt = null,
             )
-            materializeStart(insertSessionIfIdle(session, emptyList()))
+            startInserted(session, emptyList())
             }
         } catch (thrown: kotlinx.coroutines.CancellationException) {
             throw thrown
@@ -294,7 +294,6 @@ class WorkoutRepository(
 
         val inserted = serialized {
             if (restoreInProgress()) null
-            else if (hasLiveActivity()) null
             else insertSessionIfIdle(session, exercises)
         } ?: return RepeatOutcome.Failed(
             if (restoreInProgress()) RestoreJournal.INTERRUPTED
@@ -313,17 +312,27 @@ class WorkoutRepository(
     private suspend fun insertSessionIfIdle(
         session: WorkoutSessionEntity,
         exercises: List<SessionExerciseEntity>,
-    ): SessionInsert {
+    ): SessionInsert? {
         return database.withTransaction {
             workoutDao.getInProgressSession()?.id?.let {
                 return@withTransaction SessionInsert(it, inserted = false)
             }
+            if (hasLiveActivity()) return@withTransaction null
             workoutDao.upsertSession(session)
             if (exercises.isNotEmpty()) {
                 workoutDao.insertSessionExercises(exercises)
             }
             SessionInsert(session.id, inserted = true)
         }
+    }
+
+    private suspend fun startInserted(
+        session: WorkoutSessionEntity,
+        exercises: List<SessionExerciseEntity>,
+    ): StartSessionOutcome {
+        val insert = insertSessionIfIdle(session, exercises)
+            ?: return StartSessionOutcome.Unavailable("One live activity at a time.")
+        return materializeStart(insert)
     }
 
     private data class SessionInsert(val sessionId: String, val inserted: Boolean)

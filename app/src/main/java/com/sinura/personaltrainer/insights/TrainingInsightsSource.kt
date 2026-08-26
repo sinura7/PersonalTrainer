@@ -7,7 +7,6 @@ import com.sinura.personaltrainer.data.repository.ScheduleRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.domain.SessionSummary
-import com.sinura.personaltrainer.domain.toSummary
 import com.sinura.personaltrainer.domain.windowedInsightHistory
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HeatWindow
@@ -34,10 +33,14 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.delay
 
 private const val TAG = "PT/InsightsSource"
 
@@ -120,7 +123,9 @@ class TrainingInsightsSource(
         refresh: Flow<Any?>,
         includeWeekPlan: Boolean,
     ): Flow<TrainingInsights> {
-        val completedActivities = activityRepository?.observeCompleted() ?: flowOf(emptyList())
+        val activitySummaries = activityRepository?.observeCompletedSummaries()
+            ?: flowOf(emptyList())
+        val windowedHistory = observeWindowedHistory()
         return combine(
         // Six sources, five at a time: combine's typed overloads stop at five, so the slot flow
         // is folded in around the original group rather than the group being re-shaped.
@@ -129,20 +134,11 @@ class TrainingInsightsSource(
                 combine(
                     combine(
                         workoutRepository.observeSessionSummaries(),
-                        completedActivities,
+                        activitySummaries,
                     ) { summaries, activities ->
-                        summaries + activities.filter { it.isCompleted }.map { it.toSummary() }
+                        summaries + activities
                     },
-                    combine(
-                        workoutRepository.observeFinishedSince(nowMs() - WINDOW_MS),
-                        completedActivities,
-                    ) { sessions, activities ->
-                        windowedInsightHistory(
-                            sessions = sessions,
-                            activities = activities,
-                            minPerformedAtMs = nowMs() - WINDOW_MS,
-                        )
-                    },
+                    windowedHistory,
                 ) { summaries, windowed -> summaries to windowed },
                 routineRepository.observeAll(),
                 combine(
@@ -215,11 +211,34 @@ class TrainingInsightsSource(
     }.flowOn(computeDispatcher)
     }
 
+    private fun observeWindowedHistory(): Flow<List<WorkoutSession>> =
+        observeCutoffMs().flatMapLatest { minMs ->
+            combine(
+                workoutRepository.observeFinishedSince(minMs),
+                activityRepository?.observeCompletedGraphsSince(minMs) ?: flowOf(emptyList()),
+            ) { sessions, activities ->
+                windowedInsightHistory(
+                    sessions = sessions,
+                    activities = activities,
+                    minPerformedAtMs = minMs,
+                )
+            }
+        }
+
+    private fun observeCutoffMs(): Flow<Long> = flow {
+        while (true) {
+            emit(nowMs() - WINDOW_MS)
+            delay(CUTOFF_REFRESH_MS)
+        }
+    }.distinctUntilChanged()
+
     internal companion object {
         /** Long enough to survive a rotation or a tab switch, short enough not to hold work. */
         const val SHARE_GRACE_MS = 5_000L
         /** Body heat's widest window. Coach is 14 days inside this. */
         const val WINDOW_MS = 30L * 24 * 60 * 60 * 1000
+        /** Re-bind the SQL window so a long-lived collector does not keep a stale cutoff. */
+        const val CUTOFF_REFRESH_MS = 60L * 60 * 1000
     }
 
     private data class Sources(

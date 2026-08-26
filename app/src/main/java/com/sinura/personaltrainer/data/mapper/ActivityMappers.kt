@@ -11,6 +11,7 @@ import com.sinura.personaltrainer.data.local.entity.ActivityBlockEntity
 import com.sinura.personaltrainer.data.local.entity.ActivityCardioIntervalEntity
 import com.sinura.personaltrainer.data.local.entity.ActivitySessionEntity
 import com.sinura.personaltrainer.data.local.entity.ActivityStrengthSetEntity
+import com.sinura.personaltrainer.data.local.entity.ActivitySummaryRow
 import com.sinura.personaltrainer.data.local.entity.ActivityTemplateEntity
 import com.sinura.personaltrainer.data.local.relation.ActivityBlockGraph
 import com.sinura.personaltrainer.data.local.relation.ActivitySessionGraph
@@ -22,6 +23,8 @@ import com.sinura.personaltrainer.domain.ActivitySource
 import com.sinura.personaltrainer.domain.ActivityStatus
 import com.sinura.personaltrainer.domain.ActivityTemplate
 import com.sinura.personaltrainer.domain.CapturedCivilTime
+import com.sinura.personaltrainer.domain.HistoryKind
+import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.CardioBlock
 import com.sinura.personaltrainer.domain.CardioInterval
 import com.sinura.personaltrainer.domain.CardioType
@@ -395,3 +398,18 @@ fun BackupActivityBlock.toDomain(): ActivityBlock = when (kind) {
         },
     )
 }
+
+fun ActivitySummaryRow.toSummary(): SessionSummary = SessionSummary(
+    id = id,
+    routineId = null,
+    routineName = title.takeIf { it.isNotBlank() },
+    date = date,
+    finishedAt = finishedAt,
+    durationMinutes = ((cardioSeconds + 30) / 60).toInt().coerceAtLeast(0),
+    workingSets = workingSets,
+    volumeKg = volumeKg,
+    localEpochDay = localEpochDay,
+    cardioSeconds = cardioSeconds,
+    cardioDistanceMeters = cardioDistanceMeters?.takeIf { it > 0.0 },
+    kind = HistoryKind.ACTIVITY,
+)

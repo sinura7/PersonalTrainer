@@ -28,7 +28,6 @@ import com.sinura.personaltrainer.domain.groupHistoryByMonth
 import com.sinura.personaltrainer.domain.prSummary
 import com.sinura.personaltrainer.domain.toHistoryEntry
 import com.sinura.personaltrainer.domain.toInsightSession
-import com.sinura.personaltrainer.domain.toSummary
 import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.insights.TrainingInsightsSource
 import com.sinura.personaltrainer.logging.AppLog
@@ -129,12 +128,17 @@ class HistoryViewModel @JvmOverloads constructor(
         combine(
             combine(
                 container.workoutRepository.observeSessionSummariesHealth(),
-                container.activityRepository.observeCompleted(),
-                container.workoutRepository.observeFinishedSince(
-                    System.currentTimeMillis() - TrainingInsightsSource.WINDOW_MS,
-                ),
-            ) { health, activities, windowed ->
-                HistoryReads(health, activities, windowed)
+                container.activityRepository.observeCompletedSummaries(),
+                combine(
+                    container.workoutRepository.observeFinishedSince(
+                        System.currentTimeMillis() - TrainingInsightsSource.WINDOW_MS,
+                    ),
+                    container.activityRepository.observeCompletedGraphsSince(
+                        System.currentTimeMillis() - TrainingInsightsSource.WINDOW_MS,
+                    ),
+                ) { workouts, activities -> workouts to activities },
+            ) { health, activitySummaries, windowed ->
+                HistoryReads(health, activitySummaries, windowed.first, windowed.second)
             },
             combine(
                 container.preferencesRepository.schedulePreferences,
@@ -147,9 +151,7 @@ class HistoryViewModel @JvmOverloads constructor(
             if (list.unavailable) {
                 return@combine HistoryUiState(isLoading = false, unavailable = true)
             }
-            val activitySummaries = reads.activities
-                .filter { it.isCompleted }
-                .map { it.toSummary() }
+            val activitySummaries = reads.activitySummaries
             val allSummaries = list.summaries + activitySummaries
             val preferences = settings.first
             val projections = DailyProjectionBuilder.project(allSummaries)
@@ -160,7 +162,7 @@ class HistoryViewModel @JvmOverloads constructor(
                 summaries = allSummaries,
                 monthGroups = groupHistoryByMonth(allSummaries.map { it.toHistoryEntry() }),
                 records = prSummary(
-                    reads.windowed + reads.activities.mapNotNull { it.toInsightSession() },
+                    reads.windowed + reads.windowedActivities.mapNotNull { it.toInsightSession() },
                 ),
                 calendar = TrainingCalendarBuilder.buildSummaries(
                     month = month.toCivilYearMonth(),
@@ -240,8 +242,9 @@ class HistoryViewModel @JvmOverloads constructor(
 
     private data class HistoryReads(
         val health: DataHealth<List<SessionSummary>>,
-        val activities: List<ActivitySession>,
+        val activitySummaries: List<SessionSummary>,
         val windowed: List<com.sinura.personaltrainer.domain.WorkoutSession>,
+        val windowedActivities: List<ActivitySession>,
     )
 
     private data class PastBlockInputs(
