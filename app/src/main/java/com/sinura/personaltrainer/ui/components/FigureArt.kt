@@ -92,6 +92,12 @@ internal fun DrawScope.drawTemperFigure(
     edge: Color? = null,
 ) {
     val hair = Metrics.hairline.toPx()
+    // The person is one silhouette. Plates sit on it. Seams show this fill
+    // instead of the pit, so the Body tab reads as a body, not a pile of pebbles.
+    drawPath(
+        path = smoothPlatePath(FIGURE_OUTLINE, size.width, size.height),
+        color = SteelDim,
+    )
     platesFor(view).forEach { plate ->
         val path = plate.toPath(size.width, size.height)
         drawPath(path = path, color = fill(plate))
@@ -173,6 +179,71 @@ private fun plate(muscle: CanonicalMuscle?, vararg xy: Float): BodyPlate {
  * FIGURE_SHARED_STRUCTURE is the contract that front and back are the same person.
  * Do not fork those numbers in the working lists.
  */
+
+/**
+ * Outer envelope of the standing figure, shared by front and back.
+ *
+ * Drawn under the plates so the person is continuous. Coordinates hug the
+ * existing plate extrema — a new outline that drifted off the tap targets
+ * would light the wrong limb.
+ */
+internal val FIGURE_OUTLINE: List<Pair<Float, Float>> = listOf(
+    0.500f to 0.000f,
+    0.575f to 0.008f,
+    0.602f to 0.040f,
+    0.594f to 0.086f,
+    0.548f to 0.128f,
+    0.638f to 0.142f,
+    0.812f to 0.148f,
+    0.938f to 0.175f,
+    0.958f to 0.230f,
+    0.922f to 0.275f,
+    0.952f to 0.348f,
+    0.922f to 0.418f,
+    0.962f to 0.498f,
+    0.968f to 0.575f,
+    0.898f to 0.632f,
+    0.812f to 0.548f,
+    0.762f to 0.398f,
+    0.718f to 0.292f,
+    0.682f to 0.308f,
+    0.642f to 0.448f,
+    0.628f to 0.512f,
+    0.728f to 0.528f,
+    0.742f to 0.648f,
+    0.702f to 0.768f,
+    0.718f to 0.888f,
+    0.682f to 0.972f,
+    0.728f to 1.000f,
+    0.518f to 1.000f,
+    0.482f to 1.000f,
+    0.272f to 1.000f,
+    0.318f to 0.972f,
+    0.282f to 0.888f,
+    0.298f to 0.768f,
+    0.258f to 0.648f,
+    0.272f to 0.528f,
+    0.372f to 0.512f,
+    0.358f to 0.448f,
+    0.318f to 0.308f,
+    0.282f to 0.292f,
+    0.238f to 0.398f,
+    0.188f to 0.548f,
+    0.102f to 0.632f,
+    0.032f to 0.575f,
+    0.038f to 0.498f,
+    0.078f to 0.418f,
+    0.048f to 0.348f,
+    0.078f to 0.275f,
+    0.042f to 0.230f,
+    0.062f to 0.175f,
+    0.188f to 0.148f,
+    0.362f to 0.142f,
+    0.452f to 0.128f,
+    0.406f to 0.086f,
+    0.398f to 0.040f,
+    0.425f to 0.008f,
+)
 
 internal val FIGURE_SHARED_STRUCTURE: List<BodyPlate> = listOf(
     // Skull — denser oval so quadratic corners read as a head, not a pentagon.

@@ -69,6 +69,16 @@ class LiftPoseTest {
     }
 
     @Test
+    fun everyPoseHasASilhouetteUnderlay() {
+        LiftPose.entries.filter { it != LiftPose.ANATOMY }.forEach { pose ->
+            assertTrue(
+                "$pose has no structure plates",
+                platesForPose(pose).any { it.muscle == null },
+            )
+        }
+    }
+
+    @Test
     fun writeSilhouetteBoard() {
         val dir = File("/opt/cursor/artifacts")
         if (!dir.isDirectory) return
@@ -189,6 +199,7 @@ private fun figureSvg(
 ): String {
     val sb = StringBuilder()
     sb.append("""<g transform="translate($x $y)">""")
+    sb.append(pathEl(FIGURE_OUTLINE, w, h, 0, 0, STEEL_DIM, "1"))
     val secondaries = when (view) {
         BodyView.FRONT -> setOf(
             CanonicalMuscle.SHOULDERS,

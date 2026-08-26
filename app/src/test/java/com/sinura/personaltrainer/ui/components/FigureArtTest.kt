@@ -90,4 +90,12 @@ class FigureArtTest {
             }
         }
     }
+
+    @Test
+    fun theStandingOutlineStaysInsideTheFigureBox() {
+        FIGURE_OUTLINE.forEach { (x, y) ->
+            assertTrue("outline x=$x", x in 0f..1f)
+            assertTrue("outline y=$y", y in 0f..1f)
+        }
+    }
 }
