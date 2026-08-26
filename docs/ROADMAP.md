@@ -17,7 +17,10 @@
 > 26 Aug 2026 — Audit leftovers on the further-design vehicle: lighter-week
 > and "moved most" captions are not Volt; Tune Done and a met goal are
 > status, not the act; a noon-stamped receipt omits duration; rest
-> controls have no emphasised fill. ADR-005 stays closed.
+> controls have no emphasised fill. One-live confirm shares the start
+> lock; History/Goals/insights read activity summaries; named-args
+> ignores Compose `path(fill)`; bodyweight backup keeps the ADR-011
+> four-tuple. ADR-005 stays closed.
 >
 > 26 Aug 2026 — Further-design of gym-floor chrome: composer Save dock,
 > kind-aware live bar, one Volt on workout/plan/summary, honest Why and
