@@ -332,5 +332,5 @@ private fun pathEl(
     } else {
         """fill="$fill" fill-opacity="$opacity""""
     }
-    return """<path d="$d" $fillAttr$edge/>"""
+    return "<path d=\"" + d + "\" " + fillAttr + edge + "/>"
 }
