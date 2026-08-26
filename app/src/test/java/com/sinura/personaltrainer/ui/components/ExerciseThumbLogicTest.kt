@@ -116,6 +116,7 @@ class ExerciseThumbLogicTest {
             isCustom = true, muscles = emptyList(),
         )
         assertEquals(CanonicalMuscle.OTHER, thumbMuscles(mine).first)
+        assertEquals(LiftPose.ANATOMY, poseFor(mine.movementKey))
     }
 
     @Test
@@ -129,10 +130,18 @@ class ExerciseThumbLogicTest {
             )
             val (primary, _) = thumbMuscles(exercise)
             assertTrue("${seed.id} resolved to OTHER", primary != CanonicalMuscle.OTHER)
-            assertTrue(
-                "${seed.id}'s primary $primary has no plate on ${thumbViewFor(primary)}",
-                hotspotsFor(thumbViewFor(primary)).any { it.muscle == primary },
-            )
+            val pose = poseFor(seed.movementKey)
+            if (pose == LiftPose.ANATOMY) {
+                assertTrue(
+                    "${seed.id}'s primary $primary has no plate on ${thumbViewFor(primary)}",
+                    hotspotsFor(thumbViewFor(primary)).any { it.muscle == primary },
+                )
+            } else {
+                assertTrue(
+                    "${seed.id}'s primary $primary has no plate on $pose",
+                    platesForPose(pose).any { it.muscle == primary },
+                )
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.components
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -123,12 +124,33 @@ internal fun DrawScope.drawFigure(view: BodyView, detail: Boolean = true) {
 internal fun BodyPlate.isTemperAccent(): Boolean =
     muscle == CanonicalMuscle.CHEST && left > 0.5f
 
-private fun BodyPlate.toPath(width: Float, height: Float): Path = Path().apply {
-    val first = points.first()
-    moveTo(first.first * width, first.second * height)
-    for (i in 1 until points.size) {
-        val point = points[i]
-        lineTo(point.first * width, point.second * height)
+private fun BodyPlate.toPath(width: Float, height: Float): Path =
+    smoothPlatePath(points, width, height)
+
+/**
+ * Closed plate with quadratic corners. Coordinates stay the Temper
+ * fractions; the stroke is what makes the figure read as high-definition
+ * anatomy instead of a handful of raw polygons, at every density.
+ */
+internal fun smoothPlatePath(
+    points: List<Pair<Float, Float>>,
+    width: Float,
+    height: Float,
+): Path = Path().apply {
+    val n = points.size
+    if (n < 3) return@apply
+    fun px(i: Int) = Offset(points[i].first * width, points[i].second * height)
+    fun mid(a: Int, b: Int): Offset {
+        val p = px(a)
+        val q = px(b)
+        return Offset((p.x + q.x) * 0.5f, (p.y + q.y) * 0.5f)
+    }
+    val start = mid(n - 1, 0)
+    moveTo(start.x, start.y)
+    for (i in 0 until n) {
+        val corner = px(i)
+        val next = mid(i, (i + 1) % n)
+        quadraticBezierTo(corner.x, corner.y, next.x, next.y)
     }
     close()
 }
@@ -153,13 +175,13 @@ private fun plate(muscle: CanonicalMuscle?, vararg xy: Float): BodyPlate {
  */
 
 internal val FIGURE_SHARED_STRUCTURE: List<BodyPlate> = listOf(
-    // Skull — rounded, not a box.
+    // Skull — denser oval so quadratic corners read as a head, not a pentagon.
     plate(
         null,
-        0.438f, 0.010f, 0.562f, 0.010f,
-        0.586f, 0.032f, 0.590f, 0.058f,
-        0.572f, 0.088f, 0.428f, 0.088f,
-        0.410f, 0.058f, 0.414f, 0.032f,
+        0.445f, 0.006f, 0.500f, 0.002f, 0.555f, 0.006f,
+        0.582f, 0.022f, 0.596f, 0.048f, 0.592f, 0.072f,
+        0.568f, 0.092f, 0.500f, 0.098f, 0.432f, 0.092f,
+        0.408f, 0.072f, 0.404f, 0.048f, 0.418f, 0.022f,
     ),
     plate(null, 0.456f, 0.092f, 0.544f, 0.092f, 0.552f, 0.146f, 0.448f, 0.146f),
     // Delts — same outer cap on both views.

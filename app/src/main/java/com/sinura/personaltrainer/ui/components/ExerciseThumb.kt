@@ -38,12 +38,15 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
  * Every exercise row has been reserving a 40dp square since the redesign, filled with the
  * lift's initial letter — which sorts nothing, distinguishes nothing, and made a long list
  * read as a column of alphabet. This fills it with something that actually carries
- * information at a glance: which part of you the lift trains, and what you load it with.
+ * information at a glance: which part of you the lift trains, what the movement looks
+ * like, and what you load it with.
  *
  * **Drawn in Compose, not shipped as assets.** A layered VectorDrawable would have to bake
  * the heat ramp into `res/` as static colours, outside the token layer the design checks
  * police, and `android:tint` cannot tint layers independently anyway. Drawing costs a few
  * tens of kilobytes of dex and nothing else — no bitmaps, no image loader, no APK budget.
+ * One plate language covers 101 lifts: a family pose plus in-scene kit, the same person
+ * as the Body figure, not 101 pictures that drift.
  *
  * **Identity, not state.** The lit muscle uses a fixed [Heat3], never the owner's current
  * weekly band. The same lift always looks the same, which is what makes a thumbnail useful
@@ -132,11 +135,13 @@ internal fun thumbMuscles(exercise: Exercise): Pair<CanonicalMuscle, Set<Canonic
 }
 
 /**
- * One lift, as a figure with its muscles lit and a badge for its kit.
+ * One lift: a posed silhouette with working plates lit, kit in the scene, and a badge.
  *
- * Decorative by construction: every surface that shows this already names the lift beside it,
- * so the thumb clears its semantics rather than reading a second, worse version of the name
- * to a screen reader.
+ * A known [Exercise.movementKey] draws the family pose so a squat is not a standing
+ * figure with a barbell pip. Customs and unknown families keep the standing anatomy.
+ * Decorative by construction: every surface that shows this already names the lift
+ * beside it, so the thumb clears its semantics rather than reading a second, worse
+ * version of the name to a screen reader.
  */
 @Composable
 fun ExerciseThumb(
@@ -151,6 +156,8 @@ fun ExerciseThumb(
     // load. Deliberately not stubbed as a dead branch; the note is the contract.
     val (primary, secondaries) = thumbMuscles(exercise)
     val view = thumbViewFor(primary)
+    val pose = poseFor(exercise.movementKey)
+    val posed = pose != LiftPose.ANATOMY
     val shape = RoundedCornerShape(Radius.xs)
     Box(
         modifier = modifier
@@ -161,34 +168,55 @@ fun ExerciseThumb(
             .clearAndSetSemantics { },
         contentAlignment = Alignment.Center,
     ) {
-        // The figure's height is the box minus its inset, and its width follows from the
-        // anatomy's fixed aspect — computed rather than laid out, because .padding() before
-        // .size() would add the inset back around a box already sized to the full square and
-        // push the figure outside it.
+        // The figure's height is the box minus its inset. Posed lifts fill the square so
+        // the machine and the stance read at 40dp. Standing anatomy keeps the tall
+        // aspect — computed rather than laid out, because .padding() before .size()
+        // would add the inset back around a box already sized to the full square.
         val figureHeight = size - Metrics.space1 * 2
         Canvas(
-            modifier = Modifier.size(
-                width = figureHeight * FIGURE_ASPECT,
-                height = figureHeight,
-            ),
+            modifier = if (posed) {
+                Modifier.size(figureHeight)
+            } else {
+                Modifier.size(
+                    width = figureHeight * FIGURE_ASPECT,
+                    height = figureHeight,
+                )
+            },
         ) {
-            // Same plates as the Body tab and the launcher. A secondary whose plates live
-            // only on the other view has no region here and stays steel.
-            drawTemperFigure(
-                view = view,
-                fill = { plate ->
-                    when {
-                        plate.muscle == null -> SteelDim
-                        plate.muscle == primary -> Heat3
-                        plate.muscle in secondaries -> Heat3.copy(alpha = SECONDARY_ALPHA)
-                        else -> Steel
-                    }
-                },
-            )
+            if (posed) {
+                drawLiftPose(
+                    pose = pose,
+                    equipment = exercise.equipment,
+                    fill = { muscle ->
+                        when {
+                            muscle == null -> SteelDim
+                            muscle == primary -> Heat3
+                            muscle in secondaries -> Heat3.copy(alpha = SECONDARY_ALPHA)
+                            else -> Steel
+                        }
+                    },
+                    kit = TextSecondary,
+                )
+            } else {
+                // Same plates as the Body tab and the launcher. A secondary whose plates
+                // live only on the other view has no region here and stays steel.
+                drawTemperFigure(
+                    view = view,
+                    fill = { plate ->
+                        when {
+                            plate.muscle == null -> SteelDim
+                            plate.muscle == primary -> Heat3
+                            plate.muscle in secondaries -> Heat3.copy(alpha = SECONDARY_ALPHA)
+                            else -> Steel
+                        }
+                    },
+                )
+            }
         }
         // The badge overlaps the figure on purpose — a badge in its own gutter would cost the
         // figure a third of a 40dp square, and the equipment is the second thing you read,
-        // not a peer of the anatomy.
+        // not a peer of the anatomy. In-scene kit is the first equipment read; the badge
+        // confirms it when the pose is small.
         EquipmentBadge(
             glyph = glyphFor(exercise.equipment),
             size = size * BADGE_SHARE,

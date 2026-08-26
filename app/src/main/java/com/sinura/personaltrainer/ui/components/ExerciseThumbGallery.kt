@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.components
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,14 +20,19 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.CanonicalMuscle
+import com.sinura.personaltrainer.domain.DefaultExercises
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.MuscleCredit
 import com.sinura.personaltrainer.domain.MuscleNormalizer
+import com.sinura.personaltrainer.domain.SeedExercise
+import com.sinura.personaltrainer.ui.theme.Heat3
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.theme.Pit
+import com.sinura.personaltrainer.ui.theme.Steel
+import com.sinura.personaltrainer.ui.theme.SteelDim
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 
@@ -40,24 +46,37 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
  *
  * Open in Android Studio and use the gutter run-on-device action per preview.
  */
+private data class ThumbSample(
+    val equipment: EquipmentType,
+    val primary: CanonicalMuscle,
+    val movementKey: String,
+)
+
 private val SPREAD = listOf(
-    EquipmentType.BARBELL to CanonicalMuscle.CHEST,
-    EquipmentType.BARBELL to CanonicalMuscle.QUADRICEPS,
-    EquipmentType.DUMBBELL to CanonicalMuscle.SHOULDERS,
-    EquipmentType.MACHINE to CanonicalMuscle.BACK,
-    EquipmentType.CABLE to CanonicalMuscle.TRICEPS,
-    EquipmentType.SMITH to CanonicalMuscle.GLUTES,
-    EquipmentType.KETTLEBELL to CanonicalMuscle.HAMSTRINGS,
-    EquipmentType.BAND to CanonicalMuscle.CALVES,
-    EquipmentType.BODYWEIGHT to CanonicalMuscle.CORE,
-    EquipmentType.OTHER to CanonicalMuscle.BICEPS,
+    ThumbSample(EquipmentType.BARBELL, CanonicalMuscle.CHEST, "bench-press"),
+    ThumbSample(EquipmentType.BARBELL, CanonicalMuscle.QUADRICEPS, "squat"),
+    ThumbSample(EquipmentType.DUMBBELL, CanonicalMuscle.SHOULDERS, "lateral-raise"),
+    ThumbSample(EquipmentType.MACHINE, CanonicalMuscle.BACK, "pulldown"),
+    ThumbSample(EquipmentType.CABLE, CanonicalMuscle.TRICEPS, "triceps-extension"),
+    ThumbSample(EquipmentType.SMITH, CanonicalMuscle.GLUTES, "squat"),
+    ThumbSample(EquipmentType.KETTLEBELL, CanonicalMuscle.HAMSTRINGS, "kettlebell-swing"),
+    ThumbSample(EquipmentType.BAND, CanonicalMuscle.CALVES, "calf-raise"),
+    ThumbSample(EquipmentType.BODYWEIGHT, CanonicalMuscle.CORE, "plank"),
+    ThumbSample(EquipmentType.OTHER, CanonicalMuscle.BICEPS, "curl"),
+)
+
+/** One catalog row per family pose, so Studio can judge the whole language at once. */
+private val FAMILY_KEYS = listOf(
+    "squat", "deadlift", "lunge", "bench-press", "overhead-press",
+    "chest-fly", "pulldown", "row", "curl", "triceps-extension",
+    "hip-thrust", "plank", "leg-press", "carry",
 )
 
 /**
- * A sample lift. Carries one primary credit and one secondary, so the preview shows the
- * two-tone case rather than the easy one.
+ * A sample lift. Carries one primary credit, one secondary, and a real family key so
+ * the preview draws the posed silhouette rather than the standing fallback.
  */
-private fun sample(equipment: EquipmentType, primary: CanonicalMuscle): Exercise {
+private fun sample(equipment: EquipmentType, primary: CanonicalMuscle, movementKey: String): Exercise {
     val secondary = CanonicalMuscle.entries
         .first { it != primary && it != CanonicalMuscle.OTHER && thumbViewFor(it) == thumbViewFor(primary) }
     return Exercise(
@@ -67,12 +86,25 @@ private fun sample(equipment: EquipmentType, primary: CanonicalMuscle): Exercise
         notes = "",
         isCustom = false,
         equipment = equipment,
+        movementKey = movementKey,
         muscles = listOf(
             MuscleCredit(MuscleNormalizer.keyOf(primary), 1.0),
             MuscleCredit(MuscleNormalizer.keyOf(secondary), 0.5),
         ),
     )
 }
+
+private fun fromSeed(seed: SeedExercise): Exercise = Exercise(
+    id = seed.id,
+    name = seed.name,
+    muscleGroup = seed.muscleGroup,
+    notes = "",
+    isCustom = false,
+    equipment = seed.equipment,
+    loadType = seed.loadType,
+    movementKey = seed.movementKey,
+    muscles = seed.credits,
+)
 
 @Preview(name = "Tab marks", widthDp = 420, heightDp = 180)
 @Composable
@@ -150,6 +182,82 @@ private fun HeaderThumbsPreview() {
     ThumbSpread(size = ThumbSize.header, title = "Thumbnails — 56dp, as the detail header draws them")
 }
 
+@Preview(name = "Pose families — header size", widthDp = 420, heightDp = 720)
+@Composable
+private fun PoseFamiliesPreview() {
+    val catalog = DefaultExercises.catalog()
+    val rows = FAMILY_KEYS.mapNotNull { key -> catalog.firstOrNull { it.movementKey == key } }
+    PersonalTrainerTheme {
+        GalleryFrame("Family poses — 56dp, one catalog lift each") {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(4),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+            ) {
+                items(rows, key = { it.id }) { seed ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+                    ) {
+                        ExerciseThumb(exercise = fromSeed(seed), size = ThumbSize.header)
+                        Text(seed.movementKey ?: seed.name, style = InstrumentType.caption, color = TextTertiary)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Preview(name = "Body figure — 180dp", widthDp = 420, heightDp = 280)
+@Composable
+private fun BodyFigurePreview() {
+    PersonalTrainerTheme {
+        GalleryFrame("Standing figure — same plates as Body heat") {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space8),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Canvas(Modifier.size(width = BODY_PREVIEW_HEIGHT * FIGURE_ASPECT, height = BODY_PREVIEW_HEIGHT)) {
+                        drawTemperFigure(
+                            view = BodyView.FRONT,
+                            fill = { plate ->
+                                when (plate.muscle) {
+                                    CanonicalMuscle.CHEST -> Heat3
+                                    CanonicalMuscle.SHOULDERS, CanonicalMuscle.BICEPS,
+                                    CanonicalMuscle.CORE, CanonicalMuscle.QUADRICEPS,
+                                    -> Heat3.copy(alpha = 0.40f)
+                                    null -> SteelDim
+                                    else -> Steel
+                                }
+                            },
+                        )
+                    }
+                    Text("Front", style = InstrumentType.caption, color = TextTertiary)
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Canvas(Modifier.size(width = BODY_PREVIEW_HEIGHT * FIGURE_ASPECT, height = BODY_PREVIEW_HEIGHT)) {
+                        drawTemperFigure(
+                            view = BodyView.BACK,
+                            fill = { plate ->
+                                when (plate.muscle) {
+                                    CanonicalMuscle.BACK -> Heat3
+                                    CanonicalMuscle.GLUTES, CanonicalMuscle.HAMSTRINGS,
+                                    CanonicalMuscle.TRICEPS,
+                                    -> Heat3.copy(alpha = 0.40f)
+                                    null -> SteelDim
+                                    else -> Steel
+                                }
+                            },
+                        )
+                    }
+                    Text("Back", style = InstrumentType.caption, color = TextTertiary)
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun ThumbSpread(size: Dp, title: String) {
     PersonalTrainerTheme {
@@ -159,14 +267,21 @@ private fun ThumbSpread(size: Dp, title: String) {
                 horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
                 verticalArrangement = Arrangement.spacedBy(Metrics.space3),
             ) {
-                items(SPREAD, key = { "${it.first.name}-${it.second.name}" }) { (equipment, muscle) ->
+                items(SPREAD, key = { "${it.equipment.name}-${it.primary.name}" }) { cell ->
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(Metrics.space1),
                     ) {
-                        ExerciseThumb(exercise = sample(equipment, muscle), size = size)
+                        ExerciseThumb(
+                            exercise = sample(
+                                equipment = cell.equipment,
+                                primary = cell.primary,
+                                movementKey = cell.movementKey,
+                            ),
+                            size = size,
+                        )
                         Text(
-                            "${equipment.label} · ${muscle.displayName}",
+                            "${cell.equipment.label} · ${cell.primary.displayName}",
                             style = InstrumentType.caption,
                             color = TextTertiary,
                         )
@@ -193,3 +308,5 @@ private fun GalleryFrame(title: String, content: @Composable () -> Unit) {
 
 /** Roughly the badge's glyph size at a 40dp thumb, so the preview shows the real worst case. */
 private val BADGE_GLYPH_PREVIEW = Metrics.space3
+
+private val BODY_PREVIEW_HEIGHT = 180.dp
