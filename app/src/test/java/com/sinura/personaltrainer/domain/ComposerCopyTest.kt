@@ -43,7 +43,7 @@ class ComposerCopyTest {
     fun saveIsTheOnlyFilledVolt() {
         assertEquals("Save", ComposerCopy.VOLT)
         assertEquals(ComposerCopy.SAVE, ComposerCopy.VOLT)
-        assertEquals(listOf("Add set", "Add cardio"), ComposerCopy.SECONDARY_ACTS)
+        assertEquals(listOf("Add set", "Add cardio", "Choose a lift"), ComposerCopy.SECONDARY_ACTS)
         assertFalse(ComposerCopy.SECONDARY_ACTS.contains(ComposerCopy.SAVE))
         assertEquals(1, listOf(ComposerCopy.VOLT).size)
         assertEquals("Remove", ComposerCopy.REMOVE)
@@ -54,5 +54,39 @@ class ComposerCopyTest {
     fun cardioLineKeepsMinutesAndOptionalDistance() {
         assertEquals("30 min", ComposerCopy.cardioLineSubtitle(30, null))
         assertEquals("30 min · 5.0 km", ComposerCopy.cardioLineSubtitle(30, 5.0))
+        assertEquals("30 min · Indoor", ComposerCopy.cardioLineSubtitle(30, null, indoor = true))
+    }
+
+    @Test
+    fun laterIsDisabledOnTodayAndDirtyTracksDraft() {
+        assertTrue(ComposerCopy.canShiftLater(10L, 11L))
+        assertFalse(ComposerCopy.canShiftLater(11L, 11L))
+        assertFalse(
+            ComposerCopy.isDirty(
+                title = "",
+                strengthCount = 0,
+                cardioCount = 0,
+                epochDay = 11L,
+                todayEpochDay = 11L,
+            ),
+        )
+        assertTrue(
+            ComposerCopy.isDirty(
+                title = "Run",
+                strengthCount = 0,
+                cardioCount = 0,
+                epochDay = 11L,
+                todayEpochDay = 11L,
+            ),
+        )
+        assertTrue(
+            ComposerCopy.isDirty(
+                title = "",
+                strengthCount = 0,
+                cardioCount = 0,
+                epochDay = 10L,
+                todayEpochDay = 11L,
+            ),
+        )
     }
 }

@@ -13,6 +13,7 @@ class LiveCardioChromeTest {
         assertEquals("live-cardio-leave", CardioTags.LEAVE)
         assertEquals("live-cardio-discard", CardioTags.DISCARD)
         assertEquals("activity-detail-done", ActivityDetailTags.DONE)
+        assertEquals("activity-detail-back", ActivityDetailTags.BACK)
     }
 
     @Test

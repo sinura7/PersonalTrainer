@@ -614,13 +614,16 @@ fun PersonalTrainerNav(
                     route = Route.ActivityDetail.path,
                     arguments = listOf(navArgument("activityId") { type = NavType.StringType }),
                 ) {
-                    ActivityDetailScreen(onBack = { navController.popBackStack() })
+                    ActivityDetailScreen(
+                        onBack = { navController.popBackStack() },
+                    )
                 }
                 composable(
                     route = Route.ActivitySummary.path,
                     arguments = listOf(navArgument("activityId") { type = NavType.StringType }),
                 ) {
                     ActivityDetailScreen(
+                        celebration = true,
                         onBack = {
                             navController.popBackStack(Route.Home.path, inclusive = false)
                         },

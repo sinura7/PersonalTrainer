@@ -41,7 +41,7 @@ private fun ActivityComposerPopulatedPreview() {
             ComposerPreviewColumn {
                 Text("Log a past workout", style = InstrumentType.title, color = TextPrimary)
                 Text(
-                    "Nothing is written until you save. Future dates are refused.",
+                    ComposerCopy.LOGGED_AT_NOON,
                     style = InstrumentType.body,
                     color = TextSecondary,
                 )

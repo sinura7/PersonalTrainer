@@ -23,6 +23,7 @@ data class ActivityDetailUiState(
     val strengthSetCount: Int = 0,
     val cardioMinutes: Int = 0,
     val volumeKg: Double = 0.0,
+    val durationMinutes: Int = 0,
 )
 
 class ActivityDetailViewModel @JvmOverloads constructor(
@@ -46,18 +47,28 @@ class ActivityDetailViewModel @JvmOverloads constructor(
                     return@runCatchingCancellable
                 }
                 val work = session.strengthWork()
+                val cardioMinutes = session.cardioMinutes()
                 _uiState.value = ActivityDetailUiState(
                     isLoading = false,
                     session = session,
                     strengthSetCount = session.strengthSetCount(),
-                    cardioMinutes = session.cardioMinutes(),
+                    cardioMinutes = cardioMinutes,
                     volumeKg = work.volumeKg,
+                    durationMinutes = durationMinutes(session, cardioMinutes),
                 )
             }.onFailure { thrown ->
                 AppLog.w(TAG, "Loading activity detail failed", thrown)
                 _uiState.value = ActivityDetailUiState(isLoading = false, missing = true)
             }
         }
+    }
+
+    private fun durationMinutes(session: ActivitySession, cardioMinutes: Int): Int {
+        if (cardioMinutes > 0) return cardioMinutes
+        val end = session.performedEnd?.instantMillis ?: return 0
+        val elapsed = end - session.performedStart.instantMillis
+        if (elapsed <= 0L) return 0
+        return ((elapsed + 30_000L) / 60_000L).toInt()
     }
 
     private companion object {

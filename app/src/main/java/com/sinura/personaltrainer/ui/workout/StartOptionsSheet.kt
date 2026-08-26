@@ -25,6 +25,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
+import com.sinura.personaltrainer.ui.navigation.LiveBarCopy
+import com.sinura.personaltrainer.ui.navigation.LiveBarKind
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
@@ -110,6 +112,14 @@ fun StartOptionsSheet(
             verticalArrangement = Arrangement.spacedBy(Metrics.space4),
         ) {
             Text("Start a workout", style = InstrumentType.title, color = TextPrimary)
+            if (state.isLoading) {
+                Text(
+                    "Loading…",
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                )
+                return@Column
+            }
             state.error?.let { message -> GymErrorBanner(message) }
 
             if (inProgress != null || liveActivity != null) {
@@ -186,69 +196,30 @@ fun StartOptionsSheet(
             }
 
             FreeWorkoutAction(onStart = viewModel::startFree)
-            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-                TextButton(
-                    onClick = {
-                        onDismiss()
-                        onLogPast()
-                    },
-                    contentPadding = PaddingValues(0.dp),
-                ) {
-                    Text("Log past workout", style = InstrumentType.bodyStrong, color = TextSecondary)
-                }
-                TextButton(
-                    onClick = {
-                        onDismiss()
-                        viewModel.openComposer("mixed")
-                    },
-                    contentPadding = PaddingValues(0.dp),
-                ) {
-                    Text("Log mixed session", style = InstrumentType.bodyStrong, color = TextSecondary)
-                }
-                Text(
-                    "Backdated strength, or a mixed day.",
-                    style = InstrumentType.caption,
-                    color = TextTertiary,
-                )
-                TextButton(
-                    onClick = {
-                        onDismiss()
-                        onLogCardio()
-                    },
-                    contentPadding = PaddingValues(0.dp),
-                ) {
-                    Text("Log cardio", style = InstrumentType.bodyStrong, color = TextSecondary)
-                }
-                Text(
-                    "Typed time and distance. No fake lift rows.",
-                    style = InstrumentType.caption,
-                    color = TextTertiary,
-                )
-                TextButton(
-                    onClick = viewModel::startCardio,
-                    contentPadding = PaddingValues(0.dp),
-                ) {
-                    Text("Start cardio", style = InstrumentType.bodyStrong, color = TextSecondary)
-                }
-                Text(
-                    "Live clock. Survives leaving the app.",
-                    style = InstrumentType.caption,
-                    color = TextTertiary,
-                )
-            }
+            LogAndCardioActions(
+                onLogPast = {
+                    onDismiss()
+                    onLogPast()
+                },
+                onLogMixed = {
+                    onDismiss()
+                    viewModel.openComposer("mixed")
+                },
+                onLogCardio = {
+                    onDismiss()
+                    onLogCardio()
+                },
+                onStartCardio = viewModel::startCardio,
+            )
         }
     }
 
     if (confirmDiscard && (inProgress != null || liveActivity != null)) {
+        val kind = if (inProgress != null) LiveBarKind.WORKOUT else LiveBarKind.ACTIVITY
         val loggedSets = inProgress?.sets?.size ?: 0
         ConfirmActionDialog(
-            title = "Discard this session?",
-            body = if (loggedSets > 0) {
-                "This deletes the session and its $loggedSets logged " +
-                    (if (loggedSets == 1) "set" else "sets") + ". This cannot be undone."
-            } else {
-                "This deletes the session. This cannot be undone."
-            },
+            title = LiveBarCopy.discardTitle(kind),
+            body = LiveBarCopy.discardBody(kind, loggedSets),
             confirmLabel = "Discard",
             destructive = true,
             onConfirm = {
@@ -292,6 +263,49 @@ private fun RoutineRow(routine: Routine, onStart: () -> Unit) {
         ) {
             MetricCluster(value = plannedSets.toString(), label = "sets")
             MetricCluster(value = "~$minutes", label = "min")
+        }
+    }
+}
+
+@Composable
+private fun LogAndCardioActions(
+    onLogPast: () -> Unit,
+    onLogMixed: () -> Unit,
+    onLogCardio: () -> Unit,
+    onStartCardio: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
+            Kicker("Log")
+            GroupedList {
+                InstrumentRow(
+                    title = "Past workout",
+                    subtitle = "Backdated strength. Nothing is written until you save.",
+                    onClick = onLogPast,
+                )
+                HairlineDivider()
+                InstrumentRow(
+                    title = "Mixed session",
+                    subtitle = "Strength and cardio, kept separate.",
+                    onClick = onLogMixed,
+                )
+                HairlineDivider()
+                InstrumentRow(
+                    title = "Cardio",
+                    subtitle = "Typed time and distance. No fake lift rows.",
+                    onClick = onLogCardio,
+                )
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
+            Kicker("Live cardio")
+            GroupedList {
+                InstrumentRow(
+                    title = "Start cardio",
+                    subtitle = "Live clock. Survives leaving the app.",
+                    onClick = onStartCardio,
+                )
+            }
         }
     }
 }
