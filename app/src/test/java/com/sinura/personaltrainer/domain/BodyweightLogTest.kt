@@ -23,6 +23,23 @@ class BodyweightLogTest {
     }
 
     @Test
+    fun aFourTupleRoundTripsAndOldTwoFieldLogsStillDecode() {
+        val stamped = BodyweightEntry(
+            epochDay = 20_000,
+            kg = 78.0,
+            recordedAtMs = 1_713_441_600_000L,
+            zoneId = "Asia/Tokyo",
+            offsetSeconds = 32_400,
+        )
+        assertEquals(listOf(stamped), BodyweightLog.decode(BodyweightLog.encode(listOf(stamped))))
+        val legacy = BodyweightLog.decode("20000:78,20030:79.5")
+        assertEquals(listOf(20_000L, 20_030L), legacy.map { it.epochDay })
+        assertEquals(78.0, legacy.first().kg, 0.001)
+        assertEquals(0L, legacy.first().recordedAtMs)
+        assertEquals("", legacy.first().zoneId)
+    }
+
+    @Test
     fun nothingLoggedIsNoEntries() {
         assertEquals(emptyList<BodyweightEntry>(), BodyweightLog.decode(null))
         assertEquals(emptyList<BodyweightEntry>(), BodyweightLog.decode(""))
