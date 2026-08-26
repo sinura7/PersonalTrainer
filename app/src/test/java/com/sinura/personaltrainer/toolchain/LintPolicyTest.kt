@@ -29,6 +29,9 @@ class LintPolicyTest {
         assertTrue(ledger.contains("""<trust file=".*-sources[.]jar" regex="true"/>"""))
         assertTrue(ledger.contains("""<trust file=".*-javadoc[.]jar" regex="true"/>"""))
         assertTrue(ledger.contains("""<trust group="gradle" name="gradle" file=".*-src[.]zip" regex="true"/>"""))
+        assertTrue(ledger.contains("aapt2-8.9.2-12782657-linux.jar"))
+        assertTrue(ledger.contains("aapt2-8.9.2-12782657-windows.jar"))
+        assertTrue(ledger.contains("aapt2-8.9.2-12782657-osx.jar"))
     }
 
     private fun source(relative: String): File {

@@ -45,7 +45,8 @@ folder even though minSdk is 26.
    Android Studio source/javadoc attachments and the Gradle distribution
    `-src.zip` are trusted artifacts (not on the APK classpath). Do not
    set `verify-metadata` false or `org.gradle.dependency.verification=off`
-   to make Studio sync.
+   to make Studio sync. Host-native `aapt2` jars (linux / windows / osx)
+   stay checksummed; the ledger must not be Linux-only.
 
 ## Finding coverage
 

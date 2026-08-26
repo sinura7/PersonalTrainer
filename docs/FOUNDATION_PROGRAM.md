@@ -564,7 +564,8 @@ Start versus Restore, catalog-only and bodyweight-only files).
   Repositories stay `google()` / `mavenCentral()`.
   `gradle/verification-metadata.xml` checksums the resolved graph.
   Studio source/javadoc/`-src.zip` attachments are trusted artifacts;
-  `verify-metadata` stays true.
+  `verify-metadata` stays true. Host `aapt2` (linux / windows / osx)
+  stays checksummed.
   [lint-policy.md](architecture/lint-policy.md).
   Evidence:
   [P4.6 evidence](foundation-program/evidence/P4.6-lint-supply-chain.md).
