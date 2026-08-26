@@ -54,10 +54,11 @@ class OnboardingFocusTest {
         viewModel!!.setFocus(TrainingFocus.CARDIO)
         val next = withTimeout(5_000) {
             viewModel!!.uiState.first {
-                it.step == OnboardingStep.EXPERIENCE && it.answers.focus == TrainingFocus.CARDIO
+                it.step == OnboardingStep.DAYS_PER_WEEK && it.answers.focus == TrainingFocus.CARDIO
             }
         }
         assertEquals(TrainingFocus.CARDIO, next.answers.focus)
+        assertEquals(OnboardingStep.questionsFor(TrainingFocus.CARDIO).size, next.questionCount)
         assertTrue(deps.activityRepository.all().isEmpty())
         assertEquals(false, deps.preferencesRepository.onboardingComplete.first())
     }
@@ -78,5 +79,26 @@ class OnboardingFocusTest {
         assertEquals(TrainingFocus.BOTH, restored.focus)
         val old = OnboardingAnswers.encodeDraft(OnboardingAnswers()).substringBeforeLast("|")
         assertEquals(TrainingFocus.STRENGTH, OnboardingAnswers.decodeDraft(old)!!.focus)
+    }
+
+    @Test
+    fun cardioPathSkipsLiftOnlyQuestions() = runBlocking {
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.beginGuided()
+        withTimeout(5_000) { viewModel!!.uiState.first { it.step == OnboardingStep.FOCUS } }
+        viewModel!!.setFocus(TrainingFocus.CARDIO)
+        val days = withTimeout(5_000) {
+            viewModel!!.uiState.first { it.step == OnboardingStep.DAYS_PER_WEEK }
+        }
+        assertEquals(OnboardingStep.DAYS_PER_WEEK, days.step)
+        val liftOnly = setOf(OnboardingStep.EXPERIENCE, OnboardingStep.GOAL, OnboardingStep.EMPHASIS)
+        assertTrue(OnboardingStep.questionsFor(TrainingFocus.CARDIO).none { it in liftOnly })
+        assertEquals(
+            OnboardingStep.entries.count { it.isQuestion },
+            OnboardingStep.questionsFor(TrainingFocus.STRENGTH).size,
+        )
+        viewModel!!.back()
+        withTimeout(5_000) { viewModel!!.uiState.first { it.step == OnboardingStep.FOCUS } }
+        assertEquals(OnboardingStep.FOCUS, viewModel!!.uiState.value.step)
     }
 }

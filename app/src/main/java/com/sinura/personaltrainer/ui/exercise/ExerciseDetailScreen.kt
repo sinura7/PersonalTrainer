@@ -218,11 +218,18 @@ fun ExerciseDetailScreen(
                         }
                     }
                     item(key = "all-time-volume") {
-                        StatTile(
-                            label = "volume",
-                            value = groupedNumber(history.lifetimeVolumeKg, unit),
-                            unit = unit.suffix,
-                        )
+                        if (repsAreTheMeasure) {
+                            StatTile(
+                                label = "reps",
+                                value = history.lifetimeBodyweightReps.toString(),
+                            )
+                        } else {
+                            StatTile(
+                                label = "volume",
+                                value = groupedNumber(history.lifetimeVolumeKg, unit),
+                                unit = unit.suffix,
+                            )
+                        }
                     }
 
                     item(key = "e1rm") {

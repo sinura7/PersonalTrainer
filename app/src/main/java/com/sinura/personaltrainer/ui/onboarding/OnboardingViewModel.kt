@@ -57,6 +57,16 @@ enum class OnboardingStep {
     ;
 
     val isQuestion: Boolean get() = this != FORK && this != PREVIEW
+
+    companion object {
+        private val LIFT_ONLY = setOf(EXPERIENCE, GOAL, EMPHASIS)
+
+        fun questionsFor(focus: TrainingFocus): List<OnboardingStep> =
+            entries.filter { it.isQuestion }.filter { focus != TrainingFocus.CARDIO || it !in LIFT_ONLY }
+
+        fun path(focus: TrainingFocus): List<OnboardingStep> =
+            listOf(FORK) + questionsFor(focus) + listOf(PREVIEW)
+    }
 }
 
 data class OnboardingUiState(
@@ -72,11 +82,13 @@ data class OnboardingUiState(
 ) {
     /** 1-based position among the questions, for the progress line. Zero on fork and preview. */
     val questionNumber: Int
-        get() = if (!step.isQuestion) 0 else {
-            OnboardingStep.entries.filter { it.isQuestion }.indexOf(step) + 1
+        get() {
+            if (!step.isQuestion) return 0
+            val index = OnboardingStep.questionsFor(answers.focus).indexOf(step)
+            return if (index >= 0) index + 1 else 0
         }
 
-    val questionCount: Int get() = OnboardingStep.entries.count { it.isQuestion }
+    val questionCount: Int get() = OnboardingStep.questionsFor(answers.focus).size
 }
 
 /**
@@ -198,7 +210,8 @@ class OnboardingViewModel @JvmOverloads constructor(
     }
 
     fun back(): Boolean {
-        val index = OnboardingStep.entries.indexOf(step.value)
+        val path = OnboardingStep.path(answers.value.focus)
+        val index = path.indexOf(step.value)
         if (index <= 0) {
             // Settings re-run flipped the gate to SETUP. Back on the fork used to
             // call onFinished as a no-op and leave them trapped. A first install
@@ -206,7 +219,7 @@ class OnboardingViewModel @JvmOverloads constructor(
             leaveExistingProgram()
             return false
         }
-        step.value = OnboardingStep.entries[index - 1]
+        step.value = path[index - 1]
         return true
     }
 
@@ -222,12 +235,16 @@ class OnboardingViewModel @JvmOverloads constructor(
     }
 
     fun next() {
-        val index = OnboardingStep.entries.indexOf(step.value)
-        if (index < OnboardingStep.entries.lastIndex) {
-            step.value = OnboardingStep.entries[index + 1]
-            if (step.value == OnboardingStep.PREVIEW && catalog.value.isEmpty()) {
-                retryCatalog()
-            }
+        val path = OnboardingStep.path(answers.value.focus)
+        val index = path.indexOf(step.value)
+        val nextStep = when {
+            index < 0 -> path.firstOrNull { it.ordinal > step.value.ordinal } ?: path.last()
+            index < path.lastIndex -> path[index + 1]
+            else -> step.value
+        }
+        step.value = nextStep
+        if (step.value == OnboardingStep.PREVIEW && catalog.value.isEmpty()) {
+            retryCatalog()
         }
     }
 

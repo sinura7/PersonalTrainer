@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.domain.HistoryCopy
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.CalendarDay
 import com.sinura.personaltrainer.domain.TrainingCalendarBuilder
@@ -143,6 +144,12 @@ fun TrainingCalendarCard(
         }
 
         HairlineDivider(startIndent = 0.dp)
+
+        Text(
+            HistoryCopy.CALENDAR_HEAT,
+            style = InstrumentType.caption,
+            color = TextTertiary,
+        )
 
         if (month.trainedDays == 0) {
             Text(

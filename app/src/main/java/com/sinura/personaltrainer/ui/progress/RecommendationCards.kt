@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.sinura.personaltrainer.domain.RecommendationIntents
+import com.sinura.personaltrainer.domain.RuleTraceCopy
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -55,24 +56,8 @@ fun RecommendationCard(
             }
             if (showWhy) {
                 Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-                    Text(
-                        trace.reasonCodes.joinToString(separator = " · "),
-                        style = InstrumentType.caption,
-                        color = TextSecondary,
-                    )
-                    trace.facts.forEach { fact ->
-                        Text(
-                            "${fact.name}: ${fact.value}",
-                            style = InstrumentType.caption,
-                            color = TextSecondary,
-                        )
-                    }
-                    trace.thresholds.forEach { threshold ->
-                        Text(
-                            "${threshold.name}: ${threshold.value}",
-                            style = InstrumentType.caption,
-                            color = TextSecondary,
-                        )
+                    RuleTraceCopy.lines(trace).forEach { line ->
+                        Text(line, style = InstrumentType.caption, color = TextSecondary)
                     }
                 }
             }

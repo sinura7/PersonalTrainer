@@ -198,6 +198,8 @@ class ExerciseHistoryBuilderTest {
         assertEquals(8, summary.bodyweightReps)
         assertNull(summary.estimatedOneRepMaxKg)
         assertEquals(8, history.weeklyTonnage.single().bodyweightReps)
+        assertEquals(8, history.lifetimeBodyweightReps)
+        assertEquals(0.0, history.lifetimeVolumeKg, 0.0001)
     }
 
     @Test

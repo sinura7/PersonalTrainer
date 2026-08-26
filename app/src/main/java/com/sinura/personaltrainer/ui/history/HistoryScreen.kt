@@ -39,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.AnalyticsHorizon
 import com.sinura.personaltrainer.domain.DataHealthCopy
+import com.sinura.personaltrainer.domain.HistoryCopy
 import com.sinura.personaltrainer.domain.HistoryKind
 import com.sinura.personaltrainer.domain.HorizonTotals
 import com.sinura.personaltrainer.domain.PrSummaryRow
@@ -372,6 +373,11 @@ internal fun HorizonPicker(
                 )
             }
         }
+        Text(
+            HistoryCopy.HORIZON_CAPTION,
+            style = InstrumentType.caption,
+            color = TextTertiary,
+        )
         totals?.let { numbers ->
             Row(
                 modifier = Modifier.fillMaxWidth(),

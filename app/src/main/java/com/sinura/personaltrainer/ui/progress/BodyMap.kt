@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -32,6 +33,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.domain.BodyHeatCopy
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.CanonicalMuscle
@@ -47,6 +49,7 @@ import com.sinura.personaltrainer.ui.components.drawTemperFigure
 import com.sinura.personaltrainer.ui.components.hotspotsFor
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.HairlineStrong
+import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.Radius
@@ -157,21 +160,31 @@ fun BodyMapCard(
  */
 @Composable
 fun HeatLegend(modifier: Modifier = Modifier) {
-    Row(
+    Column(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        Kicker("Load")
         Row(
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            LegendSwatch("Rest", heatColor(0f))
-            LegendSwatch("Low", heatColor(0.22f))
-            LegendSwatch("Moderate", heatColor(0.5f))
-            LegendSwatch("High", heatColor(0.95f))
+            Kicker("Load")
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                LegendSwatch("Rest", heatColor(0f))
+                LegendSwatch("Low", heatColor(0.22f))
+                LegendSwatch("Moderate", heatColor(0.5f))
+                LegendSwatch("High", heatColor(0.95f))
+            }
         }
+        Text(
+            BodyHeatCopy.LEGEND_CAPTION,
+            style = InstrumentType.caption,
+            color = TextTertiary,
+        )
     }
 }
 
