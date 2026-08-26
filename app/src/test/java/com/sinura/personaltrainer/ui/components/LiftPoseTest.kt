@@ -86,10 +86,10 @@ class LiftPoseTest {
     fun everyPoseHasInnerMusclePlates() {
         LiftPose.entries.filter { it != LiftPose.ANATOMY }.forEach { pose ->
             val inner = personInk(pose).count { it.muscle != null }
-            assertTrue("$pose only has $inner inner plates", inner >= 12)
+            assertTrue("$pose only has $inner inner plates", inner >= 8)
             assertTrue(
-                "$pose has no tapered limbs",
-                personInk(pose).any { it is PoseInk.Taper && it.muscle == null },
+                "$pose has no Temper plates",
+                personInk(pose).any { it is PoseInk.Fill && it.muscle != null },
             )
         }
     }
@@ -148,7 +148,7 @@ private fun silhouetteBoardSvg(): String {
     val sb = StringBuilder()
     sb.append("""<svg xmlns="http://www.w3.org/2000/svg" width="$width" height="$height" viewBox="0 0 $width $height">""")
     sb.append("""<rect width="100%" height="100%" fill="$PIT"/>""")
-    sb.append("""<text x="$pad" y="22" fill="$INK" font-family="sans-serif" font-size="13">Library poses — athletic torso, tapered limbs, muscle plates inside</text>""")
+    sb.append("""<text x="$pad" y="22" fill="$INK" font-family="sans-serif" font-size="13">Library poses — Temper plates on a skeleton, hairline seams, Heat3 on working plates</text>""")
     POSE_BOARD.forEachIndexed { i, cellData ->
         val col = i % cols
         val row = i / cols
@@ -185,14 +185,23 @@ private fun poseCellSvg(cell: PoseCell, x: Int, y: Int, size: Int): String {
     sb.append("""<rect width="$size" height="$size" rx="6" fill="$SURFACE" stroke="#39434A" stroke-width="1"/>""")
     val secondaries = cell.secondaries
     fun color(muscle: CanonicalMuscle?): Pair<String, String> = when (muscle) {
-        null -> STEEL to "1"
+        null -> STEEL_DIM to "1"
         cell.primary -> HEAT to "1"
         in secondaries -> HEAT to "0.4"
         else -> STEEL to "1"
     }
-    personInk(cell.pose).forEach { ink ->
+    val person = personInk(cell.pose)
+    person.forEach { ink ->
+        sb.append(inkEl(ink, inner, inner, 11, 8, STEEL_DIM, "1"))
+    }
+    person.forEach { ink ->
         val (fill, opacity) = color(ink.muscle)
         sb.append(inkEl(ink, inner, inner, 11, 8, fill, opacity))
+    }
+    person.forEach { ink ->
+        if (ink is PoseInk.Fill) {
+            sb.append(inkEl(ink, inner, inner, 11, 8, "none", "1", strokeOnly = true))
+        }
     }
     kitInk(cell.pose, cell.equipment).forEach { ink ->
         sb.append(inkEl(ink, inner, inner, 11, 8, KIT, "1"))
@@ -253,6 +262,7 @@ private fun inkEl(
     oy: Int,
     color: String,
     opacity: String,
+    strokeOnly: Boolean = false,
 ): String {
     fun x(v: Float) = ox + v * width
     fun y(v: Float) = oy + v * height
@@ -265,7 +275,11 @@ private fun inkEl(
         is PoseInk.Taper ->
             pathEl(ink.toPlate().points, width, height, ox, oy, color, opacity)
         is PoseInk.Fill ->
-            pathEl(ink.toPlate().points, width, height, ox, oy, color, opacity)
+            if (strokeOnly) {
+                pathEl(ink.toPlate().points, width, height, ox, oy, "none", "1", stroke = true)
+            } else {
+                pathEl(ink.toPlate().points, width, height, ox, oy, color, opacity)
+            }
         is PoseInk.Dot ->
             """<circle cx="${x(ink.x)}" cy="${y(ink.y)}" r="${ink.r * m}" """ +
                 """fill="$color" fill-opacity="$opacity"/>"""
@@ -287,19 +301,36 @@ private fun pathEl(
     oy: Int,
     fill: String,
     opacity: String,
+    stroke: Boolean = false,
 ): String {
     val n = points.size
     if (n < 3) return ""
     fun px(i: Int) = ox + points[i].first * width
     fun py(i: Int) = oy + points[i].second * height
-    fun mx(a: Int, b: Int) = (px(a) + px(b)) * 0.5f
-    fun my(a: Int, b: Int) = (py(a) + py(b)) * 0.5f
+    fun lerp(ax: Float, ay: Float, bx: Float, by: Float, t: Float) =
+        (ax + (bx - ax) * t) to (ay + (by - ay) * t)
+    val t = 0.16f
     val d = StringBuilder()
-    d.append("M ${mx(n - 1, 0)} ${my(n - 1, 0)}")
+    val start = lerp(px(0), py(0), px(n - 1), py(n - 1), t)
+    d.append("M ${start.first} ${start.second}")
     for (i in 0 until n) {
-        val nx = (i + 1) % n
-        d.append(" Q ${px(i)} ${py(i)} ${mx(i, nx)} ${my(i, nx)}")
+        val prev = if (i == 0) n - 1 else i - 1
+        val next = (i + 1) % n
+        val arrive = lerp(px(i), py(i), px(prev), py(prev), t)
+        val leave = lerp(px(i), py(i), px(next), py(next), t)
+        if (i != 0) d.append(" L ${arrive.first} ${arrive.second}")
+        d.append(" Q ${px(i)} ${py(i)} ${leave.first} ${leave.second}")
     }
     d.append(" Z")
-    return """<path d="$d" fill="$fill" fill-opacity="$opacity"/>"""
+    val edge = if (stroke) {
+        """ stroke="#FFFFFF" stroke-opacity="0.14" stroke-width="0.7""""
+    } else {
+        ""
+    }
+    val fillAttr = if (fill == "none") {
+        """fill="none""""
+    } else {
+        """fill="$fill" fill-opacity="$opacity""""
+    }
+    return """<path d="$d" $fillAttr$edge/>"""
 }

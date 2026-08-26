@@ -14,10 +14,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
-> 26 Aug 2026 — Library thumbs are athletic plate people (torso with a
-> nipped waist, tapered limbs from the corners, inner muscle plates,
-> Heat3 on the working plates, kit in the hands). Body heat stays the
-> standing plate figure. Customs with no family still stand. No PNG pack.
+> 26 Aug 2026 — Library thumbs are the Temper figure posed: the same
+> polygonal plates and hairline seams as Body, Heat3 on the working
+> plates, kit in the hands. Not a second pictogram, not a PNG pack.
+> Customs with no family still stand.
 >
 > 26 Aug 2026 — Activity composer Save is the one Volt. Type chips speak
 > Run / Ride / Walk via CardioCopy, not `RUN`. Weight fields follow

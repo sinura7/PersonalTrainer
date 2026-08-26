@@ -137,7 +137,7 @@ internal fun thumbMuscles(exercise: Exercise): Pair<CanonicalMuscle, Set<Canonic
 /**
  * One lift: a posed silhouette with working plates lit, kit in the scene, and a badge.
  *
- * A known [Exercise.movementKey] draws the family pictogram so a squat is not
+ * A known [Exercise.movementKey] poses the Temper plates so a squat is not
  * a standing figure with a barbell pip. Customs and unknown families keep the
  * standing anatomy.
  * Decorative by construction: every surface that shows this already names the lift

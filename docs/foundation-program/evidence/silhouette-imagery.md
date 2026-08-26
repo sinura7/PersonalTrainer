@@ -28,13 +28,12 @@ Commissioned line-art, Coil, WebP, VectorDrawable packs, or writing `imageKey`
 on catalog rows. `imageKey` stays null and is still only ever read inside
 `ExerciseThumb`.
 
-Each library pose is an athletic plate person: a filled torso (wide
-shoulders, nipped waist), tapered limbs that grow out of its corners,
-inner muscle plates (pecs, abs, delts, quad teardrops), then Heat3 on
-the working plates, then kit. Unlit inner plates stay Steel on the
-SteelDim silhouette so the map is there even when that lift is not
-heating them. The Body figure is still the standing muscle map
-(outline under live plates) — that is a heat diagram, not a pose tile.
+Each library pose is the Temper figure on a skeleton: the same
+polygonal plates and hairline seams as Body, rigidly rotated onto
+family joints, Heat3 on the working plates, kit in the hands. Unlit
+plates stay Steel on a SteelDim underlay so the seams are body, not
+pit. The Body figure is still the standing muscle map (outline under
+live plates) — that is a heat diagram, not a pose tile.
 
 ## Gate (this packet)
 
