@@ -34,6 +34,29 @@ class ActivityDetailCopyTest {
     }
 
     @Test
+    fun noonStampIsNotAZeroMinuteWorkoutTile() {
+        val noon = strengthSession()
+        assertEquals(0, noon.cardioMinutes())
+        assertEquals(noon.performedStart.instantMillis, noon.performedEnd?.instantMillis)
+        assertEquals(0, ActivityDetailCopy.receiptDurationMinutes(noon, cardioMinutes = 0))
+    }
+
+    @Test
+    fun cardioMinutesWinOverACollapsedPerformedSpan() {
+        val run = cardioSession()
+        val collapsed = run.copy(performedEnd = run.performedStart)
+        assertEquals(40, ActivityDetailCopy.receiptDurationMinutes(collapsed, cardioMinutes = 40))
+    }
+
+    @Test
+    fun performedSpanRoundsToMinutesWhenThereIsNoCardioClock() {
+        val lift = strengthSession().copy(
+            performedEnd = CapturedCivilTime(2_000L + 1_500_000L, "UTC", 0, 20_001L),
+        )
+        assertEquals(25, ActivityDetailCopy.receiptDurationMinutes(lift, cardioMinutes = 0))
+    }
+
+    @Test
     fun cardioSubtitleUsesGymNamesNotSchemaEnums() {
         val block = cardioSession().cardioBlocks.first()
         assertEquals("Run", CardioCopy.name(block.type))

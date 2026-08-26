@@ -960,17 +960,14 @@ private fun RestControl(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    emphasised: Boolean = false,
 ) {
     val view = LocalView.current
     Box(
         modifier = modifier
             .heightIn(min = Metrics.control)
             .clip(RoundedCornerShape(Radius.sm))
-            .background(if (emphasised) Volt else Surface2)
-            .then(
-                if (emphasised) Modifier else Modifier.border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.sm)),
-            )
+            .background(Surface2)
+            .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.sm))
             .clickable {
                 Haptics.tick(view)
                 onClick()
@@ -981,7 +978,7 @@ private fun RestControl(
             label,
             modifier = Modifier.padding(horizontal = Metrics.space2, vertical = Metrics.space2),
             style = InstrumentType.bodyStrong,
-            color = if (emphasised) Pit else TextPrimary,
+            color = TextPrimary,
             maxLines = 2,
             textAlign = TextAlign.Center,
         )

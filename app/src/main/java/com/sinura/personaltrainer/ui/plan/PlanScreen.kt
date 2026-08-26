@@ -221,7 +221,7 @@ private fun BlockReviewPanel(review: BlockReview) {
                     Text(
                         "${mover.fromLabel}  →  ${mover.toLabel}",
                         style = InstrumentType.numeralSm,
-                        color = Volt,
+                        color = TextSecondary,
                     )
                 }
             }
@@ -383,7 +383,7 @@ fun PlanScreen(
                             Text(
                                 LighterWeek.CAPTION,
                                 style = InstrumentType.caption,
-                                color = Volt,
+                                color = TextSecondary,
                             )
                         }
                         Text(week.summary, style = InstrumentType.caption, color = TextTertiary)
@@ -637,7 +637,7 @@ private fun PlanHeaderActions(
         Text(
             if (tuning) "Done" else "Tune",
             style = InstrumentType.bodyStrong,
-            color = if (tuning) Volt else TextSecondary,
+            color = TextSecondary,
         )
     }
     TextButton(

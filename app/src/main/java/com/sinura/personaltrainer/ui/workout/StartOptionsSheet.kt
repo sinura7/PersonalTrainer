@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -34,6 +35,7 @@ import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -113,11 +115,7 @@ fun StartOptionsSheet(
         ) {
             Text("Start a workout", style = InstrumentType.title, color = TextPrimary)
             if (state.isLoading) {
-                Text(
-                    "Loading…",
-                    style = InstrumentType.caption,
-                    color = TextSecondary,
-                )
+                ScreenLoading(Modifier.fillMaxWidth().height(96.dp))
                 return@Column
             }
             state.error?.let { message -> GymErrorBanner(message) }

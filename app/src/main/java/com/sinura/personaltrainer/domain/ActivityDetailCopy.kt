@@ -58,4 +58,17 @@ object ActivityDetailCopy {
 
     fun volumeLabel(volumeKg: Double, unit: WeightUnit): String =
         WeightConverter.formatVolumeNumber(volumeKg, unit)
+
+    /**
+     * Receipt duration. Cardio minutes win. A noon-stamped backdate
+     * (start == end, no cardio clock) is not a zero-minute workout — the
+     * tile is omitted when this returns 0.
+     */
+    fun receiptDurationMinutes(session: ActivitySession, cardioMinutes: Int): Int {
+        if (cardioMinutes > 0) return cardioMinutes
+        val end = session.performedEnd?.instantMillis ?: return 0
+        val elapsed = end - session.performedStart.instantMillis
+        if (elapsed <= 0L) return 0
+        return ((elapsed + 30_000L) / 60_000L).toInt()
+    }
 }

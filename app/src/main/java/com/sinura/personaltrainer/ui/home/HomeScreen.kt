@@ -61,7 +61,6 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
-import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -291,7 +290,7 @@ fun HomeScreen(
                         Text(
                             LighterWeek.CAPTION,
                             style = InstrumentType.caption,
-                            color = Volt,
+                            color = TextSecondary,
                         )
                     }
                 }
@@ -340,7 +339,7 @@ private fun GoalSnapshotCard(
         Text(
             GoalCopy.progressLine(snapshot, unit),
             style = InstrumentType.body,
-            color = if (snapshot.met) Volt else TextSecondary,
+            color = if (snapshot.met) TextPrimary else TextSecondary,
         )
     }
 }

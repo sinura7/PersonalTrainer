@@ -69,7 +69,6 @@ import com.sinura.personaltrainer.ui.theme.Surface3
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
-import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.workout.StartOptionsSheet
 import com.sinura.personaltrainer.util.toYearMonth
@@ -540,7 +539,7 @@ private fun FinishedBlockCard(finished: FinishedBlock, unit: WeightUnit) {
                 Text(
                     "${mover.fromLabel}  →  ${mover.toLabel}",
                     style = InstrumentType.numeralSm,
-                    color = Volt,
+                    color = TextSecondary,
                 )
             }
         }
