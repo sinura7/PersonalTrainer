@@ -4,9 +4,10 @@ package com.sinura.personaltrainer.domain
  * Gym-floor words for live cardio.
  *
  * Schema names (`RUN`, `RIDE`) stay in the enum and in persistence. The live screen,
- * the leave dialog, and the activity summary speak Run / Ride / Walk. Finish is the
- * one Volt on the live screen; Leave running is the Volt only on the leave dialog.
- * Discard is never one tap — it always opens a named confirm.
+ * the leave dialog, the activity summary, and the composer type chips speak
+ * Run / Ride / Walk. Finish is the one Volt on the live screen; Leave running is
+ * the Volt only on the leave dialog. Discard is never one tap — it always opens
+ * a named confirm. Composer chips call [name]; they do not keep a second map.
  */
 object CardioCopy {
     const val FINISH = "Finish"

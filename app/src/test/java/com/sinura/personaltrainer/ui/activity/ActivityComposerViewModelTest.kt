@@ -11,6 +11,7 @@ import com.sinura.personaltrainer.domain.Exercise
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -18,6 +19,7 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -88,6 +90,32 @@ class ActivityComposerViewModelTest {
         assertEquals(1, session.cardioBlocks.size)
         assertEquals(0, session.strengthBlocks.first().sortOrder)
         assertEquals(1, session.cardioBlocks.first().sortOrder)
+    }
+
+    @Test
+    fun untitledCardioUsesGymNameNotSchemaEnum() = runBlocking {
+        viewModel = composer("cardio")
+        viewModel!!.addCardio(CardioType.RUN, 30, 5.0, false)
+        viewModel!!.save()
+        val id = withTimeout(5_000) { viewModel!!.savedId.first { it != null } }!!
+        val session = deps.activityRepository.get(id)!!
+        assertEquals("Run", session.title)
+        assertNotEquals("RUN", session.title)
+    }
+
+    @Test
+    fun removeStrengthDropsTheLineWithoutSaving() = runBlocking {
+        val exercise = seedLift()
+        viewModel = composer("strength")
+        val keepAlive = launch { viewModel!!.uiState.collect { } }
+        try {
+            viewModel!!.addStrength(exercise, 100.0, 5)
+            assertEquals(1, viewModel!!.uiState.value.strength.size)
+            viewModel!!.removeStrength(0)
+            assertEquals(0, viewModel!!.uiState.value.strength.size)
+        } finally {
+            keepAlive.cancel()
+        }
     }
 
     @Test

@@ -14,12 +14,15 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
-> 26 Aug 2026 — Live cardio Finish is the one Volt and sits above the
-> system navigation inset, same job as strength Log. Leave running and
-> Discard are stacked secondary controls (Danger ink on Discard), not
-> footnotes; Discard confirms. System back opens a leave dialog whose
-> Volt is Leave running. Cardio types speak Run / Ride / Walk, not `RUN`.
-> After finish, activity-summary Done is pinned with the same inset.
+> 26 Aug 2026 — Activity composer Save is the one Volt. Type chips speak
+> Run / Ride / Walk via CardioCopy, not `RUN`. Weight fields follow
+> LocalWeightUnit. Add set / Add cardio are secondary controls. Remove is
+> a named Danger control — the row itself does not delete. Live cardio
+> Finish is the one Volt and sits above the system navigation inset, same
+> job as strength Log. Leave running and Discard are stacked secondary
+> controls (Danger ink on Discard), not footnotes; Discard confirms.
+> System back opens a leave dialog whose Volt is Leave running. After
+> finish, activity-summary Done is pinned with the same inset.
 >
 > 25 Aug 2026 — Home agenda speaks the session you built. Strength rows
 > show the same 1 · 2 · 3 order as Plan and the editor. A two-a-day keeps

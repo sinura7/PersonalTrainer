@@ -313,6 +313,10 @@ Record every deviation here. Oldest stay; do not delete.
     Discard confirms. Types speak Run / Ride / Walk, not `RUN`. After
     finish, activity-summary Done is pinned with the same inset. System
     back opens a leave dialog whose Volt is Leave running.
+20. **Activity composer Save is the Volt.** Type chips speak Run / Ride /
+    Walk via `CardioCopy`, not `RUN`. Weight follows `LocalWeightUnit`.
+    Add set / Add cardio are secondary. Remove is a named Danger control;
+    tapping the row does not delete the line.
 
 ---
 

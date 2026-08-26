@@ -15,6 +15,7 @@ import com.sinura.personaltrainer.domain.CardioBlock
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.CivilDateTime
+import com.sinura.personaltrainer.domain.ComposerCopy
 import com.sinura.personaltrainer.domain.DstGapPolicy
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.StrengthBlock
@@ -192,8 +193,9 @@ class ActivityComposerViewModel @JvmOverloads constructor(
         val typed = title.value.trim()
         if (typed.isNotEmpty()) return typed
         return when (mode.value) {
-            ComposerMode.CARDIO -> cardio.value.firstOrNull()?.type?.name?.lowercase()
-                ?.replaceFirstChar { it.uppercase() } ?: "Cardio"
+            ComposerMode.CARDIO -> cardio.value.firstOrNull()?.let {
+                ComposerCopy.untitledCardioTitle(it.type)
+            } ?: "Cardio"
             ComposerMode.MIXED -> "Mixed session"
             ComposerMode.STRENGTH -> "Workout"
         }
