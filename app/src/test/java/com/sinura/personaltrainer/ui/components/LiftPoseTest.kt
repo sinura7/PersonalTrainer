@@ -75,6 +75,10 @@ class LiftPoseTest {
                 "$pose has no structure plates",
                 platesForPose(pose).any { it.muscle == null },
             )
+            assertTrue(
+                "$pose has no trunk",
+                personInk(pose).any { it is PoseInk.Limb && it.muscle == null },
+            )
         }
     }
 
@@ -131,7 +135,7 @@ private fun silhouetteBoardSvg(): String {
     val sb = StringBuilder()
     sb.append("""<svg xmlns="http://www.w3.org/2000/svg" width="$width" height="$height" viewBox="0 0 $width $height">""")
     sb.append("""<rect width="100%" height="100%" fill="$PIT"/>""")
-    sb.append("""<text x="$pad" y="22" fill="$INK" font-family="sans-serif" font-size="13">Library poses — Temper plates, family stance, in-scene kit</text>""")
+    sb.append("""<text x="$pad" y="22" fill="$INK" font-family="sans-serif" font-size="13">Library poses — pictogram person, heat on the working limbs</text>""")
     POSE_BOARD.forEachIndexed { i, cellData ->
         val col = i % cols
         val row = i / cols
@@ -166,23 +170,19 @@ private fun poseCellSvg(cell: PoseCell, x: Int, y: Int, size: Int): String {
     val sb = StringBuilder()
     sb.append("""<g transform="translate($x $y)">""")
     sb.append("""<rect width="$size" height="$size" rx="6" fill="$SURFACE" stroke="#39434A" stroke-width="1"/>""")
-    val secondaries = platesForPose(cell.pose).mapNotNull { it.muscle }.filter { it != cell.primary }.toSet()
-    platesForPose(cell.pose).forEach { plate ->
-        val fill = when (plate.muscle) {
-            null -> STEEL_DIM
-            cell.primary -> HEAT
-            in secondaries -> HEAT
-            else -> STEEL
-        }
-        val opacity = when (plate.muscle) {
-            cell.primary -> "1"
-            in secondaries -> "0.4"
-            else -> "1"
-        }
-        sb.append(pathEl(plate.points, inner, inner, 11, 8, fill, opacity))
+    val secondaries = personInk(cell.pose).mapNotNull { it.muscle }.filter { it != cell.primary }.toSet()
+    fun color(muscle: CanonicalMuscle?): Pair<String, String> = when (muscle) {
+        null -> STEEL to "1"
+        cell.primary -> HEAT to "1"
+        in secondaries -> HEAT to "0.4"
+        else -> STEEL to "1"
     }
-    kitPlates(cell.pose, cell.equipment).forEach { points ->
-        sb.append(pathEl(points, inner, inner, 11, 8, KIT, "1"))
+    personInk(cell.pose).forEach { ink ->
+        val (fill, opacity) = color(ink.muscle)
+        sb.append(inkEl(ink, inner, inner, 11, 8, fill, opacity))
+    }
+    kitInk(cell.pose, cell.equipment).forEach { ink ->
+        sb.append(inkEl(ink, inner, inner, 11, 8, KIT, "1"))
     }
     sb.append("""<text x="${size / 2}" y="${size - 6}" fill="$INK" font-family="sans-serif" font-size="11" text-anchor="middle">${cell.label}</text>""")
     sb.append("</g>")
@@ -230,6 +230,36 @@ private fun figureSvg(
     }
     sb.append("</g>")
     return sb.toString()
+}
+
+private fun inkEl(
+    ink: PoseInk,
+    width: Int,
+    height: Int,
+    ox: Int,
+    oy: Int,
+    color: String,
+    opacity: String,
+): String {
+    fun x(v: Float) = ox + v * width
+    fun y(v: Float) = oy + v * height
+    val m = minOf(width, height).toFloat()
+    return when (ink) {
+        is PoseInk.Limb ->
+            """<line x1="${x(ink.x1)}" y1="${y(ink.y1)}" x2="${x(ink.x2)}" y2="${y(ink.y2)}" """ +
+                """stroke="$color" stroke-opacity="$opacity" stroke-width="${ink.width * m}" """ +
+                """stroke-linecap="round"/>"""
+        is PoseInk.Dot ->
+            """<circle cx="${x(ink.x)}" cy="${y(ink.y)}" r="${ink.r * m}" """ +
+                """fill="$color" fill-opacity="$opacity"/>"""
+        is PoseInk.Oval ->
+            """<ellipse cx="${x(ink.x)}" cy="${y(ink.y)}" rx="${ink.rx * width}" ry="${ink.ry * height}" """ +
+                """fill="$color" fill-opacity="$opacity"/>"""
+        is PoseInk.Rect ->
+            """<rect x="${x(ink.left)}" y="${y(ink.top)}" width="${(ink.right - ink.left) * width}" """ +
+                """height="${(ink.bottom - ink.top) * height}" rx="${0.012f * m}" """ +
+                """fill="$color" fill-opacity="$opacity"/>"""
+    }
 }
 
 private fun pathEl(

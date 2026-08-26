@@ -14,9 +14,9 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
-> 26 Aug 2026 — Library thumbs share one posed silhouette language with Body:
-> quadratic-corner plates, family pose plus in-scene kit, fixed Heat3 identity.
-> Customs with no family still stand. No PNG pack, no Coil, no BodyMap fork.
+> 26 Aug 2026 — Library thumbs are pictogram people (one trunk, limbs from the
+> end-caps, Heat3 on the working limb, kit in the hands). Body heat stays the
+> standing plate figure. Customs with no family still stand. No PNG pack.
 >
 > 26 Aug 2026 — Activity composer Save is the one Volt. Type chips speak
 > Run / Ride / Walk via CardioCopy, not `RUN`. Weight fields follow

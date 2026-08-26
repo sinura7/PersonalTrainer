@@ -28,15 +28,17 @@ Commissioned line-art, Coil, WebP, VectorDrawable packs, or writing `imageKey`
 on catalog rows. `imageKey` stays null and is still only ever read inside
 `ExerciseThumb`.
 
-Each pose is now a person first (tapered limbs, torso, head), then heat on
-the working muscle, then kit. The Body figure draws a continuous outline
-under the plates so heat sits on a body, not on empty pit.
+Each library pose is a pictogram person: one trunk, limbs that grow out of
+its end-caps, then Heat3 on the working limb, then kit. Heat does not
+replace the body with a second pile of plates. The Body figure is still the
+standing muscle map (outline under live plates) — that is a heat diagram,
+not a pose tile.
 
 ## Gate (this packet)
 
-- `./gradlew testDebugUnitTest` — 1329 tests, 0 failures
-- `./gradlew assembleDebug` — pass
-- `tools/preflight.sh` — OK; 922 domain tests; named-args 0 mismatches
+- `./gradlew testDebugUnitTest` — pending this revision
+- `./gradlew assembleDebug` — pending this revision
+- `tools/preflight.sh` — pending this revision
 
 Phone / emulator judging stays owner-side. Studio preview sheet is
 `ExerciseThumbGallery` (row, header, pose families, standing Body figure).
