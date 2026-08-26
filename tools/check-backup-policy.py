@@ -19,6 +19,7 @@ ANDROID = "{http://schemas.android.com/apk/res/android}"
 
 REQUIRED_PATHS = [
     "personal_trainer.db",
+    "temper.db",
     "datastore",
     "safety-snapshots",
     "restore-journal",

@@ -16,6 +16,13 @@ ROOT = sys.argv[1] if len(sys.argv) > 1 else "app/src/main/java"
 PARAM_MODS = r"(?:@\w+(?:\([^)]*\))?\s+|vararg\s+|crossinline\s+|noinline\s+|private\s+|internal\s+|public\s+|protected\s+|override\s+|val\s+|var\s+)*"
 PARAM_RE = re.compile(rf"^{PARAM_MODS}([A-Za-z_]\w*)\s*:")
 
+SDK_NAMED_ARGS = {
+    "path": {
+        "fill", "stroke", "strokeLineWidth", "strokeLineCap", "strokeLineJoin",
+        "strokeMiterLimit", "pathFillType", "name",
+    },
+}
+
 def balanced(src, op):
     depth = 0
     for i in range(op, len(src)):
@@ -99,6 +106,11 @@ for path, src in clean.items():
             a = re.match(r"^\s*([a-z]\w*)\s*=(?!=)", chunk)
             if a: used.add(a.group(1))
         if not used: continue
+        # Compose ImageVector.Builder.path lives in the SDK. An app `fun path`
+        # (OnboardingStep.path) must not judge `path(fill = …)` call sites.
+        sdk = SDK_NAMED_ARGS.get(name)
+        if sdk is not None and used <= sdk:
+            continue
         if any(used <= allowed for allowed in visible): continue
         best = max(visible, key=lambda a: len(used & a))
         problems.append((path, src[:m.start()].count("\n") + 1, name, sorted(used - best)))
