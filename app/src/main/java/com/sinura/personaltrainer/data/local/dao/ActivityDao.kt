@@ -40,13 +40,7 @@ interface ActivityDao {
     fun observeCompletedGraphs(): Flow<List<ActivitySessionGraph>>
 
     @Transaction
-    @Query(
-        """
-        SELECT * FROM activity_sessions
-        WHERE status = 'COMPLETED' AND performedStartInstantMs >= :minMs
-        ORDER BY performedStartInstantMs DESC
-        """,
-    )
+    @Query("SELECT * FROM activity_sessions WHERE status = 'COMPLETED' AND performedStartInstantMs >= :minMs ORDER BY performedStartInstantMs DESC")
     fun observeCompletedGraphsSince(minMs: Long): Flow<List<ActivitySessionGraph>>
 
     @Query(
