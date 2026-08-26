@@ -36,9 +36,9 @@ not a pose tile.
 
 ## Gate (this packet)
 
-- `./gradlew testDebugUnitTest` — pending this revision
-- `./gradlew assembleDebug` — pending this revision
-- `tools/preflight.sh` — pending this revision
+- `./gradlew testDebugUnitTest` — 1331 tests, 0 failures
+- `./gradlew assembleDebug` — pass
+- `tools/preflight.sh` — OK; 922 domain tests; named-args 0 mismatches
 
 Phone / emulator judging stays owner-side. Studio preview sheet is
 `ExerciseThumbGallery` (row, header, pose families, standing Body figure).
