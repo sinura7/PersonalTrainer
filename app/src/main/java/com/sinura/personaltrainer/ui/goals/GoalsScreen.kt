@@ -218,7 +218,7 @@ internal fun GoalCard(
         Text(
             GoalCopy.progressLine(snapshot, unit),
             style = InstrumentType.body,
-            color = if (snapshot.met) Volt else TextSecondary,
+            color = if (snapshot.met) TextPrimary else TextSecondary,
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
