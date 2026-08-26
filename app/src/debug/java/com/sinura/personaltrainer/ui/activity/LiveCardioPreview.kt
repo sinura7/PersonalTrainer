@@ -8,10 +8,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.sinura.personaltrainer.domain.CardioCopy
+import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.Kicker
-import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.preview.TemperAccessibilityPreviews
 import com.sinura.personaltrainer.ui.preview.TemperWidthPreviews
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -32,14 +33,15 @@ private fun LiveCardioActivePreview() {
         CardioPreviewColumn {
             Text("Morning run", style = InstrumentType.title, color = TextPrimary)
             ElapsedReadout(elapsedSeconds = 462)
-            Text(
-                "Process death keeps this clock. Reboot keeps the last honest elapsed.",
-                style = InstrumentType.caption,
-                color = TextSecondary,
+            Text(CardioCopy.CLOCK_CAPTION, style = InstrumentType.caption, color = TextSecondary)
+            Kicker(CardioCopy.TYPE)
+            Text(CardioCopy.name(CardioType.RUN), style = InstrumentType.body, color = TextPrimary)
+            CardioActionDock(
+                finishing = false,
+                onFinish = {},
+                onLeaveRunning = {},
+                onDiscard = {},
             )
-            Kicker("Type")
-            Text("• RUN", style = InstrumentType.body, color = TextPrimary)
-            PrimaryGymButton(text = "Finish", onClick = {})
         }
     }
 }
@@ -69,7 +71,12 @@ private fun LiveCardioErrorPreview() {
             Text("Morning run", style = InstrumentType.title, color = TextPrimary)
             ElapsedReadout(elapsedSeconds = 90)
             GymErrorBanner("Could not finish this session. Retry.")
-            PrimaryGymButton(text = "Finish", onClick = {})
+            CardioActionDock(
+                finishing = false,
+                onFinish = {},
+                onLeaveRunning = {},
+                onDiscard = {},
+            )
         }
     }
 }

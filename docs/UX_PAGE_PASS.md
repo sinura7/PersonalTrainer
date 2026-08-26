@@ -308,6 +308,11 @@ Record every deviation here. Oldest stay; do not delete.
     bar is a miss.
 18. **Leave-workout Keep and exit is the Volt.** Stay is a real control.
     Discard stays Danger ink, not a second filled button, and still confirms.
+19. **Live cardio Finish is the Volt and sits above the system nav.** Leave
+    running and Discard are stacked secondary controls, not footnotes.
+    Discard confirms. Types speak Run / Ride / Walk, not `RUN`. After
+    finish, activity-summary Done is pinned with the same inset. System
+    back opens a leave dialog whose Volt is Leave running.
 
 ---
 

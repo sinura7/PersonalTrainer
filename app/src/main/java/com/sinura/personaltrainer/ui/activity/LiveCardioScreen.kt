@@ -1,34 +1,55 @@
 package com.sinura.personaltrainer.ui.activity
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.CardioCopy
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.LiveSessionRules
+import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
+import com.sinura.personaltrainer.ui.components.HairlineDivider
+import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.components.LeaveCardioDialog
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.components.SecondaryGymButton
+import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun LiveCardioScreen(
     onExit: () -> Unit,
@@ -37,13 +58,60 @@ fun LiveCardioScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val finishedId by viewModel.finishedId.collectAsStateWithLifecycle()
+    var confirmLeave by rememberSaveable { mutableStateOf(false) }
+    var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(finishedId) {
         val id = finishedId ?: return@LaunchedEffect
         viewModel.onFinishedHandled()
         onFinished(id)
     }
 
-    Scaffold { padding ->
+    BackHandler(enabled = !state.missing) { confirmLeave = true }
+
+    if (confirmLeave) {
+        LeaveCardioDialog(
+            onLeaveRunning = {
+                confirmLeave = false
+                onExit()
+            },
+            onStay = { confirmLeave = false },
+            onDiscardInstead = {
+                confirmLeave = false
+                confirmDiscard = true
+            },
+            onDismiss = { confirmLeave = false },
+        )
+    }
+
+    if (confirmDiscard) {
+        ConfirmActionDialog(
+            title = CardioCopy.DISCARD_TITLE,
+            body = CardioCopy.DISCARD_BODY,
+            confirmLabel = CardioCopy.DISCARD_CONFIRM,
+            destructive = true,
+            onConfirm = {
+                confirmDiscard = false
+                viewModel.discard()
+            },
+            onDismiss = { confirmDiscard = false },
+        )
+    }
+
+    Scaffold(
+        bottomBar = {
+            if (!state.missing) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    HairlineDivider(startIndent = 0.dp)
+                    CardioActionDock(
+                        finishing = state.finishing,
+                        onFinish = viewModel::finish,
+                        onLeaveRunning = onExit,
+                        onDiscard = { confirmDiscard = true },
+                    )
+                }
+            }
+        },
+    ) { padding ->
         if (state.missing) {
             EmptyState(
                 title = "No live cardio",
@@ -61,38 +129,94 @@ fun LiveCardioScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = Metrics.gutter),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Metrics.gutter, vertical = Metrics.space4),
             verticalArrangement = Arrangement.spacedBy(Metrics.space4),
         ) {
             Text(state.session?.title ?: "Cardio", style = InstrumentType.title, color = TextPrimary)
             ElapsedReadout(elapsedSeconds = state.elapsedSeconds)
-            Text("Process death keeps this clock. Reboot keeps the last honest elapsed.", style = InstrumentType.caption, color = TextSecondary)
+            Text(CardioCopy.CLOCK_CAPTION, style = InstrumentType.caption, color = TextSecondary)
             state.error?.let { GymErrorBanner(it) }
-            Kicker("Type")
-            CardioType.entries.forEach { option ->
-                TextButton(onClick = { viewModel.setType(option) }) {
-                    Text(if (option == state.type) "• ${option.name}" else option.name)
+            Kicker(CardioCopy.TYPE)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+            ) {
+                CardioType.entries.forEach { option ->
+                    InstrumentChip(
+                        label = CardioCopy.name(option),
+                        selected = option == state.type,
+                        onClick = { viewModel.setType(option) },
+                    )
                 }
             }
-            TextButton(onClick = { viewModel.setIndoor(!state.indoor) }) {
-                Text(if (state.indoor) "Indoor" else "Outdoor")
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+            ) {
+                InstrumentChip(
+                    label = CardioCopy.INDOOR,
+                    selected = state.indoor,
+                    onClick = { viewModel.setIndoor(true) },
+                )
+                InstrumentChip(
+                    label = CardioCopy.OUTDOOR,
+                    selected = !state.indoor,
+                    onClick = { viewModel.setIndoor(false) },
+                )
             }
             OutlinedTextField(
                 value = state.distanceKm,
                 onValueChange = viewModel::setDistanceKm,
-                label = { Text("Distance km (optional)") },
+                label = { Text(CardioCopy.DISTANCE_LABEL) },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )
-            PrimaryGymButton(
-                text = if (state.finishing) "Finishing…" else "Finish",
-                onClick = viewModel::finish,
-                modifier = Modifier.testTag(CardioTags.FINISH),
-                enabled = !state.finishing,
-            )
-            TextButton(onClick = viewModel::discard) { Text("Discard") }
-            TextButton(onClick = onExit) { Text("Leave running") }
         }
+    }
+}
+
+/**
+ * Finish is the one Volt — the log-loop analog of Log. Leave running and Discard are
+ * real stacked controls, not footnotes. Scaffold's bottomBar draws edge-to-edge and
+ * this route hides the tab bar, so this dock owns [navigationBarsPadding].
+ */
+@Composable
+internal fun CardioActionDock(
+    finishing: Boolean,
+    onFinish: () -> Unit,
+    onLeaveRunning: () -> Unit,
+    onDiscard: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Pit)
+            .navigationBarsPadding()
+            .padding(horizontal = Metrics.gutter, vertical = Metrics.space3),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
+        PrimaryGymButton(
+            text = if (finishing) CardioCopy.FINISHING else CardioCopy.FINISH,
+            onClick = onFinish,
+            modifier = Modifier.testTag(CardioTags.FINISH),
+            enabled = !finishing,
+            height = Metrics.commit,
+        )
+        SecondaryGymButton(
+            text = CardioCopy.LEAVE_RUNNING,
+            onClick = onLeaveRunning,
+            modifier = Modifier.testTag(CardioTags.LEAVE),
+        )
+        SecondaryGymButton(
+            text = CardioCopy.DISCARD,
+            onClick = onDiscard,
+            modifier = Modifier.testTag(CardioTags.DISCARD),
+            contentColor = Danger,
+        )
     }
 }
 
@@ -120,4 +244,6 @@ internal fun ElapsedReadout(
 object CardioTags {
     const val ELAPSED = "live-cardio-elapsed"
     const val FINISH = "live-cardio-finish"
+    const val LEAVE = "live-cardio-leave"
+    const val DISCARD = "live-cardio-discard"
 }

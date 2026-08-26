@@ -14,6 +14,13 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 26 Aug 2026 — Live cardio Finish is the one Volt and sits above the
+> system navigation inset, same job as strength Log. Leave running and
+> Discard are stacked secondary controls (Danger ink on Discard), not
+> footnotes; Discard confirms. System back opens a leave dialog whose
+> Volt is Leave running. Cardio types speak Run / Ride / Walk, not `RUN`.
+> After finish, activity-summary Done is pinned with the same inset.
+>
 > 25 Aug 2026 — Home agenda speaks the session you built. Strength rows
 > show the same 1 · 2 · 3 order as Plan and the editor. A two-a-day keeps
 > one Volt Start (strength preferred); other planned rows stay tappable.
