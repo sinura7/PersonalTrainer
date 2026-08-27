@@ -35,9 +35,9 @@ of the stills.
 
 ## Gate (this packet)
 
-- `./gradlew testDebugUnitTest` — pending this turn
-- `./gradlew assembleDebug` — pending this turn
-- `tools/preflight.sh` — pending this turn
+- `./gradlew testDebugUnitTest` — 1334 tests, 0 failures
+- `./gradlew assembleDebug` — pass
+- `tools/preflight.sh` — OK; 922 domain tests; named-args 0 mismatches
 
 Phone / emulator judging stays owner-side. Studio preview sheet is
 `ExerciseThumbGallery`. SVG dumps: `silhouette-board.svg`,

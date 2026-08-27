@@ -369,14 +369,14 @@ private fun figureFor(pose: LiftPose): Figure = when (pose) {
         aL = 0.56f to 0.82f, aR = 0.62f to 0.86f,
     )
     LiftPose.CORE_FLOOR -> Figure(
-        head = 0.36f to 0.14f, neck = 0.40f to 0.24f,
-        chest = 0.44f to 0.36f, navel = 0.50f to 0.50f,
-        sL = 0.30f to 0.32f, sR = 0.58f to 0.34f,
-        eL = 0.38f to 0.44f, eR = 0.66f to 0.46f,
-        wL = 0.48f to 0.52f, wR = 0.72f to 0.54f,
-        hL = 0.42f to 0.56f, hR = 0.56f to 0.58f,
-        kL = 0.50f to 0.48f, kR = 0.64f to 0.50f,
-        aL = 0.58f to 0.72f, aR = 0.72f to 0.74f,
+        head = 0.50f to 0.16f, neck = 0.50f to 0.26f,
+        chest = 0.50f to 0.38f, navel = 0.50f to 0.50f,
+        sL = 0.28f to 0.34f, sR = 0.72f to 0.34f,
+        eL = 0.34f to 0.48f, eR = 0.66f to 0.48f,
+        wL = 0.40f to 0.56f, wR = 0.60f to 0.56f,
+        hL = 0.40f to 0.56f, hR = 0.60f to 0.56f,
+        kL = 0.32f to 0.70f, kR = 0.68f to 0.70f,
+        aL = 0.36f to 0.88f, aR = 0.64f to 0.88f,
     )
     LiftPose.SEATED_MACHINE -> Figure(
         head = 0.46f to 0.10f, neck = 0.46f to 0.18f,
