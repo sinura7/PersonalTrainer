@@ -175,7 +175,17 @@ Obtainium compares `versionCode` inside the APK (and the release tag). Upload on
 
 Sideload without Obtainium: download the same APK from the GitHub Release and open it on the phone.
 
-## 6. First device install
+## 6. Live testing without a PC
+
+Gym-floor **Temper** (`com.sinura.personaltrainer`) stays on the phone. New chrome is judged on **Temper Debug** (`com.sinura.personaltrainer.debug`) — a second icon and a second database. Do not uninstall release to make room.
+
+Cursor lands on `trunk`. Obtainium then watches GitHub Releases for a signed `PersonalTrainer-<version>.apk`. That file is the gym-floor update path. A `*-debug.apk` is Temper Debug only; do not point the gym-floor Obtainium entry at it.
+
+To cut a signed drop without opening Android Studio: bump `appVersionCode` and `appVersionName`, push tag `vX.Y.Z` (must match `appVersionName`). The [release workflow](.github/workflows/release.yml) publishes the APK when the four `KEYSTORE_*` repository secrets are set. Without those secrets the tag still builds, but the APK is unsigned and will not update an existing Temper install.
+
+This is not Play. `versionCode` stays at 1 until a signed public artifact is cut.
+
+## 7. First device install
 
 1. Build or download the signed APK.
 2. Copy it to the phone and open it, or install with `adb install PersonalTrainer-1.0.0.apk`.
@@ -185,7 +195,7 @@ Sideload without Obtainium: download the same APK from the GitHub Release and op
 
 Core training (routines, logging, history, units, library) does not need Google or a network. Backup/restore replaces local data from a Drive JSON file you created earlier.
 
-## 7. Rest timer on Samsung / Android 13+
+## 8. Rest timer on Samsung / Android 13+
 
 The rest timer is a **foreground service** with an ongoing notification. It keeps counting if you leave the workout screen, switch apps, or lock the phone. Finishing or discarding a workout stops the service.
 

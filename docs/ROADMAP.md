@@ -14,6 +14,9 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 27 Aug 2026 — Live testing is Temper Debug beside gym-floor Temper.
+> Obtainium watches signed GitHub Releases. Cursor lands on `trunk`.
+>
 > 27 Aug 2026 — Body tab is the unlit ChatGPT still with a live heat
 > wash. This week and Last 30 days stay the two windows. Rest stays
 > the photograph. Overlay plates will not pixel-match every still
