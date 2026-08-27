@@ -1,23 +1,30 @@
 package com.sinura.personaltrainer.ui.components
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.ui.theme.HairlineStrong
+import com.sinura.personaltrainer.ui.theme.HeatEmpty
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Steel
 import com.sinura.personaltrainer.ui.theme.SteelDim
 import com.sinura.personaltrainer.ui.theme.Volt
+import kotlin.math.roundToInt
 
 /**
- * The Temper figure: polygonal plates with a hairline gap, the same language as the launcher.
+ * The Temper figure: the locked unlit still, with live heat as a wash.
  *
- * One geometry serves the Body tab, the 40dp thumbnails, the empty-state mark and the
- * monochrome notification silhouette. A muscle is a plate (or a pair); lighting it is a
- * fill, not a second set of coordinates.
+ * Body paints this week's (or 30 days') load onto the ChatGPT person.
+ * Untrained plates stay the still. A missing still falls back to steel
+ * plates so unit tests and a failed decode still have a map.
  *
  * Front and back share one structure list — head, neck, delts, forearms, hands, calves,
  * feet — so flipping the view cannot drift the silhouette. Working plates are the only
@@ -79,10 +86,8 @@ internal fun hotspotsFor(view: BodyView): List<BodyHotspot> =
     }
 
 /**
- * Draw every plate of [view].
- *
- * [fill] is per plate so a thumbnail can light one muscle at Heat3 while the Body tab
- * paints the weekly ramp, without a second copy of the geometry.
+ * Draw [view]. When the unlit still is bound, that picture is the person and
+ * [fill] is a heat wash on trained plates only. Rest stays the still.
  */
 internal fun DrawScope.drawTemperFigure(
     view: BodyView,
@@ -91,9 +96,18 @@ internal fun DrawScope.drawTemperFigure(
     selectedStroke: Color = Volt,
     edge: Color? = null,
 ) {
+    val still = TemperStillCache.bitmap(view)
+    if (still != null) {
+        drawStillWithHeat(
+            still = still,
+            view = view,
+            fill = fill,
+            selected = selected,
+            selectedStroke = selectedStroke,
+        )
+        return
+    }
     val hair = Metrics.hairline.toPx()
-    // The person is one silhouette. Plates sit on it. Seams show this fill
-    // instead of the pit, so the Body tab reads as a body, not a pile of pebbles.
     drawPath(
         path = smoothPlatePath(FIGURE_OUTLINE, size.width, size.height),
         color = SteelDim,
@@ -113,6 +127,53 @@ internal fun DrawScope.drawTemperFigure(
         }
     }
 }
+
+private fun DrawScope.drawStillWithHeat(
+    still: ImageBitmap,
+    view: BodyView,
+    fill: (BodyPlate) -> Color,
+    selected: CanonicalMuscle?,
+    selectedStroke: Color,
+) {
+    val dstWidth = size.width.roundToInt().coerceAtLeast(1)
+    val dstHeight = size.height.roundToInt().coerceAtLeast(1)
+    val dstAspect = size.width / size.height.coerceAtLeast(1f)
+    val (srcOffset, srcSize) = stillSrc(still, dstAspect)
+    drawImage(
+        image = still,
+        srcOffset = srcOffset,
+        srcSize = srcSize,
+        dstOffset = IntOffset.Zero,
+        dstSize = IntSize(dstWidth, dstHeight),
+        filterQuality = FilterQuality.High,
+    )
+    platesFor(view).forEach { plate ->
+        if (plate.muscle == null) return@forEach
+        val color = fill(plate)
+        val path = plate.toPath(size.width, size.height)
+        if (!isRestFill(color)) {
+            drawPath(
+                path = path,
+                color = color.copy(alpha = STILL_HEAT_ALPHA),
+                blendMode = BlendMode.SrcAtop,
+            )
+        }
+        if (selected != null && plate.muscle == selected) {
+            drawPath(
+                path = path,
+                color = selectedStroke,
+                style = Stroke(width = Metrics.emphasisBorder.toPx()),
+            )
+        }
+    }
+}
+
+/** Rest / untrained / structure — the still already is the person. */
+internal fun isRestFill(color: Color): Boolean =
+    color.alpha < 0.02f || color == HeatEmpty || color == SteelDim || color == Steel
+
+/** High enough to read as a recolor, low enough that the still's seams survive. */
+internal const val STILL_HEAT_ALPHA = 0.72f
 
 /**
  * Unlit steel figure. [detail] is kept so existing callers do not change; the plates carry

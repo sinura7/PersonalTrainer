@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.diagnostics.DiagnosticRing
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.reminder.ReminderNotifications
 import com.sinura.personaltrainer.timer.RestTimerNotifications
+import com.sinura.personaltrainer.ui.components.TemperStillCache
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -39,6 +40,7 @@ class PersonalTrainerApp : Application() {
         // no timer runs this session.
         RestTimerNotifications.ensureChannels(this)
         ReminderNotifications.ensureChannel(this)
+        TemperStillCache.bind(resources)
         // A rest can outlive its process. Recover it before any screen asks for timer state.
         container.restTimerController.rehydrate()
         applicationScope.launch {

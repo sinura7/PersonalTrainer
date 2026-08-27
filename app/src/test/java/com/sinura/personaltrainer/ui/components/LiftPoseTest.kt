@@ -111,8 +111,10 @@ class LiftPoseTest {
         if (!dir.isDirectory) return
         dir.resolve("silhouette-board.svg").writeText(silhouetteBoardSvg())
         dir.resolve("body-figure-board.svg").writeText(bodyFigureBoardSvg())
+        dir.resolve("body-plates.json").writeText(bodyPlatesJson())
         assertTrue(dir.resolve("silhouette-board.svg").length() > 0)
         assertTrue(dir.resolve("body-figure-board.svg").length() > 0)
+        assertTrue(dir.resolve("body-plates.json").length() > 0)
     }
 }
 
@@ -180,13 +182,23 @@ private fun bodyFigureBoardSvg(): String {
     val sb = StringBuilder()
     sb.append("""<svg xmlns="http://www.w3.org/2000/svg" width="$width" height="$height" viewBox="0 0 $width $height">""")
     sb.append("""<rect width="100%" height="100%" fill="$PIT"/>""")
-    sb.append("""<text x="$pad" y="22" fill="$INK" font-family="sans-serif" font-size="13">Body tab — standing figure, live heat on the working plates</text>""")
+    sb.append("""<text x="$pad" y="22" fill="$INK" font-family="sans-serif" font-size="13">Body tab plate fallback — production paints this wash on the unlit still</text>""")
     sb.append(figureSvg(BodyView.FRONT, pad, pad + 16, figW, figH, CanonicalMuscle.CHEST))
     sb.append(figureSvg(BodyView.BACK, pad * 2 + figW, pad + 16, figW, figH, CanonicalMuscle.BACK))
     sb.append("""<text x="${pad + figW / 2}" y="${height - 8}" fill="$INK" font-family="sans-serif" font-size="12" text-anchor="middle">Front</text>""")
     sb.append("""<text x="${pad * 2 + figW + figW / 2}" y="${height - 8}" fill="$INK" font-family="sans-serif" font-size="12" text-anchor="middle">Back</text>""")
     sb.append("</svg>")
     return sb.toString()
+}
+
+private fun bodyPlatesJson(): String {
+    fun dump(view: BodyView): String = platesFor(view).joinToString(",") { plate ->
+        val muscle = plate.muscle?.name.orEmpty()
+        val pts = plate.points.joinToString(",") { "[${it.first},${it.second}]" }
+        """{"muscle":"$muscle","points":[$pts]}"""
+    }
+    return """{"aspect":$FIGURE_ASPECT,"heatAlpha":$STILL_HEAT_ALPHA,""" +
+        """"front":[${dump(BodyView.FRONT)}],"back":[${dump(BodyView.BACK)}]}"""
 }
 
 private fun poseCellSvg(cell: PoseCell, x: Int, y: Int, size: Int): String {

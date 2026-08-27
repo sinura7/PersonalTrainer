@@ -14,6 +14,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 27 Aug 2026 — Body tab is the unlit ChatGPT still with a live heat
+> wash. This week and Last 30 days stay the two windows. Rest stays
+> the photograph. Overlay plates will not pixel-match every still
+> seam. Library thumbs stay the posed stills.
+>
 > 27 Aug 2026 — Library thumbs are the locked 18-still pack (WebP),
 > keyed by family. Not a second drawing of those stills. Not 101
 > catalog keys. Customs stand on the unlit front/back still. Body
