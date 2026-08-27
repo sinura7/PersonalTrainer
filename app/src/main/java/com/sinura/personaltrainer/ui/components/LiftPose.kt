@@ -24,10 +24,9 @@ import kotlin.math.sin
  * One posed silhouette for a lift family.
  *
  * Library thumbs are the Temper figure — the same polygonal plates and
- * hairline seams as the Body tab and the launcher — posed on a skeleton.
- * Heat3 lights the working plates. Kit sits in the hands. That is the
- * generated squat, translated: not a second pictogram person, and not a
- * PNG pack. Families share a pose so 101 lifts stay one instrument.
+ * hairline seams as the Body tab and the launcher — posed on a skeleton
+ * to the locked 18-still bible. Heat3 lights the working plates. Kit sits
+ * in the hands. Families share a pose so 101 lifts stay one instrument.
  *
  * Body heat stays on the standing [drawTemperFigure]. Thumbs are identity:
  * the pose plus a fixed Heat3 on the working plates.
@@ -256,144 +255,147 @@ private val REST = Figure(
 )
 
 private fun figureFor(pose: LiftPose): Figure = when (pose) {
+    // Locked stills 03–16. Joints are the Temper skeleton in the thumb
+    // square, not a second person. Cameras match the bible: front, rear,
+    // or 3/4. Profile collapse is gone — those stills show both limbs.
     LiftPose.SQUAT -> Figure(
-        head = 0.50f to 0.18f, neck = 0.50f to 0.26f,
-        chest = 0.50f to 0.34f, navel = 0.50f to 0.46f,
-        sL = 0.22f to 0.30f, sR = 0.78f to 0.30f,
-        eL = 0.12f to 0.20f, eR = 0.88f to 0.20f,
-        wL = 0.10f to 0.14f, wR = 0.90f to 0.14f,
-        hL = 0.34f to 0.50f, hR = 0.66f to 0.50f,
-        kL = 0.18f to 0.64f, kR = 0.82f to 0.64f,
+        head = 0.50f to 0.20f, neck = 0.50f to 0.28f,
+        chest = 0.50f to 0.38f, navel = 0.50f to 0.50f,
+        sL = 0.24f to 0.32f, sR = 0.76f to 0.32f,
+        eL = 0.18f to 0.44f, eR = 0.82f to 0.44f,
+        wL = 0.16f to 0.34f, wR = 0.84f to 0.34f,
+        hL = 0.32f to 0.52f, hR = 0.68f to 0.52f,
+        kL = 0.18f to 0.68f, kR = 0.82f to 0.68f,
         aL = 0.28f to 0.90f, aR = 0.72f to 0.90f,
     )
     LiftPose.HINGE -> Figure(
-        head = 0.78f to 0.22f, neck = 0.68f to 0.30f,
-        chest = 0.54f to 0.38f, navel = 0.44f to 0.46f,
-        sL = 0.52f to 0.34f, sR = 0.58f to 0.38f,
-        eL = 0.62f to 0.50f, eR = 0.64f to 0.54f,
-        wL = 0.72f to 0.64f, wR = 0.70f to 0.66f,
-        hL = 0.38f to 0.50f, hR = 0.42f to 0.54f,
-        kL = 0.42f to 0.70f, kR = 0.38f to 0.72f,
-        aL = 0.40f to 0.90f, aR = 0.36f to 0.90f,
+        head = 0.62f to 0.16f, neck = 0.56f to 0.24f,
+        chest = 0.50f to 0.34f, navel = 0.48f to 0.46f,
+        sL = 0.38f to 0.30f, sR = 0.62f to 0.32f,
+        eL = 0.40f to 0.50f, eR = 0.64f to 0.52f,
+        wL = 0.42f to 0.68f, wR = 0.66f to 0.70f,
+        hL = 0.40f to 0.48f, hR = 0.60f to 0.50f,
+        kL = 0.42f to 0.70f, kR = 0.62f to 0.72f,
+        aL = 0.40f to 0.90f, aR = 0.60f to 0.90f,
     )
     LiftPose.LUNGE -> Figure(
-        head = 0.50f to 0.10f, neck = 0.50f to 0.20f,
-        chest = 0.50f to 0.30f, navel = 0.50f to 0.42f,
-        sL = 0.20f to 0.26f, sR = 0.80f to 0.26f,
-        eL = 0.14f to 0.42f, eR = 0.86f to 0.42f,
-        wL = 0.12f to 0.56f, wR = 0.88f to 0.56f,
-        hL = 0.40f to 0.46f, hR = 0.60f to 0.46f,
-        kL = 0.24f to 0.60f, kR = 0.62f to 0.70f,
-        aL = 0.22f to 0.76f, aR = 0.60f to 0.90f,
+        head = 0.46f to 0.08f, neck = 0.46f to 0.16f,
+        chest = 0.46f to 0.28f, navel = 0.46f to 0.40f,
+        sL = 0.26f to 0.26f, sR = 0.66f to 0.26f,
+        eL = 0.22f to 0.46f, eR = 0.70f to 0.46f,
+        wL = 0.20f to 0.62f, wR = 0.72f to 0.62f,
+        hL = 0.38f to 0.46f, hR = 0.56f to 0.48f,
+        kL = 0.30f to 0.64f, kR = 0.62f to 0.70f,
+        aL = 0.28f to 0.80f, aR = 0.58f to 0.90f,
     )
     LiftPose.HORIZONTAL_PRESS -> Figure(
-        head = 0.16f to 0.38f, neck = 0.26f to 0.40f,
-        chest = 0.42f to 0.42f, navel = 0.52f to 0.44f,
-        sL = 0.32f to 0.38f, sR = 0.34f to 0.46f,
-        eL = 0.30f to 0.20f, eR = 0.34f to 0.26f,
-        wL = 0.30f to 0.08f, wR = 0.34f to 0.12f,
-        hL = 0.56f to 0.44f, hR = 0.58f to 0.50f,
-        kL = 0.72f to 0.56f, kR = 0.74f to 0.62f,
-        aL = 0.78f to 0.84f, aR = 0.80f to 0.84f,
+        head = 0.20f to 0.28f, neck = 0.30f to 0.30f,
+        chest = 0.48f to 0.32f, navel = 0.64f to 0.38f,
+        sL = 0.38f to 0.20f, sR = 0.52f to 0.40f,
+        eL = 0.28f to 0.10f, eR = 0.64f to 0.16f,
+        wL = 0.30f to 0.04f, wR = 0.66f to 0.08f,
+        hL = 0.70f to 0.42f, hR = 0.80f to 0.50f,
+        kL = 0.72f to 0.62f, kR = 0.82f to 0.68f,
+        aL = 0.70f to 0.84f, aR = 0.80f to 0.88f,
     )
     LiftPose.VERTICAL_PRESS -> Figure(
-        head = 0.50f to 0.22f, neck = 0.50f to 0.30f,
-        chest = 0.50f to 0.38f, navel = 0.50f to 0.50f,
-        sL = 0.22f to 0.36f, sR = 0.78f to 0.36f,
-        eL = 0.16f to 0.16f, eR = 0.84f to 0.16f,
-        wL = 0.20f to 0.06f, wR = 0.80f to 0.06f,
-        hL = 0.38f to 0.54f, hR = 0.62f to 0.54f,
+        head = 0.50f to 0.28f, neck = 0.50f to 0.36f,
+        chest = 0.50f to 0.44f, navel = 0.50f to 0.56f,
+        sL = 0.28f to 0.40f, sR = 0.72f to 0.40f,
+        eL = 0.30f to 0.16f, eR = 0.70f to 0.16f,
+        wL = 0.32f to 0.05f, wR = 0.68f to 0.05f,
+        hL = 0.38f to 0.58f, hR = 0.62f to 0.58f,
         kL = 0.38f to 0.74f, kR = 0.62f to 0.74f,
         aL = 0.38f to 0.92f, aR = 0.62f to 0.92f,
     )
     LiftPose.FLY -> Figure(
-        head = 0.50f to 0.10f, neck = 0.50f to 0.20f,
-        chest = 0.50f to 0.30f, navel = 0.50f to 0.44f,
-        sL = 0.22f to 0.26f, sR = 0.78f to 0.26f,
-        eL = 0.06f to 0.32f, eR = 0.94f to 0.32f,
-        wL = 0.04f to 0.40f, wR = 0.96f to 0.40f,
-        hL = 0.38f to 0.52f, hR = 0.62f to 0.52f,
-        kL = 0.38f to 0.74f, kR = 0.62f to 0.74f,
+        head = 0.50f to 0.08f, neck = 0.50f to 0.16f,
+        chest = 0.50f to 0.26f, navel = 0.50f to 0.40f,
+        sL = 0.22f to 0.22f, sR = 0.78f to 0.22f,
+        eL = 0.08f to 0.24f, eR = 0.92f to 0.24f,
+        wL = 0.04f to 0.26f, wR = 0.96f to 0.26f,
+        hL = 0.38f to 0.50f, hR = 0.62f to 0.50f,
+        kL = 0.38f to 0.72f, kR = 0.62f to 0.72f,
         aL = 0.38f to 0.92f, aR = 0.62f to 0.92f,
     )
     LiftPose.VERTICAL_PULL -> Figure(
-        head = 0.50f to 0.26f, neck = 0.50f to 0.34f,
-        chest = 0.50f to 0.42f, navel = 0.50f to 0.54f,
-        sL = 0.22f to 0.40f, sR = 0.78f to 0.40f,
-        eL = 0.10f to 0.16f, eR = 0.90f to 0.16f,
-        wL = 0.08f to 0.07f, wR = 0.92f to 0.07f,
-        hL = 0.38f to 0.58f, hR = 0.62f to 0.58f,
+        head = 0.50f to 0.28f, neck = 0.50f to 0.36f,
+        chest = 0.50f to 0.46f, navel = 0.50f to 0.58f,
+        sL = 0.22f to 0.38f, sR = 0.78f to 0.38f,
+        eL = 0.12f to 0.16f, eR = 0.88f to 0.16f,
+        wL = 0.10f to 0.06f, wR = 0.90f to 0.06f,
+        hL = 0.38f to 0.60f, hR = 0.62f to 0.60f,
         kL = 0.38f to 0.76f, kR = 0.62f to 0.76f,
         aL = 0.38f to 0.92f, aR = 0.62f to 0.92f,
     )
     LiftPose.HORIZONTAL_PULL -> Figure(
-        head = 0.72f to 0.16f, neck = 0.62f to 0.24f,
-        chest = 0.50f to 0.34f, navel = 0.44f to 0.44f,
-        sL = 0.48f to 0.28f, sR = 0.52f to 0.32f,
-        eL = 0.32f to 0.30f, eR = 0.38f to 0.34f,
-        wL = 0.18f to 0.34f, wR = 0.24f to 0.38f,
-        hL = 0.40f to 0.50f, hR = 0.42f to 0.54f,
-        kL = 0.44f to 0.70f, kR = 0.40f to 0.72f,
-        aL = 0.42f to 0.90f, aR = 0.38f to 0.90f,
+        head = 0.58f to 0.14f, neck = 0.54f to 0.22f,
+        chest = 0.48f to 0.34f, navel = 0.46f to 0.46f,
+        sL = 0.36f to 0.28f, sR = 0.60f to 0.30f,
+        eL = 0.30f to 0.40f, eR = 0.54f to 0.42f,
+        wL = 0.38f to 0.50f, wR = 0.58f to 0.52f,
+        hL = 0.40f to 0.50f, hR = 0.58f to 0.52f,
+        kL = 0.42f to 0.70f, kR = 0.60f to 0.72f,
+        aL = 0.40f to 0.90f, aR = 0.58f to 0.90f,
     )
     LiftPose.ARM_CURL -> Figure(
-        head = 0.50f to 0.08f, neck = 0.50f to 0.18f,
-        chest = 0.50f to 0.28f, navel = 0.50f to 0.42f,
-        sL = 0.20f to 0.24f, sR = 0.80f to 0.24f,
-        eL = 0.14f to 0.46f, eR = 0.86f to 0.46f,
-        wL = 0.22f to 0.28f, wR = 0.78f to 0.28f,
+        head = 0.50f to 0.06f, neck = 0.50f to 0.16f,
+        chest = 0.50f to 0.26f, navel = 0.50f to 0.40f,
+        sL = 0.22f to 0.22f, sR = 0.78f to 0.22f,
+        eL = 0.18f to 0.42f, eR = 0.82f to 0.42f,
+        wL = 0.28f to 0.28f, wR = 0.72f to 0.28f,
         hL = 0.38f to 0.50f, hR = 0.62f to 0.50f,
         kL = 0.38f to 0.72f, kR = 0.62f to 0.72f,
         aL = 0.38f to 0.92f, aR = 0.62f to 0.92f,
     )
     LiftPose.ARM_EXT -> Figure(
-        head = 0.50f to 0.22f, neck = 0.50f to 0.32f,
+        head = 0.50f to 0.20f, neck = 0.50f to 0.28f,
         chest = 0.50f to 0.38f, navel = 0.50f to 0.50f,
-        sL = 0.22f to 0.36f, sR = 0.78f to 0.36f,
-        eL = 0.38f to 0.12f, eR = 0.62f to 0.12f,
-        wL = 0.44f to 0.26f, wR = 0.56f to 0.26f,
+        sL = 0.24f to 0.32f, sR = 0.76f to 0.32f,
+        eL = 0.32f to 0.12f, eR = 0.68f to 0.12f,
+        wL = 0.42f to 0.28f, wR = 0.58f to 0.28f,
         hL = 0.38f to 0.54f, hR = 0.62f to 0.54f,
         kL = 0.38f to 0.74f, kR = 0.62f to 0.74f,
         aL = 0.38f to 0.92f, aR = 0.62f to 0.92f,
     )
     LiftPose.HIP -> Figure(
-        head = 0.16f to 0.60f, neck = 0.24f to 0.54f,
-        chest = 0.38f to 0.46f, navel = 0.48f to 0.38f,
-        sL = 0.30f to 0.52f, sR = 0.32f to 0.58f,
-        eL = 0.20f to 0.68f, eR = 0.22f to 0.72f,
-        wL = 0.14f to 0.80f, wR = 0.16f to 0.82f,
-        hL = 0.52f to 0.32f, hR = 0.54f to 0.38f,
-        kL = 0.68f to 0.48f, kR = 0.70f to 0.52f,
-        aL = 0.80f to 0.70f, aR = 0.82f to 0.72f,
+        head = 0.16f to 0.38f, neck = 0.26f to 0.36f,
+        chest = 0.42f to 0.34f, navel = 0.58f to 0.34f,
+        sL = 0.34f to 0.26f, sR = 0.40f to 0.42f,
+        eL = 0.50f to 0.30f, eR = 0.54f to 0.44f,
+        wL = 0.58f to 0.32f, wR = 0.62f to 0.38f,
+        hL = 0.58f to 0.32f, hR = 0.64f to 0.38f,
+        kL = 0.62f to 0.56f, kR = 0.68f to 0.60f,
+        aL = 0.56f to 0.82f, aR = 0.62f to 0.86f,
     )
     LiftPose.CORE_FLOOR -> Figure(
-        head = 0.22f to 0.26f, neck = 0.30f to 0.34f,
-        chest = 0.40f to 0.46f, navel = 0.48f to 0.56f,
-        sL = 0.34f to 0.38f, sR = 0.38f to 0.42f,
-        eL = 0.42f to 0.22f, eR = 0.44f to 0.26f,
-        wL = 0.54f to 0.18f, wR = 0.56f to 0.22f,
-        hL = 0.50f to 0.62f, hR = 0.52f to 0.66f,
-        kL = 0.66f to 0.46f, kR = 0.68f to 0.50f,
-        aL = 0.80f to 0.58f, aR = 0.82f to 0.62f,
+        head = 0.36f to 0.14f, neck = 0.40f to 0.24f,
+        chest = 0.44f to 0.36f, navel = 0.50f to 0.50f,
+        sL = 0.30f to 0.32f, sR = 0.58f to 0.34f,
+        eL = 0.38f to 0.44f, eR = 0.66f to 0.46f,
+        wL = 0.48f to 0.52f, wR = 0.72f to 0.54f,
+        hL = 0.42f to 0.56f, hR = 0.56f to 0.58f,
+        kL = 0.50f to 0.48f, kR = 0.64f to 0.50f,
+        aL = 0.58f to 0.72f, aR = 0.72f to 0.74f,
     )
     LiftPose.SEATED_MACHINE -> Figure(
-        head = 0.38f to 0.12f, neck = 0.38f to 0.22f,
-        chest = 0.40f to 0.34f, navel = 0.42f to 0.44f,
-        sL = 0.34f to 0.28f, sR = 0.46f to 0.30f,
-        eL = 0.56f to 0.32f, eR = 0.58f to 0.36f,
-        wL = 0.68f to 0.30f, wR = 0.70f to 0.34f,
-        hL = 0.40f to 0.50f, hR = 0.44f to 0.54f,
-        kL = 0.62f to 0.50f, kR = 0.64f to 0.54f,
-        aL = 0.64f to 0.76f, aR = 0.66f to 0.78f,
+        head = 0.46f to 0.10f, neck = 0.46f to 0.18f,
+        chest = 0.46f to 0.30f, navel = 0.46f to 0.44f,
+        sL = 0.28f to 0.28f, sR = 0.66f to 0.30f,
+        eL = 0.24f to 0.46f, eR = 0.70f to 0.48f,
+        wL = 0.22f to 0.62f, wR = 0.72f to 0.64f,
+        hL = 0.38f to 0.52f, hR = 0.56f to 0.54f,
+        kL = 0.36f to 0.70f, kR = 0.58f to 0.72f,
+        aL = 0.34f to 0.88f, aR = 0.56f to 0.90f,
     )
     LiftPose.CARRY -> Figure(
-        head = 0.50f to 0.07f, neck = 0.50f to 0.16f,
+        head = 0.50f to 0.06f, neck = 0.50f to 0.16f,
         chest = 0.50f to 0.26f, navel = 0.50f to 0.40f,
         sL = 0.20f to 0.22f, sR = 0.80f to 0.22f,
         eL = 0.16f to 0.42f, eR = 0.84f to 0.42f,
-        wL = 0.16f to 0.62f, wR = 0.84f to 0.62f,
-        hL = 0.38f to 0.48f, hR = 0.62f to 0.48f,
-        kL = 0.38f to 0.70f, kR = 0.62f to 0.70f,
+        wL = 0.14f to 0.60f, wR = 0.86f to 0.60f,
+        hL = 0.38f to 0.50f, hR = 0.62f to 0.50f,
+        kL = 0.38f to 0.72f, kR = 0.62f to 0.72f,
         aL = 0.38f to 0.92f, aR = 0.62f to 0.92f,
     )
     LiftPose.ANATOMY -> error("standing anatomy is drawTemperFigure")
@@ -406,8 +408,10 @@ private fun sourcePlates(pose: LiftPose): List<BodyPlate> {
     }
     val plates = when (pose) {
         LiftPose.ANATOMY -> emptyList()
-        LiftPose.HINGE, LiftPose.ARM_EXT, LiftPose.HIP ->
+        LiftPose.HINGE, LiftPose.ARM_EXT ->
             platesFor(BodyView.BACK)
+        LiftPose.HIP ->
+            platesFor(BodyView.BACK) + extra(BodyView.FRONT, CanonicalMuscle.CORE)
         LiftPose.VERTICAL_PULL, LiftPose.HORIZONTAL_PULL ->
             platesFor(BodyView.BACK) + extra(BodyView.FRONT, CanonicalMuscle.BICEPS)
         LiftPose.HORIZONTAL_PRESS ->
@@ -431,23 +435,7 @@ private fun sourcePlates(pose: LiftPose): List<BodyPlate> {
         LiftPose.ARM_CURL, LiftPose.CORE_FLOOR, LiftPose.CARRY ->
             platesFor(BodyView.FRONT) + extra(BodyView.BACK, CanonicalMuscle.GLUTES)
     }
-    return if (pose.isProfile) plates.filter { it.facesTheCamera() } else plates
-}
-
-/** Profile poses collapse left/right onto one silhouette; keep midline plus the camera side. */
-private val LiftPose.isProfile: Boolean
-    get() = this == LiftPose.HINGE ||
-        this == LiftPose.HORIZONTAL_PRESS ||
-        this == LiftPose.HORIZONTAL_PULL ||
-        this == LiftPose.HIP ||
-        this == LiftPose.CORE_FLOOR ||
-        this == LiftPose.SEATED_MACHINE
-
-private fun BodyPlate.facesTheCamera(): Boolean {
-    val minX = points.minOf { it.first }
-    val maxX = points.maxOf { it.first }
-    if (minX < 0.5f && maxX > 0.5f) return true
-    return (minX + maxX) * 0.5f >= 0.5f
+    return plates
 }
 
 private enum class PlateBone {
@@ -738,18 +726,22 @@ private fun hingeKit(equipment: EquipmentType, f: Figure) = when (equipment) {
     else -> emptyList()
 }
 
-private fun pressKit(equipment: EquipmentType, f: Figure) = when (equipment) {
-    EquipmentType.BARBELL, EquipmentType.SMITH ->
-        listOf(PoseInk.Rect(0.22f, 0.46f, 0.62f, 0.54f, null)) +
-            bar(f.wL.second, left = (f.wL.first - 0.16f).coerceAtLeast(0.02f), right = 0.50f)
-    EquipmentType.DUMBBELL -> dumbbell(f.wL.first, f.wL.second)
-    EquipmentType.MACHINE -> listOf(
-        PoseInk.Rect(0.22f, 0.46f, 0.62f, 0.54f, null),
-        PoseInk.Rect(0.06f, 0.16f, 0.14f, 0.84f, null),
-    )
-    EquipmentType.BODYWEIGHT -> listOf(PoseInk.Rect(0.22f, 0.46f, 0.62f, 0.54f, null))
-    else -> listOf(PoseInk.Rect(0.22f, 0.46f, 0.62f, 0.54f, null)) +
-        bar(f.wL.second, left = 0.10f, right = 0.50f)
+private fun pressKit(equipment: EquipmentType, f: Figure): List<PoseInk> {
+    val padTop = (f.chest.second + 0.04f).coerceIn(0.28f, 0.50f)
+    val bench = listOf(PoseInk.Rect(0.18f, padTop, 0.78f, (padTop + 0.10f).coerceAtMost(0.62f), null))
+    return when (equipment) {
+        EquipmentType.BARBELL, EquipmentType.SMITH ->
+            bench + bar(
+                f.wL.second,
+                left = (f.wL.first - 0.16f).coerceAtLeast(0.02f),
+                right = (f.wR.first + 0.16f).coerceAtMost(0.98f),
+            )
+        EquipmentType.DUMBBELL ->
+            bench + dumbbell(f.wL.first, f.wL.second) + dumbbell(f.wR.first, f.wR.second)
+        EquipmentType.MACHINE -> bench + listOf(PoseInk.Rect(0.06f, 0.16f, 0.14f, 0.84f, null))
+        EquipmentType.BODYWEIGHT -> bench
+        else -> bench + bar(f.wL.second, left = 0.10f, right = 0.78f)
+    }
 }
 
 private fun overheadKit(equipment: EquipmentType, f: Figure) = when (equipment) {
@@ -801,12 +793,19 @@ private fun extensionKit(equipment: EquipmentType, f: Figure) = when (equipment)
     else -> dumbbell((f.wL.first + f.wR.first) / 2f, (f.wL.second + f.wR.second) / 2f)
 }
 
-private fun hipKit(equipment: EquipmentType, f: Figure) = when (equipment) {
-    EquipmentType.BARBELL ->
-        bar(f.hL.second - 0.02f, left = (f.hL.first - 0.02f).coerceAtLeast(0.02f), right = 0.92f)
-    EquipmentType.MACHINE -> machineFrame()
-    EquipmentType.CABLE -> listOf(PoseInk.Rect(0.86f, 0.08f, 0.96f, 0.80f, null))
-    else -> emptyList()
+private fun hipKit(equipment: EquipmentType, f: Figure): List<PoseInk> {
+    val bench = listOf(
+        PoseInk.Rect(0.08f, 0.34f, 0.48f, 0.46f, null),
+        PoseInk.Rect(0.22f, 0.46f, 0.32f, 0.86f, null),
+    )
+    val load = when (equipment) {
+        EquipmentType.BARBELL ->
+            bar(f.hL.second, left = (f.hL.first - 0.06f).coerceAtLeast(0.02f), right = 0.92f)
+        EquipmentType.MACHINE -> machineFrame()
+        EquipmentType.CABLE -> listOf(PoseInk.Rect(0.86f, 0.08f, 0.96f, 0.80f, null))
+        else -> emptyList()
+    }
+    return bench + load
 }
 
 private fun coreKit(equipment: EquipmentType, f: Figure) = when (equipment) {
@@ -815,10 +814,12 @@ private fun coreKit(equipment: EquipmentType, f: Figure) = when (equipment) {
     else -> emptyList()
 }
 
-private fun seatedKit(equipment: EquipmentType) = when (equipment) {
-    EquipmentType.BODYWEIGHT, EquipmentType.BAND -> emptyList()
-    else -> machineFrame()
-}
+private fun seatedKit(@Suppress("UNUSED_PARAMETER") equipment: EquipmentType) = listOf(
+    PoseInk.Rect(0.30f, 0.48f, 0.78f, 0.56f, null),
+    PoseInk.Rect(0.70f, 0.18f, 0.80f, 0.56f, null),
+    PoseInk.Rect(0.32f, 0.56f, 0.40f, 0.88f, null),
+    PoseInk.Rect(0.68f, 0.56f, 0.76f, 0.88f, null),
+)
 
 private fun handBells(
     equipment: EquipmentType,

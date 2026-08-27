@@ -95,6 +95,17 @@ class LiftPoseTest {
     }
 
     @Test
+    fun bibleCamerasKeepBothLimbs() {
+        LiftPose.entries.filter { it != LiftPose.ANATOMY }.forEach { pose ->
+            val centroids = platesForPose(pose).map { plate ->
+                plate.points.map { it.first }.average()
+            }
+            assertTrue("$pose lost the left side", centroids.any { it < 0.45 })
+            assertTrue("$pose lost the right side", centroids.any { it > 0.55 })
+        }
+    }
+
+    @Test
     fun writeSilhouetteBoard() {
         val dir = File("/opt/cursor/artifacts")
         if (!dir.isDirectory) return
@@ -123,7 +134,7 @@ private val POSE_BOARD = listOf(
     PoseCell("V. pull", LiftPose.VERTICAL_PULL, EquipmentType.BODYWEIGHT, CanonicalMuscle.BACK, setOf(CanonicalMuscle.BICEPS, CanonicalMuscle.SHOULDERS)),
     PoseCell("Row", LiftPose.HORIZONTAL_PULL, EquipmentType.BARBELL, CanonicalMuscle.BACK, setOf(CanonicalMuscle.BICEPS, CanonicalMuscle.SHOULDERS)),
     PoseCell("Curl", LiftPose.ARM_CURL, EquipmentType.DUMBBELL, CanonicalMuscle.BICEPS, setOf(CanonicalMuscle.SHOULDERS, CanonicalMuscle.CORE)),
-    PoseCell("Ext", LiftPose.ARM_EXT, EquipmentType.CABLE, CanonicalMuscle.TRICEPS, setOf(CanonicalMuscle.SHOULDERS)),
+    PoseCell("Ext", LiftPose.ARM_EXT, EquipmentType.DUMBBELL, CanonicalMuscle.TRICEPS, setOf(CanonicalMuscle.SHOULDERS)),
     PoseCell("Hip", LiftPose.HIP, EquipmentType.BARBELL, CanonicalMuscle.GLUTES, setOf(CanonicalMuscle.HAMSTRINGS, CanonicalMuscle.CORE)),
     PoseCell("Core", LiftPose.CORE_FLOOR, EquipmentType.BODYWEIGHT, CanonicalMuscle.CORE, setOf(CanonicalMuscle.SHOULDERS)),
     PoseCell("Machine", LiftPose.SEATED_MACHINE, EquipmentType.MACHINE, CanonicalMuscle.QUADRICEPS, setOf(CanonicalMuscle.GLUTES, CanonicalMuscle.HAMSTRINGS)),

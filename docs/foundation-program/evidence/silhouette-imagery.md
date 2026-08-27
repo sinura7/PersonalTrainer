@@ -1,45 +1,44 @@
-# Silhouette imagery — 26 Aug 2026
+# Silhouette imagery — 27 Aug 2026
 
 One plate language for Library thumbs and the Body figure. Not a PNG pack.
 
+The owner locked an 18-still style bible (faceless athlete, pit, hairline
+seams, Heat3 primary / muted secondary). This packet traces those stills
+into Compose vertices. The stills are the quality bar, not shipping art.
+
 ## Why not generated bitmaps
 
-`GenerateImage` can make photoreal clay renders. They drift per prompt, fight
-Instrument (ADR-005), and 101 of them bloat the APK. Phase 8 already chose
-Compose-drawn plates. This packet keeps that decision and raises the density.
+The stills drift per prompt, fight Instrument (ADR-005), and 101 of them
+bloat the APK. Phase 8 already chose Compose-drawn plates. Live Body heat
+needs unlit geometry plus a fill, which a raster cannot do.
 
 ## What shipped
 
-- **Body tab.** Same `drawTemperFigure` plates. Quadratic corners plus a denser
-  skull so the standing figure reads as high-definition anatomy at every
-  density. Live weekly heat is unchanged. `BodyMap.kt` was not forked — it is
-  owned on the further-design vehicle.
-- **Library / picker / detail header.** A known `movementKey` draws a family
-  pose with working plates at fixed Heat3 and the kit in the silhouette
-  (bar, bells, cable stack, smith posts, machine frame). The corner badge
-  remains the second equipment read. Customs with no family keep the standing
-  figure.
-- **Coverage.** All 39 `MOVEMENT_FAMILIES` map to a non-standing pose. Every
-  built-in lights its primary on that pose.
+- **Body tab.** Standing `drawTemperFigure` plates densified to the unlit
+  front/back stills: six-pack, three quad heads, shin plates, split traps.
+  Live weekly heat is unchanged. `BodyMap.kt` was not forked — it is owned
+  on the further-design vehicle.
+- **Library / picker / detail header.** Family poses retarget to stills
+  03–16 (front, rear, or 3/4 — both limbs stay in frame). Working plates
+  at fixed Heat3. Kit in the silhouette: bar, bells, L-chair, hip bench,
+  pull-up bar. The corner badge remains the second equipment read.
+  Customs with no family keep the standing figure.
+- **Coverage.** All 39 `MOVEMENT_FAMILIES` map to a non-standing pose.
+  Every built-in lights its primary on that pose.
 
 ## What this is not
 
-Commissioned line-art, Coil, WebP, VectorDrawable packs, or writing `imageKey`
-on catalog rows. `imageKey` stays null and is still only ever read inside
-`ExerciseThumb`.
-
-Each library pose is the Temper figure on a skeleton: the same
-polygonal plates and hairline seams as Body, rigidly rotated onto
-family joints, Heat3 on the working plates, kit in the hands. Unlit
-plates stay Steel on a SteelDim underlay so the seams are body, not
-pit. The Body figure is still the standing muscle map (outline under
-live plates) — that is a heat diagram, not a pose tile.
+Commissioned line-art, Coil, WebP, VectorDrawable packs, or writing
+`imageKey` on catalog rows. `imageKey` stays null and is still only ever
+read inside `ExerciseThumb`. Instrument plates will never be a screenshot
+of the stills.
 
 ## Gate (this packet)
 
-- `./gradlew testDebugUnitTest` — 1332 tests, 0 failures
-- `./gradlew assembleDebug` — pass
-- `tools/preflight.sh` — OK; 922 domain tests; named-args 0 mismatches
+- `./gradlew testDebugUnitTest` — pending this turn
+- `./gradlew assembleDebug` — pending this turn
+- `tools/preflight.sh` — pending this turn
 
 Phone / emulator judging stays owner-side. Studio preview sheet is
-`ExerciseThumbGallery` (row, header, pose families, standing Body figure).
+`ExerciseThumbGallery`. SVG dumps: `silhouette-board.svg`,
+`body-figure-board.svg`.
