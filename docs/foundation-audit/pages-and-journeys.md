@@ -23,10 +23,10 @@ The primary application contains no mock screen. `ThemeGallery` and
 | State | Trigger | Rendered result |
 |---|---|---|
 | `UNKNOWN` | DataStore has not emitted | Blank frame to prevent route flash |
-| `SETUP` | `onboardingComplete == false` | Guided setup or custom week |
-| `APP` | `onboardingComplete == true` | Main shell and navigation |
+| `UNAVAILABLE` | Settings unreadable | Retry empty state |
+| `APP` | Settings readable | Main shell. First visit (`onboardingComplete == false`) shows Home plus a get-started sheet |
 
-The setup flow is not authentication. No login exists.
+The questionnaire is a pushed route from Home or Settings, not a launch replacement. No login exists.
 
 ### Bottom navigation
 
@@ -63,13 +63,13 @@ Runtime evidence: [live session bar](evidence/12-live-session-bar.png).
 
 **Steps**
 
-1. Guided/custom fork
-2. Lifting experience
+1. Strength, cardio, or both
+2. Lifting experience (skipped for cardio-only)
 3. Days per week
 4. Preferred weekdays or automatic spacing
 5. Training place/equipment
-6. Goal
-7. Emphasis
+6. Goal (skipped for cardio-only)
+7. Emphasis (skipped for cardio-only)
 8. Optional bodyweight
 9. Generated block preview
 
@@ -93,8 +93,7 @@ confirmation, warning when rebuilding around an existing program.
 
 - experience and goal choices are visually selected but do not expose an obvious explicit
   “selected” semantic in every custom card;
-- a first install cannot leave setup for an empty app, which is intentional but should be
-  treated as a product decision;
+- a first install opens Home with generate / build / workout; the questionnaire is optional;
 - bodyweight explains twelve-week use but is not connected to a general measurable-goal
   system;
 - the questionnaire cannot ask for multiple daily activity times or cardio intent.

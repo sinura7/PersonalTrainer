@@ -11,6 +11,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.domain.GetStartedCopy
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.WeekTwoCopy
@@ -69,6 +70,10 @@ fun ThisWeekCard(
     onReplayAnswers: () -> Unit,
     onPrimary: () -> Unit,
     onStartFree: () -> Unit,
+    setupComplete: Boolean = true,
+    offerSetupActions: Boolean = true,
+    onGenerateSchedule: () -> Unit = {},
+    onBuildWeek: () -> Unit = {},
 ) {
     val trainingToday = day?.takeUnless { it.isRest }
     val hasPlan = trainingToday != null || nextDay != null
@@ -109,7 +114,44 @@ fun ThisWeekCard(
             Text(reason, style = InstrumentType.caption, color = TextTertiary)
         }
         if (!hasPlan) {
-            if (hasRoutines) {
+            if (!setupComplete) {
+                Text(
+                    GetStartedCopy.EMPTY_CAPTION,
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                )
+                if (offerSetupActions) {
+                    PrimaryGymButton(
+                        text = GetStartedCopy.GENERATE,
+                        onClick = onGenerateSchedule,
+                        modifier = Modifier
+                            .padding(top = Metrics.space1)
+                            .testTag(HomeTags.GENERATE)
+                            .semantics { contentDescription = GetStartedCopy.GENERATE },
+                    )
+                    TextButton(onClick = onBuildWeek) {
+                        Text(
+                            GetStartedCopy.BUILD,
+                            style = InstrumentType.bodyStrong,
+                            color = TextSecondary,
+                        )
+                    }
+                    if (!sessionLive) {
+                        TextButton(
+                            onClick = onStartFree,
+                            modifier = Modifier
+                                .testTag(HomeTags.FREE)
+                                .semantics { contentDescription = GetStartedCopy.WORKOUT },
+                        ) {
+                            Text(
+                                GetStartedCopy.WORKOUT,
+                                style = InstrumentType.bodyStrong,
+                                color = TextSecondary,
+                            )
+                        }
+                    }
+                }
+            } else if (hasRoutines) {
                 Text(
                     WeekTwoCopy.CAPTION,
                     style = InstrumentType.caption,
@@ -138,7 +180,7 @@ fun ThisWeekCard(
                     modifier = Modifier.padding(top = Metrics.space1),
                 )
             }
-            if (!sessionLive) {
+            if (setupComplete && !sessionLive) {
                 TextButton(
                     onClick = onStartFree,
                     modifier = Modifier

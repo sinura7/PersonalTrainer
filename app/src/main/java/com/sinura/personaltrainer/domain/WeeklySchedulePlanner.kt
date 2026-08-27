@@ -94,6 +94,8 @@ object WeeklySchedulePlanner {
     }
 
     internal fun trainingDayIndices(count: Int): List<Int> = when (count.coerceIn(SchedulePreferences.MIN_DAYS, SchedulePreferences.MAX_DAYS)) {
+        // Default spacing leaves ~48 hours between hits of the same pattern on 1–4 day
+        // weeks (ACSM same-muscle rest for novices). Preferred days still win.
         1 -> listOf(3)
         2 -> listOf(0, 3)
         3 -> listOf(0, 2, 4)

@@ -33,7 +33,7 @@ object AccessibilityMatrix {
             id = "home",
             title = "Home",
             states = requiredStates,
-            voltAction = "Start today's planned session. Free workout stays quiet.",
+            voltAction = "Start today's planned session when a week is pinned. Generate a schedule on a first visit. Free workout stays quiet.",
             talkBackNotes = "Last session and days-since tiles merge into one name each.",
             automatedEvidence = true,
         ),
@@ -170,7 +170,7 @@ object AccessibilityMatrix {
             title = "Onboarding",
             states = requiredStates,
             voltAction = "Use this plan",
-            talkBackNotes = "Nothing writes until Use this plan. No notification prompt.",
+            talkBackNotes = "Nothing writes until Use this plan. No notification prompt. Opened from Home, not as a launch gate.",
             automatedEvidence = true,
         ),
         PagePass(

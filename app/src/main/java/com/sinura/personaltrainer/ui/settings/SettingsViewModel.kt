@@ -288,12 +288,9 @@ class SettingsViewModel @JvmOverloads constructor(
     )
 
     /**
-     * Sends the lifter back through the guided setup.
-     *
-     * Clearing the flag is the whole mechanism — the gate in the nav host observes it, so the
-     * setup screen replaces the app on the next frame with no navigation involved. Nothing
-     * else is touched: their routines, schedule and history are all still there when they come
-     * out the other side. Back on the fork restores the flag so the gate returns to APP.
+     * Kept for tests and any leftover caller. The Settings row now navigates
+     * to the questionnaire without flipping the launch gate — Home is always
+     * the shell, and the sheet only appears when setup is still incomplete.
      */
     fun rerunGuidedSetup() {
         viewModelScope.launch {

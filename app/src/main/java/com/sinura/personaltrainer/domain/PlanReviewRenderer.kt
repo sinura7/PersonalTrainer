@@ -26,11 +26,15 @@ object PlanReviewRenderer {
         )
         out.appendLine()
         out.appendLine("**How to read it.** Each block is one set of answers. The split is *derived*, never asked.")
-        out.appendLine("Sets, reps and rest come from `AddDefaults`, the same rule a hand-added lift uses.")
+        out.appendLine(
+            "Sets, reps and rest come from `ProgramDose` (age, goal, days) on top of " +
+                "`AddDefaults` (load type and role). A hand-added lift still uses `AddDefaults` alone.",
+        )
         out.appendLine("Lift order is compounds first — the lift that asks most of you should meet you fresh.")
+        out.appendLine("Strength weeks drop isolation slots; muscle weeks keep them; athletic weeks bias hinge, lunge, and carry.")
         out.appendLine()
         out.appendLine("**To change a judgment call** — which families make a session, or their order — edit")
-        out.appendLine("`RoutineGenerator.TEMPLATES`, re-render, and review the diff here.")
+        out.appendLine("`RoutineGenerator` templates, re-render, and review the diff here.")
         out.appendLine()
 
         TrainingPlace.entries.forEach { place ->
@@ -54,7 +58,7 @@ object PlanReviewRenderer {
                                 catalog,
                             )
                         }
-                        if (previous != null && previous == plan) return@forEach
+                        if (previous != null && previous.sameProgramAs(plan)) return@forEach
                         appendPlan(out, age, days, goal, plan)
                     }
                 }

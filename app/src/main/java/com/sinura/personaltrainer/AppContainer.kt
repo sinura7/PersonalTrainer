@@ -130,6 +130,9 @@ class AppContainer(context: Context) : AppDependencies {
 
     override val pendingAnswerReplay = MutableStateFlow(false)
 
+    override val pendingCustomWeek =
+        MutableStateFlow<com.sinura.personaltrainer.domain.CustomWeekLaunch?>(null)
+
     override val startTrainingDay: StartTrainingDay = StartTrainingDay(
         workoutRepository = workoutRepository,
         routineRepository = routineRepository,

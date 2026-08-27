@@ -43,8 +43,6 @@ internal const val CATALOG_MISSING_MESSAGE =
  * stated in one readable place instead of emerging from a `when` on an Int.
  */
 enum class OnboardingStep {
-    /** Build it for me, or I'll do it myself. Everything after this is the guided path. */
-    FORK,
     FOCUS,
     EXPERIENCE,
     DAYS_PER_WEEK,
@@ -56,7 +54,7 @@ enum class OnboardingStep {
     PREVIEW,
     ;
 
-    val isQuestion: Boolean get() = this != FORK && this != PREVIEW
+    val isQuestion: Boolean get() = this != PREVIEW
 
     companion object {
         private val LIFT_ONLY = setOf(EXPERIENCE, GOAL, EMPHASIS)
@@ -65,12 +63,12 @@ enum class OnboardingStep {
             entries.filter { it.isQuestion }.filter { focus != TrainingFocus.CARDIO || it !in LIFT_ONLY }
 
         fun path(focus: TrainingFocus): List<OnboardingStep> =
-            listOf(FORK) + questionsFor(focus) + listOf(PREVIEW)
+            questionsFor(focus) + listOf(PREVIEW)
     }
 }
 
 data class OnboardingUiState(
-    val step: OnboardingStep = OnboardingStep.FORK,
+    val step: OnboardingStep = OnboardingStep.FOCUS,
     val answers: OnboardingAnswers = OnboardingAnswers(),
     /** Rebuilt on every answer, so the preview is never stale. Null until the catalog loads. */
     val preview: PlanBlueprint? = null,
@@ -80,7 +78,6 @@ data class OnboardingUiState(
     /** Display unit for the bodyweight wheel. Pending until apply; abandon leaves DataStore. */
     val weightUnit: WeightUnit = WeightUnit.LBS,
 ) {
-    /** 1-based position among the questions, for the progress line. Zero on fork and preview. */
     val questionNumber: Int
         get() {
             if (!step.isQuestion) return 0
@@ -102,7 +99,7 @@ class OnboardingViewModel @JvmOverloads constructor(
     application: Application,
     container: AppDependencies = application.appContainer(),
 ) : AppViewModel(application, container) {
-    private val step = MutableStateFlow(OnboardingStep.FORK)
+    private val step = MutableStateFlow(OnboardingStep.FOCUS)
     private val answers = MutableStateFlow(OnboardingAnswers())
     private val applying = MutableStateFlow(false)
     private val error = MutableStateFlow<String?>(null)
@@ -173,11 +170,8 @@ class OnboardingViewModel @JvmOverloads constructor(
             // `observeAll().first()` took whatever the catalog tables held at the instant of
             // subscription — and on the launch this whole phase exists for, that is nothing.
             // A fresh install seeds the catalog from Application.onCreate, fire and forget on
-            // an IO dispatcher, while the gate puts this screen up on the first composed
-            // frame. Room emits the empty table immediately, `first()` takes it, and the field
-            // is never read again: the preview stays null, the last step of setup says
-            // "Building it…" forever, and "Use this plan" stays disabled with no way to
-            // finish. Collecting means the seed's arrival is what fills the preview in.
+            // an IO dispatcher, while Home can compose before the seed finishes. Collecting
+            // means the seed's arrival is what fills the preview in.
             container.exerciseRepository.observeAll()
                 .catch { thrown ->
                     AppLog.w(TAG, "Reading the catalog for setup failed", thrown)
@@ -213,9 +207,9 @@ class OnboardingViewModel @JvmOverloads constructor(
         val path = OnboardingStep.path(answers.value.focus)
         val index = path.indexOf(step.value)
         if (index <= 0) {
-            // Settings re-run flipped the gate to SETUP. Back on the fork used to
-            // call onFinished as a no-op and leave them trapped. A first install
-            // still has no program and stays here until they pick a path.
+            // First question: pop back to Home. If Settings left complete=false with
+            // a program already on the phone, restore the flag so Home does not keep
+            // offering a first-visit sheet over an existing week.
             leaveExistingProgram()
             return false
         }

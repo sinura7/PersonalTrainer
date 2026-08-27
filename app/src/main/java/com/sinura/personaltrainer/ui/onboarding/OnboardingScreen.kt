@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.onboarding
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,7 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -71,25 +71,11 @@ import com.sinura.personaltrainer.ui.theme.VoltDim
 import com.sinura.personaltrainer.domain.Weekday
 
 /**
- * The guided setup: seven questions, then the actual week.
+ * The guided setup: questions, then the actual week.
  *
- * The screen this app was missing. Everything else assumed a lifter who already had routines
- * and a pinned week; a new install had neither, no way to get them but a blank routine editor,
- * and nothing anywhere saying that was the order. This is the path in.
- *
- * Three rules it holds to, all of them the owner's brief rather than convention:
- *
- * - **One question per screen.** Seven short decisions read as progress; one form with seven fields
- *   reads as work.
- * - **Every question changes the plan.** Height and body type were both proposed and both cut —
- *   nothing in a strength app consumes a height, and somatotype does not predict how anyone
- *   responds to training. A question whose answer changes nothing is a screen the lifter pays
- *   for and gets nothing back.
- * - **The split is never asked.** It is derived from three answers that determine it. Asking a
- *   new lifter to choose between push/pull/legs and upper/lower is asking them to compare two
- *   things they have no basis to compare.
- *
- * Nothing is written until "Use this plan". Backing out leaves the app exactly as it was.
+ * Opened from Home's get-started sheet or Settings → Add a new block. Home is
+ * the front door; this screen is the generated-schedule path. The split is
+ * never asked — it is derived. Nothing is written until "Use this plan".
  */
 @Composable
 fun OnboardingScreen(
@@ -102,18 +88,16 @@ fun OnboardingScreen(
     LaunchedEffect(finished) {
         if (finished) onFinished()
     }
+    BackHandler { if (!viewModel.back()) onFinished() }
 
-    // Its own Scaffold, because setup is composed OUTSIDE the app's nav Scaffold — it owns the
-    // whole screen, with no tabs and no live bar. Without one nothing handles the status-bar
-    // inset and the first thing a new install shows is a header under the clock.
-    Scaffold { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = Metrics.gutter),
-            verticalArrangement = Arrangement.spacedBy(Metrics.space4),
-        ) {
+    // Inside the app NavHost, so the parent Scaffold already owns the status-bar
+    // inset. A second Scaffold here used to double it when this was a pushed route.
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = Metrics.gutter),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space4),
+    ) {
             OnboardingHeader(
                 state = state,
                 onBack = { if (!viewModel.back()) onFinished() },
@@ -126,10 +110,6 @@ fun OnboardingScreen(
             }
 
             when (state.step) {
-                OnboardingStep.FORK -> ForkStep(
-                    onGuided = viewModel::beginGuided,
-                    onOwn = { onBuildMyOwn(null, null) },
-                )
                 OnboardingStep.FOCUS -> ChoiceStep(
                     title = "What do you want to record?",
                     blurb = "Strength, cardio, or both. Nothing is written until you accept a plan.",
@@ -189,7 +169,6 @@ fun OnboardingScreen(
                     onOwn = { onBuildMyOwn(state.answers, state.weightUnit) },
                 )
             }
-        }
     }
 }
 
@@ -478,22 +457,6 @@ private fun BodyweightStep(
 }
 
 @Composable
-private fun ForkStep(onGuided: () -> Unit, onOwn: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap)) {
-        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-            Text("Let's get you training", style = InstrumentType.display, color = TextPrimary)
-            Text(
-                "Seven quick questions and you'll have a week of sessions, with the lifts already in them.",
-                style = InstrumentType.body,
-                color = TextSecondary,
-            )
-        }
-        PrimaryGymButton(text = "Build my plan", onClick = onGuided)
-        SecondaryGymButton(text = "I'll build my own", onClick = onOwn)
-    }
-}
-
-@Composable
 private fun PreviewStep(
     state: OnboardingUiState,
     onApply: () -> Unit,
@@ -509,8 +472,16 @@ private fun PreviewStep(
             QuestionTitle(
                 "Here's your block",
                 plan?.let {
-                    "${OnboardingPreviewCopy.headline(state.answers, it)}. " +
-                        "${TrainingBlock.DEFAULT_WEEKS} weeks of ${it.splitStyle.displayName}."
+                    buildString {
+                        append(OnboardingPreviewCopy.headline(state.answers, it))
+                        append(". ")
+                        append("${TrainingBlock.DEFAULT_WEEKS} weeks of ${it.splitStyle.displayName}.")
+                        val why = OnboardingPreviewCopy.why(state.answers, it)
+                        if (why.isNotBlank()) {
+                            append(" ")
+                            append(why)
+                        }
+                    }
                 } ?: (state.error ?: "Building it…"),
             )
         }

@@ -53,6 +53,8 @@ interface AppDependencies {
     val pendingWeekSuggestion: MutableStateFlow<Boolean>
     /** Home arms this; Plan consumes it once and runs [com.sinura.personaltrainer.ui.plan.PlanViewModel.replayStoredAnswers]. */
     val pendingAnswerReplay: MutableStateFlow<Boolean>
+    /** Home / onboarding arms this; the custom-week route consumes it once. */
+    val pendingCustomWeek: MutableStateFlow<com.sinura.personaltrainer.domain.CustomWeekLaunch?>
     val startTrainingDay: StartTrainingDay
     val backupRepository: BackupRepository
     val activityRepository: ActivityRepository

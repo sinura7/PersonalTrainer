@@ -115,6 +115,7 @@ import java.util.Date
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onOpenGuidedSetup: () -> Unit = {},
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val selectedUnit by viewModel.weightUnit.collectAsStateWithLifecycle()
@@ -251,7 +252,7 @@ fun SettingsScreen(
                 onRestoreSafety = viewModel::requestSafetyRestore,
                 onDeleteSafety = { id -> pendingSafetyDeleteId = id },
             )
-            PlanSetupSection(onRerun = viewModel::rerunGuidedSetup)
+            PlanSetupSection(onRerun = onOpenGuidedSetup)
             if (BuildConfig.DEBUG) {
                 FoundationGenerationSection()
             }

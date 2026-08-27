@@ -37,10 +37,15 @@ data class PlanBlueprint(
     val splitStyle: SplitStyle,
     val routines: List<BlueprintRoutine>,
     val days: List<BlueprintDay>,
+    val trace: RuleTrace? = null,
 ) {
     fun routineFor(day: BlueprintDay): BlueprintRoutine? =
         day.routineKey?.let { key -> routines.firstOrNull { it.key == key } }
 
     val trainingDayCount: Int get() = days.count { !it.isRest }
     val liftCount: Int get() = routines.sumOf { it.lifts.size }
+
+    /** Lift list, split, and pins — ignores the explanation trace. */
+    fun sameProgramAs(other: PlanBlueprint): Boolean =
+        splitStyle == other.splitStyle && routines == other.routines && days == other.days
 }

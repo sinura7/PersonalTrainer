@@ -31,7 +31,7 @@ class AccessibilityMatrixTest {
             assertFalse("physical TalkBack is still outstanding", page.physicalTalkBack)
         }
         assertEquals(
-            "Start today's planned session. Free workout stays quiet.",
+            "Start today's planned session when a week is pinned. Generate a schedule on a first visit. Free workout stays quiet.",
             AccessibilityMatrix.page("home").voltAction,
         )
     }

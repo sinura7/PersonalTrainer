@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class OnboardingPreviewCopyTest {
@@ -19,5 +20,14 @@ class OnboardingPreviewCopyTest {
             "Cardio logging is ready. A lift week is not generated.",
             OnboardingPreviewCopy.headline(answers, plan),
         )
+        assertEquals("", OnboardingPreviewCopy.why(answers, plan))
+    }
+
+    @Test
+    fun aLiftWeekHeadlineNamesTheSplitWhy() {
+        val answers = OnboardingAnswers(daysPerWeek = 3, goal = TrainingGoal.GENERAL)
+        val plan = RoutineGenerator.generate(answers, emptyList())
+        val why = OnboardingPreviewCopy.why(answers, plan)
+        assertTrue(why.contains("full body"))
     }
 }

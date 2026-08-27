@@ -14,6 +14,12 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 27 Aug 2026 — First visit opens Home. Generate a schedule, build a
+> week, or start a workout. The questionnaire is a pushed route, not a
+> launch gate. Generated weeks size sets/reps from age, goal, and days
+> (ACSM / Schoenfeld landmarks), emit a `RuleTrace`, and keep strength
+> sessions on compounds.
+>
 > 27 Aug 2026 — Live testing is Temper Debug beside gym-floor Temper.
 > Obtainium watches signed GitHub Releases. Cursor lands on `trunk`.
 >

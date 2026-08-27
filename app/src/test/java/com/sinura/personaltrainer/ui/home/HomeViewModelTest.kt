@@ -219,6 +219,23 @@ class HomeViewModelTest {
         assertTrue(deps.pendingAnswerReplay.value)
     }
 
+    @Test
+    fun firstInstallIsNotSetupComplete() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        val state = viewModel!!.uiState.first { !it.isLoading }
+        assertFalse(state.setupComplete)
+    }
+
+    @Test
+    fun aFinishedSetupHidesTheStarter() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps.preferencesRepository.setOnboardingComplete(true)
+        viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        val state = viewModel!!.uiState.first { !it.isLoading }
+        assertTrue(state.setupComplete)
+    }
+
     private fun hint() = ProgressionHint(
         exerciseId = "ex-squat",
         exerciseName = "Squat",

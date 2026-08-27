@@ -155,6 +155,8 @@ class FakeAppDependencies(
     }
     override val pendingWeekSuggestion = MutableStateFlow(false)
     override val pendingAnswerReplay = MutableStateFlow(false)
+    override val pendingCustomWeek =
+        MutableStateFlow<com.sinura.personaltrainer.domain.CustomWeekLaunch?>(null)
     override val startTrainingDay: StartTrainingDay = StartTrainingDay(
         workoutRepository = workoutRepository,
         routineRepository = routineRepository,

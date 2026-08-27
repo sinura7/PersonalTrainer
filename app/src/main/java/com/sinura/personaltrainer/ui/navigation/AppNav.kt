@@ -1,6 +1,8 @@
 package com.sinura.personaltrainer.ui.navigation
 
+import android.app.Application
 import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -34,10 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -55,11 +54,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.sinura.personaltrainer.domain.DataHealthCopy
+import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.CanonicalMuscle
+import com.sinura.personaltrainer.domain.CustomWeekLaunch
+import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.MuscleNormalizer
-import com.sinura.personaltrainer.domain.OnboardingAnswers
-import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -127,6 +126,8 @@ sealed class Route(val path: String) {
         fun create(activityId: String): String = "activity-summary/$activityId"
     }
     data object Settings : Route("settings")
+    data object Onboarding : Route("onboarding")
+    data object CustomWeek : Route("custom-week")
     data object Goals : Route("goals")
     data object Progress : Route("progress")
     data object Library : Route("library") {
@@ -207,17 +208,12 @@ fun PersonalTrainerNav(
 ) {
     val weightUnit by settingsViewModel.weightUnit.collectAsStateWithLifecycle()
     val gate by gateViewModel.gate.collectAsStateWithLifecycle()
-    // Set when setup is left via "I'll build my own", and consumed once the app is up. Held
-    // here rather than passed through the gate because the NavController it needs does not
-    // exist until the app side of the branch is composing.
-    var buildingOwn by rememberSaveable { mutableStateOf(false) }
-    var answersOwnRaw by rememberSaveable { mutableStateOf("") }
-    var unitOwnRaw by rememberSaveable { mutableStateOf("") }
+    val application = LocalContext.current.applicationContext as Application
+    val container = remember(application) { application.appContainer() }
 
     when (gate) {
-        // Nothing, deliberately. A default of either side flashes the wrong screen on every
-        // cold start; on a first install that flash is the empty planless Home this phase
-        // exists to stop anyone seeing.
+        // Nothing, deliberately. DataStore has not spoken; flashing Home or the
+        // settings-failed empty state on that frame is worse than a blank one.
         OnboardingGate.UNKNOWN -> return
         OnboardingGate.UNAVAILABLE -> {
             EmptyState(
@@ -229,35 +225,6 @@ fun PersonalTrainerNav(
                     .fillMaxSize()
                     .padding(Metrics.gutter),
             )
-            return
-        }
-        OnboardingGate.SETUP -> {
-            // Inside the unit provider, like every other screen. Setup was composed outside it
-            // and so read the static KG default rather than the stored preference — which does
-            // not matter on a true first run, where nothing has been chosen yet, but setup is
-            // re-enterable from Settings and an lbs lifter was being asked their bodyweight in
-            // unlabelled kilograms.
-            CompositionLocalProvider(LocalWeightUnit provides weightUnit) {
-                if (buildingOwn) {
-                    val answers = OnboardingAnswers.decodeDraft(answersOwnRaw)
-                    CustomWeekScreen(
-                        onFinished = {},
-                        onBack = { buildingOwn = false },
-                        preferredDays = answers?.preferredDays.orEmpty(),
-                        answers = answers,
-                        pendingWeightUnit = unitOwnRaw.takeIf { it.isNotBlank() }?.let(WeightUnit::fromStorage),
-                    )
-                } else {
-                    OnboardingScreen(
-                        onFinished = {},
-                        onBuildMyOwn = { answers, unit ->
-                            answersOwnRaw = answers?.let { OnboardingAnswers.encodeDraft(it) }.orEmpty()
-                            unitOwnRaw = unit?.storageKey.orEmpty()
-                            buildingOwn = true
-                        },
-                    )
-                }
-            }
             return
         }
         OnboardingGate.APP -> Unit
@@ -430,6 +397,11 @@ fun PersonalTrainerNav(
                         onOpenSettings = { navController.navigate(Route.Settings.path) },
                         onOpenGoals = { navController.navigate(Route.Goals.path) },
                         onOpenLibrary = { navController.navigate(Route.Library.create(null)) },
+                        onGenerateSchedule = { navController.navigate(Route.Onboarding.path) },
+                        onBuildWeek = {
+                            container.pendingCustomWeek.value = CustomWeekLaunch()
+                            navController.navigate(Route.CustomWeek.path)
+                        },
                     )
                 }
                 composable(Route.Progress.path) {
@@ -472,7 +444,31 @@ fun PersonalTrainerNav(
                 composable(Route.Settings.path) {
                     SettingsScreen(
                         onBack = { navController.popBackStack() },
+                        onOpenGuidedSetup = { navController.navigate(Route.Onboarding.path) },
                         viewModel = settingsViewModel,
+                    )
+                }
+                composable(Route.Onboarding.path) {
+                    OnboardingScreen(
+                        onFinished = {
+                            navController.popBackStack(Route.Home.path, inclusive = false)
+                        },
+                        onBuildMyOwn = { answers, unit ->
+                            container.pendingCustomWeek.value = CustomWeekLaunch(answers, unit)
+                            navController.navigate(Route.CustomWeek.path)
+                        },
+                    )
+                }
+                composable(Route.CustomWeek.path) {
+                    val launch by container.pendingCustomWeek.collectAsStateWithLifecycle()
+                    CustomWeekScreen(
+                        onFinished = {
+                            navController.popBackStack(Route.Home.path, inclusive = false)
+                        },
+                        onBack = { navController.popBackStack() },
+                        preferredDays = launch?.answers?.preferredDays.orEmpty(),
+                        answers = launch?.answers,
+                        pendingWeightUnit = launch?.unit,
                     )
                 }
                 composable(Route.Goals.path) {

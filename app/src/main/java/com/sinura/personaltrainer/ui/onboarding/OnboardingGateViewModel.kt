@@ -18,20 +18,19 @@ import kotlinx.coroutines.flow.stateIn
 enum class OnboardingGate {
     /** The flag has not been read yet. Show nothing — see the note in the view model. */
     UNKNOWN,
-    SETUP,
     APP,
     /** Settings could not be read. Not a first install. */
     UNAVAILABLE,
 }
 
 /**
- * Decides whether a launch goes to setup or to the app.
+ * Decides whether a launch can compose the app shell.
  *
- * [OnboardingGate.UNKNOWN] is a real state and the host must render nothing for it. DataStore
- * reads are asynchronous, so defaulting to APP would show Home for a frame or two on every
- * cold start and then replace it — which on a first install is a flash of exactly the empty,
- * planless screen this whole phase exists to stop anyone seeing. Defaulting to SETUP would be
- * worse still, flashing a questionnaire at everybody who already finished it.
+ * First visit lands on Home. The questionnaire is a pushed route from the
+ * get-started sheet, not a replacement for the shell. [OnboardingGate.UNKNOWN]
+ * still renders nothing: DataStore is asynchronous, and flashing the settings-
+ * failed empty state (or a half-built Home) on every cold start is worse than
+ * a blank frame.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class OnboardingGateViewModel @JvmOverloads constructor(
@@ -55,7 +54,7 @@ class OnboardingGateViewModel @JvmOverloads constructor(
 }
 
 internal fun gateFromHealth(health: DataHealth<Boolean>): OnboardingGate = when (health) {
-    is DataHealth.Available -> if (health.value) OnboardingGate.APP else OnboardingGate.SETUP
-    is DataHealth.Degraded -> if (health.lastValue) OnboardingGate.APP else OnboardingGate.SETUP
+    is DataHealth.Available -> OnboardingGate.APP
+    is DataHealth.Degraded -> OnboardingGate.APP
     is DataHealth.Unavailable -> OnboardingGate.UNAVAILABLE
 }
