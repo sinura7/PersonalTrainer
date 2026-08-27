@@ -41,6 +41,19 @@ def main() -> int:
             findings.append("verification-metadata.xml  verify-metadata must be true")
         if body.count("<sha256") < 20:
             findings.append("verification-metadata.xml  sha256 component set looks empty")
+        if '<trust file=".*-sources[.]jar" regex="true"/>' not in body:
+            findings.append("verification-metadata.xml  Studio sources jars must stay trusted")
+        if '<trust file=".*-javadoc[.]jar" regex="true"/>' not in body:
+            findings.append("verification-metadata.xml  javadoc jars must stay trusted")
+        if '<trust group="gradle" name="gradle" file=".*-src[.]zip" regex="true"/>' not in body:
+            findings.append("verification-metadata.xml  Gradle distribution src.zip must stay trusted")
+        for host_jar in (
+            "aapt2-8.9.2-12782657-linux.jar",
+            "aapt2-8.9.2-12782657-windows.jar",
+            "aapt2-8.9.2-12782657-osx.jar",
+        ):
+            if host_jar not in body:
+                findings.append(f"verification-metadata.xml  missing host aapt2 {host_jar}")
 
     print(f"{len(findings)} supply-chain finding(s)")
     for item in findings:
