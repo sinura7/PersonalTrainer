@@ -408,9 +408,10 @@ class PreferencesRepository(
      *
      * @param bodyweightKg null is a real value — "never told us". Out-of-range numbers are
      * dropped to null rather than clamped, because a stored 900 is corruption, not a claim.
-     * @param onboardingComplete false here really does send the next launch to the guided
-     * setup, so the caller — not this function — is responsible for not passing false to
-     * someone whose history says otherwise. See the call site in LocalBackupRepository.
+     * @param onboardingComplete false here is a first-visit Home (get-started sheet),
+     * not a launch that replaces the shell with the questionnaire. The caller — not
+     * this function — is responsible for not passing false to someone whose history
+     * says otherwise. See the call site in LocalBackupRepository.
      * @param dismissedCollisionIds replaces rather than merges. A restore replaces the whole
      * library, so decisions about the old library have nothing left to refer to.
      */
