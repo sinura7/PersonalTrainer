@@ -33,34 +33,34 @@ class StillHeatTest {
 
     @Test
     fun aSquareStillCropsToTheFigureBox() {
-        val (offset, size) = stillSrc(width = 100, height = 100, dstAspect = FIGURE_ASPECT)
-        assertEquals(52, size.width)
-        assertEquals(100, size.height)
-        assertEquals(24, offset.x)
-        assertEquals(0, offset.y)
+        val (srcOffset, srcSize) = stillSrc(width = 100, height = 100, dstAspect = FIGURE_ASPECT)
+        assertEquals(52, srcSize.width)
+        assertEquals(100, srcSize.height)
+        assertEquals(24, srcOffset.x)
+        assertEquals(0, srcOffset.y)
     }
 
     @Test
     fun aTallStillCropsVertically() {
-        val (offset, size) = stillSrc(width = 52, height = 200, dstAspect = FIGURE_ASPECT)
-        assertEquals(52, size.width)
-        assertEquals(100, size.height)
-        assertEquals(0, offset.x)
-        assertEquals(50, offset.y)
+        val (srcOffset, srcSize) = stillSrc(width = 52, height = 200, dstAspect = FIGURE_ASPECT)
+        assertEquals(52, srcSize.width)
+        assertEquals(100, srcSize.height)
+        assertEquals(0, srcOffset.x)
+        assertEquals(50, srcOffset.y)
     }
 
     @Test
     fun theShippedStandingCropKeepsThePerson() {
         // The 768 stills' figure lives at x 210–560. Center-crop to 0.52
         // must not clip the arms.
-        val (offset, size) = stillSrc(width = 768, height = 768, dstAspect = FIGURE_ASPECT)
-        assertTrue("crop starts too far right: ${offset.x}", offset.x <= 210)
+        val (srcOffset, srcSize) = stillSrc(width = 768, height = 768, dstAspect = FIGURE_ASPECT)
+        assertTrue("crop starts too far right: ${srcOffset.x}", srcOffset.x <= 210)
         assertTrue(
-            "crop ends too far left: ${offset.x + size.width}",
-            offset.x + size.width >= 560,
+            "crop ends too far left: ${srcOffset.x + srcSize.width}",
+            srcOffset.x + srcSize.width >= 560,
         )
-        assertEquals(0, offset.y)
-        assertEquals(768, size.height)
+        assertEquals(0, srcOffset.y)
+        assertEquals(768, srcSize.height)
     }
 
     @Test

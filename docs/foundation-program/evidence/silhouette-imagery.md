@@ -30,6 +30,6 @@ still is the person; heat is a regional wash.
 
 ## Gate (this packet)
 
-- `./gradlew testDebugUnitTest` — pending this overlay pass
-- `./gradlew assembleDebug` — pending this overlay pass
-- `tools/preflight.sh` — pending this overlay pass
+- `./gradlew testDebugUnitTest` — 1341 tests, 0 failures
+- `./gradlew assembleDebug` — pass
+- `tools/preflight.sh` — OK; 922 domain tests; named-args 0 mismatches
