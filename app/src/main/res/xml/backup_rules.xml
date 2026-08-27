@@ -19,6 +19,10 @@
     <exclude domain="database" path="personal_trainer.db-journal" />
     <exclude domain="database" path="personal_trainer.db-wal" />
     <exclude domain="database" path="personal_trainer.db-shm" />
+    <exclude domain="database" path="temper.db" />
+    <exclude domain="database" path="temper.db-journal" />
+    <exclude domain="database" path="temper.db-wal" />
+    <exclude domain="database" path="temper.db-shm" />
     <exclude domain="file" path="datastore" />
     <exclude domain="file" path="safety-snapshots" />
     <exclude domain="file" path="restore-journal" />

@@ -37,6 +37,14 @@ class GoalCopyTest {
     }
 
     @Test
+    fun deleteConfirmDoesNotClaimSessionsAreRemoved() {
+        assertEquals("Delete this goal?", GoalCopy.DELETE_TITLE)
+        assertTrue(GoalCopy.DELETE_BODY.contains("Logged sessions stay"))
+        assertFalse(GoalCopy.DELETE_BODY.contains("streak", ignoreCase = true))
+        assertEquals("Delete", GoalCopy.DELETE_CONFIRM)
+    }
+
+    @Test
     fun featuredReturnsNullWhenThereAreNoSnapshots() {
         assertEquals(null, GoalCopy.featured(emptyList()))
     }

@@ -218,14 +218,24 @@ fun ExerciseDetailScreen(
                         }
                     }
                     item(key = "all-time-volume") {
-                        StatTile(
-                            label = "volume",
-                            value = groupedNumber(history.lifetimeVolumeKg, unit),
-                            unit = unit.suffix,
-                        )
+                        if (repsAreTheMeasure) {
+                            StatTile(
+                                label = "reps",
+                                value = history.lifetimeBodyweightReps.toString(),
+                            )
+                        } else {
+                            StatTile(
+                                label = "volume",
+                                value = groupedNumber(history.lifetimeVolumeKg, unit),
+                                unit = unit.suffix,
+                            )
+                        }
                     }
 
                     item(key = "e1rm") {
+                        val prDisplay = history.records[PersonalRecordKind.ESTIMATED_ONE_REP_MAX]
+                            ?.value
+                            ?.let { WeightConverter.toDisplayValue(it, unit) }
                         TrendCard(
                             title = "Estimated 1RM",
                             values = estimates,
@@ -245,6 +255,7 @@ fun ExerciseDetailScreen(
                             unit = unit,
                             line = true,
                             grouped = false,
+                            prValue = prDisplay,
                             modifier = Modifier.padding(top = SECTION_LEAD),
                         )
                     }
@@ -563,6 +574,7 @@ private fun TrendCard(
     line: Boolean,
     grouped: Boolean,
     modifier: Modifier = Modifier,
+    prValue: Double? = null,
 ) {
     GymCard(modifier = modifier) {
         if (values.size < MIN_POINTS_FOR_TREND) {
@@ -583,6 +595,7 @@ private fun TrendCard(
                 deltaIsGain = latest >= previous,
                 line = line,
                 contentDescription = trendDescription(title, values, pointNoun, unit, grouped),
+                prValue = prValue,
             )
         }
     }

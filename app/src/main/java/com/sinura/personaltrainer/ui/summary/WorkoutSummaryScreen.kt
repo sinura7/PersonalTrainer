@@ -69,7 +69,6 @@ import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
-import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import kotlinx.coroutines.delay
 import java.text.DateFormat
@@ -216,7 +215,7 @@ private fun SummaryHero(summary: WorkoutSummary, unit: WeightUnit) {
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-        Kicker("Workout complete", color = Volt)
+        Kicker("Workout complete")
         Text(
             summary.title,
             style = InstrumentType.title,

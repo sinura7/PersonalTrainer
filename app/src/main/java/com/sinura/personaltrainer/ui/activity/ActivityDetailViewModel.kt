@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
+import com.sinura.personaltrainer.domain.ActivityDetailCopy
 import com.sinura.personaltrainer.domain.ActivitySession
 import com.sinura.personaltrainer.domain.cardioMinutes
 import com.sinura.personaltrainer.domain.strengthWork
@@ -23,6 +24,7 @@ data class ActivityDetailUiState(
     val strengthSetCount: Int = 0,
     val cardioMinutes: Int = 0,
     val volumeKg: Double = 0.0,
+    val durationMinutes: Int = 0,
 )
 
 class ActivityDetailViewModel @JvmOverloads constructor(
@@ -46,12 +48,14 @@ class ActivityDetailViewModel @JvmOverloads constructor(
                     return@runCatchingCancellable
                 }
                 val work = session.strengthWork()
+                val cardioMinutes = session.cardioMinutes()
                 _uiState.value = ActivityDetailUiState(
                     isLoading = false,
                     session = session,
                     strengthSetCount = session.strengthSetCount(),
-                    cardioMinutes = session.cardioMinutes(),
+                    cardioMinutes = cardioMinutes,
                     volumeKg = work.volumeKg,
+                    durationMinutes = ActivityDetailCopy.receiptDurationMinutes(session, cardioMinutes),
                 )
             }.onFailure { thrown ->
                 AppLog.w(TAG, "Loading activity detail failed", thrown)

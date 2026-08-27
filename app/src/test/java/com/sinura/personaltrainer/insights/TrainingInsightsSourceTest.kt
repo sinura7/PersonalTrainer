@@ -232,6 +232,7 @@ class TrainingInsightsSourceTest {
         exerciseRepository = deps.exerciseRepository,
         preferencesRepository = deps.preferencesRepository,
         scheduleRepository = deps.scheduleRepository,
+        activityRepository = deps.activityRepository,
         computeDispatcher = computeDispatcher,
         nowMs = { NOW_MS },
         zone = { ZONE },

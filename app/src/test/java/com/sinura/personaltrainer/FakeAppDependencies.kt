@@ -111,7 +111,8 @@ class FakeAppDependencies(
             bodyweightDao = database.bodyweightDao(),
             trainingBlockDao = database.trainingBlockDao(),
         )
-    override val activityRepository: ActivityRepository = ActivityRepository(database)
+    override val activityRepository: ActivityRepository =
+        ActivityRepository(database, dbMaintenance = dbMaintenance)
     override val confirmActivity: ConfirmActivity =
         ConfirmActivity(activityRepository, IdFactory.Uuid, JvmTime)
     override val startLiveActivity: StartLiveActivity =

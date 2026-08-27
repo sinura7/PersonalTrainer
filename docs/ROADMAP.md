@@ -14,6 +14,22 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 26 Aug 2026 — Audit leftovers on the further-design vehicle: lighter-week
+> and "moved most" captions are not Volt; Tune Done and a met goal are
+> status, not the act; a noon-stamped receipt omits duration; rest
+> controls have no emphasised fill. One-live confirm shares the start
+> lock; History/Goals/insights read activity summaries; named-args
+> ignores Compose `path(fill)`; bodyweight backup keeps the ADR-011
+> four-tuple. Restore refuses live cardio as well as live strength.
+> ADR-005 stays closed. Evidence:
+> [AUDIT-hygiene.md](foundation-program/evidence/AUDIT-hygiene.md).
+>
+> 26 Aug 2026 — Further-design of gym-floor chrome: composer Save dock,
+> kind-aware live bar, one Volt on workout/plan/summary, honest Why and
+> History totals, reminder quiet hours, rest gold-finish, PR glow, set
+> GroupedList, chart PR line, un-nested Home agenda, week-strip two-a-day
+> mark. Not a restyle. ADR-005 / ADR-006 stay closed.
+>
 > 26 Aug 2026 — Studio sync may request `-sources.jar` / javadoc / the
 > Gradle `-src.zip`. Those stay trusted artifacts. The checksum ledger
 > stays on; do not disable verification to install debug. Host `aapt2`

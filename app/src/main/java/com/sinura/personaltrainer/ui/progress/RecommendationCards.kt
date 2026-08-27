@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.sinura.personaltrainer.domain.RecommendationIntents
+import com.sinura.personaltrainer.domain.RuleTraceCopy
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -20,7 +21,6 @@ import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
-import com.sinura.personaltrainer.ui.theme.Volt
 
 /**
  * A recommendation, as coaching rather than as a lint entry.
@@ -51,29 +51,13 @@ fun RecommendationCard(
                 Text(
                     if (showWhy) "Hide why" else "Why",
                     style = InstrumentType.bodyStrong,
-                    color = Volt,
+                    color = TextSecondary,
                 )
             }
             if (showWhy) {
                 Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-                    Text(
-                        trace.reasonCodes.joinToString(separator = " · "),
-                        style = InstrumentType.caption,
-                        color = TextSecondary,
-                    )
-                    trace.facts.forEach { fact ->
-                        Text(
-                            "${fact.name}: ${fact.value}",
-                            style = InstrumentType.caption,
-                            color = TextSecondary,
-                        )
-                    }
-                    trace.thresholds.forEach { threshold ->
-                        Text(
-                            "${threshold.name}: ${threshold.value}",
-                            style = InstrumentType.caption,
-                            color = TextSecondary,
-                        )
+                    RuleTraceCopy.lines(trace).forEach { line ->
+                        Text(line, style = InstrumentType.caption, color = TextSecondary)
                     }
                 }
             }
@@ -86,7 +70,7 @@ fun RecommendationCard(
                 Text(
                     "${RecommendationIntents.actionLabel(recommendation)}  →",
                     style = InstrumentType.bodyStrong,
-                    color = Volt,
+                    color = TextSecondary,
                 )
             }
         }

@@ -3,10 +3,13 @@ package com.sinura.personaltrainer.activity
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
+import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.domain.ActivityWrite
 import com.sinura.personaltrainer.domain.CardioBlock
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.util.JvmTime
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -36,7 +39,11 @@ class OneLiveCrossLaneTest {
         val started = deps.startLiveActivity("Cardio", listOf(cardioBlock()), now)
         assertTrue(started is ActivityWrite.Accepted)
         val outcome = deps.workoutRepository.startFreeWorkoutSafely("Push")
-        assertTrue(outcome.toString().contains("One live") || outcome is com.sinura.personaltrainer.data.repository.StartSessionOutcome.Unavailable)
+        assertTrue(outcome is StartSessionOutcome.Unavailable)
+        assertEquals(
+            "One live activity at a time.",
+            (outcome as StartSessionOutcome.Unavailable).message,
+        )
     }
 
     @Test
@@ -45,6 +52,33 @@ class OneLiveCrossLaneTest {
         val now = JvmTime.captureNow()
         val write = deps.startLiveActivity("Cardio", listOf(cardioBlock()), now)
         assertEquals(ActivityWrite.Rejected("One live activity at a time."), write)
+    }
+
+    @Test
+    fun overlappingCardioAndStrengthStartLeavesExactlyOneLive() = runBlocking {
+        val now = JvmTime.captureNow()
+        val cardio = async(Dispatchers.IO) {
+            deps.startLiveActivity("Cardio", listOf(cardioBlock()), now)
+        }
+        val strength = async(Dispatchers.IO) {
+            deps.workoutRepository.startFreeWorkoutSafely("Push")
+        }
+        val liveWrite = cardio.await()
+        val workout = strength.await()
+        val liveAccepted = liveWrite is ActivityWrite.Accepted
+        val workoutStarted = workout is StartSessionOutcome.Started
+        assertEquals(
+            "exactly one lane must win",
+            1,
+            (if (liveAccepted) 1 else 0) + (if (workoutStarted) 1 else 0),
+        )
+        if (liveAccepted) {
+            assertTrue(deps.activityRepository.getLive() != null)
+            assertEquals(null, deps.database.workoutDao().getInProgressSession())
+        } else {
+            assertEquals(null, deps.activityRepository.getLive())
+            assertTrue(deps.database.workoutDao().getInProgressSession() != null)
+        }
     }
 
     private fun cardioBlock() = CardioBlock(

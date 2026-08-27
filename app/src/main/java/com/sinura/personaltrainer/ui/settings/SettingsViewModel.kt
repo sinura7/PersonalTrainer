@@ -116,6 +116,14 @@ class SettingsViewModel @JvmOverloads constructor(
         }
     }
 
+    fun setReminderQuietHours(startHour: Int, endHour: Int) {
+        viewModelScope.launch {
+            runCatchingCancellable {
+                container.preferencesRepository.setReminderQuietHours(startHour, endHour)
+            }.onFailure { AppLog.w(TAG, "Saving reminder quiet hours failed", it) }
+        }
+    }
+
     /**
      * Honest inexact copy + Settings tap. Shown only after rest is used or
      * configured, and only while the policy would take the best-effort path.
@@ -247,7 +255,10 @@ class SettingsViewModel @JvmOverloads constructor(
             dialogs,
         ) { flags, gate -> flags.copy(dialogs = gate) },
         backups,
-        container.workoutRepository.observeInProgress(),
+        combine(
+            container.workoutRepository.observeInProgress(),
+            container.activityRepository.observeLive(),
+        ) { workout, activity -> workout != null || activity != null },
         safetySnapshots,
     ) { meta, flags, files, live, snaps ->
         BackupUiState(
@@ -262,7 +273,7 @@ class SettingsViewModel @JvmOverloads constructor(
             status = flags.status,
             error = flags.error,
             pendingPreview = flags.pendingPreview,
-            sessionLive = live != null,
+            sessionLive = live,
             backupStale = BackupPrompt.isStale(meta.lastAt, System.currentTimeMillis()),
             safetySnapshots = snaps,
             pendingProtect = flags.dialogs.protect,

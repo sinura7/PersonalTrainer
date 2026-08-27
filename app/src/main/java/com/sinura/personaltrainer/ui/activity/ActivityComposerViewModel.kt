@@ -51,12 +51,25 @@ data class ActivityComposerUiState(
     val mode: ComposerMode = ComposerMode.STRENGTH,
     val title: String = "",
     val epochDay: Long = 0L,
+    val todayEpochDay: Long = 0L,
     val strength: List<ComposerStrengthLine> = emptyList(),
     val cardio: List<ComposerCardioLine> = emptyList(),
     val catalog: List<Exercise> = emptyList(),
     val error: String? = null,
     val saving: Boolean = false,
-)
+) {
+    val canShiftLater: Boolean
+        get() = ComposerCopy.canShiftLater(epochDay, todayEpochDay)
+
+    val isDirty: Boolean
+        get() = ComposerCopy.isDirty(
+            title = title,
+            strengthCount = strength.size,
+            cardioCount = cardio.size,
+            epochDay = epochDay,
+            todayEpochDay = todayEpochDay,
+        )
+}
 
 class ActivityComposerViewModel @JvmOverloads constructor(
     application: Application,
@@ -86,6 +99,7 @@ class ActivityComposerViewModel @JvmOverloads constructor(
             mode = quad.mode,
             title = quad.title,
             epochDay = quad.epochDay,
+            todayEpochDay = clock.captureNow().localEpochDay,
             strength = flags.strength,
             cardio = flags.cardio,
             catalog = quad.catalog,

@@ -90,7 +90,7 @@ fun LiveSessionBar(
                 .fillMaxWidth()
                 .height(BAR_HEIGHT)
                 .testTag(LiveSessionBarTestTags.ROOT)
-                .clickable(onClickLabel = "Back to the workout", onClick = onResume)
+                .clickable(onClickLabel = LiveBarCopy.resumeLabel(state.kind), onClick = onResume)
                 .padding(horizontal = Metrics.gutter),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
@@ -108,7 +108,7 @@ fun LiveSessionBar(
                 if (state.stale) {
                     Kicker("Left open · ${state.staleHours}h", color = Warn)
                 } else {
-                    Kicker("In progress", color = Volt)
+                    Kicker(LiveBarCopy.IN_PROGRESS, color = Volt)
                 }
                 Text(
                     state.title,
@@ -129,12 +129,14 @@ fun LiveSessionBar(
                     color = RestCyan,
                 )
             }
-            MetricCluster(value = state.workingSets.toString(), label = "sets")
+            if (LiveBarCopy.showsSets(state.kind)) {
+                MetricCluster(value = state.workingSets.toString(), label = LiveBarCopy.SETS)
+            }
             Box {
                 IconButton(onClick = { menuOpen = true }) {
                     Icon(
                         Icons.Outlined.MoreVert,
-                        contentDescription = "Workout actions",
+                        contentDescription = LiveBarCopy.actionsDescription(state.kind),
                         tint = TextSecondary,
                         modifier = Modifier.size(20.dp),
                     )
@@ -142,7 +144,7 @@ fun LiveSessionBar(
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     if (state.canFinish) {
                         DropdownMenuItem(
-                            text = { Text("Finish workout", style = InstrumentType.body) },
+                            text = { Text(LiveBarCopy.finish(state.kind), style = InstrumentType.body) },
                             onClick = {
                                 menuOpen = false
                                 onFinish()
@@ -150,7 +152,7 @@ fun LiveSessionBar(
                         )
                     }
                     DropdownMenuItem(
-                        text = { Text("Discard workout…", style = InstrumentType.body) },
+                        text = { Text(LiveBarCopy.discard(state.kind), style = InstrumentType.body) },
                         onClick = {
                             menuOpen = false
                             confirmDiscard = true
@@ -163,13 +165,8 @@ fun LiveSessionBar(
 
     if (confirmDiscard) {
         ConfirmActionDialog(
-            title = "Discard this workout?",
-            body = if (state.totalSets == 0) {
-                "This deletes the session. This cannot be undone."
-            } else {
-                "This deletes the session and its ${state.totalSets} logged sets. " +
-                    "This cannot be undone."
-            },
+            title = LiveBarCopy.discardTitle(state.kind),
+            body = LiveBarCopy.discardBody(state.kind, state.totalSets),
             confirmLabel = "Discard",
             onConfirm = {
                 confirmDiscard = false

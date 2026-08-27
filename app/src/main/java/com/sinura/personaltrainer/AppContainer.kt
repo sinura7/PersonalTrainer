@@ -39,13 +39,15 @@ import com.sinura.personaltrainer.workout.WorkoutDraftCache
 
 class AppContainer(context: Context) : AppDependencies {
     private val database: TemperDatabase = TemperDatabase.create(context)
-    override val activityRepository: ActivityRepository = ActivityRepository(database)
 
     /**
      * One lock over every wholesale rewrite of the catalog. The startup seed and a restore both
      * pass through here, so they queue instead of racing each other across the same tables.
+     * Live activity confirm uses the same lock as a strength start.
      */
     override val dbMaintenance: DbMaintenance = DbMaintenance(database)
+    override val activityRepository: ActivityRepository =
+        ActivityRepository(database, dbMaintenance = dbMaintenance)
 
     override val exerciseRepository: ExerciseRepository = ExerciseRepository(
         exerciseDao = database.exerciseDao(),

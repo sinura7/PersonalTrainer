@@ -13,7 +13,6 @@ import com.sinura.personaltrainer.domain.GoalPeriod
 import com.sinura.personaltrainer.domain.GoalProgress
 import com.sinura.personaltrainer.domain.GoalSnapshot
 import com.sinura.personaltrainer.domain.WeightUnit
-import com.sinura.personaltrainer.domain.toSummary
 import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
@@ -44,7 +43,7 @@ class GoalsViewModel @JvmOverloads constructor(
         container.goalRepository.observeAll(),
         combine(
             container.workoutRepository.observeSessionSummaries(),
-            container.activityRepository.observeCompleted(),
+            container.activityRepository.observeCompletedSummaries(),
             container.workoutRepository.observeBestWorkingWeights(),
         ) { summaries, activities, bests -> GoalFacts(summaries, activities, bests) },
         combine(
@@ -58,7 +57,7 @@ class GoalsViewModel @JvmOverloads constructor(
         actionError,
     ) { goals, facts, settings, error ->
         val projections = DailyProjectionBuilder.project(
-            facts.summaries + facts.activities.filter { it.isCompleted }.map { it.toSummary() },
+            facts.summaries + facts.activities,
         )
         val today = CivilDate.fromEpochDay(todayEpochDay())
         GoalsUiState(
@@ -137,7 +136,7 @@ class GoalsViewModel @JvmOverloads constructor(
 
     private data class GoalFacts(
         val summaries: List<com.sinura.personaltrainer.domain.SessionSummary>,
-        val activities: List<com.sinura.personaltrainer.domain.ActivitySession>,
+        val activities: List<com.sinura.personaltrainer.domain.SessionSummary>,
         val bestWeights: Map<String, Double>,
     )
 

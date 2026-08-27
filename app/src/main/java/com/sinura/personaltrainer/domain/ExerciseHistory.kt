@@ -55,6 +55,7 @@ data class ExerciseHistory(
     val weeklyTonnage: List<WeeklyTonnage> = emptyList(),
     val lifetimeVolumeKg: Double = 0.0,
     val lifetimeWorkingSets: Int = 0,
+    val lifetimeBodyweightReps: Int = 0,
 ) {
     val hasHistory: Boolean get() = sessions.isNotEmpty()
 }
@@ -152,6 +153,7 @@ object ExerciseHistoryBuilder {
             weeklyTonnage = weekly,
             lifetimeVolumeKg = weekly.sumOf { it.volumeKg },
             lifetimeWorkingSets = allSets.size,
+            lifetimeBodyweightReps = weekly.sumOf { it.bodyweightReps },
         )
     }
 

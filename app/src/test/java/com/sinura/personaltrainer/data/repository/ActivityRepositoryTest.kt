@@ -21,6 +21,7 @@ import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.StrengthBlock
 import com.sinura.personaltrainer.domain.StrengthSet
 import com.sinura.personaltrainer.util.JvmTime
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -113,6 +114,51 @@ class ActivityRepositoryTest {
         assertTrue(lift is ActivityWrite.Accepted)
         val day = repository.completedOn(morning.localEpochDay)
         assertEquals(2, day.size)
+    }
+
+    @Test
+    fun completedOnReadsOnlyThatLocalDate() = runBlocking {
+        val ids = ids()
+        repository.confirm(
+            draft(ActivityOrigin.BACKDATED, ActivityStatus.COMPLETED, morning, listOf(run()), "Morning"),
+            now,
+            ids,
+            JvmTime,
+        )
+        val yesterday = JvmTime.resolveLocal(
+            CivilDateTime(CivilDate(2026, 8, 19), hour = 12, minute = 0),
+            "Asia/Tokyo",
+        )
+        repository.confirm(
+            draft(
+                ActivityOrigin.BACKDATED,
+                ActivityStatus.COMPLETED,
+                yesterday,
+                listOf(run().copy(id = "blk-old")),
+                "Yesterday",
+            ),
+            now,
+            ids,
+            JvmTime,
+        )
+        assertEquals(1, repository.completedOn(morning.localEpochDay).size)
+        assertEquals(1, repository.completedOn(yesterday.localEpochDay).size)
+        assertEquals("Yesterday", repository.completedOn(yesterday.localEpochDay).single().title)
+    }
+
+    @Test
+    fun completedSummariesCarryVolumeWithoutLoadingOtherDaysAsGraphs() = runBlocking {
+        repository.confirm(
+            draft(ActivityOrigin.BACKDATED, ActivityStatus.COMPLETED, evening, listOf(squat()), "Evening"),
+            now,
+            ids(),
+            JvmTime,
+        )
+        val summaries = repository.observeCompletedSummaries().first()
+        assertEquals(1, summaries.size)
+        assertEquals(500.0, summaries.single().volumeKg, 0.0001)
+        assertEquals(1, summaries.single().workingSets)
+        assertEquals(evening.localEpochDay, summaries.single().localEpochDay)
     }
 
     @Test

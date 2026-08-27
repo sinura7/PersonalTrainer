@@ -17,4 +17,10 @@ class MissedWorkCopyTest {
         assertEquals("Keep the dates", MissedWorkCopy.KEEP)
         assertEquals("Choose once. This week will not ask again.", MissedWorkCopy.CAPTION)
     }
+
+    @Test
+    fun recoveryVoltStaysQuietWhileTheMissedWorkPromptIsUp() {
+        assertEquals(true, MissedWorkCopy.suppressRecoveryVolt(true))
+        assertEquals(false, MissedWorkCopy.suppressRecoveryVolt(false))
+    }
 }

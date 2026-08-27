@@ -263,6 +263,55 @@ class RestorePrepareTest {
             (outcome as com.sinura.personaltrainer.data.repository.StartSessionOutcome.Unavailable).message,
         )
     }
+
+    @Test
+    fun prepareRestoreRefusesWhileAStrengthSessionIsLive() = runBlocking {
+        seedTestWorkout(deps, finish = true, loggedSets = listOf(TestSetInput(100.0, 5)))
+        val json = deps.backupRepository.exportJson()
+        deps.workoutRepository.startFreeWorkout("Legs")
+        try {
+            deps.backupRepository.prepareRestore(json, sourceName = "phone.json")
+            fail("restore must refuse a live strength session")
+        } catch (thrown: BackupException) {
+            assertTrue(thrown.message.orEmpty().contains("session in progress"))
+        }
+        assertTrue(deps.workoutRepository.getInProgress() != null)
+    }
+
+    @Test
+    fun prepareRestoreRefusesWhileLiveCardioIsRunning() = runBlocking {
+        seedTestWorkout(deps, finish = true, loggedSets = listOf(TestSetInput(100.0, 5)))
+        val json = deps.backupRepository.exportJson()
+        val now = com.sinura.personaltrainer.util.JvmTime.captureNow()
+        val started = deps.startLiveActivity(
+            "Easy run",
+            listOf(
+                com.sinura.personaltrainer.domain.CardioBlock(
+                    id = "blk-live",
+                    sortOrder = 0,
+                    type = com.sinura.personaltrainer.domain.CardioType.RUN,
+                    indoor = false,
+                    elapsedSeconds = 0,
+                    movingSeconds = 0,
+                    distanceMeters = null,
+                    elevationMeters = null,
+                    heartRateBpm = null,
+                    energyKj = null,
+                    rpe = null,
+                    routeRef = null,
+                ),
+            ),
+            now,
+        )
+        assertTrue(started is com.sinura.personaltrainer.domain.ActivityWrite.Accepted)
+        try {
+            deps.backupRepository.prepareRestore(json, sourceName = "phone.json")
+            fail("restore must refuse live cardio")
+        } catch (thrown: BackupException) {
+            assertTrue(thrown.message.orEmpty().contains("session in progress"))
+        }
+        assertTrue(deps.activityRepository.getLive() != null)
+    }
 }
 
 private fun catalogOnlyJson(): String = BackupJson.encode(

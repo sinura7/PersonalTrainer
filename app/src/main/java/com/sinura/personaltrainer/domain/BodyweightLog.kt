@@ -36,14 +36,17 @@ object BodyweightLog {
     fun encode(entries: List<BodyweightEntry>): String = entries
         .sortedBy { it.epochDay }
         .takeLast(MAX_ENTRIES)
-        .joinToString(RECORD) { "${it.epochDay}$FIELD${WeightConverter.formatDisplayNumber(it.kg)}" }
+        .joinToString(RECORD) { entry ->
+            "${entry.epochDay}$FIELD${WeightConverter.formatDisplayNumber(entry.kg)}" +
+                "$FIELD${entry.recordedAtMs}$FIELD${entry.offsetSeconds}$FIELD${entry.zoneId}"
+        }
 
     /** Tolerant: a malformed entry is dropped. A bad log must not cost the app its history. */
     fun decode(raw: String?): List<BodyweightEntry> {
         if (raw.isNullOrBlank()) return emptyList()
         return raw.split(RECORD).mapNotNull { record ->
             val parts = record.split(FIELD)
-            if (parts.size != 2) return@mapNotNull null
+            if (parts.size < 2) return@mapNotNull null
             val day = parts[0].trim().toLongOrNull() ?: return@mapNotNull null
             val kg = parts[1].trim().toDoubleOrNull() ?: return@mapNotNull null
             if (!kg.isFinite() || kg < OnboardingAnswers.MIN_BODYWEIGHT_KG ||
@@ -51,7 +54,20 @@ object BodyweightLog {
             ) {
                 return@mapNotNull null
             }
-            BodyweightEntry(epochDay = day, kg = kg)
+            if (parts.size == 2) {
+                return@mapNotNull BodyweightEntry(epochDay = day, kg = kg)
+            }
+            if (parts.size < 5) return@mapNotNull null
+            val recordedAtMs = parts[2].trim().toLongOrNull() ?: return@mapNotNull null
+            val offsetSeconds = parts[3].trim().toIntOrNull() ?: return@mapNotNull null
+            val zoneId = parts.drop(4).joinToString(FIELD)
+            BodyweightEntry(
+                epochDay = day,
+                kg = kg,
+                recordedAtMs = recordedAtMs,
+                zoneId = zoneId,
+                offsetSeconds = offsetSeconds,
+            )
         }
             .sortedBy { it.epochDay }
             .distinctBy { it.epochDay }

@@ -23,6 +23,10 @@ object GoalCopy {
     fun formatTarget(goal: MeasurableGoal, unit: WeightUnit = WeightUnit.KG): String =
         formatValue(goal.kind, goal.targetValue, unit)
 
+    const val DELETE_TITLE = "Delete this goal?"
+    const val DELETE_BODY = "The target is removed. Logged sessions stay."
+    const val DELETE_CONFIRM = "Delete"
+
     private fun formatValue(kind: GoalKind, value: Double, unit: WeightUnit): String = when (kind) {
         GoalKind.ADHERENCE -> "${(value * 100.0).toInt()}%"
         GoalKind.SESSION_COUNT -> "${value.toInt()} sessions"

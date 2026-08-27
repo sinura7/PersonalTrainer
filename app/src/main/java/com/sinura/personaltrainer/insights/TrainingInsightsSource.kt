@@ -7,7 +7,6 @@ import com.sinura.personaltrainer.data.repository.ScheduleRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.domain.SessionSummary
-import com.sinura.personaltrainer.domain.toSummary
 import com.sinura.personaltrainer.domain.windowedInsightHistory
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HeatWindow
@@ -120,7 +119,9 @@ class TrainingInsightsSource(
         refresh: Flow<Any?>,
         includeWeekPlan: Boolean,
     ): Flow<TrainingInsights> {
-        val completedActivities = activityRepository?.observeCompleted() ?: flowOf(emptyList())
+        val activitySummaries = activityRepository?.observeCompletedSummaries()
+            ?: flowOf(emptyList())
+        val windowStart = nowMs() - WINDOW_MS
         return combine(
         // Six sources, five at a time: combine's typed overloads stop at five, so the slot flow
         // is folded in around the original group rather than the group being re-shaped.
@@ -129,13 +130,14 @@ class TrainingInsightsSource(
                 combine(
                     combine(
                         workoutRepository.observeSessionSummaries(),
-                        completedActivities,
+                        activitySummaries,
                     ) { summaries, activities ->
-                        summaries + activities.filter { it.isCompleted }.map { it.toSummary() }
+                        summaries + activities
                     },
                     combine(
-                        workoutRepository.observeFinishedSince(nowMs() - WINDOW_MS),
-                        completedActivities,
+                        workoutRepository.observeFinishedSince(windowStart),
+                        activityRepository?.observeCompletedGraphsSince(windowStart)
+                            ?: flowOf(emptyList()),
                     ) { sessions, activities ->
                         windowedInsightHistory(
                             sessions = sessions,

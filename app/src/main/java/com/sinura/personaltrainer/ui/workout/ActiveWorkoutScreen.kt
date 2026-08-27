@@ -56,6 +56,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -94,6 +96,8 @@ import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.EquipmentGlyphIcon
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
+import com.sinura.personaltrainer.ui.components.GroupedList
+import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -108,12 +112,12 @@ import com.sinura.personaltrainer.ui.components.SetEntryPanel
 import com.sinura.personaltrainer.ui.components.glyphFor
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.Hairline
-import com.sinura.personaltrainer.ui.theme.HairlineStrong
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.Radius
+import com.sinura.personaltrainer.ui.theme.RestCyan
 import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.TextPrimary
@@ -381,18 +385,14 @@ fun ActiveWorkoutScreen(
                             }
                             if (session.sets.isNotEmpty()) {
                                 item(key = "sets-label") { Kicker("Sets") }
-                                items(session.sets, key = { it.id }) { set ->
-                                    SetRow(
-                                        set = set,
-                                        isLatest = set.id == session.sets.maxByOrNull { it.completedAt }?.id,
-                                        isEditing = state.editingSetId == set.id,
-                                        // Per set, not per screen: this list is every lift in
-                                        // the session, so a push-up row and a squat row sit
-                                        // next to each other and read in their own units.
-                                        loadClass = session.loadClassOf(set.exerciseId),
-                                        onEdit = { viewModel.editSet(set.id) },
-                                        onDelete = { viewModel.deleteSet(set.id) },
-                                        modifier = Modifier.animateItem(),
+                                item(key = "sets") {
+                                    LoggedSetsPanel(
+                                        sets = session.sets,
+                                        latestSetId = session.sets.maxByOrNull { it.completedAt }?.id,
+                                        editingSetId = state.editingSetId,
+                                        loadClassOf = { set -> session.loadClassOf(set.exerciseId) },
+                                        onEdit = { viewModel.editSet(it) },
+                                        onDelete = { viewModel.deleteSet(it) },
                                     )
                                 }
                             }
@@ -453,15 +453,14 @@ fun ActiveWorkoutScreen(
                                 )
                             }
                             item(key = "sets-label") { Kicker("Sets") }
-                            items(loggedForSelected, key = { it.id }) { set ->
-                                SetRow(
-                                    set = set,
-                                    isLatest = set.id == latestSetId,
-                                    isEditing = state.editingSetId == set.id,
-                                    loadClass = LoadClass.of(selected?.exercise?.loadType),
-                                    onEdit = { viewModel.editSet(set.id) },
-                                    onDelete = { viewModel.deleteSet(set.id) },
-                                    modifier = Modifier.animateItem(),
+                            item(key = "sets") {
+                                LoggedSetsPanel(
+                                    sets = loggedForSelected,
+                                    latestSetId = latestSetId,
+                                    editingSetId = state.editingSetId,
+                                    loadClassOf = { LoadClass.of(selected?.exercise?.loadType) },
+                                    onEdit = { viewModel.editSet(it) },
+                                    onDelete = { viewModel.deleteSet(it) },
                                 )
                             }
                         }
@@ -968,15 +967,36 @@ private fun SecondaryLogOptions(
     }
 }
 
+@Composable
+private fun LoggedSetsPanel(
+    sets: List<SetLog>,
+    latestSetId: String?,
+    editingSetId: String?,
+    loadClassOf: (SetLog) -> LoadClass,
+    onEdit: (String) -> Unit,
+    onDelete: (String) -> Unit,
+) {
+    if (sets.isEmpty()) return
+    GroupedList {
+        sets.forEachIndexed { index, set ->
+            if (index > 0) HairlineDivider()
+            SetRow(
+                set = set,
+                isLatest = set.id == latestSetId,
+                isEditing = editingSetId == set.id,
+                loadClass = loadClassOf(set),
+                onEdit = { onEdit(set.id) },
+                onDelete = { onDelete(set.id) },
+            )
+        }
+    }
+}
+
 /**
  * A logged set.
  *
- * State is carried by the design rather than narrated in the text. The row used to append
- * its own status into a meta string — "Set 2 · RPE 8 · Latest · Editing" — which is the
- * definitive tell of an undesigned surface: something a colour, a rule or a position should
- * say, written out in words instead. The latest set now wears an accent rule on its leading
- * edge, and the one being edited is outlined in the accent, matching the log button that is
- * simultaneously offering to save it.
+ * State is carried by the design rather than narrated in the text. Latest wears a Volt rail.
+ * Warm-up wears a cyan tick. Editing is outlined in Volt, matching the log button.
  */
 @Composable
 private fun SetRow(
@@ -989,16 +1009,15 @@ private fun SetRow(
     modifier: Modifier = Modifier,
 ) {
     val unit = LocalWeightUnit.current
-    val shape = RoundedCornerShape(Radius.sm)
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(shape)
-            .background(if (isLatest) Surface2 else Surface1)
-            .border(
-                width = if (isEditing) Metrics.emphasisBorder else Metrics.hairline,
-                color = if (isEditing) Volt else Hairline,
-                shape = shape,
+            .then(
+                if (isEditing) {
+                    Modifier.border(Metrics.emphasisBorder, Volt)
+                } else {
+                    Modifier
+                },
             )
             .padding(end = Metrics.space2),
         verticalAlignment = Alignment.CenterVertically,
@@ -1006,8 +1025,18 @@ private fun SetRow(
         Box(
             modifier = Modifier
                 .size(width = LATEST_RULE_WIDTH, height = LATEST_RULE_HEIGHT)
-                .background(if (isLatest) HairlineStrong else Color.Transparent),
+                .background(if (isLatest) Volt else Color.Transparent),
         )
+        if (set.isWarmup) {
+            Box(
+                modifier = Modifier
+                    .padding(start = Metrics.space2)
+                    .size(WARMUP_TICK)
+                    .clip(CircleShape)
+                    .background(RestCyan)
+                    .semantics { contentDescription = "Warm-up" },
+            )
+        }
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -1021,7 +1050,6 @@ private fun SetRow(
             )
             val extras = buildList {
                 add("Set ${set.setNumber}")
-                if (set.isWarmup) add("Warm-up")
                 set.rpe?.let { add("RPE $it") }
             }.joinToString(" · ")
             Text(extras, style = InstrumentType.caption, color = TextSecondary)
@@ -1148,5 +1176,6 @@ private fun RestNotificationRecoveryRow(modifier: Modifier = Modifier) {
 
 private val LATEST_RULE_WIDTH = 3.dp
 private val LATEST_RULE_HEIGHT = 44.dp
+private val WARMUP_TICK = 6.dp
 
 private const val PERSONAL_RECORD_DWELL_MS = 6_000L

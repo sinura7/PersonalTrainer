@@ -17,4 +17,7 @@ object MissedWorkCopy {
         } else {
             "$overdueCount planned sessions were not done. Next week still starts the same way."
         }
+
+    /** Keep-the-dates is the Volt. Recovery Replay/Suggest/Use stay quiet while this prompt is up. */
+    fun suppressRecoveryVolt(missedWorkPrompt: Boolean): Boolean = missedWorkPrompt
 }
