@@ -1,9 +1,12 @@
 package com.sinura.personaltrainer.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -15,6 +18,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -23,32 +28,22 @@ import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.MuscleNormalizer
 import com.sinura.personaltrainer.ui.theme.Hairline
-import com.sinura.personaltrainer.ui.theme.Heat3
 import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.Radius
-import com.sinura.personaltrainer.ui.theme.Steel
-import com.sinura.personaltrainer.ui.theme.SteelDim
-import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 
 /**
- * The catalog's pictures, drawn rather than shipped.
+ * The catalog's pictures: the locked 18-still pack, not a second drawing of them.
  *
- * Every exercise row has been reserving a 40dp square since the redesign, filled with the
- * lift's initial letter — which sorts nothing, distinguishes nothing, and made a long list
- * read as a column of alphabet. This fills it with something that actually carries
- * information at a glance: which part of you the lift trains, and what you load it with.
+ * Every exercise row has been reserving a 40dp square since the redesign. A known
+ * [Exercise.movementKey] shows that family's still. Customs and unknown families
+ * stand on the unlit front or back still. The equipment badge stays the second read.
  *
- * **Drawn in Compose, not shipped as assets.** A layered VectorDrawable would have to bake
- * the heat ramp into `res/` as static colours, outside the token layer the design checks
- * police, and `android:tint` cannot tint layers independently anyway. Drawing costs a few
- * tens of kilobytes of dex and nothing else — no bitmaps, no image loader, no APK budget.
- *
- * **Identity, not state.** The lit muscle uses a fixed [Heat3], never the owner's current
- * weekly band. The same lift always looks the same, which is what makes a thumbnail useful
- * for recognition; and these rows render inside the picker and the routine editor, which have
- * no heat snapshot to read. Live heat stays the Body tab's job, where it is the whole point.
+ * **Identity, not state.** Heat is baked into the family stills. Live weekly heat
+ * stays the Body tab's job. `imageKey` remains null on catalog rows — the pack is
+ * keyed by family, not 101 files.
  */
 object ThumbSize {
     val row = 40.dp
@@ -132,11 +127,11 @@ internal fun thumbMuscles(exercise: Exercise): Pair<CanonicalMuscle, Set<Canonic
 }
 
 /**
- * One lift, as a figure with its muscles lit and a badge for its kit.
+ * One lift: the family's still, plus the equipment badge.
  *
- * Decorative by construction: every surface that shows this already names the lift beside it,
- * so the thumb clears its semantics rather than reading a second, worse version of the name
- * to a screen reader.
+ * Decorative by construction: every surface that shows this already names the lift
+ * beside it, so the thumb clears its semantics rather than reading a second, worse
+ * version of the name to a screen reader.
  */
 @Composable
 fun ExerciseThumb(
@@ -144,51 +139,27 @@ fun ExerciseThumb(
     modifier: Modifier = Modifier,
     size: Dp = ThumbSize.row,
 ) {
-    // `exercise.imageKey` is the hook for commissioned art, and THIS composable is the one
-    // place it will ever be read — every surface draws its thumbnail through here, so keyed
-    // art arrives everywhere at once or nowhere. Nothing reads it today: a key is composed
-    // exactly like a null one, which is what makes writing keys safe before there is art to
-    // load. Deliberately not stubbed as a dead branch; the note is the contract.
-    val (primary, secondaries) = thumbMuscles(exercise)
+    val (primary, _) = thumbMuscles(exercise)
     val view = thumbViewFor(primary)
+    val pose = poseFor(exercise.movementKey)
     val shape = RoundedCornerShape(Radius.xs)
     Box(
         modifier = modifier
             .size(size)
             .clip(shape)
-            .background(Surface1)
+            .background(Pit)
             .border(Metrics.hairline, Hairline, shape)
             .clearAndSetSemantics { },
         contentAlignment = Alignment.Center,
     ) {
-        // The figure's height is the box minus its inset, and its width follows from the
-        // anatomy's fixed aspect — computed rather than laid out, because .padding() before
-        // .size() would add the inset back around a box already sized to the full square and
-        // push the figure outside it.
-        val figureHeight = size - Metrics.space1 * 2
-        Canvas(
-            modifier = Modifier.size(
-                width = figureHeight * FIGURE_ASPECT,
-                height = figureHeight,
-            ),
-        ) {
-            // Same plates as the Body tab and the launcher. A secondary whose plates live
-            // only on the other view has no region here and stays steel.
-            drawTemperFigure(
-                view = view,
-                fill = { plate ->
-                    when {
-                        plate.muscle == null -> SteelDim
-                        plate.muscle == primary -> Heat3
-                        plate.muscle in secondaries -> Heat3.copy(alpha = SECONDARY_ALPHA)
-                        else -> Steel
-                    }
-                },
-            )
-        }
-        // The badge overlaps the figure on purpose — a badge in its own gutter would cost the
-        // figure a third of a 40dp square, and the equipment is the second thing you read,
-        // not a peer of the anatomy.
+        Image(
+            painter = painterResource(artworkFor(pose = pose, view = view)),
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(Metrics.space1),
+            contentScale = ContentScale.Fit,
+        )
         EquipmentBadge(
             glyph = glyphFor(exercise.equipment),
             size = size * BADGE_SHARE,
@@ -324,9 +295,6 @@ private fun DrawScope.drawGlyph(glyph: EquipmentGlyph, tint: Color) {
         }
     }
 }
-
-/** A secondary muscle is present, not equal — visible without competing with the primary. */
-private const val SECONDARY_ALPHA = 0.4f
 
 /** Badge edge as a share of the thumb edge, and the glyph's share of the badge. */
 private const val BADGE_SHARE = 0.45f

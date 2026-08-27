@@ -90,4 +90,19 @@ class FigureArtTest {
             }
         }
     }
+
+    @Test
+    fun theStandingOutlineStaysInsideTheFigureBox() {
+        FIGURE_OUTLINE.forEach { (x, y) ->
+            assertTrue("outline x=$x", x in 0f..1f)
+            assertTrue("outline y=$y", y in 0f..1f)
+        }
+    }
+
+    @Test
+    fun lockedFrontStillPacksSixPackAndQuadHeads() {
+        assertTrue(platesFor(BodyView.FRONT).count { it.muscle == CanonicalMuscle.CORE } >= 10)
+        assertTrue(platesFor(BodyView.FRONT).count { it.muscle == CanonicalMuscle.QUADRICEPS } >= 6)
+        assertTrue(platesFor(BodyView.FRONT).count { it.muscle == CanonicalMuscle.CALVES } >= 4)
+    }
 }

@@ -116,6 +116,40 @@ class ExerciseThumbLogicTest {
             isCustom = true, muscles = emptyList(),
         )
         assertEquals(CanonicalMuscle.OTHER, thumbMuscles(mine).first)
+        assertEquals(LiftPose.ANATOMY, poseFor(mine.movementKey))
+    }
+
+    @Test
+    fun everyFamilyHasItsOwnStill() {
+        val posed = LiftPose.entries.filter { it != LiftPose.ANATOMY }
+        val ids = posed.map { artworkFor(it, BodyView.FRONT) }
+        assertEquals("two families share a still", posed.size, ids.toSet().size)
+        posed.forEach { pose ->
+            assertTrue(
+                "$pose reused the standing still",
+                artworkFor(pose, BodyView.FRONT) != artworkFor(LiftPose.ANATOMY, BodyView.FRONT),
+            )
+        }
+        assertTrue(
+            artworkFor(LiftPose.ANATOMY, BodyView.FRONT) !=
+                artworkFor(LiftPose.ANATOMY, BodyView.BACK),
+        )
+        assertTrue(
+            demoHeatArtwork(BodyView.FRONT) != artworkFor(LiftPose.ANATOMY, BodyView.FRONT),
+        )
+        assertTrue(
+            demoHeatArtwork(BodyView.BACK) != artworkFor(LiftPose.ANATOMY, BodyView.BACK),
+        )
+    }
+
+    @Test
+    fun everyBuiltInLiftResolvesToAFamilyStill() {
+        DefaultExercises.catalog().forEach { seed ->
+            assertTrue(
+                "${seed.id} has no family still",
+                poseFor(seed.movementKey) != LiftPose.ANATOMY,
+            )
+        }
     }
 
     @Test
@@ -129,10 +163,18 @@ class ExerciseThumbLogicTest {
             )
             val (primary, _) = thumbMuscles(exercise)
             assertTrue("${seed.id} resolved to OTHER", primary != CanonicalMuscle.OTHER)
-            assertTrue(
-                "${seed.id}'s primary $primary has no plate on ${thumbViewFor(primary)}",
-                hotspotsFor(thumbViewFor(primary)).any { it.muscle == primary },
-            )
+            val pose = poseFor(seed.movementKey)
+            if (pose == LiftPose.ANATOMY) {
+                assertTrue(
+                    "${seed.id}'s primary $primary has no plate on ${thumbViewFor(primary)}",
+                    hotspotsFor(thumbViewFor(primary)).any { it.muscle == primary },
+                )
+            } else {
+                assertTrue(
+                    "${seed.id}'s primary $primary has no plate on $pose",
+                    platesForPose(pose).any { it.muscle == primary },
+                )
+            }
         }
     }
 }

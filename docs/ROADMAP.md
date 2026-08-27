@@ -14,6 +14,25 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 27 Aug 2026 — Body tab is the unlit ChatGPT still with a live heat
+> wash. This week and Last 30 days stay the two windows. Rest stays
+> the photograph. Overlay plates will not pixel-match every still
+> seam. Library thumbs stay the posed stills.
+>
+> 27 Aug 2026 — Library thumbs are the locked 18-still pack (WebP),
+> keyed by family. Not a second drawing of those stills. Not 101
+> catalog keys. Customs stand on the unlit front/back still. Body
+> live heat stays the standing map.
+>
+> 27 Aug 2026 — Library poses retarget to the locked 18-still bible
+> (front/back unlit, front/back demo heat, 14 family poses). Same
+> Temper plates on a skeleton. Not a PNG pack. Customs still stand.
+>
+> 26 Aug 2026 — Library thumbs are the Temper figure posed: the same
+> polygonal plates and hairline seams as Body, Heat3 on the working
+> plates, kit in the hands. Not a second pictogram, not a PNG pack.
+> Customs with no family still stand.
+>
 > 26 Aug 2026 — Audit leftovers on the further-design vehicle: lighter-week
 > and "moved most" captions are not Volt; Tune Done and a met goal are
 > status, not the act; a noon-stamped receipt omits duration; rest
