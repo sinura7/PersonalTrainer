@@ -21,6 +21,6 @@ not traced into a second drawing.
 
 ## Gate (this packet)
 
-- `./gradlew testDebugUnitTest` — pending this turn
-- `./gradlew assembleDebug` — pending this turn
-- `tools/preflight.sh` — pending this turn
+- `./gradlew testDebugUnitTest` — 1336 tests, 0 failures
+- `./gradlew assembleDebug` — pass
+- `tools/preflight.sh` — OK; 922 domain tests; named-args 0 mismatches
