@@ -14,6 +14,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 27 Aug 2026 — Library thumbs are the locked 18-still pack (WebP),
+> keyed by family. Not a second drawing of those stills. Not 101
+> catalog keys. Customs stand on the unlit front/back still. Body
+> live heat stays the standing map.
+>
 > 27 Aug 2026 — Library poses retarget to the locked 18-still bible
 > (front/back unlit, front/back demo heat, 14 family poses). Same
 > Temper plates on a skeleton. Not a PNG pack. Customs still stand.

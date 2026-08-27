@@ -23,13 +23,9 @@ import kotlin.math.sin
 /**
  * One posed silhouette for a lift family.
  *
- * Library thumbs are the Temper figure — the same polygonal plates and
- * hairline seams as the Body tab and the launcher — posed on a skeleton
- * to the locked 18-still bible. Heat3 lights the working plates. Kit sits
- * in the hands. Families share a pose so 101 lifts stay one instrument.
- *
- * Body heat stays on the standing [drawTemperFigure]. Thumbs are identity:
- * the pose plus a fixed Heat3 on the working plates.
+ * Library thumbs show the locked still for that family. These plates stay
+ * the Body tab's standing map: live weekly heat on the same person, not a
+ * PNG pack of 101 lifts.
  */
 internal enum class LiftPose {
     SQUAT,

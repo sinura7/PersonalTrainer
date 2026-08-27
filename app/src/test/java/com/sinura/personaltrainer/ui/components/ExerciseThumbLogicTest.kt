@@ -120,6 +120,39 @@ class ExerciseThumbLogicTest {
     }
 
     @Test
+    fun everyFamilyHasItsOwnStill() {
+        val posed = LiftPose.entries.filter { it != LiftPose.ANATOMY }
+        val ids = posed.map { artworkFor(it, BodyView.FRONT) }
+        assertEquals("two families share a still", posed.size, ids.toSet().size)
+        posed.forEach { pose ->
+            assertTrue(
+                "$pose reused the standing still",
+                artworkFor(pose, BodyView.FRONT) != artworkFor(LiftPose.ANATOMY, BodyView.FRONT),
+            )
+        }
+        assertTrue(
+            artworkFor(LiftPose.ANATOMY, BodyView.FRONT) !=
+                artworkFor(LiftPose.ANATOMY, BodyView.BACK),
+        )
+        assertTrue(
+            demoHeatArtwork(BodyView.FRONT) != artworkFor(LiftPose.ANATOMY, BodyView.FRONT),
+        )
+        assertTrue(
+            demoHeatArtwork(BodyView.BACK) != artworkFor(LiftPose.ANATOMY, BodyView.BACK),
+        )
+    }
+
+    @Test
+    fun everyBuiltInLiftResolvesToAFamilyStill() {
+        DefaultExercises.catalog().forEach { seed ->
+            assertTrue(
+                "${seed.id} has no family still",
+                poseFor(seed.movementKey) != LiftPose.ANATOMY,
+            )
+        }
+    }
+
+    @Test
     fun everyBuiltInLiftResolvesToARealMuscleAndALitRegion() {
         // The catalog-wide check: 98 lifts, and not one of them may render as a blank body.
         DefaultExercises.catalog().forEach { seed ->
