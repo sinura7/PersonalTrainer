@@ -16,7 +16,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -76,6 +79,8 @@ fun HomeScreen(
     onOpenLibrary: () -> Unit = {},
     onLogActivity: (String) -> Unit = {},
     onOpenLiveCardio: (String) -> Unit = {},
+    onGenerateSchedule: () -> Unit = {},
+    onBuildWeek: () -> Unit = {},
     pendingOccurrenceStartId: String? = null,
     onPendingOccurrenceConsumed: () -> Unit = {},
     viewModel: HomeViewModel = viewModel(),
@@ -107,6 +112,8 @@ fun HomeScreen(
     val blocked by viewModel.blockedByInProgress.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
     val inProgress = state.inProgress
+    var starterDismissed by rememberSaveable { mutableStateOf(false) }
+    val showStarter = !state.setupComplete && !starterDismissed && inProgress == null
 
     // Starting a planned day while another session is live is a question, not something the
     // app answers on the user's behalf. Composed before the loading return so it survives a
@@ -116,6 +123,24 @@ fun HomeScreen(
             onResume = viewModel::resumeBlocked,
             onDiscardAndStart = viewModel::discardBlockedAndStart,
             onDismiss = viewModel::dismissBlockedStart,
+        )
+    }
+
+    if (showStarter) {
+        GetStartedSheet(
+            onGenerate = {
+                starterDismissed = true
+                onGenerateSchedule()
+            },
+            onBuild = {
+                starterDismissed = true
+                onBuildWeek()
+            },
+            onWorkout = {
+                starterDismissed = true
+                viewModel.startFreeWorkout()
+            },
+            onDismiss = { starterDismissed = true },
         )
     }
 
@@ -223,6 +248,10 @@ fun HomeScreen(
                         hasRoutines = state.routines.isNotEmpty(),
                         lifts = leftoverLiftNames(featured, state.routines),
                         reason = nextSessionReason(featured, state.recommendations),
+                        setupComplete = state.setupComplete,
+                        offerSetupActions = !showStarter,
+                        onGenerateSchedule = onGenerateSchedule,
+                        onBuildWeek = onBuildWeek,
                         onSuggestWeek = {
                             viewModel.requestWeekSuggestion()
                             onOpenPlan()
@@ -489,6 +518,10 @@ object HomeTags {
     const val LIBRARY = "home-library"
     const val GOALS = "home-goals"
     const val THIS_WEEK = "home-this-week"
+    const val GET_STARTED = "home-get-started"
+    const val GENERATE = "home-generate-schedule"
+    const val BUILD_WEEK = "home-build-week"
+    const val STARTER_WORKOUT = "home-starter-workout"
 }
 
 private const val DATE_LINE_PATTERN = "EEEE '·' d MMM"

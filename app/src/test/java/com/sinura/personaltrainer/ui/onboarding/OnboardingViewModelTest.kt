@@ -81,7 +81,7 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun backOnForkWithAnExistingProgramRestoresTheAppGate() = runBlocking {
+    fun backOnFirstQuestionWithAnExistingProgramRestoresComplete() = runBlocking {
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
         deps.routineRepository.create("Upper")
         deps.preferencesRepository.setOnboardingComplete(false)
@@ -95,7 +95,7 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun backOnForkWithNoProgramStaysOnSetup() = runBlocking {
+    fun backOnFirstQuestionWithNoProgramDoesNotMarkComplete() = runBlocking {
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
         viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 

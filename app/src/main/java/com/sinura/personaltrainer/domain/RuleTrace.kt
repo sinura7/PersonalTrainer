@@ -51,6 +51,38 @@ data class RuleTrace(
             generatedAtMs = nowMs,
         )
 
+        fun forGeneration(answers: OnboardingAnswers, split: SplitStyle): RuleTrace {
+            val dose = SessionDose.from(answers)
+            return RuleTrace(
+                ruleId = "program-generate",
+                version = VERSION,
+                action = "GENERATE_WEEK",
+                reasonCodes = SplitDerivation.reasonCodes(answers) +
+                    listOf(
+                        "GOAL_${answers.goal.name}",
+                        "AGE_${answers.trainingAge.name}",
+                        "DAYS_${dose.daysPerWeek}",
+                    ),
+                evidenceStartEpochDay = 0L,
+                evidenceEndEpochDay = 0L,
+                facts = listOf(
+                    TraceFact("split", split.name),
+                    TraceFact("why", SplitDerivation.why(answers)),
+                    TraceFact("liftsPerSession", answers.trainingAge.liftsPerSession.toString()),
+                    TraceFact("goal", answers.goal.name),
+                    TraceFact("age", answers.trainingAge.name),
+                    TraceFact("days", dose.daysPerWeek.toString()),
+                ),
+                thresholds = listOf(
+                    TraceThreshold("samePatternRestHours", "48"),
+                    TraceThreshold("noviceSets", "3"),
+                    TraceThreshold("hypertrophyWeeklySetsLandmark", "10"),
+                ),
+                alternatives = SplitDerivation.alternatives(answers),
+                generatedAtMs = 0L,
+            )
+        }
+
         fun forHint(hint: ProgressionHint, nowMs: Long, todayEpochDay: Long): RuleTrace =
             RuleTrace(
                 ruleId = "progression-${hint.exerciseId}",

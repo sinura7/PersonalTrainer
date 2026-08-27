@@ -186,19 +186,37 @@ class RoutineGeneratorTest {
     }
 
     @Test
+    fun generateEmitsADeterministicTrace() {
+        val plan = RoutineGenerator.generate(answers(days = 3), catalog)
+        val trace = plan.trace
+        assertNotNull(trace)
+        assertEquals("program-generate", trace!!.ruleId)
+        assertEquals("GENERATE_WEEK", trace.action)
+        assertTrue(trace.reasonCodes.contains("FREQ_LOW_FULL_BODY"))
+        assertEquals(SplitDerivation.why(answers(days = 3)), trace.facts.first { it.name == "why" }.value)
+        val again = RoutineGenerator.generate(answers(days = 3), catalog)
+        assertEquals(trace, again.trace)
+    }
+
+    @Test
     fun compoundsComeFirst() {
         // Heaviest first is the one ordering rule the generator owns. A session that opens on
         // a lateral raise and closes on a squat is a session nobody would write.
-        val plan = RoutineGenerator.generate(answers(age = TrainingAge.EXPERIENCED, days = 4), catalog)
-        val byId = catalog.associateBy { it.id }
-        plan.routines.forEach { routine ->
-            val compound = routine.lifts.map { AddDefaults.isCompound(byId.getValue(it.exerciseId)) }
-            val firstIsolation = compound.indexOfFirst { !it }
-            if (firstIsolation >= 0) {
-                assertFalse(
-                    "${routine.name} puts a compound after an isolation",
-                    compound.drop(firstIsolation).any { it },
-                )
+        listOf(TrainingGoal.GENERAL, TrainingGoal.STRENGTH, TrainingGoal.HYPERTROPHY).forEach { goal ->
+            val plan = RoutineGenerator.generate(
+                answers(age = TrainingAge.EXPERIENCED, days = 4, goal = goal),
+                catalog,
+            )
+            val byId = catalog.associateBy { it.id }
+            plan.routines.forEach { routine ->
+                val compound = routine.lifts.map { AddDefaults.isCompound(byId.getValue(it.exerciseId)) }
+                val firstIsolation = compound.indexOfFirst { !it }
+                if (firstIsolation >= 0) {
+                    assertFalse(
+                        "$goal ${routine.name} puts a compound after an isolation",
+                        compound.drop(firstIsolation).any { it },
+                    )
+                }
             }
         }
     }
@@ -206,13 +224,15 @@ class RoutineGeneratorTest {
     @Test
     fun targetsComeFromTheSameRuleAsAHandAddedLift() {
         // Same table, plus the one thing only the session knows: where the lift sits in it.
-        val plan = RoutineGenerator.generate(answers(days = 4), catalog)
+        val answers = answers(days = 4)
+        val plan = RoutineGenerator.generate(answers, catalog)
         val byId = catalog.associateBy { it.id }
+        val dose = SessionDose.from(answers)
         plan.routines.forEach { routine ->
             routine.lifts.forEachIndexed { index, lift ->
                 val role = if (index < 2) LiftRole.PRIMARY else LiftRole.ACCESSORY
                 assertEquals(
-                    AddDefaults.forExercise(byId.getValue(lift.exerciseId), role),
+                    ProgramDose.forExercise(byId.getValue(lift.exerciseId), role, dose),
                     lift.targets,
                 )
             }

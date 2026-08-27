@@ -20,8 +20,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The launch gate must not flash Home on a first install or the questionnaire
- * on a finished one. UNKNOWN is the only honest unread value.
+ * The launch gate must not flash the settings-failed empty state on a
+ * readable install. Home is the shell on a first visit; the questionnaire
+ * is a pushed route. UNKNOWN is the only honest unread value.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -53,10 +54,10 @@ class OnboardingGateViewModelTest {
     }
 
     @Test
-    fun firstInstallResolvesToSetup() = runBlocking {
+    fun firstInstallResolvesToApp() = runBlocking {
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
         val vm = createViewModel()
-        assertEquals(OnboardingGate.SETUP, vm.gate.first { it != OnboardingGate.UNKNOWN })
+        assertEquals(OnboardingGate.APP, vm.gate.first { it != OnboardingGate.UNKNOWN })
     }
 
     @Test
@@ -68,10 +69,10 @@ class OnboardingGateViewModelTest {
     }
 
     @Test
-    fun completingSetupFlipsTheGateWithoutRecreation() = runBlocking {
+    fun completingSetupKeepsTheAppGate() = runBlocking {
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
         val vm = createViewModel()
-        vm.gate.first { it == OnboardingGate.SETUP }
+        vm.gate.first { it == OnboardingGate.APP }
 
         deps.preferencesRepository.setOnboardingComplete(true)
 

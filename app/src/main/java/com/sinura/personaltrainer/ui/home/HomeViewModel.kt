@@ -82,6 +82,8 @@ data class HomeUiState(
     val overdueCount: Int = 0,
     val goalSnapshot: GoalSnapshot? = null,
     val twoADayEpochDays: Set<Long> = emptySet(),
+    /** False until a plan or custom week is accepted. Home shows the get-started sheet. */
+    val setupComplete: Boolean = true,
 )
 
 class HomeViewModel @JvmOverloads constructor(
@@ -109,8 +111,9 @@ class HomeViewModel @JvmOverloads constructor(
                 container.preferencesRepository.schedulePreferences,
                 container.preferencesRepository.bodyweightLog,
                 container.workoutRepository.observeBestWorkingWeights(),
-            ) { goals, preferences, log, bests ->
-                GoalInputs(goals, preferences, log.lastOrNull()?.kg, bests)
+                container.preferencesRepository.onboardingComplete,
+            ) { goals, preferences, log, bests, setupComplete ->
+                GoalInputs(goals, preferences, log.lastOrNull()?.kg, bests, setupComplete)
             },
         ) { plannerBlock, goals -> plannerBlock to goals },
     ) { insights, inProgress, error, extras ->
@@ -176,6 +179,7 @@ class HomeViewModel @JvmOverloads constructor(
                 },
             ),
             twoADayEpochDays = DailyAgenda.twoADayEpochDays(weekOcc),
+            setupComplete = goalInputs.setupComplete,
         )
     }
         // Same reason as Plan: this transform walks every finished session to build the logged
@@ -422,5 +426,6 @@ class HomeViewModel @JvmOverloads constructor(
         val preferences: com.sinura.personaltrainer.domain.SchedulePreferences,
         val latestBodyweightKg: Double?,
         val bestWeights: Map<String, Double>,
+        val setupComplete: Boolean,
     )
 }

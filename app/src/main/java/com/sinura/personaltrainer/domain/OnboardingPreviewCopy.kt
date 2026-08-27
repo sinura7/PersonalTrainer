@@ -22,6 +22,12 @@ object OnboardingPreviewCopy {
         return bits.joinToString(" · ")
     }
 
+    fun why(answers: OnboardingAnswers, plan: PlanBlueprint): String {
+        if (answers.focus == TrainingFocus.CARDIO) return ""
+        return plan.trace?.facts?.firstOrNull { it.name == "why" }?.value
+            ?: SplitDerivation.why(answers)
+    }
+
     fun dayLine(day: BlueprintDay, routine: BlueprintRoutine?): Pair<String, String> {
         val title = day.dayOfWeek.shortLabel()
         if (routine == null) return title to "Rest"
