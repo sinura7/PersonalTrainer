@@ -25,7 +25,7 @@
 > screen (chronometer, not overlay rest on the log).
 >
 > 28 Aug 2026 — Temper Debug Obtainium drops bump `debugLiveCode`.
-> Live test 3 is Next / extra set / RPE targets / lock-screen rest.
+> Live test 4 is the day stack (cardio + workout + later accessory).
 > Same versionCode is why a check for updates can show nothing.
 >
 > 28 Aug 2026 — Phone lane is Obtainium, not Android Studio. Cursor
