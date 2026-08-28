@@ -30,9 +30,9 @@ this session and last time. Rest countdown sits on the lock screen.
 
 ## Commands
 
-- `tools/preflight.sh`
-- `./gradlew testDebugUnitTest`
-- `./gradlew assembleDebug`
+- `tools/preflight.sh` — OK (980 domain tests)
+- `./gradlew testDebugUnitTest` — 1434 tests, 0 failures
+- `./gradlew assembleDebug` — SUCCESS
 
 ## Known limitations
 
