@@ -22,9 +22,9 @@ Rest floor wraps the remaining clock in a countdown ring.
 
 ## Commands
 
-- `tools/preflight.sh` — pending this packet
-- `./gradlew testDebugUnitTest` — pending this packet
-- `./gradlew assembleDebug` — pending this packet
+- `tools/preflight.sh` — OK (968 domain tests)
+- `./gradlew testDebugUnitTest` — 1416 tests, 0 failures
+- `./gradlew assembleDebug` — SUCCESS
 
 ## Known limitations
 
