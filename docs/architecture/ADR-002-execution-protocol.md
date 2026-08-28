@@ -2,15 +2,17 @@
 
 - **Status:** Accepted
 - **Date:** 24 August 2026
+- **Amended:** 28 August 2026 — phone lane is Obtainium, not Android Studio
 - **Supersedes:** The Job 6 “one leftover packet at a time” rule as the
   *current* program. The one-packet discipline itself is kept.
 - **Related:** [FOUNDATION_PROGRAM.md](../FOUNDATION_PROGRAM.md),
-  [owner-loop](../../.cursor/rules/owner-loop.mdc)
+  [owner-loop](../../.cursor/rules/owner-loop.mdc), [SETUP.md](../../SETUP.md)
 
 ## Context
 
-The owner develops from Cursor when Studio is away. Phone checks happen later.
-The strength-logger jobs already proved that two open packets editing the same
+The owner develops from Cursor on the web. Phone checks are Obtainium on
+**Temper Debug**. Android Studio is not the install path. The
+strength-logger jobs already proved that two open packets editing the same
 Kotlin file collide, and that GitHub-hosted runners are not a test lane.
 
 The foundation program is larger than those jobs. It still has one developer.
@@ -43,6 +45,11 @@ The foundation program is larger than those jobs. It still has one developer.
    high findings block merge.
 9. `docs/ROADMAP.md` may receive a few pointer lines from any packet. That
    exception is not a license to restack Kotlin in the same PR.
+10. **The phone lane is Obtainium.** After `trunk` is green, Temper Debug
+    reaches the device as a GitHub pre-release tagged `debug-live-*` with
+    `PersonalTrainer-*-debug.apk`. Gym-floor Temper stays on the signed
+    `PersonalTrainer-<version>.apk` entry. Do not instruct the owner to
+    open Android Studio.
 
 ## Consequences
 
@@ -50,9 +57,11 @@ The foundation program is larger than those jobs. It still has one developer.
 - Hosted CI may keep existing YAML. It is not a gate and not a reason to stop.
 - Phase 10 (KMP) and Phase 11 (sync) do not start because they would be
   interesting. They start only when their ADRs’ start gates are true.
+- An agent that tells the owner to pull `trunk` in Studio is wrong.
 
 ## Review questions
 
 - May two packets be in flight if they touch different modules? No.
 - Is a GitHub Actions failure a merge blocker? No.
 - May Phase 5 cutover packets be interleaved with unrelated UI work? No.
+- May an agent tell the owner to open Android Studio to install a build? No.

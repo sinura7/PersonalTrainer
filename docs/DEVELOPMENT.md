@@ -1,7 +1,7 @@
 # Development
 
-How to work on this app day to day. Android Studio is the primary tool; everything here
-assumes you are building and installing from it.
+How to work on this app day to day. Cursor on the web writes the packet.
+**Obtainium** is the phone. Android Studio is not the install path.
 
 The current program is [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md). Signed
 decisions are [architecture/](architecture/README.md). This file is the
@@ -9,22 +9,18 @@ operational runbook: layout, tests, Windows notes, things that bite you.
 
 ## First run
 
-1. Clone, then **File → Open** the folder containing `settings.gradle.kts`.
-2. Trust the project, let Gradle sync finish.
-3. Plug in the phone (USB debugging on) or start an API 26+ emulator.
-4. Press **Run ▶**. That is the whole deployment path for day-to-day work — a debug build
-   signed with Android Studio's debug key, installed straight to the device.
+Cursor clones the repo and runs the JVM gate. The owner never has to open
+Android Studio. Debug and release are **separate apps**. Debug is
+`com.sinura.personaltrainer.debug`. Release stays `com.sinura.personaltrainer`.
+Different signing keys, different databases, different icons.
 
-Debug and release are **separate apps**. Debug is `com.sinura.personaltrainer.debug`.
-Release stays `com.sinura.personaltrainer`. Different signing keys, different
-databases, different icons.
+### Obtainium checkpoint
 
-### Studio checkpoint
-
-Checkout `trunk` and pull. Select the **debug** run configuration and
-press **Run ▶**. The icon is **Temper Debug**. It will not open,
-overwrite, or see a release **Temper** install. Leave release on the
-phone.
+After `trunk` is green, Temper Debug arrives as a GitHub **pre-release**
+tagged `debug-live-YYYY-MM-DD` with `PersonalTrainer-*-debug.apk`. Obtainium
+on the phone: this repo, include pre-releases, prefer that debug APK. Gym-floor
+**Temper** stays on the signed APK entry. Do not mix them. See
+[SETUP.md](../SETUP.md) §6.
 
 Walk this once, in order:
 
@@ -41,14 +37,14 @@ Walk this once, in order:
 Physical TalkBack is still required before Public Candidate. Do not
 expect a fifth tab or cloud sync.
 
-**The next debug Run ▶ is a new install.** It will not open, overwrite, or even
-see the release history. The new icon is labelled **Temper Debug**. Release
-stays **Temper**. You will have two icons. If an *old* debug is still on the
-phone (debug-signed, but living on the release id), uninstall that one — not
-the release app. Android already refused to let release and that old debug
-coexist, so if you already have release on the phone you only gain the new
-debug icon beside it. Do not uninstall release to "make room." There is
-nothing to make room for.
+**A new debug-live drop is a new Temper Debug install.** It will not open,
+overwrite, or even see the release history. The new icon is labelled
+**Temper Debug**. Release stays **Temper**. You will have two icons. If an
+*old* debug is still on the phone (debug-signed, but living on the release
+id), uninstall that one — not the release app. Android already refused to
+let release and that old debug coexist, so if you already have release on
+the phone you only gain the new debug icon beside it. Do not uninstall
+release to "make room." There is nothing to make room for.
 
 ## Project layout
 
@@ -76,7 +72,7 @@ Two rules keep this navigable:
 
 ## Running tests
 
-In Android Studio: right-click `app/src/test` → **Run 'Tests'**. From the terminal:
+In the terminal (Cursor):
 
 ```bash
 ./gradlew testDebugUnitTest          # the whole JVM suite
@@ -84,7 +80,7 @@ In Android Studio: right-click `app/src/test` → **Run 'Tests'**. From the term
 ```
 
 These are plain JVM tests — no emulator, a few seconds. Run them
-before every commit, here on Cursor. Studio is the live install
+before every commit, here on Cursor. Obtainium is the live install
 path. Do not wait on a GitHub Actions run.
 
 Run everything mechanical with one command — the static checks plus the JVM test
@@ -219,7 +215,7 @@ this. A red X on a commit is noise. Do not open it. Do not ask the
 owner about it. Do not file a packet to "fix CI."
 
 The test path is Cursor (`./gradlew testDebugUnitTest assembleDebug`)
-and Studio on the phone. That is the whole lane.
+and Obtainium on the phone. That is the whole lane.
 
 ## Instrumented tests
 
@@ -253,6 +249,9 @@ Migration tests must pass in both lanes before a schema change ships.
 unverified by automation — see [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md) Phase 1.
 
 ## On Windows
+
+The phone lane is Obtainium. This section is only for a Windows host that
+still runs Gradle. It is not how Temper reaches the device.
 
 The owner's machine is Windows/PowerShell, so the commands in this file need translating —
 and one lane is not available at all.
@@ -346,19 +345,20 @@ adb logcat --pid=$(adb shell pidof com.sinura.personaltrainer)
 ## Owner loop
 
 This is how the project actually moves. Cursor on the web writes the packet.
-Android Studio at home is the phone check. They are not the same evening.
+Obtainium on the phone is the check. They are not the same evening.
 
-- **`trunk` is shipping.** There is no `main`. After a merge, Studio does
-  `git checkout trunk` then `git pull origin trunk`.
+- **`trunk` is shipping.** There is no `main`. After a merge, cut a
+  `debug-live-*` pre-release with `PersonalTrainer-*-debug.apk`. The owner
+  taps Obtainium. Do not tell them to open Android Studio.
 - **A packet may sit.** Green JVM (`./gradlew testDebugUnitTest` and
   `assembleDebug`) is enough to open the PR and start the next packet.
   The phone is what merges it, not what unblocks the next branch.
 - **No two open PRs edit the same Kotlin file.** If the next packet needs a
   file an open PR already owns, it is stacked on that branch. Independent
   packets cut from current `trunk`. A stack merges at the tip only.
-- **Test the PR branch**, not whatever Studio last had open. Never run
-  `connectedDebugAndroidTest` on the release `applicationId`. The connected
-  suite targets `.debug`, which is the point.
+- **Never run `connectedDebugAndroidTest` on the release `applicationId`.**
+  The connected suite targets `.debug`, which is the point. Phone judging
+  happens on Temper Debug from Obtainium, not gym-floor Temper.
 
 Agents load the same rules from `.cursor/rules/owner-loop.mdc`. The current
 program those rules point at is [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md).

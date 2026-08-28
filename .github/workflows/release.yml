@@ -1,8 +1,8 @@
 name: Release
 
-# OPTIONAL convenience, not the deployment path. Android Studio (Build → Generate Signed
-# APK, or the local assembleRelease in SETUP.md) stays the primary way this app reaches
-# the phone.
+# OPTIONAL convenience for a signed gym-floor APK. Obtainium is the phone
+# path: Temper Debug from a debug-live pre-release, gym-floor Temper from a
+# signed PersonalTrainer-<version>.apk. Android Studio is not the install path.
 #
 # This exists so a versioned APK can be produced without a specific laptop being alive,
 # and so what lands on GitHub is provably signed. Every run uploads the APK as a workflow

@@ -87,13 +87,14 @@ Create **one Android client per signing key**. Debug installs and release instal
 4. SHA-1: paste the fingerprint for that install (see below).
 5. Create.
 
-Repeat for the other SHA-1 if you use both Android Studio debug builds and a signed release APK.
+Repeat for the other SHA-1 if you use both a debug-signed Temper Debug
+APK and a signed release APK.
 
 No `google-services.json` is required. The app does not embed a client secret.
 
 ### SHA-1 fingerprints
 
-**Debug** (Android Studio / `assembleDebug`):
+**Debug** (`assembleDebug` / Temper Debug Obtainium drop):
 
 ```bash
 ./gradlew signingReport
@@ -175,23 +176,47 @@ Obtainium compares `versionCode` inside the APK (and the release tag). Upload on
 
 Sideload without Obtainium: download the same APK from the GitHub Release and open it on the phone.
 
-## 6. Live testing without a PC
+## 6. Phone check (Obtainium, not Studio)
 
-Gym-floor **Temper** (`com.sinura.personaltrainer`) stays on the phone. New chrome is judged on **Temper Debug** (`com.sinura.personaltrainer.debug`) — a second icon and a second database. Do not uninstall release to make room.
+Android Studio is not the install path. Cursor lands on `trunk`. The phone
+gets **Temper Debug** from a GitHub **pre-release**.
 
-Cursor lands on `trunk`. Obtainium then watches GitHub Releases for a signed `PersonalTrainer-<version>.apk`. That file is the gym-floor update path. A `*-debug.apk` is Temper Debug only; do not point the gym-floor Obtainium entry at it.
+Gym-floor **Temper** (`com.sinura.personaltrainer`) stays on the phone.
+New chrome is judged on **Temper Debug** (`com.sinura.personaltrainer.debug`)
+— a second icon and a second database. Do not uninstall release to make room.
 
-To cut a signed drop without opening Android Studio: bump `appVersionCode` and `appVersionName`, push tag `vX.Y.Z` (must match `appVersionName`). The [release workflow](.github/workflows/release.yml) publishes the APK when the four `KEYSTORE_*` repository secrets are set. Without those secrets the tag still builds, but the APK is unsigned and will not update an existing Temper install.
+### Temper Debug (live test)
+
+1. After a packet is on `trunk` and the JVM gate is green, build
+   `./gradlew assembleDebug`.
+2. Tag `debug-live-YYYY-MM-DD` on that commit. A second drop the same
+   day is `debug-live-YYYY-MM-DD-2`.
+3. Publish a **pre-release** named `Temper Debug — live test` and attach
+   `PersonalTrainer-<version>-debug.apk`.
+4. Obtainium: this repo URL, **include pre-releases**, prefer the asset
+   whose name ends with `-debug.apk`.
+
+Do not point the gym-floor Obtainium entry at a `*-debug.apk`.
+
+### Gym-floor Temper (signed)
+
+Obtainium watches GitHub Releases for a signed `PersonalTrainer-<version>.apk`.
+That file is the gym-floor update path. Cut it by bumping `appVersionCode`
+and `appVersionName`, then pushing tag `vX.Y.Z` (must match `appVersionName`).
+The [release workflow](.github/workflows/release.yml) publishes the APK when
+the four `KEYSTORE_*` repository secrets are set. Without those secrets the
+tag still builds, but the APK is unsigned and will not update an existing
+Temper install.
 
 This is not Play. `versionCode` stays at 1 until a signed public artifact is cut.
 
 ## 7. First device install
 
-1. Build or download the signed APK.
-2. Copy it to the phone and open it, or install with `adb install PersonalTrainer-1.0.0.apk`.
-3. Allow installs from that source if Android prompts.
-4. Open Settings → About and confirm the version.
-5. Optional: Settings → Backup & restore → Sign in with Google, then Create backup now.
+1. Obtainium → this repo. Temper Debug: include pre-releases, `*-debug.apk`.
+   Gym-floor Temper: signed `PersonalTrainer-<version>.apk`.
+2. Allow installs from Obtainium when Android asks.
+3. Open Settings → About and confirm the version.
+4. Optional: Settings → Backup & restore → Sign in with Google, then Create backup now.
 
 Core training (routines, logging, history, units, library) does not need Google or a network. Backup/restore replaces local data from a Drive JSON file you created earlier.
 

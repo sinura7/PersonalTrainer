@@ -11,21 +11,26 @@ The current program — what is being built next, and the decisions that bind it
 [docs/FOUNDATION_PROGRAM.md](docs/FOUNDATION_PROGRAM.md). This README describes the
 local fitness beta on the debug install.
 
-The Play Store is not required: build and install from Android Studio, or sideload a signed
-APK and let Obtainium watch GitHub Releases.
+The Play Store is not required. Day-to-day on the phone is **Obtainium**:
+Temper Debug from a GitHub pre-release (`debug-live-*`,
+`PersonalTrainer-*-debug.apk`), gym-floor Temper from a signed
+`PersonalTrainer-<version>.apk`. Android Studio is not the install path.
 
 ## Run it
 
-1. Clone the repo:
-   ```bash
-   git clone https://github.com/sinura7/PersonalTrainer.git
-   ```
-2. **File → Open** the folder that contains `settings.gradle.kts`.
-3. Trust the project and wait for Gradle sync.
-4. Plug in a phone (API 26+) or start an emulator, then press **Run ▶**.
+**Phone (owner).** Install [Obtainium](https://github.com/ImranR98/Obtainium).
+Add `https://github.com/sinura7/PersonalTrainer`. Include pre-releases.
+Prefer `PersonalTrainer-*-debug.apk` for **Temper Debug**. Keep a separate
+entry on the signed `PersonalTrainer-<version>.apk` for gym-floor **Temper**.
+Do not mix those two apps.
 
-That is the whole day-to-day loop. Debug builds use Android Studio's debug keystore and
-need no configuration.
+**Cursor.** Clone, JVM-gate (`./gradlew testDebugUnitTest assembleDebug`),
+squash-merge to `trunk`. Then cut a `debug-live-*` pre-release so Obtainium
+can update Temper Debug. Details: [SETUP.md](SETUP.md) §6.
+
+Debug and release are **separate apps**. Debug is `com.sinura.personaltrainer.debug`.
+Release stays `com.sinura.personaltrainer`. Different signing keys, different
+databases, different icons.
 
 ## Documentation
 
@@ -130,7 +135,7 @@ and [ADR-010](docs/architecture/ADR-010-schema-reset-migrations.md).
 
 ## Requirements
 
-- Android Studio Ladybug or newer
 - JDK 17
 - Android SDK 35
 - minSdk 26 (Android 8.0)
+- Obtainium on the phone (Temper Debug from `debug-live-*` pre-releases)
