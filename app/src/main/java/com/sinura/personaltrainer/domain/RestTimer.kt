@@ -101,6 +101,15 @@ object RestTimer {
         return "%d:%02d".format(minutes, seconds)
     }
 
+    /**
+     * How much of the ring is still filled. Full at the start of a rest, empty at zero.
+     * The log bar's linear track uses the same fraction so the two surfaces cannot disagree.
+     */
+    fun sweepFraction(remainingSeconds: Int, totalSeconds: Int): Float {
+        if (totalSeconds <= 0) return 0f
+        return (remainingSeconds.toFloat() / totalSeconds.toFloat()).coerceIn(0f, 1f)
+    }
+
     fun parseCustom(input: String): Int? {
         val trimmed = input.trim()
         if (trimmed.isEmpty()) return null

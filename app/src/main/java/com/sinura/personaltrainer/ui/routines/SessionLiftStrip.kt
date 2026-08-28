@@ -1,21 +1,19 @@
 package com.sinura.personaltrainer.ui.routines
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,7 +33,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SessionOrderCopy
@@ -80,12 +77,13 @@ object SessionLiftCopy {
 }
 
 /**
- * The session as a numbered strip of cards, not a stack of full-width rows.
+ * The session as a vertical stack of full-width cards.
  *
- * Every face on a card has a job: order, identity, work, rest, and load when
- * it exists. Tap opens the same target fields [CompactLiftRow] uses, so the
- * 360 dp identity test on that row still has a home.
+ * Each lift occupies one horizontal row. The next sits under it. Tap expands
+ * that card for sets, reps, rest and load — not a sideways strip you have to
+ * hunt through.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SessionLiftStrip(
     lifts: List<SessionLiftItem>,
@@ -100,66 +98,194 @@ fun SessionLiftStrip(
     canSwap: (String) -> Boolean = { false },
     onSwap: (String) -> Unit = {},
 ) {
-    val selected = lifts.firstOrNull { it.id == selectedId }
     val selectedIndex = lifts.indexOfFirst { it.id == selectedId }
-    val listState = rememberLazyListState()
+    val firstRequester = remember { BringIntoViewRequester() }
+    val lastRequester = remember { BringIntoViewRequester() }
     var seenCount by remember { mutableIntStateOf(0) }
     var seenFirstId by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(lifts.firstOrNull()?.id, lifts.size) {
         val firstId = lifts.firstOrNull()?.id
         when (nextStripScroll(seenFirstId, seenCount, firstId, lifts.size)) {
-            StripScrollTarget.START -> listState.scrollToItem(0)
-            StripScrollTarget.LAST -> listState.animateScrollToItem(lifts.lastIndex)
+            StripScrollTarget.START -> firstRequester.bringIntoView()
+            StripScrollTarget.LAST -> lastRequester.bringIntoView()
             null -> Unit
         }
         seenCount = lifts.size
         seenFirstId = firstId
     }
     Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(SessionLiftTags.STRIP),
+        verticalArrangement = Arrangement.spacedBy(Metrics.cardGap),
     ) {
-        LazyRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag(SessionLiftTags.STRIP),
-            state = listState,
-            horizontalArrangement = Arrangement.spacedBy(Metrics.cardGap),
-            contentPadding = PaddingValues(vertical = Metrics.space1),
-        ) {
-            itemsIndexed(lifts, key = { _, item -> item.id }) { index, item ->
-                SessionLiftCard(
-                    item = item,
-                    number = index + 1,
-                    selected = item.id == selectedId,
-                    onClick = { onSelect(item.id) },
-                    modifier = Modifier.animateItem(),
-                )
+        lifts.forEachIndexed { index, item ->
+            val requester = when (index) {
+                0 -> firstRequester
+                lifts.lastIndex -> lastRequester
+                else -> null
             }
+            SessionLiftCard(
+                item = item,
+                number = index + 1,
+                total = lifts.size,
+                selected = item.id == selectedId,
+                onClick = { onSelect(item.id) },
+                canMoveEarlier = index > 0,
+                canMoveLater = index < lifts.lastIndex,
+                canSwap = canSwap(item.id),
+                onMoveEarlier = { onMoveEarlier(item.id) },
+                onMoveLater = { onMoveLater(item.id) },
+                onRemove = { onRemove(item.id) },
+                onSwap = { onSwap(item.id) },
+                onStageTargets = { sets, reps, rest, kg ->
+                    onStageTargets(item.id, sets, reps, rest, kg)
+                },
+                onCommitTargets = { onCommitTargets(item.id) },
+                modifier = Modifier.then(
+                    if (requester != null) Modifier.bringIntoViewRequester(requester) else Modifier,
+                ),
+            )
         }
-        if (selected == null) {
+        if (lifts.isNotEmpty() && selectedIndex < 0) {
             Text(
                 SessionOrderCopy.TAP_TO_SET,
                 modifier = Modifier.testTag(SessionLiftTags.HINT),
                 style = InstrumentType.body,
                 color = TextSecondary,
             )
-        } else {
+        }
+    }
+}
+
+@Composable
+private fun SessionLiftCard(
+    item: SessionLiftItem,
+    number: Int,
+    total: Int,
+    selected: Boolean,
+    onClick: () -> Unit,
+    canMoveEarlier: Boolean,
+    canMoveLater: Boolean,
+    canSwap: Boolean,
+    onMoveEarlier: () -> Unit,
+    onMoveLater: () -> Unit,
+    onRemove: () -> Unit,
+    onSwap: () -> Unit,
+    onStageTargets: (Int?, Int?, Int?, Double?) -> Unit,
+    onCommitTargets: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val unit = LocalWeightUnit.current
+    val restClock = RestTimer.formatClock(item.restSeconds)
+    val loadKg = item.targetWeightKg?.takeIf { it > 0.0 }
+    val loadDisplay = loadKg?.let { kg -> WeightConverter.formatLabel(kg, unit) }
+    val spoken = SessionOrderCopy.cardSpoken(
+        number = number,
+        name = item.exercise.name,
+        muscleGroup = item.exercise.muscleGroup,
+        sets = item.sets,
+        reps = item.reps,
+        restClock = restClock,
+        load = loadDisplay,
+    )
+    val shape = RoundedCornerShape(Radius.sm)
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = Metrics.rowMin)
+            .clip(shape)
+            .background(if (selected) VoltDim else Surface2)
+            .border(
+                if (selected) Metrics.emphasisBorder else Metrics.hairline,
+                if (selected) Volt else Hairline,
+                shape,
+            ),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .testTag(SessionLiftTags.card(item.id))
+                .semantics(mergeDescendants = true) {
+                    contentDescription = spoken
+                    this.selected = selected
+                }
+                .padding(Metrics.space3),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            ) {
+                CartBadge(number = number, selected = selected)
+                ExerciseThumb(
+                    exercise = item.exercise,
+                    size = ThumbSize.header,
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        item.exercise.name,
+                        style = InstrumentType.title,
+                        color = TextPrimary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (item.exercise.muscleGroup.isNotBlank()) {
+                        Text(
+                            item.exercise.muscleGroup,
+                            style = InstrumentType.caption,
+                            color = TextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            ) {
+                MetricCluster(
+                    value = "${item.sets} × ${item.reps}",
+                    label = SessionOrderCopy.WORK,
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.Start,
+                )
+                MetricCluster(
+                    value = restClock,
+                    label = SessionOrderCopy.REST,
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.Start,
+                )
+                if (loadKg != null) {
+                    MetricCluster(
+                        value = WeightConverter.formatDisplayNumber(
+                            WeightConverter.toDisplayValue(loadKg, unit),
+                        ),
+                        label = SessionOrderCopy.LOAD,
+                        unit = unit.suffix,
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.Start,
+                    )
+                }
+            }
+        }
+        if (selected) {
             SessionLiftEditor(
-                item = selected,
-                number = selectedIndex + 1,
-                total = lifts.size,
-                canMoveEarlier = selectedIndex > 0,
-                canMoveLater = selectedIndex in 0 until lifts.lastIndex,
-                canSwap = canSwap(selected.id),
-                onMoveEarlier = { onMoveEarlier(selected.id) },
-                onMoveLater = { onMoveLater(selected.id) },
-                onRemove = { onRemove(selected.id) },
-                onSwap = { onSwap(selected.id) },
-                onStageTargets = { sets, reps, rest, kg ->
-                    onStageTargets(selected.id, sets, reps, rest, kg)
-                },
-                onCommitTargets = { onCommitTargets(selected.id) },
+                item = item,
+                number = number,
+                total = total,
+                canMoveEarlier = canMoveEarlier,
+                canMoveLater = canMoveLater,
+                canSwap = canSwap,
+                onMoveEarlier = onMoveEarlier,
+                onMoveLater = onMoveLater,
+                onRemove = onRemove,
+                onSwap = onSwap,
+                onStageTargets = onStageTargets,
+                onCommitTargets = onCommitTargets,
             )
         }
     }
@@ -180,41 +306,15 @@ private fun SessionLiftEditor(
     onStageTargets: (Int?, Int?, Int?, Double?) -> Unit,
     onCommitTargets: () -> Unit,
 ) {
-    val shape = RoundedCornerShape(Radius.sm)
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(shape)
-            .background(Surface2)
-            .border(Metrics.emphasisBorder, Volt, shape)
             .testTag(SessionLiftTags.EDITOR),
     ) {
-        Column(
-            modifier = Modifier.padding(
-                start = Metrics.space3,
-                end = Metrics.space3,
-                top = Metrics.space3,
-            ),
-            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
-        ) {
-            Kicker(SessionOrderCopy.liftIndex(number, total))
-            Text(
-                item.exercise.name,
-                style = InstrumentType.title,
-                color = TextPrimary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (item.exercise.muscleGroup.isNotBlank()) {
-                Text(
-                    item.exercise.muscleGroup,
-                    style = InstrumentType.caption,
-                    color = TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
+        Kicker(
+            SessionOrderCopy.liftIndex(number, total),
+            modifier = Modifier.padding(horizontal = Metrics.space3),
+        )
         key("${item.id}:${item.exercise.id}") {
             CompactTargetFields(
                 rowKey = "${item.id}:${item.exercise.id}",
@@ -265,105 +365,6 @@ private fun SessionLiftEditor(
 }
 
 @Composable
-private fun SessionLiftCard(
-    item: SessionLiftItem,
-    number: Int,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val unit = LocalWeightUnit.current
-    val restClock = RestTimer.formatClock(item.restSeconds)
-    val loadKg = item.targetWeightKg?.takeIf { it > 0.0 }
-    val loadDisplay = loadKg?.let { kg -> WeightConverter.formatLabel(kg, unit) }
-    val spoken = SessionOrderCopy.cardSpoken(
-        number = number,
-        name = item.exercise.name,
-        muscleGroup = item.exercise.muscleGroup,
-        sets = item.sets,
-        reps = item.reps,
-        restClock = restClock,
-        load = loadDisplay,
-    )
-    val shape = RoundedCornerShape(Radius.sm)
-    val isSelected = selected
-    Column(
-        modifier = modifier
-            .width(CARD_WIDTH)
-            .heightIn(min = Metrics.rowMin)
-            .clip(shape)
-            .background(if (isSelected) VoltDim else Surface2)
-            .border(
-                if (isSelected) Metrics.emphasisBorder else Metrics.hairline,
-                if (isSelected) Volt else Hairline,
-                shape,
-            )
-            .semantics(mergeDescendants = true) {
-                contentDescription = spoken
-                this.selected = isSelected
-            }
-            .clickable(onClick = onClick)
-            .testTag(SessionLiftTags.card(item.id))
-            .padding(Metrics.space3),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-        ) {
-            CartBadge(number = number, selected = isSelected)
-            ExerciseThumb(
-                exercise = item.exercise,
-                size = ThumbSize.header,
-            )
-        }
-        Text(
-            item.exercise.name,
-            style = InstrumentType.title,
-            color = TextPrimary,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        if (item.exercise.muscleGroup.isNotBlank()) {
-            Text(
-                item.exercise.muscleGroup,
-                style = InstrumentType.caption,
-                color = TextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-        ) {
-            MetricCluster(
-                value = "${item.sets} × ${item.reps}",
-                label = SessionOrderCopy.WORK,
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.Start,
-            )
-            MetricCluster(
-                value = restClock,
-                label = SessionOrderCopy.REST,
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.Start,
-            )
-        }
-        if (loadKg != null) {
-            MetricCluster(
-                value = WeightConverter.formatDisplayNumber(
-                    WeightConverter.toDisplayValue(loadKg, unit),
-                ),
-                label = SessionOrderCopy.LOAD,
-                unit = unit.suffix,
-                horizontalAlignment = Alignment.Start,
-            )
-        }
-    }
-}
-
-@Composable
 internal fun CartBadge(
     number: Int,
     selected: Boolean,
@@ -387,8 +388,6 @@ internal fun CartBadge(
         )
     }
 }
-
-private val CARD_WIDTH = 156.dp
 
 internal enum class StripScrollTarget { START, LAST }
 

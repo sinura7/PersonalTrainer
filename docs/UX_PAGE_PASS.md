@@ -299,6 +299,14 @@ Owner asked for a **cross-tab layout fit** (28 Aug 2026): windows, buttons,
 and text that fit on every tab and in the workout. Instrument / ADR-005 stay.
 Not a restyle.
 
+Owner asked for **vertical lift cards** (28 Aug 2026): selected workouts
+were a left-to-right strip. Each lift now occupies one full-width row,
+the next under it, scrolled up and down. Tap expands that card — builder
+targets, or the live log. Live does not collapse the open lift on a
+second tap. Rest floor is a ticking ring around the remaining clock;
+the log bar stays linear. Overlay rest and a 240 dp ring on the log
+stay won’ts.
+
 1. **Rest dock stays at the top, outside the scroll.** Mid-rest you scroll sets.
 2. **Start sheet while live is “Go to session.”** They opened Start on purpose.
 3. **Finish on any logged set**, including warmup-only.
@@ -333,6 +341,13 @@ Not a restyle.
     Walk via `CardioCopy`, not `RUN`. Weight follows `LocalWeightUnit`.
     Add set / Add cardio are secondary. Remove is a named Danger control;
     tapping the row does not delete the line.
+21. **Session lifts stack vertically.** A left-to-right strip made the next
+    lift a hunt. Each lift is one full-width card under the last. Tap
+    expands sets/reps/rest/load (builder) or the log (live). Live does
+    not collapse the open lift on a second tap.
+22. **Rest floor is a ticking ring around the remaining clock.** The log
+    keeps the condensed bar and linear track. Overlay rest and a 240 dp
+    ring on the log stay won’ts.
 
 ---
 

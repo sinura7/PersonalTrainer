@@ -14,6 +14,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 28 Aug 2026 — Builder and live log stack lifts as full-width
+> vertical cards. Tap expands in place. Rest floor wraps the remaining
+> clock in a countdown ring. Log bar stays linear. Overlay rest and a
+> 240 dp ring on the log stay won’ts.
+>
 > 28 Aug 2026 — Cross-tab layout fit. Instrument stays. Overflow,
 > hit-target splits, Volt outside grouped windows, Why in a dialog
 > so the log dock does not grow. Not a restyle, not DIRECTION_A.

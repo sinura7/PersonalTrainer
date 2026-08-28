@@ -47,6 +47,16 @@ class RestTimerTest {
     }
 
     @Test
+    fun sweepFractionIsFullAtStartAndEmptyAtZero() {
+        assertEquals(1f, RestTimer.sweepFraction(90, 90), 0.0001f)
+        assertEquals(0.5f, RestTimer.sweepFraction(45, 90), 0.0001f)
+        assertEquals(0f, RestTimer.sweepFraction(0, 90), 0.0001f)
+        assertEquals(0f, RestTimer.sweepFraction(30, 0), 0.0001f)
+        assertEquals(0f, RestTimer.sweepFraction(-1, 90), 0.0001f)
+        assertEquals(1f, RestTimer.sweepFraction(120, 90), 0.0001f)
+    }
+
+    @Test
     fun parseCustomAcceptsSecondsAndMmSs() {
         assertEquals(90, RestTimer.parseCustom("90"))
         assertEquals(90, RestTimer.parseCustom("1:30"))

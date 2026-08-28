@@ -8,6 +8,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -56,15 +58,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -873,11 +879,7 @@ fun RestLinearTrack(
     finished: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    val target = if (totalSeconds > 0) {
-        (remainingSeconds.toFloat() / totalSeconds.toFloat()).coerceIn(0f, 1f)
-    } else {
-        0f
-    }
+    val target = RestTimer.sweepFraction(remainingSeconds, totalSeconds)
     val progress by animateFloatAsState(
         targetValue = target,
         animationSpec = tween(durationMillis = 1_000, easing = LinearEasing),
@@ -901,6 +903,102 @@ fun RestLinearTrack(
                 .fillMaxHeight()
                 .background(sweepColor),
         )
+    }
+}
+
+/**
+ * The rest-floor clock: a countdown ring around the remaining time.
+ *
+ * Lives only on the Rest page (280 dp so `numeralHero` still fits a
+ * `10:00` clock). The log keeps the condensed bar and linear track.
+ * Overlay rest and a 240 dp ring on the log stay won’ts.
+ */
+@Composable
+fun RestSweepRing(
+    remainingSeconds: Int,
+    totalSeconds: Int,
+    accent: Color,
+    clock: String,
+    kicker: String,
+    running: Boolean,
+    finished: Boolean,
+    modifier: Modifier = Modifier,
+    clockTestTag: String? = null,
+) {
+    val target = RestTimer.sweepFraction(remainingSeconds, totalSeconds)
+    val progress by animateFloatAsState(
+        targetValue = target,
+        animationSpec = tween(durationMillis = 1_000, easing = LinearEasing),
+        label = "rest-ring",
+    )
+    val sweepColor by animateColorAsState(
+        targetValue = if (finished) PrGold else accent,
+        animationSpec = instrumentTween(Motion.BASE),
+        label = "rest-ring-accent",
+    )
+    val reduceMotion = LocalReducedMotion.current
+    val urgent = running && remainingSeconds in 1..10
+    val pulse = rememberInfiniteTransition(label = "rest-ring-pulse")
+    val pulseScale by pulse.animateFloat(
+        initialValue = 1f,
+        targetValue = if (urgent && !reduceMotion) 1.015f else 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "rest-ring-scale",
+    )
+    val spoken = if (running) "Rest $clock remaining" else "Next rest $clock"
+    Box(
+        modifier = modifier
+            .size(REST_RING_SIZE)
+            .graphicsLayer {
+                scaleX = pulseScale
+                scaleY = pulseScale
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val strokePx = REST_RING_STROKE.toPx()
+            val stroke = Stroke(width = strokePx, cap = StrokeCap.Round)
+            val inset = strokePx / 2f
+            val arcSize = Size(size.width - inset * 2f, size.height - inset * 2f)
+            val origin = Offset(inset, inset)
+            drawArc(
+                color = HairlineStrong,
+                startAngle = 0f,
+                sweepAngle = 360f,
+                useCenter = false,
+                topLeft = origin,
+                size = arcSize,
+                style = stroke,
+            )
+            drawArc(
+                color = sweepColor,
+                startAngle = -90f,
+                sweepAngle = 360f * progress,
+                useCenter = false,
+                topLeft = origin,
+                size = arcSize,
+                style = stroke,
+            )
+        }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Kicker(kicker, color = accent)
+            Text(
+                clock,
+                style = InstrumentType.numeralHero,
+                color = TextPrimary,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Clip,
+                modifier = Modifier
+                    .then(
+                        if (clockTestTag != null) Modifier.testTag(clockTestTag) else Modifier,
+                    )
+                    .clearAndSetSemantics { contentDescription = spoken },
+            )
+        }
     }
 }
 
@@ -1238,3 +1336,5 @@ private const val REPEATS_BEFORE_FAST = 8
 private const val FINISHED_DWELL_MS = 3_500L
 private const val URGENT_SECONDS = 10
 private val REST_TRACK_HEIGHT = 4.dp
+private val REST_RING_SIZE = 280.dp
+private val REST_RING_STROKE = 10.dp
