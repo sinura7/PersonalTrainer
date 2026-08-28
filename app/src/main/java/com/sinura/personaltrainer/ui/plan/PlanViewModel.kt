@@ -521,6 +521,63 @@ class PlanViewModel @JvmOverloads constructor(
         }
     }
 
+    /**
+     * Another strength session on this weekday, after the latest existing
+     * row. Recurring. Bound to [routineId] so accessory / Hyper Pro work
+     * is its own start, not a rewrite of the evening pin.
+     */
+    fun addLaterSession(epochDay: Long, routineId: String) {
+        write("Could not add that session. Try again.") {
+            val weekday = dayOfWeekFor(epochDay)
+            val hours = container.plannerRepository.rules()
+                .filter { it.weekday == weekday }
+                .map { it.hour }
+            container.plannerRepository.addTimedRule(
+                weekday = weekday,
+                hour = SlotRuleImport.nextLaterHour(hours),
+                minute = 0,
+                modality = ScheduleModality.STRENGTH,
+                routineId = routineId,
+            )
+            refreshPlanner()
+        }
+    }
+
+    /**
+     * Mint (or reuse) a weekday-extra routine, attach it as a later
+     * session, then open the editor so the lifts exist before Home Start.
+     */
+    fun composeLaterSession(epochDay: Long) {
+        write("Could not add that session. Try again.") {
+            val weekday = dayOfWeekFor(epochDay)
+            val name = CustomWeekPolicy.extraRoutineName(weekday)
+            val used = container.plannerRepository.rules().mapNotNull { it.routineId }.toSet()
+            val reusable = uiState.value.routines.firstOrNull { routine ->
+                routine.name.equals(name, ignoreCase = true) && routine.id !in used
+            }
+            val routineId = reusable?.id ?: container.routineRepository.create(name).id
+            val hours = container.plannerRepository.rules()
+                .filter { it.weekday == weekday }
+                .map { it.hour }
+            container.plannerRepository.addTimedRule(
+                weekday = weekday,
+                hour = SlotRuleImport.nextLaterHour(hours),
+                minute = 0,
+                modality = ScheduleModality.STRENGTH,
+                routineId = routineId,
+            )
+            refreshPlanner()
+            _navigateToEditor.value = routineId
+        }
+    }
+
+    fun removeTimedRule(ruleId: String) {
+        write("Could not remove that session. Try again.") {
+            container.plannerRepository.removeTimedRule(ruleId)
+            refreshPlanner()
+        }
+    }
+
     fun applyMissedWork(choice: MissedWorkChoice) {
         write("Could not save that decision. Try again.") {
             val weekStartEpoch = uiState.value.week?.weekStartEpochDay

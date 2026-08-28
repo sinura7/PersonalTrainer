@@ -14,8 +14,8 @@ object HomeToday {
         if (agenda.isNotEmpty()) Surface.AGENDA else Surface.WEEK_FALLBACK
 
     /**
-     * The one Home Start tag. Prefers planned strength so TalkBack
-     * still finds "today's planned session" on a two-a-day.
+     * The one Home Start tag. Prefers the first planned strength so
+     * TalkBack still finds "today's planned session" on a day stack.
      */
     fun startTagOccurrenceId(agenda: List<AgendaItem>): String? {
         val planned = agenda.filter { it.occurrence.status == OccurrenceStatus.PLANNED }

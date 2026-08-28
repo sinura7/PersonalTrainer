@@ -26,6 +26,10 @@ object SessionOrderCopy {
     const val EMPTY_SESSION_BODY = "Pick the first lift, then log weight and reps."
     const val CARDIO_ON_THIS_DAY =
         "Morning cardio on this day. Starts at 07:00. Does not replace the lifts."
+    const val LATER_SESSION =
+        "Another session this weekday. Pick a routine. Does not replace the others."
+    const val COMPOSE_LATER = "Name a new session and set the lifts."
+    const val REMOVE_SESSION = "Stops this session on this weekday. Logged work stays."
 
     const val PICKER_HINT = "Tap in the order you'll lift. 1 is first."
     const val TAP_TO_SET = "Tap a lift to set sets, reps, rest and load."
@@ -34,7 +38,8 @@ object SessionOrderCopy {
     const val EMPTY_WEEK_BODY =
         "Tap lifts in the order you'll do them, then move to the next day."
     const val EDIT_LIFTS_SUBTITLE = "Tap a card for sets, reps, rest and load."
-    const val AGENDA_SEPARATE = "Morning and evening stay separate."
+    const val AGENDA_SEPARATE =
+        "Each session stays its own. Finish one, then start the next."
 
     fun liftIndex(number: Int, total: Int): String = "Lift $number of $total"
 

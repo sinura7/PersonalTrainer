@@ -19,9 +19,25 @@ class HomeTodayTest {
 
     @Test
     fun startTagPrefersPlannedStrengthOnATwoADay() {
-        val cardio = item("c", ScheduleModality.CARDIO)
-        val lift = item("s", ScheduleModality.STRENGTH)
+        val cardio = item("c", ScheduleModality.CARDIO, hour = 7)
+        val lift = item("s", ScheduleModality.STRENGTH, hour = 18)
         assertEquals("s", HomeToday.startTagOccurrenceId(listOf(cardio, lift)))
+    }
+
+    @Test
+    fun startTagPrefersTheFirstPlannedStrengthOnADayStack() {
+        val cardio = item("c", ScheduleModality.CARDIO, hour = 7)
+        val main = item("s", ScheduleModality.STRENGTH, hour = 18)
+        val extra = item("e", ScheduleModality.STRENGTH, hour = 20)
+        assertEquals("s", HomeToday.startTagOccurrenceId(listOf(cardio, main, extra)))
+    }
+
+    @Test
+    fun startTagMovesToTheLaterStrengthAfterTheMainIsDone() {
+        val cardio = item("c", ScheduleModality.CARDIO, hour = 7)
+        val main = item("s", ScheduleModality.STRENGTH, OccurrenceStatus.DONE, hour = 18)
+        val extra = item("e", ScheduleModality.STRENGTH, hour = 20)
+        assertEquals("e", HomeToday.startTagOccurrenceId(listOf(cardio, main, extra)))
     }
 
     @Test
@@ -114,13 +130,14 @@ class HomeTodayTest {
         id: String,
         modality: ScheduleModality,
         status: OccurrenceStatus = OccurrenceStatus.PLANNED,
+        hour: Int = 7,
     ) = AgendaItem(
         occurrence = ScheduleOccurrence(
             id = id,
             ruleId = "r-$id",
             status = status,
             captured = CapturedCivilTime(1L, "UTC", 0, 20_000L),
-            hour = 7,
+            hour = hour,
             minute = 0,
             createdAtMs = 1L,
             updatedAtMs = 1L,
@@ -128,7 +145,7 @@ class HomeTodayTest {
         rule = ScheduleRule(
             id = "r-$id",
             weekday = Weekday.MONDAY,
-            hour = 7,
+            hour = hour,
             minute = 0,
             modality = modality,
             createdAtMs = 1L,

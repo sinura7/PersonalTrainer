@@ -527,8 +527,17 @@ fun PlanScreen(
                 viewModel.startOccurrence(occurrenceId)
             },
             onAddMorningCardio = {
-                openDay = null
                 viewModel.addMorningCardio(sheetDay.epochDay)
+            },
+            onAddLaterSession = { routineId ->
+                viewModel.addLaterSession(sheetDay.epochDay, routineId)
+            },
+            onComposeLaterSession = {
+                openDay = null
+                viewModel.composeLaterSession(sheetDay.epochDay)
+            },
+            onRemoveTimedRule = { ruleId ->
+                viewModel.removeTimedRule(ruleId)
             },
             onBuildDay = {
                 openDay = null

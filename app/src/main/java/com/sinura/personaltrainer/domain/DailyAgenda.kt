@@ -3,8 +3,9 @@ package com.sinura.personaltrainer.domain
 /**
  * Today's scheduled occurrences, ordered by local time (P7.5).
  *
- * Morning cardio and evening strength are independent rows. Completion
- * of one does not hide or start the other.
+ * A day may hold morning cardio, a main lift session, and later
+ * accessory work as independent rows. Completion of one does not hide
+ * or start the other. One live activity still blocks a second start.
  */
 object DailyAgenda {
     fun forDay(

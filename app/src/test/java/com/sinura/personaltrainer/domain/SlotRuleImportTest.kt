@@ -79,4 +79,23 @@ class SlotRuleImportTest {
         val existing = SlotRuleImport.ruleFromSlot(slot, 1L)!!
         assertNull(SlotRuleImport.upsertFromSlot(existing, slot, 9L))
     }
+
+    @Test
+    fun userTimedRuleIdsAreNotImportedSlotRules() {
+        assertTrue(SlotRuleImport.isUserTimedRule("rule-strength-1-abc"))
+        assertTrue(SlotRuleImport.isUserTimedRule("rule-cardio-1-abc"))
+        assertTrue(SlotRuleImport.isUserTimedRule("rule-mixed-1-abc"))
+        assertTrue(SlotRuleImport.isImportedSlotRule("rule-slot-1"))
+        assertTrue(!SlotRuleImport.isUserTimedRule("rule-slot-1"))
+        assertTrue(!SlotRuleImport.isImportedSlotRule("rule-strength-1-abc"))
+    }
+
+    @Test
+    fun nextLaterHourSitsAfterTheEveningPin() {
+        assertEquals(20, SlotRuleImport.nextLaterHour(emptyList()))
+        assertEquals(20, SlotRuleImport.nextLaterHour(listOf(18)))
+        assertEquals(20, SlotRuleImport.nextLaterHour(listOf(7, 18)))
+        assertEquals(22, SlotRuleImport.nextLaterHour(listOf(7, 18, 20)))
+        assertEquals(23, SlotRuleImport.nextLaterHour(listOf(18, 20, 22)))
+    }
 }

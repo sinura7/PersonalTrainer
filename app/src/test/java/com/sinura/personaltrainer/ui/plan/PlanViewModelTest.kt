@@ -184,6 +184,140 @@ class PlanViewModelTest {
     }
 
     @Test
+    fun addLaterSessionCreatesAThirdOccurrenceOnThatDay() = runBlocking {
+        val today = LocalDate.now(ZoneId.systemDefault())
+        val monday = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+        val insights = MutableStateFlow(
+            TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
+        )
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        val extra = deps.routineRepository.create("Monday extra")
+        viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.pinFocus(monday.toEpochDay(), SessionFocusKind.PUSH)
+        withTimeout(5_000) {
+            viewModel!!.uiState.first { it.rules.isNotEmpty() }
+        }
+        viewModel!!.addMorningCardio(monday.toEpochDay())
+        withTimeout(5_000) {
+            deps.plannerRepository.observeOccurrences().first { rows ->
+                rows.count { it.localEpochDay == monday.toEpochDay() } >= 2
+            }
+        }
+        viewModel!!.addLaterSession(monday.toEpochDay(), extra.id)
+        val mondayOcc = withTimeout(5_000) {
+            deps.plannerRepository.observeOccurrences().first { rows ->
+                rows.count { it.localEpochDay == monday.toEpochDay() } >= 3
+            }
+        }
+        val onMonday = mondayOcc.filter { it.localEpochDay == monday.toEpochDay() }
+        assertEquals(3, onMonday.size)
+        assertEquals(setOf(7, 18, 20), onMonday.map { it.hour }.toSet())
+        val laterRule = deps.plannerRepository.rules().single {
+            it.routineId == extra.id
+        }
+        assertEquals(20, laterRule.hour)
+        assertEquals(
+            com.sinura.personaltrainer.domain.ScheduleModality.STRENGTH,
+            laterRule.modality,
+        )
+    }
+
+    @Test
+    fun swapKeepsTheLaterSession() = runBlocking {
+        val today = LocalDate.now(ZoneId.systemDefault())
+        val monday = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+        val insights = MutableStateFlow(
+            TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
+        )
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        val push = deps.routineRepository.create("Push")
+        val pull = deps.routineRepository.create("Pull")
+        val extra = deps.routineRepository.create("Monday extra")
+        viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.pinRoutine(monday.toEpochDay(), push.id)
+        withTimeout(5_000) {
+            viewModel!!.uiState.first { it.rules.any { rule -> rule.routineId == push.id } }
+        }
+        viewModel!!.addLaterSession(monday.toEpochDay(), extra.id)
+        withTimeout(5_000) {
+            viewModel!!.uiState.first { it.rules.any { rule -> rule.routineId == extra.id } }
+        }
+        val slotId = deps.scheduleRepository.slots().single().id
+        viewModel!!.swapRoutine(slotId, pull.id)
+        dispatcher.scheduler.advanceUntilIdle()
+        withTimeout(5_000) {
+            deps.plannerRepository.observeRules().first { rows ->
+                rows.any { it.routineId == pull.id } && rows.any { it.routineId == extra.id }
+            }
+        }
+        val rules = deps.plannerRepository.rules()
+        assertEquals(2, rules.size)
+        assertEquals(extra.id, rules.single { it.routineId == extra.id }.routineId)
+        assertEquals(pull.id, rules.single { it.routineId == pull.id }.routineId)
+    }
+
+    @Test
+    fun composeLaterSessionNamesTheExtraAndOpensTheEditor() = runBlocking {
+        val today = LocalDate.now(ZoneId.systemDefault())
+        val monday = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+        val insights = MutableStateFlow(
+            TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
+        )
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.pinFocus(monday.toEpochDay(), SessionFocusKind.PUSH)
+        withTimeout(5_000) {
+            viewModel!!.uiState.first { it.rules.isNotEmpty() }
+        }
+        viewModel!!.composeLaterSession(monday.toEpochDay())
+        val editorId = withTimeout(5_000) {
+            viewModel!!.navigateToEditor.first { it != null }!!
+        }
+        val routine = deps.routineRepository.getById(editorId)!!
+        assertEquals("Monday extra", routine.name)
+        val later = deps.plannerRepository.rules().single { it.routineId == editorId }
+        assertEquals(20, later.hour)
+        assertEquals(2, deps.plannerRepository.occurrencesBetween(monday.toEpochDay(), monday.toEpochDay()).size)
+    }
+
+    @Test
+    fun removeTimedRuleDropsTheExtraOccurrence() = runBlocking {
+        val today = LocalDate.now(ZoneId.systemDefault())
+        val monday = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+        val insights = MutableStateFlow(
+            TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
+        )
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        val extra = deps.routineRepository.create("Monday extra")
+        viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.pinFocus(monday.toEpochDay(), SessionFocusKind.PUSH)
+        withTimeout(5_000) {
+            viewModel!!.uiState.first { it.rules.isNotEmpty() }
+        }
+        viewModel!!.addLaterSession(monday.toEpochDay(), extra.id)
+        withTimeout(5_000) {
+            deps.plannerRepository.observeOccurrences().first { rows ->
+                rows.count { it.localEpochDay == monday.toEpochDay() } >= 2
+            }
+        }
+        val laterId = deps.plannerRepository.rules().single { it.routineId == extra.id }.id
+        viewModel!!.removeTimedRule(laterId)
+        withTimeout(5_000) {
+            deps.plannerRepository.observeOccurrences().first { rows ->
+                rows.count { it.localEpochDay == monday.toEpochDay() } == 1
+            }
+        }
+        assertEquals(1, deps.plannerRepository.rules().size)
+        assertTrue(
+            deps.plannerRepository.rules().none { it.routineId == extra.id },
+        )
+    }
+
+    @Test
     fun buildDayNamesTheWeekdayPinsItAndOpensTheEditor() = runBlocking {
         val today = LocalDate.now(ZoneId.systemDefault())
         val monday = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
