@@ -58,6 +58,7 @@ object DefaultExercises {
         "dead-bug", "carry",
         // Batch 5 (v6): Freak Athlete Hyper Pro laundry list.
         "reverse-hyper", "glute-ham-raise", "reverse-nordic", "ql-raise",
+        "elephant-walk", "couch-stretch", "pigeon",
     )
 
     fun catalog(): List<SeedExercise> = CATALOG
@@ -657,7 +658,7 @@ object DefaultExercises {
             muscleGroup = "Quads",
             equipment = EquipmentType.HYPER_PRO,
             loadType = LoadType.BODYWEIGHT,
-            movementKey = "lunge",
+            movementKey = "couch-stretch",
             primary = "quadriceps",
             secondaries = emptyList(),
         ),
@@ -667,7 +668,7 @@ object DefaultExercises {
             muscleGroup = "Hamstrings",
             equipment = EquipmentType.HYPER_PRO,
             loadType = LoadType.BODYWEIGHT,
-            movementKey = "romanian-deadlift",
+            movementKey = "elephant-walk",
             primary = "hamstrings",
             secondaries = emptyList(),
         ),
@@ -737,7 +738,7 @@ object DefaultExercises {
             muscleGroup = "Glutes",
             equipment = EquipmentType.HYPER_PRO,
             loadType = LoadType.BODYWEIGHT,
-            movementKey = "hip-abduction",
+            movementKey = "pigeon",
             primary = "glutes",
             secondaries = emptyList(),
         ),

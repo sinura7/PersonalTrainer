@@ -47,13 +47,13 @@ internal enum class LiftPose {
 
 internal fun poseFor(movementKey: String?): LiftPose = when (movementKey) {
     "squat" -> LiftPose.SQUAT
-    "lunge", "step-up", "reverse-nordic" -> LiftPose.LUNGE
+    "lunge", "step-up", "reverse-nordic", "couch-stretch" -> LiftPose.LUNGE
     "leg-press", "leg-extension", "leg-curl", "calf-raise" -> LiftPose.SEATED_MACHINE
     "deadlift", "romanian-deadlift", "good-morning", "kettlebell-swing",
     "pull-through", "back-extension", "nordic-curl",
-    "reverse-hyper", "glute-ham-raise", "ql-raise",
+    "reverse-hyper", "glute-ham-raise", "ql-raise", "elephant-walk",
     -> LiftPose.HINGE
-    "hip-thrust", "hip-abduction", "glute-kickback" -> LiftPose.HIP
+    "hip-thrust", "hip-abduction", "glute-kickback", "pigeon" -> LiftPose.HIP
     "bench-press", "push-up", "dip" -> LiftPose.HORIZONTAL_PRESS
     "overhead-press" -> LiftPose.VERTICAL_PRESS
     "chest-fly", "lateral-raise", "rear-delt" -> LiftPose.FLY

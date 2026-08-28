@@ -13,13 +13,16 @@ Packet: Freak Athlete Hyper Pro as a first-class kit.
   Resilience goal leads with those patterns.
 - Empty coach kit still means gym-floor: Hyper Pro stays filtered off
   until the place or Settings chip says otherwise.
+- Couch stretch, elephant walk, and incline pigeon stay in Library
+  (own families) so they do not steal generated compound slots.
 
 ## Commands
 
-- `tools/preflight.sh`
-- `./gradlew testDebugUnitTest`
-- `./gradlew assembleDebug`
-- `tools/render-artifacts.sh`
+- `tools/preflight.sh` — OK (958 domain tests)
+- `./gradlew testDebugUnitTest` — 1395 tests, 0 failures
+- `./gradlew assembleDebug` — SUCCESS
+- `tools/render-artifacts.sh` — `catalog-v6-review.md`,
+  `onboarding-programs-review.md`
 
 ## Known limitations
 
