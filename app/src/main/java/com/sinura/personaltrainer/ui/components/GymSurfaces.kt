@@ -108,8 +108,16 @@ fun GymSectionHeader(
             color = if (compact) TextTertiary else TextSecondary,
         )
         if (actionLabel != null && onAction != null) {
-            TextButton(onClick = onAction) {
-                Text(actionLabel, style = InstrumentType.bodyStrong)
+            TextButton(
+                onClick = onAction,
+                modifier = Modifier.heightIn(min = Metrics.touchMin),
+            ) {
+                Text(
+                    actionLabel,
+                    style = InstrumentType.bodyStrong,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }
@@ -227,7 +235,8 @@ fun MetricCluster(
                 modifier = Modifier.alignByBaseline(),
                 style = valueStyle,
                 color = valueColor,
-                maxLines = 2,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             if (unit != null) {
                 Text(
@@ -278,6 +287,7 @@ fun StatTile(
                 style = InstrumentType.numeralLg,
                 color = valueColor,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             if (unit != null) {
                 Text(
@@ -373,20 +383,26 @@ fun SessionLogRow(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = Metrics.rowMin)
-            .clickable(onClick = onClick)
-            .padding(horizontal = Metrics.space4, vertical = Metrics.space3)
-            .testTag(SessionLogTags.ROW)
-            .semantics(mergeDescendants = true) { contentDescription = spoken },
+            .heightIn(min = Metrics.rowMin),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    start = Metrics.space4,
+                    top = Metrics.space3,
+                    end = if (onRepeat != null) Metrics.space2 else Metrics.space4,
+                ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
         ) {
             Column(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(onClick = onClick)
+                    .testTag(SessionLogTags.ROW)
+                    .semantics(mergeDescendants = true) { contentDescription = spoken },
                 verticalArrangement = Arrangement.spacedBy(Metrics.space1),
             ) {
                 Text(
@@ -438,6 +454,12 @@ fun SessionLogRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(
+                    start = Metrics.space4,
+                    end = Metrics.space4,
+                    bottom = Metrics.space3,
+                )
                 .testTag(SessionLogTags.METRICS),
             horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
             verticalAlignment = Alignment.Bottom,

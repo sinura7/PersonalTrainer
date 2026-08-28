@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.RestFloorContext
@@ -202,10 +203,22 @@ private fun RestFloorBody(
             finished = justFinished,
         )
         floor.exerciseName?.let { name ->
-            Text(name, style = InstrumentType.title, color = TextPrimary)
+            Text(
+                name,
+                style = InstrumentType.title,
+                color = TextPrimary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
         floor.lastSetLine?.let { line ->
-            Text(line, style = InstrumentType.body, color = TextSecondary)
+            Text(
+                line,
+                style = InstrumentType.body,
+                color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
         floor.sessionTargetLine?.let { line ->
             Text(
@@ -213,6 +226,8 @@ private fun RestFloorBody(
                 modifier = Modifier.testTag(RestFloorTags.NEXT),
                 style = InstrumentType.body,
                 color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
 
@@ -278,6 +293,9 @@ private fun RestFloorClock(
         clock,
         style = InstrumentType.numeralHero,
         color = TextPrimary,
+        maxLines = 1,
+        softWrap = false,
+        overflow = TextOverflow.Clip,
         modifier = modifier
             .testTag(RestFloorTags.CLOCK)
             .clearAndSetSemantics {

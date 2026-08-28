@@ -3,6 +3,8 @@ package com.sinura.personaltrainer.ui.home
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -10,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.HomeToday
@@ -99,11 +102,19 @@ fun DailyAgendaCard(
             TextButton(
                 onClick = onStartFree,
                 modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = Metrics.touchMin)
                     .testTag(HomeTags.FREE)
                     .semantics { contentDescription = SessionOrderCopy.FREE_WORKOUT },
                 contentPadding = PaddingValues(0.dp),
             ) {
-                Text(SessionOrderCopy.FREE_WORKOUT, style = InstrumentType.bodyStrong, color = TextSecondary)
+                Text(
+                    SessionOrderCopy.FREE_WORKOUT,
+                    style = InstrumentType.bodyStrong,
+                    color = TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }

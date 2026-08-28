@@ -15,12 +15,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -385,21 +388,25 @@ internal fun HorizonPicker(
                 MetricCluster(
                     value = numbers.sessionCount.toString(),
                     label = "sessions",
+                    modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.Start,
                 )
                 MetricCluster(
                     value = numbers.trainedDays.toString(),
                     label = "days",
+                    modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.Start,
                 )
                 MetricCluster(
                     value = numbers.workingSets.toString(),
                     label = "sets",
+                    modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.Start,
                 )
                 MetricCluster(
                     value = numbers.activeMinutes.toString(),
                     label = "min",
+                    modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.Start,
                 )
             }
@@ -418,10 +425,15 @@ private fun DaySessionsSheet(
     onOpenActivity: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Surface3) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = Surface3,
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = Metrics.gutter)
                 .padding(bottom = Metrics.space7),
             verticalArrangement = Arrangement.spacedBy(Metrics.space3),
@@ -432,6 +444,8 @@ private fun DaySessionsSheet(
                     "${summaries.size} sessions",
                     style = InstrumentType.title,
                     color = TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             GroupedList {
@@ -495,22 +509,26 @@ private fun FinishedBlockCard(finished: FinishedBlock, unit: WeightUnit) {
             MetricCluster(
                 value = review.daysTrained.toString(),
                 label = "days",
+                modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.Start,
             )
             MetricCluster(
                 value = review.workingSets.toString(),
                 label = "sets",
+                modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.Start,
             )
             val column = SetCopy.workColumn(review.work, unit)
             MetricCluster(
                 value = column.value,
                 label = column.label,
+                modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.Start,
             )
             MetricCluster(
                 value = review.recordsBroken.toString(),
                 label = "PRs",
+                modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.Start,
             )
         }

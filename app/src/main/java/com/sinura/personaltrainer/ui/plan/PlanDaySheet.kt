@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -13,12 +14,14 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.CustomWeekPolicy
@@ -75,7 +78,10 @@ fun PlanDaySheet(
     var picking by rememberSaveable(day.epochDay) { mutableStateOf(Picker.NONE) }
     val pinned = !day.isRest
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -94,6 +100,8 @@ fun PlanDaySheet(
                     },
                     style = InstrumentType.title,
                     color = TextPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     when {
@@ -104,6 +112,8 @@ fun PlanDaySheet(
                     },
                     style = InstrumentType.caption,
                     color = TextSecondary,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
 
@@ -130,13 +140,18 @@ fun PlanDaySheet(
                                 null
                             },
                         )
-                        if (canStart && tagged) {
-                            PrimaryGymButton(
-                                text = "Start ${item.title}",
-                                onClick = { onStartOccurrence(item.occurrence.id) },
-                            )
-                        }
                     }
+                }
+                val taggedItem = occurrences.firstOrNull { it.occurrence.id == startTagId }
+                val canStartTagged = taggedItem != null &&
+                    !isPast &&
+                    !sessionLive &&
+                    taggedItem.occurrence.status == OccurrenceStatus.PLANNED
+                if (canStartTagged && taggedItem != null) {
+                    PrimaryGymButton(
+                        text = "Start ${taggedItem.title}",
+                        onClick = { onStartOccurrence(taggedItem.occurrence.id) },
+                    )
                 }
             }
 
@@ -202,9 +217,18 @@ fun PlanDaySheet(
             if (!sessionLive) {
                 TextButton(
                     onClick = onStartFree,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = Metrics.touchMin),
                     contentPadding = PaddingValues(0.dp),
                 ) {
-                    Text(SessionOrderCopy.FREE_WORKOUT, style = InstrumentType.bodyStrong, color = TextSecondary)
+                    Text(
+                        SessionOrderCopy.FREE_WORKOUT,
+                        style = InstrumentType.bodyStrong,
+                        color = TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
 

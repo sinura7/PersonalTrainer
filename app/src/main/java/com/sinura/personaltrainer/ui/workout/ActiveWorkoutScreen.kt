@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -726,7 +727,12 @@ private fun LogBar(
             Text(it, style = InstrumentType.body, color = Danger)
         }
         if (editing) {
-            TextButton(onClick = onCancelEdit, modifier = Modifier.align(Alignment.End)) {
+            TextButton(
+                onClick = onCancelEdit,
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .heightIn(min = Metrics.touchMin),
+            ) {
                 Text("Cancel edit", style = InstrumentType.bodyStrong, color = TextSecondary)
             }
         }
@@ -760,7 +766,13 @@ private fun MicroRecLine(
     }
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
         SetMicroRecCopy.caption(rec)?.let { caption ->
-            Text(caption, style = InstrumentType.caption, color = TextTertiary)
+            Text(
+                caption,
+                style = InstrumentType.caption,
+                color = TextTertiary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -774,13 +786,17 @@ private fun MicroRecLine(
                     .testTag(WorkoutTestTags.MICRO_REC),
                 style = InstrumentType.bodyStrong,
                 color = TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             TextButton(
-                onClick = { showWhy = !showWhy },
-                modifier = Modifier.testTag(WorkoutTestTags.MICRO_REC_WHY),
+                onClick = { showWhy = true },
+                modifier = Modifier
+                    .heightIn(min = Metrics.touchMin)
+                    .testTag(WorkoutTestTags.MICRO_REC_WHY),
             ) {
                 Text(
-                    if (showWhy) "Hide why" else "Why",
+                    "Why",
                     style = InstrumentType.bodyStrong,
                     color = TextSecondary,
                 )
@@ -788,19 +804,24 @@ private fun MicroRecLine(
             if (rec.showApply && !rec.previewOnly) {
                 TextButton(
                     onClick = onApply,
-                    modifier = Modifier.testTag(WorkoutTestTags.MICRO_REC_APPLY),
+                    modifier = Modifier
+                        .heightIn(min = Metrics.touchMin)
+                        .testTag(WorkoutTestTags.MICRO_REC_APPLY),
                 ) {
                     Text("Use", style = InstrumentType.bodyStrong, color = Volt)
                 }
             }
         }
-        if (showWhy) {
-            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-                SetMicroRecCopy.whyLines(rec).forEach { line ->
-                    Text(line, style = InstrumentType.caption, color = TextSecondary)
-                }
-            }
-        }
+    }
+    if (showWhy) {
+        ConfirmActionDialog(
+            title = "Why",
+            body = SetMicroRecCopy.whyLines(rec).joinToString("\n"),
+            confirmLabel = "OK",
+            onConfirm = { showWhy = false },
+            onDismiss = { showWhy = false },
+            dismissLabel = null,
+        )
     }
 }
 
@@ -861,6 +882,7 @@ private fun CurrentLiftHeader(
                 style = InstrumentType.display,
                 color = TextPrimary,
                 maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
             )
             // Only while nothing has been logged against this lift. Once a set exists, the
             // lift is part of what happened: removing it would delete real work and swapping
@@ -910,6 +932,8 @@ private fun CurrentLiftHeader(
             ),
             style = InstrumentType.caption,
             color = TextSecondary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -999,10 +1023,21 @@ private fun ProgressionStrip(
                 "Top set ${hint.lastWeightKg.toWeightLabel(unit)} × ${hint.lastReps}  →  ${hint.suggestedWeightKg.toWeightLabel(unit)}",
                 style = InstrumentType.numeralSm,
                 color = TextPrimary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
-            Text(reason, style = InstrumentType.caption, color = TextSecondary)
+            Text(
+                reason,
+                style = InstrumentType.caption,
+                color = TextSecondary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
-        TextButton(onClick = onApply) {
+        TextButton(
+            onClick = onApply,
+            modifier = Modifier.heightIn(min = Metrics.touchMin),
+        ) {
             Text("Use", style = InstrumentType.bodyStrong, color = Volt)
         }
     }
@@ -1126,12 +1161,20 @@ private fun SetRow(
                 SetCopy.setLine(set.weightKg, set.reps, loadClass, unit),
                 style = InstrumentType.numeralSm,
                 color = TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             val extras = buildList {
                 add("Set ${set.setNumber}")
                 set.rpe?.let { add("RPE $it") }
             }.joinToString(" · ")
-            Text(extras, style = InstrumentType.caption, color = TextSecondary)
+            Text(
+                extras,
+                style = InstrumentType.caption,
+                color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
         if (isLatest) {
             TextButton(onClick = onEdit) {

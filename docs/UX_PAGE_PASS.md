@@ -108,6 +108,8 @@ keeps the draft.
 - **Log sits above the system nav.** Scaffold's bottomBar is edge-to-edge.
   This route hides the tab bar, so the log dock owns `navigationBarsPadding`
   the same way the tab bar and live bar already do.
+- **Why is a dialog**, not an expand in the log dock. Next line is one
+  line with ellipsis. Use stays Volt text. Lift name ellipsizes.
 
 ### 2 — Summary · **done**
 
@@ -139,6 +141,8 @@ keeps the draft.
   *(those labels never shipped on the leftover card; free is the honest second path)*.
 - **Live → no Start at all.** The card names the plan. The bar is the way back.
   ~~Card never knows about live, so it still says Start.~~ That Start would lie.
+- `LinkRow` is a full-width 48 dp row. Label and trailing ellipsize.
+  Rec Why is a dialog; the card tap does not wrap it.
 
 ### 4 — Start sheet + live bar · **done**
 
@@ -158,6 +162,8 @@ keeps the draft.
   `SessionOrderCopy.FREE_WORKOUT`.
 - Status lines never dump a schema enum (`Planned`). Empty strength is
   “No lifts yet”; cardio/mixed planned is “Ready”.
+- Live bar identity is the resume target. The ⋮ is not inside that tap.
+  Title ellipsizes. Height is `rowMin`, not a clipped 56 dp.
 
 ### 5 — Plan · **done** (this pass)
 
@@ -177,8 +183,10 @@ keeps the draft.
 - Free on a Plan day opens `StartOptionsSheet`, not an empty free session.
 - Two-a-day: one Volt Start (strength preferred); other planned rows stay
   tappable. Same rule as Home.
-- Missed-work: one Volt **Keep the dates**. The other three stay quiet.
-  Copy never says “recurrence”.
+- Missed-work: one Volt **Keep the dates**. Move / Adapt / Skip are
+  secondary gym buttons. Copy never says “recurrence”.
+- Plan day Start sits **under** the grouped occurrence list, not inside
+  the window. Day sheets skip the half-expanded detent.
 
 ### 6 — Editor · **done** (this pass)
 
@@ -229,6 +237,8 @@ The pass is to keep it that way and to make the map actionable.)
 
 **Won't.** Day / year windows. Head-level anatomy. LLM coach.
 
+- Muscle sheet metrics share width. Name and recency ellipsize.
+
 ### 9 — History / Session detail · **done** (this pass)
 
 **Job.** Memory + typo fix.
@@ -240,7 +250,9 @@ session. Repeat while live → “Go to session”, not a silent resume.
 
 - Repeat copy that says Resume.
 - A calendar day with two sessions opening only the first (already a sheet).
+  The day sheet skips the half-expanded detent and scrolls.
 - Session-missing empty with no way back.
+- Four-up metric clusters use `weight(1f)` so 360 dp does not clip a column.
 
 **Won't.** Recomputing duration on a repair. Changing `completedAt`.
 
@@ -282,6 +294,10 @@ Job 4 / P1. Home empty-week volt becomes replay when routines exist
 ## Floor findings (newest first)
 
 Record every deviation here. Oldest stay; do not delete.
+
+Owner asked for a **cross-tab layout fit** (28 Aug 2026): windows, buttons,
+and text that fit on every tab and in the workout. Instrument / ADR-005 stay.
+Not a restyle.
 
 1. **Rest dock stays at the top, outside the scroll.** Mid-rest you scroll sets.
 2. **Start sheet while live is “Go to session.”** They opened Start on purpose.

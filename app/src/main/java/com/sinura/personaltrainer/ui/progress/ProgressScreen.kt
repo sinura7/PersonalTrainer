@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.SetCopy
@@ -306,25 +307,37 @@ private fun MuscleDetailSheet(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
                 Kicker("$windowLabel · ${load.band.legendLabel}")
-                Text(load.muscle.displayName, style = InstrumentType.display, color = TextPrimary)
+                Text(
+                    load.muscle.displayName,
+                    style = InstrumentType.display,
+                    color = TextPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space6)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space6),
+            ) {
                 val column = SetCopy.workColumn(load.work, unit)
                 MetricCluster(
                     value = column.value,
                     label = column.label,
+                    modifier = Modifier.weight(1f),
                     valueStyle = InstrumentType.numeralLg,
                     horizontalAlignment = Alignment.Start,
                 )
                 MetricCluster(
                     value = load.workingSets.toString(),
                     label = "sets",
+                    modifier = Modifier.weight(1f),
                     valueStyle = InstrumentType.numeralLg,
                     horizontalAlignment = Alignment.Start,
                 )
                 MetricCluster(
                     value = load.sessionCount.toString(),
                     label = "sessions",
+                    modifier = Modifier.weight(1f),
                     valueStyle = InstrumentType.numeralLg,
                     horizontalAlignment = Alignment.Start,
                 )
@@ -334,8 +347,14 @@ private fun MuscleDetailSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Kicker("Last trained")
-                Text(recencyLabel(load), style = InstrumentType.bodyStrong, color = TextPrimary)
+                Kicker("Last trained", modifier = Modifier.weight(1f))
+                Text(
+                    recencyLabel(load),
+                    style = InstrumentType.bodyStrong,
+                    color = TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
             if (load.exercises.isEmpty()) {
                 Text(
