@@ -9,10 +9,15 @@ plugins {
     jacoco
 }
 
-// Bump both values for every GitHub Release.
+// Bump both values for every signed GitHub Release (gym-floor Temper).
 // versionCode must increase so Android and Obtainium treat the APK as an update.
 val appVersionCode = 1
 val appVersionName = "1.0.0"
+// Bump this for every Temper Debug Obtainium drop. Gym-floor stays on
+// appVersionCode. The two apps are different ids, so they do not share
+// Android's upgrade counter. Obtainium will not offer an update if this
+// stays put — both previous debug-live APKs were versionCode 1.
+val debugLiveCode = 2
 
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 val keystoreProperties = Properties()
@@ -116,6 +121,15 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+}
+
+androidComponents {
+    onVariants(selector().withBuildType("debug")) { variant ->
+        variant.outputs.forEach { output ->
+            output.versionCode.set(debugLiveCode)
+            output.versionName.set("$appVersionName+debug.$debugLiveCode")
+        }
     }
 }
 

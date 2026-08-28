@@ -14,6 +14,9 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 28 Aug 2026 — Temper Debug Obtainium drops bump `debugLiveCode`.
+> Same versionCode is why a check for updates can show nothing.
+>
 > 28 Aug 2026 — Phone lane is Obtainium, not Android Studio. Cursor
 > lands on `trunk`. Temper Debug is a GitHub pre-release
 > (`debug-live-*`, `PersonalTrainer-*-debug.apk`). Gym-floor Temper
