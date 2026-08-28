@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
+import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -42,6 +43,7 @@ class RestTimerViewModelTest {
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        runBlocking { deps.preferencesRepository.setWeightUnit(WeightUnit.KG) }
     }
 
     @After
@@ -141,10 +143,12 @@ class RestTimerViewModelTest {
         workout.awaitState { it.loadState == SessionLoadState.FOUND }
         val floor = createViewModel(fixture.session.id)
         floor.awaitState { it.loadState == SessionLoadState.FOUND }
+        workout.restTimerState.first { !it.running && it.totalSeconds > 0 }
+        deps.preferencesRepository.restTimerPreferences.first()
 
         floor.selectRestDuration(105)
-        eventually {
-            workout.restTimerState.value.takeIf { it.totalSeconds == 105 && !it.running }
+        withTimeout(5_000) {
+            workout.restTimerState.first { it.totalSeconds == 105 && !it.running }
         }
         assertEquals(105, floor.uiState.value.rest.totalSeconds)
     }

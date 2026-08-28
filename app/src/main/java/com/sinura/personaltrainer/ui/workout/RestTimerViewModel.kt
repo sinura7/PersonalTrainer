@@ -107,19 +107,24 @@ class RestTimerViewModel @JvmOverloads constructor(
         hint,
         container.preferencesRepository.weightUnit,
     ) { current, resolved, rest, currentHint, unit ->
+        val missing = current == null || current.isFinished
         RestTimerScreenState(
             loadState = when {
                 !resolved && sessionId.isNotBlank() -> SessionLoadState.LOADING
-                current == null || current.isFinished -> SessionLoadState.MISSING
+                missing -> SessionLoadState.MISSING
                 else -> SessionLoadState.FOUND
             },
             rest = rest,
-            floor = RestFloorCopy.context(
-                session = current,
-                selectedExerciseId = resolveExerciseId(current),
-                hint = currentHint,
-                unit = unit,
-            ),
+            floor = if (missing) {
+                RestFloorContext(exerciseName = null, lastSetLine = null, sessionTargetLine = null)
+            } else {
+                RestFloorCopy.context(
+                    session = current,
+                    selectedExerciseId = resolveExerciseId(current),
+                    hint = currentHint,
+                    unit = unit,
+                )
+            },
         )
     }.stateIn(
         scope = viewModelScope,
