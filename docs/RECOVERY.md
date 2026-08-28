@@ -47,8 +47,8 @@ Nothing is lost as long as the keystore was backed up separately.
 git clone https://github.com/sinura7/PersonalTrainer.git
 ```
 
-Open in Android Studio, let Gradle sync, and you can build and run immediately. Debug
-builds use Android Studio's own debug keystore and need nothing from you.
+Open the clone on Cursor and you can build immediately. Debug
+builds use the default debug keystore and need nothing from you.
 
 To build a **release** APK again you need the keystore and its passwords — restore them
 per section 3, then follow [SETUP.md](../SETUP.md) §3.

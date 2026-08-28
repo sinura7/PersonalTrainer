@@ -14,6 +14,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 28 Aug 2026 — Phone lane is Obtainium, not Android Studio. Cursor
+> lands on `trunk`. Temper Debug is a GitHub pre-release
+> (`debug-live-*`, `PersonalTrainer-*-debug.apk`). Gym-floor Temper
+> stays on the signed APK. Do not mix the two Obtainium entries.
+>
 > 28 Aug 2026 — Builder and live log stack lifts as full-width
 > vertical cards. Tap expands in place. Rest floor wraps the remaining
 > clock in a countdown ring. Log bar stays linear. Overlay rest and a

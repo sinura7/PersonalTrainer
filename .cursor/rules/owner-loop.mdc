@@ -1,13 +1,12 @@
 ---
-description: Owner loop — trunk, packets, no file overlap while Studio is away
+description: Owner loop — trunk, packets, Obtainium phone lane
 alwaysApply: true
 ---
 
 # Owner loop
 
-Allen develops from Cursor on the web when Android Studio is not around.
-Phone checks happen later, at home. That is the expected loop, not a
-blockage. Keep shipping unblocked. Do not sit idle waiting for Studio.
+Allen develops from Cursor on the web. The phone is Obtainium. Android
+Studio is not the install path. Do not sit idle waiting for a laptop.
 
 ## Shipping line
 
@@ -21,14 +20,16 @@ blockage. Keep shipping unblocked. Do not sit idle waiting for Studio.
 - Branch names: `cursor/<short-slug>-b87f`.
 - JVM (`./gradlew testDebugUnitTest` + `assembleDebug`) is the push
   gate. Run it here, on Cursor.
-- After merge, the owner pulls `origin/trunk` in Studio. The phone
-  judges `trunk`, not a leftover local branch.
+- After merge, the phone gets **Temper Debug** from a GitHub
+  pre-release. Tag `debug-live-YYYY-MM-DD` (or `-2` on a same-day
+  drop). Attach `PersonalTrainer-*-debug.apk`. Obtainium is what the
+  owner taps. Do not tell the owner to open Android Studio.
 - **Do not use GitHub-hosted runners as a test lane.** Do not ask the
   owner to click a red X, lift Actions billing, or grant Checks /
   Actions scopes so an agent can read workflow logs. The yaml may
-  stay. Ignore it. Cursor + Studio are how we test.
+  stay. Ignore it. Cursor JVM + Obtainium are how we test.
 
-## Continue while Studio is away
+## Continue after merge
 
 Start the next packet as soon as the current one is on `trunk` and the
 JVM gate is green. Do not wait for a phone check. Do not leave the
@@ -51,10 +52,13 @@ the tip only — not each layer as if they were strangers.
 
 ## Phone check
 
-Pull `origin/trunk` in Studio. Judge that build. Never run
-`connectedDebugAndroidTest` on the release `applicationId`. Debug is
-`com.sinura.personaltrainer.debug` — a separate app. The connected suite
-targets that id. Use the emulator, not the gym-floor phone.
+Obtainium, not Studio. Add `https://github.com/sinura7/PersonalTrainer`,
+include pre-releases, prefer `PersonalTrainer-*-debug.apk`. That install
+is **Temper Debug** (`com.sinura.personaltrainer.debug`) — a second icon
+and a second database. Gym-floor **Temper** stays on the signed
+`PersonalTrainer-<version>.apk` entry. Never point the gym-floor
+Obtainium app at a `*-debug.apk`. Never run
+`connectedDebugAndroidTest` on the release `applicationId`.
 
 ## Current program
 

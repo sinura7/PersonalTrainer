@@ -1,7 +1,7 @@
 name: CI
 
-# The safety net. Android Studio remains how the app is built and installed on the
-# phone; this exists so a broken commit is caught by something other than memory.
+# The safety net. Cursor JVM-gates; Obtainium is the phone. This exists so a
+# broken commit is caught by something other than memory.
 # (A unit test in this repo sat red from the day it was written because nothing ran it.)
 
 on:
