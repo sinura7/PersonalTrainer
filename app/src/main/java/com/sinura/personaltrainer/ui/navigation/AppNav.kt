@@ -93,6 +93,7 @@ import com.sinura.personaltrainer.ui.activity.ActivityComposerScreen
 import com.sinura.personaltrainer.ui.activity.ActivityDetailScreen
 import com.sinura.personaltrainer.ui.activity.LiveCardioScreen
 import com.sinura.personaltrainer.ui.workout.ActiveWorkoutScreen
+import com.sinura.personaltrainer.ui.workout.RestTimerScreen
 
 sealed class Route(val path: String) {
     data object Home : Route("home")
@@ -103,6 +104,9 @@ sealed class Route(val path: String) {
     }
     data object ActiveWorkout : Route("session/{sessionId}") {
         fun create(sessionId: String): String = "session/$sessionId"
+    }
+    data object RestTimer : Route("session/{sessionId}/rest") {
+        fun create(sessionId: String): String = "session/$sessionId/rest"
     }
     data object WorkoutSummary : Route("summary/{sessionId}") {
         fun create(sessionId: String) = "summary/$sessionId"
@@ -188,6 +192,7 @@ private val ScreenExit: ExitTransition = fadeOut(tween(Motion.TAP, easing = Moti
  */
 private val LIVE_BAR_HIDDEN_ROUTES = setOf(
     Route.ActiveWorkout.path,
+    Route.RestTimer.path,
     Route.WorkoutSummary.path,
     Route.LiveCardio.path,
     Route.ActivitySummary.path,
@@ -286,6 +291,7 @@ fun PersonalTrainerNav(
     LaunchedEffect(openSessionId) {
         val sessionId = openSessionId ?: return@LaunchedEffect
         navController.navigate(Route.ActiveWorkout.create(sessionId)) {
+            popUpTo(Route.ActiveWorkout.path) { inclusive = false }
             launchSingleTop = true
         }
         onOpenSessionConsumed()
@@ -321,13 +327,15 @@ fun PersonalTrainerNav(
                             // screen and must own the gesture inset itself.
                             applyNavInsets = !showBottomBar,
                             onResume = {
-                                val target = if (live.kind == LiveBarKind.ACTIVITY) {
-                                    Route.LiveCardio.create(live.sessionId)
+                                if (live.kind == LiveBarKind.ACTIVITY) {
+                                    navController.navigate(Route.LiveCardio.create(live.sessionId)) {
+                                        launchSingleTop = true
+                                    }
                                 } else {
-                                    Route.ActiveWorkout.create(live.sessionId)
-                                }
-                                navController.navigate(target) {
-                                    launchSingleTop = true
+                                    navController.navigate(Route.ActiveWorkout.create(live.sessionId)) {
+                                        popUpTo(Route.ActiveWorkout.path) { inclusive = false }
+                                        launchSingleTop = true
+                                    }
                                 }
                             },
                             onFinish = liveBarViewModel::finishFromBar,
@@ -539,6 +547,11 @@ fun PersonalTrainerNav(
                 ) {
                     ActiveWorkoutScreen(
                         onExit = { navController.popBackStack() },
+                        onOpenRest = { sessionId ->
+                            navController.navigate(Route.RestTimer.create(sessionId)) {
+                                launchSingleTop = true
+                            }
+                        },
                         onFinished = { sessionId ->
                             // The finished workout leaves the stack: back from the summary goes
                             // Home, never into a session that no longer accepts sets.
@@ -547,6 +560,14 @@ fun PersonalTrainerNav(
                                 launchSingleTop = true
                             }
                         },
+                    )
+                }
+                composable(
+                    route = Route.RestTimer.path,
+                    arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
+                ) {
+                    RestTimerScreen(
+                        onClose = { navController.popBackStack() },
                     )
                 }
                 composable(

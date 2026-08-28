@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import com.sinura.personaltrainer.ui.home.HomeViewModel
 import com.sinura.personaltrainer.ui.workout.ActiveWorkoutViewModel
+import com.sinura.personaltrainer.ui.workout.RestTimerViewModel
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -45,6 +46,25 @@ class AppViewModelSeamTest {
         )
         assertTrue(
             constructors.any {
+                it.parameterTypes.contentEquals(
+                    arrayOf(
+                        Application::class.java,
+                        SavedStateHandle::class.java,
+                        AppDependencies::class.java,
+                    ),
+                )
+            },
+        )
+        val restConstructors = RestTimerViewModel::class.java.constructors
+        assertTrue(
+            restConstructors.any {
+                it.parameterTypes.contentEquals(
+                    arrayOf(Application::class.java, SavedStateHandle::class.java),
+                )
+            },
+        )
+        assertTrue(
+            restConstructors.any {
                 it.parameterTypes.contentEquals(
                     arrayOf(
                         Application::class.java,

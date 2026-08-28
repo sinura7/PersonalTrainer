@@ -45,6 +45,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.catch
@@ -294,6 +295,17 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 writeNotes(value)
             }
         }
+        viewModelScope.launch {
+            container.preferencesRepository.restTimerPreferences
+                .map { it.lastPresetSeconds }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { last ->
+                    if (last != null && !restTimer.snapshot.value.running) {
+                        restTotal.value = last
+                    }
+                }
+        }
     }
 
     private suspend fun writeNotes(value: String) {
@@ -487,8 +499,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         }
         val planned = current.exercises.firstOrNull { it.exercise.id == exerciseId }
         val targetReps = planned?.targetReps ?: 5
-        val rest = planned?.restSeconds?.takeIf { it > 0 } ?: 90
-        restTotal.value = rest
+        val restPrefs = container.preferencesRepository.restTimerPreferences.first()
+        restTotal.value = RestTimer.secondsToStart(planned?.restSeconds, restPrefs)
         val schedule = container.preferencesRepository.schedulePreferences.first()
         val thisWeek = LighterWeek.weekStartEpochDay(
             com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(LocalDate.now().toEpochDay()),

@@ -316,6 +316,7 @@ class ActiveWorkoutViewModelTest {
         vm.setWeight(100.0)
         vm.logSet()
         val logged = awaitSession(fixture.session.id) { it.sets.size == 1 }.sets.single()
+        vm.awaitState { state -> state.session?.sets?.any { it.id == logged.id } == true }
         eventually { deps.restTimerStore.current().takeIf { it.running } }
 
         vm.deleteSet(logged.id)

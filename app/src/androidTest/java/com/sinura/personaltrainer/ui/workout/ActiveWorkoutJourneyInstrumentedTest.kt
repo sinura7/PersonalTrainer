@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.workout
 
 import android.content.Intent
 import android.os.SystemClock
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasSetTextAction
@@ -117,20 +118,33 @@ class ActiveWorkoutJourneyInstrumentedTest {
         }
 
         compose.waitUntil(10_000) {
-            compose.onAllNodesWithText("Skip").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodes(hasTestTag(WorkoutTestTags.REST_BAR))
+                .fetchSemanticsNodes().isNotEmpty()
         }
+        compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertIsDisplayed()
         compose.onNodeWithText("Skip").assertIsDisplayed()
+        compose.onNodeWithText("−15s").assertDoesNotExist()
+        compose.onNodeWithTag(WorkoutTestTags.REST_BAR).performClick()
+        compose.waitUntil(10_000) {
+            compose.onAllNodes(hasTestTag(RestFloorTags.ROOT))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag(RestFloorTags.CLOCK).assertIsDisplayed()
+        compose.onNodeWithTag(RestFloorTags.SKIP).assertIsDisplayed()
         val timer = container.restTimerStore.current()
         assertTrue(timer.running)
         assertEquals(fixture.sessionId, timer.sessionId)
         assertEquals(120, timer.totalSeconds)
         val remaining = timer.remainingSeconds(SystemClock.elapsedRealtime())
         assertTrue("remaining=$remaining", remaining in 1..120)
-
+        compose.onNodeWithTag(RestFloorTags.SKIP).performClick()
+        compose.onNodeWithTag(RestFloorTags.CLOSE).performClick()
         compose.waitUntil(10_000) {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH) and isEnabled())
                 .fetchSemanticsNodes().isNotEmpty()
         }
+        assertFalse(container.restTimerStore.current().running)
+
         compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
         compose.waitUntil(10_000) {
             runBlocking(Dispatchers.IO) {

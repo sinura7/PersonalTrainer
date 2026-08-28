@@ -409,7 +409,8 @@ notification explanation/denial, leave/discard/remove dialogs, delete undo.
 
 - weight/reps are large and typeable;
 - press-and-hold steppers and haptics suit one-handed use;
-- rest stays outside the scroll;
+- rest stays outside the scroll as a condensed bar, not an 88 dp ring;
+- tap opens the rest floor page; Skip / ±15 live there;
 - logging starts the selected next rest;
 - previous values, progression, RPE, warm-up, and plates remain contextual;
 - a draft survives process death;

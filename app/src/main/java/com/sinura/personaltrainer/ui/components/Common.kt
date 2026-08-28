@@ -8,7 +8,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,16 +15,16 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
@@ -59,13 +58,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -659,31 +656,12 @@ fun <T> NumberEntryDialog(
 // ---------------------------------------------------------------------------
 
 /**
- * The rest clock, as a ring.
+ * The rest clock, pinned as a condensed bar.
  *
- * This was a full-width card with a 12dp linear progress bar whose only animation was an
- * alpha blink — identical at two minutes and at three seconds, so it communicated nothing
- * while looking like a rendering fault — and whose fill stepped once per second, because
- * the progress came straight from an integer count with nothing smoothing it. Underneath
- * all that, the duration chips stayed mounted through the whole countdown, so two rows of
- * controls competed beneath the one number that mattered and a mistap silently restarted
- * the timer.
- *
- * Here the sweep interpolates between ticks so it moves continuously, urgency is carried by
- * a colour change and a tick in the last ten seconds, and while the clock is running the
- * only controls on screen are the three that make sense then: less, skip, more.
- */
-/**
- * The rest clock, pinned.
- *
- * This is the single most important structural change on the workout screen. The clock used
- * to be an ordinary item in the scrolling list, so the moment a lifter scrolled down to
- * check the sets they had just logged — which is exactly what people do while resting — the
- * number they were waiting on left the screen. Here it sits outside the scroll entirely and
- * cannot be lost.
- *
- * Idle is still this dock: the chips set how long the next rest will be. They do not start
- * it. Logging a working set starts it. Start rest is for between lifts.
+ * The log used to hold an 88 dp ring and a −15 / Skip / +15 stack. That is the floor page
+ * now. Here the running state is a ~56 dp row: REST, a [InstrumentType.numeralMd] clock, a
+ * 4 dp track, and trailing Skip. Idle is Next rest + planned clock + Start. Preset chips
+ * live on the floor. Tap the bar or the idle line to push it.
  */
 @Composable
 fun RestDock(
@@ -691,10 +669,8 @@ fun RestDock(
     totalSeconds: Int,
     running: Boolean,
     onSkip: () -> Unit,
-    onAdjust: (Int) -> Unit,
-    onSelectPreset: (Int) -> Unit,
-    onCustom: (String) -> Boolean,
     onStart: () -> Unit,
+    onOpenRest: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var justFinished by remember { mutableStateOf(false) }
@@ -724,7 +700,7 @@ fun RestDock(
             animation = tween(durationMillis = 500, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse,
         ),
-        label = "rest-ring-pulse",
+        label = "rest-bar-pulse",
     )
 
     // One tick per second through the final stretch, so the end of the rest can be felt with
@@ -734,19 +710,15 @@ fun RestDock(
     }
 
     if (!running && !justFinished) {
-        Column(
+        RestIdleRow(
+            totalSeconds = totalSeconds,
+            onStart = onStart,
+            onOpenRest = onOpenRest,
             modifier = modifier
                 .fillMaxWidth()
                 .background(Surface1)
-                .padding(horizontal = Metrics.space4, vertical = Metrics.space3),
-        ) {
-            RestIdleRow(
-                totalSeconds = totalSeconds,
-                onPreset = onSelectPreset,
-                onCustom = onCustom,
-                onStart = onStart,
-            )
-        }
+                .padding(horizontal = Metrics.space4, vertical = Metrics.space2),
+        )
         HairlineDivider(startIndent = 0.dp)
         return
     }
@@ -758,205 +730,150 @@ fun RestDock(
         urgent -> Warn
         else -> RestCyan
     }
+    val clock = RestTimer.formatClock(if (justFinished) 0 else safeRemaining)
+    val kicker = if (justFinished) "Back to the bar" else "REST"
 
-    Column(
+    Row(
         modifier = modifier
             .fillMaxWidth()
+            .heightIn(min = Metrics.rowMin)
             .background(Surface1)
-            .padding(horizontal = Metrics.space4, vertical = Metrics.space3),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+            .padding(horizontal = Metrics.space4, vertical = Metrics.space2),
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier.graphicsLayer {
-                    scaleX = pulseScale
-                    scaleY = pulseScale
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .testTag("workout-rest-bar")
+                .clickable(role = Role.Button, onClick = onOpenRest)
+                .semantics {
+                    contentDescription = "$kicker $clock remaining. Open rest timer."
                 },
-            ) {
-                RestRing(
-                    remainingSeconds = if (justFinished) 0 else safeRemaining,
-                    totalSeconds = totalSeconds,
-                    accent = accent,
-                    showClock = false,
-                    finished = justFinished,
-                )
-            }
-            BoxWithConstraints(modifier = Modifier.weight(1f)) {
-                val useHero = maxWidth >= HERO_CLOCK_MIN_WIDTH &&
-                    LocalDensity.current.fontScale <= HERO_CLOCK_MAX_FONT
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(Metrics.space1),
-                ) {
-                    Kicker(if (justFinished) "Back to the bar" else "Rest", color = accent)
-                    Text(
-                        RestTimer.formatClock(if (justFinished) 0 else safeRemaining),
-                        style = if (useHero) InstrumentType.numeralHero else InstrumentType.numeralXl,
-                        color = TextPrimary,
-                        maxLines = 2,
-                    )
-                }
-            }
-        }
-        if (running) {
+            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                RestControl("−15s", onClick = { onAdjust(-15) }, modifier = Modifier.weight(1f))
-                RestControl("Skip", onClick = onSkip, modifier = Modifier.weight(1f))
-                RestControl("+15s", onClick = { onAdjust(15) }, modifier = Modifier.weight(1f))
+                Kicker(kicker, color = accent)
+                Text(
+                    clock,
+                    modifier = Modifier.graphicsLayer {
+                        scaleX = pulseScale
+                        scaleY = pulseScale
+                    },
+                    style = InstrumentType.numeralMd,
+                    color = TextPrimary,
+                    maxLines = 1,
+                )
             }
+            RestLinearTrack(
+                remainingSeconds = if (justFinished) 0 else safeRemaining,
+                totalSeconds = totalSeconds,
+                accent = accent,
+                finished = justFinished,
+            )
+        }
+        if (running) {
+            RestControl(
+                label = "Skip",
+                onClick = onSkip,
+                modifier = Modifier.widthIn(min = 72.dp),
+            )
         }
     }
     HairlineDivider(startIndent = 0.dp)
 }
 
 /**
- * Choosing how long the next rest will be — an idle-state job, and only an idle-state job.
- *
- * These chips used to stay mounted underneath the running clock, so a countdown was shown
- * with two competing rows of controls beneath it and a mistap silently restarted the timer.
- * They also used to start the clock. That made picking 1:30 feel like rest had begun before
- * the set was logged. Now they only name the next rest; Start rest, or logging a working
- * set, is what starts it.
+ * Idle rest on the log: the next duration and Start. Chips moved to the floor page so a
+ * countdown is never shown with a second row of duration controls underneath it.
  */
 @Composable
 fun RestIdleRow(
     totalSeconds: Int,
-    onPreset: (Int) -> Unit,
-    onCustom: (String) -> Boolean,
     onStart: () -> Unit,
+    onOpenRest: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showCustom by rememberSaveable { mutableStateOf(false) }
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    val clock = RestTimer.formatClock(totalSeconds.coerceAtLeast(0))
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = Metrics.rowMin),
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .weight(1f)
+                .testTag("workout-rest-idle")
+                .clickable(role = Role.Button, onClick = onOpenRest)
+                .semantics {
+                    contentDescription = "Next rest $clock. Open rest timer."
+                },
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Kicker("Next rest")
             Text(
-                RestTimer.formatClock(totalSeconds.coerceAtLeast(0)),
+                clock,
                 style = InstrumentType.numeralMd,
                 color = TextSecondary,
+                maxLines = 1,
             )
         }
-        RestPresetChips(
-            selectedSeconds = totalSeconds,
-            onSelect = onPreset,
-            onCustom = { showCustom = true },
-        )
         RestControl(
-            label = "Start rest",
+            label = "Start",
             onClick = onStart,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-
-    if (showCustom) {
-        CustomRestDialog(
-            title = "Custom rest",
-            confirmLabel = "Set",
-            onConfirm = { input ->
-                val ok = onCustom(input)
-                if (ok) showCustom = false
-                ok
-            },
-            onDismiss = { showCustom = false },
+            modifier = Modifier.widthIn(min = 72.dp),
         )
     }
 }
 
 @Composable
-private fun RestRing(
+fun RestLinearTrack(
     remainingSeconds: Int,
     totalSeconds: Int,
     accent: Color,
-    showClock: Boolean = true,
     finished: Boolean = false,
+    modifier: Modifier = Modifier,
 ) {
     val target = if (totalSeconds > 0) {
         (remainingSeconds.toFloat() / totalSeconds.toFloat()).coerceIn(0f, 1f)
     } else {
         0f
     }
-    // Linear over exactly one tick, so the sweep glides between whole seconds instead of
-    // stepping once a second like a form refreshing.
     val progress by animateFloatAsState(
         targetValue = target,
         animationSpec = tween(durationMillis = 1_000, easing = LinearEasing),
-        label = "rest-sweep",
+        label = "rest-track",
     )
     val sweepColor by animateColorAsState(
-        targetValue = accent,
+        targetValue = if (finished) PrGold else accent,
         animationSpec = instrumentTween(Motion.BASE),
-        label = "rest-accent",
+        label = "rest-track-accent",
     )
-    val clock = RestTimer.formatClock(remainingSeconds)
-
     Box(
-        modifier = Modifier
-            .size(if (showClock) RING_SIZE else RING_SIZE_COMPACT)
-            .semantics { contentDescription = "Rest, $clock remaining" },
-        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(REST_TRACK_HEIGHT)
+            .clip(RoundedCornerShape(Radius.xs))
+            .background(HairlineStrong),
     ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            if (finished) {
-                drawCircle(color = PrGold.copy(alpha = 0.28f))
-            }
-            val stroke = RING_STROKE.toPx()
-            val inset = stroke / 2f
-            val arcSize = Size(size.width - stroke, size.height - stroke)
-            val topLeft = Offset(inset, inset)
-            drawArc(
-                color = HairlineStrong,
-                startAngle = -90f,
-                sweepAngle = 360f,
-                useCenter = false,
-                topLeft = topLeft,
-                size = arcSize,
-                style = Stroke(width = stroke, cap = StrokeCap.Round),
-            )
-            // A wide, faint pass under the sweep stands in for a blur: it reads as a glow
-            // on a near-black field and costs nothing on a low-end GPU.
-            drawArc(
-                color = sweepColor.copy(alpha = 0.18f),
-                startAngle = -90f,
-                sweepAngle = 360f * progress,
-                useCenter = false,
-                topLeft = topLeft,
-                size = arcSize,
-                style = Stroke(width = stroke * 2.4f, cap = StrokeCap.Round),
-            )
-            drawArc(
-                color = sweepColor,
-                startAngle = -90f,
-                sweepAngle = 360f * progress,
-                useCenter = false,
-                topLeft = topLeft,
-                size = arcSize,
-                style = Stroke(width = stroke, cap = StrokeCap.Round),
-            )
-        }
-        if (showClock) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Kicker("Rest")
-                Text(clock, style = InstrumentType.numeralXl, color = TextPrimary, maxLines = 1)
-            }
-        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(progress)
+                .fillMaxHeight()
+                .background(sweepColor),
+        )
     }
 }
 
 @Composable
-private fun RestControl(
+fun RestControl(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1285,8 +1202,4 @@ private const val FAST_REPEAT_MS = 60L
 private const val REPEATS_BEFORE_FAST = 8
 private const val FINISHED_DWELL_MS = 3_500L
 private const val URGENT_SECONDS = 10
-private val RING_SIZE = 200.dp
-private val RING_SIZE_COMPACT = 88.dp
-private val RING_STROKE = 10.dp
-private val HERO_CLOCK_MIN_WIDTH = 168.dp
-private const val HERO_CLOCK_MAX_FONT = 1.2f
+private val REST_TRACK_HEIGHT = 4.dp
