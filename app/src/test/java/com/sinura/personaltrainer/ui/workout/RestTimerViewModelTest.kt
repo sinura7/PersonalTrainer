@@ -96,9 +96,12 @@ class RestTimerViewModelTest {
 
         val floor = createViewModel(fixture.session.id)
         val state = floor.awaitState {
-            it.loadState == SessionLoadState.FOUND && it.floor.lastSetLine != null
+            it.loadState == SessionLoadState.FOUND &&
+                it.floor.lastSetLine != null &&
+                it.floor.sessionTargetLine != null
         }
         assertEquals("Last set · 100 kg × 5", state.floor.lastSetLine)
+        assertEquals("Next: 100 kg × 5 · RPE 8", state.floor.sessionTargetLine)
         assertTrue(state.rest.running)
         assertEquals(fixture.session.id, deps.restTimerStore.current().sessionId)
 

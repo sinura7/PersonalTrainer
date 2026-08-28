@@ -131,6 +131,12 @@ class ActiveWorkoutJourneyInstrumentedTest {
         }
         compose.onNodeWithTag(RestFloorTags.CLOCK).assertIsDisplayed()
         compose.onNodeWithTag(RestFloorTags.SKIP).assertIsDisplayed()
+        compose.waitUntil(10_000) {
+            compose.onAllNodes(hasTestTag(RestFloorTags.NEXT))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag(RestFloorTags.NEXT).assertIsDisplayed()
+        compose.onNodeWithText("Next: 100 kg × 5 · RPE 8").assertIsDisplayed()
         val timer = container.restTimerStore.current()
         assertTrue(timer.running)
         assertEquals(fixture.sessionId, timer.sessionId)
@@ -139,6 +145,12 @@ class ActiveWorkoutJourneyInstrumentedTest {
         assertTrue("remaining=$remaining", remaining in 1..120)
         compose.onNodeWithTag(RestFloorTags.SKIP).performClick()
         compose.onNodeWithTag(RestFloorTags.CLOSE).performClick()
+        compose.waitUntil(10_000) {
+            compose.onAllNodes(hasTestTag(WorkoutTestTags.MICRO_REC))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).assertIsDisplayed()
         compose.waitUntil(10_000) {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH) and isEnabled())
                 .fetchSemanticsNodes().isNotEmpty()

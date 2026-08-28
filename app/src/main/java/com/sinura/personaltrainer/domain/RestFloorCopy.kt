@@ -3,8 +3,8 @@ package com.sinura.personaltrainer.domain
 /**
  * What the rest floor page says about the lift you just logged.
  *
- * Packet 1 is last set plus the session-grain [ProgressionHint], not in-set micro-rec.
- * Copy lives in the domain so the ViewModel and the tests quote the same sentences.
+ * Last set plus the in-set next line ([SetMicroRecCopy.line]). Session-grain
+ * [ProgressionHint] stays on the log strip, not here.
  */
 data class RestFloorContext(
     val exerciseName: String?,
@@ -16,8 +16,8 @@ object RestFloorCopy {
     fun context(
         session: WorkoutSession?,
         selectedExerciseId: String?,
-        hint: ProgressionHint?,
         unit: WeightUnit,
+        nextLine: String? = null,
     ): RestFloorContext {
         if (session == null) {
             return RestFloorContext(
@@ -35,7 +35,7 @@ object RestFloorCopy {
         return RestFloorContext(
             exerciseName = exercise?.name ?: last?.exerciseName,
             lastSetLine = last?.let { lastSetLine(it.weightKg, it.reps, loadClass, unit) },
-            sessionTargetLine = hint?.let { sessionTargetLine(it, unit) },
+            sessionTargetLine = nextLine,
         )
     }
 

@@ -25,6 +25,7 @@ import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SessionEditRules
 import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
@@ -159,6 +160,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private val draft = MutableStateFlow(ActiveExerciseDraft())
     private val hint = MutableStateFlow<ProgressionHint?>(null)
     private val lastPerformance = MutableStateFlow<ExerciseSessionSummary?>(null)
+    private val lighterWeek = MutableStateFlow(false)
     private val restTotal = MutableStateFlow(90)
     private val searchQuery = MutableStateFlow("")
     private val showPicker = MutableStateFlow(false)
@@ -343,6 +345,34 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     )
 
     /**
+     * In-set next load. Recomputed on log, RPE, warmup, lift switch, delete/undo, and edit.
+     * Stepper ticks do not change it unless draft RPE is set (preview).
+     * Eager: [applyMicroRec] reads this value, not a rendered snapshot.
+     */
+    val microRec: StateFlow<SetMicroRec?> = combine(
+        combine(session, selectedExerciseId, draft, hint) { current, selected, currentDraft, currentHint ->
+            MicroRecCore(current, selected, currentDraft, currentHint)
+        },
+        combine(editingSetId, lighterWeek, container.preferencesRepository.weightUnit) { editing, lighter, unit ->
+            Triple(editing, lighter, unit)
+        },
+    ) { core, extras ->
+        workoutMicroRec(
+            session = core.session,
+            selectedExerciseId = core.selected,
+            draft = core.draft,
+            hint = core.hint,
+            editingSetId = extras.first,
+            lighterWeek = extras.second,
+            unit = extras.third,
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Eagerly,
+        initialValue = null,
+    )
+
+    /**
      * The coach's first named lift, as an (exercise, reason) pair, or null when it has nothing
      * specific to say. Read from the shared insights pipeline rather than recomputed here.
      *
@@ -510,6 +540,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             container.preferencesRepository.lighterWeekStartEpochDay.first(),
             thisWeek,
         )
+        lighterWeek.value = lighter
         val progression = container.workoutRepository.progressionFor(
             exerciseId = exerciseId,
             exerciseName = planned?.exercise?.name ?: "",
@@ -910,6 +941,21 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     /**
+     * Copies the in-set next load into the draft only. Does not [logSet].
+     * After a log, today's hold stays until the lifter taps Use.
+     */
+    fun applyMicroRec() {
+        val rec = microRec.value ?: return
+        if (!rec.showApply || rec.previewOnly) return
+        draft.value = draft.value.copy(
+            weightKg = rec.nextWeightKg.coerceAtLeast(0.0),
+            reps = rec.nextReps.coerceAtLeast(1),
+            rpe = rec.nextRpe,
+        )
+        persistDraft()
+    }
+
+    /**
      * Set when this screen should be popped. Held as state for the same reason as forward
      * navigation: a callback captured into a coroutine is bound to a NavController that may
      * no longer exist by the time the database work finishes.
@@ -1015,6 +1061,13 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         val draft: ActiveExerciseDraft,
         val hint: ProgressionHint?,
         val lastPerformance: ExerciseSessionSummary? = null,
+    )
+
+    private data class MicroRecCore(
+        val session: WorkoutSession?,
+        val selected: String?,
+        val draft: ActiveExerciseDraft,
+        val hint: ProgressionHint?,
     )
 
     private data class WorkoutExtras(

@@ -8,6 +8,8 @@ import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
+import com.sinura.personaltrainer.domain.SetMicroRecCalculator
+import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
 import com.sinura.personaltrainer.workout.WorkoutDraft
@@ -51,6 +53,7 @@ class ActiveWorkoutViewModelTest {
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        runBlocking { deps.preferencesRepository.setWeightUnit(WeightUnit.KG) }
     }
 
     @After
@@ -205,6 +208,135 @@ class ActiveWorkoutViewModelTest {
         val state = vm.awaitState { it.error != null }
         assertTrue(state.error.orEmpty().contains("no longer available", ignoreCase = true))
         assertNull(deps.workoutRepository.getSession(fixture.session.id))
+    }
+
+    @Test
+    fun applyMicroRecFillsDraftAndDoesNotLog() = runBlocking {
+        val fixture = seedWorkout()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
+        vm.setWeight(100.0)
+        vm.logSet()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.awaitState { it.session?.sets?.size == 1 }
+        vm.skipRest()
+
+        val rec = checkNotNull(
+            withTimeout(5_000) {
+                vm.microRec.first {
+                    it?.reasonCode == SetMicroRecCalculator.SKIP_RPE_HOLD &&
+                        it.showApply &&
+                        !it.previewOnly
+                }
+            },
+        )
+        assertEquals(100.0, rec.nextWeightKg, 0.0001)
+        assertEquals(5, rec.nextReps)
+        assertEquals(8, rec.nextRpe)
+
+        vm.setWeight(80.0)
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.applyMicroRec()
+        dispatcher.scheduler.advanceUntilIdle()
+        val draft = vm.awaitState { it.draft.weightKg == 100.0 && it.draft.rpe == 8 }.draft
+        assertEquals(100.0, draft.weightKg, 0.0001)
+        assertEquals(5, draft.reps)
+        assertEquals(8, draft.rpe)
+        assertEquals(1, deps.workoutRepository.getSession(fixture.session.id)!!.sets.size)
+    }
+
+    @Test
+    fun logDoesNotAutoApplyInTank() = runBlocking {
+        val fixture = seedWorkout()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
+        vm.setWeight(100.0)
+        vm.setRpe(6)
+        vm.logSet()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.awaitState { it.session?.sets?.size == 1 && it.draft.rpe == null }
+        vm.skipRest()
+
+        val rec = checkNotNull(
+            withTimeout(5_000) {
+                vm.microRec.first {
+                    it?.reasonCode == SetMicroRecCalculator.IN_TANK &&
+                        it.showApply &&
+                        !it.previewOnly
+                }
+            },
+        )
+        assertEquals(102.5, rec.nextWeightKg, 0.0001)
+        assertTrue(rec.showApply)
+        val draft = vm.awaitState { it.draft.rpe == null && it.session?.sets?.size == 1 }.draft
+        assertEquals(100.0, draft.weightKg, 0.0001)
+        assertNull(draft.rpe)
+    }
+
+    @Test
+    fun editingHidesMicroRec() = runBlocking {
+        val fixture = seedWorkout()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
+        vm.logSet()
+        val persisted = awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.awaitState { it.session?.sets?.size == 1 }
+        vm.skipRest()
+        withTimeout(5_000) { vm.microRec.first { it != null && !it.previewOnly } }
+        vm.editSet(persisted.sets.single().id)
+        vm.awaitState { it.editingSetId != null }
+        withTimeout(5_000) { vm.microRec.first { it == null } }
+        vm.cancelEdit()
+        vm.awaitState { it.editingSetId == null }
+        withTimeout(5_000) { vm.microRec.first { it != null } }
+        Unit
+    }
+
+    @Test
+    fun liftDoneHidesUse() = runBlocking {
+        val fixture = seedWorkout(targetSets = 1)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
+        vm.logSet()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        val rec = checkNotNull(
+            withTimeout(5_000) {
+                vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.LIFT_DONE }
+            },
+        )
+        assertFalse(rec.showApply)
+        assertFalse(rec.previewOnly)
+    }
+
+    @Test
+    fun stepperWithoutRpeDoesNotChangeMicroRec() = runBlocking {
+        val fixture = seedWorkout()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
+        vm.setWeight(100.0)
+        vm.logSet()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.awaitState { it.session?.sets?.size == 1 }
+        vm.skipRest()
+        val rec = checkNotNull(
+            withTimeout(5_000) {
+                vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.SKIP_RPE_HOLD }
+            },
+        )
+        vm.adjustWeight(2.5)
+        dispatcher.scheduler.advanceUntilIdle()
+        val after = checkNotNull(
+            withTimeout(5_000) {
+                vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.SKIP_RPE_HOLD }
+            },
+        )
+        assertEquals(rec.nextWeightKg, after.nextWeightKg, 0.0001)
+        vm.awaitState { it.draft.weightKg == 102.5 }
+        Unit
     }
 
     @Test
@@ -415,6 +547,10 @@ class ActiveWorkoutViewModelTest {
         vm.setWeight(100.0)
         vm.logSet()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.awaitState { it.session?.sets?.size == 1 }
+        vm.skipRest()
+        vm.awaitState { it.session?.sets?.size == 1 }
 
         vm.removeSelectedLift()
 
@@ -446,6 +582,9 @@ class ActiveWorkoutViewModelTest {
         vm.setWeight(100.0)
         vm.logSet()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.awaitState { it.session?.sets?.size == 1 }
+        vm.skipRest()
         assertNotNull(SavedStateWorkoutDraft(handle).read(fixture.session.id))
 
         vm.finishWorkout()
