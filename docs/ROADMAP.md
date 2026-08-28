@@ -14,6 +14,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 28 Aug 2026 — In-set next load is a compact `Next:` line above Log.
+> Use fills the draft only. Why is a local `RuleTrace`. The rest floor
+> shows the same line with no Use. ProgressionStrip stays session-grain.
+> Home `RecommendationEngine` is unchanged.
+>
 > 28 Aug 2026 — Live rest on the log is a condensed bar. Tap opens
 > `session/{id}/rest` with a huge remaining clock. One RestTimerGateway.
 > Skip is never Volt. Overlay rest and a 240 dp ring stay won’ts.

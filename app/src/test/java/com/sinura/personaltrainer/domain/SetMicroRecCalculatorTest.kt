@@ -5,35 +5,32 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.Parameterized
 
-@RunWith(Parameterized::class)
-class SetMicroRecCalculatorTest(
-    private val row: Row,
-) {
+class SetMicroRecCalculatorTest {
     @Test
-    fun v1Row() {
-        val rec = SetMicroRecCalculator.suggest(row.inputs)
-        if (row.hidden) {
-            assertNull(row.name, rec)
-            return
-        }
-        val got = checkNotNull(rec) { row.name }
-        assertEquals(row.name, row.reason, got.reasonCode)
-        assertEquals(row.name, row.showApply, got.showApply)
-        assertEquals(row.name, row.previewOnly, got.previewOnly)
-        assertEquals(row.name, row.nextWeightKg, got.nextWeightKg, 0.0001)
-        assertEquals(row.name, row.nextReps, got.nextReps)
-        assertEquals(row.name, SetMicroRecCalculator.RULE_ID, got.trace.ruleId)
-        assertTrue(row.name, got.trace.reasonCodes.contains(row.reason))
-        if (row.previewOnly) {
-            assertEquals("If you log this: …", SetMicroRecCopy.caption(got))
-            assertFalse(got.showApply)
+    fun v1Rows() {
+        for (row in cases()) {
+            val rec = SetMicroRecCalculator.suggest(row.inputs)
+            if (row.hidden) {
+                assertNull(row.name, rec)
+                continue
+            }
+            val got = checkNotNull(rec) { row.name }
+            assertEquals(row.name, row.reason, got.reasonCode)
+            assertEquals(row.name, row.showApply, got.showApply)
+            assertEquals(row.name, row.previewOnly, got.previewOnly)
+            assertEquals(row.name, row.nextWeightKg, got.nextWeightKg, 0.0001)
+            assertEquals(row.name, row.nextReps, got.nextReps)
+            assertEquals(row.name, SetMicroRecCalculator.RULE_ID, got.trace.ruleId)
+            assertTrue(row.name, got.trace.reasonCodes.contains(row.reason))
+            if (row.previewOnly) {
+                assertEquals("If you log this: …", SetMicroRecCopy.caption(got))
+                assertFalse(got.showApply)
+            }
         }
     }
 
-    data class Row(
+    data class V1Case(
         val name: String,
         val inputs: SetMicroRecInputs,
         val hidden: Boolean = false,
@@ -45,11 +42,9 @@ class SetMicroRecCalculatorTest(
     )
 
     companion object {
-        @JvmStatic
-        @Parameterized.Parameters(name = "{0}")
-        fun rows(): List<Row> = listOf(
-            Row("editing hidden", inputs(editing = true), hidden = true),
-            Row(
+        fun cases(): List<V1Case> = listOf(
+            V1Case("editing hidden", inputs(editing = true), hidden = true),
+            V1Case(
                 "lift done",
                 inputs(
                     targetSets = 3,
@@ -61,15 +56,15 @@ class SetMicroRecCalculatorTest(
                 nextWeightKg = 100.0,
                 nextReps = 5,
             ),
-            Row("no history", inputs(hint = null, targetWeightKg = null), hidden = true),
-            Row(
+            V1Case("no history", inputs(hint = null, targetWeightKg = null), hidden = true),
+            V1Case(
                 "first set from hint",
                 inputs(hint = hint(suggested = 102.5), workingLogged = 0),
                 reason = SetMicroRecCalculator.FIRST_SET,
                 nextWeightKg = 102.5,
                 nextReps = 5,
             ),
-            Row(
+            V1Case(
                 "warmup done",
                 inputs(
                     hint = hint(suggested = 102.5),
@@ -80,42 +75,42 @@ class SetMicroRecCalculatorTest(
                 nextWeightKg = 102.5,
                 nextReps = 5,
             ),
-            Row(
+            V1Case(
                 "skip-RPE hold",
                 inputs(workingLogged = 1, working = listOf(set(100.0, 5, rpe = null))),
                 reason = SetMicroRecCalculator.SKIP_RPE_HOLD,
                 nextWeightKg = 100.0,
                 nextReps = 5,
             ),
-            Row(
+            V1Case(
                 "skip-RPE drop",
                 inputs(workingLogged = 1, working = listOf(set(100.0, 2, rpe = null))),
                 reason = SetMicroRecCalculator.SKIP_RPE_DROP,
                 nextWeightKg = 97.5,
                 nextReps = 2,
             ),
-            Row(
+            V1Case(
                 "RPE 6-7 in-tank",
                 inputs(workingLogged = 1, working = listOf(set(100.0, 5, rpe = 6))),
                 reason = SetMicroRecCalculator.IN_TANK,
                 nextWeightKg = 102.5,
                 nextReps = 5,
             ),
-            Row(
+            V1Case(
                 "RPE 8 quality",
                 inputs(workingLogged = 1, working = listOf(set(100.0, 5, rpe = 8))),
                 reason = SetMicroRecCalculator.QUALITY,
                 nextWeightKg = 100.0,
                 nextReps = 5,
             ),
-            Row(
+            V1Case(
                 "first 9-10 top",
                 inputs(workingLogged = 1, working = listOf(set(100.0, 5, rpe = 10))),
                 reason = SetMicroRecCalculator.TOP_SET,
                 nextWeightKg = 100.0,
                 nextReps = 5,
             ),
-            Row(
+            V1Case(
                 "two 9+ RPE_HOLD",
                 inputs(
                     workingLogged = 2,
@@ -125,21 +120,21 @@ class SetMicroRecCalculatorTest(
                 nextWeightKg = 100.0,
                 nextReps = 5,
             ),
-            Row(
+            V1Case(
                 "close hold",
                 inputs(workingLogged = 1, working = listOf(set(100.0, 4, rpe = 8))),
                 reason = SetMicroRecCalculator.CLOSE_HOLD,
                 nextWeightKg = 100.0,
                 nextReps = 4,
             ),
-            Row(
+            V1Case(
                 "failed drop",
                 inputs(workingLogged = 1, working = listOf(set(100.0, 2, rpe = 9))),
                 reason = SetMicroRecCalculator.FAILED_DROP,
                 nextWeightKg = 97.5,
                 nextReps = 2,
             ),
-            Row(
+            V1Case(
                 "lighter hold",
                 inputs(
                     lighterWeek = true,
@@ -150,7 +145,7 @@ class SetMicroRecCalculatorTest(
                 nextWeightKg = 100.0,
                 nextReps = 5,
             ),
-            Row(
+            V1Case(
                 "bodyweight +1",
                 inputs(
                     loadType = LoadType.BODYWEIGHT,
@@ -163,7 +158,7 @@ class SetMicroRecCalculatorTest(
                 nextWeightKg = 0.0,
                 nextReps = 11,
             ),
-            Row(
+            V1Case(
                 "bodyweight hold",
                 inputs(
                     loadType = LoadType.BODYWEIGHT,
@@ -175,7 +170,7 @@ class SetMicroRecCalculatorTest(
                 nextWeightKg = 0.0,
                 nextReps = 9,
             ),
-            Row(
+            V1Case(
                 "bodyweight -1",
                 inputs(
                     loadType = LoadType.BODYWEIGHT,
@@ -187,7 +182,7 @@ class SetMicroRecCalculatorTest(
                 nextWeightKg = 0.0,
                 nextReps = 5,
             ),
-            Row(
+            V1Case(
                 "preview only, no Use",
                 inputs(
                     workingLogged = 1,
