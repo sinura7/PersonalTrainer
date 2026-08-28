@@ -137,12 +137,15 @@ object WorkoutTestTags {
     const val NOTIF_RECOVERY = "workout-notif-recovery"
     const val CURRENT_LIFT = "workout-current-lift"
     const val SET_ENTRY = "workout-set-entry"
+    const val REST_BAR = "workout-rest-bar"
+    const val REST_IDLE = "workout-rest-idle"
 }
 
 @Composable
 fun ActiveWorkoutScreen(
     onExit: () -> Unit,
     onFinished: (String) -> Unit,
+    onOpenRest: (String) -> Unit = {},
     viewModel: ActiveWorkoutViewModel = viewModel(),
     restNotificationsEnabledOverride: Boolean? = null,
 ) {
@@ -324,10 +327,8 @@ fun ActiveWorkoutScreen(
                         totalSeconds = rest.totalSeconds,
                         running = rest.running,
                         onSkip = viewModel::skipRest,
-                        onAdjust = viewModel::adjustRest,
-                        onSelectPreset = viewModel::selectRestDuration,
-                        onCustom = viewModel::selectCustomRest,
                         onStart = viewModel::startSelectedRest,
+                        onOpenRest = { session.id.let(onOpenRest) },
                     )
 
                     LazyColumn(

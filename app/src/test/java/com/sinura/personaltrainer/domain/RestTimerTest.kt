@@ -74,4 +74,11 @@ class RestTimerTest {
         assertFalse(RestTimer.shouldStartAfterLog(isWarmup = false, workingSetsAfterLog = 4, targetSets = 4))
         assertTrue(RestTimer.shouldStartAfterLog(isWarmup = false, workingSetsAfterLog = 1, targetSets = 0))
     }
+
+    @Test
+    fun lastPrescribedSetStillDoesNotStartRest() {
+        // Condensed bar + floor page must not "helpfully" rest after the lift is done.
+        assertFalse(RestTimer.shouldStartAfterLog(isWarmup = false, workingSetsAfterLog = 3, targetSets = 3))
+        assertFalse(RestTimer.shouldStartAfterLog(isWarmup = true, workingSetsAfterLog = 0, targetSets = 3))
+    }
 }

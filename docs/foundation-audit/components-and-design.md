@@ -86,8 +86,8 @@ erasing identity.
 | `RepsStepper` | Repetition display, adjust, type | Set entry | Gym-floor appropriate |
 | `StepperButton` | Tap/hold repeat | Steppers | Large target and haptic detents |
 | `NumberEntryDialog` | Validated typed numeric input | Workout, bodyweight | Strong parse gate |
-| `RestDock` | Running/idle rest timer | Active Workout | Strong fixed placement |
-| `RestIdleRow` | Presets and explicit start | Rest dock | Clear next-rest model |
+| `RestDock` | Condensed rest bar / idle line | Active Workout | Tap opens rest floor |
+| `RestIdleRow` | Next-rest line and Start | Active Workout log | Chips moved to rest floor |
 | `RestPresetChips` | Horizontal duration choices | Workout, Settings | Scrollable at large text |
 | `InstrumentChip` | Selectable/filter control | Widespread | Correct selected semantics |
 | `CustomRestDialog` | Parse custom mm:ss | Workout, Settings | Good bounded input |
@@ -95,7 +95,7 @@ erasing identity.
 | `SecondaryGymButton` | Quiet outlined action | Widespread | Consistent |
 | `NotesBlock` | Collapsible notes | Workout, Session Detail | Duplicated privately in Routine Editor |
 
-Private internals `NumeralWell`, `RestRing`, and `RestControl` are correctly scoped.
+`RestControl` is public so the rest floor page can reuse −15 / Skip / +15.
 
 ### 4.3 Feedback — `GymStatus.kt`
 
