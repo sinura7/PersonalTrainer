@@ -80,6 +80,11 @@ day. The agreed product asks once, then adapts only if the user says so.
 - A reminder cannot be implemented by `setAlarmClock`.
 - Schedule packets after P7.3 that “just slide the day” without a prompt
   are regressions.
+- Running rest uses a HIGH public channel with a countdown chronometer so
+  the lock screen shows remaining time when the user turns the phone on.
+  `RestLockActivity` is `showWhenLocked`. That is not overlay rest on the
+  live log. Full-screen intent is rest-done only, never onboarding.
+  Completion still uses `SCHEDULE_EXACT_ALARM`.
 
 ## Review questions
 

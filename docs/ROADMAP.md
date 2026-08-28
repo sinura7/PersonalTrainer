@@ -14,6 +14,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 28 Aug 2026 — Prescribed sets done turns Log into Next. A + after the
+> last logged set asks for an extra. Selected RPE retargets reps/weight
+> from this session and last time. Rest countdown sits on the lock
+> screen (chronometer, not overlay rest on the log).
+>
 > 28 Aug 2026 — Temper Debug Obtainium drops bump `debugLiveCode`.
 > Same versionCode is why a check for updates can show nothing.
 >

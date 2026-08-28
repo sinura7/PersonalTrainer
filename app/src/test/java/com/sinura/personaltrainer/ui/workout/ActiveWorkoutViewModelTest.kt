@@ -312,6 +312,72 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun selectingRpeAfterAWorkingSetFillsTheDraft() = runBlocking {
+        val fixture = seedWorkout()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
+        vm.setWeight(100.0)
+        vm.logSet()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.awaitState { it.session?.sets?.size == 1 }
+        vm.skipRest()
+        withTimeout(5_000) { vm.microRec.first { it != null && !it.previewOnly } }
+
+        vm.setRpe(6)
+        val draft = vm.awaitState { it.draft.rpe == 6 && it.draft.weightKg == 102.5 }.draft
+        assertEquals(5, draft.reps)
+        assertEquals(1, deps.workoutRepository.getSession(fixture.session.id)!!.sets.size)
+    }
+
+    @Test
+    fun requestExtraSetReopensTheRecAndStartsRestOnTheExtraLog() = runBlocking {
+        val fixture = seedWorkout(targetSets = 1)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
+        vm.setWeight(100.0)
+        vm.logSet()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.awaitState { it.session?.sets?.size == 1 }
+        withTimeout(5_000) { vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.LIFT_DONE } }
+        assertFalse(deps.restTimerStore.current().running)
+
+        vm.requestExtraSet()
+        assertTrue(vm.extraSetRequested.value)
+        val rec = checkNotNull(
+            withTimeout(5_000) {
+                vm.microRec.first { it != null && it.reasonCode != SetMicroRecCalculator.LIFT_DONE }
+            },
+        )
+        assertTrue(rec.showApply)
+        assertEquals(100.0, rec.nextWeightKg, 0.0001)
+
+        vm.setWeight(100.0)
+        vm.logSet()
+        awaitSession(fixture.session.id) { it.sets.size == 2 }
+        eventually { deps.restTimerStore.current().takeIf { it.running } }
+        assertFalse(vm.extraSetRequested.value)
+    }
+
+    @Test
+    fun advancingSelectsTheNextLiftAndClearsTheExtraAsk() = runBlocking {
+        val fixture = seedTwoLifts(targetSets = 1)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.selectedExerciseId == SQUAT }
+        vm.setWeight(100.0)
+        vm.logSet()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        vm.requestExtraSet()
+        assertTrue(vm.extraSetRequested.value)
+
+        vm.advanceToNextLift(ROW)
+        val state = vm.awaitState { it.selectedExerciseId == ROW }
+        assertEquals(ROW, state.selectedExerciseId)
+        assertFalse(vm.extraSetRequested.value)
+    }
+
+    @Test
     fun stepperWithoutRpeDoesNotChangeMicroRec() = runBlocking {
         val fixture = seedWorkout()
         val vm = createViewModel(fixture.session.id)
@@ -730,6 +796,46 @@ class ActiveWorkoutViewModelTest {
             )
             deps.workoutRepository.finishSession(prior.id, notes = "")
         }
+        return SeededWorkout(deps.workoutRepository.startRoutine(routine))
+    }
+
+    private suspend fun seedTwoLifts(targetSets: Int = 1): SeededWorkout {
+        insertExercise(SQUAT, "Squat")
+        insertExercise(ROW, "Row")
+        deps.database.routineDao().upsertRoutine(
+            RoutineEntity(
+                id = ROUTINE,
+                name = "Lower",
+                notes = "",
+                createdAt = STAMP,
+                updatedAt = STAMP,
+            ),
+        )
+        deps.database.routineDao().upsertRoutineExercise(
+            RoutineExerciseEntity(
+                id = "re-$SQUAT",
+                routineId = ROUTINE,
+                exerciseId = SQUAT,
+                sortOrder = 0,
+                targetSets = targetSets,
+                targetReps = 5,
+                targetWeightKg = 100.0,
+                restSeconds = 90,
+            ),
+        )
+        deps.database.routineDao().upsertRoutineExercise(
+            RoutineExerciseEntity(
+                id = "re-$ROW",
+                routineId = ROUTINE,
+                exerciseId = ROW,
+                sortOrder = 1,
+                targetSets = targetSets,
+                targetReps = 5,
+                targetWeightKg = 80.0,
+                restSeconds = 90,
+            ),
+        )
+        val routine = checkNotNull(deps.routineRepository.getById(ROUTINE))
         return SeededWorkout(deps.workoutRepository.startRoutine(routine))
     }
 

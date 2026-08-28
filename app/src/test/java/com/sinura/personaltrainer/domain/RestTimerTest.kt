@@ -91,4 +91,32 @@ class RestTimerTest {
         assertFalse(RestTimer.shouldStartAfterLog(isWarmup = false, workingSetsAfterLog = 3, targetSets = 3))
         assertFalse(RestTimer.shouldStartAfterLog(isWarmup = true, workingSetsAfterLog = 0, targetSets = 3))
     }
+
+    @Test
+    fun extraSetPastThePlanStartsRest() {
+        assertTrue(RestTimer.shouldStartAfterExtra(isWarmup = false, workingSetsAfterLog = 4, targetSets = 3))
+        assertFalse(RestTimer.shouldStartAfterExtra(isWarmup = false, workingSetsAfterLog = 3, targetSets = 3))
+        assertFalse(RestTimer.shouldStartAfterExtra(isWarmup = true, workingSetsAfterLog = 4, targetSets = 3))
+        assertFalse(RestTimer.shouldStartAfterExtra(isWarmup = false, workingSetsAfterLog = 2, targetSets = 0))
+    }
+
+    @Test
+    fun endsAtWallClockAddsRemainingMs() {
+        assertEquals(
+            10_000L + 1_500L,
+            RestTimer.endsAtWallClockMillis(
+                endsAtElapsedRealtime = 5_000L,
+                nowElapsedRealtime = 3_500L,
+                nowWallClockMillis = 10_000L,
+            ),
+        )
+        assertEquals(
+            10_000L,
+            RestTimer.endsAtWallClockMillis(
+                endsAtElapsedRealtime = 1_000L,
+                nowElapsedRealtime = 2_000L,
+                nowWallClockMillis = 10_000L,
+            ),
+        )
+    }
 }

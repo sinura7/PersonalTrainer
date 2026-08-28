@@ -20,16 +20,22 @@ object WorkoutCopy {
      *
      * @param workingLogged working sets already logged for this lift; warm-ups do not count.
      * @param targetWeightLabel already formatted in the user's unit, or null for no target.
+     * @param liveReps in-set rec next-rep count; replaces prescribed reps so RPE intent
+     *   can tell the lifter how many to do.
+     * @param liveWeightLabel same for the load, already formatted.
      */
     fun setProgress(
         workingLogged: Int,
         targetSets: Int,
         targetReps: Int,
         targetWeightLabel: String? = null,
+        liveReps: Int? = null,
+        liveWeightLabel: String? = null,
     ): String {
         val logged = workingLogged.coerceAtLeast(0)
         val sets = targetSets.coerceAtLeast(1)
-        val reps = targetReps.coerceAtLeast(1)
+        val reps = (liveReps ?: targetReps).coerceAtLeast(1)
+        val weightLabel = liveWeightLabel ?: targetWeightLabel
         val past = logged >= sets
         return buildString {
             append("Set ")
@@ -42,9 +48,9 @@ object WorkoutCopy {
             append(sets)
             append(" × ")
             append(reps)
-            if (targetWeightLabel != null) {
+            if (weightLabel != null) {
                 append(" @ ")
-                append(targetWeightLabel)
+                append(weightLabel)
             }
         }
     }

@@ -94,6 +94,20 @@ object RestTimer {
         return ((leftMs + 999L) / 1000L).toInt()
     }
 
+    /**
+     * Wall-clock instant the rest hits zero. Notification chronometers
+     * ([android.app.Notification.Builder.setWhen]) use this base, not elapsed
+     * realtime.
+     */
+    fun endsAtWallClockMillis(
+        endsAtElapsedRealtime: Long,
+        nowElapsedRealtime: Long,
+        nowWallClockMillis: Long,
+    ): Long {
+        val remainingMs = (endsAtElapsedRealtime - nowElapsedRealtime).coerceAtLeast(0L)
+        return nowWallClockMillis + remainingMs
+    }
+
     fun formatClock(totalSeconds: Int): String {
         val safe = totalSeconds.coerceAtLeast(0)
         val minutes = safe / 60
@@ -153,5 +167,18 @@ object RestTimer {
         if (isWarmup) return false
         if (targetSets > 0 && workingSetsAfterLog >= targetSets) return false
         return true
+    }
+
+    /**
+     * A set logged past the prescription is more of this lift, so rest
+     * starts. The last prescribed set still does not ([shouldStartAfterLog]).
+     */
+    fun shouldStartAfterExtra(
+        isWarmup: Boolean,
+        workingSetsAfterLog: Int,
+        targetSets: Int,
+    ): Boolean {
+        if (isWarmup) return false
+        return targetSets > 0 && workingSetsAfterLog > targetSets
     }
 }
