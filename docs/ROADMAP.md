@@ -14,6 +14,12 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 28 Aug 2026 — Hyper Pro is its own kit. Catalog v6 adds the official
+> 28-movement laundry list as `EquipmentType.HYPER_PRO`. Questionnaire
+> place mixes gym / Hyper Pro / home / bodyweight. Resilience goal
+> opens with nordic, reverse hyper, and reverse nordic. Gym-only weeks
+> do not assign Hyper Pro lifts.
+>
 > 27 Aug 2026 — First visit opens Home. Generate a schedule, build a
 > week, or start a workout. The questionnaire is a pushed route, not a
 > launch gate. Generated weeks size sets/reps from age, goal, and days

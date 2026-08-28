@@ -47,7 +47,7 @@ class RoutineGeneratorTest {
 
     @Test
     fun everyCombinationProducesAFullSessionForEveryRoutine() {
-        // The exhaustive sweep. 3 training ages x 7 day counts x 3 places x 4 goals = 252
+        // The exhaustive sweep. 3 training ages x 7 day counts x 4 places x 5 goals = 420
         // programs, and not one of them may ship a short session.
         var checked = 0
         TrainingAge.entries.forEach { age ->
@@ -70,7 +70,52 @@ class RoutineGeneratorTest {
                 }
             }
         }
-        assertEquals(252, checked)
+        assertEquals(420, checked)
+    }
+
+    @Test
+    fun hyperProOnlyNeverProposesABarbell() {
+        val plan = RoutineGenerator.generate(
+            answers(days = 4, place = TrainingPlace.HYPER_PRO, goal = TrainingGoal.RESILIENCE),
+            catalog,
+        )
+        val illegal = plan.routines.flatMap { it.lifts }
+            .filterNot { it.equipment == EquipmentType.HYPER_PRO }
+        assertEquals(emptyList<BlueprintLift>(), illegal)
+        assertTrue(plan.routines.flatMap { it.lifts }.any { it.name.contains("Nordic") })
+    }
+
+    @Test
+    fun gymPlusHyperProCanAssignTheSpecialtyBench() {
+        val plan = RoutineGenerator.generate(
+            OnboardingAnswers(
+                trainingAge = TrainingAge.RETURNING,
+                daysPerWeek = 4,
+                place = TrainingPlace.FULL_GYM,
+                places = setOf(TrainingPlace.FULL_GYM, TrainingPlace.HYPER_PRO),
+                goal = TrainingGoal.RESILIENCE,
+            ),
+            catalog,
+        )
+        val names = plan.routines.flatMap { it.lifts }.map { it.name }
+        assertTrue(
+            "gym + Hyper Pro resilience week should use the reverse hyper: $names",
+            names.any { it.contains("Reverse Hyper") },
+        )
+        assertTrue(
+            "gym kit should still win the barbell families: $names",
+            names.any { it.contains("Barbell") || it.contains("Dumbbell") || it == "Push-Up" },
+        )
+    }
+
+    @Test
+    fun aFullGymWeekDoesNotAssignHyperProLifts() {
+        val plan = RoutineGenerator.generate(
+            answers(days = 4, place = TrainingPlace.FULL_GYM),
+            catalog,
+        )
+        val hyper = plan.routines.flatMap { it.lifts }.filter { it.equipment == EquipmentType.HYPER_PRO }
+        assertEquals(emptyList<BlueprintLift>(), hyper)
     }
 
     @Test
@@ -454,8 +499,12 @@ class RoutineGeneratorTest {
  * The split is derived, never asked. These are the rules that make that defensible.
  */
 class SplitDerivationTest {
-    private fun answers(age: TrainingAge, days: Int, goal: TrainingGoal = TrainingGoal.GENERAL) =
-        OnboardingAnswers(trainingAge = age, daysPerWeek = days, goal = goal)
+    private fun answers(
+        age: TrainingAge,
+        days: Int,
+        goal: TrainingGoal = TrainingGoal.GENERAL,
+        place: TrainingPlace = TrainingPlace.FULL_GYM,
+    ) = OnboardingAnswers(trainingAge = age, daysPerWeek = days, goal = goal, place = place)
 
     @Test
     fun oneTwoOrThreeDaysIsAlwaysFullBody() {
@@ -479,6 +528,16 @@ class SplitDerivationTest {
                 SplitDerivation.forAnswers(answers(TrainingAge.NEW, days)) != SplitStyle.PUSH_PULL_LEGS,
             )
         }
+    }
+
+    @Test
+    fun hyperProAtHighFrequencyIsUpperLowerNotPushPullLegs() {
+        assertEquals(
+            SplitStyle.UPPER_LOWER,
+            SplitDerivation.forAnswers(
+                answers(TrainingAge.EXPERIENCED, 6, place = TrainingPlace.HYPER_PRO),
+            ),
+        )
     }
 
     @Test

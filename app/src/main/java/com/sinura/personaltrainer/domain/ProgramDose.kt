@@ -92,7 +92,7 @@ object ProgramDose {
             } else {
                 tableReps.coerceAtLeast(STRENGTH_ACCESSORY_REPS_FLOOR)
             }
-            TrainingGoal.HYPERTROPHY -> if (role == LiftRole.PRIMARY && isCompound) {
+            TrainingGoal.HYPERTROPHY, TrainingGoal.RESILIENCE -> if (role == LiftRole.PRIMARY && isCompound) {
                 HYPERTROPHY_PRIMARY_REPS
             } else {
                 tableReps.coerceAtLeast(HYPERTROPHY_ACCESSORY_REPS_FLOOR)
@@ -121,7 +121,7 @@ object ProgramDose {
             } else {
                 STRENGTH_ACCESSORY_REST
             }
-            TrainingGoal.HYPERTROPHY -> if (role == LiftRole.PRIMARY && isCompound) {
+            TrainingGoal.HYPERTROPHY, TrainingGoal.RESILIENCE -> if (role == LiftRole.PRIMARY && isCompound) {
                 HYPERTROPHY_PRIMARY_REST
             } else {
                 tableRest.coerceAtMost(HYPERTROPHY_ACCESSORY_REST_CAP)

@@ -30,22 +30,25 @@ enum class TrainingAge(val displayName: String, val blurb: String) {
 /**
  * What the lifter can actually get their hands on.
  *
- * Asked as places rather than an equipment checklist because a checklist of nine types is a
- * form. The three real answers cover almost everyone, and they mix: gym plus a living-room
- * pair of dumbbells is a real week. The union of selected places maps to
+ * Asked as places rather than an equipment checklist because a checklist of every type is a
+ * form. Gym, Hyper Pro, home dumbbells, and bodyweight cover the kits people actually have,
+ * and they mix: gym plus a Hyper Pro is a real week. The union of selected places maps to
  * [CoachPreferences.availableEquipment], which already filters the catalog everywhere.
+ *
+ * A full gym does **not** include [EquipmentType.HYPER_PRO]. That bench is a specific home
+ * machine, not a commercial-gym assumption.
  */
 enum class TrainingPlace(val displayName: String, val blurb: String, val shortLabel: String) {
     FULL_GYM("A full gym", "Barbells, machines, cables", "Gym"),
+    HYPER_PRO("A Hyper Pro", "Nordic, GHD, reverse hyper, leg developer", "Hyper Pro"),
     HOME_DUMBBELLS("Dumbbells at home", "Adjustable or a rack, plus bands", "Home"),
     BODYWEIGHT_ONLY("Bodyweight only", "No equipment at all", "Bodyweight"),
     ;
 
     val equipment: Set<EquipmentType>
         get() = when (this) {
-            // Empty would ALSO mean "no filtering" to CoachPreferences, but stating the full
-            // set keeps this enum readable on its own terms.
-            FULL_GYM -> EquipmentType.entries.toSet()
+            FULL_GYM -> GYM_FLOOR
+            HYPER_PRO -> setOf(EquipmentType.HYPER_PRO)
             HOME_DUMBBELLS -> setOf(
                 EquipmentType.DUMBBELL,
                 EquipmentType.KETTLEBELL,
@@ -57,6 +60,10 @@ enum class TrainingPlace(val displayName: String, val blurb: String, val shortLa
         }
 
     companion object {
+        /** Commercial-gym kit. Specialty benches are their own place. */
+        val GYM_FLOOR: Set<EquipmentType> =
+            EquipmentType.entries.filter { it != EquipmentType.HYPER_PRO }.toSet()
+
         fun fromStorage(raw: String?): TrainingPlace = widest(parsePlaces(raw))
 
         /**
@@ -75,10 +82,11 @@ enum class TrainingPlace(val displayName: String, val blurb: String, val shortLa
         fun formatPlaces(places: Set<TrainingPlace>): String =
             places.sortedBy { it.ordinal }.joinToString(",") { it.name }
 
-        /** Gym swallows the rest: it already contains every equipment type. */
+        /** Gym swallows home and bodyweight. Hyper Pro stays beside gym. */
         fun widest(places: Set<TrainingPlace>): TrainingPlace = when {
             FULL_GYM in places -> FULL_GYM
             HOME_DUMBBELLS in places -> HOME_DUMBBELLS
+            HYPER_PRO in places -> HYPER_PRO
             BODYWEIGHT_ONLY in places -> BODYWEIGHT_ONLY
             else -> FULL_GYM
         }
@@ -89,22 +97,37 @@ enum class TrainingPlace(val displayName: String, val blurb: String, val shortLa
         }
 
         const val STEP_BLURB =
-            "Gym covers every lift. Home and bodyweight mix only when there is no gym."
+            "Gym covers barbells and machines. Hyper Pro is its own kit — mix it with gym, home, or bodyweight."
 
         fun mixCaption(places: Set<TrainingPlace>): String {
             val resolved = places.ifEmpty { setOf(FULL_GYM) }
+            val hasGym = FULL_GYM in resolved
+            val hasHyper = HYPER_PRO in resolved
+            val hasHome = HOME_DUMBBELLS in resolved
+            val hasBody = BODYWEIGHT_ONLY in resolved
             return when {
-                FULL_GYM in resolved -> STEP_BLURB
-                HOME_DUMBBELLS in resolved && BODYWEIGHT_ONLY in resolved ->
-                    "Home and bodyweight share one kit. No barbell."
+                hasGym && hasHyper -> "Gym plus Hyper Pro."
+                hasGym -> STEP_BLURB
+                hasHyper && hasHome && hasBody ->
+                    "Hyper Pro, home, and bodyweight share the week. No barbell."
+                hasHyper && hasHome -> "Hyper Pro plus home dumbbells. No barbell."
+                hasHyper && hasBody -> "Hyper Pro plus floor work."
+                hasHyper -> "Hyper Pro only — posterior chain, knees, and core."
+                hasHome && hasBody -> "Home and bodyweight share one kit. No barbell."
                 else -> label(resolved)
             }
         }
 
         fun equipmentOf(places: Set<TrainingPlace>): Set<EquipmentType> {
             val resolved = places.ifEmpty { setOf(FULL_GYM) }
-            if (FULL_GYM in resolved) return EquipmentType.entries.toSet()
             return resolved.flatMap { it.equipment }.toSet()
+        }
+
+        /** Kit too thin for an honest push/pull/legs week. */
+        fun isSpecializedHome(places: Set<TrainingPlace>): Boolean {
+            val resolved = places.ifEmpty { setOf(FULL_GYM) }
+            if (FULL_GYM in resolved || HOME_DUMBBELLS in resolved) return false
+            return HYPER_PRO in resolved || resolved == setOf(BODYWEIGHT_ONLY)
         }
     }
 }
@@ -187,8 +210,15 @@ data class OnboardingAnswers(
     fun withToggledPlace(target: TrainingPlace): OnboardingAnswers {
         val current = resolvedPlaces()
         val next = when {
-            target == TrainingPlace.FULL_GYM && target !in current -> setOf(TrainingPlace.FULL_GYM)
-            target != TrainingPlace.FULL_GYM && TrainingPlace.FULL_GYM in current -> setOf(target)
+            target == TrainingPlace.HYPER_PRO && target in current ->
+                (current - target).ifEmpty { current }
+            target == TrainingPlace.HYPER_PRO -> current + target
+            target == TrainingPlace.FULL_GYM && target !in current ->
+                setOf(TrainingPlace.FULL_GYM) + current.filter { it == TrainingPlace.HYPER_PRO }
+            target == TrainingPlace.FULL_GYM ->
+                (current - TrainingPlace.FULL_GYM).ifEmpty { current }
+            target != TrainingPlace.FULL_GYM && TrainingPlace.FULL_GYM in current ->
+                current - TrainingPlace.FULL_GYM + target
             target in current -> (current - target).ifEmpty { current }
             else -> current + target
         }
@@ -223,12 +253,13 @@ data class OnboardingAnswers(
         val resolved = resolvedPlaces()
         return CoachPreferences(
             goal = goal,
-            // A full gym filters nothing, and storing all nine types would be a list that has to be
-            // updated every time the enum grows. Empty already means "no filtering".
-            availableEquipment = if (TrainingPlace.FULL_GYM in resolved) {
-                emptySet()
-            } else {
-                TrainingPlace.equipmentOf(resolved).map { it.name }.toSet()
+            // A full gym filters nothing except Hyper Pro, and storing every gym type
+            // would be a list that has to be updated every time the enum grows. Empty
+            // already means "gym floor, no specialty benches".
+            availableEquipment = when {
+                TrainingPlace.FULL_GYM in resolved && TrainingPlace.HYPER_PRO !in resolved ->
+                    emptySet()
+                else -> TrainingPlace.equipmentOf(resolved).map { it.name }.toSet()
             },
             emphasis = emphasis,
         )
@@ -324,9 +355,12 @@ data class OnboardingAnswers(
                 EquipmentType.entries.firstOrNull { it.name.equals(raw, ignoreCase = true) }
             }.toSet()
             if (types.isEmpty()) return TrainingPlace.FULL_GYM
+            if (types == setOf(EquipmentType.HYPER_PRO)) return TrainingPlace.HYPER_PRO
             val bodyweight = TrainingPlace.BODYWEIGHT_ONLY.equipment
             val home = TrainingPlace.HOME_DUMBBELLS.equipment
+            val hyper = TrainingPlace.HYPER_PRO.equipment
             return when {
+                types.all { it in hyper } -> TrainingPlace.HYPER_PRO
                 types.all { it in bodyweight } -> TrainingPlace.BODYWEIGHT_ONLY
                 types.all { it in home } -> TrainingPlace.HOME_DUMBBELLS
                 else -> TrainingPlace.FULL_GYM

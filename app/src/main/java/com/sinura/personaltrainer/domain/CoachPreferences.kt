@@ -13,6 +13,7 @@ enum class TrainingGoal(val displayName: String, val blurb: String) {
     STRENGTH("Strength", "Progression and load first"),
     HYPERTROPHY("Muscle", "Volume and balance first"),
     ATHLETIC("Athletic", "Power, unilateral work, less isolation"),
+    RESILIENCE("Resilience", "Tendons, hips, posterior chain"),
     GENERAL("General", "No emphasis"),
     ;
 
@@ -42,9 +43,10 @@ enum class TrainingEmphasis(val displayName: String, val blurb: String) {
 }
 
 /**
- * @param availableEquipment storage names of [EquipmentType]. **Empty means no filtering** —
- * not "no equipment". A first-run default of "you own nothing" would silently stop the coach
- * naming any lift at all, and the user would have no way to know why.
+ * @param availableEquipment storage names of [EquipmentType]. **Empty means gym-floor
+ * filtering** — every type except specialty benches such as [EquipmentType.HYPER_PRO].
+ * A first-run default of "you own nothing" would silently stop the coach naming any lift
+ * at all, and the user would have no way to know why.
  */
 data class CoachPreferences(
     val goal: TrainingGoal = TrainingGoal.GENERAL,
@@ -52,7 +54,11 @@ data class CoachPreferences(
     val emphasis: TrainingEmphasis = TrainingEmphasis.BALANCED,
 ) {
     fun allows(equipment: EquipmentType): Boolean =
-        availableEquipment.isEmpty() || equipment.name in availableEquipment
+        if (availableEquipment.isEmpty()) {
+            equipment != EquipmentType.HYPER_PRO
+        } else {
+            equipment.name in availableEquipment
+        }
 
     companion object {
         val DEFAULT = CoachPreferences()

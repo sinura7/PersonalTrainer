@@ -27,6 +27,7 @@ import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
+import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.logging.AppLog
@@ -196,14 +197,26 @@ class SettingsViewModel @JvmOverloads constructor(
 
     /**
      * Toggling equipment off tells the coach not to name lifts you cannot do. An empty set is
-     * "no filtering", so turning the last one back on and off again lands back where it started
-     * rather than silencing every suggestion.
+     * gym-floor (everything except Hyper Pro). Expanding that to an explicit gym set before
+     * toggling is what lets someone add the Hyper Pro without wiping the gym kit down to one chip.
      */
     fun toggleEquipment(equipment: EquipmentType) {
         viewModelScope.launch {
             val current = container.preferencesRepository.coachPreferences.first().availableEquipment
-            val next = if (equipment.name in current) current - equipment.name else current + equipment.name
-            container.preferencesRepository.setAvailableEquipment(next)
+            val expanded = if (current.isEmpty()) {
+                TrainingPlace.GYM_FLOOR.map { it.name }.toSet()
+            } else {
+                current
+            }
+            val next = if (equipment.name in expanded) {
+                expanded - equipment.name
+            } else {
+                expanded + equipment.name
+            }
+            val gymFloor = TrainingPlace.GYM_FLOOR.map { it.name }.toSet()
+            container.preferencesRepository.setAvailableEquipment(
+                if (next == gymFloor) emptySet() else next,
+            )
         }
     }
 

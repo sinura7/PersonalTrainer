@@ -96,7 +96,7 @@ class PreferencesRepository(
         .map { prefs ->
             CoachPreferences(
                 goal = TrainingGoal.fromStorage(prefs[TRAINING_GOAL]),
-                // Empty means "no filtering", never "owns nothing" — see CoachPreferences.
+                // Empty means gym-floor (no Hyper Pro), never "owns nothing" — see CoachPreferences.
                 availableEquipment = prefs[AVAILABLE_EQUIPMENT].orEmpty(),
                 emphasis = TrainingEmphasis.fromStorage(prefs[TRAINING_EMPHASIS]),
             )

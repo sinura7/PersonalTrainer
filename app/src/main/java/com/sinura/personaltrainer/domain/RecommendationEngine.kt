@@ -409,6 +409,11 @@ object RecommendationEngine {
                 recommendation.id == "coverage-core" -> 10
                 else -> 0
             }
+            TrainingGoal.RESILIENCE -> when {
+                recommendation.id.startsWith("neglect") -> 10
+                recommendation.id == "coverage-core" -> 10
+                else -> 0
+            }
             TrainingGoal.ATHLETIC -> 0
             TrainingGoal.GENERAL -> 0
         }

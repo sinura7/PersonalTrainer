@@ -129,6 +129,34 @@ object CatalogMeta {
         meta("ex-dead-bug", 625, setOf("deadbug")),   // Dead Bug
         meta("ex-russian-twist", 630, emptySet()),   // Russian Twist
         meta("ex-farmer-s-carry", 635, setOf("farmers walk", "farmer walk")),   // Farmer's Carry
+        meta("ex-hyper-pro-45-degree-back-extension", 640, setOf("45 hyper", "hyper extension")),
+        meta("ex-hyper-pro-90-degree-back-extension", 645, setOf("90 hyper")),
+        meta("ex-hyper-pro-nordic-curl", 650, setOf("nordic", "ghd nordic")),
+        meta("ex-hyper-pro-reverse-hyper", 655, setOf("reverse hyper", "rhyp")),
+        meta("ex-hyper-pro-glute-ham-raise", 660, setOf("ghr", "glute ham")),
+        meta("ex-hyper-pro-ghd-sit-up", 665, setOf("ghd", "ghd situp")),
+        meta("ex-hyper-pro-reverse-nordic", 670, setOf("reverse nordic", "sissy")),
+        meta("ex-hyper-pro-ql-raise", 675, setOf("ql", "quadratus")),
+        meta("ex-hyper-pro-hip-thrust", 680, setOf("hp hip thrust")),
+        meta("ex-hyper-pro-hamstring-curl", 685, setOf("hp leg curl")),
+        meta("ex-hyper-pro-leg-extension", 690, setOf("hp leg extension")),
+        meta("ex-hyper-pro-kot-squat", 695, setOf("kot", "knees over toes")),
+        meta("ex-hyper-pro-bulgarian-split-squat", 700, setOf("hp bulgarian")),
+        meta("ex-hyper-pro-sit-up", 705, setOf("hp situp", "decline situp")),
+        meta("ex-hyper-pro-leg-raise", 710, setOf("hp leg raise")),
+        meta("ex-hyper-pro-push-up", 715, setOf("hp pushup")),
+        meta("ex-hyper-pro-standing-row", 720, setOf("hp row")),
+        meta("ex-hyper-pro-face-pull", 725, setOf("hp face pull")),
+        meta("ex-hyper-pro-pullover", 730, setOf("hp pullover")),
+        meta("ex-hyper-pro-bicep-curl", 735, setOf("hp curl")),
+        meta("ex-hyper-pro-trap-3-raise", 740, setOf("trap 3", "trap3")),
+        meta("ex-hyper-pro-external-rotator", 745, setOf("rotator cuff")),
+        meta("ex-hyper-pro-russian-twist", 750, setOf("hp twist")),
+        meta("ex-hyper-pro-woodchop", 755, setOf("wood chop", "chop")),
+        meta("ex-hyper-pro-calf-stretch", 760, setOf("calf mobility")),
+        meta("ex-hyper-pro-couch-stretch", 765, setOf("hip flexor stretch", "couch")),
+        meta("ex-hyper-pro-elephant-walk", 770, setOf("elephant", "hamstring stretch")),
+        meta("ex-hyper-pro-incline-pigeon", 775, setOf("pigeon", "hip stretch")),
     )
 
     /** Display order among built-ins; customs sort last. */

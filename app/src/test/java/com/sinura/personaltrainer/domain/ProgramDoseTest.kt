@@ -83,4 +83,17 @@ class ProgramDoseTest {
         assertEquals(8, squat.reps)
         assertEquals(90, squat.restSeconds)
     }
+
+    @Test
+    fun resilienceOpenersSitWithHypertrophyDose() {
+        val dose = SessionDose(TrainingAge.RETURNING, TrainingGoal.RESILIENCE, daysPerWeek = 4)
+        val squat = ProgramDose.apply(
+            AddDefaults.forExercise(LoadType.EXTERNAL, true, LiftRole.PRIMARY),
+            isCompound = true,
+            role = LiftRole.PRIMARY,
+            dose = dose,
+        )
+        assertEquals(8, squat.reps)
+        assertEquals(90, squat.restSeconds)
+    }
 }

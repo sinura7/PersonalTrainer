@@ -84,17 +84,45 @@ class OnboardingAnswersRestoreTest {
 
     @Test
     fun placeCopyDoesNotPromiseTwoSchedules() {
-        assertTrue(TrainingPlace.STEP_BLURB.contains("Gym covers every lift"))
+        assertTrue(TrainingPlace.STEP_BLURB.contains("Hyper Pro is its own kit"))
         assertFalse(TrainingPlace.STEP_BLURB.contains("gym days and home days"))
         assertEquals(
-            TrainingPlace.STEP_BLURB,
-            TrainingPlace.mixCaption(setOf(TrainingPlace.FULL_GYM, TrainingPlace.HOME_DUMBBELLS)),
+            "Gym plus Hyper Pro.",
+            TrainingPlace.mixCaption(setOf(TrainingPlace.FULL_GYM, TrainingPlace.HYPER_PRO)),
         )
         assertTrue(
             TrainingPlace.mixCaption(
                 setOf(TrainingPlace.HOME_DUMBBELLS, TrainingPlace.BODYWEIGHT_ONLY),
             ).contains("No barbell"),
         )
+    }
+
+    @Test
+    fun gymDoesNotIncludeHyperProUntilAsked() {
+        assertFalse(EquipmentType.HYPER_PRO in TrainingPlace.FULL_GYM.equipment)
+        assertTrue(EquipmentType.HYPER_PRO in TrainingPlace.HYPER_PRO.equipment)
+        val gym = OnboardingAnswers(places = setOf(TrainingPlace.FULL_GYM)).sanitized()
+        assertFalse(EquipmentType.HYPER_PRO in gym.equipment())
+        val mixed = gym.withToggledPlace(TrainingPlace.HYPER_PRO)
+        assertEquals(
+            setOf(TrainingPlace.FULL_GYM, TrainingPlace.HYPER_PRO),
+            mixed.resolvedPlaces(),
+        )
+        assertTrue(EquipmentType.HYPER_PRO in mixed.equipment())
+        assertTrue(EquipmentType.BARBELL in mixed.equipment())
+    }
+
+    @Test
+    fun hyperProAloneDoesNotOfferABarbell() {
+        val only = OnboardingAnswers(places = setOf(TrainingPlace.HYPER_PRO)).sanitized()
+        assertEquals(setOf(EquipmentType.HYPER_PRO), only.equipment())
+        assertEquals(TrainingPlace.HYPER_PRO, OnboardingAnswers.inferPlace(setOf("HYPER_PRO")))
+    }
+
+    @Test
+    fun emptyCoachKitStillHidesHyperPro() {
+        assertFalse(CoachPreferences().allows(EquipmentType.HYPER_PRO))
+        assertTrue(CoachPreferences().allows(EquipmentType.BARBELL))
     }
 
     @Test

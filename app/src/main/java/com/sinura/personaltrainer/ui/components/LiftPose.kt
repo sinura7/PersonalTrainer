@@ -47,10 +47,11 @@ internal enum class LiftPose {
 
 internal fun poseFor(movementKey: String?): LiftPose = when (movementKey) {
     "squat" -> LiftPose.SQUAT
-    "lunge", "step-up" -> LiftPose.LUNGE
+    "lunge", "step-up", "reverse-nordic" -> LiftPose.LUNGE
     "leg-press", "leg-extension", "leg-curl", "calf-raise" -> LiftPose.SEATED_MACHINE
     "deadlift", "romanian-deadlift", "good-morning", "kettlebell-swing",
     "pull-through", "back-extension", "nordic-curl",
+    "reverse-hyper", "glute-ham-raise", "ql-raise",
     -> LiftPose.HINGE
     "hip-thrust", "hip-abduction", "glute-kickback" -> LiftPose.HIP
     "bench-press", "push-up", "dip" -> LiftPose.HORIZONTAL_PRESS
@@ -701,7 +702,7 @@ private fun squatKit(equipment: EquipmentType, f: Figure) = when (equipment) {
     }
     EquipmentType.DUMBBELL -> dumbbell(f.midS.first, f.chest.second)
     EquipmentType.KETTLEBELL -> kettle(f.midS.first, f.chest.second)
-    EquipmentType.MACHINE -> listOf(
+    EquipmentType.MACHINE, EquipmentType.HYPER_PRO -> listOf(
         PoseInk.Rect(0.10f, 0.08f, 0.18f, 0.94f, null),
         PoseInk.Rect(0.82f, 0.08f, 0.90f, 0.94f, null),
         PoseInk.Rect(0.18f, 0.22f, 0.82f, 0.30f, null),
@@ -718,7 +719,7 @@ private fun hingeKit(equipment: EquipmentType, f: Figure) = when (equipment) {
         PoseInk.Rect(0.84f, 0.08f, 0.94f, 0.70f, null),
         PoseInk.Limb(f.wL.first, f.wL.second, 0.84f, f.wL.second, 0.018f, null),
     )
-    EquipmentType.MACHINE -> machineFrame()
+    EquipmentType.MACHINE, EquipmentType.HYPER_PRO -> machineFrame()
     else -> emptyList()
 }
 
@@ -734,7 +735,7 @@ private fun pressKit(equipment: EquipmentType, f: Figure): List<PoseInk> {
             )
         EquipmentType.DUMBBELL ->
             bench + dumbbell(f.wL.first, f.wL.second) + dumbbell(f.wR.first, f.wR.second)
-        EquipmentType.MACHINE -> bench + listOf(PoseInk.Rect(0.06f, 0.16f, 0.14f, 0.84f, null))
+        EquipmentType.MACHINE, EquipmentType.HYPER_PRO -> bench + listOf(PoseInk.Rect(0.06f, 0.16f, 0.14f, 0.84f, null))
         EquipmentType.BODYWEIGHT -> bench
         else -> bench + bar(f.wL.second, left = 0.10f, right = 0.78f)
     }
@@ -745,14 +746,14 @@ private fun overheadKit(equipment: EquipmentType, f: Figure) = when (equipment) 
         bar(f.wL.second, left = f.wL.first - 0.10f, right = f.wR.first + 0.10f)
     EquipmentType.DUMBBELL, EquipmentType.KETTLEBELL ->
         dumbbell(f.wL.first, f.wL.second) + dumbbell(f.wR.first, f.wR.second)
-    EquipmentType.MACHINE -> machineFrame() + bar(f.wL.second, left = 0.22f, right = 0.78f)
+    EquipmentType.MACHINE, EquipmentType.HYPER_PRO -> machineFrame() + bar(f.wL.second, left = 0.22f, right = 0.78f)
     else -> bar(f.wL.second)
 }
 
 private fun flyKit(equipment: EquipmentType, f: Figure) = when (equipment) {
     EquipmentType.DUMBBELL, EquipmentType.KETTLEBELL ->
         dumbbell(f.wL.first, f.wL.second) + dumbbell(f.wR.first, f.wR.second)
-    EquipmentType.CABLE, EquipmentType.MACHINE -> listOf(
+    EquipmentType.CABLE, EquipmentType.MACHINE, EquipmentType.HYPER_PRO -> listOf(
         PoseInk.Rect(0.02f, 0.08f, 0.10f, 0.50f, null),
         PoseInk.Rect(0.90f, 0.08f, 0.98f, 0.50f, null),
     )
@@ -772,7 +773,7 @@ private fun rowKit(equipment: EquipmentType, f: Figure) = when (equipment) {
         bar(f.wL.second, left = (f.wL.first - 0.10f).coerceAtLeast(0.02f), right = 0.40f)
     EquipmentType.DUMBBELL -> dumbbell(f.wL.first, f.wL.second)
     EquipmentType.KETTLEBELL -> kettle(f.wL.first, f.wL.second)
-    EquipmentType.CABLE, EquipmentType.MACHINE -> listOf(
+    EquipmentType.CABLE, EquipmentType.MACHINE, EquipmentType.HYPER_PRO -> listOf(
         PoseInk.Rect(0.04f, 0.20f, 0.14f, 0.80f, null),
         PoseInk.Limb(0.14f, f.wL.second, f.wL.first, f.wL.second, 0.018f, null),
     )
@@ -797,7 +798,7 @@ private fun hipKit(equipment: EquipmentType, f: Figure): List<PoseInk> {
     val load = when (equipment) {
         EquipmentType.BARBELL ->
             bar(f.hL.second, left = (f.hL.first - 0.06f).coerceAtLeast(0.02f), right = 0.92f)
-        EquipmentType.MACHINE -> machineFrame()
+        EquipmentType.MACHINE, EquipmentType.HYPER_PRO -> machineFrame()
         EquipmentType.CABLE -> listOf(PoseInk.Rect(0.86f, 0.08f, 0.96f, 0.80f, null))
         else -> emptyList()
     }
@@ -806,7 +807,7 @@ private fun hipKit(equipment: EquipmentType, f: Figure): List<PoseInk> {
 
 private fun coreKit(equipment: EquipmentType, f: Figure) = when (equipment) {
     EquipmentType.DUMBBELL -> dumbbell(f.midS.first, f.chest.second)
-    EquipmentType.MACHINE, EquipmentType.CABLE -> machineFrame()
+    EquipmentType.MACHINE, EquipmentType.CABLE, EquipmentType.HYPER_PRO -> machineFrame()
     else -> emptyList()
 }
 
@@ -825,6 +826,6 @@ private fun handBells(
     EquipmentType.DUMBBELL -> dumbbell(left.first, left.second) + dumbbell(right.first, right.second)
     EquipmentType.KETTLEBELL -> kettle(left.first, left.second) + kettle(right.first, right.second)
     EquipmentType.BARBELL -> bar((left.second + right.second) / 2f)
-    EquipmentType.MACHINE, EquipmentType.CABLE, EquipmentType.SMITH -> machineFrame()
+        EquipmentType.MACHINE, EquipmentType.CABLE, EquipmentType.SMITH, EquipmentType.HYPER_PRO -> machineFrame()
     else -> emptyList()
 }

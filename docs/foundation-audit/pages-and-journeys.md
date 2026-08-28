@@ -67,7 +67,7 @@ Runtime evidence: [live session bar](evidence/12-live-session-bar.png).
 2. Lifting experience (skipped for cardio-only)
 3. Days per week
 4. Preferred weekdays or automatic spacing
-5. Training place/equipment
+5. Training place/equipment (gym, Hyper Pro, home dumbbells, bodyweight; mixable)
 6. Goal (skipped for cardio-only)
 7. Emphasis (skipped for cardio-only)
 8. Optional bodyweight
