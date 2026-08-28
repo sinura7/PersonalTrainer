@@ -105,5 +105,29 @@ data class RuleTrace(
                 alternatives = emptyList(),
                 generatedAtMs = nowMs,
             )
+
+        fun forMicroRec(
+            reasonCodes: List<String>,
+            nextWeightKg: Double,
+            nextReps: Int,
+            nextRpe: Int?,
+            nowMs: Long,
+            todayEpochDay: Long,
+        ): RuleTrace = RuleTrace(
+            ruleId = SetMicroRecCalculator.RULE_ID,
+            version = VERSION,
+            action = reasonCodes.firstOrNull().orEmpty(),
+            reasonCodes = reasonCodes,
+            evidenceStartEpochDay = todayEpochDay,
+            evidenceEndEpochDay = todayEpochDay,
+            facts = buildList {
+                add(TraceFact("nextWeightKg", nextWeightKg.toString()))
+                add(TraceFact("nextReps", nextReps.toString()))
+                nextRpe?.let { add(TraceFact("nextRpe", it.toString())) }
+            },
+            thresholds = emptyList(),
+            alternatives = emptyList(),
+            generatedAtMs = nowMs,
+        )
     }
 }
