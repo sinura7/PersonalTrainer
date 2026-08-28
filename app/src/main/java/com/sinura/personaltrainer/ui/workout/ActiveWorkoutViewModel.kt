@@ -347,6 +347,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     /**
      * In-set next load. Recomputed on log, RPE, warmup, lift switch, delete/undo, and edit.
      * Stepper ticks do not change it unless draft RPE is set (preview).
+     * Eager: [applyMicroRec] reads this value, not a rendered snapshot.
      */
     val microRec: StateFlow<SetMicroRec?> = combine(
         combine(session, selectedExerciseId, draft, hint) { current, selected, currentDraft, currentHint ->
@@ -367,7 +368,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         )
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
+        started = SharingStarted.Eagerly,
         initialValue = null,
     )
 
