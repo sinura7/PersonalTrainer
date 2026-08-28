@@ -181,6 +181,7 @@ class ActiveWorkoutViewModelTest {
         vm.awaitFound()
 
         vm.setWeight(100.0)
+        vm.awaitState { it.draft.weightKg == 100.0 }
         vm.logSet()
 
         val persisted = awaitSession(fixture.session.id) { it.sets.size == 1 }
