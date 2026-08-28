@@ -19,9 +19,9 @@ Packet: cross-tab frontend fit. Instrument tokens stay. Not a restyle.
 
 ## Commands
 
-- `tools/preflight.sh` — pending
-- `./gradlew testDebugUnitTest` — pending
-- `./gradlew assembleDebug` — pending
+- `tools/preflight.sh` — OK (967 domain tests)
+- `./gradlew testDebugUnitTest` — 1415 tests, 0 failures
+- `./gradlew assembleDebug` — SUCCESS
 
 ## Known limitations
 
