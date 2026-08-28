@@ -80,6 +80,8 @@ import com.sinura.personaltrainer.domain.RestNotificationCopy
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RpeCopy
 import com.sinura.personaltrainer.domain.SetCopy
+import com.sinura.personaltrainer.domain.SetMicroRec
+import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.domain.SessionOrderCopy
@@ -139,6 +141,9 @@ object WorkoutTestTags {
     const val SET_ENTRY = "workout-set-entry"
     const val REST_BAR = "workout-rest-bar"
     const val REST_IDLE = "workout-rest-idle"
+    const val MICRO_REC = "workout-micro-rec"
+    const val MICRO_REC_APPLY = "workout-micro-rec-apply"
+    const val MICRO_REC_WHY = "workout-micro-rec-why"
 }
 
 @Composable
@@ -151,6 +156,7 @@ fun ActiveWorkoutScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val rest by viewModel.restTimerState.collectAsStateWithLifecycle()
+    val microRec by viewModel.microRec.collectAsStateWithLifecycle()
     val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
     val personalRecord by viewModel.personalRecord.collectAsStateWithLifecycle()
     val deletedSet by viewModel.deletedSet.collectAsStateWithLifecycle()
@@ -282,11 +288,15 @@ fun ActiveWorkoutScreen(
                     editing = state.editingSetId != null,
                     error = state.error,
                     draftLabel = SetCopy.setLine(state.draft.weightKg, state.draft.reps, LoadClass.of(selected?.exercise?.loadType), unit),
+                    microRec = microRec,
+                    loadClass = LoadClass.of(selected?.exercise?.loadType),
+                    unit = unit,
                     onLog = {
                         Haptics.commit(view)
                         viewModel.logSet()
                     },
                     onCancelEdit = viewModel::cancelEdit,
+                    onApplyMicroRec = viewModel::applyMicroRec,
                 )
             }
         },
@@ -697,8 +707,12 @@ private fun LogBar(
     editing: Boolean,
     error: String?,
     draftLabel: String,
+    microRec: SetMicroRec?,
+    loadClass: LoadClass,
+    unit: WeightUnit,
     onLog: () -> Unit,
     onCancelEdit: () -> Unit,
+    onApplyMicroRec: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -716,6 +730,14 @@ private fun LogBar(
                 Text("Cancel edit", style = InstrumentType.bodyStrong, color = TextSecondary)
             }
         }
+        microRec?.let { rec ->
+            MicroRecLine(
+                rec = rec,
+                loadClass = loadClass,
+                unit = unit,
+                onApply = onApplyMicroRec,
+            )
+        }
         PrimaryGymButton(
             text = if (editing) "Save $draftLabel" else "Log $draftLabel",
             onClick = onLog,
@@ -723,6 +745,62 @@ private fun LogBar(
             height = Metrics.commit,
             hapticFeedback = false,
         )
+    }
+}
+
+@Composable
+private fun MicroRecLine(
+    rec: SetMicroRec,
+    loadClass: LoadClass,
+    unit: WeightUnit,
+    onApply: () -> Unit,
+) {
+    var showWhy by rememberSaveable(rec.reasonCode, rec.nextWeightKg, rec.nextReps, rec.nextRpe) {
+        mutableStateOf(false)
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+        SetMicroRecCopy.caption(rec)?.let { caption ->
+            Text(caption, style = InstrumentType.caption, color = TextTertiary)
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
+            Text(
+                SetMicroRecCopy.line(rec, loadClass, unit),
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag(WorkoutTestTags.MICRO_REC),
+                style = InstrumentType.bodyStrong,
+                color = TextPrimary,
+            )
+            TextButton(
+                onClick = { showWhy = !showWhy },
+                modifier = Modifier.testTag(WorkoutTestTags.MICRO_REC_WHY),
+            ) {
+                Text(
+                    if (showWhy) "Hide why" else "Why",
+                    style = InstrumentType.bodyStrong,
+                    color = TextSecondary,
+                )
+            }
+            if (rec.showApply && !rec.previewOnly) {
+                TextButton(
+                    onClick = onApply,
+                    modifier = Modifier.testTag(WorkoutTestTags.MICRO_REC_APPLY),
+                ) {
+                    Text("Use", style = InstrumentType.bodyStrong, color = Volt)
+                }
+            }
+        }
+        if (showWhy) {
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+                SetMicroRecCopy.whyLines(rec).forEach { line ->
+                    Text(line, style = InstrumentType.caption, color = TextSecondary)
+                }
+            }
+        }
     }
 }
 

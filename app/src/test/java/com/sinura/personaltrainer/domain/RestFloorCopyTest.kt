@@ -32,7 +32,7 @@ class RestFloorCopyTest {
     }
 
     @Test
-    fun contextUsesSelectedLiftLastSetAndHint() {
+    fun contextUsesSelectedLiftLastSetAndNextLine() {
         val squat = sessionExercise("squat", "Squat", "Legs")
         val logged = set(
             id = "set-1",
@@ -50,30 +50,20 @@ class RestFloorCopyTest {
             exercises = listOf(squat),
             date = 1_000L,
         )
-        val hint = ProgressionHint(
-            exerciseId = "squat",
-            exerciseName = "Squat",
-            lastWeightKg = 100.0,
-            lastReps = 5,
-            targetReps = 5,
-            suggestedWeightKg = 102.5,
-            action = ProgressionAction.INCREASE,
-            loadType = LoadType.EXTERNAL,
-        )
         val floor = RestFloorCopy.context(
             session = current,
             selectedExerciseId = "squat",
-            hint = hint,
             unit = WeightUnit.KG,
+            nextLine = "Next: 100 kg × 5 · RPE 8",
         )
         assertEquals("Squat", floor.exerciseName)
         assertEquals("Last set · 100 kg × 5", floor.lastSetLine)
-        assertEquals(ProgressionCopy.stripReason(hint, WeightUnit.KG), floor.sessionTargetLine)
+        assertEquals("Next: 100 kg × 5 · RPE 8", floor.sessionTargetLine)
     }
 
     @Test
     fun missingSessionHasNoFloorCopy() {
-        val floor = RestFloorCopy.context(null, null, null, WeightUnit.KG)
+        val floor = RestFloorCopy.context(null, null, WeightUnit.KG)
         assertNull(floor.exerciseName)
         assertNull(floor.lastSetLine)
         assertNull(floor.sessionTargetLine)

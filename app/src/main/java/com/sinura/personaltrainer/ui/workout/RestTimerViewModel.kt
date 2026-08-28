@@ -8,11 +8,13 @@ import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.LighterWeek
+import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RestFloorContext
 import com.sinura.personaltrainer.domain.RestFloorCopy
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RestTimerPreferences
+import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.logging.AppLog
@@ -55,6 +57,7 @@ class RestTimerViewModel @JvmOverloads constructor(
     private val restTimer = container.restTimerController
     private val restTotal = MutableStateFlow(RestTimerPreferences.DEFAULT_SECONDS)
     private val hint = MutableStateFlow<ProgressionHint?>(null)
+    private val lighterWeek = MutableStateFlow(false)
     private val sessionResolved = MutableStateFlow(false)
 
     private val session: StateFlow<WorkoutSession?> =
@@ -104,9 +107,11 @@ class RestTimerViewModel @JvmOverloads constructor(
                 running = snapshot.running,
             )
         },
-        hint,
-        container.preferencesRepository.weightUnit,
-    ) { current, resolved, rest, currentHint, unit ->
+        combine(hint, lighterWeek, container.preferencesRepository.weightUnit) { currentHint, lighter, unit ->
+            Triple(currentHint, lighter, unit)
+        },
+    ) { current, resolved, rest, extras ->
+        val (currentHint, lighter, unit) = extras
         val missing = current == null || current.isFinished
         RestTimerScreenState(
             loadState = when {
@@ -118,11 +123,28 @@ class RestTimerViewModel @JvmOverloads constructor(
             floor = if (missing) {
                 RestFloorContext(exerciseName = null, lastSetLine = null, sessionTargetLine = null)
             } else {
+                val exerciseId = resolveExerciseId(current)
+                val cached = container.workoutDraftCache.get(sessionId)
+                val rec = workoutMicroRec(
+                    session = current,
+                    selectedExerciseId = exerciseId,
+                    draft = ActiveExerciseDraft(
+                        weightKg = cached?.weightKg ?: 0.0,
+                        reps = (cached?.reps ?: 5).coerceAtLeast(1),
+                        rpe = cached?.rpe,
+                        isWarmup = cached?.isWarmup ?: false,
+                    ),
+                    hint = currentHint,
+                    editingSetId = null,
+                    lighterWeek = lighter,
+                    unit = unit,
+                )
+                val loadClass = exerciseId?.let { current.loadClassOf(it) } ?: LoadClass.LOADED
                 RestFloorCopy.context(
                     session = current,
-                    selectedExerciseId = resolveExerciseId(current),
-                    hint = currentHint,
+                    selectedExerciseId = exerciseId,
                     unit = unit,
+                    nextLine = rec?.let { SetMicroRecCopy.line(it, loadClass, unit) },
                 )
             },
         )
@@ -181,6 +203,7 @@ class RestTimerViewModel @JvmOverloads constructor(
             container.preferencesRepository.lighterWeekStartEpochDay.first(),
             thisWeek,
         )
+        lighterWeek.value = lighter
         val unit: WeightUnit = container.preferencesRepository.weightUnit.first()
         return container.workoutRepository.progressionFor(
             exerciseId = exerciseId,

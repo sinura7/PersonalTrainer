@@ -62,6 +62,7 @@ object RestFloorTags {
     const val START = "rest-floor-start"
     const val CLOSE = "rest-floor-close"
     const val BACK_TO_BAR = "rest-floor-back"
+    const val NEXT = "rest-floor-next"
 }
 
 private const val FINISHED_DWELL_MS = 3_500L
@@ -207,7 +208,12 @@ private fun RestFloorBody(
             Text(line, style = InstrumentType.body, color = TextSecondary)
         }
         floor.sessionTargetLine?.let { line ->
-            Text(line, style = InstrumentType.body, color = TextSecondary)
+            Text(
+                line,
+                modifier = Modifier.testTag(RestFloorTags.NEXT),
+                style = InstrumentType.body,
+                color = TextSecondary,
+            )
         }
 
         when {
