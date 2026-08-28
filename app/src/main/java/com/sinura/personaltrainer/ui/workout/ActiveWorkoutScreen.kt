@@ -8,22 +8,28 @@ import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -58,6 +64,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -97,8 +104,8 @@ import com.sinura.personaltrainer.domain.WorkoutCopy
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
-import com.sinura.personaltrainer.ui.components.EquipmentGlyphIcon
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
+import com.sinura.personaltrainer.ui.components.ExerciseThumb
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentChip
@@ -111,8 +118,9 @@ import com.sinura.personaltrainer.ui.components.PersonalRecordBanner
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.RestDock
 import com.sinura.personaltrainer.ui.components.ScreenLoading
+import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.components.SetEntryPanel
-import com.sinura.personaltrainer.ui.components.glyphFor
+import com.sinura.personaltrainer.ui.components.ThumbSize
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.Haptics
@@ -127,7 +135,9 @@ import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
+import com.sinura.personaltrainer.ui.theme.VoltDim
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import com.sinura.personaltrainer.ui.routines.CartBadge
 import kotlinx.coroutines.delay
 
 private const val TAG = "PT/ActiveWorkoutScreen"
@@ -145,6 +155,7 @@ object WorkoutTestTags {
     const val MICRO_REC = "workout-micro-rec"
     const val MICRO_REC_APPLY = "workout-micro-rec-apply"
     const val MICRO_REC_WHY = "workout-micro-rec-why"
+    fun liftCard(exerciseId: String) = "workout-lift-card-$exerciseId"
 }
 
 @Composable
@@ -239,31 +250,6 @@ fun ActiveWorkoutScreen(
         Haptics.celebrate(view)
         delay(PERSONAL_RECORD_DWELL_MS)
         viewModel.onPersonalRecordShown()
-    }
-
-    val loggedForSelected = if (session != null && selected != null) {
-        session.setsFor(selected.exercise.id)
-    } else {
-        emptyList()
-    }
-
-    // The set that was just logged is the only confirmation the action gives, and it lives
-    // below the entry panel — frequently off-screen with the thumb still on the log button.
-    // Bringing the list into view is what closes the feedback loop.
-    //
-    // Keyed on the selected lift so switching lifts resets the baseline, and gated on the
-    // count *rising* so neither opening a session that already has sets nor deleting one
-    // yanks the list around.
-    var previousSetCount by remember(state.selectedExerciseId) { mutableIntStateOf(-1) }
-    LaunchedEffect(state.selectedExerciseId, loggedForSelected.size) {
-        val count = loggedForSelected.size
-        val grew = previousSetCount in 0 until count
-        previousSetCount = count
-        if (grew) {
-            listState.animateScrollToItem(
-                index = (listState.layoutInfo.totalItemsCount - 1).coerceAtLeast(0),
-            )
-        }
     }
 
     Scaffold(
@@ -365,16 +351,6 @@ fun ActiveWorkoutScreen(
                                 )
                             }
                         }
-                        item(key = "switcher") {
-                            LiftSwitcher(
-                                lifts = session.exercises,
-                                selectedExerciseId = state.selectedExerciseId,
-                                logged = session.sets,
-                                onSelect = viewModel::selectExercise,
-                                onAdd = { viewModel.setPickerVisible(true) },
-                            )
-                        }
-
                         if (!session.hasLifts()) {
                             item(key = "empty-lifts") {
                                 EmptyState(
@@ -385,94 +361,45 @@ fun ActiveWorkoutScreen(
                                     compact = true,
                                 )
                             }
-                        } else if (selected == null) {
-                            item(key = "pick-lift") {
-                                EmptyState(
-                                    title = "Pick a lift",
-                                    body = "Choose one above to keep logging.",
-                                    actionLabel = "Add a lift",
-                                    onAction = { viewModel.setPickerVisible(true) },
-                                    compact = true,
-                                )
-                            }
-                            if (session.sets.isNotEmpty()) {
-                                item(key = "sets-label") { Kicker("Sets") }
-                                item(key = "sets") {
-                                    LoggedSetsPanel(
-                                        sets = session.sets,
-                                        latestSetId = session.sets.maxByOrNull { it.completedAt }?.id,
-                                        editingSetId = state.editingSetId,
-                                        loadClassOf = { set -> session.loadClassOf(set.exerciseId) },
-                                        onEdit = { viewModel.editSet(it) },
-                                        onDelete = { viewModel.deleteSet(it) },
-                                    )
-                                }
-                            }
                         } else {
-                            val workingLogged = loggedForSelected.count { !it.isWarmup }
-                            val latestSetId = loggedForSelected.maxByOrNull { it.completedAt }?.id
-
-                            item(key = "lift-header") {
-                                CurrentLiftHeader(
-                                    lift = selected,
-                                    workingLogged = workingLogged,
+                            itemsIndexed(
+                                items = session.exercises,
+                                key = { _, lift -> "lift-${lift.id}" },
+                            ) { index, lift ->
+                                val isSelected = lift.exercise.id == state.selectedExerciseId
+                                val logged = session.setsFor(lift.exercise.id)
+                                WorkoutLiftCard(
+                                    lift = lift,
+                                    number = index + 1,
+                                    selected = isSelected,
+                                    loggedSets = logged,
+                                    latestSetId = logged.maxByOrNull { it.completedAt }?.id,
+                                    editingSetId = state.editingSetId.takeIf { isSelected },
+                                    lastPerformance = state.lastPerformance.takeIf { isSelected },
+                                    hint = state.hint.takeIf { isSelected },
+                                    draftWeightKg = state.draft.weightKg,
+                                    draftReps = state.draft.reps,
+                                    draftWarmup = state.draft.isWarmup,
+                                    draftRpe = state.draft.rpe,
                                     unit = unit,
-                                    canEdit = loggedForSelected.isEmpty(),
+                                    canEdit = logged.isEmpty(),
+                                    onSelect = { viewModel.selectExercise(lift.exercise.id) },
                                     onSwap = viewModel::requestSwap,
                                     onRemove = { confirmRemoveLift = true },
-                                    modifier = Modifier.testTag(WorkoutTestTags.CURRENT_LIFT),
-                                )
-                            }
-                            state.lastPerformance?.let { last ->
-                                                item(key = "last-time") {
-                                    LastTimeStrip(
-                                        summary = last,
-                                        unit = unit,
-                                        loadClass = LoadClass.of(selected?.exercise?.loadType),
-                                    )
-                                }
-                            }
-                            state.hint?.let { hint ->
-                                item(key = "progression") {
-                                    ProgressionStrip(
-                                        hint = hint,
-                                        unit = unit,
-                                        onApply = viewModel::applySuggestedWeight,
-                                    )
-                                }
-                            }
-                            item(key = "entry") {
-                                SetEntryPanel(
-                                    weightKg = state.draft.weightKg,
-                                    reps = state.draft.reps,
                                     onWeightKgChange = viewModel::setWeight,
                                     onRepsAdjust = viewModel::adjustReps,
-                                    unit = unit,
-                                    // A push-up gets one well and no weight box; a weighted
-                                    // pull-up gets a box labelled "added"; an assisted machine
-                                    // one labelled "assist".
-                                    loadClass = LoadClass.of(selected?.exercise?.loadType),
-                                    plated = selected?.exercise?.equipment == EquipmentType.BARBELL,
-                                    modifier = Modifier.testTag(WorkoutTestTags.SET_ENTRY),
-                                )
-                            }
-                            item(key = "secondary") {
-                                SecondaryLogOptions(
-                                    warmup = state.draft.isWarmup,
-                                    rpe = state.draft.rpe,
                                     onWarmup = viewModel::setWarmup,
                                     onRpe = viewModel::setRpe,
+                                    onApplySuggested = viewModel::applySuggestedWeight,
+                                    onEditSet = viewModel::editSet,
+                                    onDeleteSet = viewModel::deleteSet,
                                 )
                             }
-                            item(key = "sets-label") { Kicker("Sets") }
-                            item(key = "sets") {
-                                LoggedSetsPanel(
-                                    sets = loggedForSelected,
-                                    latestSetId = latestSetId,
-                                    editingSetId = state.editingSetId,
-                                    loadClassOf = { LoadClass.of(selected?.exercise?.loadType) },
-                                    onEdit = { viewModel.editSet(it) },
-                                    onDelete = { viewModel.deleteSet(it) },
+                            item(key = "add-lift") {
+                                SecondaryGymButton(
+                                    text = "Add a lift",
+                                    onClick = { viewModel.setPickerVisible(true) },
+                                    modifier = Modifier.fillMaxWidth(),
                                 )
                             }
                         }
@@ -825,35 +752,170 @@ private fun MicroRecLine(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun LiftSwitcher(
-    lifts: List<SessionExercise>,
-    selectedExerciseId: String?,
-    logged: List<SetLog>,
-    onSelect: (String) -> Unit,
-    onAdd: () -> Unit,
+private fun WorkoutLiftCard(
+    lift: SessionExercise,
+    number: Int,
+    selected: Boolean,
+    loggedSets: List<SetLog>,
+    latestSetId: String?,
+    editingSetId: String?,
+    lastPerformance: ExerciseSessionSummary?,
+    hint: ProgressionHint?,
+    draftWeightKg: Double,
+    draftReps: Int,
+    draftWarmup: Boolean,
+    draftRpe: Int?,
+    unit: WeightUnit,
+    canEdit: Boolean,
+    onSelect: () -> Unit,
+    onSwap: () -> Unit,
+    onRemove: () -> Unit,
+    onWeightKgChange: (Double) -> Unit,
+    onRepsAdjust: (Int) -> Unit,
+    onWarmup: (Boolean) -> Unit,
+    onRpe: (Int?) -> Unit,
+    onApplySuggested: () -> Unit,
+    onEditSet: (String) -> Unit,
+    onDeleteSet: (String) -> Unit,
 ) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-        items(lifts, key = { it.id }) { item ->
-            val working = logged.count { it.exerciseId == item.exercise.id && !it.isWarmup }
-            InstrumentChip(
-                label = if (item.targetSets > 0) {
-                    "${item.exercise.name}  $working/${item.targetSets}"
-                } else {
-                    item.exercise.name
-                },
-                selected = item.exercise.id == selectedExerciseId,
-                onClick = { onSelect(item.exercise.id) },
-                modifier = Modifier.animateItem(),
-                // The glyph only — a body silhouette is unreadable at chip height. TextSecondary
-                // in both states, selected or not: the equipment is metadata you glance at, and
-                // tinting it with the selection would make it compete with the label that
-                // actually says which lift you are on.
-                leading = { EquipmentGlyphIcon(glyphFor(item.exercise.equipment)) },
+    val workingLogged = loggedSets.count { !it.isWarmup }
+    val targetSets = lift.targetSets
+    val setsRequester = remember { BringIntoViewRequester() }
+    var previousSetCount by remember(lift.id) { mutableIntStateOf(-1) }
+    LaunchedEffect(lift.id, loggedSets.size) {
+        val count = loggedSets.size
+        val grew = previousSetCount in 0 until count
+        previousSetCount = count
+        if (grew) {
+            setsRequester.bringIntoView()
+        }
+    }
+    val shape = RoundedCornerShape(Radius.sm)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = Metrics.rowMin)
+            .clip(shape)
+            .background(if (selected) VoltDim else Surface2)
+            .border(
+                if (selected) Metrics.emphasisBorder else Metrics.hairline,
+                if (selected) Volt else Hairline,
+                shape,
+            ),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onSelect)
+                .testTag(WorkoutTestTags.liftCard(lift.exercise.id))
+                .semantics(mergeDescendants = true) {
+                    this.selected = selected
+                }
+                .padding(Metrics.space3),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
+            CartBadge(number = number, selected = selected)
+            ExerciseThumb(
+                exercise = lift.exercise,
+                size = ThumbSize.header,
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    lift.exercise.name,
+                    style = InstrumentType.title,
+                    color = TextPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (lift.exercise.muscleGroup.isNotBlank()) {
+                    Text(
+                        lift.exercise.muscleGroup,
+                        style = InstrumentType.caption,
+                        color = TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            Text(
+                if (targetSets > 0) "$workingLogged/$targetSets" else workingLogged.toString(),
+                style = InstrumentType.numeralSm,
+                color = TextPrimary,
+                maxLines = 1,
             )
         }
-        item(key = "add-lift") {
-            InstrumentChip(label = "+ Add lift", selected = false, onClick = onAdd)
+        if (selected) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = Metrics.space3,
+                        end = Metrics.space3,
+                        bottom = Metrics.space3,
+                    ),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space4),
+            ) {
+                CurrentLiftHeader(
+                    lift = lift,
+                    workingLogged = workingLogged,
+                    unit = unit,
+                    canEdit = canEdit,
+                    onSwap = onSwap,
+                    onRemove = onRemove,
+                    showName = false,
+                    modifier = Modifier.testTag(WorkoutTestTags.CURRENT_LIFT),
+                )
+                lastPerformance?.let { last ->
+                    LastTimeStrip(
+                        summary = last,
+                        unit = unit,
+                        loadClass = LoadClass.of(lift.exercise.loadType),
+                    )
+                }
+                hint?.let { next ->
+                    ProgressionStrip(
+                        hint = next,
+                        unit = unit,
+                        onApply = onApplySuggested,
+                    )
+                }
+                SetEntryPanel(
+                    weightKg = draftWeightKg,
+                    reps = draftReps,
+                    onWeightKgChange = onWeightKgChange,
+                    onRepsAdjust = onRepsAdjust,
+                    unit = unit,
+                    loadClass = LoadClass.of(lift.exercise.loadType),
+                    plated = lift.exercise.equipment == EquipmentType.BARBELL,
+                    modifier = Modifier.testTag(WorkoutTestTags.SET_ENTRY),
+                )
+                SecondaryLogOptions(
+                    warmup = draftWarmup,
+                    rpe = draftRpe,
+                    onWarmup = onWarmup,
+                    onRpe = onRpe,
+                )
+                if (loggedSets.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier.bringIntoViewRequester(setsRequester),
+                        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    ) {
+                        Kicker("Sets")
+                        LoggedSetsPanel(
+                            sets = loggedSets,
+                            latestSetId = latestSetId,
+                            editingSetId = editingSetId,
+                            loadClassOf = { LoadClass.of(lift.exercise.loadType) },
+                            onEdit = onEditSet,
+                            onDelete = onDeleteSet,
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -867,6 +929,7 @@ private fun CurrentLiftHeader(
     onSwap: () -> Unit,
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
+    showName: Boolean = true,
 ) {
     val targetSets = lift.targetSets.coerceAtLeast(1)
     val targetReps = lift.targetReps.coerceAtLeast(1)
@@ -875,53 +938,53 @@ private fun CurrentLiftHeader(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                lift.exercise.name,
-                modifier = Modifier.weight(1f),
-                style = InstrumentType.display,
-                color = TextPrimary,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-            )
-            // Only while nothing has been logged against this lift. Once a set exists, the
-            // lift is part of what happened: removing it would delete real work and swapping
-            // it would silently reattribute those sets to a different exercise.
-            if (canEdit) {
-                Box {
-                    IconButton(onClick = { menuOpen = true }) {
-                        Icon(
-                            Icons.Outlined.MoreVert,
-                            contentDescription = "Lift options",
-                            tint = TextSecondary,
-                        )
-                    }
-                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                        DropdownMenuItem(
-                            text = {
-                                Text("Swap lift…", style = InstrumentType.bodyStrong, color = TextPrimary)
-                            },
-                            onClick = {
-                                menuOpen = false
-                                onSwap()
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Text("Remove lift", style = InstrumentType.bodyStrong, color = Danger)
-                            },
-                            onClick = {
-                                menuOpen = false
-                                onRemove()
-                            },
-                        )
+        if (showName || canEdit) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (showName) {
+                    Text(
+                        lift.exercise.name,
+                        modifier = Modifier.weight(1f),
+                        style = InstrumentType.display,
+                        color = TextPrimary,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                } else {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+                if (canEdit) {
+                    Box {
+                        IconButton(onClick = { menuOpen = true }) {
+                            Icon(
+                                Icons.Outlined.MoreVert,
+                                contentDescription = "Lift options",
+                                tint = TextSecondary,
+                            )
+                        }
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text("Swap lift…", style = InstrumentType.bodyStrong, color = TextPrimary)
+                                },
+                                onClick = {
+                                    menuOpen = false
+                                    onSwap()
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Text("Remove lift", style = InstrumentType.bodyStrong, color = Danger)
+                                },
+                                onClick = {
+                                    menuOpen = false
+                                    onRemove()
+                                },
+                            )
+                        }
                     }
                 }
             }
         }
-        // Progress as a glyph rather than as a second display numeral. "Set 3 of 5" was set
-        // at 28sp, competing with the weight it sits above for the eye's attention while
-        // saying much less.
         SetDots(completed = workingLogged, target = targetSets)
         Text(
             WorkoutCopy.setProgress(

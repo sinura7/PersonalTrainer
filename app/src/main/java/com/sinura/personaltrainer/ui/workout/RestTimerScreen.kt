@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.ui.workout
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,8 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -38,11 +37,10 @@ import com.sinura.personaltrainer.domain.RestFloorContext
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.ui.components.CustomRestDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
-import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.RestControl
-import com.sinura.personaltrainer.ui.components.RestLinearTrack
 import com.sinura.personaltrainer.ui.components.RestPresetChips
+import com.sinura.personaltrainer.ui.components.RestSweepRing
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -57,6 +55,7 @@ import kotlinx.coroutines.delay
 object RestFloorTags {
     const val ROOT = "rest-floor"
     const val CLOCK = "rest-floor-clock"
+    const val RING = "rest-floor-ring"
     const val SKIP = "rest-floor-skip"
     const val MINUS = "rest-floor-minus"
     const val PLUS = "rest-floor-plus"
@@ -194,14 +193,22 @@ private fun RestFloorBody(
             .padding(horizontal = Metrics.gutter, vertical = Metrics.space4),
         verticalArrangement = Arrangement.spacedBy(Metrics.space4),
     ) {
-        Kicker(kicker, color = accent)
-        RestFloorClock(clock = clock, running = rest.running || justFinished)
-        RestLinearTrack(
-            remainingSeconds = if (justFinished) 0 else if (rest.running) safeRemaining else rest.totalSeconds,
-            totalSeconds = rest.totalSeconds,
-            accent = accent,
-            finished = justFinished,
-        )
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            RestSweepRing(
+                remainingSeconds = if (justFinished) 0 else if (rest.running) safeRemaining else rest.totalSeconds,
+                totalSeconds = rest.totalSeconds,
+                accent = accent,
+                clock = clock,
+                kicker = kicker,
+                running = rest.running || justFinished,
+                finished = justFinished,
+                modifier = Modifier.testTag(RestFloorTags.RING),
+                clockTestTag = RestFloorTags.CLOCK,
+            )
+        }
         floor.exerciseName?.let { name ->
             Text(
                 name,
@@ -277,31 +284,6 @@ private fun RestFloorBody(
             }
         }
     }
-}
-
-/**
- * A clock TalkBack can read on demand. It must not announce every tick.
- */
-@Composable
-private fun RestFloorClock(
-    clock: String,
-    running: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val description = if (running) "Rest $clock remaining" else "Next rest $clock"
-    Text(
-        clock,
-        style = InstrumentType.numeralHero,
-        color = TextPrimary,
-        maxLines = 1,
-        softWrap = false,
-        overflow = TextOverflow.Clip,
-        modifier = modifier
-            .testTag(RestFloorTags.CLOCK)
-            .clearAndSetSemantics {
-                contentDescription = description
-            },
-    )
 }
 
 @Composable
