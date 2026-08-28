@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
@@ -45,7 +47,6 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.Warn
 
-private val BAR_HEIGHT = 56.dp
 private val RAIL_WIDTH = 3.dp
 private val RAIL_HEIGHT = 24.dp
 
@@ -88,9 +89,7 @@ fun LiveSessionBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(BAR_HEIGHT)
-                .testTag(LiveSessionBarTestTags.ROOT)
-                .clickable(onClickLabel = LiveBarCopy.resumeLabel(state.kind), onClick = onResume)
+                .heightIn(min = Metrics.rowMin)
                 .padding(horizontal = Metrics.gutter),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
@@ -104,7 +103,13 @@ fun LiveSessionBar(
                     .clip(RoundedCornerShape(RAIL_WIDTH))
                     .background(if (state.stale) Warn else Volt),
             )
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(onClickLabel = LiveBarCopy.resumeLabel(state.kind), onClick = onResume)
+                    .testTag(LiveSessionBarTestTags.ROOT),
+                verticalArrangement = Arrangement.Center,
+            ) {
                 if (state.stale) {
                     Kicker("Left open · ${state.staleHours}h", color = Warn)
                 } else {
@@ -115,18 +120,23 @@ fun LiveSessionBar(
                     style = InstrumentType.bodyStrong,
                     color = TextPrimary,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             Text(
                 state.elapsedLabel,
                 style = InstrumentType.numeralSm,
                 color = TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
             if (state.restRunning) {
                 Text(
                     RestTimer.formatClock(state.restRemainingSeconds),
                     style = InstrumentType.numeralSm,
                     color = RestCyan,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             if (LiveBarCopy.showsSets(state.kind)) {

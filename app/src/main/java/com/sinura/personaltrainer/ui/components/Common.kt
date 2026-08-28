@@ -27,7 +27,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -66,6 +68,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -189,14 +192,30 @@ fun ConfirmActionDialog(
     confirmLabel: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
-    dismissLabel: String = "Cancel",
+    dismissLabel: String? = "Cancel",
     destructive: Boolean = false,
 ) {
     val view = LocalView.current
+    val dismiss = dismissLabel
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title, style = InstrumentType.title) },
-        text = { Text(body, style = InstrumentType.body, color = TextSecondary) },
+        title = {
+            Text(
+                title,
+                style = InstrumentType.title,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .heightIn(max = 360.dp)
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                Text(body, style = InstrumentType.body, color = TextSecondary)
+            }
+        },
         confirmButton = {
             TextButton(
                 onClick = {
@@ -208,12 +227,24 @@ fun ConfirmActionDialog(
                     confirmLabel,
                     style = InstrumentType.bodyStrong,
                     color = if (destructive) Danger else Volt,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(dismissLabel, style = InstrumentType.bodyStrong, color = TextSecondary)
+        dismissButton = if (dismiss == null) {
+            null
+        } else {
+            {
+                TextButton(onClick = onDismiss) {
+                    Text(
+                        dismiss,
+                        style = InstrumentType.bodyStrong,
+                        color = TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         },
     )
@@ -233,7 +264,7 @@ fun ConfirmActionDialog(
  * that, and the two values a lifter is deciding between sit in one glance.
  *
  * Nudge with the plates, or tap the number to type when the nudge is too far. The numeral
- * is the field — a hint and an underline sit under it so typing is not a hidden gesture.
+ * is the field — an underline marks it as tappable so typing is not a hidden gesture.
  *
  * **How many wells appear depends on the lift.** A push-up has no weight to enter, so it gets
  * one well and reps fill the panel: a labelled empty weight box is an invitation to put a
@@ -327,7 +358,6 @@ fun WeightStepper(
         incrementLabel = "+${unit.stepLabel}",
         onDecrement = { onWeightKgChange(WeightConverter.incrementKg(valueKg, unit, -1)) },
         onIncrement = { onWeightKgChange(WeightConverter.incrementKg(valueKg, unit, 1)) },
-        typeHint = "Tap the number to type",
         plateCaption = plates,
         modifier = modifier,
     )
@@ -370,7 +400,6 @@ fun RepsStepper(
         incrementLabel = "+1",
         onDecrement = { onAdjust(-1) },
         onIncrement = { onAdjust(1) },
-        typeHint = "Tap the number to type",
         modifier = modifier,
     )
 
@@ -446,6 +475,7 @@ private fun NumeralWell(
                 style = InstrumentType.numeralLg,
                 color = TextPrimary,
                 maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
             if (unit != null) {
                 Text(
@@ -476,6 +506,8 @@ private fun NumeralWell(
                 style = InstrumentType.caption,
                 color = TextSecondary,
                 textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -996,6 +1028,7 @@ fun InstrumentChip(
                 // Volt ink on the dim fill: Pit ink was only legible against a solid accent.
                 color = if (selected) Volt else TextSecondary,
                 maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
@@ -1098,6 +1131,7 @@ fun PrimaryGymButton(
             style = InstrumentType.title,
             color = if (enabled) Pit else TextSecondary,
             maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
         )
     }
@@ -1133,6 +1167,7 @@ fun SecondaryGymButton(
             style = InstrumentType.title,
             color = if (enabled) contentColor else TextSecondary,
             maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
         )
     }

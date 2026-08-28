@@ -14,6 +14,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 28 Aug 2026 — Cross-tab layout fit. Instrument stays. Overflow,
+> hit-target splits, Volt outside grouped windows, Why in a dialog
+> so the log dock does not grow. Not a restyle, not DIRECTION_A.
+>
 > 28 Aug 2026 — In-set next load is a compact `Next:` line above Log.
 > Use fills the draft only. Why is a local `RuleTrace`. The rest floor
 > shows the same line with no Use. ProgressionStrip stays session-grain.

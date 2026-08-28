@@ -1,6 +1,8 @@
 package com.sinura.personaltrainer.ui.home
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -111,7 +113,13 @@ fun ThisWeekCard(
             )
         }
         if (hasPlan && reason != null) {
-            Text(reason, style = InstrumentType.caption, color = TextTertiary)
+            Text(
+                reason,
+                style = InstrumentType.caption,
+                color = TextTertiary,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
         if (!hasPlan) {
             if (!setupComplete) {
@@ -129,17 +137,26 @@ fun ThisWeekCard(
                             .testTag(HomeTags.GENERATE)
                             .semantics { contentDescription = GetStartedCopy.GENERATE },
                     )
-                    TextButton(onClick = onBuildWeek) {
+                    TextButton(
+                        onClick = onBuildWeek,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = Metrics.touchMin),
+                    ) {
                         Text(
                             GetStartedCopy.BUILD,
                             style = InstrumentType.bodyStrong,
                             color = TextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                     if (!sessionLive) {
                         TextButton(
                             onClick = onStartFree,
                             modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = Metrics.touchMin)
                                 .testTag(HomeTags.FREE)
                                 .semantics { contentDescription = GetStartedCopy.WORKOUT },
                         ) {
@@ -147,6 +164,8 @@ fun ThisWeekCard(
                                 GetStartedCopy.WORKOUT,
                                 style = InstrumentType.bodyStrong,
                                 color = TextSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                     }
@@ -165,8 +184,19 @@ fun ThisWeekCard(
                         .testTag(HomeTags.REPLAY)
                         .semantics { contentDescription = WeekTwoCopy.VOLT },
                 )
-                TextButton(onClick = onSuggestWeek) {
-                    Text("Suggest a week", style = InstrumentType.bodyStrong, color = TextSecondary)
+                TextButton(
+                    onClick = onSuggestWeek,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = Metrics.touchMin),
+                ) {
+                    Text(
+                        "Suggest a week",
+                        style = InstrumentType.bodyStrong,
+                        color = TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             } else {
                 Text(
@@ -184,10 +214,18 @@ fun ThisWeekCard(
                 TextButton(
                     onClick = onStartFree,
                     modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = Metrics.touchMin)
                         .testTag(HomeTags.FREE)
                         .semantics { contentDescription = SessionOrderCopy.FREE_WORKOUT },
                 ) {
-                    Text(SessionOrderCopy.FREE_WORKOUT, style = InstrumentType.bodyStrong, color = TextSecondary)
+                    Text(
+                        SessionOrderCopy.FREE_WORKOUT,
+                        style = InstrumentType.bodyStrong,
+                        color = TextSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         } else if (!sessionLive && trainingToday != null && !loggedToday) {
@@ -203,11 +241,19 @@ fun ThisWeekCard(
             TextButton(
                 onClick = onStartFree,
                 modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = Metrics.touchMin)
                     .testTag(HomeTags.FREE)
                     .semantics { contentDescription = SessionOrderCopy.FREE_WORKOUT },
                 contentPadding = PaddingValues(0.dp),
             ) {
-                Text(SessionOrderCopy.FREE_WORKOUT, style = InstrumentType.bodyStrong, color = TextSecondary)
+                Text(
+                    SessionOrderCopy.FREE_WORKOUT,
+                    style = InstrumentType.bodyStrong,
+                    color = TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         } else if (!sessionLive) {
             // Rest day, or already trained: the plan Volt would lie. Free logging is still
@@ -215,12 +261,20 @@ fun ThisWeekCard(
             TextButton(
                 onClick = onStartFree,
                 modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = Metrics.touchMin)
                     .padding(top = Metrics.space1)
                     .testTag(HomeTags.FREE)
                     .semantics { contentDescription = SessionOrderCopy.FREE_WORKOUT },
                 contentPadding = PaddingValues(0.dp),
             ) {
-                Text(SessionOrderCopy.FREE_WORKOUT, style = InstrumentType.bodyStrong, color = TextSecondary)
+                Text(
+                    SessionOrderCopy.FREE_WORKOUT,
+                    style = InstrumentType.bodyStrong,
+                    color = TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }

@@ -1,18 +1,19 @@
 package com.sinura.personaltrainer.ui.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -24,10 +25,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.GoalCopy
@@ -364,11 +365,15 @@ private fun GoalSnapshotCard(
             goal.exerciseName?.takeIf { it.isNotBlank() } ?: goal.kind.label,
             style = InstrumentType.title,
             color = TextPrimary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
         Text(
             GoalCopy.progressLine(snapshot, unit),
             style = InstrumentType.body,
             color = if (snapshot.met) TextPrimary else TextSecondary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -380,17 +385,30 @@ internal fun LinkRow(
     modifier: Modifier = Modifier,
     trailing: String? = null,
 ) {
-    TextButton(
-        onClick = onClick,
-        modifier = modifier.semantics { contentDescription = label },
-        contentPadding = PaddingValues(0.dp),
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = Metrics.touchMin)
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = label },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        Text("$label  \u203a", style = InstrumentType.bodyStrong, color = TextSecondary)
+        Text(
+            "$label  \u203a",
+            modifier = Modifier.weight(1f),
+            style = InstrumentType.bodyStrong,
+            color = TextSecondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
         if (trailing != null) {
             Text(
-                "  ·  $trailing",
+                trailing,
                 style = InstrumentType.caption,
                 color = TextTertiary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

@@ -165,17 +165,20 @@ fun TrainingCalendarCard(
                 MetricCluster(
                     value = month.trainedDays.toString(),
                     label = "days",
+                    modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.Start,
                 )
                 MetricCluster(
                     value = month.workingSets.toString(),
                     label = "sets",
+                    modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.Start,
                 )
                 val column = SetCopy.workColumn(month.work, unit)
                 MetricCluster(
                     value = column.value,
                     label = column.label,
+                    modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.Start,
                 )
             }

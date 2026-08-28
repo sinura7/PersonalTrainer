@@ -108,16 +108,27 @@ private fun BlockLine(
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Kicker(
                 if (complete) "Block complete" else "Week $week of ${block.weeks}",
+                modifier = Modifier.weight(1f),
                 color = TextSecondary,
             )
             if (complete) {
-                TextButton(onClick = onStartNext, contentPadding = PaddingValues(0.dp)) {
-                    Text("Start the next twelve", style = InstrumentType.bodyStrong, color = Volt)
+                TextButton(
+                    onClick = onStartNext,
+                    modifier = Modifier.heightIn(min = Metrics.touchMin),
+                    contentPadding = PaddingValues(horizontal = Metrics.space2, vertical = 0.dp),
+                ) {
+                    Text(
+                        "Start the next twelve",
+                        style = InstrumentType.bodyStrong,
+                        color = Volt,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }
@@ -174,22 +185,26 @@ private fun BlockReviewPanel(review: BlockReview) {
             MetricCluster(
                 value = review.daysTrained.toString(),
                 label = "days",
+                modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.Start,
             )
             MetricCluster(
                 value = review.workingSets.toString(),
                 label = "sets",
+                modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.Start,
             )
             val column = SetCopy.workColumn(review.work, unit)
             MetricCluster(
                 value = column.value,
                 label = column.label,
+                modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.Start,
             )
             MetricCluster(
                 value = review.recordsBroken.toString(),
                 label = "PRs",
+                modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.Start,
             )
         }
@@ -629,6 +644,7 @@ private fun PlanHeaderActions(
     TextButton(
         onClick = onToggleTune,
         modifier = Modifier
+            .heightIn(min = Metrics.touchMin)
             .testTag(PlanTags.TUNE)
             .semantics {
                 contentDescription = if (tuning) "Done tuning week" else PlanTags.TUNE_SPOKEN
@@ -638,19 +654,37 @@ private fun PlanHeaderActions(
             if (tuning) "Done" else "Tune",
             style = InstrumentType.bodyStrong,
             color = TextSecondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
     TextButton(
         onClick = onOpenLibrary,
         modifier = Modifier
+            .heightIn(min = Metrics.touchMin)
             .testTag(PlanTags.LIBRARY)
             .semantics { contentDescription = PlanTags.LIBRARY_SPOKEN },
     ) {
-        Text("Library", style = InstrumentType.bodyStrong, color = TextSecondary)
+        Text(
+            "Library",
+            style = InstrumentType.bodyStrong,
+            color = TextSecondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
     if (canCreate) {
-        TextButton(onClick = onCreate) {
-            Text("New", style = InstrumentType.bodyStrong, color = TextSecondary)
+        TextButton(
+            onClick = onCreate,
+            modifier = Modifier.heightIn(min = Metrics.touchMin),
+        ) {
+            Text(
+                "New",
+                style = InstrumentType.bodyStrong,
+                color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
