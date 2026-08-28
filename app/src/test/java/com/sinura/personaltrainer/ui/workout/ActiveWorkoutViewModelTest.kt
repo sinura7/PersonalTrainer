@@ -367,8 +367,11 @@ class ActiveWorkoutViewModelTest {
         val vm = createViewModel(fixture.session.id)
         vm.awaitState { it.loadState == SessionLoadState.FOUND && it.selectedExerciseId == SQUAT }
         vm.setWeight(100.0)
+        vm.awaitState { it.draft.weightKg == 100.0 }
         vm.logSet()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.awaitState { it.session?.sets?.size == 1 }
         vm.requestExtraSet()
         assertTrue(vm.extraSetRequested.value)
 
