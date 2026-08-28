@@ -20,6 +20,7 @@ enum class EquipmentType {
     KETTLEBELL,
     BAND,
     BODYWEIGHT,
+    HYPER_PRO,
     OTHER,
     ;
 
@@ -40,6 +41,7 @@ enum class EquipmentType {
             KETTLEBELL -> "Kettlebell"
             BAND -> "Band"
             BODYWEIGHT -> "Bodyweight"
+            HYPER_PRO -> "Hyper Pro"
             OTHER -> "Other"
         }
 

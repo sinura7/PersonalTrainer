@@ -33,7 +33,7 @@ esac
 
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
-mkdir -p "$WORK/stub/android/util" "$WORK/main" "$WORK/gen"
+mkdir -p "$WORK/stub/android/util" "$WORK/stub/android/os" "$WORK/main" "$WORK/gen"
 
 cat > "$WORK/stub/android/util/Log.kt" <<'STUB'
 package android.util
@@ -45,6 +45,16 @@ object Log {
 
     @JvmStatic
     fun getStackTraceString(error: Throwable?): String = error?.toString().orEmpty()
+}
+STUB
+
+cat > "$WORK/stub/android/os/SystemClock.kt" <<'STUB'
+package android.os
+
+object SystemClock {
+    @JvmStatic
+    fun elapsedRealtime(): Long =
+        throw UnsupportedOperationException("android.os.SystemClock is not available on the JVM")
 }
 STUB
 

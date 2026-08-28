@@ -6,7 +6,7 @@ package com.sinura.personaltrainer.domain
  * The catalog got one of these in Phase 3 and it was the only reason 98 rows of authored
  * judgment could be reviewed at all. This is the same bet on a harder problem: which lifts go
  * in a session, in what order, at what sets and reps is a training opinion, and an opinion
- * nobody can see is an opinion nobody can disagree with. There are 252 reachable combinations;
+ * nobody can see is an opinion nobody can disagree with. There are 420 reachable combinations;
  * reading them on a phone one screen at a time is not review.
  *
  * Golden-file tested against the committed artifact, so the document and the generator cannot
@@ -31,7 +31,7 @@ object PlanReviewRenderer {
                 "`AddDefaults` (load type and role). A hand-added lift still uses `AddDefaults` alone.",
         )
         out.appendLine("Lift order is compounds first — the lift that asks most of you should meet you fresh.")
-        out.appendLine("Strength weeks drop isolation slots; muscle weeks keep them; athletic weeks bias hinge, lunge, and carry.")
+        out.appendLine("Strength weeks drop isolation slots; muscle weeks keep them; athletic weeks bias hinge, lunge, and carry; resilience weeks open with nordic, reverse hyper, and reverse nordic.")
         out.appendLine()
         out.appendLine("**To change a judgment call** — which families make a session, or their order — edit")
         out.appendLine("`RoutineGenerator` templates, re-render, and review the diff here.")
@@ -72,7 +72,7 @@ object PlanReviewRenderer {
 
     /**
      * Balanced already appears above. These two rows exist so a reviewer can see that
-     * emphasis actually changes the week, without tripling the 252-program matrix.
+     * emphasis actually changes the week, without tripling the 420-program matrix.
      */
     private fun appendEmphasis(out: StringBuilder, catalog: List<Exercise>) {
         out.appendLine("## Emphasis")

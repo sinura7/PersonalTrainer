@@ -484,7 +484,7 @@ private fun CoachingSection(
     }
     SettingsGroup(
         title = "Coaching",
-        caption = "Emphasis changes which days Suggest fills. Athletic changes the lifts in " +
+        caption = "Emphasis changes which days Suggest fills. Athletic and Resilience change the lifts in " +
             "the next week you generate. Neither rewrites days you already pinned. The " +
             "coach's cards stay the same set; strength and muscle only reorder them. " +
             "Turning equipment off stops the coach naming lifts you cannot do.",
@@ -571,7 +571,7 @@ private fun CoachingSection(
             ) {
                 EquipmentType.entries.forEach { equipment ->
                     InstrumentChip(
-                        label = equipment.name.lowercase().replaceFirstChar { it.titlecase() },
+                        label = equipment.label,
                         selected = preferences.allows(equipment),
                         onClick = { onToggleEquipment(equipment) },
                     )

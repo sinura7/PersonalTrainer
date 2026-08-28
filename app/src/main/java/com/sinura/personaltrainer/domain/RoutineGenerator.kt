@@ -50,15 +50,38 @@ object RoutineGenerator {
      * so the second pass over `push-up` yields the diamond push-up rather than nothing. That
      * is also what a bodyweight program genuinely looks like: variants of the same pattern,
      * because the pattern is what you have.
+     *
+     * [SPECIALTY_FILL] is appended to every pool so a Hyper-Pro-only week can still reach
+     * six lifts: the bench has a push-up, a row, nordics, and a lot of posterior-chain
+     * work, but it does not have pulldown / dip / carry / plank families.
      */
+    private val SPECIALTY_FILL: List<String> = listOf(
+        "push-up", "row", "curl", "rear-delt", "pullover", "shrug",
+        "sit-up", "twist", "nordic-curl", "reverse-hyper", "glute-ham-raise",
+        "reverse-nordic", "ql-raise", "back-extension", "hip-thrust",
+        "leg-curl", "squat", "lunge", "leg-raise", "leg-extension", "calf-raise",
+    )
+
+    private fun pool(vararg families: String): List<String> =
+        (families.toList() + SPECIALTY_FILL).distinct()
+
     private val FALLBACKS: Map<SessionFocusKind, List<String>> = mapOf(
-        SessionFocusKind.PUSH to listOf("push-up", "dip", "chest-fly", "lateral-raise", "triceps-extension", "plank"),
-        SessionFocusKind.PULL to listOf("pull-up", "row", "pulldown", "curl", "rear-delt", "shrug", "carry"),
-        SessionFocusKind.LEGS to listOf("squat", "lunge", "leg-press", "calf-raise", "hip-thrust", "back-extension", "leg-raise"),
-        SessionFocusKind.UPPER to listOf("push-up", "pull-up", "row", "dip", "curl", "triceps-extension", "lateral-raise", "plank"),
-        SessionFocusKind.LOWER to listOf("squat", "lunge", "calf-raise", "back-extension", "nordic-curl", "leg-raise", "plank"),
-        SessionFocusKind.FULL_BODY to listOf("squat", "push-up", "row", "pull-up", "plank", "calf-raise", "back-extension", "leg-raise"),
-        SessionFocusKind.RECOVERY to listOf("plank", "dead-bug", "carry"),
+        SessionFocusKind.PUSH to pool("push-up", "dip", "chest-fly", "lateral-raise", "triceps-extension", "plank"),
+        SessionFocusKind.PULL to pool("pull-up", "row", "pulldown", "curl", "rear-delt", "shrug", "carry"),
+        SessionFocusKind.LEGS to pool(
+            "squat", "lunge", "leg-press", "calf-raise", "hip-thrust", "back-extension",
+            "leg-raise", "nordic-curl", "glute-ham-raise", "reverse-hyper", "reverse-nordic",
+        ),
+        SessionFocusKind.UPPER to pool("push-up", "pull-up", "row", "dip", "curl", "triceps-extension", "lateral-raise", "plank"),
+        SessionFocusKind.LOWER to pool(
+            "squat", "lunge", "calf-raise", "back-extension", "nordic-curl", "leg-raise",
+            "plank", "glute-ham-raise", "reverse-hyper", "reverse-nordic", "ql-raise",
+        ),
+        SessionFocusKind.FULL_BODY to pool(
+            "squat", "push-up", "row", "pull-up", "plank", "calf-raise", "back-extension",
+            "leg-raise", "nordic-curl", "reverse-hyper",
+        ),
+        SessionFocusKind.RECOVERY to pool("plank", "dead-bug", "carry", "ql-raise", "sit-up"),
     )
 
     /**
@@ -86,8 +109,8 @@ object RoutineGenerator {
             slot("pullover", "curl"),
         ),
         SessionFocusKind.LEGS to listOf(
-            slot("squat", "leg-press", "lunge"),
-            slot("romanian-deadlift", "leg-curl", "good-morning", "nordic-curl"),
+            slot("squat", "leg-press", "lunge", "reverse-nordic"),
+            slot("romanian-deadlift", "leg-curl", "good-morning", "nordic-curl", "glute-ham-raise", "reverse-hyper"),
             slot("leg-press", "lunge", "step-up", "squat"),
             slot("leg-curl", "nordic-curl", "back-extension"),
             slot("calf-raise"),
@@ -102,26 +125,26 @@ object RoutineGenerator {
             slot("triceps-extension", "dip", "push-up"),
         ),
         SessionFocusKind.LOWER to listOf(
-            slot("squat", "leg-press", "lunge"),
-            slot("romanian-deadlift", "leg-curl", "good-morning", "nordic-curl"),
+            slot("squat", "leg-press", "lunge", "reverse-nordic"),
+            slot("romanian-deadlift", "leg-curl", "good-morning", "nordic-curl", "glute-ham-raise", "reverse-hyper"),
             slot("lunge", "leg-press", "step-up", "squat"),
             slot("leg-curl", "nordic-curl", "back-extension"),
             slot("calf-raise"),
             slot("plank", "dead-bug", "leg-raise"),
         ),
         SessionFocusKind.FULL_BODY to listOf(
-            slot("squat", "leg-press", "lunge"),
+            slot("squat", "leg-press", "lunge", "reverse-nordic"),
             slot("bench-press", "push-up", "dip"),
             slot("row", "pull-up", "pulldown"),
             slot("overhead-press", "lateral-raise"),
-            slot("romanian-deadlift", "leg-curl", "nordic-curl", "back-extension"),
+            slot("romanian-deadlift", "leg-curl", "nordic-curl", "back-extension", "glute-ham-raise", "reverse-hyper"),
             slot("plank", "dead-bug", "crunch"),
         ),
         // Never generated as a training day — a recovery slot is a rest day with a name. Kept
         // so the map is total over the enum and a future caller cannot fall off it.
         SessionFocusKind.RECOVERY to listOf(
             slot("plank", "dead-bug"),
-            slot("back-extension", "hip-thrust"),
+            slot("back-extension", "hip-thrust", "reverse-hyper", "ql-raise"),
             slot("carry", "calf-raise"),
         ),
     )
@@ -149,11 +172,11 @@ object RoutineGenerator {
             slot("pullover", "plank", "row"),
         ),
         SessionFocusKind.LEGS to listOf(
-            slot("squat", "leg-press", "lunge"),
-            slot("romanian-deadlift", "deadlift", "good-morning", "nordic-curl"),
+            slot("squat", "leg-press", "lunge", "reverse-nordic"),
+            slot("romanian-deadlift", "deadlift", "good-morning", "nordic-curl", "glute-ham-raise", "reverse-hyper"),
             slot("leg-press", "lunge", "step-up", "squat"),
             slot("lunge", "step-up", "leg-press"),
-            slot("back-extension", "hip-thrust", "nordic-curl"),
+            slot("back-extension", "hip-thrust", "nordic-curl", "reverse-hyper", "ql-raise"),
             slot("calf-raise"),
         ),
         SessionFocusKind.UPPER to listOf(
@@ -165,24 +188,24 @@ object RoutineGenerator {
             slot("carry", "shrug", "row"),
         ),
         SessionFocusKind.LOWER to listOf(
-            slot("squat", "leg-press", "lunge"),
-            slot("romanian-deadlift", "deadlift", "good-morning", "nordic-curl"),
+            slot("squat", "leg-press", "lunge", "reverse-nordic"),
+            slot("romanian-deadlift", "deadlift", "good-morning", "nordic-curl", "glute-ham-raise", "reverse-hyper"),
             slot("lunge", "leg-press", "step-up", "squat"),
             slot("leg-press", "step-up", "lunge"),
-            slot("back-extension", "hip-thrust", "nordic-curl"),
+            slot("back-extension", "hip-thrust", "nordic-curl", "reverse-hyper", "ql-raise"),
             slot("calf-raise"),
         ),
         SessionFocusKind.FULL_BODY to listOf(
-            slot("squat", "leg-press", "lunge"),
+            slot("squat", "leg-press", "lunge", "reverse-nordic"),
             slot("bench-press", "push-up", "dip"),
             slot("row", "pull-up", "pulldown"),
-            slot("romanian-deadlift", "deadlift", "nordic-curl"),
+            slot("romanian-deadlift", "deadlift", "nordic-curl", "glute-ham-raise", "reverse-hyper"),
             slot("overhead-press", "dip", "push-up"),
             slot("carry", "plank", "dead-bug"),
         ),
         SessionFocusKind.RECOVERY to listOf(
             slot("plank", "dead-bug"),
-            slot("back-extension", "hip-thrust"),
+            slot("back-extension", "hip-thrust", "reverse-hyper", "ql-raise"),
             slot("carry", "calf-raise"),
         ),
     )
@@ -197,24 +220,28 @@ object RoutineGenerator {
     )
 
     private val STRENGTH_FALLBACKS: Map<SessionFocusKind, List<String>> = mapOf(
-        SessionFocusKind.PUSH to listOf("push-up", "dip", "bench-press", "overhead-press", "carry", "plank"),
-        SessionFocusKind.PULL to listOf("pull-up", "row", "pulldown", "shrug", "carry", "plank"),
-        SessionFocusKind.LEGS to listOf(
+        SessionFocusKind.PUSH to pool(
+            "push-up", "dip", "bench-press", "overhead-press", "carry", "plank",
+        ),
+        SessionFocusKind.PULL to pool(
+            "pull-up", "row", "pulldown", "shrug", "carry", "plank",
+        ),
+        SessionFocusKind.LEGS to pool(
             "squat", "lunge", "leg-press", "romanian-deadlift", "step-up",
             "back-extension", "calf-raise", "nordic-curl", "plank",
         ),
-        SessionFocusKind.UPPER to listOf(
+        SessionFocusKind.UPPER to pool(
             "push-up", "pull-up", "row", "dip", "overhead-press", "carry", "shrug", "plank",
         ),
-        SessionFocusKind.LOWER to listOf(
+        SessionFocusKind.LOWER to pool(
             "squat", "lunge", "leg-press", "romanian-deadlift", "step-up",
             "back-extension", "calf-raise", "nordic-curl", "plank",
         ),
-        SessionFocusKind.FULL_BODY to listOf(
+        SessionFocusKind.FULL_BODY to pool(
             "squat", "push-up", "row", "pull-up", "lunge", "overhead-press",
             "carry", "dip", "plank", "back-extension",
         ),
-        SessionFocusKind.RECOVERY to listOf("plank", "dead-bug", "carry"),
+        SessionFocusKind.RECOVERY to pool("plank", "dead-bug", "carry"),
     )
 
     /**
@@ -233,6 +260,68 @@ object RoutineGenerator {
         slot("chest-fly", "push-up"),
         slot("carry", "plank", "dead-bug"),
     )
+
+    /**
+     * Resilience week: nordic, reverse hyper, reverse nordic, GHR first.
+     *
+     * Tendon and hip-flexor work wants the lengthened hamstring and quad patterns the Hyper
+     * Pro exists for, not a hypertrophy accessory stack. Gym-only still fills from nordic-curl
+     * and back-extension; Hyper Pro fills the rest.
+     */
+    private val RESILIENCE_TEMPLATES: Map<SessionFocusKind, List<Slot>> = TEMPLATES + mapOf(
+        SessionFocusKind.LEGS to listOf(
+            slot("nordic-curl", "glute-ham-raise", "reverse-hyper", "back-extension"),
+            slot("reverse-nordic", "squat", "lunge", "leg-extension"),
+            slot("reverse-hyper", "glute-ham-raise", "hip-thrust"),
+            slot("leg-curl", "nordic-curl", "romanian-deadlift"),
+            slot("ql-raise", "back-extension", "sit-up"),
+            slot("calf-raise", "leg-raise"),
+        ),
+        SessionFocusKind.LOWER to listOf(
+            slot("nordic-curl", "glute-ham-raise", "reverse-hyper", "back-extension"),
+            slot("reverse-nordic", "squat", "lunge"),
+            slot("reverse-hyper", "hip-thrust", "glute-ham-raise"),
+            slot("ql-raise", "back-extension", "sit-up"),
+            slot("leg-curl", "nordic-curl"),
+            slot("leg-raise", "sit-up", "plank"),
+        ),
+        SessionFocusKind.FULL_BODY to listOf(
+            slot("nordic-curl", "glute-ham-raise", "reverse-hyper"),
+            slot("push-up", "bench-press", "dip"),
+            slot("row", "pull-up", "pulldown"),
+            slot("reverse-nordic", "squat", "lunge"),
+            slot("ql-raise", "back-extension", "sit-up"),
+            slot("plank", "leg-raise"),
+        ),
+        SessionFocusKind.RECOVERY to listOf(
+            slot("ql-raise", "back-extension", "reverse-hyper"),
+            slot("reverse-nordic", "lunge"),
+            slot("sit-up", "leg-raise", "plank"),
+        ),
+    )
+
+    private val RESILIENCE_FULL_BODY_B: List<Slot> = listOf(
+        slot("reverse-hyper", "back-extension", "glute-ham-raise", "nordic-curl"),
+        slot("overhead-press", "dip", "push-up"),
+        slot("row", "pull-up", "pulldown"),
+        slot("reverse-nordic", "lunge", "squat"),
+        slot("sit-up", "leg-raise", "ql-raise"),
+        slot("plank", "dead-bug"),
+    )
+
+    private val RESILIENCE_FALLBACKS: Map<SessionFocusKind, List<String>> =
+        FALLBACKS.mapValues { (kind, list) ->
+            val extra = when (kind) {
+                SessionFocusKind.LEGS, SessionFocusKind.LOWER, SessionFocusKind.FULL_BODY,
+                SessionFocusKind.RECOVERY,
+                -> listOf(
+                    "nordic-curl", "reverse-hyper", "glute-ham-raise", "reverse-nordic",
+                    "ql-raise", "sit-up",
+                )
+                else -> emptyList()
+            }
+            (extra + list).distinct()
+        }
 
     /**
      * Athletic week: same session kinds, different families.
@@ -258,8 +347,8 @@ object RoutineGenerator {
             slot("carry", "shrug"),
         ),
         SessionFocusKind.LEGS to listOf(
-            slot("squat", "leg-press", "lunge"),
-            slot("romanian-deadlift", "deadlift", "kettlebell-swing", "nordic-curl"),
+            slot("squat", "leg-press", "lunge", "reverse-nordic"),
+            slot("romanian-deadlift", "deadlift", "kettlebell-swing", "nordic-curl", "glute-ham-raise", "reverse-hyper"),
             slot("lunge", "step-up", "leg-press", "squat"),
             slot("step-up", "lunge", "kettlebell-swing"),
             slot("kettlebell-swing", "back-extension", "nordic-curl"),
@@ -274,15 +363,15 @@ object RoutineGenerator {
             slot("dip", "push-up"),
         ),
         SessionFocusKind.LOWER to listOf(
-            slot("squat", "leg-press", "lunge"),
-            slot("romanian-deadlift", "deadlift", "kettlebell-swing", "nordic-curl"),
+            slot("squat", "leg-press", "lunge", "reverse-nordic"),
+            slot("romanian-deadlift", "deadlift", "kettlebell-swing", "nordic-curl", "glute-ham-raise", "reverse-hyper"),
             slot("lunge", "step-up", "leg-press", "squat"),
             slot("step-up", "lunge", "kettlebell-swing"),
             slot("kettlebell-swing", "back-extension", "nordic-curl"),
             slot("carry", "plank", "dead-bug"),
         ),
         SessionFocusKind.FULL_BODY to listOf(
-            slot("squat", "leg-press", "lunge"),
+            slot("squat", "leg-press", "lunge", "reverse-nordic"),
             slot("bench-press", "push-up", "dip"),
             slot("pull-up", "row", "pulldown"),
             slot("kettlebell-swing", "romanian-deadlift", "deadlift"),
@@ -291,7 +380,7 @@ object RoutineGenerator {
         ),
         SessionFocusKind.RECOVERY to listOf(
             slot("carry", "plank", "dead-bug"),
-            slot("back-extension", "hip-thrust"),
+            slot("back-extension", "hip-thrust", "reverse-hyper", "ql-raise"),
             slot("kettlebell-swing", "calf-raise"),
         ),
     )
@@ -306,30 +395,30 @@ object RoutineGenerator {
     )
 
     private val ATHLETIC_FALLBACKS: Map<SessionFocusKind, List<String>> = mapOf(
-        SessionFocusKind.PUSH to listOf("push-up", "dip", "bench-press", "overhead-press", "carry", "plank"),
-        SessionFocusKind.PULL to listOf("pull-up", "row", "pulldown", "carry", "shrug", "plank"),
-        SessionFocusKind.LEGS to listOf(
+        SessionFocusKind.PUSH to pool("push-up", "dip", "bench-press", "overhead-press", "carry", "plank"),
+        SessionFocusKind.PULL to pool("pull-up", "row", "pulldown", "carry", "shrug", "plank"),
+        SessionFocusKind.LEGS to pool(
             "squat", "lunge", "step-up", "kettlebell-swing", "nordic-curl",
             "back-extension", "carry", "calf-raise", "leg-raise", "plank",
         ),
-        SessionFocusKind.UPPER to listOf(
+        SessionFocusKind.UPPER to pool(
             "push-up", "pull-up", "row", "dip", "carry", "overhead-press", "plank",
         ),
-        SessionFocusKind.LOWER to listOf(
+        SessionFocusKind.LOWER to pool(
             "squat", "lunge", "step-up", "kettlebell-swing", "nordic-curl",
             "back-extension", "carry", "leg-raise", "plank",
         ),
-        SessionFocusKind.FULL_BODY to listOf(
+        SessionFocusKind.FULL_BODY to pool(
             "squat", "push-up", "row", "pull-up", "lunge", "kettlebell-swing",
             "carry", "dip", "plank", "back-extension", "leg-raise",
         ),
-        SessionFocusKind.RECOVERY to listOf("carry", "plank", "dead-bug"),
+        SessionFocusKind.RECOVERY to pool("carry", "plank", "dead-bug"),
     )
 
     /**
      * Builds the proposal.
      *
-     * @param catalog the exercises to choose from — the built-in 98 in practice, passed in so
+     * @param catalog the exercises to choose from — the built-in catalog in practice, passed in so
      * this stays pure and so a test can hand it a deliberately sparse catalog.
      */
     fun generate(
@@ -570,6 +659,7 @@ object RoutineGenerator {
         when (goal) {
             TrainingGoal.ATHLETIC -> ATHLETIC_TEMPLATES.getValue(kind)
             TrainingGoal.STRENGTH -> STRENGTH_TEMPLATES.getValue(kind)
+            TrainingGoal.RESILIENCE -> RESILIENCE_TEMPLATES.getValue(kind)
             else -> TEMPLATES.getValue(kind)
         }
 
@@ -577,6 +667,7 @@ object RoutineGenerator {
         when (goal) {
             TrainingGoal.ATHLETIC -> ATHLETIC_FULL_BODY_B
             TrainingGoal.STRENGTH -> STRENGTH_FULL_BODY_B
+            TrainingGoal.RESILIENCE -> RESILIENCE_FULL_BODY_B
             else -> FULL_BODY_B
         }
 
@@ -584,6 +675,7 @@ object RoutineGenerator {
         when (goal) {
             TrainingGoal.ATHLETIC -> ATHLETIC_FALLBACKS.getValue(kind)
             TrainingGoal.STRENGTH -> STRENGTH_FALLBACKS.getValue(kind)
+            TrainingGoal.RESILIENCE -> RESILIENCE_FALLBACKS.getValue(kind)
             else -> FALLBACKS.getValue(kind)
         }
 
@@ -608,6 +700,10 @@ object RoutineGenerator {
         "hip-abduction",
         "leg-curl",
         "kettlebell-swing",
+        "reverse-hyper",
+        "glute-ham-raise",
+        "reverse-nordic",
+        "ql-raise",
     )
 
     private val UPPER_FAMILIES = setOf(

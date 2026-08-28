@@ -144,7 +144,7 @@ class OnboardingApplierTest {
         assertEquals(82.0, preferences.bodyweightKg.first()!!, 0.001)
         assertTrue(preferences.onboardingComplete.first())
         // A limited kit becomes a real filter; a full gym would leave it empty, meaning
-        // "no filtering", which is not the same as "owns nothing".
+        // gym-floor (everything except Hyper Pro), which is not the same as "owns nothing".
         val equipment = preferences.coachPreferences.first().availableEquipment
         assertTrue(equipment.isNotEmpty())
         assertTrue("BARBELL" !in equipment)

@@ -25,7 +25,7 @@ object SplitDerivation {
             // divides the body finely enough that each session needs real depth behind it, and
             // a bodyweight catalog does not have that depth in any one direction — the sessions
             // would come out short, or padded with a fourth push-up variant.
-            answers.resolvedPlaces() == setOf(TrainingPlace.BODYWEIGHT_ONLY) && days >= 4 ->
+            answers.resolvedPlaces().let { TrainingPlace.isSpecializedHome(it) } && days >= 4 ->
                 SplitStyle.UPPER_LOWER
             // One, two or three sessions cannot cover the body in parts. Splitting them would
             // mean training chest once every ten days, which is how people spend a year on a
@@ -43,7 +43,8 @@ object SplitDerivation {
             // athletic both want fewer, bigger sessions: heavier work and unilateral work
             // recover worse across a six-way split than upper/lower does.
             answers.goal == TrainingGoal.STRENGTH ||
-                answers.goal == TrainingGoal.ATHLETIC -> SplitStyle.UPPER_LOWER
+                answers.goal == TrainingGoal.ATHLETIC ||
+                answers.goal == TrainingGoal.RESILIENCE -> SplitStyle.UPPER_LOWER
             else -> SplitStyle.PUSH_PULL_LEGS
         }
     }
@@ -55,13 +56,14 @@ object SplitDerivation {
         )
         return buildList {
             when {
-                answers.resolvedPlaces() == setOf(TrainingPlace.BODYWEIGHT_ONLY) && days >= 4 ->
-                    add("BW_NO_PPL")
+                TrainingPlace.isSpecializedHome(answers.resolvedPlaces()) && days >= 4 ->
+                    add("HOME_KIT_NO_PPL")
                 days <= 3 -> add("FREQ_LOW_FULL_BODY")
                 answers.trainingAge == TrainingAge.NEW -> add("NOVICE_NO_PPL")
                 days == 4 -> add("FOUR_DAY_UPPER_LOWER")
                 answers.goal == TrainingGoal.STRENGTH ||
-                    answers.goal == TrainingGoal.ATHLETIC -> add("STRENGTH_UPPER_LOWER")
+                    answers.goal == TrainingGoal.ATHLETIC ||
+                    answers.goal == TrainingGoal.RESILIENCE -> add("STRENGTH_UPPER_LOWER")
                 else -> add("HIGH_FREQ_PPL")
             }
         }
@@ -84,8 +86,12 @@ object SplitDerivation {
         return when {
             answers.focus == TrainingFocus.CARDIO ->
                 "Cardio logging does not invent a lift week."
-            answers.resolvedPlaces() == setOf(TrainingPlace.BODYWEIGHT_ONLY) && days >= 4 ->
-                "Bodyweight kit is not deep enough for push/pull/legs, so the week is upper/lower."
+            TrainingPlace.isSpecializedHome(answers.resolvedPlaces()) && days >= 4 ->
+                if (TrainingPlace.HYPER_PRO in answers.resolvedPlaces()) {
+                    "Hyper Pro is a posterior-chain bench, not a six-way split, so the week is upper/lower."
+                } else {
+                    "Bodyweight kit is not deep enough for push/pull/legs, so the week is upper/lower."
+                }
             days <= 3 ->
                 "At $days days, every session is full body so each muscle is trained two to three times a week."
             answers.trainingAge == TrainingAge.NEW ->
@@ -93,8 +99,9 @@ object SplitDerivation {
             days == 4 ->
                 "Four days is two upper and two lower sessions — about 48 hours between the same pattern."
             answers.goal == TrainingGoal.STRENGTH ||
-                answers.goal == TrainingGoal.ATHLETIC ->
-                "Heavier and athletic work recovers better on upper/lower than on push/pull/legs."
+                answers.goal == TrainingGoal.ATHLETIC ||
+                answers.goal == TrainingGoal.RESILIENCE ->
+                "Heavier, athletic, and tendon work recover better on upper/lower than on push/pull/legs."
             else ->
                 "Five or more days can rotate push, pull, and legs without hitting the same pattern twice in a row."
         }

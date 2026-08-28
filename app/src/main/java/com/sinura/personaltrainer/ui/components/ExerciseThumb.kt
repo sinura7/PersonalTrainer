@@ -52,7 +52,7 @@ object ThumbSize {
 }
 
 /**
- * The nine drawings. One per [EquipmentType], with no fallthrough — the enum and the glyph
+ * The ten drawings. One per [EquipmentType], with no fallthrough — the enum and the glyph
  * set were designed against each other.
  */
 enum class EquipmentGlyph {
@@ -64,6 +64,7 @@ enum class EquipmentGlyph {
     KETTLEBELL,
     BAND,
     BODYWEIGHT,
+    HYPER_PRO,
     OTHER,
 }
 
@@ -76,6 +77,7 @@ fun glyphFor(equipment: EquipmentType): EquipmentGlyph = when (equipment) {
     EquipmentType.KETTLEBELL -> EquipmentGlyph.KETTLEBELL
     EquipmentType.BAND -> EquipmentGlyph.BAND
     EquipmentType.BODYWEIGHT -> EquipmentGlyph.BODYWEIGHT
+    EquipmentType.HYPER_PRO -> EquipmentGlyph.HYPER_PRO
     EquipmentType.OTHER -> EquipmentGlyph.OTHER
 }
 
@@ -288,6 +290,12 @@ private fun DrawScope.drawGlyph(glyph: EquipmentGlyph, tint: Color) {
             poly(0.18f, 0.20f, 0.82f, 0.20f, 0.74f, 0.48f, 0.26f, 0.48f)
             slab(0.28f, 0.52f, 0.46f, 0.92f)
             slab(0.54f, 0.52f, 0.72f, 0.92f)
+        }
+
+        EquipmentGlyph.HYPER_PRO -> {
+            slab(0.18f, 0.70f, 0.82f, 0.82f)
+            poly(0.28f, 0.70f, 0.72f, 0.70f, 0.62f, 0.22f, 0.38f, 0.22f)
+            slab(0.44f, 0.10f, 0.56f, 0.22f)
         }
 
         EquipmentGlyph.OTHER -> {

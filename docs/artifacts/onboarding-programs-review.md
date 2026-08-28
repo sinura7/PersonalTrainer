@@ -5,7 +5,7 @@ Every program `RoutineGenerator` can produce, rendered from the shipped catalog.
 **How to read it.** Each block is one set of answers. The split is *derived*, never asked.
 Sets, reps and rest come from `ProgramDose` (age, goal, days) on top of `AddDefaults` (load type and role). A hand-added lift still uses `AddDefaults` alone.
 Lift order is compounds first — the lift that asks most of you should meet you fresh.
-Strength weeks drop isolation slots; muscle weeks keep them; athletic weeks bias hinge, lunge, and carry.
+Strength weeks drop isolation slots; muscle weeks keep them; athletic weeks bias hinge, lunge, and carry; resilience weeks open with nordic, reverse hyper, and reverse nordic.
 
 **To change a judgment call** — which families make a session, or their order — edit
 `RoutineGenerator` templates, re-render, and review the diff here.
@@ -51,6 +51,19 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
 | 4 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
 
+### New to lifting · 1 day · Resilience → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 3 × 8 | 120s |
+| 3 | Barbell Row | Barbell | 3 × 8 | 90s |
+| 4 | Barbell Back Squat | Barbell | 3 × 8 | 90s |
+
 ### New to lifting · 1 day · General → Full Body
 
 _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1 session
@@ -128,6 +141,28 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 | 1 | Conventional Deadlift | Barbell | 3 × 8 | 120s |
 | 2 | Overhead Press | Barbell | 3 × 8 | 120s |
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
+| 4 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
+
+### New to lifting · 2 days · Resilience → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 8 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 3 × 8 | 120s |
+| 3 | Barbell Row | Barbell | 3 × 8 | 90s |
+| 4 | Barbell Back Squat | Barbell | 3 × 8 | 90s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Back Extension | Bodyweight | 3 × 8 | 120s |
+| 2 | Overhead Press | Barbell | 3 × 8 | 120s |
+| 3 | Barbell Row | Barbell | 3 × 8 | 90s |
 | 4 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 
 ### New to lifting · 2 days · General → Full Body
@@ -218,6 +253,28 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
 | 4 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 
+### New to lifting · 3 days · Resilience → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 8 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 3 × 8 | 120s |
+| 3 | Barbell Row | Barbell | 3 × 8 | 90s |
+| 4 | Barbell Back Squat | Barbell | 3 × 8 | 90s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Back Extension | Bodyweight | 3 × 8 | 120s |
+| 2 | Overhead Press | Barbell | 3 × 8 | 120s |
+| 3 | Barbell Row | Barbell | 3 × 8 | 90s |
+| 4 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
+
 ### New to lifting · 3 days · General → Full Body
 
 **Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 8 lifts across 2 sessions
@@ -305,6 +362,28 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 | 2 | Romanian Deadlift | Barbell | 3 × 8 | 120s |
 | 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 | 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
+
+### New to lifting · 4 days · Resilience → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 8 | 120s |
+| 2 | Barbell Row | Barbell | 3 × 8 | 120s |
+| 3 | Overhead Press | Barbell | 3 × 8 | 90s |
+| 4 | Lat Pulldown | Cable | 3 × 10 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Barbell Back Squat | Barbell | 3 × 8 | 120s |
+| 3 | Hip Thrust | Barbell | 3 × 12 | 60s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
 
 ### New to lifting · 4 days · General → Upper / Lower
 
@@ -394,6 +473,28 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 | 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 | 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
 
+### New to lifting · 5 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 8 | 120s |
+| 2 | Barbell Row | Barbell | 3 × 8 | 120s |
+| 3 | Overhead Press | Barbell | 3 × 8 | 90s |
+| 4 | Lat Pulldown | Cable | 3 × 10 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Barbell Back Squat | Barbell | 3 × 8 | 120s |
+| 3 | Hip Thrust | Barbell | 3 × 12 | 60s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
+
 ### New to lifting · 5 days · General → Upper / Lower
 
 **Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 8 lifts across 2 sessions
@@ -481,6 +582,28 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 | 2 | Romanian Deadlift | Barbell | 3 × 8 | 120s |
 | 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 | 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
+
+### New to lifting · 6 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 8 | 120s |
+| 2 | Barbell Row | Barbell | 3 × 8 | 120s |
+| 3 | Overhead Press | Barbell | 3 × 8 | 90s |
+| 4 | Lat Pulldown | Cable | 3 × 10 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Barbell Back Squat | Barbell | 3 × 8 | 120s |
+| 3 | Hip Thrust | Barbell | 3 × 12 | 60s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
 
 ### New to lifting · 6 days · General → Upper / Lower
 
@@ -570,6 +693,28 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 | 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 | 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
 
+### New to lifting · 7 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 8 | 120s |
+| 2 | Barbell Row | Barbell | 3 × 8 | 120s |
+| 3 | Overhead Press | Barbell | 3 × 8 | 90s |
+| 4 | Lat Pulldown | Cable | 3 × 10 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Barbell Back Squat | Barbell | 3 × 8 | 120s |
+| 3 | Hip Thrust | Barbell | 3 × 12 | 60s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
+
 ### New to lifting · 7 days · General → Upper / Lower
 
 **Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 8 lifts across 2 sessions
@@ -633,6 +778,20 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
 | 4 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
 | 5 | Romanian Deadlift | Barbell | 3 × 8 | 90s |
+
+### On and off · 1 day · Resilience → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 4 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 4 × 8 | 90s |
+| 3 | Barbell Row | Barbell | 3 × 10 | 75s |
+| 4 | Barbell Back Squat | Barbell | 3 × 10 | 75s |
+| 5 | Back Extension | Bodyweight | 3 × 10 | 60s |
 
 ### On and off · 1 day · General → Full Body
 
@@ -719,6 +878,30 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
 | 4 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 | 5 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
+
+### On and off · 2 days · Resilience → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 10 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 4 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 4 × 8 | 90s |
+| 3 | Barbell Row | Barbell | 3 × 10 | 75s |
+| 4 | Barbell Back Squat | Barbell | 3 × 10 | 75s |
+| 5 | Back Extension | Bodyweight | 3 × 10 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Back Extension | Bodyweight | 4 × 8 | 90s |
+| 2 | Overhead Press | Barbell | 4 × 8 | 90s |
+| 3 | Barbell Row | Barbell | 3 × 10 | 75s |
+| 4 | Bulgarian Split Squat | Dumbbell | 3 × 10 | 75s |
+| 5 | Decline Sit-Up | Bodyweight | 3 × 10 | 60s |
 
 ### On and off · 2 days · General → Full Body
 
@@ -816,6 +999,30 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 4 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 | 5 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
 
+### On and off · 3 days · Resilience → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 10 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 3 | Barbell Row | Barbell | 3 × 10 | 75s |
+| 4 | Barbell Back Squat | Barbell | 3 × 10 | 75s |
+| 5 | Back Extension | Bodyweight | 3 × 10 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Back Extension | Bodyweight | 3 × 8 | 90s |
+| 2 | Overhead Press | Barbell | 3 × 8 | 90s |
+| 3 | Barbell Row | Barbell | 3 × 10 | 75s |
+| 4 | Bulgarian Split Squat | Dumbbell | 3 × 10 | 75s |
+| 5 | Decline Sit-Up | Bodyweight | 3 × 10 | 60s |
+
 ### On and off · 3 days · General → Full Body
 
 **Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 10 lifts across 2 sessions
@@ -911,6 +1118,30 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 | 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
 | 5 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
+
+### On and off · 4 days · Resilience → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 8 | 90s |
+| 2 | Barbell Row | Barbell | 3 × 8 | 90s |
+| 3 | Overhead Press | Barbell | 3 × 10 | 75s |
+| 4 | Lat Pulldown | Cable | 3 × 12 | 60s |
+| 5 | Barbell Curl | Barbell | 3 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Barbell Back Squat | Barbell | 3 × 8 | 90s |
+| 3 | Hip Thrust | Barbell | 3 × 12 | 60s |
+| 4 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 5 | Leg Curl | Machine | 3 × 12 | 60s |
 
 ### On and off · 4 days · General → Upper / Lower
 
@@ -1017,6 +1248,30 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 | 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
 | 5 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
+
+### On and off · 5 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 8 | 90s |
+| 2 | Barbell Row | Barbell | 3 × 8 | 90s |
+| 3 | Overhead Press | Barbell | 3 × 10 | 75s |
+| 4 | Lat Pulldown | Cable | 3 × 12 | 60s |
+| 5 | Barbell Curl | Barbell | 3 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Barbell Back Squat | Barbell | 3 × 8 | 90s |
+| 3 | Hip Thrust | Barbell | 3 × 12 | 60s |
+| 4 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 5 | Leg Curl | Machine | 3 × 12 | 60s |
 
 ### On and off · 5 days · General → Push / Pull / Legs
 
@@ -1134,6 +1389,30 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 4 | Dumbbell Step-Up | Dumbbell | 2 × 8 | 90s |
 | 5 | Kettlebell Swing | Kettlebell | 2 × 8 | 90s |
 
+### On and off · 6 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 8 | 90s |
+| 2 | Barbell Row | Barbell | 3 × 8 | 90s |
+| 3 | Overhead Press | Barbell | 2 × 10 | 75s |
+| 4 | Lat Pulldown | Cable | 2 × 12 | 60s |
+| 5 | Barbell Curl | Barbell | 2 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Barbell Back Squat | Barbell | 3 × 8 | 90s |
+| 3 | Hip Thrust | Barbell | 2 × 12 | 60s |
+| 4 | Back Extension | Bodyweight | 2 × 10 | 60s |
+| 5 | Leg Curl | Machine | 2 × 12 | 60s |
+
 ### On and off · 6 days · General → Push / Pull / Legs
 
 **Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 15 lifts across 3 sessions
@@ -1250,6 +1529,30 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 4 | Dumbbell Step-Up | Dumbbell | 2 × 8 | 90s |
 | 5 | Kettlebell Swing | Kettlebell | 2 × 8 | 90s |
 
+### On and off · 7 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 8 | 90s |
+| 2 | Barbell Row | Barbell | 3 × 8 | 90s |
+| 3 | Overhead Press | Barbell | 2 × 10 | 75s |
+| 4 | Lat Pulldown | Cable | 2 × 12 | 60s |
+| 5 | Barbell Curl | Barbell | 2 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Barbell Back Squat | Barbell | 3 × 8 | 90s |
+| 3 | Hip Thrust | Barbell | 2 × 12 | 60s |
+| 4 | Back Extension | Bodyweight | 2 × 10 | 60s |
+| 5 | Leg Curl | Machine | 2 × 12 | 60s |
+
 ### On and off · 7 days · General → Push / Pull / Legs
 
 **Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 15 lifts across 3 sessions
@@ -1328,6 +1631,21 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 4 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
 | 5 | Romanian Deadlift | Barbell | 3 × 8 | 90s |
 | 6 | Farmer's Carry | Dumbbell | 3 × 12 | 90s |
+
+### Training regularly · 1 day · Resilience → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 4 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 4 × 8 | 90s |
+| 3 | Barbell Row | Barbell | 3 × 10 | 75s |
+| 4 | Barbell Back Squat | Barbell | 3 × 10 | 75s |
+| 5 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
 
 ### Training regularly · 1 day · General → Full Body
 
@@ -1421,6 +1739,32 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 4 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 | 5 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
 | 6 | Farmer's Carry | Dumbbell | 3 × 12 | 90s |
+
+### Training regularly · 2 days · Resilience → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 12 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 4 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 4 × 8 | 90s |
+| 3 | Barbell Row | Barbell | 3 × 10 | 75s |
+| 4 | Barbell Back Squat | Barbell | 3 × 10 | 75s |
+| 5 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Back Extension | Bodyweight | 4 × 8 | 90s |
+| 2 | Overhead Press | Barbell | 4 × 8 | 90s |
+| 3 | Barbell Row | Barbell | 3 × 10 | 75s |
+| 4 | Bulgarian Split Squat | Dumbbell | 3 × 10 | 75s |
+| 5 | Decline Sit-Up | Bodyweight | 3 × 10 | 60s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
 
 ### Training regularly · 2 days · General → Full Body
 
@@ -1526,6 +1870,32 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 5 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
 | 6 | Farmer's Carry | Dumbbell | 3 × 12 | 90s |
 
+### Training regularly · 3 days · Resilience → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 12 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 3 | Barbell Row | Barbell | 3 × 10 | 75s |
+| 4 | Barbell Back Squat | Barbell | 3 × 10 | 75s |
+| 5 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Back Extension | Bodyweight | 3 × 8 | 90s |
+| 2 | Overhead Press | Barbell | 3 × 8 | 90s |
+| 3 | Barbell Row | Barbell | 3 × 10 | 75s |
+| 4 | Bulgarian Split Squat | Dumbbell | 3 × 10 | 75s |
+| 5 | Decline Sit-Up | Bodyweight | 3 × 10 | 60s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
+
 ### Training regularly · 3 days · General → Full Body
 
 **Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 12 lifts across 2 sessions
@@ -1629,6 +1999,32 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
 | 5 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
 | 6 | Farmer's Carry | Dumbbell | 3 × 12 | 90s |
+
+### Training regularly · 4 days · Resilience → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 8 | 90s |
+| 2 | Barbell Row | Barbell | 3 × 8 | 90s |
+| 3 | Overhead Press | Barbell | 3 × 10 | 75s |
+| 4 | Lat Pulldown | Cable | 3 × 12 | 60s |
+| 5 | Barbell Curl | Barbell | 3 × 12 | 60s |
+| 6 | Tricep Pushdown | Cable | 3 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Barbell Back Squat | Barbell | 3 × 8 | 90s |
+| 3 | Hip Thrust | Barbell | 3 × 12 | 60s |
+| 4 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 5 | Leg Curl | Machine | 3 × 12 | 60s |
+| 6 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
 
 ### Training regularly · 4 days · General → Upper / Lower
 
@@ -1744,6 +2140,32 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
 | 5 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
 | 6 | Farmer's Carry | Dumbbell | 3 × 12 | 90s |
+
+### Training regularly · 5 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 8 | 90s |
+| 2 | Barbell Row | Barbell | 3 × 8 | 90s |
+| 3 | Overhead Press | Barbell | 3 × 10 | 75s |
+| 4 | Lat Pulldown | Cable | 3 × 12 | 60s |
+| 5 | Barbell Curl | Barbell | 3 × 12 | 60s |
+| 6 | Tricep Pushdown | Cable | 3 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Barbell Back Squat | Barbell | 3 × 8 | 90s |
+| 3 | Hip Thrust | Barbell | 3 × 12 | 60s |
+| 4 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 5 | Leg Curl | Machine | 3 × 12 | 60s |
+| 6 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
 
 ### Training regularly · 5 days · General → Push / Pull / Legs
 
@@ -1871,6 +2293,32 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 5 | Kettlebell Swing | Kettlebell | 2 × 8 | 90s |
 | 6 | Farmer's Carry | Dumbbell | 2 × 12 | 90s |
 
+### Training regularly · 6 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 8 | 90s |
+| 2 | Barbell Row | Barbell | 3 × 8 | 90s |
+| 3 | Overhead Press | Barbell | 2 × 10 | 75s |
+| 4 | Lat Pulldown | Cable | 2 × 12 | 60s |
+| 5 | Barbell Curl | Barbell | 2 × 12 | 60s |
+| 6 | Tricep Pushdown | Cable | 2 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Barbell Back Squat | Barbell | 3 × 8 | 90s |
+| 3 | Hip Thrust | Barbell | 2 × 12 | 60s |
+| 4 | Back Extension | Bodyweight | 2 × 10 | 60s |
+| 5 | Leg Curl | Machine | 2 × 12 | 60s |
+| 6 | Hanging Leg Raise | Bodyweight | 2 × 12 | 60s |
+
 ### Training regularly · 6 days · General → Push / Pull / Legs
 
 **Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 18 lifts across 3 sessions
@@ -1997,6 +2445,32 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 5 | Kettlebell Swing | Kettlebell | 2 × 8 | 90s |
 | 6 | Farmer's Carry | Dumbbell | 2 × 12 | 90s |
 
+### Training regularly · 7 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Barbell Bench Press | Barbell | 3 × 8 | 90s |
+| 2 | Barbell Row | Barbell | 3 × 8 | 90s |
+| 3 | Overhead Press | Barbell | 2 × 10 | 75s |
+| 4 | Lat Pulldown | Cable | 2 × 12 | 60s |
+| 5 | Barbell Curl | Barbell | 2 × 12 | 60s |
+| 6 | Tricep Pushdown | Cable | 2 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Barbell Back Squat | Barbell | 3 × 8 | 90s |
+| 3 | Hip Thrust | Barbell | 2 × 12 | 60s |
+| 4 | Back Extension | Bodyweight | 2 × 10 | 60s |
+| 5 | Leg Curl | Machine | 2 × 12 | 60s |
+| 6 | Hanging Leg Raise | Bodyweight | 2 × 12 | 60s |
+
 ### Training regularly · 7 days · General → Push / Pull / Legs
 
 **Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 18 lifts across 3 sessions
@@ -2033,6 +2507,2378 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 4 | Leg Curl | Machine | 2 × 12 | 60s |
 | 5 | Standing Calf Raise | Machine | 2 × 12 | 60s |
 | 6 | Hip Thrust | Barbell | 2 × 12 | 60s |
+
+## A Hyper Pro
+
+### New to lifting · 1 day · Strength → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 9 | 90s |
+
+### New to lifting · 1 day · Muscle → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 12 | 60s |
+
+### New to lifting · 1 day · Athletic → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+
+### New to lifting · 1 day · Resilience → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+
+### New to lifting · 1 day · General → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 6 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 12 | 60s |
+
+### New to lifting · 2 days · Strength → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 8 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 9 | 90s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+
+### New to lifting · 2 days · Muscle → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 8 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 12 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+
+### New to lifting · 2 days · Athletic → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 8 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+
+### New to lifting · 2 days · Resilience → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 8 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Reverse Hyper | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+
+### New to lifting · 2 days · General → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 8 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 6 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 12 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+
+### New to lifting · 3 days · Strength → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 8 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 9 | 90s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+
+### New to lifting · 3 days · Muscle → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 8 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 12 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+
+### New to lifting · 3 days · Athletic → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 8 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+
+### New to lifting · 3 days · Resilience → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 8 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Reverse Hyper | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+
+### New to lifting · 3 days · General → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 8 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 6 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 12 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+
+### New to lifting · 4 days · Strength → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Trap 3 Raise | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+
+### New to lifting · 4 days · Muscle → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 75s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 60s |
+
+### New to lifting · 4 days · Athletic → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+
+### New to lifting · 4 days · Resilience → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+| 3 | Hyper Pro Reverse Hyper | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro QL Raise | Hyper Pro | 3 × 12 | 60s |
+
+### New to lifting · 4 days · General → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 6 | 120s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 9 | 60s |
+
+### New to lifting · 5 days · Strength → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Trap 3 Raise | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+
+### New to lifting · 5 days · Muscle → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 75s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 60s |
+
+### New to lifting · 5 days · Athletic → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+
+### New to lifting · 5 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+| 3 | Hyper Pro Reverse Hyper | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro QL Raise | Hyper Pro | 3 × 12 | 60s |
+
+### New to lifting · 5 days · General → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 6 | 120s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 9 | 60s |
+
+### New to lifting · 6 days · Strength → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Trap 3 Raise | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+
+### New to lifting · 6 days · Muscle → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 75s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 60s |
+
+### New to lifting · 6 days · Athletic → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+
+### New to lifting · 6 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+| 3 | Hyper Pro Reverse Hyper | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro QL Raise | Hyper Pro | 3 × 12 | 60s |
+
+### New to lifting · 6 days · General → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 6 | 120s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 9 | 60s |
+
+### New to lifting · 7 days · Strength → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Trap 3 Raise | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+
+### New to lifting · 7 days · Muscle → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 75s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 60s |
+
+### New to lifting · 7 days · Athletic → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+
+### New to lifting · 7 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+| 3 | Hyper Pro Reverse Hyper | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro QL Raise | Hyper Pro | 3 × 12 | 60s |
+
+### New to lifting · 7 days · General → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 120s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 6 | 120s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 9 | 60s |
+
+### On and off · 1 day · Strength → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 4 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 5 | 180s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+
+### On and off · 1 day · Muscle → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 4 × 10 | 75s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+
+### On and off · 1 day · Athletic → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 4 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 5 | 150s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+
+### On and off · 1 day · Resilience → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Nordic Curl | Hyper Pro | 4 × 10 | 75s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro QL Raise | Hyper Pro | 3 × 12 | 60s |
+
+### On and off · 1 day · General → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 4 × 6 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 60s |
+| 4 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+
+### On and off · 2 days · Strength → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 10 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 4 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 5 | 180s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 4 × 5 | 180s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 5 | 180s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro KOT Squat | Hyper Pro | 3 × 9 | 90s |
+
+### On and off · 2 days · Muscle → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 10 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 4 × 10 | 75s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 4 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 10 | 60s |
+| 5 | Hyper Pro KOT Squat | Hyper Pro | 3 × 10 | 60s |
+
+### On and off · 2 days · Athletic → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 10 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 4 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 5 | 150s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 4 × 5 | 150s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 5 | 150s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro KOT Squat | Hyper Pro | 3 × 9 | 90s |
+
+### On and off · 2 days · Resilience → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 10 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Nordic Curl | Hyper Pro | 4 × 10 | 75s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro QL Raise | Hyper Pro | 3 × 12 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Reverse Hyper | Hyper Pro | 4 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro GHD Sit-Up | Hyper Pro | 3 × 10 | 60s |
+
+### On and off · 2 days · General → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 10 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 4 × 6 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 60s |
+| 4 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 4 × 6 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 60s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 60s |
+| 5 | Hyper Pro KOT Squat | Hyper Pro | 3 × 9 | 60s |
+
+### On and off · 3 days · Strength → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 10 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 180s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 5 | 180s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 180s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro KOT Squat | Hyper Pro | 3 × 9 | 90s |
+
+### On and off · 3 days · Muscle → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 10 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 10 | 60s |
+| 5 | Hyper Pro KOT Squat | Hyper Pro | 3 × 10 | 60s |
+
+### On and off · 3 days · Athletic → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 10 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 150s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 5 | 150s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 150s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro KOT Squat | Hyper Pro | 3 × 9 | 90s |
+
+### On and off · 3 days · Resilience → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 10 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro QL Raise | Hyper Pro | 3 × 12 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Reverse Hyper | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro GHD Sit-Up | Hyper Pro | 3 × 10 | 60s |
+
+### On and off · 3 days · General → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 10 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 6 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 60s |
+| 4 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 6 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 60s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 60s |
+| 5 | Hyper Pro KOT Squat | Hyper Pro | 3 × 9 | 60s |
+
+### On and off · 4 days · Strength → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 180s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 5 | 180s |
+| 3 | Hyper Pro Trap 3 Raise | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 90s |
+
+### On and off · 4 days · Muscle → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 10 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 3 × 10 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 75s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+
+### On and off · 4 days · Athletic → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 150s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 5 | 150s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro 90-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+
+### On and off · 4 days · Resilience → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 10 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 3 × 10 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+| 3 | Hyper Pro Reverse Hyper | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro QL Raise | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 12 | 60s |
+
+### On and off · 4 days · General → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 6 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 3 × 9 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 6 | 120s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 60s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 9 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+
+### On and off · 5 days · Strength → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 180s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 5 | 180s |
+| 3 | Hyper Pro Trap 3 Raise | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 90s |
+
+### On and off · 5 days · Muscle → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 10 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 3 × 10 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 75s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+
+### On and off · 5 days · Athletic → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 150s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 5 | 150s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro 90-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+
+### On and off · 5 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 10 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 3 × 10 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+| 3 | Hyper Pro Reverse Hyper | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro QL Raise | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 12 | 60s |
+
+### On and off · 5 days · General → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 6 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 3 × 9 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 6 | 120s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 60s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 9 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+
+### On and off · 6 days · Strength → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 180s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 5 | 180s |
+| 3 | Hyper Pro Trap 3 Raise | Hyper Pro | 2 × 9 | 90s |
+| 4 | Hyper Pro Bicep Curl | Hyper Pro | 2 × 9 | 90s |
+| 5 | Hyper Pro Face Pull | Hyper Pro | 2 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 2 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 2 × 9 | 90s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 2 × 12 | 90s |
+
+### On and off · 6 days · Muscle → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 2 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 2 × 10 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 2 × 10 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 75s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 2 × 10 | 60s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 2 × 10 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 2 × 12 | 60s |
+
+### On and off · 6 days · Athletic → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 150s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 5 | 150s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 2 × 9 | 90s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 2 × 9 | 90s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 2 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 2 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 2 × 9 | 90s |
+| 5 | Hyper Pro 90-Degree Back Extension | Hyper Pro | 2 × 9 | 90s |
+
+### On and off · 6 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 2 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 2 × 10 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 2 × 10 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+| 3 | Hyper Pro Reverse Hyper | Hyper Pro | 2 × 10 | 60s |
+| 4 | Hyper Pro QL Raise | Hyper Pro | 2 × 12 | 60s |
+| 5 | Hyper Pro Hamstring Curl | Hyper Pro | 2 × 12 | 60s |
+
+### On and off · 6 days · General → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 6 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 2 × 9 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 2 × 9 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 2 × 9 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 6 | 120s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 2 × 9 | 60s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 2 × 9 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 2 × 12 | 60s |
+
+### On and off · 7 days · Strength → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 180s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 5 | 180s |
+| 3 | Hyper Pro Trap 3 Raise | Hyper Pro | 2 × 9 | 90s |
+| 4 | Hyper Pro Bicep Curl | Hyper Pro | 2 × 9 | 90s |
+| 5 | Hyper Pro Face Pull | Hyper Pro | 2 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 2 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 2 × 9 | 90s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 2 × 12 | 90s |
+
+### On and off · 7 days · Muscle → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 2 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 2 × 10 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 2 × 10 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 75s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 2 × 10 | 60s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 2 × 10 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 2 × 12 | 60s |
+
+### On and off · 7 days · Athletic → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 150s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 5 | 150s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 2 × 9 | 90s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 2 × 9 | 90s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 2 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 2 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 2 × 9 | 90s |
+| 5 | Hyper Pro 90-Degree Back Extension | Hyper Pro | 2 × 9 | 90s |
+
+### On and off · 7 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 2 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 2 × 10 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 2 × 10 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+| 3 | Hyper Pro Reverse Hyper | Hyper Pro | 2 × 10 | 60s |
+| 4 | Hyper Pro QL Raise | Hyper Pro | 2 × 12 | 60s |
+| 5 | Hyper Pro Hamstring Curl | Hyper Pro | 2 × 12 | 60s |
+
+### On and off · 7 days · General → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 6 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 2 × 9 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 2 × 9 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 2 × 9 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 6 | 120s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 2 × 9 | 60s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 2 × 9 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 2 × 12 | 60s |
+
+### Training regularly · 1 day · Strength → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 4 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 5 | 180s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 6 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+
+### Training regularly · 1 day · Muscle → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 4 × 10 | 75s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+| 6 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 10 | 60s |
+
+### Training regularly · 1 day · Athletic → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 4 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 5 | 150s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+| 6 | Hyper Pro Leg Raise | Hyper Pro | 3 × 12 | 90s |
+
+### Training regularly · 1 day · Resilience → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Nordic Curl | Hyper Pro | 4 × 10 | 75s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro QL Raise | Hyper Pro | 3 × 12 | 60s |
+| 6 | Hyper Pro Leg Raise | Hyper Pro | 3 × 12 | 60s |
+
+### Training regularly · 1 day · General → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 4 × 6 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 60s |
+| 4 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+| 6 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 60s |
+
+### Training regularly · 2 days · Strength → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 12 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 4 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 5 | 180s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 6 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 4 × 5 | 180s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 5 | 180s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro KOT Squat | Hyper Pro | 3 × 9 | 90s |
+| 6 | Hyper Pro 90-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+
+### Training regularly · 2 days · Muscle → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 12 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 4 × 10 | 75s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+| 6 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 10 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 4 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 10 | 60s |
+| 5 | Hyper Pro KOT Squat | Hyper Pro | 3 × 10 | 60s |
+| 6 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+
+### Training regularly · 2 days · Athletic → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 12 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 4 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 5 | 150s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+| 6 | Hyper Pro Leg Raise | Hyper Pro | 3 × 12 | 90s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 4 × 5 | 150s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 5 | 150s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro KOT Squat | Hyper Pro | 3 × 9 | 90s |
+| 6 | Hyper Pro 90-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+
+### Training regularly · 2 days · Resilience → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 12 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Nordic Curl | Hyper Pro | 4 × 10 | 75s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro QL Raise | Hyper Pro | 3 × 12 | 60s |
+| 6 | Hyper Pro Leg Raise | Hyper Pro | 3 × 12 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Reverse Hyper | Hyper Pro | 4 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro GHD Sit-Up | Hyper Pro | 3 × 10 | 60s |
+| 6 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 60s |
+
+### Training regularly · 2 days · General → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 12 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 4 × 6 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 60s |
+| 4 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+| 6 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 4 × 6 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 4 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 60s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 60s |
+| 5 | Hyper Pro KOT Squat | Hyper Pro | 3 × 9 | 60s |
+| 6 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+
+### Training regularly · 3 days · Strength → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 12 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 180s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 6 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 5 | 180s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 180s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro KOT Squat | Hyper Pro | 3 × 9 | 90s |
+| 6 | Hyper Pro 90-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+
+### Training regularly · 3 days · Muscle → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 12 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+| 6 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 10 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 10 | 60s |
+| 5 | Hyper Pro KOT Squat | Hyper Pro | 3 × 10 | 60s |
+| 6 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+
+### Training regularly · 3 days · Athletic → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 12 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 150s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+| 6 | Hyper Pro Leg Raise | Hyper Pro | 3 × 12 | 90s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 5 | 150s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 150s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro KOT Squat | Hyper Pro | 3 × 9 | 90s |
+| 6 | Hyper Pro 90-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+
+### Training regularly · 3 days · Resilience → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 12 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro QL Raise | Hyper Pro | 3 × 12 | 60s |
+| 6 | Hyper Pro Leg Raise | Hyper Pro | 3 × 12 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Reverse Hyper | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro GHD Sit-Up | Hyper Pro | 3 × 10 | 60s |
+| 6 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 60s |
+
+### Training regularly · 3 days · General → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 12 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 6 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 60s |
+| 4 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+| 6 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 6 | 120s |
+| 2 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Standing Row | Hyper Pro | 3 × 9 | 60s |
+| 4 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 60s |
+| 5 | Hyper Pro KOT Squat | Hyper Pro | 3 × 9 | 60s |
+| 6 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+
+### Training regularly · 4 days · Strength → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 180s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 5 | 180s |
+| 3 | Hyper Pro Trap 3 Raise | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+| 6 | Hyper Pro Pullover | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 90s |
+| 6 | Hyper Pro 90-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+
+### Training regularly · 4 days · Muscle → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 10 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 3 × 10 | 60s |
+| 6 | Hyper Pro Trap 3 Raise | Hyper Pro | 3 × 10 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 75s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+| 6 | Hyper Pro Leg Raise | Hyper Pro | 3 × 12 | 60s |
+
+### Training regularly · 4 days · Athletic → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 150s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 5 | 150s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 3 × 9 | 90s |
+| 6 | Hyper Pro Trap 3 Raise | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro 90-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+| 6 | Hyper Pro Leg Raise | Hyper Pro | 3 × 12 | 90s |
+
+### Training regularly · 4 days · Resilience → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 10 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 3 × 10 | 60s |
+| 6 | Hyper Pro Trap 3 Raise | Hyper Pro | 3 × 10 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+| 3 | Hyper Pro Reverse Hyper | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro QL Raise | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 12 | 60s |
+| 6 | Hyper Pro Leg Raise | Hyper Pro | 3 × 12 | 60s |
+
+### Training regularly · 4 days · General → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 6 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 3 × 9 | 60s |
+| 6 | Hyper Pro Trap 3 Raise | Hyper Pro | 3 × 9 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 6 | 120s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 60s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 9 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+| 6 | Hyper Pro Leg Raise | Hyper Pro | 3 × 12 | 60s |
+
+### Training regularly · 5 days · Strength → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 180s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 5 | 180s |
+| 3 | Hyper Pro Trap 3 Raise | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+| 6 | Hyper Pro Pullover | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 90s |
+| 6 | Hyper Pro 90-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+
+### Training regularly · 5 days · Muscle → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 10 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 3 × 10 | 60s |
+| 6 | Hyper Pro Trap 3 Raise | Hyper Pro | 3 × 10 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 75s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+| 6 | Hyper Pro Leg Raise | Hyper Pro | 3 × 12 | 60s |
+
+### Training regularly · 5 days · Athletic → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 150s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 5 | 150s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 3 × 9 | 90s |
+| 6 | Hyper Pro Trap 3 Raise | Hyper Pro | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+| 5 | Hyper Pro 90-Degree Back Extension | Hyper Pro | 3 × 9 | 90s |
+| 6 | Hyper Pro Leg Raise | Hyper Pro | 3 × 12 | 90s |
+
+### Training regularly · 5 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 10 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 3 × 10 | 60s |
+| 6 | Hyper Pro Trap 3 Raise | Hyper Pro | 3 × 10 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+| 3 | Hyper Pro Reverse Hyper | Hyper Pro | 3 × 10 | 60s |
+| 4 | Hyper Pro QL Raise | Hyper Pro | 3 × 12 | 60s |
+| 5 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 12 | 60s |
+| 6 | Hyper Pro Leg Raise | Hyper Pro | 3 × 12 | 60s |
+
+### Training regularly · 5 days · General → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 6 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 3 × 9 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 3 × 9 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 3 × 9 | 60s |
+| 6 | Hyper Pro Trap 3 Raise | Hyper Pro | 3 × 9 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 6 | 120s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 3 × 9 | 60s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 9 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 3 × 12 | 60s |
+| 6 | Hyper Pro Leg Raise | Hyper Pro | 3 × 12 | 60s |
+
+### Training regularly · 6 days · Strength → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 180s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 5 | 180s |
+| 3 | Hyper Pro Trap 3 Raise | Hyper Pro | 2 × 9 | 90s |
+| 4 | Hyper Pro Bicep Curl | Hyper Pro | 2 × 9 | 90s |
+| 5 | Hyper Pro Face Pull | Hyper Pro | 2 × 9 | 90s |
+| 6 | Hyper Pro Pullover | Hyper Pro | 2 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 2 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 2 × 9 | 90s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 2 × 12 | 90s |
+| 6 | Hyper Pro 90-Degree Back Extension | Hyper Pro | 2 × 9 | 90s |
+
+### Training regularly · 6 days · Muscle → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 2 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 2 × 10 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 2 × 10 | 60s |
+| 6 | Hyper Pro Trap 3 Raise | Hyper Pro | 2 × 10 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 75s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 2 × 10 | 60s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 2 × 10 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 2 × 12 | 60s |
+| 6 | Hyper Pro Leg Raise | Hyper Pro | 2 × 12 | 60s |
+
+### Training regularly · 6 days · Athletic → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 150s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 5 | 150s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 2 × 9 | 90s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 2 × 9 | 90s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 2 × 9 | 90s |
+| 6 | Hyper Pro Trap 3 Raise | Hyper Pro | 2 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 2 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 2 × 9 | 90s |
+| 5 | Hyper Pro 90-Degree Back Extension | Hyper Pro | 2 × 9 | 90s |
+| 6 | Hyper Pro Leg Raise | Hyper Pro | 2 × 12 | 90s |
+
+### Training regularly · 6 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 2 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 2 × 10 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 2 × 10 | 60s |
+| 6 | Hyper Pro Trap 3 Raise | Hyper Pro | 2 × 10 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+| 3 | Hyper Pro Reverse Hyper | Hyper Pro | 2 × 10 | 60s |
+| 4 | Hyper Pro QL Raise | Hyper Pro | 2 × 12 | 60s |
+| 5 | Hyper Pro Hamstring Curl | Hyper Pro | 2 × 12 | 60s |
+| 6 | Hyper Pro Leg Raise | Hyper Pro | 2 × 12 | 60s |
+
+### Training regularly · 6 days · General → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 6 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 2 × 9 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 2 × 9 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 2 × 9 | 60s |
+| 6 | Hyper Pro Trap 3 Raise | Hyper Pro | 2 × 9 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 6 | 120s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 2 × 9 | 60s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 2 × 9 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 2 × 12 | 60s |
+| 6 | Hyper Pro Leg Raise | Hyper Pro | 2 × 12 | 60s |
+
+### Training regularly · 7 days · Strength → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 180s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 5 | 180s |
+| 3 | Hyper Pro Trap 3 Raise | Hyper Pro | 2 × 9 | 90s |
+| 4 | Hyper Pro Bicep Curl | Hyper Pro | 2 × 9 | 90s |
+| 5 | Hyper Pro Face Pull | Hyper Pro | 2 × 9 | 90s |
+| 6 | Hyper Pro Pullover | Hyper Pro | 2 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 2 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 2 × 9 | 90s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 2 × 12 | 90s |
+| 6 | Hyper Pro 90-Degree Back Extension | Hyper Pro | 2 × 9 | 90s |
+
+### Training regularly · 7 days · Muscle → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 2 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 2 × 10 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 2 × 10 | 60s |
+| 6 | Hyper Pro Trap 3 Raise | Hyper Pro | 2 × 10 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 75s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 2 × 10 | 60s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 2 × 10 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 2 × 12 | 60s |
+| 6 | Hyper Pro Leg Raise | Hyper Pro | 2 × 12 | 60s |
+
+### Training regularly · 7 days · Athletic → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 5 | 150s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 5 | 150s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 2 × 9 | 90s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 2 × 9 | 90s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 2 × 9 | 90s |
+| 6 | Hyper Pro Trap 3 Raise | Hyper Pro | 2 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 2 × 9 | 90s |
+| 4 | Hyper Pro 45-Degree Back Extension | Hyper Pro | 2 × 9 | 90s |
+| 5 | Hyper Pro 90-Degree Back Extension | Hyper Pro | 2 × 9 | 90s |
+| 6 | Hyper Pro Leg Raise | Hyper Pro | 2 × 12 | 90s |
+
+### Training regularly · 7 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 8 | 90s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 2 × 10 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 2 × 10 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 2 × 10 | 60s |
+| 6 | Hyper Pro Trap 3 Raise | Hyper Pro | 2 × 10 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Nordic Curl | Hyper Pro | 3 × 10 | 75s |
+| 2 | Hyper Pro Reverse Nordic | Hyper Pro | 3 × 12 | 60s |
+| 3 | Hyper Pro Reverse Hyper | Hyper Pro | 2 × 10 | 60s |
+| 4 | Hyper Pro QL Raise | Hyper Pro | 2 × 12 | 60s |
+| 5 | Hyper Pro Hamstring Curl | Hyper Pro | 2 × 12 | 60s |
+| 6 | Hyper Pro Leg Raise | Hyper Pro | 2 × 12 | 60s |
+
+### Training regularly · 7 days · General → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro Push-Up | Hyper Pro | 3 × 8 | 90s |
+| 2 | Hyper Pro Standing Row | Hyper Pro | 3 × 6 | 120s |
+| 3 | Hyper Pro Bicep Curl | Hyper Pro | 2 × 9 | 60s |
+| 4 | Hyper Pro Face Pull | Hyper Pro | 2 × 9 | 60s |
+| 5 | Hyper Pro Pullover | Hyper Pro | 2 × 9 | 60s |
+| 6 | Hyper Pro Trap 3 Raise | Hyper Pro | 2 × 9 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Hyper Pro KOT Squat | Hyper Pro | 3 × 6 | 120s |
+| 2 | Hyper Pro Hamstring Curl | Hyper Pro | 3 × 10 | 90s |
+| 3 | Hyper Pro Bulgarian Split Squat | Hyper Pro | 2 × 9 | 60s |
+| 4 | Hyper Pro Nordic Curl | Hyper Pro | 2 × 9 | 60s |
+| 5 | Hyper Pro Calf Stretch | Hyper Pro | 2 × 12 | 60s |
+| 6 | Hyper Pro Leg Raise | Hyper Pro | 2 × 12 | 60s |
 
 ## Dumbbells at home
 
@@ -2075,6 +4921,19 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
 | 4 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
 
+### New to lifting · 1 day · Resilience → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 3 × 8 | 120s |
+| 3 | One-Arm Dumbbell Row | Dumbbell | 3 × 8 | 90s |
+| 4 | Goblet Squat | Dumbbell | 3 × 8 | 90s |
+
 ### New to lifting · 1 day · General → Full Body
 
 _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1 session
@@ -2152,6 +5011,28 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 | 1 | Dumbbell Romanian Deadlift | Dumbbell | 3 × 8 | 120s |
 | 2 | Seated Dumbbell Press | Dumbbell | 3 × 8 | 120s |
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
+| 4 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
+
+### New to lifting · 2 days · Resilience → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 8 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 3 × 8 | 120s |
+| 3 | One-Arm Dumbbell Row | Dumbbell | 3 × 8 | 90s |
+| 4 | Goblet Squat | Dumbbell | 3 × 8 | 90s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Back Extension | Bodyweight | 3 × 8 | 120s |
+| 2 | Seated Dumbbell Press | Dumbbell | 3 × 8 | 120s |
+| 3 | One-Arm Dumbbell Row | Dumbbell | 3 × 8 | 90s |
 | 4 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 
 ### New to lifting · 2 days · General → Full Body
@@ -2242,6 +5123,28 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
 | 4 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 
+### New to lifting · 3 days · Resilience → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 8 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 3 × 8 | 120s |
+| 3 | One-Arm Dumbbell Row | Dumbbell | 3 × 8 | 90s |
+| 4 | Goblet Squat | Dumbbell | 3 × 8 | 90s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Back Extension | Bodyweight | 3 × 8 | 120s |
+| 2 | Seated Dumbbell Press | Dumbbell | 3 × 8 | 120s |
+| 3 | One-Arm Dumbbell Row | Dumbbell | 3 × 8 | 90s |
+| 4 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
+
 ### New to lifting · 3 days · General → Full Body
 
 **Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 8 lifts across 2 sessions
@@ -2329,6 +5232,28 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 | 2 | Dumbbell Romanian Deadlift | Dumbbell | 3 × 8 | 120s |
 | 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 | 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
+
+### New to lifting · 4 days · Resilience → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Dumbbell Bench Press | Dumbbell | 3 × 8 | 120s |
+| 2 | One-Arm Dumbbell Row | Dumbbell | 3 × 8 | 120s |
+| 3 | Seated Dumbbell Press | Dumbbell | 3 × 8 | 90s |
+| 4 | Pull-Up | Bodyweight | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Goblet Squat | Dumbbell | 3 × 8 | 120s |
+| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
+| 4 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
 
 ### New to lifting · 4 days · General → Upper / Lower
 
@@ -2418,6 +5343,28 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 | 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 | 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
 
+### New to lifting · 5 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Dumbbell Bench Press | Dumbbell | 3 × 8 | 120s |
+| 2 | One-Arm Dumbbell Row | Dumbbell | 3 × 8 | 120s |
+| 3 | Seated Dumbbell Press | Dumbbell | 3 × 8 | 90s |
+| 4 | Pull-Up | Bodyweight | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Goblet Squat | Dumbbell | 3 × 8 | 120s |
+| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
+| 4 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
+
 ### New to lifting · 5 days · General → Upper / Lower
 
 **Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 8 lifts across 2 sessions
@@ -2505,6 +5452,28 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 | 2 | Dumbbell Romanian Deadlift | Dumbbell | 3 × 8 | 120s |
 | 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 | 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
+
+### New to lifting · 6 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Dumbbell Bench Press | Dumbbell | 3 × 8 | 120s |
+| 2 | One-Arm Dumbbell Row | Dumbbell | 3 × 8 | 120s |
+| 3 | Seated Dumbbell Press | Dumbbell | 3 × 8 | 90s |
+| 4 | Pull-Up | Bodyweight | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Goblet Squat | Dumbbell | 3 × 8 | 120s |
+| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
+| 4 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
 
 ### New to lifting · 6 days · General → Upper / Lower
 
@@ -2594,6 +5563,28 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 | 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 | 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
 
+### New to lifting · 7 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Dumbbell Bench Press | Dumbbell | 3 × 8 | 120s |
+| 2 | One-Arm Dumbbell Row | Dumbbell | 3 × 8 | 120s |
+| 3 | Seated Dumbbell Press | Dumbbell | 3 × 8 | 90s |
+| 4 | Pull-Up | Bodyweight | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Goblet Squat | Dumbbell | 3 × 8 | 120s |
+| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
+| 4 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
+
 ### New to lifting · 7 days · General → Upper / Lower
 
 **Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 8 lifts across 2 sessions
@@ -2657,6 +5648,20 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
 | 4 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
 | 5 | Dumbbell Romanian Deadlift | Dumbbell | 3 × 8 | 90s |
+
+### On and off · 1 day · Resilience → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 4 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 4 × 8 | 90s |
+| 3 | One-Arm Dumbbell Row | Dumbbell | 3 × 10 | 75s |
+| 4 | Goblet Squat | Dumbbell | 3 × 10 | 75s |
+| 5 | Back Extension | Bodyweight | 3 × 10 | 60s |
 
 ### On and off · 1 day · General → Full Body
 
@@ -2743,6 +5748,30 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
 | 4 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 | 5 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
+
+### On and off · 2 days · Resilience → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 10 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 4 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 4 × 8 | 90s |
+| 3 | One-Arm Dumbbell Row | Dumbbell | 3 × 10 | 75s |
+| 4 | Goblet Squat | Dumbbell | 3 × 10 | 75s |
+| 5 | Back Extension | Bodyweight | 3 × 10 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Back Extension | Bodyweight | 4 × 8 | 90s |
+| 2 | Seated Dumbbell Press | Dumbbell | 4 × 8 | 90s |
+| 3 | One-Arm Dumbbell Row | Dumbbell | 3 × 10 | 75s |
+| 4 | Bulgarian Split Squat | Dumbbell | 3 × 10 | 75s |
+| 5 | Decline Sit-Up | Bodyweight | 3 × 10 | 60s |
 
 ### On and off · 2 days · General → Full Body
 
@@ -2840,6 +5869,30 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 4 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 | 5 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
 
+### On and off · 3 days · Resilience → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 10 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 3 | One-Arm Dumbbell Row | Dumbbell | 3 × 10 | 75s |
+| 4 | Goblet Squat | Dumbbell | 3 × 10 | 75s |
+| 5 | Back Extension | Bodyweight | 3 × 10 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Back Extension | Bodyweight | 3 × 8 | 90s |
+| 2 | Seated Dumbbell Press | Dumbbell | 3 × 8 | 90s |
+| 3 | One-Arm Dumbbell Row | Dumbbell | 3 × 10 | 75s |
+| 4 | Bulgarian Split Squat | Dumbbell | 3 × 10 | 75s |
+| 5 | Decline Sit-Up | Bodyweight | 3 × 10 | 60s |
+
 ### On and off · 3 days · General → Full Body
 
 **Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 10 lifts across 2 sessions
@@ -2935,6 +5988,30 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 | 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
 | 5 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
+
+### On and off · 4 days · Resilience → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Dumbbell Bench Press | Dumbbell | 3 × 8 | 90s |
+| 2 | One-Arm Dumbbell Row | Dumbbell | 3 × 8 | 90s |
+| 3 | Seated Dumbbell Press | Dumbbell | 3 × 10 | 75s |
+| 4 | Pull-Up | Bodyweight | 3 × 10 | 60s |
+| 5 | Dumbbell Curl | Dumbbell | 3 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Goblet Squat | Dumbbell | 3 × 8 | 90s |
+| 3 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 4 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
+| 5 | Decline Sit-Up | Bodyweight | 3 × 10 | 60s |
 
 ### On and off · 4 days · General → Upper / Lower
 
@@ -3041,6 +6118,30 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 3 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 | 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
 | 5 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
+
+### On and off · 5 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Dumbbell Bench Press | Dumbbell | 3 × 8 | 90s |
+| 2 | One-Arm Dumbbell Row | Dumbbell | 3 × 8 | 90s |
+| 3 | Seated Dumbbell Press | Dumbbell | 3 × 10 | 75s |
+| 4 | Pull-Up | Bodyweight | 3 × 10 | 60s |
+| 5 | Dumbbell Curl | Dumbbell | 3 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Goblet Squat | Dumbbell | 3 × 8 | 90s |
+| 3 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 4 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
+| 5 | Decline Sit-Up | Bodyweight | 3 × 10 | 60s |
 
 ### On and off · 5 days · General → Push / Pull / Legs
 
@@ -3158,6 +6259,30 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 4 | Dumbbell Step-Up | Dumbbell | 2 × 8 | 90s |
 | 5 | Kettlebell Swing | Kettlebell | 2 × 8 | 90s |
 
+### On and off · 6 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Dumbbell Bench Press | Dumbbell | 3 × 8 | 90s |
+| 2 | One-Arm Dumbbell Row | Dumbbell | 3 × 8 | 90s |
+| 3 | Seated Dumbbell Press | Dumbbell | 2 × 10 | 75s |
+| 4 | Pull-Up | Bodyweight | 2 × 10 | 60s |
+| 5 | Dumbbell Curl | Dumbbell | 2 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Goblet Squat | Dumbbell | 3 × 8 | 90s |
+| 3 | Back Extension | Bodyweight | 2 × 10 | 60s |
+| 4 | Hanging Leg Raise | Bodyweight | 2 × 12 | 60s |
+| 5 | Decline Sit-Up | Bodyweight | 2 × 10 | 60s |
+
 ### On and off · 6 days · General → Push / Pull / Legs
 
 **Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 15 lifts across 3 sessions
@@ -3274,6 +6399,30 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 4 | Dumbbell Step-Up | Dumbbell | 2 × 8 | 90s |
 | 5 | Kettlebell Swing | Kettlebell | 2 × 8 | 90s |
 
+### On and off · 7 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Dumbbell Bench Press | Dumbbell | 3 × 8 | 90s |
+| 2 | One-Arm Dumbbell Row | Dumbbell | 3 × 8 | 90s |
+| 3 | Seated Dumbbell Press | Dumbbell | 2 × 10 | 75s |
+| 4 | Pull-Up | Bodyweight | 2 × 10 | 60s |
+| 5 | Dumbbell Curl | Dumbbell | 2 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Goblet Squat | Dumbbell | 3 × 8 | 90s |
+| 3 | Back Extension | Bodyweight | 2 × 10 | 60s |
+| 4 | Hanging Leg Raise | Bodyweight | 2 × 12 | 60s |
+| 5 | Decline Sit-Up | Bodyweight | 2 × 10 | 60s |
+
 ### On and off · 7 days · General → Push / Pull / Legs
 
 **Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 15 lifts across 3 sessions
@@ -3352,6 +6501,21 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 4 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
 | 5 | Dumbbell Romanian Deadlift | Dumbbell | 3 × 8 | 90s |
 | 6 | Farmer's Carry | Dumbbell | 3 × 12 | 90s |
+
+### Training regularly · 1 day · Resilience → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 4 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 4 × 8 | 90s |
+| 3 | One-Arm Dumbbell Row | Dumbbell | 3 × 10 | 75s |
+| 4 | Goblet Squat | Dumbbell | 3 × 10 | 75s |
+| 5 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
 
 ### Training regularly · 1 day · General → Full Body
 
@@ -3445,6 +6609,32 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 4 | Bulgarian Split Squat | Dumbbell | 3 × 8 | 90s |
 | 5 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
 | 6 | Farmer's Carry | Dumbbell | 3 × 12 | 90s |
+
+### Training regularly · 2 days · Resilience → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 12 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 4 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 4 × 8 | 90s |
+| 3 | One-Arm Dumbbell Row | Dumbbell | 3 × 10 | 75s |
+| 4 | Goblet Squat | Dumbbell | 3 × 10 | 75s |
+| 5 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Back Extension | Bodyweight | 4 × 8 | 90s |
+| 2 | Seated Dumbbell Press | Dumbbell | 4 × 8 | 90s |
+| 3 | One-Arm Dumbbell Row | Dumbbell | 3 × 10 | 75s |
+| 4 | Bulgarian Split Squat | Dumbbell | 3 × 10 | 75s |
+| 5 | Decline Sit-Up | Bodyweight | 3 × 10 | 60s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
 
 ### Training regularly · 2 days · General → Full Body
 
@@ -3550,6 +6740,32 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 5 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
 | 6 | Farmer's Carry | Dumbbell | 3 × 12 | 90s |
 
+### Training regularly · 3 days · Resilience → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 12 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 3 | One-Arm Dumbbell Row | Dumbbell | 3 × 10 | 75s |
+| 4 | Goblet Squat | Dumbbell | 3 × 10 | 75s |
+| 5 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Back Extension | Bodyweight | 3 × 8 | 90s |
+| 2 | Seated Dumbbell Press | Dumbbell | 3 × 8 | 90s |
+| 3 | One-Arm Dumbbell Row | Dumbbell | 3 × 10 | 75s |
+| 4 | Bulgarian Split Squat | Dumbbell | 3 × 10 | 75s |
+| 5 | Decline Sit-Up | Bodyweight | 3 × 10 | 60s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
+
 ### Training regularly · 3 days · General → Full Body
 
 **Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 12 lifts across 2 sessions
@@ -3653,6 +6869,32 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
 | 5 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
 | 6 | Farmer's Carry | Dumbbell | 3 × 12 | 90s |
+
+### Training regularly · 4 days · Resilience → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Dumbbell Bench Press | Dumbbell | 3 × 8 | 90s |
+| 2 | One-Arm Dumbbell Row | Dumbbell | 3 × 8 | 90s |
+| 3 | Seated Dumbbell Press | Dumbbell | 3 × 10 | 75s |
+| 4 | Pull-Up | Bodyweight | 3 × 10 | 60s |
+| 5 | Dumbbell Curl | Dumbbell | 3 × 12 | 60s |
+| 6 | Overhead Dumbbell Triceps Extension | Dumbbell | 3 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Goblet Squat | Dumbbell | 3 × 8 | 90s |
+| 3 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 4 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
+| 5 | Decline Sit-Up | Bodyweight | 3 × 10 | 60s |
+| 6 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
 
 ### Training regularly · 4 days · General → Upper / Lower
 
@@ -3768,6 +7010,32 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 4 | Dumbbell Step-Up | Dumbbell | 3 × 8 | 90s |
 | 5 | Kettlebell Swing | Kettlebell | 3 × 8 | 90s |
 | 6 | Farmer's Carry | Dumbbell | 3 × 12 | 90s |
+
+### Training regularly · 5 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Dumbbell Bench Press | Dumbbell | 3 × 8 | 90s |
+| 2 | One-Arm Dumbbell Row | Dumbbell | 3 × 8 | 90s |
+| 3 | Seated Dumbbell Press | Dumbbell | 3 × 10 | 75s |
+| 4 | Pull-Up | Bodyweight | 3 × 10 | 60s |
+| 5 | Dumbbell Curl | Dumbbell | 3 × 12 | 60s |
+| 6 | Overhead Dumbbell Triceps Extension | Dumbbell | 3 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Goblet Squat | Dumbbell | 3 × 8 | 90s |
+| 3 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 4 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
+| 5 | Decline Sit-Up | Bodyweight | 3 × 10 | 60s |
+| 6 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
 
 ### Training regularly · 5 days · General → Push / Pull / Legs
 
@@ -3895,6 +7163,32 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 5 | Kettlebell Swing | Kettlebell | 2 × 8 | 90s |
 | 6 | Farmer's Carry | Dumbbell | 2 × 12 | 90s |
 
+### Training regularly · 6 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Dumbbell Bench Press | Dumbbell | 3 × 8 | 90s |
+| 2 | One-Arm Dumbbell Row | Dumbbell | 3 × 8 | 90s |
+| 3 | Seated Dumbbell Press | Dumbbell | 2 × 10 | 75s |
+| 4 | Pull-Up | Bodyweight | 2 × 10 | 60s |
+| 5 | Dumbbell Curl | Dumbbell | 2 × 12 | 60s |
+| 6 | Overhead Dumbbell Triceps Extension | Dumbbell | 2 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Goblet Squat | Dumbbell | 3 × 8 | 90s |
+| 3 | Back Extension | Bodyweight | 2 × 10 | 60s |
+| 4 | Hanging Leg Raise | Bodyweight | 2 × 12 | 60s |
+| 5 | Decline Sit-Up | Bodyweight | 2 × 10 | 60s |
+| 6 | Bodyweight Squat | Bodyweight | 2 × 11 | 60s |
+
 ### Training regularly · 6 days · General → Push / Pull / Legs
 
 **Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 18 lifts across 3 sessions
@@ -4020,6 +7314,32 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 4 | Dumbbell Step-Up | Dumbbell | 2 × 8 | 90s |
 | 5 | Kettlebell Swing | Kettlebell | 2 × 8 | 90s |
 | 6 | Farmer's Carry | Dumbbell | 2 × 12 | 90s |
+
+### Training regularly · 7 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Dumbbell Bench Press | Dumbbell | 3 × 8 | 90s |
+| 2 | One-Arm Dumbbell Row | Dumbbell | 3 × 8 | 90s |
+| 3 | Seated Dumbbell Press | Dumbbell | 2 × 10 | 75s |
+| 4 | Pull-Up | Bodyweight | 2 × 10 | 60s |
+| 5 | Dumbbell Curl | Dumbbell | 2 × 12 | 60s |
+| 6 | Overhead Dumbbell Triceps Extension | Dumbbell | 2 × 12 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Goblet Squat | Dumbbell | 3 × 8 | 90s |
+| 3 | Back Extension | Bodyweight | 2 × 10 | 60s |
+| 4 | Hanging Leg Raise | Bodyweight | 2 × 12 | 60s |
+| 5 | Decline Sit-Up | Bodyweight | 2 × 10 | 60s |
+| 6 | Bodyweight Squat | Bodyweight | 2 × 11 | 60s |
 
 ### Training regularly · 7 days · General → Push / Pull / Legs
 
@@ -4099,6 +7419,19 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
 | 4 | Plank | Bodyweight | 3 × 12 | 90s |
 
+### New to lifting · 1 day · Resilience → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 3 × 8 | 120s |
+| 3 | Inverted Row | Bodyweight | 3 × 10 | 90s |
+| 4 | Bodyweight Squat | Bodyweight | 3 × 10 | 90s |
+
 ### New to lifting · 1 day · General → Full Body
 
 _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1 session
@@ -4176,6 +7509,28 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 | 1 | Back Extension | Bodyweight | 3 × 8 | 120s |
 | 2 | Dip | Bodyweight | 3 × 8 | 120s |
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
+| 4 | Bodyweight Squat | Bodyweight | 3 × 10 | 90s |
+
+### New to lifting · 2 days · Resilience → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 8 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 3 × 8 | 120s |
+| 3 | Inverted Row | Bodyweight | 3 × 10 | 90s |
+| 4 | Bodyweight Squat | Bodyweight | 3 × 10 | 90s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Back Extension | Bodyweight | 3 × 8 | 120s |
+| 2 | Dip | Bodyweight | 3 × 8 | 120s |
+| 3 | Inverted Row | Bodyweight | 3 × 10 | 90s |
 | 4 | Bodyweight Squat | Bodyweight | 3 × 10 | 90s |
 
 ### New to lifting · 2 days · General → Full Body
@@ -4266,6 +7621,28 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
 | 4 | Bodyweight Squat | Bodyweight | 3 × 10 | 90s |
 
+### New to lifting · 3 days · Resilience → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 8 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 3 × 8 | 120s |
+| 3 | Inverted Row | Bodyweight | 3 × 10 | 90s |
+| 4 | Bodyweight Squat | Bodyweight | 3 × 10 | 90s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Back Extension | Bodyweight | 3 × 8 | 120s |
+| 2 | Dip | Bodyweight | 3 × 8 | 120s |
+| 3 | Inverted Row | Bodyweight | 3 × 10 | 90s |
+| 4 | Bodyweight Squat | Bodyweight | 3 × 10 | 90s |
+
 ### New to lifting · 3 days · General → Full Body
 
 **Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 8 lifts across 2 sessions
@@ -4353,6 +7730,28 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
 | 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
 | 4 | Plank | Bodyweight | 3 × 12 | 90s |
+
+### New to lifting · 4 days · Resilience → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Push-Up | Bodyweight | 3 × 8 | 120s |
+| 2 | Inverted Row | Bodyweight | 3 × 8 | 120s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
+| 4 | Dip | Bodyweight | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Bodyweight Squat | Bodyweight | 3 × 8 | 120s |
+| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
+| 4 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
 
 ### New to lifting · 4 days · General → Upper / Lower
 
@@ -4442,6 +7841,28 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 | 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
 | 4 | Plank | Bodyweight | 3 × 12 | 90s |
 
+### New to lifting · 5 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Push-Up | Bodyweight | 3 × 8 | 120s |
+| 2 | Inverted Row | Bodyweight | 3 × 8 | 120s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
+| 4 | Dip | Bodyweight | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Bodyweight Squat | Bodyweight | 3 × 8 | 120s |
+| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
+| 4 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
+
 ### New to lifting · 5 days · General → Upper / Lower
 
 **Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 8 lifts across 2 sessions
@@ -4529,6 +7950,28 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
 | 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
 | 4 | Plank | Bodyweight | 3 × 12 | 90s |
+
+### New to lifting · 6 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Push-Up | Bodyweight | 3 × 8 | 120s |
+| 2 | Inverted Row | Bodyweight | 3 × 8 | 120s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
+| 4 | Dip | Bodyweight | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Bodyweight Squat | Bodyweight | 3 × 8 | 120s |
+| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
+| 4 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
 
 ### New to lifting · 6 days · General → Upper / Lower
 
@@ -4618,6 +8061,28 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 | 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
 | 4 | Plank | Bodyweight | 3 × 12 | 90s |
 
+### New to lifting · 7 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 8 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Push-Up | Bodyweight | 3 × 8 | 120s |
+| 2 | Inverted Row | Bodyweight | 3 × 8 | 120s |
+| 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
+| 4 | Dip | Bodyweight | 3 × 9 | 90s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Bodyweight Squat | Bodyweight | 3 × 8 | 120s |
+| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
+| 4 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
+
 ### New to lifting · 7 days · General → Upper / Lower
 
 **Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 8 lifts across 2 sessions
@@ -4681,6 +8146,20 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
 | 4 | Plank | Bodyweight | 3 × 12 | 90s |
 | 5 | Diamond Push-Up | Bodyweight | 3 × 11 | 90s |
+
+### On and off · 1 day · Resilience → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 4 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 4 × 8 | 90s |
+| 3 | Inverted Row | Bodyweight | 3 × 11 | 60s |
+| 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
+| 5 | Back Extension | Bodyweight | 3 × 10 | 60s |
 
 ### On and off · 1 day · General → Full Body
 
@@ -4767,6 +8246,30 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
 | 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 90s |
 | 5 | Plank | Bodyweight | 3 × 12 | 90s |
+
+### On and off · 2 days · Resilience → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 10 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 4 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 4 × 8 | 90s |
+| 3 | Inverted Row | Bodyweight | 3 × 11 | 60s |
+| 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
+| 5 | Back Extension | Bodyweight | 3 × 10 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Back Extension | Bodyweight | 4 × 8 | 90s |
+| 2 | Dip | Bodyweight | 4 × 8 | 90s |
+| 3 | Inverted Row | Bodyweight | 3 × 11 | 60s |
+| 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
+| 5 | Decline Sit-Up | Bodyweight | 3 × 10 | 60s |
 
 ### On and off · 2 days · General → Full Body
 
@@ -4864,6 +8367,30 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 90s |
 | 5 | Plank | Bodyweight | 3 × 12 | 90s |
 
+### On and off · 3 days · Resilience → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 10 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 3 | Inverted Row | Bodyweight | 3 × 11 | 60s |
+| 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
+| 5 | Back Extension | Bodyweight | 3 × 10 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Back Extension | Bodyweight | 3 × 8 | 90s |
+| 2 | Dip | Bodyweight | 3 × 8 | 90s |
+| 3 | Inverted Row | Bodyweight | 3 × 11 | 60s |
+| 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
+| 5 | Decline Sit-Up | Bodyweight | 3 × 10 | 60s |
+
 ### On and off · 3 days · General → Full Body
 
 **Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 10 lifts across 2 sessions
@@ -4959,6 +8486,30 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
 | 4 | Plank | Bodyweight | 3 × 12 | 90s |
 | 5 | Hanging Leg Raise | Bodyweight | 3 × 12 | 90s |
+
+### On and off · 4 days · Resilience → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 2 | Inverted Row | Bodyweight | 3 × 8 | 90s |
+| 3 | Pull-Up | Bodyweight | 3 × 10 | 60s |
+| 4 | Dip | Bodyweight | 3 × 10 | 60s |
+| 5 | Diamond Push-Up | Bodyweight | 3 × 11 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
+| 3 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 4 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
+| 5 | Decline Sit-Up | Bodyweight | 3 × 10 | 60s |
 
 ### On and off · 4 days · General → Upper / Lower
 
@@ -5056,6 +8607,30 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 4 | Plank | Bodyweight | 3 × 12 | 90s |
 | 5 | Hanging Leg Raise | Bodyweight | 3 × 12 | 90s |
 
+### On and off · 5 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 2 | Inverted Row | Bodyweight | 3 × 8 | 90s |
+| 3 | Pull-Up | Bodyweight | 3 × 10 | 60s |
+| 4 | Dip | Bodyweight | 3 × 10 | 60s |
+| 5 | Diamond Push-Up | Bodyweight | 3 × 11 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
+| 3 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 4 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
+| 5 | Decline Sit-Up | Bodyweight | 3 × 10 | 60s |
+
 ### On and off · 5 days · General → Upper / Lower
 
 **Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 10 lifts across 2 sessions
@@ -5151,6 +8726,30 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 3 | Back Extension | Bodyweight | 2 × 9 | 90s |
 | 4 | Plank | Bodyweight | 2 × 12 | 90s |
 | 5 | Hanging Leg Raise | Bodyweight | 2 × 12 | 90s |
+
+### On and off · 6 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 2 | Inverted Row | Bodyweight | 3 × 8 | 90s |
+| 3 | Pull-Up | Bodyweight | 2 × 10 | 60s |
+| 4 | Dip | Bodyweight | 2 × 10 | 60s |
+| 5 | Diamond Push-Up | Bodyweight | 2 × 11 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
+| 3 | Back Extension | Bodyweight | 2 × 10 | 60s |
+| 4 | Hanging Leg Raise | Bodyweight | 2 × 12 | 60s |
+| 5 | Decline Sit-Up | Bodyweight | 2 × 10 | 60s |
 
 ### On and off · 6 days · General → Upper / Lower
 
@@ -5248,6 +8847,30 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 4 | Plank | Bodyweight | 2 × 12 | 90s |
 | 5 | Hanging Leg Raise | Bodyweight | 2 × 12 | 90s |
 
+### On and off · 7 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 10 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 2 | Inverted Row | Bodyweight | 3 × 8 | 90s |
+| 3 | Pull-Up | Bodyweight | 2 × 10 | 60s |
+| 4 | Dip | Bodyweight | 2 × 10 | 60s |
+| 5 | Diamond Push-Up | Bodyweight | 2 × 11 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
+| 3 | Back Extension | Bodyweight | 2 × 10 | 60s |
+| 4 | Hanging Leg Raise | Bodyweight | 2 × 12 | 60s |
+| 5 | Decline Sit-Up | Bodyweight | 2 × 10 | 60s |
+
 ### On and off · 7 days · General → Upper / Lower
 
 **Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 10 lifts across 2 sessions
@@ -5316,6 +8939,21 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 4 | Plank | Bodyweight | 3 × 12 | 90s |
 | 5 | Diamond Push-Up | Bodyweight | 3 × 11 | 90s |
 | 6 | Inverted Row | Bodyweight | 3 × 11 | 90s |
+
+### Training regularly · 1 day · Resilience → Full Body
+
+_Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1 session
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 4 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 4 × 8 | 90s |
+| 3 | Inverted Row | Bodyweight | 3 × 11 | 60s |
+| 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
+| 5 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
 
 ### Training regularly · 1 day · General → Full Body
 
@@ -5409,6 +9047,32 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 90s |
 | 5 | Plank | Bodyweight | 3 × 12 | 90s |
 | 6 | Push-Up | Bodyweight | 3 × 11 | 90s |
+
+### Training regularly · 2 days · Resilience → Full Body
+
+**Mon** _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 2 training days, 12 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 4 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 4 × 8 | 90s |
+| 3 | Inverted Row | Bodyweight | 3 × 11 | 60s |
+| 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
+| 5 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Back Extension | Bodyweight | 4 × 8 | 90s |
+| 2 | Dip | Bodyweight | 4 × 8 | 90s |
+| 3 | Inverted Row | Bodyweight | 3 × 11 | 60s |
+| 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
+| 5 | Decline Sit-Up | Bodyweight | 3 × 10 | 60s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
 
 ### Training regularly · 2 days · General → Full Body
 
@@ -5514,6 +9178,32 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 5 | Plank | Bodyweight | 3 × 12 | 90s |
 | 6 | Push-Up | Bodyweight | 3 × 11 | 90s |
 
+### Training regularly · 3 days · Resilience → Full Body
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 12 lifts across 2 sessions
+
+**Full Body A**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 3 | Inverted Row | Bodyweight | 3 × 11 | 60s |
+| 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
+| 5 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
+
+**Full Body B**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Back Extension | Bodyweight | 3 × 8 | 90s |
+| 2 | Dip | Bodyweight | 3 × 8 | 90s |
+| 3 | Inverted Row | Bodyweight | 3 × 11 | 60s |
+| 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
+| 5 | Decline Sit-Up | Bodyweight | 3 × 10 | 60s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
+
 ### Training regularly · 3 days · General → Full Body
 
 **Mon** _Tue_ **Wed** _Thu_ **Fri** _Sat_ _Sun_ — 3 training days, 12 lifts across 2 sessions
@@ -5564,7 +9254,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
 | 4 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 90s |
 | 5 | Plank | Bodyweight | 3 × 12 | 90s |
-| 6 | Side Plank | Bodyweight | 3 × 12 | 90s |
+| 6 | Push-Up | Bodyweight | 3 × 11 | 90s |
 
 ### Training regularly · 4 days · Muscle → Upper / Lower
 
@@ -5618,6 +9308,32 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 5 | Hanging Leg Raise | Bodyweight | 3 × 12 | 90s |
 | 6 | Side Plank | Bodyweight | 3 × 12 | 90s |
 
+### Training regularly · 4 days · Resilience → Upper / Lower
+
+**Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 2 | Inverted Row | Bodyweight | 3 × 8 | 90s |
+| 3 | Pull-Up | Bodyweight | 3 × 10 | 60s |
+| 4 | Dip | Bodyweight | 3 × 10 | 60s |
+| 5 | Diamond Push-Up | Bodyweight | 3 × 11 | 60s |
+| 6 | Chin-Up | Bodyweight | 3 × 10 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
+| 3 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 4 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
+| 5 | Decline Sit-Up | Bodyweight | 3 × 10 | 60s |
+| 6 | Single-Leg Calf Raise | Bodyweight | 3 × 10 | 60s |
+
 ### Training regularly · 4 days · General → Upper / Lower
 
 **Mon** _Tue_ **Wed** _Thu_ **Fri** **Sat** _Sun_ — 4 training days, 12 lifts across 2 sessions
@@ -5668,7 +9384,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
 | 4 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 90s |
 | 5 | Plank | Bodyweight | 3 × 12 | 90s |
-| 6 | Side Plank | Bodyweight | 3 × 12 | 90s |
+| 6 | Push-Up | Bodyweight | 3 × 11 | 90s |
 
 ### Training regularly · 5 days · Muscle → Upper / Lower
 
@@ -5722,6 +9438,32 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 5 | Hanging Leg Raise | Bodyweight | 3 × 12 | 90s |
 | 6 | Side Plank | Bodyweight | 3 × 12 | 90s |
 
+### Training regularly · 5 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 2 | Inverted Row | Bodyweight | 3 × 8 | 90s |
+| 3 | Pull-Up | Bodyweight | 3 × 10 | 60s |
+| 4 | Dip | Bodyweight | 3 × 10 | 60s |
+| 5 | Diamond Push-Up | Bodyweight | 3 × 11 | 60s |
+| 6 | Chin-Up | Bodyweight | 3 × 10 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
+| 3 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 4 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
+| 5 | Decline Sit-Up | Bodyweight | 3 × 10 | 60s |
+| 6 | Single-Leg Calf Raise | Bodyweight | 3 × 10 | 60s |
+
 ### Training regularly · 5 days · General → Upper / Lower
 
 **Mon** **Tue** **Wed** _Thu_ **Fri** **Sat** _Sun_ — 5 training days, 12 lifts across 2 sessions
@@ -5772,7 +9514,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 3 | Back Extension | Bodyweight | 2 × 9 | 90s |
 | 4 | Single-Leg Calf Raise | Bodyweight | 2 × 9 | 90s |
 | 5 | Plank | Bodyweight | 2 × 12 | 90s |
-| 6 | Side Plank | Bodyweight | 2 × 12 | 90s |
+| 6 | Push-Up | Bodyweight | 2 × 11 | 90s |
 
 ### Training regularly · 6 days · Muscle → Upper / Lower
 
@@ -5826,6 +9568,32 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 5 | Hanging Leg Raise | Bodyweight | 2 × 12 | 90s |
 | 6 | Side Plank | Bodyweight | 2 × 12 | 90s |
 
+### Training regularly · 6 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 2 | Inverted Row | Bodyweight | 3 × 8 | 90s |
+| 3 | Pull-Up | Bodyweight | 2 × 10 | 60s |
+| 4 | Dip | Bodyweight | 2 × 10 | 60s |
+| 5 | Diamond Push-Up | Bodyweight | 2 × 11 | 60s |
+| 6 | Chin-Up | Bodyweight | 2 × 10 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
+| 3 | Back Extension | Bodyweight | 2 × 10 | 60s |
+| 4 | Hanging Leg Raise | Bodyweight | 2 × 12 | 60s |
+| 5 | Decline Sit-Up | Bodyweight | 2 × 10 | 60s |
+| 6 | Single-Leg Calf Raise | Bodyweight | 2 × 10 | 60s |
+
 ### Training regularly · 6 days · General → Upper / Lower
 
 **Mon** **Tue** **Wed** **Thu** **Fri** **Sat** _Sun_ — 6 training days, 12 lifts across 2 sessions
@@ -5876,7 +9644,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 3 | Back Extension | Bodyweight | 2 × 9 | 90s |
 | 4 | Single-Leg Calf Raise | Bodyweight | 2 × 9 | 90s |
 | 5 | Plank | Bodyweight | 2 × 12 | 90s |
-| 6 | Side Plank | Bodyweight | 2 × 12 | 90s |
+| 6 | Push-Up | Bodyweight | 2 × 11 | 90s |
 
 ### Training regularly · 7 days · Muscle → Upper / Lower
 
@@ -5929,6 +9697,32 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 4 | Plank | Bodyweight | 2 × 12 | 90s |
 | 5 | Hanging Leg Raise | Bodyweight | 2 × 12 | 90s |
 | 6 | Side Plank | Bodyweight | 2 × 12 | 90s |
+
+### Training regularly · 7 days · Resilience → Upper / Lower
+
+**Mon** **Tue** **Wed** **Thu** **Fri** **Sat** **Sun** — 7 training days, 12 lifts across 2 sessions
+
+**Upper**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Push-Up | Bodyweight | 3 × 8 | 90s |
+| 2 | Inverted Row | Bodyweight | 3 × 8 | 90s |
+| 3 | Pull-Up | Bodyweight | 2 × 10 | 60s |
+| 4 | Dip | Bodyweight | 2 × 10 | 60s |
+| 5 | Diamond Push-Up | Bodyweight | 2 × 11 | 60s |
+| 6 | Chin-Up | Bodyweight | 2 × 10 | 60s |
+
+**Lower Body**
+
+| # | Lift | Equipment | Sets × Reps | Rest |
+|---|---|---|---|---|
+| 1 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
+| 2 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
+| 3 | Back Extension | Bodyweight | 2 × 10 | 60s |
+| 4 | Hanging Leg Raise | Bodyweight | 2 × 12 | 60s |
+| 5 | Decline Sit-Up | Bodyweight | 2 × 10 | 60s |
+| 6 | Single-Leg Calf Raise | Bodyweight | 2 × 10 | 60s |
 
 ### Training regularly · 7 days · General → Upper / Lower
 
