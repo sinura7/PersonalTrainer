@@ -26,9 +26,9 @@ live activity at a time.
 
 ## Commands
 
-- `tools/preflight.sh`
-- `./gradlew testDebugUnitTest`
-- `./gradlew assembleDebug`
+- `tools/preflight.sh` — OK (985 domain tests)
+- `./gradlew testDebugUnitTest` — 1445 tests, 0 failures
+- `./gradlew assembleDebug` — SUCCESS (`PersonalTrainer-1.0.0-debug.apk`)
 
 ## Known limitations
 
