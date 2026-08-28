@@ -143,11 +143,12 @@ fun PlanDaySheet(
                     }
                 }
                 val taggedItem = occurrences.firstOrNull { it.occurrence.id == startTagId }
-                val canStartTagged = taggedItem != null &&
+                if (
+                    taggedItem != null &&
                     !isPast &&
                     !sessionLive &&
                     taggedItem.occurrence.status == OccurrenceStatus.PLANNED
-                if (canStartTagged && taggedItem != null) {
+                ) {
                     PrimaryGymButton(
                         text = "Start ${taggedItem.title}",
                         onClick = { onStartOccurrence(taggedItem.occurrence.id) },
