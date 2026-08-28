@@ -31,6 +31,7 @@ import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SessionFocusKind
+import com.sinura.personaltrainer.domain.SlotRuleImport
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.sessionLiftNames
 import com.sinura.personaltrainer.ui.components.GroupedList
@@ -50,8 +51,10 @@ import java.time.format.DateTimeFormatter
  * One weekday of the plan: build it, or start what is already on it.
  *
  * Open days are built here — named after the weekday, lifts and targets
- * in the editor, cardio as a second occurrence. Home then shows that
- * day's work. A free session on the same date does not consume the plan.
+ * in the editor. Morning cardio and later sessions (accessory / Hyper
+ * Pro) sit as extra occurrences on the same weekday. Home then shows
+ * that day's stack. A free session on the same date does not consume
+ * the plan. One live activity still blocks a second start.
  *
  * Past days are a record and get no actions.
  */
@@ -71,12 +74,20 @@ fun PlanDaySheet(
     occurrences: List<AgendaItem> = emptyList(),
     onStartOccurrence: (String) -> Unit = {},
     onAddMorningCardio: () -> Unit = {},
+    onAddLaterSession: (String) -> Unit = {},
+    onComposeLaterSession: () -> Unit = {},
+    onRemoveTimedRule: (String) -> Unit = {},
     onBuildDay: () -> Unit = {},
     onStartFree: () -> Unit = {},
     sessionLive: Boolean = false,
 ) {
     var picking by rememberSaveable(day.epochDay) { mutableStateOf(Picker.NONE) }
     val pinned = !day.isRest
+    val extras = occurrences.filter { item ->
+        item.rule?.id?.let { SlotRuleImport.isUserTimedRule(it) } == true
+    }
+    val usedRoutineIds = occurrences.mapNotNull { it.rule?.routineId }.toSet()
+    val laterChoices = routines.filter { it.id !in usedRoutineIds }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -108,7 +119,7 @@ fun PlanDaySheet(
                         logged -> "Logged. The plan for later today still stands."
                         pinned -> day.reason
                         isPast -> "No session logged."
-                        else -> "Build ${CustomWeekPolicy.routineName(day.dayOfWeek)} — lifts, sets, reps. Cardio can sit on the same day."
+                        else -> "Build ${CustomWeekPolicy.routineName(day.dayOfWeek)} — lifts, sets, reps. More sessions can sit on the same day."
                     },
                     style = InstrumentType.caption,
                     color = TextSecondary,
@@ -184,12 +195,26 @@ fun PlanDaySheet(
                 }
             } else {
                 val hasCardio = occurrences.any { it.rule?.modality == ScheduleModality.CARDIO }
-                if (!hasCardio) {
-                    GroupedList {
+                GroupedList {
+                    if (!hasCardio) {
                         InstrumentRow(
                             title = "Add morning cardio",
                             subtitle = SessionOrderCopy.CARDIO_ON_THIS_DAY,
                             onClick = onAddMorningCardio,
+                        )
+                        HairlineDivider()
+                    }
+                    InstrumentRow(
+                        title = "Add another session…",
+                        subtitle = SessionOrderCopy.LATER_SESSION,
+                        onClick = { picking = if (picking == Picker.LATER) Picker.NONE else Picker.LATER },
+                    )
+                    if (extras.isNotEmpty()) {
+                        HairlineDivider()
+                        InstrumentRow(
+                            title = "Remove a session…",
+                            subtitle = SessionOrderCopy.REMOVE_SESSION,
+                            onClick = { picking = if (picking == Picker.REMOVE) Picker.NONE else Picker.REMOVE },
                         )
                     }
                 }
@@ -248,6 +273,72 @@ fun PlanDaySheet(
                         onPinFocus(kind)
                     },
                 )
+                Picker.LATER -> LaterSessionPicker(
+                    routines = laterChoices,
+                    onCompose = {
+                        picking = Picker.NONE
+                        onComposeLaterSession()
+                    },
+                    onPick = { routineId ->
+                        picking = Picker.NONE
+                        onAddLaterSession(routineId)
+                    },
+                )
+                Picker.REMOVE -> RemoveSessionPicker(
+                    extras = extras,
+                    onPick = { ruleId ->
+                        picking = Picker.NONE
+                        onRemoveTimedRule(ruleId)
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LaterSessionPicker(
+    routines: List<Routine>,
+    onCompose: () -> Unit,
+    onPick: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
+        Kicker("Later session")
+        GroupedList {
+            InstrumentRow(
+                title = "New session…",
+                subtitle = SessionOrderCopy.COMPOSE_LATER,
+                onClick = onCompose,
+            )
+        }
+        if (routines.isEmpty()) {
+            Text(
+                "Or create a named routine on this tab, then pick it here.",
+                style = InstrumentType.caption,
+                color = TextSecondary,
+            )
+        } else {
+            RoutinePicker(routines = routines, onPick = onPick)
+        }
+    }
+}
+
+@Composable
+private fun RemoveSessionPicker(
+    extras: List<AgendaItem>,
+    onPick: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
+        Kicker("Remove")
+        GroupedList {
+            extras.forEachIndexed { index, item ->
+                val ruleId = item.rule?.id ?: return@forEachIndexed
+                if (index > 0) HairlineDivider()
+                InstrumentRow(
+                    title = "${item.timeLabel}  ·  ${item.title}",
+                    subtitle = SessionOrderCopy.REMOVE_SESSION,
+                    onClick = { onPick(ruleId) },
+                )
             }
         }
     }
@@ -301,7 +392,7 @@ private fun FocusPicker(onPick: (SessionFocusKind) -> Unit) {
 private fun dateLabel(epochDay: Long): String =
     DATE_FORMAT.format(LocalDate.ofEpochDay(epochDay))
 
-private enum class Picker { NONE, ROUTINE, FOCUS, SWAP }
+private enum class Picker { NONE, ROUTINE, FOCUS, SWAP, LATER, REMOVE }
 
 private val PINNABLE_FOCUS = listOf(
     SessionFocusKind.PUSH,

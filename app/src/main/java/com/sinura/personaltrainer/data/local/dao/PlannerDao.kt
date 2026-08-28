@@ -50,6 +50,9 @@ interface PlannerDao {
     @Query("SELECT * FROM schedule_occurrences WHERE id = :id")
     suspend fun getOccurrence(id: String): ScheduleOccurrenceEntity?
 
+    @Query("SELECT * FROM schedule_occurrences WHERE ruleId = :ruleId")
+    suspend fun getOccurrencesForRule(ruleId: String): List<ScheduleOccurrenceEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertOccurrences(rows: List<ScheduleOccurrenceEntity>)
 

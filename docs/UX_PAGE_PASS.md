@@ -134,7 +134,8 @@ keeps the draft.
   `Start {title}` on the next planned row (strength preferred). That row
   also shows the numbered lift order. Free workout stays quiet.
 - Two-a-day: one Volt. The other planned row stays tappable, not a second
-  filled Start.
+  filled Start. A three-session day is the same rule: one Volt on the
+  first planned strength; later accessory stays tappable.
 - Empty agenda leftover → `ThisWeekCard`. Planned + not logged → volt
   “Start this session”. Rest / already trained → quiet “Start a free workout”.
   ~~Rest → quiet “Start anyway”. Already trained → quiet “Start another”~~
@@ -182,7 +183,8 @@ keeps the draft.
 - Header New is quiet so it does not compete with that confirm.
 - Free on a Plan day opens `StartOptionsSheet`, not an empty free session.
 - Two-a-day: one Volt Start (strength preferred); other planned rows stay
-  tappable. Same rule as Home.
+  tappable. Same rule as Home. A later accessory session is another
+  tappable row, not a second Volt.
 - Missed-work: one Volt **Keep the dates**. Move / Adapt / Skip are
   secondary gym buttons. Copy never says “recurrence”.
 - Plan day Start sits **under** the grouped occurrence list, not inside
@@ -295,6 +297,12 @@ Job 4 / P1. Home empty-week volt becomes replay when routines exist
 
 Record every deviation here. Oldest stay; do not delete.
 
+Owner asked for a **day stack** (28 Aug 2026): more than two sessions
+on one weekday — morning cardio, the pinned workout, and later
+accessory / Hyper Pro work. Plan adds the later occurrence; Home
+lists them in time order. One live activity. Finish one, then start
+the next. Overlay rest, a fifth tab, and LLM-as-author stay won’ts.
+
 Owner asked for a **cross-tab layout fit** (28 Aug 2026): windows, buttons,
 and text that fit on every tab and in the workout. Instrument / ADR-005 stay.
 Not a restyle.
@@ -365,6 +373,9 @@ and a 240 dp ring on the log stay won’ts.
 25. **Lock-screen rest is a chronometer, not overlay rest.** Screen
     off, turn on, the countdown is on the lock screen. The live log
     keeps the condensed bar.
+26. **A weekday can hold more than two sessions.** Morning cardio,
+    the pinned workout, and a later accessory session are independent
+    rows. One Volt. Finish one before starting the next.
 
 ---
 

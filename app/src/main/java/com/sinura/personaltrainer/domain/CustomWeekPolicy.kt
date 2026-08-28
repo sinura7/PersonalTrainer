@@ -58,6 +58,9 @@ object CustomWeekPolicy {
     fun routineName(day: Weekday): String =
         day.name.lowercase().replaceFirstChar { it.titlecase() }
 
+    /** A later session on a weekday that already has a named routine. */
+    fun extraRoutineName(day: Weekday): String = "${routineName(day)} extra"
+
     /**
      * Preferred days from the questionnaire stay marked even with zero lifts.
      * Confirm still needs at least one lift somewhere.

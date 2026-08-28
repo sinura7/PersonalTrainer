@@ -112,7 +112,7 @@ private fun WeekCell(
                     .size(TWO_A_DAY_MARK)
                     .clip(CircleShape)
                     .background(HairlineStrong)
-                    .semantics { contentDescription = "Two sessions" },
+                    .semantics { contentDescription = "Multiple sessions" },
             )
         }
         Kicker(

@@ -31,6 +31,7 @@ import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.ScheduleOccurrence
 import com.sinura.personaltrainer.domain.ScheduleRule
 import com.sinura.personaltrainer.domain.SessionFocusKind
+import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.WeekTwoCopy
@@ -117,7 +118,7 @@ class HomePassInstrumentedTest {
         compose.onNodeWithTag(HomeTags.FREE).assertIsDisplayed()
         compose.onNodeWithContentDescription("Start a free workout").assertIsDisplayed()
         compose.onNodeWithTag(HomeTags.GOALS).assertIsDisplayed()
-        compose.onNodeWithText("Morning and evening stay separate.").assertDoesNotExist()
+        compose.onNodeWithText(SessionOrderCopy.AGENDA_SEPARATE).assertDoesNotExist()
     }
 
     @Test
@@ -135,8 +136,27 @@ class HomePassInstrumentedTest {
         compose.onNodeWithContentDescription("Start today's planned session").assertIsDisplayed()
         compose.onNodeWithText("Start Push").assertIsDisplayed()
         compose.onNodeWithText("Start Cardio").assertDoesNotExist()
-        compose.onNodeWithText("Morning and evening stay separate.").assertIsDisplayed()
+        compose.onNodeWithText(SessionOrderCopy.AGENDA_SEPARATE).assertIsDisplayed()
         compose.onNodeWithText("1 Squat · 2 Row").assertIsDisplayed()
+    }
+
+    @Test
+    fun dayStackKeepsOneVoltOnTheFirstStrength() {
+        setConstrainedContent(fontScale = 1f) {
+            DailyAgendaCard(
+                items = listOf(CARDIO_ITEM, STRENGTH_ITEM, EXTRA_ITEM),
+                sessionLive = false,
+                onStartOccurrence = {},
+                onStartFree = {},
+                routines = listOf(PUSH_ROUTINE, EXTRA_ROUTINE),
+            )
+        }
+        compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
+        compose.onNodeWithText("Start Push").assertIsDisplayed()
+        compose.onNodeWithText("Start Cardio").assertDoesNotExist()
+        compose.onNodeWithText("Start Monday extra").assertDoesNotExist()
+        compose.onNodeWithText(SessionOrderCopy.AGENDA_SEPARATE).assertIsDisplayed()
+        compose.onNodeWithText("1 Reverse hyper").assertIsDisplayed()
     }
 
     @Test
@@ -258,6 +278,29 @@ class HomePassInstrumentedTest {
                 updatedAtMs = 1L,
             ),
         )
+        val EXTRA_ITEM = AgendaItem(
+            occurrence = ScheduleOccurrence(
+                id = "occ-extra",
+                ruleId = "rule-extra",
+                status = OccurrenceStatus.PLANNED,
+                captured = CapturedCivilTime(1L, "UTC", 0, TODAY),
+                hour = 20,
+                minute = 0,
+                createdAtMs = 1L,
+                updatedAtMs = 1L,
+            ),
+            rule = ScheduleRule(
+                id = "rule-extra",
+                weekday = Weekday.MONDAY,
+                hour = 20,
+                minute = 0,
+                modality = ScheduleModality.STRENGTH,
+                routineId = "r-extra",
+                createdAtMs = 1L,
+                updatedAtMs = 1L,
+            ),
+            routineName = "Monday extra",
+        )
         val PUSH_ROUTINE = Routine(
             id = "r-push",
             name = "Push",
@@ -278,6 +321,31 @@ class HomePassInstrumentedTest {
                     sortOrder = index,
                     targetSets = 3,
                     targetReps = 5,
+                    targetWeightKg = null,
+                    restSeconds = 90,
+                )
+            },
+        )
+        val EXTRA_ROUTINE = Routine(
+            id = "r-extra",
+            name = "Monday extra",
+            notes = "",
+            createdAt = 0L,
+            updatedAt = 0L,
+            exercises = listOf("Reverse hyper").mapIndexed { index, name ->
+                RoutineExercise(
+                    id = "extra-$index",
+                    routineId = "r-extra",
+                    exercise = Exercise(
+                        id = "ex-extra-$index",
+                        name = name,
+                        muscleGroup = "Lower back",
+                        notes = "",
+                        isCustom = false,
+                    ),
+                    sortOrder = index,
+                    targetSets = 3,
+                    targetReps = 10,
                     targetWeightKg = null,
                     restSeconds = 90,
                 )

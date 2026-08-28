@@ -51,6 +51,7 @@ class CustomWeekPolicyTest {
     @Test
     fun mondayIsTheRoutineName() {
         assertEquals("Monday", CustomWeekPolicy.routineName(Weekday.MONDAY))
+        assertEquals("Monday extra", CustomWeekPolicy.extraRoutineName(Weekday.MONDAY))
     }
 
     @Test

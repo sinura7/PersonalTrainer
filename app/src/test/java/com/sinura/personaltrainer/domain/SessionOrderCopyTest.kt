@@ -64,7 +64,11 @@ class SessionOrderCopyTest {
         assertEquals(SessionOrderCopy.NEED_A_LIFT, "Add at least one lift before starting this routine.")
         assertEquals(
             SessionOrderCopy.AGENDA_SEPARATE,
-            "Morning and evening stay separate.",
+            "Each session stays its own. Finish one, then start the next.",
+        )
+        assertEquals(
+            SessionOrderCopy.LATER_SESSION,
+            "Another session this weekday. Pick a routine. Does not replace the others.",
         )
         assertEquals(
             SessionOrderCopy.EMPTY_EDITOR_BODY,

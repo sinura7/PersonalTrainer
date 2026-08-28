@@ -66,6 +66,27 @@ class DailyAgendaTest {
         assertEquals(setOf(day), marked)
     }
 
+    @Test
+    fun dayStackSortsCardioThenMainThenLaterStrength() {
+        val day = 20_000L
+        val cardio = occ("c", "r-c", day, 7)
+        val main = occ("s", "r-s", day, 18)
+        val extra = occ("e", "r-e", day, 20)
+        val items = DailyAgenda.forDay(
+            day,
+            listOf(extra, cardio, main),
+            listOf(
+                rule("r-c", ScheduleModality.CARDIO),
+                rule("r-s", ScheduleModality.STRENGTH),
+                rule("r-e", ScheduleModality.STRENGTH).copy(routineId = "routine-extra"),
+            ),
+            mapOf("routine-extra" to "Monday extra"),
+        )
+        assertEquals(listOf("c", "s", "e"), items.map { it.occurrence.id })
+        assertEquals(listOf("Cardio", "Strength", "Monday extra"), items.map { it.title })
+        assertEquals(setOf(day), DailyAgenda.twoADayEpochDays(listOf(cardio, main, extra)))
+    }
+
     private fun rule(id: String, modality: ScheduleModality) = ScheduleRule(
         id = id,
         weekday = Weekday.MONDAY,

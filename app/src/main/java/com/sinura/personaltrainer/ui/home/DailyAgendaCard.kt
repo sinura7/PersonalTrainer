@@ -35,11 +35,12 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
  * Today's occurrences — Home's only today-surface when the planner
  * generated any row (P7.5). ThisWeekCard is the empty-agenda leftover.
  *
- * Morning cardio and evening strength are two rows. Completing one does
- * not start or hide the other. One live activity still blocks a second start.
- * One filled Volt starts the next planned row (strength preferred); other
- * planned rows stay tappable. Strength rows speak the same numbered order
- * Plan and the editor already built.
+ * Morning cardio, a main lift session, and later accessory work are
+ * separate rows. Completing one does not start or hide the other. One
+ * live activity still blocks a second start. One filled Volt starts the
+ * next planned row (first strength preferred); other planned rows stay
+ * tappable. Strength rows speak the same numbered order Plan and the
+ * editor already built.
  *
  * The group is the list. Start sits under it so a card does not wrap a card.
  */

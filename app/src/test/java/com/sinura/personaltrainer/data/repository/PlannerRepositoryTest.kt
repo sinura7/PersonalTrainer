@@ -62,6 +62,55 @@ class PlannerRepositoryTest {
     }
 
     @Test
+    fun laterStrengthSurvivesASlotSwap() = runBlocking {
+        val push = deps.routineRepository.create(name = "Push")
+        val pull = deps.routineRepository.create(name = "Pull")
+        val extra = deps.routineRepository.create(name = "Monday extra")
+        deps.scheduleRepository.pin(push.id, null, Weekday.MONDAY)
+        deps.plannerRepository.syncSlotsToRules()
+        deps.plannerRepository.addTimedRule(
+            weekday = Weekday.MONDAY,
+            hour = SlotRuleImport.nextLaterHour(listOf(SlotRuleImport.DEFAULT_STRENGTH_HOUR)),
+            minute = 0,
+            modality = ScheduleModality.STRENGTH,
+            routineId = extra.id,
+        )
+        deps.scheduleRepository.swapRoutine(deps.scheduleRepository.slots().single().id, pull.id)
+        deps.plannerRepository.syncSlotsToRules()
+        val rules = deps.plannerRepository.rules()
+        assertEquals(2, rules.size)
+        assertEquals(pull.id, rules.single { SlotRuleImport.isImportedSlotRule(it.id) }.routineId)
+        val later = rules.single { SlotRuleImport.isUserTimedRule(it.id) }
+        assertEquals(extra.id, later.routineId)
+        assertEquals(20, later.hour)
+        assertEquals(ScheduleModality.STRENGTH, later.modality)
+    }
+
+    @Test
+    fun removeTimedRuleDropsPlannedExtraAndLeavesThePin() = runBlocking {
+        val push = deps.routineRepository.create(name = "Push")
+        val extra = deps.routineRepository.create(name = "Monday extra")
+        deps.scheduleRepository.pin(push.id, null, Weekday.MONDAY)
+        deps.plannerRepository.importSlotsIfNeeded()
+        val later = deps.plannerRepository.addTimedRule(
+            weekday = Weekday.MONDAY,
+            hour = 20,
+            minute = 0,
+            modality = ScheduleModality.STRENGTH,
+            routineId = extra.id,
+        )
+        deps.plannerRepository.ensureWeek(weekStart, "UTC", 1_700_000_000_000L)
+        assertEquals(2, deps.plannerRepository.occurrencesBetween(weekStart.epochDay, weekStart.epochDay).size)
+        deps.plannerRepository.removeTimedRule(later.id)
+        val monday = deps.plannerRepository.occurrencesBetween(weekStart.epochDay, weekStart.epochDay)
+        assertEquals(1, monday.size)
+        assertEquals(1, deps.plannerRepository.rules().size)
+        assertTrue(SlotRuleImport.isImportedSlotRule(deps.plannerRepository.rules().single().id))
+        deps.plannerRepository.removeTimedRule(deps.plannerRepository.rules().single().id)
+        assertEquals(1, deps.plannerRepository.rules().size)
+    }
+
+    @Test
     fun importIsIdempotentWhenRulesAlreadyExist() = runBlocking {
         deps.scheduleRepository.pin(null, SessionFocusKind.PULL, Weekday.TUESDAY)
         deps.plannerRepository.importSlotsIfNeeded()

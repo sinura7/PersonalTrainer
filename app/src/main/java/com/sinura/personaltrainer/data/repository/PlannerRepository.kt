@@ -79,7 +79,7 @@ class PlannerRepository(
             SlotRuleImport.upsertFromSlot(byId[SlotRuleImport.ruleIdForSlot(slot.id)], slot, now)
         }
         if (toUpsert.isNotEmpty()) dao.upsertRules(toUpsert.map { it.toEntity() })
-        val importedIds = rules.map { it.id }.filter { it.startsWith("rule-") }.toSet()
+        val importedIds = rules.map { it.id }.filter { SlotRuleImport.isImportedSlotRule(it) }.toSet()
         for (ruleId in importedIds) {
             val slotId = ruleId.removePrefix("rule-")
             if (slotId !in slotIds && rules.firstOrNull { it.id == ruleId }?.modality == ScheduleModality.STRENGTH) {
@@ -115,6 +115,25 @@ class PlannerRepository(
         )
         dao.upsertRule(rule.toEntity())
         return rule
+    }
+
+    /**
+     * Drops a user-added timed rule (morning cardio, later strength).
+     * Imported evening pins stay on Unpin. Planned occurrences for the
+     * rule go with it; DONE rows stay as history.
+     */
+    suspend fun removeTimedRule(ruleId: String) {
+        if (!SlotRuleImport.isUserTimedRule(ruleId)) return
+        database.withTransaction {
+            val occs = dao.getOccurrencesForRule(ruleId)
+            for (row in occs) {
+                if (row.status == OccurrenceStatus.PLANNED.name) {
+                    cancelReminders(row.id)
+                    dao.deleteOccurrence(row.id)
+                }
+            }
+            dao.deleteRule(ruleId)
+        }
     }
 
     suspend fun ensureWeek(

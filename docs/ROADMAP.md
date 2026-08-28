@@ -14,6 +14,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 28 Aug 2026 — A weekday can hold more than two sessions: morning
+> cardio, the pinned workout, and a later accessory / Hyper Pro
+> session. Plan’s day sheet adds the later row; Home lists the stack.
+> One live activity at a time. Finish one, then start the next.
+>
 > 28 Aug 2026 — Prescribed sets done turns Log into Next. A + after the
 > last logged set asks for an extra. Selected RPE retargets reps/weight
 > from this session and last time. Rest countdown sits on the lock
