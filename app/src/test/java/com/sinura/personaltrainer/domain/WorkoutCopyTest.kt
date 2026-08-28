@@ -66,4 +66,19 @@ class WorkoutCopyTest {
             WorkoutCopy.setProgress(workingLogged = -3, targetSets = 5, targetReps = 8),
         )
     }
+
+    @Test
+    fun liveRecRepsAndWeightReplaceThePrescriptionClause() {
+        assertEquals(
+            "Set 2 of 3 · target 3 × 6 @ 102.5 kg",
+            WorkoutCopy.setProgress(
+                workingLogged = 1,
+                targetSets = 3,
+                targetReps = 5,
+                targetWeightLabel = "100 kg",
+                liveReps = 6,
+                liveWeightLabel = "102.5 kg",
+            ),
+        )
+    }
 }

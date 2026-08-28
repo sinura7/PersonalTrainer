@@ -18,6 +18,7 @@ internal fun workoutMicroRec(
     editingSetId: String?,
     lighterWeek: Boolean,
     unit: WeightUnit,
+    wantAnotherSet: Boolean = false,
     nowMs: Long = System.currentTimeMillis(),
     todayEpochDay: Long = LocalDate.now().toEpochDay(),
 ): SetMicroRec? {
@@ -53,6 +54,8 @@ internal fun workoutMicroRec(
             draftRpe = draftRpe,
             nowMs = nowMs,
             todayEpochDay = todayEpochDay,
+            allowExtra = wantAnotherSet,
+            rpeIntent = true,
         ),
     )
 }

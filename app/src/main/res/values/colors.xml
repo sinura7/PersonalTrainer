@@ -4,4 +4,6 @@
     <!-- Painted before the first Compose frame. Must match Color.kt Pit, the window colour
          of the app's one (dark) theme. -->
     <color name="window_background">#07090B</color>
+    <color name="rest_notification_text">#F2F5F7</color>
+    <color name="rest_notification_kicker">#9BA7AE</color>
 </resources>

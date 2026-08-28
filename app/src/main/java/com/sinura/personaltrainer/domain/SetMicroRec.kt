@@ -30,6 +30,17 @@ data class SetMicroRecInputs(
     val draftRpe: Int?,
     val nowMs: Long = 0L,
     val todayEpochDay: Long = 0L,
+    /**
+     * Lift is past the plan and the lifter asked for another set. Skip
+     * [SetMicroRecCalculator.LIFT_DONE] so extras still get a next load.
+     */
+    val allowExtra: Boolean = false,
+    /**
+     * Selected RPE is the effort for *this* set, computed from last working
+     * (or the first-set hint), not a preview of logging the draft wells.
+     * Default false keeps the locked v1 "If you log this" rows.
+     */
+    val rpeIntent: Boolean = false,
 )
 
 data class SetMicroRec(
@@ -65,13 +76,17 @@ object SetMicroRecCalculator {
 
     fun suggest(inputs: SetMicroRecInputs): SetMicroRec? {
         if (inputs.editing) return null
-        val previewOnly = inputs.draftRpe != null
+        val previewOnly = inputs.draftRpe != null && !inputs.rpeIntent
         val workingAfter = if (previewOnly) {
             inputs.workingLogged + 1
         } else {
             inputs.workingLogged
         }
-        if (inputs.targetSets > 0 && inputs.workingLogged >= inputs.targetSets) {
+        if (
+            inputs.targetSets > 0 &&
+            inputs.workingLogged >= inputs.targetSets &&
+            !inputs.allowExtra
+        ) {
             val last = inputs.thisSessionWorking.lastOrNull() ?: return hiddenDone(inputs)
             return rec(
                 inputs = inputs,
@@ -88,6 +103,20 @@ object SetMicroRecCalculator {
             .takeUnless { loadClass == LoadClass.BODYWEIGHT }
         val meaning = loadClass.weightMeaning
         val bodyweight = stepKg == null || meaning == WeightMeaning.NONE
+
+        val intentRpe = inputs.draftRpe.takeIf { inputs.rpeIntent }
+        if (intentRpe != null) {
+            val lastWorking = inputs.thisSessionWorking.lastOrNull() ?: return firstSet(inputs)
+            return fromBasis(
+                inputs = inputs,
+                basis = lastWorking.copy(rpe = intentRpe),
+                workingIncludingBasis = inputs.workingLogged,
+                previewOnly = false,
+                bodyweight = bodyweight,
+                stepKg = stepKg,
+                meaning = meaning,
+            )
+        }
 
         if (previewOnly) {
             return fromBasis(
@@ -159,7 +188,11 @@ object SetMicroRecCalculator {
         stepKg: Double?,
         meaning: WeightMeaning,
     ): SetMicroRec {
-        if (inputs.targetSets > 0 && workingIncludingBasis >= inputs.targetSets) {
+        if (
+            !inputs.allowExtra &&
+            inputs.targetSets > 0 &&
+            workingIncludingBasis >= inputs.targetSets
+        ) {
             return rec(
                 inputs = inputs,
                 weight = basis.weightKg,
@@ -330,6 +363,8 @@ fun setMicroRecInputs(
     draftRpe: Int?,
     nowMs: Long,
     todayEpochDay: Long,
+    allowExtra: Boolean = false,
+    rpeIntent: Boolean = false,
 ): SetMicroRecInputs = SetMicroRecInputs(
     editing = editing,
     loadType = loadType,
@@ -347,6 +382,8 @@ fun setMicroRecInputs(
     draftRpe = draftRpe,
     nowMs = nowMs,
     todayEpochDay = todayEpochDay,
+    allowExtra = allowExtra,
+    rpeIntent = rpeIntent,
 )
 
 object SetMicroRecCopy {

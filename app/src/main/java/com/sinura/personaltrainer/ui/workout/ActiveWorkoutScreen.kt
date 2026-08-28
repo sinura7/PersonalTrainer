@@ -34,6 +34,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.DropdownMenu
@@ -89,6 +90,7 @@ import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RpeCopy
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetMicroRec
+import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.SessionExercise
@@ -100,6 +102,7 @@ import com.sinura.personaltrainer.domain.ExercisePickerMode
 import com.sinura.personaltrainer.domain.ExercisePickerState
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.WorkoutAdvance
 import com.sinura.personaltrainer.domain.WorkoutCopy
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
@@ -155,6 +158,8 @@ object WorkoutTestTags {
     const val MICRO_REC = "workout-micro-rec"
     const val MICRO_REC_APPLY = "workout-micro-rec-apply"
     const val MICRO_REC_WHY = "workout-micro-rec-why"
+    const val NEXT = "workout-next"
+    const val ADD_SET = "workout-add-set"
     fun liftCard(exerciseId: String) = "workout-lift-card-$exerciseId"
 }
 
@@ -169,6 +174,7 @@ fun ActiveWorkoutScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val rest by viewModel.restTimerState.collectAsStateWithLifecycle()
     val microRec by viewModel.microRec.collectAsStateWithLifecycle()
+    val extraSetRequested by viewModel.extraSetRequested.collectAsStateWithLifecycle()
     val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
     val personalRecord by viewModel.personalRecord.collectAsStateWithLifecycle()
     val deletedSet by viewModel.deletedSet.collectAsStateWithLifecycle()
@@ -180,6 +186,19 @@ fun ActiveWorkoutScreen(
         ?: rememberRestNotificationsEnabled()
     val session = state.session
     val selected = session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId }
+    val workingLogged = selected?.let { lift ->
+        session.setsFor(lift.exercise.id).count { !it.isWarmup }
+    } ?: 0
+    val liftComplete = WorkoutAdvance.liftComplete(
+        workingLogged = workingLogged,
+        targetSets = selected?.targetSets ?: 0,
+        wantAnother = extraSetRequested,
+    )
+    val nextExerciseId = WorkoutAdvance.nextExerciseId(
+        session?.exercises.orEmpty().map { it.exercise.id },
+        state.selectedExerciseId,
+    )
+    val showNext = liftComplete && nextExerciseId != null && state.editingSetId == null
     // Keyed on the session, not recomputed per frame: the header below it redraws every second
     // as the elapsed clock ticks, and this walks every set of the workout.
     val sessionWork = remember(session) { session?.work() ?: SetWork.NONE }
@@ -275,12 +294,16 @@ fun ActiveWorkoutScreen(
                     editing = state.editingSetId != null,
                     error = state.error,
                     draftLabel = SetCopy.setLine(state.draft.weightKg, state.draft.reps, LoadClass.of(selected?.exercise?.loadType), unit),
-                    microRec = microRec,
+                    microRec = microRec.takeUnless { showNext },
                     loadClass = LoadClass.of(selected?.exercise?.loadType),
                     unit = unit,
+                    showNext = showNext,
                     onLog = {
                         Haptics.commit(view)
                         viewModel.logSet()
+                    },
+                    onNext = {
+                        nextExerciseId?.let(viewModel::advanceToNextLift)
                     },
                     onCancelEdit = viewModel::cancelEdit,
                     onApplyMicroRec = viewModel::applyMicroRec,
@@ -381,8 +404,15 @@ fun ActiveWorkoutScreen(
                                     draftReps = state.draft.reps,
                                     draftWarmup = state.draft.isWarmup,
                                     draftRpe = state.draft.rpe,
+                                    microRec = microRec.takeIf { isSelected },
                                     unit = unit,
                                     canEdit = logged.isEmpty(),
+                                    showAddSet = isSelected &&
+                                        WorkoutAdvance.liftComplete(
+                                            workingLogged = logged.count { !it.isWarmup },
+                                            targetSets = lift.targetSets,
+                                            wantAnother = false,
+                                        ),
                                     onSelect = { viewModel.selectExercise(lift.exercise.id) },
                                     onSwap = viewModel::requestSwap,
                                     onRemove = { confirmRemoveLift = true },
@@ -393,6 +423,7 @@ fun ActiveWorkoutScreen(
                                     onApplySuggested = viewModel::applySuggestedWeight,
                                     onEditSet = viewModel::editSet,
                                     onDeleteSet = viewModel::deleteSet,
+                                    onAddSet = viewModel::requestExtraSet,
                                 )
                             }
                             item(key = "add-lift") {
@@ -638,7 +669,9 @@ private fun LogBar(
     microRec: SetMicroRec?,
     loadClass: LoadClass,
     unit: WeightUnit,
+    showNext: Boolean,
     onLog: () -> Unit,
+    onNext: () -> Unit,
     onCancelEdit: () -> Unit,
     onApplyMicroRec: () -> Unit,
 ) {
@@ -671,12 +704,19 @@ private fun LogBar(
                 onApply = onApplyMicroRec,
             )
         }
+        val nextAct = showNext && !editing
         PrimaryGymButton(
-            text = if (editing) "Save $draftLabel" else "Log $draftLabel",
-            onClick = onLog,
-            modifier = Modifier.testTag(WorkoutTestTags.LOG_SET),
+            text = when {
+                editing -> "Save $draftLabel"
+                nextAct -> "Next"
+                else -> "Log $draftLabel"
+            },
+            onClick = if (nextAct) onNext else onLog,
+            modifier = Modifier.testTag(
+                if (nextAct) WorkoutTestTags.NEXT else WorkoutTestTags.LOG_SET,
+            ),
             height = Metrics.commit,
-            hapticFeedback = false,
+            hapticFeedback = nextAct || editing,
         )
     }
 }
@@ -767,8 +807,10 @@ private fun WorkoutLiftCard(
     draftReps: Int,
     draftWarmup: Boolean,
     draftRpe: Int?,
+    microRec: SetMicroRec?,
     unit: WeightUnit,
     canEdit: Boolean,
+    showAddSet: Boolean,
     onSelect: () -> Unit,
     onSwap: () -> Unit,
     onRemove: () -> Unit,
@@ -779,6 +821,7 @@ private fun WorkoutLiftCard(
     onApplySuggested: () -> Unit,
     onEditSet: (String) -> Unit,
     onDeleteSet: (String) -> Unit,
+    onAddSet: () -> Unit,
 ) {
     val workingLogged = loggedSets.count { !it.isWarmup }
     val targetSets = lift.targetSets
@@ -864,6 +907,7 @@ private fun WorkoutLiftCard(
                     workingLogged = workingLogged,
                     unit = unit,
                     canEdit = canEdit,
+                    rec = microRec,
                     onSwap = onSwap,
                     onRemove = onRemove,
                     showName = false,
@@ -910,8 +954,10 @@ private fun WorkoutLiftCard(
                             latestSetId = latestSetId,
                             editingSetId = editingSetId,
                             loadClassOf = { LoadClass.of(lift.exercise.loadType) },
+                            showAddSet = showAddSet,
                             onEdit = onEditSet,
                             onDelete = onDeleteSet,
+                            onAddSet = onAddSet,
                         )
                     }
                 }
@@ -926,6 +972,7 @@ private fun CurrentLiftHeader(
     workingLogged: Int,
     unit: WeightUnit,
     canEdit: Boolean,
+    rec: SetMicroRec?,
     onSwap: () -> Unit,
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
@@ -986,12 +1033,19 @@ private fun CurrentLiftHeader(
             }
         }
         SetDots(completed = workingLogged, target = targetSets)
+        val liveRec = rec?.takeIf { it.reasonCode != SetMicroRecCalculator.LIFT_DONE }
+        val loadClass = LoadClass.of(lift.exercise.loadType)
+        val liveWeightLabel = liveRec?.nextWeightKg
+            ?.takeIf { it > 0.0 && loadClass.weightMeaning != com.sinura.personaltrainer.domain.WeightMeaning.NONE }
+            ?.toWeightLabel(unit)
         Text(
             WorkoutCopy.setProgress(
                 workingLogged = workingLogged,
                 targetSets = targetSets,
                 targetReps = targetReps,
                 targetWeightLabel = lift.targetWeightKg?.takeIf { it > 0.0 }?.toWeightLabel(unit),
+                liveReps = liveRec?.nextReps,
+                liveWeightLabel = liveWeightLabel,
             ),
             style = InstrumentType.caption,
             color = TextSecondary,
@@ -1150,21 +1204,45 @@ private fun LoggedSetsPanel(
     latestSetId: String?,
     editingSetId: String?,
     loadClassOf: (SetLog) -> LoadClass,
+    showAddSet: Boolean,
     onEdit: (String) -> Unit,
     onDelete: (String) -> Unit,
+    onAddSet: () -> Unit,
 ) {
     if (sets.isEmpty()) return
-    GroupedList {
-        sets.forEachIndexed { index, set ->
-            if (index > 0) HairlineDivider()
-            SetRow(
-                set = set,
-                isLatest = set.id == latestSetId,
-                isEditing = editingSetId == set.id,
-                loadClass = loadClassOf(set),
-                onEdit = { onEdit(set.id) },
-                onDelete = { onDelete(set.id) },
-            )
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+        GroupedList {
+            sets.forEachIndexed { index, set ->
+                if (index > 0) HairlineDivider()
+                SetRow(
+                    set = set,
+                    isLatest = set.id == latestSetId,
+                    isEditing = editingSetId == set.id,
+                    loadClass = loadClassOf(set),
+                    onEdit = { onEdit(set.id) },
+                    onDelete = { onDelete(set.id) },
+                )
+            }
+        }
+        if (showAddSet) {
+            TextButton(
+                onClick = onAddSet,
+                modifier = Modifier
+                    .heightIn(min = Metrics.touchMin)
+                    .testTag(WorkoutTestTags.ADD_SET),
+            ) {
+                Icon(
+                    Icons.Outlined.Add,
+                    contentDescription = null,
+                    tint = TextSecondary,
+                    modifier = Modifier.size(Metrics.space4),
+                )
+                Text(
+                    "Add set",
+                    style = InstrumentType.bodyStrong,
+                    color = TextSecondary,
+                )
+            }
         }
     }
 }

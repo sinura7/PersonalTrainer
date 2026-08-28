@@ -26,7 +26,9 @@ import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SessionEditRules
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SetMicroRec
+import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.SetLogRules
+import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
 import com.sinura.personaltrainer.workout.DiscardOutcome
@@ -176,6 +178,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private val error = MutableStateFlow<String?>(null)
     private val finished = MutableStateFlow(false)
     private val editingSetId = MutableStateFlow<String?>(null)
+    private val wantAnotherSet = MutableStateFlow(false)
+    private var cachedWeightUnit = WeightUnit.KG
 
     /**
      * The last deleted set, held only long enough for the snackbar to offer it back. One-shot
@@ -350,13 +354,15 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * Eager: [applyMicroRec] reads this value, not a rendered snapshot.
      */
     val microRec: StateFlow<SetMicroRec?> = combine(
-        combine(session, selectedExerciseId, draft, hint) { current, selected, currentDraft, currentHint ->
-            MicroRecCore(current, selected, currentDraft, currentHint)
+        combine(session, selectedExerciseId, draft, hint, wantAnotherSet) {
+                current, selected, currentDraft, currentHint, extra ->
+            MicroRecCore(current, selected, currentDraft, currentHint, extra)
         },
         combine(editingSetId, lighterWeek, container.preferencesRepository.weightUnit) { editing, lighter, unit ->
             Triple(editing, lighter, unit)
         },
     ) { core, extras ->
+        cachedWeightUnit = extras.third
         workoutMicroRec(
             session = core.session,
             selectedExerciseId = core.selected,
@@ -365,6 +371,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             editingSetId = extras.first,
             lighterWeek = extras.second,
             unit = extras.third,
+            wantAnotherSet = core.wantAnother,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -568,11 +575,23 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun selectExercise(exerciseId: String) {
+        wantAnotherSet.value = false
         if (selectedExerciseId.value == exerciseId) {
             reselections.tryEmit(exerciseId)
         } else {
             selectedExerciseId.value = exerciseId
         }
+        persistDraft()
+    }
+
+    fun advanceToNextLift(exerciseId: String) {
+        wantAnotherSet.value = false
+        selectExercise(exerciseId)
+    }
+
+    fun requestExtraSet() {
+        wantAnotherSet.value = true
+        applyIntentRecToDraft()
         persistDraft()
     }
 
@@ -595,6 +614,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 
     fun setRpe(rpe: Int?) {
         draft.value = draft.value.copy(rpe = rpe)
+        if (rpe != null) applyIntentRecToDraft()
         persistDraft()
     }
 
@@ -732,6 +752,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     /** What the Undo snackbar is offering, or null when there is nothing to put back. */
     val deletedSet: StateFlow<WorkoutRepository.DeletedSet?> = undoableDelete.asStateFlow()
 
+    /** True while the lifter asked to log past the prescription. Cleared on log, Next, or switch. */
+    val extraSetRequested: StateFlow<Boolean> = wantAnotherSet.asStateFlow()
+
     fun onPersonalRecordShown() {
         _personalRecord.value = null
     }
@@ -807,7 +830,14 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                         )
                     }
                     val workingAfter = previousWorking + if (current.isWarmup) 0 else 1
-                    if (RestTimer.shouldStartAfterLog(
+                    wantAnotherSet.value = false
+                    if (
+                        RestTimer.shouldStartAfterLog(
+                            isWarmup = current.isWarmup,
+                            workingSetsAfterLog = workingAfter,
+                            targetSets = targetSets,
+                        ) ||
+                        RestTimer.shouldStartAfterExtra(
                             isWarmup = current.isWarmup,
                             workingSetsAfterLog = workingAfter,
                             targetSets = targetSets,
@@ -956,6 +986,36 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     /**
+     * Fills the wells from last working + selected RPE (or an extra-set rec).
+     * Skips the opener: there is no this-session basis yet, and auto-applying
+     * after a log stays a won’t.
+     */
+    private fun applyIntentRecToDraft() {
+        if (editingSetId.value != null) return
+        val current = session.value ?: return
+        val exerciseId = selectedExerciseId.value ?: return
+        val working = current.sets.count { it.exerciseId == exerciseId && !it.isWarmup }
+        if (working <= 0) return
+        val rec = workoutMicroRec(
+            session = current,
+            selectedExerciseId = exerciseId,
+            draft = draft.value,
+            hint = hint.value,
+            editingSetId = editingSetId.value,
+            lighterWeek = lighterWeek.value,
+            unit = cachedWeightUnit,
+            wantAnotherSet = wantAnotherSet.value,
+        ) ?: return
+        if (!rec.showApply || rec.previewOnly || rec.reasonCode == SetMicroRecCalculator.LIFT_DONE) {
+            return
+        }
+        draft.value = draft.value.copy(
+            weightKg = rec.nextWeightKg.coerceAtLeast(0.0),
+            reps = rec.nextReps.coerceAtLeast(1),
+        )
+    }
+
+    /**
      * Set when this screen should be popped. Held as state for the same reason as forward
      * navigation: a callback captured into a coroutine is bound to a NavController that may
      * no longer exist by the time the database work finishes.
@@ -1068,6 +1128,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         val selected: String?,
         val draft: ActiveExerciseDraft,
         val hint: ProgressionHint?,
+        val wantAnother: Boolean,
     )
 
     private data class WorkoutExtras(

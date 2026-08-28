@@ -30,6 +30,93 @@ class SetMicroRecCalculatorTest {
         }
     }
 
+    @Test
+    fun extraSetPastThePlanStillSuggests() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    targetSets = 3,
+                    workingLogged = 3,
+                    working = listOf(
+                        set(100.0, 5, rpe = 8),
+                        set(100.0, 5, rpe = 8),
+                        set(100.0, 5, rpe = 8),
+                    ),
+                    allowExtra = true,
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.QUALITY, rec.reasonCode)
+        assertTrue(rec.showApply)
+        assertFalse(rec.previewOnly)
+        assertEquals(100.0, rec.nextWeightKg, 0.0001)
+        assertEquals(5, rec.nextReps)
+    }
+
+    @Test
+    fun rpeIntentUsesLastWorkingNotTheDraftWells() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    workingLogged = 1,
+                    working = listOf(set(100.0, 5, rpe = 8)),
+                    draftWeightKg = 90.0,
+                    draftReps = 3,
+                    draftRpe = 6,
+                    rpeIntent = true,
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.IN_TANK, rec.reasonCode)
+        assertTrue(rec.showApply)
+        assertFalse(rec.previewOnly)
+        assertEquals(102.5, rec.nextWeightKg, 0.0001)
+        assertEquals(5, rec.nextReps)
+        assertNull(SetMicroRecCopy.caption(rec))
+    }
+
+    @Test
+    fun rpeIntentOnTheOpenerStaysTheFirstSetHint() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    hint = hint(suggested = 102.5),
+                    workingLogged = 0,
+                    draftRpe = 6,
+                    rpeIntent = true,
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.FIRST_SET, rec.reasonCode)
+        assertEquals(102.5, rec.nextWeightKg, 0.0001)
+        assertEquals(5, rec.nextReps)
+        assertFalse(rec.previewOnly)
+    }
+
+    @Test
+    fun extraSetWithInTankRpeClimbs() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    targetSets = 3,
+                    workingLogged = 3,
+                    working = listOf(
+                        set(100.0, 5, rpe = 8),
+                        set(100.0, 5, rpe = 8),
+                        set(100.0, 5, rpe = 7),
+                    ),
+                    draftRpe = 6,
+                    rpeIntent = true,
+                    allowExtra = true,
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.IN_TANK, rec.reasonCode)
+        assertEquals(102.5, rec.nextWeightKg, 0.0001)
+        assertEquals(5, rec.nextReps)
+        assertTrue(rec.showApply)
+    }
+
     data class V1Case(
         val name: String,
         val inputs: SetMicroRecInputs,
@@ -213,6 +300,8 @@ class SetMicroRecCalculatorTest {
             draftWeightKg: Double = 100.0,
             draftReps: Int = 5,
             draftRpe: Int? = null,
+            allowExtra: Boolean = false,
+            rpeIntent: Boolean = false,
         ) = SetMicroRecInputs(
             editing = editing,
             loadType = loadType,
@@ -230,6 +319,8 @@ class SetMicroRecCalculatorTest {
             draftRpe = draftRpe,
             nowMs = 1L,
             todayEpochDay = 10L,
+            allowExtra = allowExtra,
+            rpeIntent = rpeIntent,
         )
 
         private fun set(weightKg: Double, reps: Int, rpe: Int?) =

@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Temper</string>
+    <string name="rest_notification_kicker">Rest</string>
 </resources>

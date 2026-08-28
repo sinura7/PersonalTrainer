@@ -307,6 +307,14 @@ second tap. Rest floor is a ticking ring around the remaining clock;
 the log bar stays linear. Overlay rest and a 240 dp ring on the log
 stay won’ts.
 
+Owner asked for **Next / extra set / RPE targets / lock-screen rest**
+(28 Aug 2026): when prescribed sets are in, Log becomes Next. A +
+after the last recorded set logs extra. Selected RPE retargets the
+wells and the set-progress line from this session and last time.
+Rest countdown is on the lock screen (HIGH public chronometer +
+`RestLockActivity` when tapped or when rest completes). Overlay rest
+and a 240 dp ring on the log stay won’ts.
+
 1. **Rest dock stays at the top, outside the scroll.** Mid-rest you scroll sets.
 2. **Start sheet while live is “Go to session.”** They opened Start on purpose.
 3. **Finish on any logged set**, including warmup-only.
@@ -348,6 +356,15 @@ stay won’ts.
 22. **Rest floor is a ticking ring around the remaining clock.** The log
     keeps the condensed bar and linear track. Overlay rest and a 240 dp
     ring on the log stay won’ts.
+23. **Log becomes Next when the lift is done.** Extra sets are a +
+    after the last recorded set, never a second Volt. Finish stays in
+    the header on the last lift.
+24. **Selected RPE tells you what to lift next.** Wells fill from last
+    working / last session, not a preview of the draft. Auto-apply
+    after a log stays a won’t.
+25. **Lock-screen rest is a chronometer, not overlay rest.** Screen
+    off, turn on, the countdown is on the lock screen. The live log
+    keeps the condensed bar.
 
 ---
 
