@@ -187,14 +187,15 @@ New chrome is judged on **Temper Debug** (`com.sinura.personaltrainer.debug`)
 
 ### Temper Debug (live test)
 
-1. After a packet is on `trunk` and the JVM gate is green, build
-   `./gradlew assembleDebug`.
+1. After a packet is on `trunk` and the JVM gate is green, bump
+   `debugLiveCode` in `app/build.gradle.kts` (Obtainium will not offer an
+   update if versionCode stays the same). Build `./gradlew assembleDebug`.
 2. Tag `debug-live-YYYY-MM-DD` on that commit. A second drop the same
    day is `debug-live-YYYY-MM-DD-2`.
-3. Publish a **pre-release** named `Temper Debug — live test` and attach
-   `PersonalTrainer-<version>-debug.apk`.
+3. Publish a **pre-release** named `Temper Debug — live test <debugLiveCode>`
+   and attach `PersonalTrainer-<version>-debug.apk`.
 4. Obtainium: this repo URL, **include pre-releases**, prefer the asset
-   whose name ends with `-debug.apk`.
+   whose name ends with `-debug.apk`. Pull down to refresh.
 
 Do not point the gym-floor Obtainium entry at a `*-debug.apk`.
 
