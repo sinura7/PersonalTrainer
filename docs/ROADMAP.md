@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 29 Aug 2026 — Home planned rows and the Volt open a start confirm
+> with the session summary. Confirm starts it. The tag prefers a
+> workout over Stretch. Live test 11 is this drop (`debugLiveCode` 11)
+> ([ADR-018](architecture/ADR-018-home-start-confirm.md)).
+>
 > 29 Aug 2026 — Home is the day’s board: a selectable week bound to
 > occurrences, not leftover Friday-on-Saturday titles. Completion is
 > rest / none / some / all on planned blocks. Plan is fill-the-day;
