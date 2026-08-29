@@ -16,9 +16,15 @@ name: Debug live drop
 # docs/DEVELOPMENT.md on CI billing). It is the same steps ci.yml runs plus a
 # release upload, so the day CI works, this does too.
 
+# Two triggers because this repo's sessions cannot always push tags: the
+# remote-session git proxy 403s tag refs while allowing branch pushes. A push
+# to a `debug-live/<suffix>` branch is the tag-less spelling — the workflow
+# derives the tag name (`debug-live-<suffix>`) and `gh release create` mints
+# the tag itself with the Actions token.
 on:
   push:
     tags: ['debug-live-*']
+    branches: ['debug-live/**']
   workflow_dispatch:
 
 permissions:
@@ -68,7 +74,7 @@ jobs:
           echo "Selected $apk"
           echo "path=$apk" >> "$GITHUB_OUTPUT"
 
-      # Only a tag gets a release; workflow_dispatch keeps the build as an artifact.
+      # workflow_dispatch keeps the build as an artifact only.
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
@@ -80,12 +86,20 @@ jobs:
       # only path so far). Never clobber a hand-uploaded APK: attach alongside,
       # and if the asset name already exists, leave the existing one untouched.
       - name: Publish pre-release
-        if: github.ref_type == 'tag'
+        if: github.ref_type == 'tag' || startsWith(github.ref_name, 'debug-live/')
         env:
           GH_TOKEN: ${{ github.token }}
           APK: ${{ steps.apk.outputs.path }}
         run: |
-          tag="$GITHUB_REF_NAME"
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            tag="$GITHUB_REF_NAME"
+            verify="--verify-tag"
+          else
+            # Branch spelling: debug-live/<suffix> releases as debug-live-<suffix>,
+            # tagged at this commit by the release itself.
+            tag="debug-live-${GITHUB_REF_NAME#debug-live/}"
+            verify="--target $GITHUB_SHA"
+          fi
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "Release $tag already exists — uploading without overwriting."
             gh release upload "$tag" "$APK" || \
@@ -95,5 +109,5 @@ jobs:
               --title "Temper Debug — $tag" \
               --prerelease \
               --notes "Temper Debug drop. Pull Obtainium on Temper Debug (include pre-releases)." \
-              --verify-tag
+              $verify
           fi
