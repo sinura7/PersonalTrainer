@@ -19,9 +19,9 @@ No Start Cardio, Swap, or Unpin. Catalog seed stays a won’t.
 
 ## Commands
 
-- `tools/preflight.sh` — pending
-- `./gradlew testDebugUnitTest` — pending
-- `./gradlew assembleDebug` — pending
+- `tools/preflight.sh` — PASS. 1000 domain tests. 0 authority findings.
+- `./gradlew testDebugUnitTest` — 1464 tests, 0 failures.
+- `./gradlew assembleDebug` — SUCCESS
 
 ## Known limitations
 
