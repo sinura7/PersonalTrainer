@@ -62,7 +62,7 @@ finding, keep the gate honest.
 These are signed. A page pass may not weaken them.
 
 - **Five tabs:** Home · Body · Plan · History · Settings. Library is pushed.
-  Goals are pushed.
+  Goals UI is gone.
 - **Volt = live / act only.** One filled control per screen.
 - **Home / Plan / Start sheet / Body never say Resume.** The live bar and the rest
   notification are the return. Dialogs that fork (“this start, or the one already
@@ -145,6 +145,9 @@ keeps the draft.
   ~~Card never knows about live, so it still says Start.~~ That Start would lie.
 - `LinkRow` is a full-width 48 dp row. Label and trailing ellipsize.
   Rec Why is a dialog; the card tap does not wrap it.
+- Home is Start, not a second tab bar. This week, Goals, Library, and
+  the calendar strip are gone. Weekly weigh-in is a quiet card on the
+  check-in day.
 
 ### 4 — Start sheet + live bar · **done**
 
@@ -190,6 +193,8 @@ keeps the draft.
   secondary gym buttons. Copy never says “recurrence”.
 - Plan day Start sits **under** the grouped occurrence list, not inside
   the window. Day sheets skip the half-expanded detent.
+- Reminders sit behind Tune, not on Settings. Existing day-page blocks
+  can set an hour. Adding a block still has no clock picker.
 
 ### 6 — Editor · **done** (this pass)
 
@@ -276,10 +281,21 @@ and the screen says so *before* the tap, not only after the repository refuses.
 - Backup copy that implies today’s unfinished session is in the file.
 - Guided setup re-run that deletes history (it must not).
 
+**Floor findings**
+
+- Display sits at the top: lbs / kg and Regular / Military as compact
+  chips. Stored weights stay kilograms. Stored hours stay 0–23.
+- Schedule and coaching are the same store as the questionnaire.
+- Equipment is grouped (free weights / gym / other) and filters
+  generated weeks and recs.
+- Weekly bodyweight check-in day. Auto is the first training day.
+- Reminders are not on this screen. They live on Plan Tune.
+
 **Won't.** Silent WorkManager Drive upload. Renaming the Drive folder.
 Inventing a casual `TrainerDatabase` v3 during a page pass. Job 5 / P5 is a
 stale-backup prompt, still a tap. The foundation cutover is not this file.
-Settings is a tab, not a gear on Home or Plan.
+Settings is a tab, not a gear on Home or Plan. Reminders are not a
+Settings control.
 
 ---
 
@@ -304,6 +320,12 @@ Job 4 / P1. Home empty-week volt becomes replay when routines exist
 
 Record every deviation here. Oldest stay; do not delete.
 
+Owner asked for **Settings / Home trim** (29 Aug 2026): Display at the
+top (lbs/kg, Regular/Military). Schedule and coaching share the
+questionnaire store. Weekly weigh-in on the first training day.
+Equipment grouped and filters recs. Reminders on Plan. Goals UI gone.
+Home does not repeat the tab bar.
+
 Owner asked for **Plan as a day-block schedule** (29 Aug 2026): tapping
 a weekday opens a pushed page, not a sheet. Workout, cardio, and short
 auxiliary / longevity blocks. No clocks on the page. No Start Cardio,
@@ -312,7 +334,8 @@ Start lives on Home. Catalog seed stays a won’t.
 
 Owner asked for **Settings as the fifth tab** (29 Aug 2026): the gear
 leaves Home and Plan. Settings is a dedicated tab. The bar stays
-visible. Back is gone. Library and Goals stay pushed. Instrument stays.
+visible. Back is gone. Library stays pushed. Goals UI is gone
+([ADR-016](architecture/ADR-016-settings-home-trim.md)). Instrument stays.
 
 Owner asked for a **Body readout** (29 Aug 2026): the tab is the
 silhouette. Day / Week / Month chips. No Start on this page. Empty
@@ -405,6 +428,11 @@ and a 240 dp ring on the log stay won’ts.
 27. **History has no Start.** Day / Week / Month / Year / All retotal a
     hero sessions numeral. Empty still shows the calendar. Start lives
     on Home.
+28. **Settings / Home trim.** Display is lbs/kg and Regular/Military.
+    Schedule and coaching share the questionnaire. Weekly weigh-in
+    follows the first training day. Equipment groups filter generated
+    weeks. Reminders live on Plan. Goals UI is gone. Home is Start,
+    not a second tab bar.
 
 ---
 

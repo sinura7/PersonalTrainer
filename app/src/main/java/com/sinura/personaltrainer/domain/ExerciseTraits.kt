@@ -67,6 +67,17 @@ enum class EquipmentType {
     }
 }
 
+/** Settings kit groups. Declaration order inside each group is chip order. */
+object EquipmentGroups {
+    data class Group(val title: String, val types: List<EquipmentType>)
+
+    val ALL: List<Group> = listOf(
+        Group("Free weights", listOf(EquipmentType.BARBELL, EquipmentType.DUMBBELL, EquipmentType.KETTLEBELL)),
+        Group("Gym", listOf(EquipmentType.CABLE, EquipmentType.MACHINE, EquipmentType.SMITH)),
+        Group("Other", listOf(EquipmentType.BAND, EquipmentType.BODYWEIGHT, EquipmentType.HYPER_PRO, EquipmentType.OTHER)),
+    )
+}
+
 enum class LoadType {
     /** Free weight you add to: barbells, dumbbells, plate-loaded machines. */
     EXTERNAL,

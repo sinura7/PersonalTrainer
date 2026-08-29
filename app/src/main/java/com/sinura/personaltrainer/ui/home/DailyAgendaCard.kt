@@ -52,6 +52,7 @@ fun DailyAgendaCard(
     onStartFree: () -> Unit,
     routines: List<Routine> = emptyList(),
 ) {
+    val clockFormat = com.sinura.personaltrainer.ui.units.LocalClockFormat.current
     val startTagId = HomeToday.startTagOccurrenceId(items)
     val startItem = items.firstOrNull { it.occurrence.id == startTagId }
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
@@ -70,7 +71,7 @@ fun DailyAgendaCard(
                 val names = sessionLiftNames(item.rule?.routineId, routines)
                 val tagged = item.occurrence.id == startTagId
                 InstrumentRow(
-                    title = "${item.timeLabel}  ·  ${item.title}",
+                    title = "${com.sinura.personaltrainer.domain.ClockCopy.format(item.occurrence.hour, item.occurrence.minute, clockFormat)}  ·  ${item.title}",
                     subtitle = SessionOrderCopy.occurrenceLine(
                         item.occurrence.status,
                         names,

@@ -34,6 +34,7 @@ import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.Weekday
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -79,6 +80,29 @@ class PreferencesRepository(
     suspend fun setWeightUnit(unit: WeightUnit) {
         dataStore.edit { prefs ->
             prefs[WEIGHT_UNIT] = unit.storageKey
+        }
+    }
+
+    val clockFormat: Flow<ClockFormat> = safePreferences
+        .map { prefs -> ClockFormat.fromStorage(prefs[CLOCK_FORMAT]) }
+
+    suspend fun setClockFormat(format: ClockFormat) {
+        dataStore.edit { prefs -> prefs[CLOCK_FORMAT] = format.storageKey }
+    }
+
+    /**
+     * Null is Auto: first training day of the week.
+     */
+    val bodyweightCheckInWeekday: Flow<Weekday?> = safePreferences
+        .map { prefs -> Weekday.fromStorage(prefs[BODYWEIGHT_CHECK_IN_WEEKDAY]) }
+
+    suspend fun setBodyweightCheckInWeekday(day: Weekday?) {
+        dataStore.edit { prefs ->
+            if (day == null) {
+                prefs.remove(BODYWEIGHT_CHECK_IN_WEEKDAY)
+            } else {
+                prefs[BODYWEIGHT_CHECK_IN_WEEKDAY] = day.name
+            }
         }
     }
 
@@ -205,6 +229,7 @@ class PreferencesRepository(
             emphasis = coach.emphasis,
             bodyweightKg = bodyweight,
             focus = TrainingFocus.fromStorage(prefs[TRAINING_FOCUS]),
+            availableEquipment = prefs[AVAILABLE_EQUIPMENT].orEmpty(),
         )
     }
 
@@ -239,7 +264,14 @@ class PreferencesRepository(
 
     suspend fun setTrainingDaysPerWeek(days: Int) {
         dataStore.edit { prefs ->
-            prefs[TRAINING_DAYS] = days.coerceIn(SchedulePreferences.MIN_DAYS, SchedulePreferences.MAX_DAYS)
+            val clean = days.coerceIn(SchedulePreferences.MIN_DAYS, SchedulePreferences.MAX_DAYS)
+            prefs[TRAINING_DAYS] = clean
+            val preferred = preferredDaysFrom(prefs[PREFERRED_DAYS])
+            if (preferred.size > clean) {
+                val weekStart = SchedulePreferences.weekStartFromStorage(prefs[WEEK_START])
+                val ordered = (0 until 7).map { weekStart.plus(it.toLong()) }
+                prefs[PREFERRED_DAYS] = ordered.filter { it in preferred }.take(clean).map { it.name }.toSet()
+            }
         }
     }
 
@@ -435,6 +467,8 @@ class PreferencesRepository(
         reminderOptOut: Boolean = false,
         reminderQuietStartHour: Int = ReminderPreferences.DEFAULT_QUIET_START_HOUR,
         reminderQuietEndHour: Int = ReminderPreferences.DEFAULT_QUIET_END_HOUR,
+        clockFormat: ClockFormat = ClockFormat.TWELVE,
+        bodyweightCheckInWeekday: Weekday? = null,
     ) {
         val cleanSchedule = schedule.sanitized()
         val cleanRest = rest.sanitized()
@@ -495,6 +529,12 @@ class PreferencesRepository(
             prefs[REMINDER_OPT_OUT] = reminderOptOut
             prefs[REMINDER_QUIET_START] = reminderQuietStartHour.coerceIn(0, 23)
             prefs[REMINDER_QUIET_END] = reminderQuietEndHour.coerceIn(0, 23)
+            prefs[CLOCK_FORMAT] = clockFormat.storageKey
+            if (bodyweightCheckInWeekday == null) {
+                prefs.remove(BODYWEIGHT_CHECK_IN_WEEKDAY)
+            } else {
+                prefs[BODYWEIGHT_CHECK_IN_WEEKDAY] = bodyweightCheckInWeekday.name
+            }
         }
         replaceRoomHistory(bodyweightLog, block, pastBlocks)
     }
@@ -849,6 +889,8 @@ class PreferencesRepository(
         val REMINDER_OPT_OUT = booleanPreferencesKey("reminder_opt_out")
         val REMINDER_QUIET_START = intPreferencesKey("reminder_quiet_start_hour")
         val REMINDER_QUIET_END = intPreferencesKey("reminder_quiet_end_hour")
+        val CLOCK_FORMAT = stringPreferencesKey("clock_format")
+        val BODYWEIGHT_CHECK_IN_WEEKDAY = stringPreferencesKey("bodyweight_check_in_weekday")
         val PENDING_OCCURRENCE_ID = stringPreferencesKey("pending_occurrence_id")
 
         fun preferredDaysFrom(raw: Set<String>?): Set<Weekday> =

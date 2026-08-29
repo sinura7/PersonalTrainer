@@ -116,6 +116,8 @@ class OnboardingViewModel @JvmOverloads constructor(
     private val weekStart = MutableStateFlow(SchedulePreferences.DEFAULT_WEEK_START)
     private val storedWeightUnit = MutableStateFlow(WeightUnit.LBS)
     private val pendingWeightUnit = MutableStateFlow<WeightUnit?>(null)
+    /** True once the user has answered a question this session. Init seed must not clobber that. */
+    private var answersDirty = false
 
     val uiState: StateFlow<OnboardingUiState> = combine(
         step,
@@ -201,6 +203,13 @@ class OnboardingViewModel @JvmOverloads constructor(
                 }
                 .collect { unit -> storedWeightUnit.value = unit }
         }
+        viewModelScope.launch {
+            runCatchingCancellable { container.preferencesRepository.storedOnboardingAnswers() }
+                .onSuccess { stored ->
+                    if (!answersDirty) answers.value = stored
+                }
+                .onFailure { AppLog.w(TAG, "Seeding setup from stored answers failed", it) }
+        }
     }
 
     fun back(): Boolean {
@@ -269,6 +278,15 @@ class OnboardingViewModel @JvmOverloads constructor(
 
     fun beginGuided() {
         step.value = OnboardingStep.FOCUS
+        answersDirty = false
+        viewModelScope.launch {
+            runCatchingCancellable { container.preferencesRepository.storedOnboardingAnswers() }
+                .onSuccess { stored ->
+                    answers.value = stored
+                    answersDirty = false
+                }
+                .onFailure { AppLog.w(TAG, "Seeding setup from stored answers failed", it) }
+        }
     }
 
     fun setFocus(value: TrainingFocus) = advance { it.copy(focus = value) }
@@ -341,6 +359,7 @@ class OnboardingViewModel @JvmOverloads constructor(
     }
 
     private fun update(transform: (OnboardingAnswers) -> OnboardingAnswers) {
+        answersDirty = true
         answers.value = transform(answers.value)
         error.value = null
     }

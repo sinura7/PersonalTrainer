@@ -86,6 +86,27 @@ class RoutineGeneratorTest {
     }
 
     @Test
+    fun settingsKitWithoutBarbellNeverProposesABarbell() {
+        val kit = setOf(
+            EquipmentType.DUMBBELL,
+            EquipmentType.CABLE,
+            EquipmentType.MACHINE,
+            EquipmentType.SMITH,
+            EquipmentType.KETTLEBELL,
+            EquipmentType.BAND,
+            EquipmentType.BODYWEIGHT,
+            EquipmentType.OTHER,
+        ).map { it.name }.toSet()
+        val plan = RoutineGenerator.generate(
+            answers(days = 4, place = TrainingPlace.FULL_GYM).copy(availableEquipment = kit),
+            catalog,
+        )
+        val barbell = plan.routines.flatMap { it.lifts }.filter { it.equipment == EquipmentType.BARBELL }
+        assertEquals(emptyList<BlueprintLift>(), barbell)
+        assertTrue(plan.routines.all { it.lifts.size == TrainingAge.RETURNING.liftsPerSession })
+    }
+
+    @Test
     fun gymPlusHyperProCanAssignTheSpecialtyBench() {
         val plan = RoutineGenerator.generate(
             OnboardingAnswers(

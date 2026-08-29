@@ -445,7 +445,7 @@ object RoutineGenerator {
             routines = emptyList(),
             emphasis = clean.emphasis,
         )
-        val allowed = catalog.filter { it.equipment in clean.equipment() }
+        val allowed = catalog.filter { clean.coachPreferences().allows(it.equipment) }
 
         val routines = buildRoutines(kinds, split, clean, allowed)
         val days = layOutWeek(clean, kinds, routines, weekStart)

@@ -15,6 +15,13 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 29 Aug 2026 — Settings opens on lbs/kg and Regular/Military hours.
+> Schedule and coaching are the same store as the questionnaire.
+> Weekly weigh-in follows the first training day. Equipment is
+> grouped and filters generated weeks. Reminders and session hours
+> live on Plan. Goals UI is gone. Home is Start, not a second tab
+> bar ([ADR-016](architecture/ADR-016-settings-home-trim.md)).
+>
 > 29 Aug 2026 — Plan is a schedule workshop. A weekday is a pushed
 > page of untimed blocks (workout, cardio, auxiliary). Start is Home.
 > No Start Cardio, Swap, or Unpin. Add session is on Plan and the day

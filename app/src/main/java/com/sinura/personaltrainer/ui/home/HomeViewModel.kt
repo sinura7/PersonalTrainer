@@ -24,10 +24,7 @@ import com.sinura.personaltrainer.timer.PersistedCardioTimer
 import com.sinura.personaltrainer.util.IdFactory
 import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
-import com.sinura.personaltrainer.domain.DailyProjectionBuilder
-import com.sinura.personaltrainer.domain.GoalCopy
-import com.sinura.personaltrainer.domain.GoalProgress
-import com.sinura.personaltrainer.domain.GoalSnapshot
+import com.sinura.personaltrainer.domain.BodyweightCheckIn
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.Routine
@@ -67,11 +64,11 @@ data class HomeUiState(
     val recommendations: List<TrainingRecommendation> = emptyList(),
     val weekPlan: WeeklySchedulePlan? = null,
     /**
-     * Days that already hold a finished session, so the week strip can mark them.
+     * Days that already hold a finished session.
      *
-     * Derived from all-time summaries rather than the heat window: a strip
-     * that only knew about the last 30 days would leave older days in the
-     * current week looking untrained after a travel-week gap.
+     * Derived from all-time summaries rather than the heat window: a leftover
+     * week card that only knew about the last 30 days would treat older days
+     * in the current week as untrained after a travel-week gap.
      */
     val loggedEpochDays: Set<Long> = emptySet(),
     /** The block this week belongs to, or null when the lifter is not in one. */
@@ -81,10 +78,11 @@ data class HomeUiState(
     val agenda: List<com.sinura.personaltrainer.domain.AgendaItem> = emptyList(),
     val missedWorkPrompt: Boolean = false,
     val overdueCount: Int = 0,
-    val goalSnapshot: GoalSnapshot? = null,
     val twoADayEpochDays: Set<Long> = emptySet(),
     /** False until a plan or custom week is accepted. Home shows the get-started sheet. */
     val setupComplete: Boolean = true,
+    val bodyweightCheckInDue: Boolean = false,
+    val latestBodyweightKg: Double? = null,
 )
 
 class HomeViewModel @JvmOverloads constructor(
@@ -108,22 +106,22 @@ class HomeViewModel @JvmOverloads constructor(
                 ) { occurrences, rules, decisions -> Triple(occurrences, rules, decisions) },
             ) { block, lighterStart, planner -> Triple(block, lighterStart, planner) },
             combine(
-                container.goalRepository.observeAll(),
                 container.preferencesRepository.schedulePreferences,
+                container.preferencesRepository.preferredDays,
                 container.preferencesRepository.bodyweightLog,
-                container.workoutRepository.observeBestWorkingWeights(),
+                container.preferencesRepository.bodyweightCheckInWeekday,
                 container.preferencesRepository.onboardingComplete,
-            ) { goals, preferences, log, bests, setupComplete ->
-                GoalInputs(goals, preferences, log.lastOrNull()?.kg, bests, setupComplete)
+            ) { preferences, preferredDays, log, checkIn, setupComplete ->
+                HomeCadence(preferences, preferredDays, log, checkIn, setupComplete)
             },
-        ) { plannerBlock, goals -> plannerBlock to goals },
+        ) { plannerBlock, cadence -> plannerBlock to cadence },
     ) { insights, inProgress, error, extras ->
         val block = extras.first.first
         val lighterStart = extras.first.second
         val occurrences = extras.first.third.first
         val rules = extras.first.third.second
         val decisions = extras.first.third.third
-        val goalInputs = extras.second
+        val cadence = extras.second
         val today = todayEpochDay()
         val now = JvmTime.captureNow()
         val nowMinutes = DailyAgenda.minutesOfDay(
@@ -133,7 +131,7 @@ class HomeViewModel @JvmOverloads constructor(
         val weekStart = insights.weekPlan?.weekStartEpochDay
             ?: CivilDate.fromEpochDay(today).previousOrSame(
                 insights.weekPlan?.preferences?.weekStart
-                    ?: com.sinura.personaltrainer.domain.SchedulePreferences.DEFAULT.weekStart,
+                    ?: cadence.preferences.weekStart,
             ).epochDay
         val weekOcc = occurrences.filter { it.localEpochDay in weekStart..(weekStart + 6) }
         val overdue = MissedWorkPolicy.overdue(weekOcc, today, nowMinutes)
@@ -166,25 +164,21 @@ class HomeViewModel @JvmOverloads constructor(
             ),
             missedWorkPrompt = MissedWorkPolicy.promptNeeded(overdue, decision),
             overdueCount = overdue.size,
-            goalSnapshot = GoalCopy.featured(
-                goalInputs.goals.map { goal ->
-                    GoalProgress.measure(
-                        goal = goal,
-                        projections = DailyProjectionBuilder.project(insights.summaries),
-                        today = CivilDate.fromEpochDay(today),
-                        weekStart = goalInputs.preferences.weekStart,
-                        trainingDaysPerWeek = goalInputs.preferences.trainingDaysPerWeek,
-                        latestBodyweightKg = goalInputs.latestBodyweightKg,
-                        liftBestKg = goal.exerciseId?.let { goalInputs.bestWeights[it] },
-                    )
-                },
-            ),
             twoADayEpochDays = DailyAgenda.twoADayEpochDays(weekOcc),
-            setupComplete = goalInputs.setupComplete,
+            setupComplete = cadence.setupComplete,
+            bodyweightCheckInDue = BodyweightCheckIn.isDueToday(
+                todayEpochDay = today,
+                preferredDays = cadence.preferredDays,
+                weekStart = cadence.preferences.weekStart,
+                daysPerWeek = cadence.preferences.trainingDaysPerWeek,
+                override = cadence.checkInWeekday,
+                log = cadence.bodyweightLog,
+            ),
+            latestBodyweightKg = cadence.bodyweightLog.lastOrNull()?.kg,
         )
     }
         // Same reason as Plan: this transform walks every finished session to build the logged
-        // set, and the week strip below it reads that on the first frame after a cold start.
+        // set on the first frame after a cold start.
         .flowOn(Dispatchers.Default)
         .stateIn(
             scope = viewModelScope,
@@ -423,11 +417,17 @@ class HomeViewModel @JvmOverloads constructor(
 
     data class BlockedStart(val day: SuggestedTrainingDay, val sessionId: String)
 
-    private data class GoalInputs(
-        val goals: List<com.sinura.personaltrainer.domain.MeasurableGoal>,
+    fun recordBodyweight(kg: Double) {
+        viewModelScope.launch {
+            container.preferencesRepository.recordBodyweight(kg, todayEpochDay())
+        }
+    }
+
+    private data class HomeCadence(
         val preferences: com.sinura.personaltrainer.domain.SchedulePreferences,
-        val latestBodyweightKg: Double?,
-        val bestWeights: Map<String, Double>,
+        val preferredDays: Set<Weekday>,
+        val bodyweightLog: List<com.sinura.personaltrainer.domain.BodyweightEntry>,
+        val checkInWeekday: Weekday?,
         val setupComplete: Boolean,
     )
 }

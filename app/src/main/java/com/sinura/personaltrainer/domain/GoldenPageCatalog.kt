@@ -25,7 +25,7 @@ object GoldenPageCatalog {
 
     /**
      * Goldens that are committed today. The substrate gallery is not a page
-     * golden — it proves the harness, not Home or Goals.
+     * golden — it proves the harness, not Home or Settings.
      */
     val committed: Set<String> = setOf(SUBSTRATE_GALLERY)
 

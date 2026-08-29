@@ -7,7 +7,7 @@ import org.junit.Test
 
 class InformationArchitectureTest {
     @Test
-    fun fourTabsAndPushedLibraryAndGoals() {
+    fun fourTabsAndPushedLibrary() {
         assertEquals(4, InformationArchitecture.tabs.size)
         assertEquals(
             listOf("Home", "Body", "Plan", "History"),
@@ -16,7 +16,7 @@ class InformationArchitectureTest {
         assertTrue(InformationArchitecture.tabs.all { it.isTab })
         assertTrue(InformationArchitecture.pushedNeverTabs.none { it.isTab })
         assertTrue(InformationArchitecture.pushedNeverTabs.contains(LandingSurface.LIBRARY))
-        assertTrue(InformationArchitecture.pushedNeverTabs.contains(LandingSurface.GOALS))
+        assertFalse(InformationArchitecture.pushedNeverTabs.contains(LandingSurface.GOALS))
     }
 
     @Test

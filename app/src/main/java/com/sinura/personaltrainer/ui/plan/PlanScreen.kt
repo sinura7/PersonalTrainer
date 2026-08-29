@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
@@ -47,6 +48,10 @@ import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.WeekTwoCopy
 import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
 import com.sinura.personaltrainer.domain.todayEpochDay
+import com.sinura.personaltrainer.ui.reminders.ReminderPrefsSection
+import com.sinura.personaltrainer.ui.reminders.openAppNotificationSettings
+import com.sinura.personaltrainer.ui.reminders.rememberNotificationsEnabled
+import com.sinura.personaltrainer.ui.units.LocalClockFormat
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GroupedList
@@ -258,10 +263,10 @@ fun PlanScreen(
     onOpenRoutine: (String) -> Unit,
     onOpenLibrary: () -> Unit,
     onOpenDay: (Long, Boolean) -> Unit,
-    onOpenGoals: () -> Unit = {},
     viewModel: PlanViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val reminderPrefs by viewModel.reminderPreferences.collectAsStateWithLifecycle()
     val navigateToEditor by viewModel.navigateToEditor.collectAsStateWithLifecycle()
     val dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM)
     val today = remember { todayEpochDay() }
@@ -373,17 +378,6 @@ fun PlanScreen(
                         }
                         Text(week.summary, style = InstrumentType.caption, color = TextTertiary)
                         TextButton(
-                            onClick = onOpenGoals,
-                            contentPadding = PaddingValues(0.dp),
-                            modifier = Modifier.testTag(PlanTags.GOALS),
-                        ) {
-                            Text(
-                                "Goals  \u203a",
-                                style = InstrumentType.bodyStrong,
-                                color = TextSecondary,
-                            )
-                        }
-                        TextButton(
                             onClick = { onOpenDay(today, true) },
                             contentPadding = PaddingValues(0.dp),
                             modifier = Modifier
@@ -409,14 +403,27 @@ fun PlanScreen(
 
             if (tuning) {
                 item(key = "tune") {
-                    PreferenceBlock(
-                        preferences = state.preferences,
-                        onDays = viewModel::setTrainingDays,
-                        onSplit = viewModel::setSplit,
-                        onWeekStart = viewModel::setWeekStart,
-                        lighterWeek = state.lighterWeek,
-                        onLighterWeek = viewModel::setLighterWeek,
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
+                        PreferenceBlock(
+                            preferences = state.preferences,
+                            onDays = viewModel::setTrainingDays,
+                            onSplit = viewModel::setSplit,
+                            onWeekStart = viewModel::setWeekStart,
+                            lighterWeek = state.lighterWeek,
+                            onLighterWeek = viewModel::setLighterWeek,
+                        )
+                        val context = LocalContext.current
+                        ReminderPrefsSection(
+                            preferences = reminderPrefs,
+                            clockFormat = LocalClockFormat.current,
+                            notificationsEnabled = rememberNotificationsEnabled(),
+                            onOptOut = viewModel::setReminderOptOut,
+                            onQuietHours = viewModel::setReminderQuietHours,
+                            onOpenNotificationSettings = {
+                                openAppNotificationSettings(context)
+                            },
+                        )
+                    }
                 }
             }
 
@@ -791,7 +798,6 @@ object PlanTags {
     const val SUGGEST = "plan-suggest"
     const val USE_WEEK = "plan-use-week"
     const val DISMISS = "plan-dismiss"
-    const val GOALS = "plan-goals"
     const val ADD_SESSION = "plan-add-session"
     const val LIGHTER = "plan-lighter"
     const val TUNE_SPOKEN = "Tune week preferences"

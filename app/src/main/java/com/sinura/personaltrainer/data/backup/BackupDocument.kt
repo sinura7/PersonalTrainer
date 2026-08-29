@@ -129,6 +129,9 @@ data class BackupPreferences(
     val reminderOptOut: Boolean = false,
     val reminderQuietStartHour: Int = 22,
     val reminderQuietEndHour: Int = 7,
+    val clockFormat: String = "12h",
+    /** Empty means Auto (first training day). */
+    val bodyweightCheckInWeekday: String = "",
 )
 
 /**

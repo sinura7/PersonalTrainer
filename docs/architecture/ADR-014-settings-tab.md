@@ -25,7 +25,7 @@ IA is still refused.
 1. **Shipping IA:** Home · Body · Plan · History · Settings.
 2. **Library remains a pushed route**, entered from Plan, recommendations,
    muscle detail, and in-workout add/swap. It is not a tab.
-3. **Goals remain a pushed route** from Home or Plan. Goals are not a tab.
+3. **Goals UI is gone** ([ADR-016](ADR-016-settings-home-trim.md)). Tables stay. Goals are not a tab.
 4. **Settings is a tab destination.** The tab bar stays visible on it.
    The Settings header has no Back arrow. Export remains the page’s Volt
    act. Backup is never the Volt gym act.

@@ -24,7 +24,7 @@ on the phone: this repo, include pre-releases, prefer that debug APK. Gym-floor
 
 Walk this once, in order:
 
-1. Home — last session, days since, Start, Library, Goals.
+1. Home — last session, days since, Start.
 2. Start today's plan (or Start a workout), log a set, rest, finish.
 3. Body — Day / Week / Month chips. The silhouette is the readout, even
    with no sessions. A muscle last trained more than a month ago should
@@ -35,7 +35,7 @@ Walk this once, in order:
    Share diagnostics is optional and redacted.
 
 Physical TalkBack is still required before Public Candidate. Do not
-expect cloud sync. Library and Goals stay pushed, not tabs.
+expect cloud sync. Library stays pushed, not a tab. Goals UI is gone.
 
 **A new debug-live drop is a new Temper Debug install.** It will not open,
 overwrite, or even see the release history. The new icon is labelled

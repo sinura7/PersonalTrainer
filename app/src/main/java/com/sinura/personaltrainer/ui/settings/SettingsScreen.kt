@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -38,7 +39,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,10 +53,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.core.app.NotificationManagerCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.BuildConfig
@@ -67,12 +63,14 @@ import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
 import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
 import com.sinura.personaltrainer.domain.BackupPrompt
+import com.sinura.personaltrainer.domain.BodyweightCheckIn
+import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.DayLabel
+import com.sinura.personaltrainer.domain.EquipmentGroups
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.PlanSetupCopy
-import com.sinura.personaltrainer.domain.ReminderCopy
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
@@ -117,12 +115,14 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel(),
 ) {
     val selectedUnit by viewModel.weightUnit.collectAsStateWithLifecycle()
+    val clockFormat by viewModel.clockFormat.collectAsStateWithLifecycle()
     val schedulePrefs by viewModel.schedulePreferences.collectAsStateWithLifecycle()
     val restPrefs by viewModel.restTimerPreferences.collectAsStateWithLifecycle()
-    val reminderPrefs by viewModel.reminderPreferences.collectAsStateWithLifecycle()
     val offerExactAlarmAccess by viewModel.offerExactAlarmAccess.collectAsStateWithLifecycle()
     val coachPrefs by viewModel.coachPreferences.collectAsStateWithLifecycle()
     val bodyweightKg by viewModel.bodyweightKg.collectAsStateWithLifecycle()
+    val preferredDays by viewModel.preferredDays.collectAsStateWithLifecycle()
+    val checkInWeekday by viewModel.bodyweightCheckInWeekday.collectAsStateWithLifecycle()
     val backup by viewModel.backupState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = context.findActivity()
@@ -191,9 +191,11 @@ fun SettingsScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
         ) {
-            WeightUnitsSection(
+            DisplayPrefsSection(
                 selectedUnit = selectedUnit,
-                onSelect = viewModel::setWeightUnit,
+                clockFormat = clockFormat,
+                onSelectUnit = viewModel::setWeightUnit,
+                onSelectClock = viewModel::setClockFormat,
             )
             SchedulePrefsSection(
                 preferences = schedulePrefs,
@@ -203,20 +205,20 @@ fun SettingsScreen(
             )
             CoachingSection(
                 preferences = coachPrefs,
-                bodyweightKg = bodyweightKg,
-                unit = selectedUnit,
                 onGoal = viewModel::setTrainingGoal,
                 onEmphasis = viewModel::setTrainingEmphasis,
                 onToggleEquipment = viewModel::toggleEquipment,
+            )
+            BodyweightPrefsSection(
+                bodyweightKg = bodyweightKg,
+                unit = selectedUnit,
+                weekStart = schedulePrefs.weekStart,
+                daysPerWeek = schedulePrefs.trainingDaysPerWeek,
+                preferredDays = preferredDays,
+                checkInOverride = checkInWeekday,
                 onRecordBodyweight = viewModel::recordBodyweight,
                 onClearBodyweight = viewModel::clearBodyweight,
-            )
-            ReminderPrefsSection(
-                preferences = reminderPrefs,
-                notificationsEnabled = rememberNotificationsEnabled(),
-                onOptOut = viewModel::setReminderOptOut,
-                onQuietHours = viewModel::setReminderQuietHours,
-                onOpenNotificationSettings = { openAppNotificationSettings(context) },
+                onCheckInDay = viewModel::setBodyweightCheckInWeekday,
             )
             RestTimerPrefsSection(
                 preferences = restPrefs,
@@ -381,32 +383,61 @@ private fun DangerAction(label: String, enabled: Boolean) {
 }
 
 @Composable
-private fun WeightUnitsSection(
+private fun DisplayPrefsSection(
     selectedUnit: WeightUnit,
-    onSelect: (WeightUnit) -> Unit,
+    clockFormat: ClockFormat,
+    onSelectUnit: (WeightUnit) -> Unit,
+    onSelectClock: (ClockFormat) -> Unit,
 ) {
     SettingsGroup(
-        title = "Weight",
-        caption = "Pounds is the default. Kilograms is an option. Everything is still stored " +
-            "in kilograms — this only changes how weights are shown and entered.",
+        title = "Display",
+        caption = "Pounds and Regular hours are the default. Stored weights stay kilograms.",
+        modifier = Modifier.testTag(SettingsTags.DISPLAY),
     ) {
-        GroupedList(modifier = Modifier.selectableGroup()) {
-            listOf(WeightUnit.LBS, WeightUnit.KG).forEachIndexed { index, unit ->
-                if (index > 0) HairlineDivider()
-                val selected = selectedUnit == unit
-                InstrumentRow(
-                    title = unit.displayName,
-                    modifier = Modifier.selectable(
-                        selected = selected,
-                        onClick = { onSelect(unit) },
-                        role = Role.RadioButton,
-                    ),
-                    trailing = {
-                        if (selected) {
-                            Icon(Icons.Outlined.Check, contentDescription = null, tint = Volt)
+        GymCard {
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "Weight",
+                        modifier = Modifier.width(DISPLAY_LABEL_WIDTH),
+                        style = InstrumentType.caption,
+                        color = TextSecondary,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                        listOf(WeightUnit.LBS, WeightUnit.KG).forEach { unit ->
+                            InstrumentChip(
+                                label = unit.suffix,
+                                selected = selectedUnit == unit,
+                                onClick = { onSelectUnit(unit) },
+                            )
                         }
-                    },
-                )
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "Hours",
+                        modifier = Modifier.width(DISPLAY_LABEL_WIDTH),
+                        style = InstrumentType.caption,
+                        color = TextSecondary,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                        ClockFormat.entries.forEach { format ->
+                            InstrumentChip(
+                                label = format.displayName,
+                                selected = clockFormat == format,
+                                onClick = { onSelectClock(format) },
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -452,38 +483,15 @@ private fun SchedulePrefsSection(
 @Composable
 private fun CoachingSection(
     preferences: CoachPreferences,
-    bodyweightKg: Double?,
-    unit: WeightUnit,
     onGoal: (TrainingGoal) -> Unit,
     onEmphasis: (TrainingEmphasis) -> Unit,
     onToggleEquipment: (EquipmentType) -> Unit,
-    onRecordBodyweight: (Double) -> Unit,
-    onClearBodyweight: () -> Unit,
 ) {
-    var weighingIn by rememberSaveable { mutableStateOf(false) }
-    if (weighingIn) {
-        NumberEntryDialog(
-            title = "Bodyweight",
-            unitLabel = unit.suffix,
-            initial = bodyweightKg
-                ?.let { WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(it, unit)) }
-                .orEmpty(),
-            decimal = true,
-            helper = "Today's weigh-in. One a day is kept — the last one you type.",
-            parse = { NumericEntry.parseWeightKg(it, unit) },
-            onConfirm = {
-                weighingIn = false
-                onRecordBodyweight(it)
-            },
-            onDismiss = { weighingIn = false },
-        )
-    }
     SettingsGroup(
         title = "Coaching",
         caption = "Emphasis changes which days Suggest fills. Athletic and Resilience change the lifts in " +
-            "the next week you generate. Neither rewrites days you already pinned. The " +
-            "coach's cards stay the same set; strength and muscle only reorder them. " +
-            "Turning equipment off stops the coach naming lifts you cannot do.",
+            "the next week you generate. Neither rewrites days you already pinned. Turning " +
+            "equipment off stops generated weeks and recs from naming lifts you cannot do.",
     ) {
         GroupedList(modifier = Modifier.selectableGroup()) {
             TrainingGoal.entries.forEachIndexed { index, goal ->
@@ -526,13 +534,81 @@ private fun CoachingSection(
             }
         }
         GymCard {
-            Kicker("Bodyweight")
-            Text(
-                "Only used to say what your weight did across a block. Nothing else reads it — " +
-                    "bodyweight lifts are counted in reps.",
-                style = InstrumentType.caption,
-                color = TextSecondary,
-            )
+            Kicker("Equipment you have")
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
+                EquipmentGroups.ALL.forEach { group ->
+                    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                        Text(
+                            group.title,
+                            style = InstrumentType.caption,
+                            color = TextSecondary,
+                        )
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                            verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                        ) {
+                            group.types.forEach { equipment ->
+                                InstrumentChip(
+                                    label = equipment.label,
+                                    selected = preferences.allows(equipment),
+                                    onClick = { onToggleEquipment(equipment) },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun BodyweightPrefsSection(
+    bodyweightKg: Double?,
+    unit: WeightUnit,
+    weekStart: Weekday,
+    daysPerWeek: Int,
+    preferredDays: Set<Weekday>,
+    checkInOverride: Weekday?,
+    onRecordBodyweight: (Double) -> Unit,
+    onClearBodyweight: () -> Unit,
+    onCheckInDay: (Weekday?) -> Unit,
+) {
+    var weighingIn by rememberSaveable { mutableStateOf(false) }
+    if (weighingIn) {
+        NumberEntryDialog(
+            title = "Bodyweight",
+            unitLabel = unit.suffix,
+            initial = bodyweightKg
+                ?.let { WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(it, unit)) }
+                .orEmpty(),
+            decimal = true,
+            helper = "Weekly check-in. One a day is kept — the last one you type.",
+            parse = { NumericEntry.parseWeightKg(it, unit) },
+            onConfirm = {
+                weighingIn = false
+                onRecordBodyweight(it)
+            },
+            onDismiss = { weighingIn = false },
+        )
+    }
+    val autoDay = BodyweightCheckIn.dueWeekday(
+        preferredDays = preferredDays,
+        weekStart = weekStart,
+        daysPerWeek = daysPerWeek,
+        override = null,
+    )
+    SettingsGroup(
+        title = "Bodyweight",
+        caption = if (checkInOverride == null) {
+            "Weekly check-in on ${autoDay.shortLabel()} — your first training day. Home asks that morning."
+        } else {
+            "Weekly check-in on ${checkInOverride.shortLabel()}. Home asks that morning."
+        },
+        modifier = Modifier.testTag(SettingsTags.BODYWEIGHT),
+    ) {
+        GymCard {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -558,96 +634,22 @@ private fun CoachingSection(
                     }
                 }
             }
-        }
-        GymCard {
-            Kicker("Equipment you have")
+            Kicker("Check-in day")
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
                 verticalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
-                EquipmentType.entries.forEach { equipment ->
-                    InstrumentChip(
-                        label = equipment.label,
-                        selected = preferences.allows(equipment),
-                        onClick = { onToggleEquipment(equipment) },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ReminderPrefsSection(
-    preferences: com.sinura.personaltrainer.domain.ReminderPreferences,
-    notificationsEnabled: Boolean,
-    onOptOut: (Boolean) -> Unit,
-    onQuietHours: (Int, Int) -> Unit,
-    onOpenNotificationSettings: () -> Unit,
-) {
-    val enabled = !preferences.optOut
-    SettingsGroup(
-        title = "Workout reminders",
-        caption = "Best-effort reminders. Not exact alarms. Permission is never asked during setup.",
-        modifier = Modifier.testTag(SettingsTags.REMINDERS),
-    ) {
-        if (enabled && !notificationsEnabled) {
-            GymNoticeBanner(
-                title = ReminderCopy.PERMISSION_TITLE,
-                body = ReminderCopy.PERMISSION_BODY,
-                actionLabel = ReminderCopy.PERMISSION_ACTION,
-                onAction = onOpenNotificationSettings,
-            )
-        }
-        GroupedList {
-            InstrumentRow(
-                title = ReminderCopy.SWITCH_TITLE,
-                subtitle = ReminderCopy.SWITCH_SUBTITLE,
-                trailing = {
-                    Switch(
-                        checked = enabled,
-                        onCheckedChange = { on -> onOptOut(!on) },
-                    )
-                },
-            )
-            HairlineDivider()
-            Column(
-                modifier = Modifier.padding(
-                    start = Metrics.space4,
-                    end = Metrics.space4,
-                    top = Metrics.space3,
-                    bottom = Metrics.space4,
-                ),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space3),
-            ) {
-                Text(
-                    ReminderCopy.quietHoursLine(
-                        preferences.quietStartHour,
-                        preferences.quietEndHour,
-                    ),
-                    style = InstrumentType.body,
-                    color = TextSecondary,
+                InstrumentChip(
+                    label = "Auto",
+                    selected = checkInOverride == null,
+                    onClick = { onCheckInDay(null) },
                 )
-                Kicker(ReminderCopy.QUIET_START)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                    ReminderCopy.startChoices(preferences.quietStartHour).forEach { hour ->
-                        InstrumentChip(
-                            label = ReminderCopy.hourLabel(hour),
-                            selected = preferences.quietStartHour == hour,
-                            onClick = { onQuietHours(hour, preferences.quietEndHour) },
-                        )
-                    }
-                }
-                Kicker(ReminderCopy.QUIET_END)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                    ReminderCopy.endChoices(preferences.quietEndHour).forEach { hour ->
-                        InstrumentChip(
-                            label = ReminderCopy.hourLabel(hour),
-                            selected = preferences.quietEndHour == hour,
-                            onClick = { onQuietHours(preferences.quietStartHour, hour) },
-                        )
-                    }
+                (0 until 7).map { weekStart.plus(it.toLong()) }.forEach { day ->
+                    InstrumentChip(
+                        label = day.shortLabel(),
+                        selected = checkInOverride == day,
+                        onClick = { onCheckInDay(day) },
+                    )
                 }
             }
         }
@@ -1246,45 +1248,13 @@ private fun Context.findActivity(): Activity {
     error("Settings must run in an Activity")
 }
 
-@Composable
-private fun rememberNotificationsEnabled(): Boolean {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    var enabled by remember {
-        mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
-    }
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                enabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
-    return enabled
-}
-
-private fun openAppNotificationSettings(context: Context) {
-    val intent = Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-        .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
-        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    try {
-        context.startActivity(intent)
-    } catch (_: Exception) {
-        context.startActivity(
-            Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                .setData(android.net.Uri.fromParts("package", context.packageName, null))
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-        )
-    }
-}
-
 private val SPINNER_SIZE = 20.dp
 private val SPINNER_STROKE = 2.dp
+private val DISPLAY_LABEL_WIDTH = 56.dp
 
 object SettingsTags {
     const val EXPORT_FILE = "settings-export-file"
     const val SHARE_DIAGNOSTICS = "settings-share-diagnostics"
-    const val REMINDERS = "settings-reminders"
+    const val DISPLAY = "settings-display"
+    const val BODYWEIGHT = "settings-bodyweight"
 }

@@ -27,8 +27,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.sinura.personaltrainer.domain.GoalCopy
-import com.sinura.personaltrainer.domain.GoalSnapshot
 import com.sinura.personaltrainer.domain.HomeToday
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.MastheadCopy
@@ -51,10 +49,10 @@ import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
+import com.sinura.personaltrainer.ui.components.NumberEntryDialog
 import com.sinura.personaltrainer.ui.components.ResumeOrDiscardDialog
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.StatTile
-import com.sinura.personaltrainer.ui.components.WeekStrip
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -69,10 +67,7 @@ import java.time.format.DateTimeFormatter
 fun HomeScreen(
     onResumeWorkout: (String) -> Unit,
     onOpenPlan: () -> Unit,
-    onOpenHistory: () -> Unit,
     onOpenExercise: (String) -> Unit,
-    onOpenGoals: () -> Unit = {},
-    onOpenLibrary: () -> Unit = {},
     onLogActivity: (String) -> Unit = {},
     onOpenLiveCardio: (String) -> Unit = {},
     onGenerateSchedule: () -> Unit = {},
@@ -110,6 +105,7 @@ fun HomeScreen(
     val inProgress = state.inProgress
     var starterDismissed by rememberSaveable { mutableStateOf(false) }
     val showStarter = !state.setupComplete && !starterDismissed && inProgress == null
+    var weighingIn by rememberSaveable { mutableStateOf(false) }
 
     // Starting a planned day while another session is live is a question, not something the
     // app answers on the user's behalf. Composed before the loading return so it survives a
@@ -119,6 +115,28 @@ fun HomeScreen(
             onResume = viewModel::resumeBlocked,
             onDiscardAndStart = viewModel::discardBlockedAndStart,
             onDismiss = viewModel::dismissBlockedStart,
+        )
+    }
+
+    if (weighingIn) {
+        NumberEntryDialog(
+            title = "Bodyweight",
+            unitLabel = unit.suffix,
+            initial = state.latestBodyweightKg
+                ?.let {
+                    WeightConverter.formatDisplayNumber(
+                        WeightConverter.toDisplayValue(it, unit),
+                    )
+                }
+                .orEmpty(),
+            decimal = true,
+            helper = "Weekly check-in. One a day is kept — the last one you type.",
+            parse = { com.sinura.personaltrainer.domain.NumericEntry.parseWeightKg(it, unit) },
+            onConfirm = {
+                weighingIn = false
+                viewModel.recordBodyweight(it)
+            },
+            onDismiss = { weighingIn = false },
         )
     }
 
@@ -261,63 +279,34 @@ fun HomeScreen(
                         onStartFree = { viewModel.startFreeWorkout() },
                     )
                 }
-                // The card body no longer navigates. A whole-card tap that went to the plan,
-                // with a filled Start inside it, was a mis-tap trap on the most-pressed
-                // control in the app.
-                //
-                // The block reads as part of that link rather than as its own row: "Week 3 of
-                // 12" is where this week sits, and where it sits is what the link goes to see.
-                LinkRow(
-                    label = "This week",
-                    onClick = onOpenPlan,
-                    modifier = Modifier.testTag(HomeTags.THIS_WEEK),
-                    trailing = state.block?.let { block ->
-                        if (block.isCompleteOn(today)) {
-                            "Block complete"
-                        } else {
-                            "Week ${block.displayWeekOn(today)} of ${block.weeks}"
-                        }
-                    },
-                )
-                state.goalSnapshot?.let { snapshot ->
-                    GoalSnapshotCard(
-                        snapshot = snapshot,
-                        unit = unit,
-                        onClick = onOpenGoals,
-                    )
-                } ?: LinkRow(
-                    label = "Goals",
-                    onClick = onOpenGoals,
-                    modifier = Modifier.testTag(HomeTags.GOALS),
-                )
-                LinkRow(
-                    label = "Library",
-                    onClick = onOpenLibrary,
-                    modifier = Modifier.testTag(HomeTags.LIBRARY),
-                )
             }
         }
-        if (plan != null) {
+        if (state.bodyweightCheckInDue) {
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-                    // The same composable Plan renders, fed from the same derived week — not a
-                    // Home-only variant that agrees by convention until one of them changes.
-                    WeekStrip(
-                        days = plan.days,
-                        proposals = emptyMap(),
-                        loggedEpochDays = state.loggedEpochDays,
-                        today = today,
-                        twoADayEpochDays = state.twoADayEpochDays,
-                        onOpenDay = { onOpenPlan() },
+                GymCard(modifier = Modifier.testTag(HomeTags.BODYWEIGHT_CHECK_IN)) {
+                    Kicker("Weekly weigh-in")
+                    Text(
+                        "Log this week's weight.",
+                        style = InstrumentType.body,
+                        color = TextSecondary,
                     )
-                    if (state.lighterWeek) {
+                    androidx.compose.material3.TextButton(onClick = { weighingIn = true }) {
                         Text(
-                            LighterWeek.CAPTION,
-                            style = InstrumentType.caption,
-                            color = TextSecondary,
+                            "Log weight",
+                            style = InstrumentType.bodyStrong,
+                            color = com.sinura.personaltrainer.ui.theme.Volt,
                         )
                     }
                 }
+            }
+        }
+        if (state.lighterWeek) {
+            item {
+                Text(
+                    LighterWeek.CAPTION,
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                )
             }
         }
         if (state.readyToProgress.isNotEmpty()) {
@@ -329,48 +318,14 @@ fun HomeScreen(
                 )
             }
         }
-        item {
-            LinkRow(label = "Training calendar", onClick = onOpenHistory)
-        }
     }
 }
 
 /**
  * A tertiary row that goes somewhere.
  *
- * Deliberately quiet: these are the two places Home hands off to another tab, and neither
- * competes with the hero for the eye.
+ * Kept for page-pass tests. Home itself no longer lists tab destinations.
  */
-@Composable
-private fun GoalSnapshotCard(
-    snapshot: GoalSnapshot,
-    unit: WeightUnit,
-    onClick: () -> Unit,
-) {
-    val goal = snapshot.goal
-    GymCard(
-        onClick = onClick,
-        modifier = Modifier
-            .testTag(HomeTags.GOALS)
-            .semantics { contentDescription = "Goals" },
-    ) {
-        Kicker(if (goal.paused) "Goal · paused" else "Goal")
-        Text(
-            goal.exerciseName?.takeIf { it.isNotBlank() } ?: goal.kind.label,
-            style = InstrumentType.title,
-            color = TextPrimary,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            GoalCopy.progressLine(snapshot, unit),
-            style = InstrumentType.body,
-            color = if (snapshot.met) TextPrimary else TextSecondary,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
 
 @Composable
 internal fun LinkRow(
@@ -517,13 +472,11 @@ object HomeTags {
     const val START = "home-start"
     const val FREE = "home-free-start"
     const val REPLAY = "home-replay"
-    const val LIBRARY = "home-library"
-    const val GOALS = "home-goals"
-    const val THIS_WEEK = "home-this-week"
     const val GET_STARTED = "home-get-started"
     const val GENERATE = "home-generate-schedule"
     const val BUILD_WEEK = "home-build-week"
     const val STARTER_WORKOUT = "home-starter-workout"
+    const val BODYWEIGHT_CHECK_IN = "home-bodyweight-check-in"
 }
 
 private const val DATE_LINE_PATTERN = "EEEE '·' d MMM"

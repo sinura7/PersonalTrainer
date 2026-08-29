@@ -44,6 +44,7 @@ No ADR may leave a schema, scheduling, privacy, or entitlement choice as TBD.
 | [ADR-013](ADR-013-finding-dispositions.md) | Finding dispositions and superseded doctrine | FND-037 and the full map |
 | [ADR-014](ADR-014-settings-tab.md) | Settings is the fifth tab | FND-031 Settings gear |
 | [ADR-015](ADR-015-plan-day-blocks.md) | Plan is a day-block schedule | T3 Plan day page |
+| [ADR-016](ADR-016-settings-home-trim.md) | Settings / Home trim | Display, check-in, Goals UI gone |
 
 ## Supporting records
 
@@ -65,7 +66,7 @@ No ADR may leave a schema, scheduling, privacy, or entitlement choice as TBD.
 These are not superseded by the foundation program:
 
 - `fallbackToDestructiveMigration` ([ADR-010](ADR-010-schema-reset-migrations.md))
-- A sixth tab, or Library/Goals as a tab, without a new signed decision ([ADR-006](ADR-006-information-architecture.md), [ADR-014](ADR-014-settings-tab.md))
+- A sixth tab, or Library as a tab, without a new signed decision ([ADR-006](ADR-006-information-architecture.md), [ADR-014](ADR-014-settings-tab.md), [ADR-016](ADR-016-settings-home-trim.md))
 - An LLM or chat coach that authors loads, plans, or records ([ADR-008](ADR-008-deterministic-rules.md))
 - Package or Drive-folder rename
 - GitHub-hosted runners as the project test lane ([ADR-002](ADR-002-execution-protocol.md))

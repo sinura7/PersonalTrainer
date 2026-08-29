@@ -67,7 +67,6 @@ import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.history.HistoryScreen
 import com.sinura.personaltrainer.ui.exercise.ExerciseDetailScreen
 import com.sinura.personaltrainer.ui.history.SessionDetailScreen
-import com.sinura.personaltrainer.ui.goals.GoalsScreen
 import com.sinura.personaltrainer.ui.home.HomeScreen
 import com.sinura.personaltrainer.ui.library.ExerciseLibraryScreen
 import com.sinura.personaltrainer.ui.progress.ProgressScreen
@@ -91,6 +90,7 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.instrumentTween
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import com.sinura.personaltrainer.ui.units.LocalClockFormat
 import com.sinura.personaltrainer.ui.activity.ActivityComposerScreen
 import com.sinura.personaltrainer.ui.activity.ActivityDetailScreen
 import com.sinura.personaltrainer.ui.activity.LiveCardioScreen
@@ -134,7 +134,6 @@ sealed class Route(val path: String) {
     data object Settings : Route("settings")
     data object Onboarding : Route("onboarding")
     data object CustomWeek : Route("custom-week")
-    data object Goals : Route("goals")
     data object PlanDay : Route("plan-day/{epochDay}?add={add}") {
         fun create(epochDay: Long, add: Boolean = false): String =
             "plan-day/$epochDay?add=$add"
@@ -175,7 +174,7 @@ internal data class Tab(
 }
 
 /**
- * Shipping tab order. Settings is a tab (ADR-014). Library and Goals stay pushed.
+ * Shipping tab order. Settings is a tab (ADR-014). Library stays pushed. Goals UI is gone (ADR-016).
  */
 internal val shippingTabs = listOf(
     Tab(Route.Home, "Home", TemperIcons.Home),
@@ -229,6 +228,7 @@ fun PersonalTrainerNav(
     gateViewModel: OnboardingGateViewModel = viewModel(),
 ) {
     val weightUnit by settingsViewModel.weightUnit.collectAsStateWithLifecycle()
+    val clockFormat by settingsViewModel.clockFormat.collectAsStateWithLifecycle()
     val gate by gateViewModel.gate.collectAsStateWithLifecycle()
     val application = LocalContext.current.applicationContext as Application
     val container = remember(application) { application.appContainer() }
@@ -320,7 +320,10 @@ fun PersonalTrainerNav(
         }
     }
 
-    CompositionLocalProvider(LocalWeightUnit provides weightUnit) {
+    CompositionLocalProvider(
+        LocalWeightUnit provides weightUnit,
+        LocalClockFormat provides clockFormat,
+    ) {
         Scaffold(
             bottomBar = {
               Column {
@@ -411,12 +414,7 @@ fun PersonalTrainerNav(
                             }
                         },
                         onOpenPlan = { goToTab(Route.Routines.path) },
-                        // History's calendar is the first thing on that tab, so arriving on the
-                        // tab IS arriving at the calendar — no route parameter, no scroll effect.
-                        onOpenHistory = { goToTab(Route.History.path) },
                         onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
-                        onOpenGoals = { navController.navigate(Route.Goals.path) },
-                        onOpenLibrary = { navController.navigate(Route.Library.create(null)) },
                         onGenerateSchedule = { navController.navigate(Route.Onboarding.path) },
                         onBuildWeek = {
                             container.pendingCustomWeek.value = CustomWeekLaunch()
@@ -477,9 +475,6 @@ fun PersonalTrainerNav(
                         pendingWeightUnit = launch?.unit,
                     )
                 }
-                composable(Route.Goals.path) {
-                    GoalsScreen(onBack = { navController.popBackStack() })
-                }
                 composable(
                     route = Route.PlanDay.path,
                     arguments = listOf(
@@ -502,7 +497,6 @@ fun PersonalTrainerNav(
                         onCreateRoutine = { navController.navigate(Route.RoutineEditor.create("new")) },
                         onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
                         onOpenLibrary = { navController.navigate(Route.Library.create(null)) },
-                        onOpenGoals = { navController.navigate(Route.Goals.path) },
                         onOpenDay = { epochDay, add ->
                             navController.navigate(Route.PlanDay.create(epochDay, add))
                         },

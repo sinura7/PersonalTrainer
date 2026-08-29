@@ -2,8 +2,8 @@
 
 - **Status:** Accepted (superseded in part by
   [ADR-014](ADR-014-settings-tab.md): Settings is a fifth tab. Library
-  and Goals remain pushed. The reconsideration gate still binds a sixth
-  tab.)
+  remains pushed. [ADR-016](ADR-016-settings-home-trim.md) removes the
+  Goals UI. The reconsideration gate still binds a sixth tab.)
 - **Date:** 24 August 2026
 - **Supersedes:** Five-tab shipping IA (Library on the bar); three-tab
   UI_REDESIGN §6 as a live target. Historical D1 remains the *reason*
@@ -16,9 +16,10 @@
 D1 signed Home · Body · Plan · History, Library pushed. That default
 rejected stuffing cardio, goals, or the catalog onto the bar.
 [ADR-014](ADR-014-settings-tab.md) later placed **Settings** on the bar
-because the owner asked for a dedicated Settings space. Library and
-Goals stay pushed. A sixth tab is still a common failure mode and is
-rejected unless the gate below fails.
+because the owner asked for a dedicated Settings space. Library stays
+pushed. Goals UI is gone ([ADR-016](ADR-016-settings-home-trim.md)). A
+sixth tab is still a common failure mode and is rejected unless the gate
+below fails.
 
 ## Decision
 
@@ -28,12 +29,12 @@ rejected unless the gate below fails.
    - Library is a pushed route, entered from Plan, recommendations, muscle
      detail, and in-workout add/swap.
    - Editors, Active Workout, Summary, Session/Activity Detail,
-     Exercise Detail, Goals, Plan day, and the future Activity Composer are
+     Exercise Detail, Plan day, and the Activity Composer are
      pushed routes.
    - The Live Session Bar is chrome, not a tab, and is the only live-session
      affordance.
-2. **No sixth tab is planned.** Adding one — or promoting Library or Goals
-   onto the bar — requires a new signed ADR after the evidence protocol
+2. **No sixth tab is planned.** Adding one — or promoting Library onto
+   the bar — requires a new signed ADR after the evidence protocol
    below fails for these five tabs.
 3. **No route or tab code changes in Phase 0.** This record freezes the
    default; it does not restyle the bar.
@@ -61,8 +62,8 @@ rejected unless the gate below fails.
      same 80% / no-majority-first-click threshold.
 6. An alternative that fixes T5 by burying T4, or fixes T6 by adding a sixth
    tab without passing (5), is rejected.
-7. Goals are pushed from Home or Plan. Home shows at most one compact goal
-   snapshot. Goals are not a tab.
+7. Goals UI is removed ([ADR-016](ADR-016-settings-home-trim.md)). Room
+   goal tables stay. Goals are not a tab and are not a pushed route.
 8. Plan command vocabulary (Suggest / Replay / Tune / Lighter) remains four
    ideas. Evidence may change copy and disclosure, not collapse the ideas
    into one control.

@@ -34,8 +34,6 @@ import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.exercise.ExerciseDetailHeader
 import com.sinura.personaltrainer.ui.exercise.ExerciseDetailTags
-import com.sinura.personaltrainer.ui.goals.GoalsHeader
-import com.sinura.personaltrainer.ui.goals.GoalsTags
 import com.sinura.personaltrainer.ui.history.SessionDetailTestTags
 import com.sinura.personaltrainer.ui.history.sessionDeleteTitle
 import com.sinura.personaltrainer.ui.onboarding.OnboardingTags
@@ -182,9 +180,8 @@ class RemainingPagesPassInstrumentedTest {
     }
 
     @Test
-    fun goalsOnboardingAndSettingsStayNamedAt360Font2() {
+    fun onboardingAndSettingsStayNamedAt360Font2() {
         setConstrainedContent(2f) {
-            GoalsHeader(onBack = {}, onToggleAdd = {}, adding = false)
             PrimaryGymButton(
                 text = "Use this plan",
                 onClick = {},
@@ -201,9 +198,6 @@ class RemainingPagesPassInstrumentedTest {
                 modifier = Modifier.testTag(SettingsTags.SHARE_DIAGNOSTICS),
             )
         }
-        compose.onNodeWithTag(GoalsTags.BACK).assertIsDisplayed()
-        compose.onNodeWithTag(GoalsTags.ADD).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Add a goal").assertIsDisplayed()
         compose.onNodeWithTag(OnboardingTags.USE_PLAN).assertIsDisplayed()
         compose.onNodeWithText("Use this plan").assertIsDisplayed()
         compose.onNodeWithTag(SettingsTags.EXPORT_FILE).assertIsDisplayed()
