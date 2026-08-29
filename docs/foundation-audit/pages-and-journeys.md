@@ -220,7 +220,7 @@ Runtime evidence: [recommendations](evidence/16-body-recommendations.png).
 ### 4.3 Plan
 
 **Files:** [`PlanScreen.kt`](../../app/src/main/java/com/sinura/personaltrainer/ui/plan/PlanScreen.kt),
-[`PlanDaySheet.kt`](../../app/src/main/java/com/sinura/personaltrainer/ui/plan/PlanDaySheet.kt),
+[`PlanDayScreen.kt`](../../app/src/main/java/com/sinura/personaltrainer/ui/plan/PlanDayScreen.kt),
 [`PreferenceBlock.kt`](../../app/src/main/java/com/sinura/personaltrainer/ui/plan/PreferenceBlock.kt)
 
 **Job:** Own the pinned week, reusable routines, and schedule suggestions.

@@ -189,7 +189,7 @@ previews.
 - `BlockLine` — current 12-week state.
 - `BlockReviewPanel` — completed-block summary.
 - `WeekStrip` — shared calendar row.
-- `PlanDaySheet` — one day’s start/edit/swap/unpin actions.
+- `PlanDayScreen` — one day’s untimed blocks (workout, cardio, auxiliary).
 - `RoutineRow` — routine identity and lift count.
 - `RoutinePicker` / `FocusPicker` — schedule-slot selection.
 - `PreferenceBlock` — days, split, week start, lighter week.
