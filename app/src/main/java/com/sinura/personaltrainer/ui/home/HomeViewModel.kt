@@ -9,7 +9,8 @@ import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.ActivityWrite
 import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.CardioBlock
-import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.CardioCopy
+import com.sinura.personaltrainer.domain.ScheduleKind
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.MissedWorkChoice
@@ -300,10 +301,11 @@ class HomeViewModel @JvmOverloads constructor(
                 ScheduleModality.CARDIO -> {
                     PendingOccurrence.forget(container)
                     val now = JvmTime.captureNow()
+                    val type = ScheduleKind.cardioTypeOrRun(rule?.templateId)
                     val block = CardioBlock(
                         id = IdFactory.Uuid.newId(),
                         sortOrder = 0,
-                        type = CardioType.RUN,
+                        type = type,
                         indoor = false,
                         elapsedSeconds = 0L,
                         movingSeconds = 0L,
@@ -314,7 +316,7 @@ class HomeViewModel @JvmOverloads constructor(
                         rpe = null,
                         routeRef = null,
                     )
-                    when (val write = container.startLiveActivity("Cardio", listOf(block), now, occurrence.id)) {
+                    when (val write = container.startLiveActivity(CardioCopy.name(type), listOf(block), now, occurrence.id)) {
                         is ActivityWrite.Accepted -> {
                             val nowElapsed = android.os.SystemClock.elapsedRealtime()
                             val nowWall = System.currentTimeMillis()
