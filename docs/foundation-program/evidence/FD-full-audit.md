@@ -62,6 +62,24 @@ dependency verification ledger (612 pinned components, no bypasses);
 one-shot navigation as state+ack everywhere; Start confinement; list
 keys; back symmetry; the workout screen's tick isolation and stable keys.
 
+## Cleared from the queue (second pass, same day)
+
+`96c2c6d` follow-up on this branch: MOVED rows vacate their day
+(board fill, summary, two-a-day); wall minutes come from the zone
+offset at the instant so DST days stop shifting the overdue threshold;
+ADAPT_WEEK genuinely re-derives the remaining week from current rules
+(hour changes land, removed rules retire, no past-day minting);
+`BackupValidator` refuses everything the mapper would explode on
+(unknown enums, Gson-null fields, duplicate block/set/interval ids,
+orphan FK rows regardless of list emptiness); week rollover runs on
+every resume; restored reminders are handed to the scheduler at
+commit; the exact-alarm grant-change broadcast re-arms a persisted
+rest; the full-screen intent attaches only when the API 34 gate is
+open; assisted lifts are excluded from best-weight goals; bodyweight
+backups round-trip at full precision; History says when it is showing
+a stale read; Plan-day's cardio row is a readout when the day already
+has cardio.
+
 ## Deferred, with recommendation (the queue)
 
 - **Coach hint fan-out (perf P1).** `readyForProgression` runs ~200
@@ -80,37 +98,11 @@ keys; back symmetry; the workout screen's tick isolation and stable keys.
   poll per collector (up to three at once); `shareIn` or align to the
   second boundary. The live-bar pipeline also ticks on routes where the
   bar is hidden.
-- **MOVED rows in day math (scheduling P2).** `WeekBoard.summary`,
-  `DayFill`, and `twoADayEpochDays` count MOVED rows: moved sessions
-  double-count, the vacated day stays red forever, phantom two-a-day
-  marks. Decide the fill semantics (vacated = resolved?) and filter.
-- **`minutesOfDay` is elapsed-since-midnight (scheduling P2).** DST days
-  shift the overdue threshold an hour; derive wall minutes from the
-  zone instead.
-- **ADAPT_WEEK is behaviourally KEEP_DATES (scheduling P2).** After
-  `ensureWeek`, regeneration finds nothing to create. Either make it
-  regenerate future PLANNED rows for changed rules or drop the choice.
-- **Week rollover only at process start (scheduling P2).** A cached
-  Monday process shows an empty board; `ensureWeek` should also run on
-  resume/day-change.
 - **MoveToToday id collision with a MOVED row (scheduling P3);
   previous-week PLANNED rows stuck invisible (P3).**
-- **Validator gaps (data P2).** Unknown enum strings, missing
-  `performedStart`, duplicate block/set/interval ids, and empty-list FK
-  skips pass `prepareRestore` and explode mid-transaction (rolls back,
-  but with finding-2's old message). Harden `BackupValidator`.
 - **Bodyweight/blocks restore is two stores without a transaction
-  (data P2); bodyweight backup rounds to 0.1 kg through display
-  formatting (P3); restored PENDING reminders not scheduled until next
-  launch (P3); ACTIVE activities counted in the confirm but filtered on
+  (data P2); ACTIVE activities counted in the confirm but filtered on
   restore (P3).**
-- **`observeBestWorkingWeights` takes MAX(weightKg) for assisted lifts**
-  — the most-assisted set reads as "best" (P3).
-- **History `stale` flag has no UI consumer (P3); Plan-day cardio
-  "already has cardio" panel keeps its dead hour chips (P3);
-  full-screen-intent capability gate exists but is never called (P3);
-  no `ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` receiver
-  (P3).**
 - **ProGuard keeps whole logic packages un-obfuscated** where Gson needs
   only DTO field names (P3 hardening).
 - **Coverage ratchet is unreachable** outside the owner's machine; add
