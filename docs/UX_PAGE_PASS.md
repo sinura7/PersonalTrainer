@@ -46,7 +46,7 @@ The written plan loses when any of these is true:
 
 The written plan **wins** when the floor idea:
 
-- adds a fifth tab, a 3-tab collapse, an LLM trainer, or head-level anatomy
+- adds a sixth tab, Library as a tab, Goals as a tab, an LLM trainer, or head-level anatomy
 - invents a new route
 - renames the package, Room version, or Drive folder
 - uses `fallbackToDestructiveMigration`
@@ -61,7 +61,8 @@ finding, keep the gate honest.
 
 These are signed. A page pass may not weaken them.
 
-- **Four tabs:** Home · Body · Plan · History. Library is pushed.
+- **Five tabs:** Home · Body · Plan · History · Settings. Library is pushed.
+  Goals are pushed.
 - **Volt = live / act only.** One filled control per screen.
 - **Home / Plan / Start sheet / Body never say Resume.** The live bar and the rest
   notification are the return. Dialogs that fork (“this start, or the one already
@@ -278,13 +279,15 @@ and the screen says so *before* the tap, not only after the repository refuses.
 **Won't.** Silent WorkManager Drive upload. Renaming the Drive folder.
 Inventing a casual `TrainerDatabase` v3 during a page pass. Job 5 / P5 is a
 stale-backup prompt, still a tap. The foundation cutover is not this file.
+Settings is a tab, not a gear on Home or Plan.
 
 ---
 
 ## Do not open
 
 Casual `TrainerDatabase` v3 · emulator instrumented tests on the real
-applicationId · package rename · Drive folder rename · 5th tab · LLM trainer.
+applicationId · package rename · Drive folder rename · sixth tab ·
+Library as a tab · Goals as a tab · LLM trainer.
 
 Plate calculator, rest *sound* design, font-scale 2.0, and prompted
 backup shipped as Job 5. Job 6 leftover polish is historical. Current
@@ -301,6 +304,10 @@ Job 4 / P1. Home empty-week volt becomes replay when routines exist
 
 Record every deviation here. Oldest stay; do not delete.
 
+Owner asked for **Settings as the fifth tab** (29 Aug 2026): the gear
+leaves Home and Plan. Settings is a dedicated tab. The bar stays
+visible. Back is gone. Library and Goals stay pushed. Instrument stays.
+
 Owner asked for a **Body readout** (29 Aug 2026): the tab is the
 silhouette. Day / Week / Month chips. No Start on this page. Empty
 still shows the figure. Heat follows sets, reps, and RPE. Instrument
@@ -314,7 +321,7 @@ Owner asked for a **day stack** (28 Aug 2026): more than two sessions
 on one weekday — morning cardio, the pinned workout, and later
 accessory / Hyper Pro work. Plan adds the later occurrence; Home
 lists them in time order. One live activity. Finish one, then start
-the next. Overlay rest, a fifth tab, and LLM-as-author stay won’ts.
+the next. Overlay rest, a sixth tab, and LLM-as-author stay won’ts.
 
 Owner asked for a **cross-tab layout fit** (28 Aug 2026): windows, buttons,
 and text that fit on every tab and in the workout. Instrument / ADR-005 stay.

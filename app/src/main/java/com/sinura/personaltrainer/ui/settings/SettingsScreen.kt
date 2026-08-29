@@ -24,7 +24,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.foundation.text.KeyboardOptions
@@ -114,7 +113,6 @@ import java.util.Date
 
 @Composable
 fun SettingsScreen(
-    onBack: () -> Unit,
     onOpenGuidedSetup: () -> Unit = {},
     viewModel: SettingsViewModel = viewModel(),
 ) {
@@ -179,7 +177,7 @@ fun SettingsScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        SettingsHeader(onBack = onBack)
+        SettingsHeader()
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -332,19 +330,17 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingsHeader(onBack: () -> Unit) {
-    Row(
+private fun SettingsHeader() {
+    Text(
+        "Settings",
         modifier = Modifier
             .fillMaxWidth()
             .background(Pit)
-            .padding(start = Metrics.space2, end = Metrics.space4, bottom = Metrics.space2),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(onClick = onBack) {
-            Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back", tint = TextSecondary)
-        }
-        Text("Settings", style = InstrumentType.title, color = TextPrimary, maxLines = 1)
-    }
+            .padding(horizontal = Metrics.gutter, vertical = Metrics.space3),
+        style = InstrumentType.display,
+        color = TextPrimary,
+        maxLines = 1,
+    )
 }
 
 /**

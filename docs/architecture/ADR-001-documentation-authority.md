@@ -38,7 +38,8 @@ drift is FND-041 and FND-042.
    - the sitting branch is `trunk`;
    - Google Drive is optional **backup**, never sync;
    - Body heat windows are **Day**, **This week**, and **This month**;
-   - the shipping IA is **Home · Body · Plan · History**, Library pushed;
+   - the shipping IA is **Home · Body · Plan · History · Settings**,
+     Library pushed;
    - user-controlled export/import is the recovery path, not Android Auto Backup;
    - Room schema `2.json` is committed; a later generation is a signed program
      step, not an accident.

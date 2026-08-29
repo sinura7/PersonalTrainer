@@ -49,7 +49,7 @@ databases, different icons.
 | [docs/RECOVERY.md](docs/RECOVERY.md) | **new phone, dead laptop, lost keystore — read before you need it** |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | *historical* — how the strength logger was built |
 | [docs/AUDIT.md](docs/AUDIT.md) | pointer to the current audit, plus the 19 August review |
-| [docs/HIERARCHY_PLAN.md](docs/HIERARCHY_PLAN.md) | *historical* audit of a five-tab proposal; shipping IA is four tabs |
+| [docs/HIERARCHY_PLAN.md](docs/HIERARCHY_PLAN.md) | *historical* audit of a Library-as-fifth-tab proposal; shipping IA is five tabs (Settings is the fifth; Library stays pushed) |
 | [docs/SCHEDULE_SEMANTICS.md](docs/SCHEDULE_SEMANTICS.md) | current v2 schedule-slot derivation; target missed-work policy is ADR-012 |
 | [docs/MIGRATION_REHEARSAL.md](docs/MIGRATION_REHEARSAL.md) | *historical* v1→v2 runbook; `2.json` is committed |
 | [docs/artifacts/](docs/artifacts/) | generated review artifacts; the tests fail if these drift from the code |
@@ -58,7 +58,7 @@ databases, different icons.
 
 ## What it does
 
-Four tabs — **Home · Body · Plan · History**. Library is a pushed route, not a tab.
+Five tabs — **Home · Body · Plan · History · Settings**. Library is a pushed route, not a tab.
 
 - **Home** — today's plan and one next-session act. Last session and days
   since come from all-time summaries. A live session is resumed from the
@@ -70,6 +70,8 @@ Four tabs — **Home · Body · Plan · History**. Library is a pushed route, no
   Lighter week are four different acts.
 - **History** — finished sessions, calendar, personal records, and
   comparable Week / Month / Year / All time totals.
+- **Settings** — units, rest, reminders, coaching prefs, export and restore.
+  The fifth tab. Not a gear on Home or Plan.
 - **Library** (pushed) — search the lift list, filter by muscle, add custom exercises.
 - **Goals** (pushed) — typed targets. Pause is first-class. No punitive streaks.
 - **Activities** — strength, cardio, or mixed; live or backdated. One live
@@ -84,8 +86,6 @@ Four tabs — **Home · Body · Plan · History**. Library is a pushed route, no
   increment. The increment is **2.5 kg** or **5 lbs** in the display unit
   (`IncrementTable`), never a converted "+5.5 lbs". A back-off set never lowers next
   session's suggestion. Bodyweight lifts are told to add a rep.
-- **Settings** — kg/lbs display, rest sound/vibration and default rest, backup and
-  restore, user-triggered diagnostics, current app version.
 
 **Backup, not sync.** Export/import a file with no Google account, or make an
 optional whole-file Google Drive **backup**. The default export is a

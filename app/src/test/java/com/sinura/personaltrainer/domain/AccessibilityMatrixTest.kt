@@ -42,6 +42,14 @@ class AccessibilityMatrixTest {
             "None. Body is a readout; Start lives on Home.",
             AccessibilityMatrix.page("body").voltAction,
         )
+        assertEquals(
+            "Settings is a tab. Back is gone. Reminders and export stay reachable. Share diagnostics is quiet.",
+            AccessibilityMatrix.page("settings").talkBackNotes,
+        )
+        assertEquals(
+            "Export to file — backup is never the page's Volt gym act",
+            AccessibilityMatrix.page("settings").voltAction,
+        )
     }
 
     @Test

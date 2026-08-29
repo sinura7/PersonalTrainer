@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -152,7 +153,7 @@ sealed class Route(val path: String) {
     }
 }
 
-private data class Tab(
+internal data class Tab(
     val route: Route,
     val label: String,
     val icon: ImageVector,
@@ -167,6 +168,17 @@ private data class Tab(
      */
     val matchPattern: String get() = route.path
 }
+
+/**
+ * Shipping tab order. Settings is a tab (ADR-014). Library and Goals stay pushed.
+ */
+internal val shippingTabs = listOf(
+    Tab(Route.Home, "Home", TemperIcons.Home),
+    Tab(Route.Progress, "Body", TemperIcons.Body),
+    Tab(Route.Routines, "Plan", TemperIcons.Plan),
+    Tab(Route.History, "History", TemperIcons.History),
+    Tab(Route.Settings, "Settings", TemperIcons.Settings),
+)
 
 /**
  * One fade-through for every destination change.
@@ -242,16 +254,12 @@ fun PersonalTrainerNav(
     val navController = rememberNavController()
     // Temper plates, not Material house/person/dumbbell/clock. The selected tab is volt
     // through tint; the drawings themselves stay monochrome so heat never sits on the chrome.
-    val tabs = listOf(
-        Tab(Route.Home, "Home", TemperIcons.Home),
-        Tab(Route.Progress, "Body", TemperIcons.Body),
-        Tab(Route.Routines, "Plan", TemperIcons.Plan),
-        // Library is not a tab. It is a catalog you visit to answer a question — "what could I
-        // do for hamstrings" — and it was holding a fifth of the bottom bar for something
-        // nobody navigates to as a destination. Every path that used to reach it as a tab now
-        // pushes it with the filter already applied, which is how it was actually being used.
-        Tab(Route.History, "History", TemperIcons.History),
-    )
+    // Library is not a tab. It is a catalog you visit to answer a question — "what could I
+    // do for hamstrings" — and it was holding a fifth of the bottom bar for something
+    // nobody navigates to as a destination. Every path that used to reach it as a tab now
+    // pushes it with the filter already applied, which is how it was actually being used.
+    // Settings *is* a tab (ADR-014): a dedicated space, not a gear on Home or Plan.
+    val tabs = shippingTabs
     val liveBarViewModel: LiveSessionBarViewModel = viewModel()
     val liveSession by liveBarViewModel.uiState.collectAsStateWithLifecycle()
     val finishedNavigation by liveBarViewModel.finishedNavigation.collectAsStateWithLifecycle()
@@ -402,7 +410,6 @@ fun PersonalTrainerNav(
                         // tab IS arriving at the calendar — no route parameter, no scroll effect.
                         onOpenHistory = { goToTab(Route.History.path) },
                         onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
-                        onOpenSettings = { navController.navigate(Route.Settings.path) },
                         onOpenGoals = { navController.navigate(Route.Goals.path) },
                         onOpenLibrary = { navController.navigate(Route.Library.create(null)) },
                         onGenerateSchedule = { navController.navigate(Route.Onboarding.path) },
@@ -438,7 +445,6 @@ fun PersonalTrainerNav(
                 }
                 composable(Route.Settings.path) {
                     SettingsScreen(
-                        onBack = { navController.popBackStack() },
                         onOpenGuidedSetup = { navController.navigate(Route.Onboarding.path) },
                         viewModel = settingsViewModel,
                     )
@@ -481,7 +487,6 @@ fun PersonalTrainerNav(
                             }
                         },
                         onOpenLibrary = { navController.navigate(Route.Library.create(null)) },
-                        onOpenSettings = { navController.navigate(Route.Settings.path) },
                         onOpenGoals = { navController.navigate(Route.Goals.path) },
                         onLogActivity = { mode ->
                             navController.navigate(Route.ActivityComposer.create(mode))
@@ -740,7 +745,14 @@ private fun NavTab(
             tint = content,
             modifier = Modifier.size(NAV_ICON_SIZE),
         )
-        Kicker(tab.label, color = content)
+        Kicker(
+            tab.label,
+            color = content,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Metrics.space1),
+        )
     }
 }
 

@@ -60,6 +60,15 @@ class HomePassInstrumentedTest {
     fun lastSessionTilesStayNamedAt360Font2() = assertHomeAboveFold(fontScale = 2f)
 
     @Test
+    fun mastheadHasNoSettingsGear() {
+        setConstrainedContent(fontScale = 1f) {
+            HomeMasthead(epochDay = TODAY, headline = "Push day")
+        }
+        compose.onNodeWithContentDescription("Settings").assertDoesNotExist()
+        compose.onNodeWithText("Push day").assertIsDisplayed()
+    }
+
+    @Test
     fun startLibraryAndGoalsStayNamedAt360Font2() {
         setConstrainedContent(fontScale = 2f) {
             ThisWeekCard(

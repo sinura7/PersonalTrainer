@@ -41,6 +41,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -70,12 +71,14 @@ fun Kicker(
     text: String,
     modifier: Modifier = Modifier,
     color: Color = TextSecondary,
+    textAlign: TextAlign = TextAlign.Unspecified,
 ) {
     Text(
         text.uppercase(),
         modifier = modifier,
         style = InstrumentType.kicker,
         color = color,
+        textAlign = textAlign,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
     )

@@ -16,10 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -263,7 +259,6 @@ fun PlanScreen(
     onOpenRoutine: (String) -> Unit,
     onWorkoutStarted: (String) -> Unit,
     onOpenLibrary: () -> Unit,
-    onOpenSettings: () -> Unit,
     onOpenGoals: () -> Unit = {},
     onLogActivity: (String) -> Unit = {},
     onOpenLiveCardio: (String) -> Unit = {},
@@ -315,7 +310,6 @@ fun PlanScreen(
             onToggleTune = { tuning = !tuning },
             onCreate = onCreateRoutine,
             onOpenLibrary = onOpenLibrary,
-            onOpenSettings = onOpenSettings,
         )
 
         if (state.isLoading) {
@@ -594,7 +588,6 @@ internal fun PlanHeader(
     onToggleTune: () -> Unit,
     onCreate: () -> Unit,
     onOpenLibrary: () -> Unit,
-    onOpenSettings: () -> Unit,
 ) {
     val stacked = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
     Column(
@@ -603,7 +596,7 @@ internal fun PlanHeader(
             .background(Pit)
             .padding(
                 start = Metrics.gutter,
-                end = Metrics.space1,
+                end = Metrics.gutter,
                 top = Metrics.space2,
                 bottom = Metrics.space3,
             ),
@@ -623,9 +616,6 @@ internal fun PlanHeader(
                     onCreate = onCreate,
                     onOpenLibrary = onOpenLibrary,
                 )
-            }
-            IconButton(onClick = onOpenSettings) {
-                Icon(Icons.Outlined.Settings, contentDescription = "Settings", tint = TextSecondary)
             }
         }
         if (stacked) {

@@ -34,7 +34,7 @@ No ADR may leave a schema, scheduling, privacy, or entitlement choice as TBD.
 | [ADR-003](ADR-003-shipping-platform.md) | Android-first shipping platform and KMP gate | FND-020 |
 | [ADR-004](ADR-004-offline-core-and-entitlements.md) | Offline local core and entitlement boundary | FND-047, FND-048 |
 | [ADR-005](ADR-005-instrument-identity.md) | Instrument visual identity | FND-045 |
-| [ADR-006](ADR-006-information-architecture.md) | Four-tab IA and evidence protocol | FND-031, FND-032, FND-046 |
+| [ADR-006](ADR-006-information-architecture.md) | IA and evidence protocol (Library stays pushed) | FND-031, FND-032, FND-046 |
 | [ADR-007](ADR-007-activity-model.md) | Unified activity model, cardio, and one live session | FND-002, FND-008, FND-018 |
 | [ADR-008](ADR-008-deterministic-rules.md) | Deterministic rules and explanation API | FND-047 |
 | [ADR-009](ADR-009-backup-privacy-sync.md) | Backup, privacy, Drive, and sync gate | FND-011, FND-012, FND-030 |
@@ -42,6 +42,7 @@ No ADR may leave a schema, scheduling, privacy, or entitlement choice as TBD.
 | [ADR-011](ADR-011-time-semantics.md) | Captured time and travel policy | FND-039 |
 | [ADR-012](ADR-012-rest-and-reminders.md) | Exact rest, reminders, and missed-work policy | FND-001, FND-007, FND-017 |
 | [ADR-013](ADR-013-finding-dispositions.md) | Finding dispositions and superseded doctrine | FND-037 and the full map |
+| [ADR-014](ADR-014-settings-tab.md) | Settings is the fifth tab | FND-046 Settings landing |
 
 ## Supporting records
 
@@ -63,7 +64,7 @@ No ADR may leave a schema, scheduling, privacy, or entitlement choice as TBD.
 These are not superseded by the foundation program:
 
 - `fallbackToDestructiveMigration` ([ADR-010](ADR-010-schema-reset-migrations.md))
-- A fifth tab without a new signed decision ([ADR-006](ADR-006-information-architecture.md))
+- A sixth tab, or Library/Goals as a tab, without a new signed decision ([ADR-006](ADR-006-information-architecture.md), [ADR-014](ADR-014-settings-tab.md))
 - An LLM or chat coach that authors loads, plans, or records ([ADR-008](ADR-008-deterministic-rules.md))
 - Package or Drive-folder rename
 - GitHub-hosted runners as the project test lane ([ADR-002](ADR-002-execution-protocol.md))

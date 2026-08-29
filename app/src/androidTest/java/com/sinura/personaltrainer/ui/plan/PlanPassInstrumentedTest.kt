@@ -42,7 +42,6 @@ class PlanPassInstrumentedTest {
                 onToggleTune = {},
                 onCreate = {},
                 onOpenLibrary = {},
-                onOpenSettings = {},
             )
             PlanRecoveryCommands(
                 hasPins = false,
@@ -62,6 +61,7 @@ class PlanPassInstrumentedTest {
         compose.onNodeWithContentDescription(PlanTags.TUNE_SPOKEN).assertIsDisplayed()
         compose.onNodeWithTag(PlanTags.LIBRARY).assertIsDisplayed()
         compose.onNodeWithTag(PlanTags.USE_WEEK).assertDoesNotExist()
+        compose.onNodeWithContentDescription("Settings").assertDoesNotExist()
     }
 
     @Test

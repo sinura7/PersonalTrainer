@@ -26,7 +26,6 @@ private fun PlanReplayPreview() {
                 onToggleTune = {},
                 onCreate = {},
                 onOpenLibrary = {},
-                onOpenSettings = {},
             )
             PlanRecoveryCommands(
                 hasPins = false,
@@ -72,7 +71,6 @@ private fun PlanReducedMotionPreview() {
                 onToggleTune = {},
                 onCreate = {},
                 onOpenLibrary = {},
-                onOpenSettings = {},
             )
         }
     }

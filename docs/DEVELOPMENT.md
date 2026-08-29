@@ -31,11 +31,11 @@ Walk this once, in order:
    still show recency, not "Not trained yet." Start is not on this tab.
 4. Plan — pin, replay, or suggest a week. Two timed items can share a day.
 5. History — Day / Week / Month / Year / All chips, readout, then a session row. No Start on this tab.
-6. Settings — export a file. Do not restore over a phone that holds real history.
+6. Settings — the fifth tab. Export a file. Do not restore over a phone that holds real history.
    Share diagnostics is optional and redacted.
 
 Physical TalkBack is still required before Public Candidate. Do not
-expect a fifth tab or cloud sync.
+expect cloud sync. Library and Goals stay pushed, not tabs.
 
 **A new debug-live drop is a new Temper Debug install.** It will not open,
 overwrite, or even see the release history. The new icon is labelled

@@ -8,11 +8,15 @@
 > Historical “Room v3 won’t” and “no backdated session creation” are
 > **superseded** by [ADR-010](architecture/ADR-010-schema-reset-migrations.md)
 > and [ADR-007](architecture/ADR-007-activity-model.md).
-> `fallbackToDestructiveMigration`, a fifth tab without a new ADR, and an
-> LLM-as-author remain forbidden.
+> `fallbackToDestructiveMigration`, a sixth tab without a new ADR, and an
+> LLM-as-author remain forbidden. Settings is a tab
+> ([ADR-014](architecture/ADR-014-settings-tab.md)).
 >
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
+>
+> 29 Aug 2026 — Settings is the fifth tab. The gear is gone from Home
+> and Plan. Library and Goals stay pushed.
 >
 > 29 Aug 2026 — Body is a readout. Day / Week / Month chips wash the
 > silhouette from logged sets, reps, and RPE. Empty still shows the
