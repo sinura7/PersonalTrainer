@@ -11,11 +11,12 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertDoesNotExist
-import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.        assertTextContains
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -26,6 +27,7 @@ import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineExercise
 import com.sinura.personaltrainer.domain.ScheduleConfidence
+import com.sinura.personaltrainer.domain.ScheduleKind
 import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.ScheduleOccurrence
 import com.sinura.personaltrainer.domain.ScheduleRule
@@ -211,6 +213,9 @@ class HomePassInstrumentedTest {
             com.sinura.personaltrainer.ui.components.WeekStripTags.cell(friday),
         ).assertTextContains("Workout", substring = true)
     }
+
+    @Test
+    fun emptyWeekReplayStaysNamedAt360Font2() {
         setConstrainedContent(fontScale = 2f) {
             ThisWeekCard(
                 day = null,
@@ -230,6 +235,85 @@ class HomePassInstrumentedTest {
         compose.onNodeWithContentDescription(WeekTwoCopy.VOLT).assertIsDisplayed()
         compose.onNodeWithTag(HomeTags.FREE).assertIsDisplayed()
         compose.onNodeWithContentDescription("Start a free workout").assertIsDisplayed()
+    }
+
+    @Test
+    fun plannedRowOpensStartConfirmAndDoesNotStartUntilConfirm() {
+        var started: String? = null
+        setConstrainedContent(fontScale = 1f) {
+            DailyAgendaCard(
+                items = listOf(STRENGTH_ITEM),
+                sessionLive = false,
+                onStartOccurrence = { started = it },
+                onStartFree = {},
+                routines = listOf(PUSH_ROUTINE),
+            )
+        }
+        compose.onNodeWithText("Start Push?").assertDoesNotExist()
+        compose.onNodeWithTag(HomeTags.agendaRow("occ-pm")).performClick()
+        compose.onNodeWithText("Start Push?").assertIsDisplayed()
+        compose.onNodeWithText("1 Squat", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("2 Row", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("2 lifts · about 13 min", substring = true).assertIsDisplayed()
+        org.junit.Assert.assertNull(started)
+        compose.onNodeWithText("Start").performClick()
+        org.junit.Assert.assertEquals("occ-pm", started)
+    }
+
+    @Test
+    fun startConfirmCancelDoesNotStart() {
+        var started: String? = null
+        setConstrainedContent(fontScale = 1f) {
+            DailyAgendaCard(
+                items = listOf(STRENGTH_ITEM),
+                sessionLive = false,
+                onStartOccurrence = { started = it },
+                onStartFree = {},
+                routines = listOf(PUSH_ROUTINE),
+            )
+        }
+        compose.onNodeWithTag(HomeTags.START).performClick()
+        compose.onNodeWithText("Start Push?").assertIsDisplayed()
+        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithText("Start Push?").assertDoesNotExist()
+        org.junit.Assert.assertNull(started)
+    }
+
+    @Test
+    fun taggedRowOpensTheSameConfirmAsVolt() {
+        var started: String? = null
+        setConstrainedContent(fontScale = 1f) {
+            DailyAgendaCard(
+                items = listOf(CARDIO_ITEM, STRENGTH_ITEM),
+                sessionLive = false,
+                onStartOccurrence = { started = it },
+                onStartFree = {},
+                routines = listOf(PUSH_ROUTINE),
+            )
+        }
+        compose.onNodeWithTag(HomeTags.agendaRow("occ-pm")).performClick()
+        compose.onNodeWithText("Start Push?").assertIsDisplayed()
+        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithTag(HomeTags.START).performClick()
+        compose.onNodeWithText("Start Push?").assertIsDisplayed()
+        org.junit.Assert.assertNull(started)
+    }
+
+    @Test
+    fun dayStackPrefersWorkoutOverStretchOnTheVolt() {
+        setConstrainedContent(fontScale = 1f) {
+            DailyAgendaCard(
+                items = listOf(CARDIO_ITEM, STRENGTH_ITEM, STRETCH_ITEM),
+                sessionLive = false,
+                onStartOccurrence = {},
+                onStartFree = {},
+                routines = listOf(PUSH_ROUTINE, STRETCH_ROUTINE),
+            )
+        }
+        compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
+        compose.onNodeWithText("Start Push").assertIsDisplayed()
+        compose.onNodeWithText("Start Stretch").assertDoesNotExist()
+        compose.onNodeWithTag(HomeTags.agendaRow("occ-stretch")).assertIsDisplayed()
     }
 
     private fun assertHomeAboveFold(fontScale: Float) {
@@ -351,6 +435,30 @@ class HomePassInstrumentedTest {
             ),
             routineName = "Monday extra",
         )
+        val STRETCH_ITEM = AgendaItem(
+            occurrence = ScheduleOccurrence(
+                id = "occ-stretch",
+                ruleId = "rule-stretch",
+                status = OccurrenceStatus.PLANNED,
+                captured = CapturedCivilTime(1L, "UTC", 0, TODAY),
+                hour = 20,
+                minute = 0,
+                createdAtMs = 1L,
+                updatedAtMs = 1L,
+            ),
+            rule = ScheduleRule(
+                id = "rule-stretch",
+                weekday = Weekday.MONDAY,
+                hour = 20,
+                minute = 0,
+                modality = ScheduleModality.STRENGTH,
+                routineId = "r-stretch",
+                templateId = ScheduleKind.aux("stretch"),
+                createdAtMs = 1L,
+                updatedAtMs = 1L,
+            ),
+            routineName = "Stretch",
+        )
         val PUSH_ROUTINE = Routine(
             id = "r-push",
             name = "Push",
@@ -398,6 +506,31 @@ class HomePassInstrumentedTest {
                     targetReps = 10,
                     targetWeightKg = null,
                     restSeconds = 90,
+                )
+            },
+        )
+        val STRETCH_ROUTINE = Routine(
+            id = "r-stretch",
+            name = "Stretch",
+            notes = "",
+            createdAt = 0L,
+            updatedAt = 0L,
+            exercises = listOf("Calf stretch", "Couch stretch").mapIndexed { index, name ->
+                RoutineExercise(
+                    id = "stretch-$index",
+                    routineId = "r-stretch",
+                    exercise = Exercise(
+                        id = "ex-stretch-$index",
+                        name = name,
+                        muscleGroup = "Hips",
+                        notes = "",
+                        isCustom = false,
+                    ),
+                    sortOrder = index,
+                    targetSets = 1,
+                    targetReps = 8,
+                    targetWeightKg = null,
+                    restSeconds = 20,
                 )
             },
         )

@@ -519,6 +519,8 @@ object HomeTags {
     const val BUILD_WEEK = "home-build-week"
     const val STARTER_WORKOUT = "home-starter-workout"
     const val BODYWEIGHT_CHECK_IN = "home-bodyweight-check-in"
+
+    fun agendaRow(occurrenceId: String): String = "home-agenda-$occurrenceId"
 }
 
 private const val DATE_LINE_PATTERN = "EEEE '·' d MMM"

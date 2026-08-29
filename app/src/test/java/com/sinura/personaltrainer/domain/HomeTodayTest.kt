@@ -1,7 +1,9 @@
 package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HomeTodayTest {
@@ -37,11 +39,127 @@ class HomeTodayTest {
     }
 
     @Test
+    fun startTagPrefersAWorkoutOverAnAuxiliaryPack() {
+        val cardio = item("c", ScheduleModality.CARDIO, hour = 7)
+        val main = item("s", ScheduleModality.STRENGTH, hour = 18)
+        val stretch = item(
+            "e",
+            ScheduleModality.STRENGTH,
+            hour = 20,
+            templateId = ScheduleKind.aux("stretch"),
+        )
+        assertEquals("s", HomeToday.startTagOccurrenceId(listOf(cardio, main, stretch)))
+    }
+
+    @Test
+    fun startTagPrefersMixedOverAnAuxiliaryPack() {
+        val mixed = item("m", ScheduleModality.MIXED, hour = 18)
+        val stretch = item(
+            "e",
+            ScheduleModality.STRENGTH,
+            hour = 20,
+            templateId = ScheduleKind.aux("stretch"),
+        )
+        assertEquals("m", HomeToday.startTagOccurrenceId(listOf(mixed, stretch)))
+    }
+
+    @Test
+    fun startTagUsesAuxWhenItIsTheOnlyStrength() {
+        val cardio = item("c", ScheduleModality.CARDIO, hour = 7)
+        val stretch = item(
+            "e",
+            ScheduleModality.STRENGTH,
+            hour = 20,
+            templateId = ScheduleKind.aux("stretch"),
+        )
+        assertEquals("e", HomeToday.startTagOccurrenceId(listOf(cardio, stretch)))
+    }
+
+    @Test
     fun startTagMovesToTheLaterStrengthAfterTheMainIsDone() {
         val cardio = item("c", ScheduleModality.CARDIO, hour = 7)
         val main = item("s", ScheduleModality.STRENGTH, OccurrenceStatus.DONE, hour = 18)
         val extra = item("e", ScheduleModality.STRENGTH, hour = 20)
         assertEquals("e", HomeToday.startTagOccurrenceId(listOf(cardio, main, extra)))
+    }
+
+    @Test
+    fun startConfirmNamesTheClockKindAndLiftOrder() {
+        val planned = item("s", ScheduleModality.STRENGTH, hour = 18, routineId = "r-Push")
+        val confirm = HomeToday.startConfirm(
+            planned.copy(routineName = "Push"),
+            listOf(pushRoutine()),
+            ClockFormat.TWELVE,
+        )
+        assertEquals("Start Push?", confirm.heading)
+        assertEquals(HomeToday.CONFIRM, confirm.confirmLabel)
+        assertTrue(confirm.body.startsWith("6 PM · Workout"))
+        assertTrue(confirm.body.contains("1 Squat"))
+        assertTrue(confirm.body.contains("2 Row"))
+        assertTrue(confirm.body.contains("2 lifts · about 13 min"))
+    }
+
+    @Test
+    fun startConfirmListsEveryLiftNotAThreeLiftPreview() {
+        val planned = item("s", ScheduleModality.STRENGTH, hour = 18, routineId = "r-Push")
+        val routine = pushRoutine(
+            "Squat",
+            "Row",
+            "Bench",
+            "Fly",
+        )
+        val confirm = HomeToday.startConfirm(
+            planned.copy(routineName = "Push"),
+            listOf(routine),
+            ClockFormat.TWELVE,
+        )
+        assertTrue(confirm.body.contains("1 Squat"))
+        assertTrue(confirm.body.contains("4 Fly"))
+        assertFalse(confirm.body.contains("4 lifts · 1 Squat"))
+        assertTrue(confirm.body.contains("4 lifts · about"))
+    }
+
+    @Test
+    fun startConfirmCardioIsReady() {
+        val confirm = HomeToday.startConfirm(
+            item("c", ScheduleModality.CARDIO, hour = 7),
+            emptyList(),
+            ClockFormat.TWELVE,
+        )
+        assertEquals("Start Cardio?", confirm.heading)
+        assertTrue(confirm.body.startsWith("7 AM · Cardio"))
+        assertTrue(confirm.body.contains(SessionOrderCopy.READY))
+    }
+
+    @Test
+    fun startConfirmLeadsWithTheAuxiliaryCaption() {
+        val stretch = item(
+            "e",
+            ScheduleModality.STRENGTH,
+            hour = 20,
+            templateId = ScheduleKind.aux("stretch"),
+            routineId = "r-stretch",
+        )
+        val routine = Routine(
+            id = "r-stretch",
+            name = "Stretch",
+            notes = "",
+            createdAt = 0L,
+            updatedAt = 0L,
+            exercises = listOf("Calf stretch", "Couch stretch").mapIndexed { index, name ->
+                lift("r-stretch", index, name)
+            },
+        )
+        val confirm = HomeToday.startConfirm(
+            stretch.copy(routineName = "Stretch"),
+            listOf(routine),
+            ClockFormat.TWELVE,
+        )
+        assertEquals("Start Stretch?", confirm.heading)
+        assertTrue(confirm.body.contains(AuxiliaryPacks.Stretch.caption))
+        assertTrue(confirm.body.contains("1 Calf stretch"))
+        assertTrue(confirm.body.contains("2 Couch stretch"))
+        assertFalse(confirm.body.contains("lifts · about"))
     }
 
     @Test
@@ -135,6 +253,8 @@ class HomeTodayTest {
         modality: ScheduleModality,
         status: OccurrenceStatus = OccurrenceStatus.PLANNED,
         hour: Int = 7,
+        templateId: String? = null,
+        routineId: String? = null,
     ) = AgendaItem(
         occurrence = ScheduleOccurrence(
             id = id,
@@ -152,8 +272,39 @@ class HomeTodayTest {
             hour = hour,
             minute = 0,
             modality = modality,
+            routineId = routineId,
+            templateId = templateId,
             createdAtMs = 1L,
             updatedAtMs = 1L,
         ),
+    )
+
+    private fun pushRoutine(vararg names: String): Routine {
+        val lifts = names.toList().ifEmpty { listOf("Squat", "Row") }
+        return Routine(
+            id = "r-Push",
+            name = "Push",
+            notes = "",
+            createdAt = 0L,
+            updatedAt = 0L,
+            exercises = lifts.mapIndexed { index, name -> lift("r-Push", index, name) },
+        )
+    }
+
+    private fun lift(routineId: String, index: Int, name: String) = RoutineExercise(
+        id = "$routineId-$index",
+        routineId = routineId,
+        exercise = Exercise(
+            id = "ex-$routineId-$index",
+            name = name,
+            muscleGroup = "Quads",
+            notes = "",
+            isCustom = false,
+        ),
+        sortOrder = index,
+        targetSets = 3,
+        targetReps = 5,
+        targetWeightKg = null,
+        restSeconds = 90,
     )
 }

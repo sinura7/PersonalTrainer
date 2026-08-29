@@ -67,8 +67,9 @@ These are signed. A page pass may not weaken them.
 - **Home / Plan / Start sheet / Body never say Resume.** The live bar and the rest
   notification are the return. Dialogs that fork (“this start, or the one already
   running”) say **Go to session** / **Go to that session**.
-- **Today’s plan starts in one tap** from Home. Everything else is `StartOptionsSheet`
-  over the current screen.
+- **Today’s plan confirms, then starts** from Home. A planned row or the
+  Volt opens a session summary; confirm starts it. Everything else is
+  `StartOptionsSheet` over the current screen.
 - **Finish / Discard** go through `FinishWorkout` / `DiscardWorkout`.
 - Same week object (`TrainingInsightsSource`). Same `WeekStrip`. Same `ExercisePickerSheet`.
 - Weights stored in kg. Display via `LocalWeightUnit`.
@@ -132,11 +133,14 @@ keeps the draft.
 **Floor findings**
 
 - Agenda exists → `DailyAgendaCard` is the only today-surface. Volt is
-  `Start {title}` on the next planned row (strength preferred). That row
-  also shows the numbered lift order. Free workout stays quiet.
+  `Start {title}` on the next planned row (non-aux strength preferred).
+  That row also shows the numbered lift order. Planned rows — including
+  the tagged one — open a start confirm with the session summary.
+  Confirm starts it. Free workout stays quiet.
 - Two-a-day: one Volt. The other planned row stays tappable, not a second
   filled Start. A three-session day is the same rule: one Volt on the
-  first planned strength; later accessory stays tappable.
+  first planned workout; later accessory stays tappable and uses the
+  same confirm. Stretch does not own the Volt while a workout is planned.
 - Empty agenda leftover → `ThisWeekCard`. Planned + not logged → volt
   “Start this session”. Rest / already trained → quiet “Start a free workout”.
   ~~Rest → quiet “Start anyway”. Already trained → quiet “Start another”~~
@@ -162,7 +166,8 @@ keeps the draft.
 - Discard from the sheet uses the **same confirm** as the bar.
 - Today’s plan is a **filled button**, not a list row. Body, History, and Plan
   pass no extra Today args — the sheet reads the same agenda Home uses and
-  starts it (strength preferred, leftover slot week if the agenda is empty).
+  starts it (workout preferred over Stretch, leftover slot week if the
+  agenda is empty).
   Home itself does not host this sheet.
 - Free workout is **quiet** so it does not compete with that button. One string:
   `SessionOrderCopy.FREE_WORKOUT`.

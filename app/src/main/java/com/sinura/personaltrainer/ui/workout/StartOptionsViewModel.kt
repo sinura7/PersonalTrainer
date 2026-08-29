@@ -69,7 +69,7 @@ data class StartOptionsUiState(
  * screen appeared, you tapped again. It also became a THIRD place that offered to resume a
  * live session, alongside Home's hero and the notification. The logic here is unchanged — what
  * changed is that it opens over the screen you were already on, so the common case (start
- * today's plan) skips it entirely and everything else is one tap deeper rather than one screen.
+ * today's plan) confirms on Home and everything else is one tap deeper rather than one screen.
  */
 class StartOptionsViewModel @JvmOverloads constructor(
     application: Application,

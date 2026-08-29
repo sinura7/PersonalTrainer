@@ -55,6 +55,10 @@ class AccessibilityMatrixTest {
             "Library and Add session are named. Start is Home, not Plan. Lighter is a quiet chip. Settings is a tab, not a header gear. Reminders live on Settings.",
             AccessibilityMatrix.page("plan").talkBackNotes,
         )
+        assertEquals(
+            "Last session and days-since tiles merge into one name each. Settings is a tab. Home week strip picks the day. Planned rows and the Volt open a start confirm. This week, Library, and Goals stay off this screen.",
+            AccessibilityMatrix.page("home").talkBackNotes,
+        )
     }
 
     @Test
