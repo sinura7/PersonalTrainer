@@ -55,6 +55,7 @@ class PersonalTrainerApp : Application() {
         // Created up front (not lazily on first rest) so the channels exist for the user to
         // configure, and so the legacy sounding "rest complete" channel is deleted even if
         // no timer runs this session.
+        AppLog.redactMessages = !BuildConfig.DEBUG
         RestTimerNotifications.ensureChannels(this)
         ReminderNotifications.ensureChannel(this)
         // Two 768x768 webp decodes plus a per-pixel pass each — 50-150 ms of

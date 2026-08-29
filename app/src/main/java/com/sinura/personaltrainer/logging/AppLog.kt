@@ -31,16 +31,32 @@ object AppLog {
     @Volatile
     var onError: ((tag: String, error: Throwable) -> Unit)? = null
 
-    fun d(tag: String, message: String) = sink(DEBUG, tag, message, null)
+    /**
+     * True on release builds (the app class sets it at startup): free-text
+     * messages are dropped before the sink, keeping tag, level, and
+     * throwable. Messages interpolate user-authored text — routine titles,
+     * internal paths — and release logcat is readable by anything with adb
+     * or a bugreport; the custom seam also means R8 never strips these
+     * calls the way it can strip direct android.util.Log ones.
+     */
+    @Volatile
+    var redactMessages: Boolean = false
 
-    fun w(tag: String, message: String, error: Throwable? = null) = sink(WARN, tag, message, error)
+    const val REDACTED = "(redacted)"
+
+    fun d(tag: String, message: String) = sink(DEBUG, tag, redact(message), null)
+
+    fun w(tag: String, message: String, error: Throwable? = null) =
+        sink(WARN, tag, redact(message), error)
 
     fun e(tag: String, message: String, error: Throwable? = null) {
         if (error != null) {
             runCatching { onError?.invoke(tag, error) }
         }
-        sink(ERROR, tag, message, error)
+        sink(ERROR, tag, redact(message), error)
     }
+
+    private fun redact(message: String): String = if (redactMessages) REDACTED else message
 
     private fun androidSink(priority: Int, tag: String, message: String, error: Throwable?) {
         try {
