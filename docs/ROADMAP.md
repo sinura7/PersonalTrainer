@@ -45,7 +45,8 @@
 > screen (chronometer, not overlay rest on the log).
 >
 > 29 Aug 2026 — Temper Debug Obtainium drops bump `debugLiveCode`.
-> Live test 8 is Plan day blocks (pushed day page, no Start on Plan).
+> Live test 9 is Settings / Home trim (lbs/kg, Regular/Military,
+> weekly weigh-in, Plan reminders, Goals UI gone).
 > Same versionCode is why a check for updates can show nothing.
 >
 > 28 Aug 2026 — Phone lane is Obtainium, not Android Studio. Cursor
