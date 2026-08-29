@@ -18,9 +18,9 @@ Start Volt on this tab.
 
 ## Commands
 
-- `tools/preflight.sh`
-- `./gradlew testDebugUnitTest`
-- `./gradlew assembleDebug`
+- `tools/preflight.sh` — 992 domain tests
+- `./gradlew testDebugUnitTest` — 1452 tests, 0 failures
+- `./gradlew assembleDebug` — SUCCESS
 
 ## Known limitations
 
