@@ -63,6 +63,7 @@ class SessionDetailViewModel @JvmOverloads constructor(
 
     /** What the database already holds. Null until the row has been read — see [writeNotes]. */
     private var lastPersistedNotes: String? = null
+    private var notesHydrated = false
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
@@ -97,8 +98,13 @@ class SessionDetailViewModel @JvmOverloads constructor(
             session.collect { load ->
                 val current = load.session ?: return@collect
                 lastPersistedNotes = current.notes
-                if (notes.value.isEmpty() && current.notes.isNotEmpty()) {
-                    notes.value = current.notes
+                // Hydrate once — see the live workout's collector: re-seeding on a
+                // later emission restored notes the user had just cleared.
+                if (!notesHydrated) {
+                    notesHydrated = true
+                    if (notes.value.isEmpty() && current.notes.isNotEmpty()) {
+                        notes.value = current.notes
+                    }
                 }
             }
         }

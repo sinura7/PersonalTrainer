@@ -269,6 +269,7 @@ fun PersonalTrainerNav(
     val liveSession by liveBarViewModel.uiState.collectAsStateWithLifecycle()
     val finishedNavigation by liveBarViewModel.finishedNavigation.collectAsStateWithLifecycle()
     val finishedActivityNavigation by liveBarViewModel.finishedActivityNavigation.collectAsStateWithLifecycle()
+    val liveBarActionError by liveBarViewModel.actionError.collectAsStateWithLifecycle()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     // Hidden exactly where the session already owns the screen, or where starting one is the
@@ -356,6 +357,7 @@ fun PersonalTrainerNav(
                             },
                             onFinish = liveBarViewModel::finishFromBar,
                             onDiscard = liveBarViewModel::discardFromBar,
+                            actionError = liveBarActionError,
                         )
                     }
                 }

@@ -28,6 +28,7 @@ import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
@@ -84,6 +85,7 @@ fun ThisWeekCard(
     onPrimary: () -> Unit,
     onStartFree: () -> Unit,
     routines: List<Routine> = emptyList(),
+    quietStart: Boolean = false,
     setupComplete: Boolean = true,
     offerSetupActions: Boolean = true,
     onGenerateSchedule: () -> Unit = {},
@@ -261,14 +263,25 @@ fun ThisWeekCard(
         } else if (!sessionLive && trainingToday != null && !loggedToday) {
             // The only volt on Home: follow the routine Plan already designed for today.
             // Same act as the agenda card — the tap opens the session summary; confirm starts.
-            PrimaryGymButton(
-                text = "Start this session",
-                onClick = { startPending = true },
-                modifier = Modifier
-                    .padding(top = Metrics.space1)
-                    .testTag(HomeTags.START)
-                    .semantics { contentDescription = "Start today's planned session" },
-            )
+            // While the missed-work prompt is up its Keep-the-dates keeps the one Volt,
+            // so this start goes quiet (same rule Plan applies to its recovery act).
+            val startModifier = Modifier
+                .padding(top = Metrics.space1)
+                .testTag(HomeTags.START)
+                .semantics { contentDescription = "Start today's planned session" }
+            if (quietStart) {
+                SecondaryGymButton(
+                    text = "Start this session",
+                    onClick = { startPending = true },
+                    modifier = startModifier,
+                )
+            } else {
+                PrimaryGymButton(
+                    text = "Start this session",
+                    onClick = { startPending = true },
+                    modifier = startModifier,
+                )
+            }
             TextButton(
                 onClick = onStartFree,
                 modifier = Modifier

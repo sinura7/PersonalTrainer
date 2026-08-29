@@ -49,6 +49,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -730,16 +731,22 @@ fun RestDock(
     val safeRemaining = remainingSeconds.coerceAtLeast(0)
     val urgent = running && safeRemaining <= URGENT_SECONDS
     val reduceMotion = LocalReducedMotion.current
-    val pulse = rememberInfiniteTransition(label = "rest-pulse")
-    val pulseScale by pulse.animateFloat(
-        initialValue = 1f,
-        targetValue = if (urgent && !reduceMotion) 1.015f else 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 500, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "rest-bar-pulse",
-    )
+    // Composed only while urgent: an infiniteRepeatable never finishes even at
+    // target == initial, so the idle dock otherwise requested a frame every
+    // vsync for the whole 60-90 minute session.
+    val pulseScale: Float by if (urgent && !reduceMotion) {
+        rememberInfiniteTransition(label = "rest-pulse").animateFloat(
+            initialValue = 1f,
+            targetValue = 1.015f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 500, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "rest-bar-pulse",
+        )
+    } else {
+        remember { mutableFloatStateOf(1f) }
+    }
 
     // One tick per second through the final stretch, so the end of the rest can be felt with
     // the phone face-down on a bench.

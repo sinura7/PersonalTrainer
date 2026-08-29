@@ -139,9 +139,19 @@ class LiveCardioViewModel @JvmOverloads constructor(
         val id = session.value?.id ?: return
         viewModelScope.launch {
             runCatchingCancellable { container.discardActivity(id) }
-            container.cardioTimerPersistence.clear()
-            missing.value = true
-            session.value = null
+                .onSuccess {
+                    container.cardioTimerPersistence.clear()
+                    error.value = null
+                    missing.value = true
+                    session.value = null
+                }
+                .onFailure { thrown ->
+                    // The session is still live. Saying "that session is gone" while
+                    // the bar resurrects it — now with a wiped timer baseline — is
+                    // the worse failure.
+                    AppLog.w(TAG, "Discarding live cardio failed", thrown)
+                    error.value = "Could not discard that session. Try again."
+                }
         }
     }
 
@@ -151,7 +161,6 @@ class LiveCardioViewModel @JvmOverloads constructor(
 
     private suspend fun loadAndTick() {
         val live = container.activityRepository.get(sessionId)
-            ?: container.activityRepository.getLive()
         if (live == null || !live.isLive) {
             missing.value = true
             return

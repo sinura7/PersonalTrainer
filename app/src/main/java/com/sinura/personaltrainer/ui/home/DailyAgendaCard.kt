@@ -35,6 +35,7 @@ import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
@@ -65,6 +66,7 @@ fun DailyAgendaCard(
     kicker: String = "Today",
     stillOpen: List<AgendaItem> = emptyList(),
     today: Long = com.sinura.personaltrainer.domain.todayEpochDay(),
+    quietStart: Boolean = false,
 ) {
     val clockFormat = com.sinura.personaltrainer.ui.units.LocalClockFormat.current
     val startTagId = HomeToday.startTagOccurrenceId(items, stillOpen)
@@ -169,19 +171,28 @@ fun DailyAgendaCard(
         } else {
             startItem?.takeIf { canOpenStart(it, today) }?.let { item ->
                 val leftover = MoveToToday.isLeftover(item.occurrence, today)
-                PrimaryGymButton(
-                    text = if (leftover) {
-                        "Do ${item.title} today"
-                    } else {
-                        "Start ${item.title}"
-                    },
-                    onClick = { pendingOccurrenceId = item.occurrence.id },
-                    modifier = Modifier
-                        .testTag(HomeTags.START)
-                        .semantics {
-                            contentDescription = if (leftover) DO_TODAY else PLANNED_SESSION
-                        },
-                )
+                val text = if (leftover) "Do ${item.title} today" else "Start ${item.title}"
+                val tagged = Modifier
+                    .testTag(HomeTags.START)
+                    .semantics {
+                        contentDescription = if (leftover) DO_TODAY else PLANNED_SESSION
+                    }
+                if (quietStart) {
+                    // The missed-work prompt above is the decision Home is asking
+                    // first; its Keep-the-dates keeps the one filled Volt (same
+                    // rule Plan applies to its recovery act).
+                    SecondaryGymButton(
+                        text = text,
+                        onClick = { pendingOccurrenceId = item.occurrence.id },
+                        modifier = tagged,
+                    )
+                } else {
+                    PrimaryGymButton(
+                        text = text,
+                        onClick = { pendingOccurrenceId = item.occurrence.id },
+                        modifier = tagged,
+                    )
+                }
             }
             TextButton(
                 onClick = onStartFree,

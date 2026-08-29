@@ -213,7 +213,7 @@ fun StartOptionsSheet(
 
     if (confirmDiscard && (inProgress != null || liveActivity != null)) {
         val kind = if (inProgress != null) LiveBarKind.WORKOUT else LiveBarKind.ACTIVITY
-        val loggedSets = inProgress?.sets?.size ?: 0
+        val loggedSets = state.inProgressSetCount
         ConfirmActionDialog(
             title = LiveBarCopy.discardTitle(kind),
             body = LiveBarCopy.discardBody(kind, loggedSets),

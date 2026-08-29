@@ -44,7 +44,13 @@ object ProgressionCalculator {
         val delta = if (weightMeaning == WeightMeaning.ASSISTANCE) -harder else harder
         // Floored at zero, which for an assisted lift is the point of the machine: no
         // assistance left is the first unassisted rep.
-        return ((lastWeightKg + delta).coerceAtLeast(0.0))
+        //
+        // Quantised to the same tenth-of-a-kilogram grid typed and stepped input lands
+        // on (WeightConverter.toKg): the raw lbs step (5 lbs = 2.2679618… kg) otherwise
+        // stores a kg no typed "110 lbs" can ever equal again — the same displayed
+        // weight splits into distinct stored values, announcing a false "Heaviest ever"
+        // for repeating a weight and never accumulating a reps-at-weight record.
+        return WeightConverter.toKg((lastWeightKg + delta).coerceAtLeast(0.0), WeightUnit.KG)
     }
 
     fun action(

@@ -265,7 +265,9 @@ fun HomeScreen(
         }
         state.error?.let { message ->
             item {
-                GymErrorBanner(message)
+                // Dismissable: the flow only cleared this on a later SUCCESSFUL
+                // action, so a one-off failure pinned a red card to Home forever.
+                GymErrorBanner(message, onDismiss = viewModel::dismissError)
             }
         }
         if (state.missedWorkPrompt) {
@@ -307,6 +309,7 @@ fun HomeScreen(
                         kicker = dayKicker,
                         stillOpen = stillOpen,
                         today = today,
+                        quietStart = state.missedWorkPrompt,
                     )
                     HomeToday.Surface.WEEK_FALLBACK -> ThisWeekCard(
                         day = leftoverDay,
@@ -317,6 +320,7 @@ fun HomeScreen(
                         lifts = leftoverLiftNames(featured, state.routines),
                         reason = nextSessionReason(featured, state.recommendations),
                         routines = state.routines,
+                        quietStart = state.missedWorkPrompt,
                         setupComplete = state.setupComplete,
                         offerSetupActions = !showStarter,
                         onGenerateSchedule = onGenerateSchedule,

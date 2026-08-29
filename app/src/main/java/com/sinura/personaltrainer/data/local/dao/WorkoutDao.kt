@@ -20,14 +20,21 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout_sessions WHERE finishedAt IS NOT NULL ORDER BY date DESC")
     fun observeFinishedSessions(): Flow<List<SessionWithDetails>>
 
+    // Assisted kilograms are machine help REMOVED, credited as 0 by the domain
+    // volume rule (SetWork): counting them here showed 720 kg on History and the
+    // Home tile for a session whose own summary honestly said 0. The reps still
+    // count as working sets. A deleted catalog row reads as loaded — the same
+    // stricter fallback LoadClass.of takes.
     @Query(
         """
         SELECT s.id AS id, s.routineId AS routineId, s.routineName AS routineName,
                s.date AS date, s.finishedAt AS finishedAt, s.durationMinutes AS durationMinutes,
                COALESCE(SUM(CASE WHEN l.isWarmup = 0 THEN 1 ELSE 0 END), 0) AS workingSets,
-               COALESCE(SUM(CASE WHEN l.isWarmup = 0 THEN l.weightKg * l.reps ELSE 0 END), 0) AS volumeKg
+               COALESCE(SUM(CASE WHEN l.isWarmup = 0 AND COALESCE(e.loadType, '') != 'ASSISTED'
+                                 THEN l.weightKg * l.reps ELSE 0 END), 0) AS volumeKg
         FROM workout_sessions s
         LEFT JOIN set_logs l ON l.sessionId = s.id
+        LEFT JOIN exercises e ON e.id = l.exerciseId
         WHERE s.finishedAt IS NOT NULL
         GROUP BY s.id
         ORDER BY s.date DESC

@@ -68,6 +68,7 @@ fun ActivityComposerScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val savedId by viewModel.savedId.collectAsStateWithLifecycle()
+    val createdExercise by viewModel.createdExercise.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
     var confirmLeave by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(savedId) {
@@ -164,6 +165,9 @@ fun ActivityComposerScreen(
                     StrengthAdder(
                         catalog = state.catalog,
                         onAdd = viewModel::addStrength,
+                        onCreate = viewModel::createExercise,
+                        created = createdExercise,
+                        onCreatedHandled = viewModel::onCreatedExerciseHandled,
                     )
                 }
             }
@@ -243,6 +247,9 @@ internal fun ComposerSaveDock(
 private fun StrengthAdder(
     catalog: List<ExerciseOption>,
     onAdd: (Exercise, Double, Int) -> Unit,
+    onCreate: (String, String) -> Unit = { _, _ -> },
+    created: Exercise? = null,
+    onCreatedHandled: () -> Unit = {},
 ) {
     val unit = LocalWeightUnit.current
     var pickerOpen by rememberSaveable { mutableStateOf(false) }
@@ -254,6 +261,14 @@ private fun StrengthAdder(
         if (pickedId.isEmpty()) {
             pickedId = catalog.firstOrNull()?.id.orEmpty()
         }
+    }
+    // A created lift is picked like a tapped one; the sheet closes on it.
+    LaunchedEffect(created) {
+        val lift = created ?: return@LaunchedEffect
+        pickedId = lift.id
+        pickerQuery = ""
+        pickerOpen = false
+        onCreatedHandled()
     }
     val exercise = catalog.firstOrNull { it.id == pickedId } ?: catalog.firstOrNull()
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
@@ -313,7 +328,8 @@ private fun StrengthAdder(
                         pickerQuery = ""
                         pickerOpen = false
                     }
-                    is ExercisePickerEvent.Created,
+                    is ExercisePickerEvent.Created ->
+                        onCreate(event.name, event.muscleGroup)
                     is ExercisePickerEvent.Toggled,
                     ExercisePickerEvent.Confirmed,
                     -> Unit

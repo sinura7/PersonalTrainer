@@ -75,6 +75,7 @@ fun LiveSessionBar(
     onFinish: () -> Unit,
     onDiscard: () -> Unit,
     modifier: Modifier = Modifier,
+    actionError: String? = null,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
@@ -86,6 +87,18 @@ fun LiveSessionBar(
             .then(if (applyNavInsets) Modifier.navigationBarsPadding() else Modifier),
     ) {
         HairlineDivider(startIndent = 0.dp)
+        // A confirmed finish/discard that failed must say so here — the dialog is
+        // gone and the bar staying put is otherwise indistinguishable from a lag.
+        if (actionError != null) {
+            Text(
+                actionError,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Metrics.gutter, vertical = Metrics.space1),
+                style = InstrumentType.caption,
+                color = Warn,
+            )
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()

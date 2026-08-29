@@ -76,6 +76,7 @@ fun CustomWeekScreen(
     val finished by viewModel.finished.collectAsStateWithLifecycle()
     var expandedId by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingFullWeek by rememberSaveable { mutableStateOf(false) }
+    var confirmLeave by rememberSaveable { mutableStateOf(false) }
     val restDays = CustomWeekPolicy.restDayCount(state.days)
     val restCaption = CustomWeekPolicy.restCaption(restDays)
 
@@ -85,7 +86,30 @@ fun CustomWeekScreen(
     LaunchedEffect(finished) {
         if (finished) onFinished()
     }
-    BackHandler(onBack = onBack)
+    // A five-day draft lives only in this ViewModel; a back-swipe used to destroy
+    // it with no confirmation while the composer next door guards the same case.
+    val leave = {
+        if (state.days.values.any { it.isNotEmpty() } && !finished) {
+            confirmLeave = true
+        } else {
+            onBack()
+        }
+    }
+    BackHandler(onBack = leave)
+
+    if (confirmLeave) {
+        ConfirmActionDialog(
+            title = "Leave the week builder?",
+            body = "The days you built here are not saved. Leaving discards them.",
+            confirmLabel = "Discard and leave",
+            destructive = true,
+            onConfirm = {
+                confirmLeave = false
+                onBack()
+            },
+            onDismiss = { confirmLeave = false },
+        )
+    }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -98,7 +122,7 @@ fun CustomWeekScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(
-                    onClick = onBack,
+                    onClick = leave,
                     modifier = Modifier.testTag(CustomWeekTags.BACK),
                 ) {
                     Icon(

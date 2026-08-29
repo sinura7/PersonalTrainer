@@ -57,6 +57,20 @@ class ProgressionCalculatorTest {
     }
 
     @Test
+    fun aPoundStepLandsOnTheTypedTenthOfAKilogramGrid() {
+        // A suggestion the lifter accepts must store the SAME kg a typed "110 lbs"
+        // stores, or PR detection splits one displayed weight into two values.
+        val step = IncrementTable.stepKg(LoadType.EXTERNAL, WeightUnit.LBS)
+        val fromTyped = WeightConverter.toKg(
+            WeightConverter.toDisplayValue(100.0, WeightUnit.LBS) + 5.0,
+            WeightUnit.LBS,
+        )
+        val suggested = ProgressionCalculator.suggestWeightKg(100.0, 5, 5, step, WeightMeaning.LIFTED)
+        assertEquals(WeightConverter.toKg(suggested, WeightUnit.KG), suggested, 0.0)
+        assertEquals(fromTyped, suggested, 0.1)
+    }
+
+    @Test
     fun aLiftWithNoStepHoldsItsWeightAndStillReadsAsProgress() {
         // A push-up. There is nothing to add, so the suggestion must not invent a load — but
         // the action stays INCREASE, because the lifter DID hit target and the copy layer turns
