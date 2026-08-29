@@ -77,7 +77,10 @@
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
-                <action android:name="android.intent.action.TIME_CHANGED" />
+                <!-- Intent.ACTION_TIME_CHANGED's string VALUE is TIME_SET; declaring the
+                     constant's NAME here matched no real broadcast, so clock changes never
+                     rebuilt reminders. -->
+                <action android:name="android.intent.action.TIME_SET" />
             </intent-filter>
         </receiver>
     </application>

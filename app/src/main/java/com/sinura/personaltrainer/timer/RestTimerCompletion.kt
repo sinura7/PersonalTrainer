@@ -52,7 +52,13 @@ object RestTimerCompletion {
 
         // Stop the countdown before announcing, so the ongoing notification and its
         // ±15s / Skip actions cannot be tapped into a resurrected timer mid-alert.
-        app?.container?.restTimerController?.stop(fromService = true)
+        // Id-checked: a +15s tapped between the claim and this line minted a NEW
+        // timer, and announcing done over it would wipe the extension the user
+        // just bought — that newer timer's own alarm owns its completion.
+        val stopped = app?.container?.restTimerController
+            ?.stopIfCurrent(incomingTimerId, fromService = true)
+            ?: true
+        if (!stopped) return false
         try {
             appContext.getSystemService(NotificationManager::class.java)
                 ?.cancel(RestTimerNotifications.RUNNING_ID)

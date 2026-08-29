@@ -34,6 +34,7 @@ class MainActivity : ComponentActivity() {
         } else {
             null
         }
+        if (savedInstanceState == null) consumeStartedDelivery(intent)
         // Both bars transparent, both pinned to light icons. The default picks icon colour
         // from the system's light/dark setting, which is the wrong signal for an app that
         // draws one dark theme regardless: a phone in light mode got dark status icons on a
@@ -69,6 +70,13 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         consumeSessionId(intent)?.let { openSessionId = it }
         ReminderNotifications.consumeOccurrenceId(intent)?.let { openOccurrenceId = it }
+        consumeStartedDelivery(intent)
+    }
+
+    /** A reminder Start launch also marks its delivery row STARTED. */
+    private fun consumeStartedDelivery(intent: Intent?) {
+        val deliveryId = ReminderNotifications.consumeStartedDeliveryId(intent) ?: return
+        (application as? PersonalTrainerApp)?.markReminderStarted(deliveryId)
     }
 
     /**

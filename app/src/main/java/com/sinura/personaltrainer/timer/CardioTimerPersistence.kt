@@ -68,6 +68,14 @@ object CardioElapsed {
         elapsedRealtimeMs: Long = SystemClock.elapsedRealtime(),
     ): Long = wallClockMillis - elapsedRealtimeMs
 
+    /**
+     * Same-boot tolerance. The marker is wall minus elapsed, so an NTP nudge
+     * or two non-atomic clock reads shift it by milliseconds; exact equality
+     * dropped the reliable elapsedRealtime path over a 1 ms skew and let a
+     * mid-run clock resync corrupt the recorded duration.
+     */
+    const val BOOT_MARKER_TOLERANCE_MS = 2_000L
+
     fun seconds(
         persisted: PersistedCardioTimer?,
         sessionStartedAtMs: Long,
@@ -76,7 +84,10 @@ object CardioElapsed {
         currentBootMarker: Long = bootMarker(nowWallMs, nowElapsedMs),
     ): Long {
         if (persisted != null) {
-            val extra = if (persisted.bootMarker == currentBootMarker) {
+            val sameBoot =
+                kotlin.math.abs(persisted.bootMarker - currentBootMarker) < BOOT_MARKER_TOLERANCE_MS ||
+                    nowElapsedMs >= persisted.startedAtElapsedRealtime
+            val extra = if (sameBoot) {
                 ((nowElapsedMs - persisted.startedAtElapsedRealtime) / 1_000L).coerceAtLeast(0L)
             } else {
                 ((nowWallMs - persisted.startedAtWallClockMillis) / 1_000L).coerceAtLeast(0L)

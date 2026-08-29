@@ -75,6 +75,13 @@ class RestTimerController(
         }
     }
 
+    override fun stopIfCurrent(timerId: String, fromService: Boolean): Boolean {
+        val current = store.current()
+        if (current.running && current.timerId != timerId) return false
+        stop(fromService)
+        return true
+    }
+
     override fun stop(fromService: Boolean) {
         val wasRunning = store.current().running
         store.clear()

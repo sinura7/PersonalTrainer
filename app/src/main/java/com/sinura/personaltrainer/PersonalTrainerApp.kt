@@ -27,6 +27,23 @@ class PersonalTrainerApp : Application() {
     lateinit var container: AppContainer
         private set
 
+    /**
+     * Marks a reminder delivery STARTED on the app scope, so the write
+     * survives the activity that consumed the notification tap.
+     */
+    fun markReminderStarted(deliveryId: String) {
+        applicationScope.launch {
+            try {
+                container.plannerRepository.markDeliveryStatus(
+                    deliveryId,
+                    com.sinura.personaltrainer.domain.ReminderDeliveryStatus.STARTED,
+                )
+            } catch (error: Exception) {
+                AppLog.w(TAG, "Marking a reminder delivery started failed", error)
+            }
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         // FIRST, before anything can open the database: AppContainer's constructor builds the
@@ -40,7 +57,10 @@ class PersonalTrainerApp : Application() {
         // no timer runs this session.
         RestTimerNotifications.ensureChannels(this)
         ReminderNotifications.ensureChannel(this)
-        TemperStillCache.bind(resources)
+        // Two 768x768 webp decodes plus a per-pixel pass each — 50-150 ms of
+        // main-thread work only the Body tab needs. The drawing code already
+        // handles the cache being empty until this lands.
+        applicationScope.launch { TemperStillCache.bind(resources) }
         // A rest can outlive its process. Recover it before any screen asks for timer state.
         container.restTimerController.rehydrate()
         applicationScope.launch {

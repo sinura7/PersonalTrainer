@@ -24,6 +24,18 @@ interface RestTimerGateway {
     fun start(totalSeconds: Int, sessionId: String?)
     fun adjust(deltaSeconds: Int)
     fun stop(fromService: Boolean = false)
+
+    /**
+     * Stops only if the live timer still is [timerId]. Completion claims a
+     * timer id and must not wipe a NEWER timer the user minted (+15s) between
+     * the claim and the stop. Default keeps fakes simple; the production
+     * controller really checks.
+     */
+    fun stopIfCurrent(timerId: String, fromService: Boolean = false): Boolean {
+        stop(fromService)
+        return true
+    }
+
     fun rehydrate(): Boolean
 
     /** Current-but-early delivery asks the live rest to be scheduled again. */

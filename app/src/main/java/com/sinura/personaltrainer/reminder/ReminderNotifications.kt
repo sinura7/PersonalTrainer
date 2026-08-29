@@ -59,7 +59,7 @@ object ReminderNotifications {
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setContentIntent(openApp(app, occurrence.id))
-            .addAction(0, "Start", actionIntent(app, ACTION_START, occurrence.id, deliveryId))
+            .addAction(0, "Start", startApp(app, occurrence.id, deliveryId))
             .addAction(0, "Snooze", actionIntent(app, ACTION_SNOOZE, occurrence.id, deliveryId))
             .addAction(0, "Move", actionIntent(app, ACTION_MOVE, occurrence.id, deliveryId))
             .addAction(0, "Skip", actionIntent(app, ACTION_SKIP, occurrence.id, deliveryId))
@@ -81,6 +81,39 @@ object ReminderNotifications {
         val id = intent?.getStringExtra(EXTRA_OCCURRENCE_ID) ?: return null
         intent.removeExtra(EXTRA_OCCURRENCE_ID)
         return id.takeIf { it.isNotBlank() }
+    }
+
+    /** Reads and strips the delivery id a Start-action launch carries. */
+    fun consumeStartedDeliveryId(intent: Intent?): String? {
+        val id = intent?.getStringExtra(EXTRA_DELIVERY_ID) ?: return null
+        intent.removeExtra(EXTRA_DELIVERY_ID)
+        return id.takeIf { it.isNotBlank() }
+    }
+
+    /**
+     * The Start action. An activity PendingIntent, not the broadcast
+     * receiver: since API 31 a receiver cannot launch an activity from a
+     * notification action — the system silently drops it, so the old
+     * trampoline consumed the tap, dismissed the notification, and opened
+     * nothing. MainActivity marks the delivery STARTED when it consumes
+     * the extras.
+     */
+    private fun startApp(
+        context: Context,
+        occurrenceId: String,
+        deliveryId: String,
+    ): PendingIntent {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(EXTRA_OCCURRENCE_ID, occurrenceId)
+            putExtra(EXTRA_DELIVERY_ID, deliveryId)
+        }
+        return PendingIntent.getActivity(
+            context,
+            ("start" + occurrenceId).hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
     }
 
     private fun openApp(context: Context, occurrenceId: String): PendingIntent {

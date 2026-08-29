@@ -3,7 +3,6 @@ package com.sinura.personaltrainer.reminder
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.domain.ReminderDeliveryStatus
 import com.sinura.personaltrainer.logging.AppLog
@@ -21,17 +20,18 @@ class ReminderActionReceiver : BroadcastReceiver() {
         scope.launch {
             try {
                 when (intent.action) {
+                    // Kept only for notifications posted by builds whose Start action still
+                    // pointed here. Since API 31 a receiver cannot launch an activity from
+                    // a notification action — the system drops the startActivity silently —
+                    // so new notifications carry an activity PendingIntent instead
+                    // (ReminderNotifications.startApp). This branch records the tap and
+                    // clears the notification; it must not pretend to open the app.
                     ReminderNotifications.ACTION_START -> {
                         app.container.plannerRepository.markDeliveryStatus(
                             deliveryId,
                             ReminderDeliveryStatus.STARTED,
                         )
                         ReminderNotifications.cancel(context, occurrenceId)
-                        val open = Intent(context, MainActivity::class.java).apply {
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                            putExtra(ReminderNotifications.EXTRA_OCCURRENCE_ID, occurrenceId)
-                        }
-                        context.startActivity(open)
                     }
                     ReminderNotifications.ACTION_SNOOZE -> {
                         app.container.plannerRepository.snoozeDelivery(deliveryId)

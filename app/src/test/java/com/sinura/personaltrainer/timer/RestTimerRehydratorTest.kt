@@ -56,6 +56,27 @@ class RestTimerRehydratorTest {
     }
 
     @Test
+    fun aWallClockStepMidRestIsNotARebootAndKeepsTheTimer() {
+        // elapsedRealtime kept counting (370s at save-time start, 400s now), but a
+        // carrier resync stepped the wall clock +45s, moving the boot marker far
+        // past the tolerance. That is the same boot; the rest must survive.
+        val wall = 1_700_000_000_000L
+        val nowElapsed = 400_000L
+        val currentBoot = wall - nowElapsed
+        val outcome = RestTimerRehydrator.rehydrate(
+            stored(
+                endsAtElapsed = 460_000L,
+                bootMarker = currentBoot - 45_000L,
+                endsAtWall = wall + 60_000L,
+            ),
+            nowElapsedRealtime = nowElapsed,
+            nowWallClockMillis = wall,
+        )
+        assertTrue(outcome is RestTimerRehydration.Running)
+        assertEquals(460_000L, (outcome as RestTimerRehydration.Running).endsAtElapsedRealtime)
+    }
+
+    @Test
     fun aRestThatEndedMomentsAgoIsStillAnnounced() {
         val wall = 1_700_000_000_000L
         val elapsed = 100_000L

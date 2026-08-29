@@ -4,8 +4,9 @@ import android.content.Context
 import android.os.SystemClock
 
 /**
- * The running rest timer, written to disk so it survives process death, an OEM swipe-kill,
- * and a reboot.
+ * The running rest timer, written to disk so it survives process death and an OEM
+ * swipe-kill. A reboot deliberately DROPS the rest (ADR-012 §7): a countdown shorter
+ * than a gym set means nothing after the minutes a reboot takes.
  *
  * SharedPreferences rather than DataStore on purpose: both readers — the alarm
  * BroadcastReceiver and the service's sticky restart — need the value synchronously on the
@@ -14,8 +15,8 @@ import android.os.SystemClock
  * Two clocks are stored because neither alone survives every case:
  *  - [endsAtElapsedRealtime] is authoritative while the device has not rebooted; it is
  *    immune to the user changing the wall clock mid-rest.
- *  - [endsAtWallClockMillis] is the only thing that still means something after a reboot,
- *    when elapsedRealtime resets to zero.
+ *  - [endsAtWallClockMillis] is diagnostic: rehydration never reads it, because a
+ *    different boot drops the rest rather than rebasing it.
  * [bootMarker] (wall clock minus elapsed realtime) identifies the boot session, so
  * rehydration can tell those two cases apart.
  */
@@ -122,7 +123,17 @@ object RestTimerRehydrator {
         if (stored == null || stored.totalSeconds <= 0) return RestTimerRehydration.None
 
         val currentBootMarker = nowWallClockMillis - nowElapsedRealtime
-        val sameBoot = kotlin.math.abs(stored.bootMarker - currentBootMarker) < BOOT_MARKER_TOLERANCE_MS
+        // The marker moves whenever the wall clock steps (carrier/NTP resync after
+        // airplane mode, a manual set) — that is not a reboot, and treating it as
+        // one silently destroyed a running rest while its alarm stayed armed.
+        // elapsedRealtime is monotonic within a boot and restarts near zero after
+        // one, so not having gone backwards past the rest's start is same-boot
+        // evidence that survives any wall-clock step.
+        val startedAtElapsedRealtime =
+            stored.endsAtElapsedRealtime - stored.totalSeconds * 1_000L
+        val sameBoot =
+            kotlin.math.abs(stored.bootMarker - currentBootMarker) < BOOT_MARKER_TOLERANCE_MS ||
+                nowElapsedRealtime >= startedAtElapsedRealtime
 
         if (!sameBoot) {
             // A rest shorter than a gym set is meaningless after a different boot.

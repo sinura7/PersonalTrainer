@@ -120,7 +120,7 @@ TESTS=app/src/test/java/com/sinura/personaltrainer
 # its test directory below runnable; the two lists move together.
 EXTRA_MAIN="$SRC/workout/WorkoutDraftCache.kt $SRC/workout/WorkoutDraftRecovery.kt \
             $SRC/timer/RestTimerStore.kt $SRC/timer/RestTimerStatePersistence.kt \
-            $SRC/timer/RestAlarmPlan.kt"
+            $SRC/timer/RestAlarmPlan.kt $SRC/timer/CardioTimerPersistence.kt"
 # Workout and timer tests are named: StartTrainingDayTest, WorkoutLifecycleUseCasesTest,
 # and RestTimerStatePersistenceTest are Robolectric and cannot compile against these
 # stubs. Keep them out of this lane; Gradle still runs them.
@@ -129,7 +129,8 @@ EXTRA_TESTS="$TESTS/util \
              $TESTS/workout/WorkoutDraftRecoveryTest.kt \
              $TESTS/timer/RestTimerStoreTest.kt \
              $TESTS/timer/RestTimerRehydratorTest.kt \
-             $TESTS/timer/RestAlarmPlanTest.kt"
+             $TESTS/timer/RestAlarmPlanTest.kt \
+             $TESTS/timer/CardioElapsedTest.kt"
 
 echo "Compiling domain sources..."
 # shellcheck disable=SC2086
