@@ -13,9 +13,12 @@ and Goals stay pushed. Instrument stays.
 
 ## Commands
 
-- `tools/preflight.sh` — pending
-- `./gradlew testDebugUnitTest` — pending
-- `./gradlew assembleDebug` — pending
+- `tools/preflight.sh` — PASS. 992 domain tests. 0 authority findings.
+- `./gradlew testDebugUnitTest` — 1453 tests. `ShippingTabsTest` and
+  `AccessibilityMatrixTest` pass. Known flake
+  `ActiveWorkoutViewModelTest.logSetPersistsSetClearsErrorAndEmitsRecord`
+  timed out in the full suite; rerun of that test alone passed.
+- `./gradlew assembleDebug` — SUCCESS
 
 ## Known limitations
 
