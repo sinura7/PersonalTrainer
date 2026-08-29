@@ -33,7 +33,7 @@
 > screen (chronometer, not overlay rest on the log).
 >
 > 29 Aug 2026 — Temper Debug Obtainium drops bump `debugLiveCode`.
-> Live test 6 is the Body readout (Day–Month silhouette, no Start).
+> Live test 7 is the Settings tab (fifth tab, no gears on Home/Plan).
 > Same versionCode is why a check for updates can show nothing.
 >
 > 28 Aug 2026 — Phone lane is Obtainium, not Android Studio. Cursor
