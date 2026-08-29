@@ -28,8 +28,8 @@
 > from this session and last time. Rest countdown sits on the lock
 > screen (chronometer, not overlay rest on the log).
 >
-> 28 Aug 2026 — Temper Debug Obtainium drops bump `debugLiveCode`.
-> Live test 4 is the day stack (cardio + workout + later accessory).
+> 29 Aug 2026 — Temper Debug Obtainium drops bump `debugLiveCode`.
+> Live test 5 is the History readout (Day–All chips, no Start).
 > Same versionCode is why a check for updates can show nothing.
 >
 > 28 Aug 2026 — Phone lane is Obtainium, not Android Studio. Cursor
