@@ -166,5 +166,6 @@ class AppContainer(context: Context) : AppDependencies {
         driveRestClient = DriveRestClient(),
         networkChecker = NetworkChecker(context),
         restoreJournal = RestoreJournalStore(java.io.File(context.filesDir, "restore-journal")),
+        plannerRepository = plannerRepository,
     )
 }

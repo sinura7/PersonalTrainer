@@ -256,15 +256,20 @@ interface WorkoutDao {
 
     /**
      * Best finished working weight per lift. One aggregate, no set graph
-     * (P8.2 lift-target goals).
+     * (P8.2 lift-target goals). ASSISTED lifts are excluded outright:
+     * their weightKg is machine help REMOVED, so MAX picked the
+     * most-assisted — easiest — set as the "best". A weight goal on an
+     * assisted lift has no honest kilogram answer here.
      */
     @Query(
         """
         SELECT sl.exerciseId AS exerciseId, MAX(sl.weightKg) AS bestKg
         FROM set_logs sl
         JOIN workout_sessions ws ON ws.id = sl.sessionId
+        LEFT JOIN exercises e ON e.id = sl.exerciseId
         WHERE sl.isWarmup = 0
           AND ws.finishedAt IS NOT NULL
+          AND COALESCE(e.loadType, '') != 'ASSISTED'
         GROUP BY sl.exerciseId
         """,
     )

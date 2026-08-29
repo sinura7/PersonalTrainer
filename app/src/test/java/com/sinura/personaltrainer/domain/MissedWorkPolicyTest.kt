@@ -104,6 +104,87 @@ class MissedWorkPolicyTest {
     }
 
     @Test
+    fun adaptWeekRegeneratesRemainingDaysFromTheRulesAsTheyStandNow() {
+        // The Friday rule moved to 07:00 after the week was generated. Keep
+        // the dates leaves the stale 18:00 row; Adapt re-derives it. This is
+        // the difference that made the two choices identical before.
+        val fridayRule = rule("r-fri", Weekday.FRIDAY).copy(hour = 7)
+        val friday = weekStart.plusDays(4).epochDay
+        val stale = occ(
+            OccurrenceGenerator.occurrenceId("r-fri", friday),
+            "r-fri",
+            friday,
+            OccurrenceStatus.PLANNED,
+            hour = 18,
+        )
+        val result = MissedWorkPolicy.apply(
+            MissedWorkChoice.ADAPT_WEEK,
+            listOf(stale),
+            weekStart,
+            today.epochDay,
+            12 * 60,
+            NOW,
+            JvmTime,
+            zone,
+            rules = listOf(fridayRule),
+        )
+        val regenerated = result.occurrences.single { it.ruleId == "r-fri" }
+        assertEquals(7, regenerated.hour)
+        assertEquals(friday, regenerated.localEpochDay)
+        assertEquals(OccurrenceStatus.PLANNED, regenerated.status)
+    }
+
+    @Test
+    fun adaptWeekRetiresARemovedRulesFutureDaysAndKeepsHistory() {
+        val keptRule = rule("r-fri", Weekday.FRIDAY)
+        val friday = weekStart.plusDays(4).epochDay
+        val doneWed = occ("o-done", "r-gone", wednesday, OccurrenceStatus.DONE)
+        val orphanFriday = occ("o-orphan", "r-gone", friday, OccurrenceStatus.PLANNED)
+        val keptFriday = occ(
+            OccurrenceGenerator.occurrenceId("r-fri", friday),
+            "r-fri",
+            friday,
+            OccurrenceStatus.PLANNED,
+        )
+        val result = MissedWorkPolicy.apply(
+            MissedWorkChoice.ADAPT_WEEK,
+            listOf(doneWed, orphanFriday, keptFriday),
+            weekStart,
+            today.epochDay,
+            12 * 60,
+            NOW,
+            JvmTime,
+            zone,
+            rules = listOf(keptRule),
+        )
+        assertEquals(listOf("o-orphan"), result.removed)
+        assertTrue(result.occurrences.none { it.id == "o-orphan" })
+        // Finished history is never adapted away.
+        assertEquals(OccurrenceStatus.DONE, result.occurrences.single { it.id == "o-done" }.status)
+        assertTrue(result.occurrences.any { it.ruleId == "r-fri" })
+    }
+
+    @Test
+    fun adaptWeekDoesNotMintInstantlyOverdueRowsBehindToday() {
+        // A rule added mid-week whose weekday already passed must not
+        // generate a row behind today that immediately re-raises the prompt.
+        val mondayRule = rule("r-mon", Weekday.MONDAY)
+        val result = MissedWorkPolicy.apply(
+            MissedWorkChoice.ADAPT_WEEK,
+            emptyList(),
+            weekStart,
+            today.epochDay,
+            12 * 60,
+            NOW,
+            JvmTime,
+            zone,
+            rules = listOf(mondayRule),
+        )
+        assertTrue(result.occurrences.isEmpty())
+        assertTrue(result.created.isEmpty())
+    }
+
+    @Test
     fun todayBeforeScheduledTimeIsNotOverdue() {
         val evening = occ("o1", "r1", today.epochDay, OccurrenceStatus.PLANNED, hour = 18)
         assertTrue(MissedWorkPolicy.overdue(listOf(evening), today.epochDay, 12 * 60).isEmpty())

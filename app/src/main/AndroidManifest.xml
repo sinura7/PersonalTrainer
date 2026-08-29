@@ -67,6 +67,17 @@
             android:name=".timer.RestTimerAlarmReceiver"
             android:exported="false" />
 
+        <!-- Grant changes to SCHEDULE_EXACT_ALARM: the system force-stops the
+             app on revoke and cancels its alarms; this is the documented hook
+             to re-arm a persisted rest when the grant comes back. -->
+        <receiver
+            android:name=".timer.ExactAlarmStateReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
         <receiver
             android:name=".reminder.ReminderActionReceiver"
             android:exported="false" />

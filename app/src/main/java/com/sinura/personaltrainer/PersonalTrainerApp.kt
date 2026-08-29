@@ -28,6 +28,34 @@ class PersonalTrainerApp : Application() {
         private set
 
     /**
+     * Generates the current week's occurrences if today crossed into a week
+     * that has none yet. Cheap when nothing changed (keyed on existing
+     * (rule, date) rows), so MainActivity calls it on every resume: week
+     * rollover used to happen only at process start, and a phone that kept
+     * the app alive over Sunday night showed Monday an empty board.
+     */
+    fun ensureCurrentWeek() {
+        applicationScope.launch {
+            try {
+                ensureCurrentWeekBlocking()
+            } catch (error: Exception) {
+                AppLog.w(TAG, "Ensuring the current week failed", error)
+            }
+        }
+    }
+
+    private suspend fun ensureCurrentWeekBlocking() {
+        val weekStart = container.preferencesRepository.schedulePreferences
+            .first().weekStart
+        val today = com.sinura.personaltrainer.util.JvmTime.captureNow()
+        val todayDate = com.sinura.personaltrainer.util.JvmTime.civilDate(
+            today.instantMillis,
+            today.zoneId,
+        )
+        container.plannerRepository.ensureWeek(todayDate.previousOrSame(weekStart))
+    }
+
+    /**
      * Marks a reminder delivery STARTED on the app scope, so the write
      * survives the activity that consumed the notification tap.
      */
@@ -78,14 +106,7 @@ class PersonalTrainerApp : Application() {
             try {
                 PendingOccurrence.restore(container)
                 container.plannerRepository.importSlotsIfNeeded()
-                val weekStart = container.preferencesRepository.schedulePreferences
-                    .first().weekStart
-                val today = com.sinura.personaltrainer.util.JvmTime.captureNow()
-                val todayDate = com.sinura.personaltrainer.util.JvmTime.civilDate(
-                    today.instantMillis,
-                    today.zoneId,
-                )
-                container.plannerRepository.ensureWeek(todayDate.previousOrSame(weekStart))
+                ensureCurrentWeekBlocking()
             } catch (error: Exception) {
                 AppLog.e(TAG, "Importing schedule rules failed", error)
             }

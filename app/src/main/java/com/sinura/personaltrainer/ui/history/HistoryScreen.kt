@@ -156,6 +156,19 @@ fun HistoryScreen(
                             bottom = Metrics.space7,
                         ),
                     ) {
+                        if (state.stale) {
+                            item(key = "stale") {
+                                // Degraded pipeline: the list below is the last loaded
+                                // read, not fresh. Rendering it indistinguishably from
+                                // live data hid the DataHealth signal entirely.
+                                Text(
+                                    "Showing your last loaded history — pull may be behind.",
+                                    modifier = Modifier.padding(bottom = Metrics.space2),
+                                    style = InstrumentType.caption,
+                                    color = TextSecondary,
+                                )
+                            }
+                        }
                         item(key = "calendar") {
                             TrainingCalendarCard(
                                 month = state.calendar,

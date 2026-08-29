@@ -59,10 +59,10 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         reduceMotion = systemReduceMotion(this)
-        (application as? PersonalTrainerApp)
-            ?.container
-            ?.restTimerController
-            ?.refreshAlarmCapability()
+        val app = application as? PersonalTrainerApp
+        app?.container?.restTimerController?.refreshAlarmCapability()
+        // Week rollover must not wait for a process restart.
+        app?.ensureCurrentWeek()
     }
 
     override fun onNewIntent(intent: Intent) {

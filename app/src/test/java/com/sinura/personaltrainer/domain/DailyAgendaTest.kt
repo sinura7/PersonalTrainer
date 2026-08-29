@@ -75,13 +75,6 @@ class DailyAgendaTest {
     }
 
     @Test
-    fun minutesOfDayClamps() {
-        assertEquals(0, DailyAgenda.minutesOfDay(0L, 0L))
-        assertEquals(90, DailyAgenda.minutesOfDay(90 * 60_000L, 0L))
-        assertEquals(24 * 60 - 1, DailyAgenda.minutesOfDay(100 * 60 * 60_000L, 0L))
-    }
-
-    @Test
     fun twoADayMarksOnlyDaysWithTwoOccurrences() {
         val day = 20_000L
         val marked = DailyAgenda.twoADayEpochDays(

@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.data.backup
 
+import com.sinura.personaltrainer.domain.ActivitySource
+import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.GoalKind
 import com.sinura.personaltrainer.domain.GoalPeriod
@@ -49,6 +51,8 @@ object BackupValidator {
     private val GOAL_KIND_STORAGE: Set<String> = GoalKind.entries.map { it.name }.toSet()
     private val GOAL_PERIOD_STORAGE: Set<String> = GoalPeriod.entries.map { it.name }.toSet()
     private val FOCUS_KIND_STORAGE: Set<String> = SessionFocusKind.entries.map { it.name }.toSet()
+    private val CARDIO_TYPE_STORAGE: Set<String> = CardioType.entries.map { it.name }.toSet()
+    private val ACTIVITY_SOURCE_STORAGE: Set<String> = ActivitySource.entries.map { it.name }.toSet()
 
     private const val GENERIC_CORRUPT =
         "This backup file is damaged or incomplete, so nothing was changed."
@@ -63,6 +67,18 @@ object BackupValidator {
         document: BackupDocument,
         localAuthored: AuthoredInventory,
         allowEmptyDestructiveRestore: Boolean = false,
+    ): BackupValidation = try {
+        validateChecked(document, localAuthored, allowEmptyDestructiveRestore)
+    } catch (_: NullPointerException) {
+        // Gson constructs these DTOs reflectively, so a hand-edited file can
+        // leave a non-null field null; any such read below is corruption.
+        BackupValidation.Invalid(GENERIC_CORRUPT)
+    }
+
+    private fun validateChecked(
+        document: BackupDocument,
+        localAuthored: AuthoredInventory,
+        allowEmptyDestructiveRestore: Boolean,
     ): BackupValidation {
         identityProblem(document)?.let { return BackupValidation.Invalid(it) }
 
@@ -263,7 +279,7 @@ object BackupValidator {
             if (!occurrenceIds.add(occurrence.id)) {
                 return invalid("two schedule occurrences share the id \"${occurrence.id}\"")
             }
-            if (document.scheduleRules.isNotEmpty() && occurrence.ruleId !in ruleIds) {
+            if (occurrence.ruleId !in ruleIds) {
                 return invalid("a schedule occurrence points at a rule that is not in this file")
             }
             if (occurrence.hour !in 0..23 || occurrence.minute !in 0..59) {
@@ -272,12 +288,15 @@ object BackupValidator {
         }
         document.reminderDeliveries.forEach { delivery ->
             if (isBlank(delivery.id)) return invalid("a reminder delivery is missing its id")
-            if (document.scheduleOccurrences.isNotEmpty() && delivery.occurrenceId !in occurrenceIds) {
+            if (delivery.occurrenceId !in occurrenceIds) {
                 return invalid("a reminder delivery points at an occurrence that is not in this file")
             }
         }
 
         val activityIds = HashSet<String>(document.activities.size)
+        val activityBlockIds = HashSet<String>()
+        val activitySetIds = HashSet<String>()
+        val activityIntervalIds = HashSet<String>()
         document.activities.forEach { activity ->
             if (isBlank(activity.id)) return invalid("an activity is missing its id")
             if (!activityIds.add(activity.id)) {
@@ -289,6 +308,9 @@ object BackupValidator {
             if (activity.origin !in setOf("LIVE", "BACKDATED", "IMPORTED")) {
                 return invalid("an activity has an unknown origin")
             }
+            if (activity.source !in ACTIVITY_SOURCE_STORAGE) {
+                return invalid("an activity has an unknown source")
+            }
             if (isBlank(activity.performedStart.zoneId)) {
                 return invalid("an activity is missing its time zone")
             }
@@ -297,11 +319,27 @@ object BackupValidator {
             }
             activity.blocks.forEach { block ->
                 if (isBlank(block.id)) return invalid("an activity block is missing its id")
+                if (!activityBlockIds.add(block.id)) {
+                    return invalid("two activity blocks share the id \"${block.id}\"")
+                }
+                block.loadType?.let {
+                    if (it !in LOAD_TYPE_STORAGE) return invalid("an activity block has an unknown load type")
+                }
+                block.equipment?.let {
+                    if (it !in EQUIPMENT_STORAGE) return invalid("an activity block has unknown equipment")
+                }
+                block.cardioType?.let {
+                    if (it !in CARDIO_TYPE_STORAGE) return invalid("an activity block has an unknown cardio type")
+                }
                 if (block.kind == "STRENGTH") {
                     if (isBlank(block.exerciseName) && isBlank(block.exerciseId)) {
                         return invalid("a strength block is missing its exercise")
                     }
                     block.sets.forEach { set ->
+                        if (isBlank(set.id)) return invalid("a strength set is missing its id")
+                        if (!activitySetIds.add(set.id)) {
+                            return invalid("two strength sets share the id \"${set.id}\"")
+                        }
                         if (set.setNumber < 1) return invalid("a strength set has an invalid set number")
                         if (set.reps < 0) return invalid("a strength set has negative reps")
                     }
@@ -311,6 +349,12 @@ object BackupValidator {
                     }
                     if (block.sets.isNotEmpty()) {
                         return invalid("a cardio block carries strength sets")
+                    }
+                    block.intervals.forEach { interval ->
+                        if (isBlank(interval.id)) return invalid("a cardio interval is missing its id")
+                        if (!activityIntervalIds.add(interval.id)) {
+                            return invalid("two cardio intervals share the id \"${interval.id}\"")
+                        }
                     }
                 } else {
                     return invalid("an activity block has an unknown kind")

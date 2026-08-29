@@ -44,6 +44,21 @@ class UnresolvableLocalTimeException(
  * `java.time`. Android UI may still format with platform locale APIs.
  */
 interface TimePort {
+    /**
+     * Minutes past local midnight at [instantMillis] in [zoneId], read off
+     * the zone offset AT that instant. Elapsed-since-midnight arithmetic
+     * ((now - startOfDay) / 60_000) is wrong on DST days: a 25-hour
+     * fall-back day read 17:01 as minute 1081, marking an 18:00 session
+     * overdue an hour early — and MISSED before it was due when Move found
+     * no later day.
+     */
+    fun wallMinutesOfDay(instantMillis: Long, zoneId: String): Int {
+        val captured = capture(instantMillis, zoneId)
+        val local = instantMillis + captured.offsetSeconds * 1_000L
+        val dayMs = 24L * 60L * 60L * 1_000L
+        return (((local % dayMs) + dayMs) % dayMs / 60_000L).toInt()
+    }
+
     fun nowMillis(): Long
 
     /**

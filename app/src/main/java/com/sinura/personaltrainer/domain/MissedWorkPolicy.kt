@@ -29,6 +29,8 @@ object MissedWorkPolicy {
     data class ApplyResult(
         val occurrences: List<ScheduleOccurrence>,
         val created: List<ScheduleOccurrence> = emptyList(),
+        /** Rows Adapt dropped (a removed rule's future PLANNED days). */
+        val removed: List<String> = emptyList(),
     )
 
     fun apply(
@@ -69,18 +71,37 @@ object MissedWorkPolicy {
                 val marked = occurrences.map { item ->
                     if (item.id in dueIds) item.copy(status = OccurrenceStatus.MISSED, updatedAtMs = nowMs) else item
                 }
-                val filled = OccurrenceGenerator.generateWeek(
+                // Adapt re-derives the rest of the week from the rules as they
+                // stand NOW: untouched future PLANNED rows are dropped and
+                // regenerated, so an hour change or a removed rule takes effect
+                // mid-week, while DONE / SKIPPED / MISSED / MOVED history stays.
+                // Regenerating around the kept rows alone was a no-op — every
+                // (rule, date) pair already existed — which made Adapt
+                // behaviourally identical to Keep the dates.
+                val remainingPlanned = marked.filter {
+                    it.status == OccurrenceStatus.PLANNED && it.localEpochDay >= todayEpochDay
+                }.toSet()
+                val kept = marked.filterNot { it in remainingPlanned }
+                val regenerated = OccurrenceGenerator.generateWeek(
                     weekStart = weekStart,
                     rules = rules,
-                    existing = marked,
+                    existing = kept,
                     time = time,
                     deviceZoneId = deviceZoneId,
                     nowMs = nowMs,
                 )
-                val createdIds = marked.map { it.id }.toSet()
+                val keptIds = kept.map { it.id }.toSet()
+                // A day already past regenerates nothing: a rule added mid-week
+                // must not mint an instantly-overdue row behind today.
+                val next = regenerated.filter {
+                    it.id in keptIds || it.localEpochDay >= todayEpochDay
+                }
+                val nextIds = next.map { it.id }.toSet()
+                val beforeIds = occurrences.map { it.id }.toSet()
                 ApplyResult(
-                    occurrences = filled,
-                    created = filled.filter { it.id !in createdIds },
+                    occurrences = next,
+                    created = next.filter { it.id !in beforeIds },
+                    removed = marked.map { it.id }.filter { it !in nextIds },
                 )
             }
         }

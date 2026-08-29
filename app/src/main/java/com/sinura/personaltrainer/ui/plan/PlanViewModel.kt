@@ -877,13 +877,7 @@ class PlanViewModel @JvmOverloads constructor(
     private fun currentMinutesOfDay(
         nowMs: Long = System.currentTimeMillis(),
         zoneId: String = ZoneId.systemDefault().id,
-    ): Int {
-        val start = JvmTime.startOfDayMillis(
-            CivilDate.fromEpochDay(todayEpochDay(nowMs, JvmTime, zoneId)),
-            zoneId,
-        )
-        return DailyAgenda.minutesOfDay(nowMs, start)
-    }
+    ): Int = JvmTime.wallMinutesOfDay(nowMs, zoneId)
 
     /**
      * Begin the next twelve weeks from the top of this week.

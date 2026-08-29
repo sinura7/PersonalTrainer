@@ -31,6 +31,8 @@ class BackupRepository(
     private val driveRestClient: DriveRestClient,
     private val networkChecker: NetworkChecker,
     private val restoreJournal: RestoreJournalStore,
+    /** Nullable so tests without a planner skip the reminder rebuild. */
+    private val plannerRepository: PlannerRepository? = null,
 ) {
     suspend fun signIn(
         activity: Activity,
@@ -216,6 +218,7 @@ class BackupRepository(
                 val preferencesRestored = localBackupRepository.applyPreferences(plan.document)
                 if (preferencesRestored) restoreJournal.mark(RestoreJournal.PREFS)
                 dbMaintenance.reconcileCatalogLocked()
+                rebuildRestoredReminders()
                 restoreJournal.clear()
                 RestoreResult(
                     sourceName = plan.sourceName,
@@ -287,7 +290,22 @@ class BackupRepository(
             if (prefsOk) restoreJournal.mark(RestoreJournal.PREFS)
         }
         dbMaintenance.reconcileCatalogLocked()
+        rebuildRestoredReminders()
         restoreJournal.clear()
+    }
+
+    /**
+     * Restored PENDING deliveries exist only as rows until something hands
+     * them to the scheduler; without this they silently did not fire until
+     * the next reboot or launch. Best-effort — a scheduling failure must not
+     * fail a restore that already committed.
+     */
+    private suspend fun rebuildRestoredReminders() {
+        try {
+            plannerRepository?.rebuildReminders()
+        } catch (_: Exception) {
+            // The boot/time-change receiver rebuilds again later.
+        }
     }
 
     private fun namedCommitFailure(thrown: Throwable): BackupException {

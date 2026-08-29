@@ -37,7 +37,11 @@ object BodyweightLog {
         .sortedBy { it.epochDay }
         .takeLast(MAX_ENTRIES)
         .joinToString(RECORD) { entry ->
-            "${entry.epochDay}$FIELD${WeightConverter.formatDisplayNumber(entry.kg)}" +
+            // Full precision, not the 0.1 kg display rounding: this string IS
+            // the backup payload, and rounding here made every backup/restore
+            // cycle lossy — an lbs user's 180.0 lb came back 179.9. Kotlin's
+            // Double.toString is locale-independent, so decode reads it as-is.
+            "${entry.epochDay}$FIELD${entry.kg}" +
                 "$FIELD${entry.recordedAtMs}$FIELD${entry.offsetSeconds}$FIELD${entry.zoneId}"
         }
 

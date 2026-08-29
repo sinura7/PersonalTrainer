@@ -370,7 +370,10 @@ private fun AddPicker(
                 )
             }
         }
-        if (picking != DayPicker.KIND && picking != DayPicker.NONE) {
+        // No hour chips over a terminal "already has cardio" message: two live
+        // controls leading into a state with no possible action is a dead end.
+        val terminalCardio = picking == DayPicker.CARDIO && hasCardio
+        if (picking != DayPicker.KIND && picking != DayPicker.NONE && !terminalCardio) {
             Kicker(PlanDayCopy.WHEN)
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
@@ -397,7 +400,9 @@ private fun AddPicker(
                 InstrumentRow(
                     title = PlanDayCopy.CARDIO,
                     subtitle = if (hasCardio) PlanDayCopy.CARDIO_ALREADY else SessionOrderCopy.CARDIO_ON_THIS_DAY,
-                    onClick = { onPickKind(DayPicker.CARDIO) },
+                    // A readout when the day already has cardio: the row said why
+                    // in its subtitle and then drilled into a dead end anyway.
+                    onClick = if (hasCardio) null else ({ onPickKind(DayPicker.CARDIO) }),
                 )
                 HairlineDivider()
                 InstrumentRow(

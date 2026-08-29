@@ -128,10 +128,7 @@ class HomeViewModel @JvmOverloads constructor(
         val cadence = extras.second
         val today = todayEpochDay()
         val now = JvmTime.captureNow()
-        val nowMinutes = DailyAgenda.minutesOfDay(
-            now.instantMillis,
-            JvmTime.startOfDayMillis(now.localDate, now.zoneId),
-        )
+        val nowMinutes = JvmTime.wallMinutesOfDay(now.instantMillis, now.zoneId)
         val weekStart = insights.weekPlan?.weekStartEpochDay
             ?: CivilDate.fromEpochDay(today).previousOrSame(
                 insights.weekPlan?.preferences?.weekStart
@@ -281,10 +278,7 @@ class HomeViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             val weekStart = uiState.value.weekPlan?.weekStartEpochDay ?: return@launch
             val now = JvmTime.captureNow()
-            val nowMinutes = DailyAgenda.minutesOfDay(
-                now.instantMillis,
-                JvmTime.startOfDayMillis(now.localDate, now.zoneId),
-            )
+            val nowMinutes = JvmTime.wallMinutesOfDay(now.instantMillis, now.zoneId)
             runCatching {
                 container.plannerRepository.applyMissedWork(
                     choice = choice,

@@ -172,6 +172,61 @@ class WeekBoardTest {
         assertEquals("2 planned · 1 done this week", WeekBoard.summary(cells))
     }
 
+    @Test
+    fun aMovedRowVacatesItsDay() {
+        val weekStart = 20_000L
+        val rule = ScheduleRule(
+            id = "r",
+            weekday = Weekday.MONDAY,
+            hour = 18,
+            minute = 0,
+            modality = ScheduleModality.STRENGTH,
+            createdAtMs = 1L,
+            updatedAtMs = 1L,
+        )
+        // Friday's block moved onto Saturday (ADR-019): old row MOVED, new PLANNED.
+        val moved = ScheduleOccurrence(
+            id = "occ-r-fri",
+            ruleId = "r",
+            status = OccurrenceStatus.MOVED,
+            captured = CapturedCivilTime(1L, "UTC", 0, weekStart + 4),
+            hour = 18,
+            minute = 0,
+            createdAtMs = 1L,
+            updatedAtMs = 1L,
+        )
+        val relocated = moved.copy(
+            id = "occ-r-sat",
+            status = OccurrenceStatus.PLANNED,
+            captured = moved.captured.copy(localEpochDay = weekStart + 5),
+        )
+        val cells = WeekBoard.forWeek(weekStart, listOf(moved, relocated), listOf(rule))
+        // One block in the week, not two — and the vacated Friday reads rest,
+        // never a permanently red "none done".
+        assertEquals("1 planned · 0 done this week", WeekBoard.summary(cells))
+        assertEquals(DayFill.EMPTY, cells[4].fill)
+        assertEquals(WeekBoard.REST, cells[4].caption)
+        assertEquals(DayFill.NONE, cells[5].fill)
+    }
+
+    @Test
+    fun twoADayLosesItsMarkWhenOneRowMovesAway() {
+        val day = 20_000L
+        val cardio = ScheduleOccurrence(
+            id = "c",
+            ruleId = "rc",
+            status = OccurrenceStatus.PLANNED,
+            captured = CapturedCivilTime(1L, "UTC", 0, day),
+            hour = 7,
+            minute = 0,
+            createdAtMs = 1L,
+            updatedAtMs = 1L,
+        )
+        val movedLift = cardio.copy(id = "s", ruleId = "rs", status = OccurrenceStatus.MOVED, hour = 18)
+        assertEquals(setOf(day), DailyAgenda.twoADayEpochDays(listOf(cardio, movedLift, movedLift.copy(id = "s2", status = OccurrenceStatus.PLANNED))))
+        assertEquals(emptySet<Long>(), DailyAgenda.twoADayEpochDays(listOf(cardio, movedLift)))
+    }
+
     private fun item(
         id: String,
         status: OccurrenceStatus,

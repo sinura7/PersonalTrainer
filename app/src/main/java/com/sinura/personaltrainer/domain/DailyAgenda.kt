@@ -60,10 +60,16 @@ object DailyAgenda {
             }
     }
 
-    /** Days with two or more scheduled rows — the week-strip second mark. */
+    /**
+     * Days with two or more scheduled rows — the week-strip second mark.
+     * MOVED rows are vacated slots (ADR-019): a day whose strength moved
+     * away no longer has two-a-day.
+     */
     fun twoADayEpochDays(occurrences: List<ScheduleOccurrence>): Set<Long> =
-        occurrences.groupingBy { it.localEpochDay }.eachCount().filterValues { it >= 2 }.keys
-
-    fun minutesOfDay(nowMs: Long, startOfDayMs: Long): Int =
-        ((nowMs - startOfDayMs) / 60_000L).toInt().coerceIn(0, 24 * 60 - 1)
+        occurrences
+            .filterNot { it.status == OccurrenceStatus.MOVED }
+            .groupingBy { it.localEpochDay }
+            .eachCount()
+            .filterValues { it >= 2 }
+            .keys
 }

@@ -226,6 +226,9 @@ class PlannerRepository(
                 deviceZoneId = deviceZoneId,
                 rules = rules,
             )
+            // Adapt can retire rows (a removed rule's future PLANNED days); their
+            // reminder deliveries cascade with them.
+            result.removed.forEach { dao.deleteOccurrence(it) }
             dao.upsertOccurrences(result.occurrences.map { it.toEntity() })
             dao.upsertDecision(
                 MissedWorkDecision(

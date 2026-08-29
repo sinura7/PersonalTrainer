@@ -53,7 +53,13 @@ object WeekBoard {
         routineNames: Map<String, String> = emptyMap(),
     ): List<WeekBoardCell> = (0 until Weekday.DAYS_IN_WEEK).map { offset ->
         val epochDay = weekStartEpochDay + offset
+        // MOVED rows are vacated slots: the work now lives on another day
+        // (ADR-019), so this day neither owes it (fill) nor counts it
+        // (planned/summary). Counting them showed "8 planned" for a 7-block
+        // week after one move and left the vacated day red forever. The
+        // agenda LIST keeps the row as an honest readout; only the math skips it.
         val items = DailyAgenda.forDay(epochDay, occurrences, rules, routineNames)
+            .filterNot { it.occurrence.status == OccurrenceStatus.MOVED }
         val resolved = items.count { it.occurrence.status.isResolved }
         WeekBoardCell(
             epochDay = epochDay,

@@ -14,6 +14,22 @@ import org.junit.Test
  * else at plus four kilos.
  */
 class BodyweightLogTest {
+    @Test
+    fun roundTripKeepsFullPrecision() {
+        // 180.0 lb is 81.6466266… kg. The old display-rounded encode stored
+        // 81.6 and every backup/restore cycle drifted the log.
+        val kg = 180.0 / 2.20462
+        val entry = BodyweightEntry(
+            epochDay = 20_000L,
+            kg = kg,
+            recordedAtMs = 1L,
+            offsetSeconds = 0,
+            zoneId = "UTC",
+        )
+        val decoded = BodyweightLog.decode(BodyweightLog.encode(listOf(entry)))
+        assertEquals(kg, decoded.single().kg, 0.0)
+    }
+
     private fun entry(day: Long, kg: Double) = BodyweightEntry(day, kg)
 
     @Test

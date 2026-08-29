@@ -88,7 +88,7 @@ object RestTimerNotifications {
         val appContext = context.applicationContext
         ensureChannels(appContext)
         val manager = appContext.getSystemService(NotificationManager::class.java) ?: return
-        val notification = NotificationCompat.Builder(appContext, CHANNEL_DONE)
+        val builder = NotificationCompat.Builder(appContext, CHANNEL_DONE)
             .setSmallIcon(R.drawable.ic_stat_timer)
             .setContentTitle("Rest done")
             .setContentText("Back to the bar.")
@@ -97,8 +97,14 @@ object RestTimerNotifications {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(openAppIntent(appContext, sessionId))
-            .setFullScreenIntent(lockScreenIntent(appContext, sessionId, finished = true), true)
-            .build()
+        // On API 34+ the USE_FULL_SCREEN_INTENT special access is denied by
+        // default; attaching the intent anyway made the system silently
+        // degrade the lock-screen glance. Attach only when the gate is open —
+        // the heads-up path above is the honest fallback.
+        if (canUseFullScreenIntent(appContext)) {
+            builder.setFullScreenIntent(lockScreenIntent(appContext, sessionId, finished = true), true)
+        }
+        val notification = builder.build()
         try {
             manager.notify(DONE_ID, notification)
         } catch (_: Exception) {

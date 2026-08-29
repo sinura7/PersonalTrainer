@@ -72,6 +72,33 @@ class BackupActivityFormatTest {
     }
 
     @Test
+    fun validatorRefusesWhatTheMapperWouldExplodeOn() {
+        // Every one of these used to pass validation and then throw inside the
+        // restore transaction — after the user's confirm, with a misleading
+        // failure message. Refuse them up front.
+        val badSource = document(listOf(cardio().copy(source = "STRAVA")), emptyList())
+        assertTrue(BackupValidator.validate(badSource, AuthoredInventory.EMPTY) is BackupValidation.Invalid)
+
+        val badLoad = document(
+            listOf(lift().copy(blocks = listOf(lift().blocks.single().copy(loadType = "MYSTERY")))),
+            emptyList(),
+        )
+        assertTrue(BackupValidator.validate(badLoad, AuthoredInventory.EMPTY) is BackupValidation.Invalid)
+
+        val badCardioType = document(
+            listOf(cardio().copy(blocks = listOf(cardio().blocks.single().copy(cardioType = "SWIM_BIKE_RUN")))),
+            emptyList(),
+        )
+        assertTrue(BackupValidator.validate(badCardioType, AuthoredInventory.EMPTY) is BackupValidation.Invalid)
+
+        // Two activities reusing one block id ABORTs the DAO insert.
+        val first = lift()
+        val second = lift().copy(id = "act-2")
+        val dupBlocks = document(listOf(first, second), emptyList())
+        assertTrue(BackupValidator.validate(dupBlocks, AuthoredInventory.EMPTY) is BackupValidation.Invalid)
+    }
+
+    @Test
     fun generatedMembersRoundTripOnNewTypes() {
         val time = BackupCapturedTime(1L, "UTC", 0, 0)
         assertEquals(time, time.copy())
