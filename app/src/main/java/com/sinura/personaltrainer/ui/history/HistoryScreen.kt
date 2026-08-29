@@ -315,8 +315,6 @@ fun HistoryScreen(
         }
     }
 
-    }
-
     if (blockedRepeat != null) {
         // Same sentence as StartOptions and session detail. Two explanations of one
         // rule is how a rule stops reading as a rule.
