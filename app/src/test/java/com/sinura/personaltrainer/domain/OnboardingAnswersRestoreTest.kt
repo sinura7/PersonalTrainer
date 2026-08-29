@@ -233,4 +233,35 @@ class OnboardingAnswersRestoreTest {
         )
         assertEquals(four.preferredDays, four.withDaysPerWeek(5).preferredDays)
     }
+
+    @Test
+    fun storedEquipmentWinsUntilPlaceChanges() {
+        val gym = OnboardingAnswers(
+            places = setOf(TrainingPlace.FULL_GYM),
+            availableEquipment = setOf(EquipmentType.DUMBBELL.name, EquipmentType.BODYWEIGHT.name),
+        ).sanitized()
+        assertFalse(gym.coachPreferences().allows(EquipmentType.BARBELL))
+        assertTrue(gym.coachPreferences().allows(EquipmentType.DUMBBELL))
+        val afterPlace = gym.withToggledPlace(TrainingPlace.HOME_DUMBBELLS)
+        assertTrue(afterPlace.availableEquipment.isEmpty())
+        assertFalse(afterPlace.coachPreferences().allows(EquipmentType.BARBELL))
+        assertTrue(afterPlace.coachPreferences().allows(EquipmentType.DUMBBELL))
+    }
+
+    @Test
+    fun fromStoredKeepsAnExplicitKit() {
+        val answers = OnboardingAnswers.fromStored(
+            trainingAge = TrainingAge.NEW,
+            daysPerWeek = 4,
+            preferredDays = emptySet(),
+            place = TrainingPlace.FULL_GYM,
+            goal = TrainingGoal.STRENGTH,
+            emphasis = TrainingEmphasis.BALANCED,
+            bodyweightKg = null,
+            availableEquipment = setOf(EquipmentType.CABLE.name),
+        )
+        assertEquals(setOf(EquipmentType.CABLE.name), answers.availableEquipment)
+        assertTrue(answers.coachPreferences().allows(EquipmentType.CABLE))
+        assertFalse(answers.coachPreferences().allows(EquipmentType.BARBELL))
+    }
 }

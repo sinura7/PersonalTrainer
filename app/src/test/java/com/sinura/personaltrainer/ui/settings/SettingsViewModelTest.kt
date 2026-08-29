@@ -268,4 +268,33 @@ class SettingsViewModelTest {
         }
         assertTrue(picker.launchExportPicker)
     }
+
+    @Test
+    fun shrinkingTrainingDaysTrimsPreferredDays() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        deps.preferencesRepository.setPreferredDays(
+            setOf(
+                com.sinura.personaltrainer.domain.Weekday.MONDAY,
+                com.sinura.personaltrainer.domain.Weekday.TUESDAY,
+                com.sinura.personaltrainer.domain.Weekday.WEDNESDAY,
+                com.sinura.personaltrainer.domain.Weekday.THURSDAY,
+                com.sinura.personaltrainer.domain.Weekday.FRIDAY,
+            ),
+        )
+        deps.preferencesRepository.setWeekStart(com.sinura.personaltrainer.domain.Weekday.MONDAY)
+        viewModel!!.setTrainingDays(3)
+        dispatcher.scheduler.advanceUntilIdle()
+        val days = withTimeout(5_000) {
+            deps.preferencesRepository.preferredDays.first { it.size == 3 }
+        }
+        assertEquals(
+            setOf(
+                com.sinura.personaltrainer.domain.Weekday.MONDAY,
+                com.sinura.personaltrainer.domain.Weekday.TUESDAY,
+                com.sinura.personaltrainer.domain.Weekday.WEDNESDAY,
+            ),
+            days,
+        )
+    }
 }

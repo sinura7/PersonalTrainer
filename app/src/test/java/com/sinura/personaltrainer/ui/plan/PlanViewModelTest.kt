@@ -217,6 +217,41 @@ class PlanViewModelTest {
     }
 
     @Test
+    fun setSessionHourMovesTheRuleAndPlannedOccurrence() = runBlocking {
+        val today = LocalDate.now(ZoneId.systemDefault())
+        val monday = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+        val insights = MutableStateFlow(
+            TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
+        )
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.pinFocus(monday.toEpochDay(), SessionFocusKind.PUSH)
+        withTimeout(5_000) {
+            viewModel!!.uiState.first { it.rules.isNotEmpty() }
+        }
+        viewModel!!.addCardio(monday.toEpochDay(), com.sinura.personaltrainer.domain.CardioType.WALK)
+        val cardio = withTimeout(5_000) {
+            deps.plannerRepository.observeRules().first { rows ->
+                rows.any { it.modality == com.sinura.personaltrainer.domain.ScheduleModality.CARDIO }
+            }.single { it.modality == com.sinura.personaltrainer.domain.ScheduleModality.CARDIO }
+        }
+        assertEquals(7, cardio.hour)
+        viewModel!!.setSessionHour(cardio.id, 9)
+        dispatcher.scheduler.advanceUntilIdle()
+        val updated = withTimeout(5_000) {
+            deps.plannerRepository.observeRules().first { rows ->
+                rows.any { it.id == cardio.id && it.hour == 9 }
+            }.single { it.id == cardio.id }
+        }
+        assertEquals(9, updated.hour)
+        val occ = deps.plannerRepository.observeOccurrences().first { rows ->
+            rows.any { it.ruleId == cardio.id && it.hour == 9 }
+        }.first { it.ruleId == cardio.id }
+        assertEquals(9, occ.hour)
+    }
+
+    @Test
     fun addAuxiliaryMintsAStretchRoutine() = runBlocking {
         val today = LocalDate.now(ZoneId.systemDefault())
         val monday = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))

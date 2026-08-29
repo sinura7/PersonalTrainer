@@ -48,7 +48,7 @@ class GoldenPageCatalogTest {
             GoldenPageCatalog.requiredPageGoldens,
             GoldenPageCatalog.missingPageGoldens,
         )
-        assertTrue(GoldenPageCatalog.missingPageGoldens.contains("goals-empty-api29"))
+        assertTrue(GoldenPageCatalog.missingPageGoldens.contains("settings-empty-api29"))
         assertTrue(GoldenPageCatalog.missingPageGoldens.contains("active-cardio-populated-api29"))
         assertTrue(GoldenPageCatalog.missingPageGoldens.contains("activity-composer-error-api29"))
     }

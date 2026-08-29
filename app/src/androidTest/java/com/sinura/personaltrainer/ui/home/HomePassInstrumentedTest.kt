@@ -8,7 +8,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertDoesNotExist
@@ -44,9 +43,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * P9.6 Home / FND-021 / FND-022: Start, Library, Goals, and last-session
- * tiles stay named at 360 dp through font 2.0. TalkBack reads the
- * merged tile, not a silent numeral.
+ * P9.6 Home / FND-021 / FND-022: Start and last-session tiles stay named
+ * at 360 dp through font 2.0. TalkBack reads the merged tile, not a
+ * silent numeral. Home does not repeat tab destinations.
  */
 @RunWith(AndroidJUnit4::class)
 class HomePassInstrumentedTest {
@@ -69,7 +68,7 @@ class HomePassInstrumentedTest {
     }
 
     @Test
-    fun startLibraryAndGoalsStayNamedAt360Font2() {
+    fun startAndFreeStayNamedAt360Font2() {
         setConstrainedContent(fontScale = 2f) {
             ThisWeekCard(
                 day = TODAY_DAY,
@@ -84,26 +83,12 @@ class HomePassInstrumentedTest {
                 onPrimary = {},
                 onStartFree = {},
             )
-            LinkRow(
-                label = "Goals",
-                onClick = {},
-                modifier = Modifier.testTag(HomeTags.GOALS),
-            )
-            LinkRow(
-                label = "Library",
-                onClick = {},
-                modifier = Modifier.testTag(HomeTags.LIBRARY),
-            )
         }
         compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
         compose.onNodeWithContentDescription("Start today's planned session").assertIsDisplayed()
         compose.onNodeWithText("Start this session").assertIsDisplayed()
         compose.onNodeWithTag(HomeTags.FREE).assertIsDisplayed()
         compose.onNodeWithContentDescription("Start a free workout").assertIsDisplayed()
-        compose.onNodeWithTag(HomeTags.GOALS).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Goals").assertIsDisplayed()
-        compose.onNodeWithTag(HomeTags.LIBRARY).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Library").assertIsDisplayed()
     }
 
     @Test
@@ -116,17 +101,11 @@ class HomePassInstrumentedTest {
                 onStartFree = {},
                 routines = listOf(PUSH_ROUTINE),
             )
-            LinkRow(
-                label = "Goals",
-                onClick = {},
-                modifier = Modifier.testTag(HomeTags.GOALS),
-            )
         }
         compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
         compose.onNodeWithContentDescription("Start today's planned session").assertIsDisplayed()
         compose.onNodeWithTag(HomeTags.FREE).assertIsDisplayed()
         compose.onNodeWithContentDescription("Start a free workout").assertIsDisplayed()
-        compose.onNodeWithTag(HomeTags.GOALS).assertIsDisplayed()
         compose.onNodeWithText(SessionOrderCopy.AGENDA_SEPARATE).assertDoesNotExist()
     }
 
