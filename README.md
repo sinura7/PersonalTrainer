@@ -62,7 +62,8 @@ Five tabs — **Home · Body · Plan · History · Settings**. Library is a push
 
 - **Home** — today's plan and one next-session act. Last session and days
   since come from all-time summaries. A live session is resumed from the
-  live bar, not from a Home Resume button. Library and Goals are links, not tabs.
+  live bar, not from a Home Resume button. Library is a pushed route
+  from Plan, Body, and in-workout. Goals UI is gone.
 - **Body** — muscle heat from logged sets, reps, and RPE over **Day**,
   **This week**, or **This month**. The silhouette stays up when empty.
   Start lives on Home. The coach basis is a fixed trailing 14 days.
@@ -70,10 +71,9 @@ Five tabs — **Home · Body · Plan · History · Settings**. Library is a push
   Lighter week are four different acts.
 - **History** — finished sessions, calendar, personal records, and
   comparable Week / Month / Year / All time totals.
-- **Settings** — units, rest, reminders, coaching prefs, export and restore.
-  The fifth tab. Not a gear on Home or Plan.
+- **Settings** — units, hours, schedule, coaching, rest, export and restore.
+  The fifth tab. Not a gear on Home or Plan. Reminders live on Plan.
 - **Library** (pushed) — search the lift list, filter by muscle, add custom exercises.
-- **Goals** (pushed) — typed targets. Pause is first-class. No punitive streaks.
 - **Activities** — strength, cardio, or mixed; live or backdated. One live
   activity at a time. Two timed items can sit on one day.
 - **Logging** — weight + reps, optional RPE and warm-up, suggested next weight.
@@ -96,7 +96,7 @@ in progress. Drive does not merge two phones. Android Auto Backup is
 copies are not recalled. Use Export to file.
 
 Training works offline. A backup is only read when you ask for one. Cardio,
-backdated activities, timed two-a-day schedules, and measurable goals ship
+backdated activities, and timed two-a-day schedules ship
 on this debug build. Phase 10 (KMP) and Phase 11 (sync) stay gated.
 
 ## Version and updates

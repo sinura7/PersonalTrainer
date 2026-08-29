@@ -36,13 +36,15 @@ page, without clock chrome.
      Holds) minted from **existing** catalog ids. Not a catalog seed.
      Stored as STRENGTH with `templateId` `aux:{packId}`.
 5. **Clocks stay in the model as defaults** (07:00 cardio, 18:00 imported
-   strength, +2h later). The Plan day page does not show them. No time
-   picker. Home may still show times for order.
+   strength, +2h later). Adding a block has no time picker.
+   **Existing** blocks may set an hour on the Plan day page
+   ([ADR-016](ADR-016-settings-home-trim.md)). Home shows those times.
 6. **No Swap. No Unpin chrome.** Delete the session. Deleting the imported
    evening pin unpins that weekday. Logged work stays.
 7. **Edit lifts** by tapping the workout (or auxiliary) row. That opens
    the routine editor.
-8. Library and Goals stay pushed. Instrument stays. A sixth tab is still
+8. Library stays pushed. Goals UI is gone ([ADR-016](ADR-016-settings-home-trim.md)).
+   Instrument stays. A sixth tab is still
    [ADR-014](ADR-014-settings-tab.md).
 
    | ID | Task | Primary expected landing |
@@ -54,8 +56,9 @@ page, without clock chrome.
 - Canonical T3 in ADR-006 lands on the Plan day page.
 - Catalog seed expansion remains a won’t. Auxiliary packs only reference
   ids already in `DefaultExercises`.
-- Reminders (ADR-012) still fire from stored hours. Hiding clocks on Plan
-  does not invent a second nag path.
+- Reminders (ADR-012) still fire from stored hours. Setting an hour on
+  an existing Plan-day block updates Home and the reminder. Adding a
+  block still uses defaults.
 
 ## Review questions
 

@@ -32,7 +32,7 @@ Each line is unambiguous. The ADR is the full text.
 | 3 | Recording, history, templates, schedules, reminders, goals, rules, backup, and recovery work offline without an account | [ADR-004](architecture/ADR-004-offline-core-and-entitlements.md) |
 | 4 | Those capabilities are never subscription-gated | [ADR-004](architecture/ADR-004-offline-core-and-entitlements.md) |
 | 5 | Instrument is the only visual direction: dark, semantic color, tabular numerals, one Volt act | [ADR-005](architecture/ADR-005-instrument-identity.md) |
-| 6 | Shipping IA is Home · Body · Plan · History · Settings; Library and Goals stay pushed; no sixth tab is planned | [ADR-006](architecture/ADR-006-information-architecture.md), [ADR-014](architecture/ADR-014-settings-tab.md) |
+| 6 | Shipping IA is Home · Body · Plan · History · Settings; Library stays pushed; Goals UI is removed; no sixth tab is planned | [ADR-006](architecture/ADR-006-information-architecture.md), [ADR-014](architecture/ADR-014-settings-tab.md), [ADR-016](architecture/ADR-016-settings-home-trim.md) |
 | 7 | Multiple scheduled and completed activities per day; **one live activity at a time** | [ADR-007](architecture/ADR-007-activity-model.md) |
 | 8 | Cardio is a first-class typed activity, never a fake exercise or a metric bag | [ADR-007](architecture/ADR-007-activity-model.md) |
 | 9 | Recommendations stay local and deterministic; a future API may explain a `RuleTrace` only | [ADR-008](architecture/ADR-008-deterministic-rules.md) |
@@ -49,6 +49,7 @@ Supporting decisions that later packets also treat as closed:
 - KMP and cloud sync have start gates and do not begin because they are interesting ([ADR-003](architecture/ADR-003-shipping-platform.md), [ADR-009](architecture/ADR-009-backup-privacy-sync.md)).
 - FND-037 is a numbering gap, not a finding ([ADR-013](architecture/ADR-013-finding-dispositions.md)).
 - Plan is a schedule workshop; Start is Home. A weekday is a pushed page of untimed workout / cardio / auxiliary blocks ([ADR-015](architecture/ADR-015-plan-day-blocks.md)).
+- Settings display, weekly weigh-in, and equipment filters share the questionnaire store; Goals UI is gone; Home is Start, not a second tab bar ([ADR-016](architecture/ADR-016-settings-home-trim.md)).
 
 There is **no remaining TBD** that would change schema, scheduling, privacy,
 or entitlement design. Implementation packets refine mechanisms inside
@@ -704,8 +705,8 @@ Implements [ADR-007](architecture/ADR-007-activity-model.md),
 
 - **P9.1** Formal IA user evidence against ADR-006 canonical tasks. · **done**
   T1–T8 have named first-click landings. Five tabs stay (Settings is
-  ADR-014). Library and Goals remain pushed. The reconsideration gate is
-  encoded and unfired.
+  ADR-014). Library stays pushed. Goals UI is removed (ADR-016). The
+  reconsideration gate is encoded and unfired.
 - **P9.2** Semantic contrast and reduced motion. · **done**
   Closes FND-024 / FND-045 as tested decisions. `TextTertiary` is not
   load-bearing. Unselected tabs use `TextSecondary`. Reduced motion
@@ -842,7 +843,8 @@ for conflicting reset, schema, IA, cloud, and subscription instructions.
 - IA: four tabs + pushed Library; fifth tab requires a new ADR after the
   80% / no-majority-first-click gate. No `AppNav` change in this phase.
   Later (29 Aug 2026): [ADR-014](architecture/ADR-014-settings-tab.md)
-  signed Settings as the fifth tab. Library and Goals stay pushed.
+  signed Settings as the fifth tab. Library stays pushed. Goals UI is
+  gone ([ADR-016](architecture/ADR-016-settings-home-trim.md)).
 - Cloud: Drive is backup. Sync is Phase 11 after an explicit start gate.
   No current-voice file calls Drive sync.
 - Subscription: local core is never gated. Goals cannot become Pro.
