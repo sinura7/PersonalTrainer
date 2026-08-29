@@ -144,7 +144,9 @@ keeps the draft.
   first planned workout; later accessory stays tappable and uses the
   same confirm. Stretch does not own the Volt while a workout is planned.
 - Empty agenda leftover → `ThisWeekCard`. Planned + not logged → volt
-  “Start this session”. Rest / already trained → quiet “Start a free workout”.
+  “Start this session”, which opens the same session-summary confirm
+  as the agenda card (no clock line — a slot day is untimed). Confirm
+  starts it. Rest / already trained → quiet “Start a free workout”.
   ~~Rest → quiet “Start anyway”. Already trained → quiet “Start another”~~
   *(those labels never shipped on the leftover card; free is the honest second path)*.
 - **Live → no Start at all.** The card names the plan. The bar is the way back.

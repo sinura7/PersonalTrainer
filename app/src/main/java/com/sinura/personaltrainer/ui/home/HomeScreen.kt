@@ -316,6 +316,7 @@ fun HomeScreen(
                         hasRoutines = state.routines.isNotEmpty(),
                         lifts = leftoverLiftNames(featured, state.routines),
                         reason = nextSessionReason(featured, state.recommendations),
+                        routines = state.routines,
                         setupComplete = state.setupComplete,
                         offerSetupActions = !showStarter,
                         onGenerateSchedule = onGenerateSchedule,

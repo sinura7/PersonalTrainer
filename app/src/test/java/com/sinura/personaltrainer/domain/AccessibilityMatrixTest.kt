@@ -56,7 +56,7 @@ class AccessibilityMatrixTest {
             AccessibilityMatrix.page("plan").talkBackNotes,
         )
         assertEquals(
-            "Last session and days-since tiles merge into one name each. Settings is a tab. Home week strip picks the day. Planned rows and the Volt open a start confirm. Leftovers confirm as Do it today. This week, Library, and Goals stay off this screen.",
+            "Last session and days-since tiles merge into one name each. Settings is a tab. Home week strip picks the day. Planned rows and the Volt open a start confirm — the empty-agenda leftover Volt included. Leftovers confirm as Do it today. This week, Library, and Goals stay off this screen.",
             AccessibilityMatrix.page("home").talkBackNotes,
         )
     }

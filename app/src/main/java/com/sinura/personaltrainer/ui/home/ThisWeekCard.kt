@@ -7,6 +7,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -14,9 +19,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.GetStartedCopy
+import com.sinura.personaltrainer.domain.HomeToday
+import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.WeekTwoCopy
+import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
@@ -56,6 +64,9 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
  * @param sessionLive when a workout is already running. The card still names the plan; it
  * does not offer to start or return. The live bar is the only way back — a Start button
  * here would either lie (it cannot start) or become a second Resume.
+ * @param routines resolve the day's routine for the start confirm. The Volt opens the same
+ * see-the-work-then-start summary the agenda card uses (ADR-018); it was the one Home start
+ * that still jumped straight into the log.
  * @param onStartFree empty session the lifter fills as they go. Quiet on purpose so it
  * does not compete with following today's Plan routine.
  */
@@ -72,12 +83,31 @@ fun ThisWeekCard(
     onReplayAnswers: () -> Unit,
     onPrimary: () -> Unit,
     onStartFree: () -> Unit,
+    routines: List<Routine> = emptyList(),
     setupComplete: Boolean = true,
     offerSetupActions: Boolean = true,
     onGenerateSchedule: () -> Unit = {},
     onBuildWeek: () -> Unit = {},
 ) {
     val trainingToday = day?.takeUnless { it.isRest }
+    var startPending by rememberSaveable { mutableStateOf(false) }
+    val confirmDay = trainingToday.takeIf { startPending && !sessionLive && !loggedToday }
+    LaunchedEffect(trainingToday, sessionLive, loggedToday) {
+        if (trainingToday == null || sessionLive || loggedToday) startPending = false
+    }
+    if (confirmDay != null) {
+        val confirm = HomeToday.fallbackStartConfirm(confirmDay, routines)
+        ConfirmActionDialog(
+            title = confirm.heading,
+            body = confirm.body,
+            confirmLabel = confirm.confirmLabel,
+            onConfirm = {
+                startPending = false
+                onPrimary()
+            },
+            onDismiss = { startPending = false },
+        )
+    }
     val hasPlan = trainingToday != null || nextDay != null
     val kicker = when {
         trainingToday != null -> "Today"
@@ -230,9 +260,10 @@ fun ThisWeekCard(
             }
         } else if (!sessionLive && trainingToday != null && !loggedToday) {
             // The only volt on Home: follow the routine Plan already designed for today.
+            // Same act as the agenda card — the tap opens the session summary; confirm starts.
             PrimaryGymButton(
                 text = "Start this session",
-                onClick = onPrimary,
+                onClick = { startPending = true },
                 modifier = Modifier
                     .padding(top = Metrics.space1)
                     .testTag(HomeTags.START)

@@ -94,6 +94,35 @@ object HomeToday {
     }
 
     /**
+     * Summary shown before the empty-agenda leftover card starts [day] —
+     * the slot week's derived session, when no occurrence was generated.
+     * Same act as [startConfirm]: see the work, then start. A slot day
+     * is untimed, so there is no clock line and it is never a leftover
+     * move — the session simply starts on today.
+     */
+    fun fallbackStartConfirm(
+        day: SuggestedTrainingDay,
+        routines: List<Routine>,
+    ): StartSessionConfirm {
+        val names = sessionLiftNames(day.routineId, routines)
+        val routine = day.routineId?.let { id -> routines.firstOrNull { it.id == id } }
+        val lines = buildList {
+            if (names.isNotEmpty()) {
+                names.forEachIndexed { index, name -> add("${index + 1} $name") }
+                add("")
+                add(liftCountLine(names.size, routine?.let { estimatedSessionMinutes(it) }))
+            } else {
+                add(SessionOrderCopy.EMPTY_PREVIEW)
+            }
+        }
+        return StartSessionConfirm(
+            heading = "Start ${day.routineName ?: day.focusTitle}?",
+            body = lines.joinToString("\n").trim(),
+            confirmLabel = CONFIRM,
+        )
+    }
+
+    /**
      * The Start the sheet may offer when Body, History, or Plan open it.
      * Same preference as Home: a still-planned occurrence first (workout
      * preferred), else the leftover slot day's routine.

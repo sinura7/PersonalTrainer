@@ -168,6 +168,30 @@ class HomeTodayTest {
     }
 
     @Test
+    fun fallbackStartConfirmNamesTheSessionAndLiftOrder() {
+        val confirm = HomeToday.fallbackStartConfirm(
+            leftoverDay(isRest = false, name = "Push"),
+            listOf(pushRoutine()),
+        )
+        assertEquals("Start Push?", confirm.heading)
+        assertEquals(HomeToday.CONFIRM, confirm.confirmLabel)
+        assertFalse(confirm.leftover)
+        assertTrue(confirm.body.startsWith("1 Squat"))
+        assertTrue(confirm.body.contains("2 Row"))
+        assertTrue(confirm.body.contains("2 lifts · about 13 min"))
+    }
+
+    @Test
+    fun fallbackStartConfirmWithoutARoutineSaysNoLiftsYet() {
+        val confirm = HomeToday.fallbackStartConfirm(
+            leftoverDay(isRest = false, name = null),
+            emptyList(),
+        )
+        assertEquals("Start Push?", confirm.heading)
+        assertEquals(SessionOrderCopy.EMPTY_PREVIEW, confirm.body)
+    }
+
+    @Test
     fun startConfirmLeftoverIsDoItToday() {
         val planned = item("s", ScheduleModality.STRENGTH, hour = 18, routineId = "r-Push")
             .copy(routineName = "Push")

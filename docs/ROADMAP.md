@@ -15,6 +15,13 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 29 Aug 2026 — The empty-agenda leftover card’s Volt (Start this
+> session) opens the same session-summary confirm as the agenda card
+> before starting — it was the one Home start left that jumped straight
+> into the log. No clock line: a slot day is untimed. Live test 13 is
+> this drop (`debugLiveCode` 13)
+> ([ADR-018](architecture/ADR-018-home-start-confirm.md), amended).
+>
 > 29 Aug 2026 — A leftover Home session (yesterday’s Friday, a missed
 > block) moves onto today when you confirm **Do it today**. Today lists
 > **Still open**. Recurrence does not change. Live test 12 is this drop

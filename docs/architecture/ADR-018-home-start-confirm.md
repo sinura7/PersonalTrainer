@@ -3,7 +3,11 @@
 - **Status:** Accepted
 - **Date:** 29 August 2026
 - **Amended:** 29 August 2026 — [ADR-019](ADR-019-move-to-today.md)
-  leftover Home starts move the occurrence onto today
+  leftover Home starts move the occurrence onto today; and the
+  empty-agenda leftover card's Volt (`Start this session`) opens the
+  same summary confirm instead of starting immediately — the last Home
+  start that jumped straight into the log. A slot day is untimed, so
+  its summary has no clock line and never relocates
 - **Supersedes:** [ADR-017](ADR-017-home-week-board.md) §1 only the
   reading that Volt (or a planned row) **starts** the next undone block
   immediately

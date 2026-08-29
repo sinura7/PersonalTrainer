@@ -94,6 +94,62 @@ class HomePassInstrumentedTest {
     }
 
     @Test
+    fun fallbackVoltOpensStartConfirmAndDoesNotStartUntilConfirm() {
+        var started = false
+        setConstrainedContent(fontScale = 1f) {
+            ThisWeekCard(
+                day = TODAY_DAY,
+                nextDay = null,
+                loggedToday = false,
+                lifts = listOf("Squat", "Row"),
+                reason = null,
+                sessionLive = false,
+                hasRoutines = true,
+                routines = listOf(PUSH_ROUTINE),
+                onSuggestWeek = {},
+                onReplayAnswers = {},
+                onPrimary = { started = true },
+                onStartFree = {},
+            )
+        }
+        compose.onNodeWithText("Start Upper strength?").assertDoesNotExist()
+        compose.onNodeWithTag(HomeTags.START).performClick()
+        compose.onNodeWithText("Start Upper strength?").assertIsDisplayed()
+        compose.onNodeWithText("1 Squat", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("2 Row", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("2 lifts · about 13 min", substring = true).assertIsDisplayed()
+        org.junit.Assert.assertFalse(started)
+        compose.onNodeWithText("Start").performClick()
+        org.junit.Assert.assertTrue(started)
+    }
+
+    @Test
+    fun fallbackStartConfirmCancelDoesNotStart() {
+        var started = false
+        setConstrainedContent(fontScale = 1f) {
+            ThisWeekCard(
+                day = TODAY_DAY,
+                nextDay = null,
+                loggedToday = false,
+                lifts = listOf("Squat", "Row"),
+                reason = null,
+                sessionLive = false,
+                hasRoutines = true,
+                routines = listOf(PUSH_ROUTINE),
+                onSuggestWeek = {},
+                onReplayAnswers = {},
+                onPrimary = { started = true },
+                onStartFree = {},
+            )
+        }
+        compose.onNodeWithTag(HomeTags.START).performClick()
+        compose.onNodeWithText("Start Upper strength?").assertIsDisplayed()
+        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithText("Start Upper strength?").assertDoesNotExist()
+        org.junit.Assert.assertFalse(started)
+    }
+
+    @Test
     fun agendaStartAndFreeStayNamedAt360Font2() {
         setConstrainedContent(fontScale = 2f) {
             DailyAgendaCard(
