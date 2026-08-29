@@ -208,14 +208,23 @@ If you add a file to `data/backup/` that has no Android imports, add it to the l
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` exists and already lists `trunk`. We do
-**not** use GitHub-hosted runners to test. The owner will not add
-billing, make the repo public, or attach a self-hosted runner for
-this. A red X on a commit is noise. Do not open it. Do not ask the
-owner about it. Do not file a packet to "fix CI."
+Three workflows exist and are maintained: `ci.yml` (the 17-checker
+static gate, unit tests, blocking lint, a debug APK artifact),
+`release.yml` (tag `v*`, with a strict `appVersionCode` ratchet against
+`tools/released-version-code.txt`), and `debug-live.yml` (tag
+`debug-live-*` **or** a push to a `debug-live/<suffix>` branch — the
+branch spelling exists because some sessions cannot push tags — which
+builds the debug APK and publishes the `debug-live-<suffix>`
+pre-release Obtainium watches).
 
-The test path is Cursor (`./gradlew testDebugUnitTest assembleDebug`)
-and Obtainium on the phone. That is the whole lane.
+They are written and kept correct, but hosted runners are **not the
+merge gate**: the account currently has no runner assigned (every run
+dies in seconds before checkout — a billing/limits setting only the
+owner can change), so a red X from *that* is noise. The moment a runner
+exists, all three lanes work as written; until then the executable gate
+is `tools/preflight.sh` plus a Gradle-capable machine
+(`./gradlew testDebugUnitTest assembleDebug`) and Obtainium on the
+phone.
 
 ## Instrumented tests
 
@@ -245,8 +254,11 @@ Two lanes exist for anything Room touches:
 Migration tests must pass in both lanes before a schema change ships.
 
 `WorkoutRepository` and `ScheduleRepository` have instrumented tests on real SQLite
-(`app/src/androidTest/.../data/repository/`). ViewModels and Compose screens remain
-unverified by automation — see [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md) Phase 1.
+(`app/src/androidTest/.../data/repository/`). ViewModels are covered: ~21 ViewModel
+test files live under `app/src/test/.../ui/` (ActiveWorkout, Home, Plan, Settings,
+StartOptions and more), plus two instrumented journey tests under
+`app/src/androidTest/.../ui/workout/`. Compose screens themselves are the remaining
+automation gap.
 
 ## On Windows
 

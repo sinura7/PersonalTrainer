@@ -107,6 +107,7 @@ class RestTimerController(
             stored = persistence?.load(),
             nowElapsedRealtime = SystemClock.elapsedRealtime(),
             nowWallClockMillis = System.currentTimeMillis(),
+            nowBootCount = BootSession.count(appContext),
         )
         return when (outcome) {
             is RestTimerRehydration.Running -> {

@@ -34,7 +34,7 @@ class MainActivity : ComponentActivity() {
         } else {
             null
         }
-        if (savedInstanceState == null) consumeStartedDelivery(intent)
+        if (savedInstanceState == null) consumeStartedDelivery(intent, openOccurrenceId)
         // Both bars transparent, both pinned to light icons. The default picks icon colour
         // from the system's light/dark setting, which is the wrong signal for an app that
         // draws one dark theme regardless: a phone in light mode got dark status icons on a
@@ -69,13 +69,21 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         consumeSessionId(intent)?.let { openSessionId = it }
-        ReminderNotifications.consumeOccurrenceId(intent)?.let { openOccurrenceId = it }
-        consumeStartedDelivery(intent)
+        val occurrenceId = ReminderNotifications.consumeOccurrenceId(intent)
+        occurrenceId?.let { openOccurrenceId = it }
+        consumeStartedDelivery(intent, occurrenceId)
     }
 
-    /** A reminder Start launch also marks its delivery row STARTED. */
-    private fun consumeStartedDelivery(intent: Intent?) {
+    /**
+     * A reminder Start launch also marks its delivery row STARTED — and
+     * dismisses the notification. A notification *action* never auto-cancels
+     * (setAutoCancel covers only the content tap), so without the explicit
+     * cancel the started session's reminder stayed in the shade with live
+     * Snooze/Move/Skip buttons that could mark the running plan row SKIPPED.
+     */
+    private fun consumeStartedDelivery(intent: Intent?, occurrenceId: String?) {
         val deliveryId = ReminderNotifications.consumeStartedDeliveryId(intent) ?: return
+        occurrenceId?.let { ReminderNotifications.cancel(this, it) }
         (application as? PersonalTrainerApp)?.markReminderStarted(deliveryId)
     }
 

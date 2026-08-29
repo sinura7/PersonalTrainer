@@ -12,6 +12,7 @@ import com.sinura.personaltrainer.domain.ActivityWrite
 import com.sinura.personaltrainer.domain.CardioBlock
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.timer.BootSession
 import com.sinura.personaltrainer.timer.CardioElapsed
 import com.sinura.personaltrainer.timer.PersistedCardioTimer
 import com.sinura.personaltrainer.util.JvmTime
@@ -43,6 +44,7 @@ class LiveCardioViewModel @JvmOverloads constructor(
     private val clock: com.sinura.personaltrainer.domain.TimePort = JvmTime,
     private val elapsedRealtime: () -> Long = { SystemClock.elapsedRealtime() },
     private val wallClock: () -> Long = { System.currentTimeMillis() },
+    private val bootCount: () -> Long = { BootSession.count(application) },
 ) : AppViewModel(application, container) {
     private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
     private val session = MutableStateFlow<ActivitySession?>(null)
@@ -179,6 +181,7 @@ class LiveCardioViewModel @JvmOverloads constructor(
                 sessionStartedAtMs = live.performedStart.instantMillis,
                 nowElapsedMs = elapsedRealtime(),
                 nowWallMs = wallClock(),
+                nowBootCount = bootCount(),
             )
             delay(1_000)
         }

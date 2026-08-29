@@ -358,6 +358,7 @@ fun PersonalTrainerNav(
                             onFinish = liveBarViewModel::finishFromBar,
                             onDiscard = liveBarViewModel::discardFromBar,
                             actionError = liveBarActionError,
+                            onActionErrorShown = liveBarViewModel::onActionErrorShown,
                         )
                     }
                 }

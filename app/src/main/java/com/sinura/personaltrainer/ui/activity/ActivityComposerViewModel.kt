@@ -28,6 +28,7 @@ import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.IdFactory
 import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.util.runCatchingCancellable
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -127,11 +128,19 @@ class ActivityComposerViewModel @JvmOverloads constructor(
         get() = savedStateHandle.get<String>(KEY_HELD_OCCURRENCE)
         set(value) = savedStateHandle.set(KEY_HELD_OCCURRENCE, value)
 
+    /**
+     * The init-time transfer out of [PendingOccurrence]. [confirmDraft] joins it
+     * before reading [heldOccurrenceId]: a fast save could otherwise land while
+     * the transfer was still suspended on the DataStore write, saving the
+     * activity with no plan link after the store had already been cleared.
+     */
+    private val armTransfer: Job
+
     init {
         viewModelScope.launch {
             container.exerciseRepository.observeAll().collect { catalog.value = it }
         }
-        viewModelScope.launch {
+        armTransfer = viewModelScope.launch {
             if (!savedStateHandle.contains(KEY_HELD_OCCURRENCE)) {
                 heldOccurrenceId = PendingOccurrence.takeForComposer(container)
             }
@@ -239,6 +248,7 @@ class ActivityComposerViewModel @JvmOverloads constructor(
     }
 
     internal suspend fun confirmDraft(): ActivityWrite {
+        armTransfer.join()
         val now = clock.captureNow()
         val performed = clock.resolveLocal(
             CivilDateTime(CivilDate.fromEpochDay(epochDay.value), hour = 12, minute = 0),

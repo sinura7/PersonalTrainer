@@ -333,6 +333,15 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
         blockedDelete.value = null
     }
 
+    /**
+     * Clears the status note once its banner has dwelled. Leaving it set made
+     * the StateFlow dedupe a repeat of the same action ("Added X to Y." twice),
+     * so the second add showed no feedback at all.
+     */
+    fun dismissMessage() {
+        message.value = null
+    }
+
     fun openAddToRoutine(exercise: Exercise) {
         addToRoutine.value = exercise
         message.value = null

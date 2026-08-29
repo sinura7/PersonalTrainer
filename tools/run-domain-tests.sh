@@ -43,7 +43,7 @@ esac
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 mkdir -p "$WORK/stub/android/util" "$WORK/stub/android/os" "$WORK/stub/android/content" \
-  "$WORK/main" "$WORK/test"
+  "$WORK/stub/android/provider" "$WORK/main" "$WORK/test"
 
 # Stubs, compile-time only. Every one of these throws if it is ever actually called: the code
 # under test must not depend on Android behaviour, and a stub that quietly returned a plausible
@@ -81,12 +81,16 @@ package android.content
 
 abstract class Context {
     open val applicationContext: Context get() = this
+    open val contentResolver: ContentResolver
+        get() = throw UnsupportedOperationException("ContentResolver is not available on the JVM")
     abstract fun getSharedPreferences(name: String, mode: Int): SharedPreferences
 
     companion object {
         const val MODE_PRIVATE: Int = 0
     }
 }
+
+abstract class ContentResolver
 
 interface SharedPreferences {
     fun contains(key: String): Boolean
@@ -107,6 +111,25 @@ interface SharedPreferences {
 }
 STUB
 
+# BootSession catches every exception and reports UNKNOWN, so a thrown stub keeps the JVM
+# lane honest: the boot-count comparison only ever runs where a stored stamp met a real one.
+cat > "$WORK/stub/android/provider/Settings.kt" <<'STUB'
+package android.provider
+
+import android.content.ContentResolver
+
+object Settings {
+    object Global {
+        const val BOOT_COUNT = "boot_count"
+
+        @JvmStatic
+        @Suppress("UNUSED_PARAMETER")
+        fun getInt(resolver: ContentResolver, name: String): Int =
+            throw UnsupportedOperationException("android.provider.Settings is not available on the JVM")
+    }
+}
+STUB
+
 kotlinc() {
   java -cp "$CP" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler "$@"
 }
@@ -120,7 +143,8 @@ TESTS=app/src/test/java/com/sinura/personaltrainer
 # its test directory below runnable; the two lists move together.
 EXTRA_MAIN="$SRC/workout/WorkoutDraftCache.kt $SRC/workout/WorkoutDraftRecovery.kt \
             $SRC/timer/RestTimerStore.kt $SRC/timer/RestTimerStatePersistence.kt \
-            $SRC/timer/RestAlarmPlan.kt $SRC/timer/CardioTimerPersistence.kt"
+            $SRC/timer/RestAlarmPlan.kt $SRC/timer/CardioTimerPersistence.kt \
+            $SRC/timer/BootSession.kt"
 # Workout and timer tests are named: StartTrainingDayTest, WorkoutLifecycleUseCasesTest,
 # and RestTimerStatePersistenceTest are Robolectric and cannot compile against these
 # stubs. Keep them out of this lane; Gradle still runs them.

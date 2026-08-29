@@ -235,6 +235,26 @@ class OnboardingAnswersRestoreTest {
     }
 
     @Test
+    fun shrinkingDaysHonoursTheLiftersWeekStart() {
+        // A Sunday-week lifter's "first N days in week order" starts on Sunday.
+        // Trimming from the Monday default cost them the first day of their week.
+        val four = OnboardingAnswers(
+            daysPerWeek = 4,
+            preferredDays = setOf(
+                Weekday.SUNDAY,
+                Weekday.MONDAY,
+                Weekday.WEDNESDAY,
+                Weekday.FRIDAY,
+            ),
+        )
+        val three = four.withDaysPerWeek(3, weekStart = Weekday.SUNDAY)
+        assertEquals(
+            setOf(Weekday.SUNDAY, Weekday.MONDAY, Weekday.WEDNESDAY),
+            three.preferredDays,
+        )
+    }
+
+    @Test
     fun storedEquipmentWinsUntilPlaceChanges() {
         val gym = OnboardingAnswers(
             places = setOf(TrainingPlace.FULL_GYM),

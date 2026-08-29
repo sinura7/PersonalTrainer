@@ -138,6 +138,6 @@ and [ADR-010](docs/architecture/ADR-010-schema-reset-migrations.md).
 ## Requirements
 
 - JDK 17
-- Android SDK 35
+- Android SDK 36
 - minSdk 26 (Android 8.0)
 - Obtainium on the phone (Temper Debug from `debug-live-*` pre-releases)

@@ -24,7 +24,9 @@ import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.workout.StartDayOutcome
 import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.CardioBlock
+import com.sinura.personaltrainer.domain.CardioCopy
 import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.ScheduleKind
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.OwnedLiftResolver
 import com.sinura.personaltrainer.domain.Routine
@@ -383,10 +385,13 @@ class StartOptionsViewModel @JvmOverloads constructor(
         when (rule?.modality ?: ScheduleModality.STRENGTH) {
             ScheduleModality.CARDIO -> {
                 val now = JvmTime.captureNow()
+                // Same resolution Home and Plan use: a scheduled bike must not
+                // start as a generic run because it was launched from this sheet.
+                val type = ScheduleKind.cardioTypeOrRun(rule?.templateId)
                 val block = CardioBlock(
                     id = IdFactory.Uuid.newId(),
                     sortOrder = 0,
-                    type = CardioType.RUN,
+                    type = type,
                     indoor = false,
                     elapsedSeconds = 0L,
                     movingSeconds = 0L,
@@ -397,7 +402,7 @@ class StartOptionsViewModel @JvmOverloads constructor(
                     rpe = null,
                     routeRef = null,
                 )
-                when (val write = container.startLiveActivity("Cardio", listOf(block), now, occurrence.id)) {
+                when (val write = container.startLiveActivity(CardioCopy.name(type), listOf(block), now, occurrence.id)) {
                     is ActivityWrite.Accepted -> {
                         PendingOccurrence.forget(container)
                         val nowElapsed = android.os.SystemClock.elapsedRealtime()

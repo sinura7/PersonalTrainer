@@ -293,7 +293,7 @@ class OnboardingViewModel @JvmOverloads constructor(
 
     fun setExperience(value: TrainingAge) = advance { it.copy(trainingAge = value) }
 
-    fun setDaysPerWeek(value: Int) = update { it.withDaysPerWeek(value) }
+    fun setDaysPerWeek(value: Int) = update { it.withDaysPerWeek(value, weekStart.value) }
 
     fun toggleDay(day: Weekday) = update { current ->
         val picked = current.preferredDays

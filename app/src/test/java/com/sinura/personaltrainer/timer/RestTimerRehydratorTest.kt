@@ -15,7 +15,16 @@ class RestTimerRehydratorTest {
         sessionId: String? = "s1",
         bootMarker: Long,
         endsAtWall: Long,
-    ) = PersistedRestTimer(endsAtElapsed, total, sessionId, bootMarker, endsAtWall, timerId = "timer-1")
+        bootCount: Long = BootSession.UNKNOWN,
+    ) = PersistedRestTimer(
+        endsAtElapsed,
+        total,
+        sessionId,
+        bootMarker,
+        endsAtWall,
+        timerId = "timer-1",
+        bootCount = bootCount,
+    )
 
     @Test
     fun nothingStoredMeansNothingToRecover() {
@@ -106,6 +115,64 @@ class RestTimerRehydratorTest {
             stored(endsAtElapsed = elapsed - lateBy, bootMarker = boot, endsAtWall = wall - lateBy),
             nowElapsedRealtime = elapsed,
             nowWallClockMillis = wall,
+        )
+        assertEquals(RestTimerRehydration.None, outcome)
+    }
+
+    @Test
+    fun aChangedBootCountDropsTheRestEvenWhenElapsedLooksMonotonic() {
+        // Rest started 10 s into the previous boot; the phone rebooted and the
+        // new boot's uptime is already past that start point, so the monotonic
+        // heuristic alone would resurrect a rest ADR-012 §7 says to drop.
+        val outcome = RestTimerRehydrator.rehydrate(
+            stored(
+                endsAtElapsed = 100_000L,
+                bootMarker = 1_700_000_000_000L - 10_000L,
+                endsAtWall = 1_700_000_090_000L,
+                bootCount = 7L,
+            ),
+            nowElapsedRealtime = 50_000L,
+            nowWallClockMillis = 1_700_000_400_000L,
+            nowBootCount = 8L,
+        )
+        assertEquals(RestTimerRehydration.None, outcome)
+    }
+
+    @Test
+    fun aMatchingBootCountKeepsTheRestThroughAnyWallStep() {
+        // Same boot by counter; the wall clock stepped an hour so the marker
+        // heuristic would call it a reboot. The counter wins.
+        val wall = 1_700_003_600_000L
+        val nowElapsed = 400_000L
+        val outcome = RestTimerRehydrator.rehydrate(
+            stored(
+                endsAtElapsed = 460_000L,
+                bootMarker = wall - nowElapsed - 3_600_000L,
+                endsAtWall = wall + 60_000L,
+                bootCount = 7L,
+            ),
+            nowElapsedRealtime = nowElapsed,
+            nowWallClockMillis = wall,
+            nowBootCount = 7L,
+        )
+        assertTrue(outcome is RestTimerRehydration.Running)
+        assertEquals(460_000L, (outcome as RestTimerRehydration.Running).endsAtElapsedRealtime)
+    }
+
+    @Test
+    fun anUnstampedRowKeepsTheHeuristics() {
+        // Update boundary: the stored row predates the boot stamp. The clock
+        // heuristics must still decide, as in afterRebootAShortRestIsCleared.
+        val oldWall = 1_700_000_000_000L
+        val outcome = RestTimerRehydrator.rehydrate(
+            stored(
+                endsAtElapsed = 560_000L,
+                bootMarker = oldWall - 500_000L,
+                endsAtWall = oldWall + 60_000L,
+            ),
+            nowElapsedRealtime = 3_000L,
+            nowWallClockMillis = oldWall + 40_000L,
+            nowBootCount = 8L,
         )
         assertEquals(RestTimerRehydration.None, outcome)
     }

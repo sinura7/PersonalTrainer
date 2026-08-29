@@ -103,6 +103,7 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
                             persisted = persisted,
                             sessionStartedAtMs = liveActivity.performedStart.instantMillis,
                             nowWallMs = now,
+                            nowBootCount = com.sinura.personaltrainer.timer.BootSession.count(getApplication()),
                         )
                         LiveSessionBarUiState(
                             sessionId = liveActivity.id,
@@ -157,6 +158,7 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
                     persisted = persisted,
                     sessionStartedAtMs = current?.performedStart?.instantMillis ?: now.instantMillis,
                     nowWallMs = now.instantMillis,
+                    nowBootCount = com.sinura.personaltrainer.timer.BootSession.count(getApplication()),
                 )
                 val blocks = current?.cardioBlocks?.map { block ->
                     block.copy(elapsedSeconds = elapsed, movingSeconds = elapsed)
@@ -196,8 +198,19 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
         val live = uiState.value ?: return
         viewModelScope.launch {
             if (live.kind == LiveBarKind.ACTIVITY) {
-                container.discardActivity(live.sessionId)
-                container.cardioTimerPersistence.clear()
+                // Guarded like the workout branch: an unhandled throw here took
+                // the whole process down, and clearing the timer on failure
+                // wiped the baseline of a session that still exists.
+                try {
+                    container.discardActivity(live.sessionId)
+                    container.cardioTimerPersistence.clear()
+                    _actionError.value = null
+                } catch (thrown: kotlinx.coroutines.CancellationException) {
+                    throw thrown
+                } catch (thrown: Exception) {
+                    AppLog.w(TAG, "Discarding live cardio from the bar failed", thrown)
+                    _actionError.value = "Could not discard this session. Try again."
+                }
             } else {
                 when (val outcome = container.discardWorkout(live.sessionId)) {
                     DiscardOutcome.Discarded -> {

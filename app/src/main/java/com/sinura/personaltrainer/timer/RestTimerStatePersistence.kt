@@ -27,6 +27,12 @@ data class PersistedRestTimer(
     val bootMarker: Long,
     val endsAtWallClockMillis: Long,
     val timerId: String = "",
+    /**
+     * [BootSession] counter at save time; [BootSession.UNKNOWN] when the row
+     * predates the stamp. Definitive same-boot evidence where the two clock
+     * heuristics each fail in one direction.
+     */
+    val bootCount: Long = BootSession.UNKNOWN,
 )
 
 interface RestTimerStatePersistence {
@@ -36,11 +42,15 @@ interface RestTimerStatePersistence {
 }
 
 class SharedPrefsRestTimerStatePersistence(context: Context) : RestTimerStatePersistence {
-    private val prefs = context.applicationContext
+    private val appContext = context.applicationContext
+    private val prefs = appContext
         .getSharedPreferences("rest_timer_state", Context.MODE_PRIVATE)
 
     @Suppress("ApplySharedPref")
     override fun save(state: PersistedRestTimer) {
+        // The store layer is clock-pure, so the boot stamp lands here.
+        val bootCount = state.bootCount.takeIf { it != BootSession.UNKNOWN }
+            ?: BootSession.count(appContext)
         // commit(), not apply(): the alarm is scheduled on the next line of
         // RestTimerController.start(), and RestTimerAlarmReceiver treats a missing
         // disk row as "already completed". An unflushed apply() plus a process
@@ -52,6 +62,7 @@ class SharedPrefsRestTimerStatePersistence(context: Context) : RestTimerStatePer
             .putLong(KEY_BOOT_MARKER, state.bootMarker)
             .putLong(KEY_ENDS_AT_WALL, state.endsAtWallClockMillis)
             .putString(KEY_TIMER_ID, state.timerId)
+            .putLong(KEY_BOOT_COUNT, bootCount)
             .commit()
     }
 
@@ -64,6 +75,7 @@ class SharedPrefsRestTimerStatePersistence(context: Context) : RestTimerStatePer
             bootMarker = prefs.getLong(KEY_BOOT_MARKER, 0L),
             endsAtWallClockMillis = prefs.getLong(KEY_ENDS_AT_WALL, 0L),
             timerId = prefs.getString(KEY_TIMER_ID, "").orEmpty(),
+            bootCount = prefs.getLong(KEY_BOOT_COUNT, BootSession.UNKNOWN),
         )
     }
 
@@ -79,6 +91,7 @@ class SharedPrefsRestTimerStatePersistence(context: Context) : RestTimerStatePer
         const val KEY_BOOT_MARKER = "boot_marker"
         const val KEY_ENDS_AT_WALL = "ends_at_wall"
         const val KEY_TIMER_ID = "timer_id"
+        const val KEY_BOOT_COUNT = "boot_count"
     }
 }
 
@@ -119,6 +132,7 @@ object RestTimerRehydrator {
         stored: PersistedRestTimer?,
         nowElapsedRealtime: Long,
         nowWallClockMillis: Long,
+        nowBootCount: Long = BootSession.UNKNOWN,
     ): RestTimerRehydration {
         if (stored == null || stored.totalSeconds <= 0) return RestTimerRehydration.None
 
@@ -128,12 +142,18 @@ object RestTimerRehydrator {
         // one silently destroyed a running rest while its alarm stayed armed.
         // elapsedRealtime is monotonic within a boot and restarts near zero after
         // one, so not having gone backwards past the rest's start is same-boot
-        // evidence that survives any wall-clock step.
+        // evidence that survives any wall-clock step — but it misreads a genuine
+        // reboot whenever the new boot's uptime already exceeds the old start.
+        // When both sides carry the system boot counter, that comparison is the
+        // answer and the clock heuristics are not consulted.
         val startedAtElapsedRealtime =
             stored.endsAtElapsedRealtime - stored.totalSeconds * 1_000L
-        val sameBoot =
+        val sameBoot = if (stored.bootCount != BootSession.UNKNOWN && nowBootCount != BootSession.UNKNOWN) {
+            stored.bootCount == nowBootCount
+        } else {
             kotlin.math.abs(stored.bootMarker - currentBootMarker) < BOOT_MARKER_TOLERANCE_MS ||
                 nowElapsedRealtime >= startedAtElapsedRealtime
+        }
 
         if (!sameBoot) {
             // A rest shorter than a gym set is meaningless after a different boot.

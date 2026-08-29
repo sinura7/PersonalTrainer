@@ -220,8 +220,14 @@ class TrainingInsightsSource(
     internal companion object {
         /** Long enough to survive a rotation or a tab switch, short enough not to hold work. */
         const val SHARE_GRACE_MS = 5_000L
-        /** Body heat's widest window. Coach is 14 days inside this. */
-        const val WINDOW_MS = 30L * 24 * 60 * 60 * 1000
+        /**
+         * Wide enough for Body heat's widest window: "this month" starts at civil
+         * midnight on the 1st, which on the 31st of a 31-day month sits more than
+         * 30 rolling days back. 32 covers the longest month plus DST slack; every
+         * consumer (heat, coach's 14 days, deload's three weeks) re-filters against
+         * its own window, so the extra fetch width changes no displayed number.
+         */
+        const val WINDOW_MS = 32L * 24 * 60 * 60 * 1000
     }
 
     private data class Sources(

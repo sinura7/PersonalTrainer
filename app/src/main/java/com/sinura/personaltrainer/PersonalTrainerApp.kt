@@ -74,16 +74,20 @@ class PersonalTrainerApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        // FIRST, before anything can open the database: AppContainer's constructor builds the
-        // Room instance and Room migrates on open, so a copy taken any later is a copy of the
-        // already-migrated file — and that copy is the only rollback path the v2 migration has.
+        // Before anything that can log: the snapshot and container construction below
+        // (database open, migrations) are exactly the paths whose messages carry
+        // user-authored titles and internal file paths on a release build.
+        AppLog.redactMessages = !BuildConfig.DEBUG
+        // FIRST among the heavy steps, before anything can open the database: AppContainer's
+        // constructor builds the Room instance and Room migrates on open, so a copy taken any
+        // later is a copy of the already-migrated file — and that copy is the only rollback
+        // path the v2 migration has.
         PreMigrationSnapshot.ensure(this)
         installDiagnosticCapture()
         container = AppContainer(this)
         // Created up front (not lazily on first rest) so the channels exist for the user to
         // configure, and so the legacy sounding "rest complete" channel is deleted even if
         // no timer runs this session.
-        AppLog.redactMessages = !BuildConfig.DEBUG
         RestTimerNotifications.ensureChannels(this)
         ReminderNotifications.ensureChannel(this)
         // Two 768x768 webp decodes plus a per-pixel pass each — 50-150 ms of

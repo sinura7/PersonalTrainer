@@ -21,10 +21,12 @@ name: Debug live drop
 # to a `debug-live/<suffix>` branch is the tag-less spelling — the workflow
 # derives the tag name (`debug-live-<suffix>`) and `gh release create` mints
 # the tag itself with the Actions token.
+# Single-level branch glob: `debug-live/a/b` would mint the tag
+# `debug-live-a/b`, escaping the `debug-live-*` name Obtainium filters on.
 on:
   push:
     tags: ['debug-live-*']
-    branches: ['debug-live/**']
+    branches: ['debug-live/*']
   workflow_dispatch:
 
 permissions:
@@ -85,8 +87,10 @@ jobs:
       # A release may already exist because it was cut by hand (that has been the
       # only path so far). Never clobber a hand-uploaded APK: attach alongside,
       # and if the asset name already exists, leave the existing one untouched.
+      # Push events only: a workflow_dispatch run from a debug-live/* branch
+      # must keep the artifact-only promise above, not publish a release.
       - name: Publish pre-release
-        if: github.ref_type == 'tag' || startsWith(github.ref_name, 'debug-live/')
+        if: github.event_name == 'push' && (github.ref_type == 'tag' || startsWith(github.ref_name, 'debug-live/'))
         env:
           GH_TOKEN: ${{ github.token }}
           APK: ${{ steps.apk.outputs.path }}

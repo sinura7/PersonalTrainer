@@ -80,6 +80,68 @@ backups round-trip at full precision; History says when it is showing
 a stale read; Plan-day's cardio row is a readout when the day already
 has cardio.
 
+## Round two (same day): re-audit with fresh lenses
+
+Five independent passes over the finished tree: an adversarial review of
+the day's own diff, a light-surfaces audit (onboarding, Body, Library,
+Exercise Detail, Goals, repair flows), a code-health review, a
+product-gap analysis, and a verification pass over this ledger (verdict:
+every Fixed and Sound row above HOLDS). Fixed in the follow-up commit on
+this branch:
+
+- **Reminder "Start" left the notification in the shade (P1).** The
+  activity-PendingIntent rewrite fixed the launch but dropped the cancel
+  the old receiver path performed — actions never auto-cancel, so the
+  started session's reminder kept live Snooze/Move/Skip buttons; a later
+  Skip tap marked the running plan row SKIPPED. MainActivity now cancels
+  by occurrence id when it consumes a Start launch.
+- **Same-boot heuristic misread a double reboot (P2).** "elapsedRealtime
+  has not gone backwards" is true after a genuine reboot whenever the new
+  boot's uptime passes the old start. Both timer persistences now stamp
+  `Settings.Global.BOOT_COUNT` at save; when both sides carry it, the
+  counter alone decides (rest and cardio), and the clock heuristics
+  remain only for rows written by older builds.
+- **Body's Month window under-fetched (P2).** The SQL lower bound was a
+  rolling 30 days but "this month" starts at civil midnight on the 1st —
+  on the 31st of a 31-day month, day-1 sessions silently vanished from
+  the heat while `windowStartMs` still claimed them. Fetch width is now
+  32 days; every consumer re-filters against its own window.
+- **Backup exports silently eaten while busy (P2).** Both export paths
+  consumed the held password and the one-shot plaintext approval before
+  `runBackupAction`'s busy check; a concurrent Drive action at
+  picker-return time dropped the export with no file and no message. The
+  busy case now refuses aloud before consuming anything.
+- **Composer arm race (P2).** A fast save could read `heldOccurrenceId`
+  before the init transfer out of PendingOccurrence landed, saving the
+  activity with no plan link after the store was already cleared.
+  `confirmDraft` now joins the transfer job first.
+- **Start sheet started every scheduled cardio as a generic Run (P2).**
+  StartOptions hardcoded `CardioType.RUN`/"Cardio" where Home and Plan
+  resolve `ScheduleKind.cardioTypeOrRun(rule.templateId)`.
+- **Live-bar polish (P3).** The bar's action error was sticky (nothing
+  called `onActionErrorShown`); it now auto-dismisses after a dwell. The
+  cardio discard branch was an unguarded suspend call — an exception
+  crashed the process and the failure path cleared the timer baseline of
+  a session that still existed; it is now guarded like the workout branch.
+- **Release-log redaction armed late (P3).** `AppLog.redactMessages` was
+  set after container construction — after the database-open/migration
+  logging it exists to redact. It is now the first line of `onCreate`.
+- **debug-live workflow (P3).** `workflow_dispatch` from a `debug-live/*`
+  branch would have published a release despite the artifact-only
+  comment; publish is now gated on push events. The branch glob is
+  single-level so a nested branch cannot mint a slash-carrying tag.
+- **Library status banner never cleared (P3).** The ViewModel's message
+  survived its banner's dwell, so repeating the same action ("Added X to
+  Y." twice) deduped in the StateFlow and showed nothing.
+- **Week-shrink trimmed in Monday order (P3).** `withDaysPerWeek` now
+  orders from the lifter's stored week start — a Sunday-week lifter
+  dropping to 3 days no longer loses Sunday first.
+
+Ledger corrections from the verification pass: the deliveries-REPLACE
+note in the Fixed table is scoped to rows without children (correct as
+shipped), and the "30-day insight window" row's remaining over-fetch is
+superseded by the 32-day month fix above.
+
 ## Deferred, with recommendation (the queue)
 
 - **Coach hint fan-out (perf P1).** `readyForProgression` runs ~200
@@ -109,7 +171,51 @@ has cardio.
   `jacocoTestReport` + `check-coverage.py` to CI once the runner exists,
   and floor `data.repository`/`reminder`/`insights` (P2).
 - **Zero-test packages:** `data.mapper` (real logic, no tests at any
-  level), `data.local.entity/relation`, `ui.reminders`, `ui.units`.
+  level — one enum rename bricks history reads; pin the wire names
+  first), `data.local.entity/relation`, `ui.reminders`, `ui.units`.
+  Also `ExerciseRepository` (the only repository class with no tests)
+  and the reminder receivers/worker.
+
+Added by round two (all need a compiler or a UX decision):
+
+- **Onboarding "Use this plan" is not idempotent (P2/P3).** Preferences →
+  N routine creates → pins → complete, no transaction, no cleanup; the
+  failure copy invites the retry that duplicates the program. Wrap the
+  routine/pin writes or delete-before-retry.
+- **`ui/goals` is a dead package** (nothing navigates to it; docs
+  already say the Goals UI is gone). Its two live defects — LIFT_TARGET
+  ignores its own period, and assisted lifts pin at 0 kg forever — are
+  therefore latent. Delete the package (GoalsScreen, GoalsViewModel,
+  GoalCopy, tests, the `goalRepository` graph entry); the data layer
+  stays for the backup format.
+- **Dead code inventory:** PlanViewModel's entire start spine (~250
+  lines, no production caller — delete rather than dedupe),
+  `beginGuided()` (test-only, and missing the `answersDirty` guard),
+  `LinkRow` + four dead `HomeUiState` fields (`heatSnapshot`, `block`,
+  `twoADayEpochDays`, `agenda`), `CompactLiftRow.kt` (287 lines,
+  referenced only by one instrumented test).
+- **Start-spine triplication.** Home/Plan/StartOptions each reimplement
+  occurrence-start; the cardio-type drift fixed above is the proof it
+  bites. Extract a `StartOccurrence` use case beside `StartTrainingDay`.
+- **BodyweightWheel unit toggle drifts the value (P3):** `toInt()`
+  truncation + commit-on-restart loses ~2 lb per kg/lb round-trip.
+- **Cardio onboarding can show a lift-catalog error over a valid cardio
+  plan (P3);** trend charts are index-spaced so layoffs vanish from the
+  x-axis (P3, arguably deliberate).
+- **Build fat:** kotlinx-serialization plugin exists for three
+  toolchain-pin files (port to Gson or constants);
+  `material-icons-extended` ships megabytes of unused vectors into the
+  unminified debug APK Obtainium installs — vendor the ~20 used icons.
+- **SettingsViewModel (~900 lines):** extract the backup/Drive/restore
+  state machine (~475 lines) into its own coordinator next time it is
+  touched. Common.kt's rest-dock family (~500 lines) is a mechanical
+  file split.
+- **Accepted, documented risks:** the restore-journal fingerprint format
+  change means a journal left open by the *previous* build reads as
+  rolled back after an update mid-restore (one-in-a-million ordering;
+  recovery is honest, prefs re-apply is not); stricter FK validation can
+  refuse a historical backup file with dangling references the old
+  validator tolerated (Room FKs make genuine files safe).
 
 ## Owner-side actions (nothing on this branch can close these)
 
@@ -125,9 +231,10 @@ has cardio.
 
 ## Commands
 
-- `tools/preflight.sh` — PASS. 1049 domain tests (JVM lane now also
-  compiles `CardioTimerPersistence` + its tests). 0 findings from all
-  static checkers, including the repaired `check-state-members`.
+- `tools/preflight.sh` — PASS. 1066 domain tests (JVM lane now also
+  compiles `CardioTimerPersistence`, `BootSession` + their tests). 0
+  findings from all static checkers, including the repaired
+  `check-state-members`.
 - `./gradlew testDebugUnitTest` / `assembleDebug` — **not runnable from
   this environment** (network policy blocks `dl.google.com`; no Android
   SDK; hosted CI has no runner). The Gradle gate belongs to the next

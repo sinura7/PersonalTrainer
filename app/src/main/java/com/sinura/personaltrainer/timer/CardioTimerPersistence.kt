@@ -14,6 +14,12 @@ data class PersistedCardioTimer(
     val startedAtWallClockMillis: Long,
     val bootMarker: Long,
     val baselineElapsedSeconds: Long = 0L,
+    /**
+     * [BootSession] counter at save time; [BootSession.UNKNOWN] when the row
+     * predates the stamp. The persistence layer stamps it on save so the
+     * start-site constructors stay clock-only.
+     */
+    val bootCount: Long = BootSession.UNKNOWN,
 )
 
 interface CardioTimerPersistence {
@@ -23,17 +29,21 @@ interface CardioTimerPersistence {
 }
 
 class SharedPrefsCardioTimerPersistence(context: Context) : CardioTimerPersistence {
-    private val prefs = context.applicationContext
+    private val appContext = context.applicationContext
+    private val prefs = appContext
         .getSharedPreferences("cardio_timer_state", Context.MODE_PRIVATE)
 
     @Suppress("ApplySharedPref")
     override fun save(state: PersistedCardioTimer) {
+        val bootCount = state.bootCount.takeIf { it != BootSession.UNKNOWN }
+            ?: BootSession.count(appContext)
         prefs.edit()
             .putString(KEY_SESSION_ID, state.sessionId)
             .putLong(KEY_STARTED_ELAPSED, state.startedAtElapsedRealtime)
             .putLong(KEY_STARTED_WALL, state.startedAtWallClockMillis)
             .putLong(KEY_BOOT_MARKER, state.bootMarker)
             .putLong(KEY_BASELINE, state.baselineElapsedSeconds)
+            .putLong(KEY_BOOT_COUNT, bootCount)
             .commit()
     }
 
@@ -45,6 +55,7 @@ class SharedPrefsCardioTimerPersistence(context: Context) : CardioTimerPersisten
             startedAtWallClockMillis = prefs.getLong(KEY_STARTED_WALL, 0L),
             bootMarker = prefs.getLong(KEY_BOOT_MARKER, 0L),
             baselineElapsedSeconds = prefs.getLong(KEY_BASELINE, 0L),
+            bootCount = prefs.getLong(KEY_BOOT_COUNT, BootSession.UNKNOWN),
         )
     }
 
@@ -59,6 +70,7 @@ class SharedPrefsCardioTimerPersistence(context: Context) : CardioTimerPersisten
         const val KEY_STARTED_WALL = "started_wall"
         const val KEY_BOOT_MARKER = "boot_marker"
         const val KEY_BASELINE = "baseline_seconds"
+        const val KEY_BOOT_COUNT = "boot_count"
     }
 }
 
@@ -82,11 +94,20 @@ object CardioElapsed {
         nowElapsedMs: Long = SystemClock.elapsedRealtime(),
         nowWallMs: Long = System.currentTimeMillis(),
         currentBootMarker: Long = bootMarker(nowWallMs, nowElapsedMs),
+        nowBootCount: Long = BootSession.UNKNOWN,
     ): Long {
         if (persisted != null) {
-            val sameBoot =
+            // The boot counter, when both sides carry it, is definitive: the
+            // marker heuristic misreads a wall-clock step as a reboot, and the
+            // monotonic heuristic misreads a second reboot as the same boot
+            // (turning the recorded duration into new-boot uptime minus
+            // old-boot uptime — an arbitrary number).
+            val sameBoot = if (persisted.bootCount != BootSession.UNKNOWN && nowBootCount != BootSession.UNKNOWN) {
+                persisted.bootCount == nowBootCount
+            } else {
                 kotlin.math.abs(persisted.bootMarker - currentBootMarker) < BOOT_MARKER_TOLERANCE_MS ||
                     nowElapsedMs >= persisted.startedAtElapsedRealtime
+            }
             val extra = if (sameBoot) {
                 ((nowElapsedMs - persisted.startedAtElapsedRealtime) / 1_000L).coerceAtLeast(0L)
             } else {

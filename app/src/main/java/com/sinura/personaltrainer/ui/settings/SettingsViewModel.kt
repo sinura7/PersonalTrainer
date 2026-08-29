@@ -610,6 +610,15 @@ class SettingsViewModel @JvmOverloads constructor(
     fun exportSafetyFileName(): String = BackupJson.fileName()
 
     fun exportSafetySnapshot(id: String, uri: Uri) {
+        if (isBusy.value) {
+            // runBackupAction drops its lambda while busy. Consuming the held
+            // protection first and then doing nothing ate the export silently —
+            // no file, no error, and the password wiped without explanation.
+            wipeHeldPassword()
+            plaintextSafetyApproved = false
+            error.value = "Another backup task is still running. Start the export again when it finishes."
+            return
+        }
         val password = heldPassword
         heldPassword = null
         val plaintextApproved = plaintextSafetyApproved
@@ -661,6 +670,14 @@ class SettingsViewModel @JvmOverloads constructor(
     fun exportFileName(): String = BackupJson.fileName()
 
     fun exportToFile(uri: Uri) {
+        if (isBusy.value) {
+            // Same guard as exportSafetySnapshot: never consume the protection
+            // choice for a lambda runBackupAction is about to drop.
+            wipeHeldPassword()
+            plaintextExportApproved = false
+            error.value = "Another backup task is still running. Start the export again when it finishes."
+            return
+        }
         val password = heldPassword
         heldPassword = null
         val plaintextApproved = plaintextExportApproved

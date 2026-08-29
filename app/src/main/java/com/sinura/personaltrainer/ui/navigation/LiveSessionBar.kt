@@ -22,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +51,9 @@ import com.sinura.personaltrainer.ui.theme.Warn
 private val RAIL_WIDTH = 3.dp
 private val RAIL_HEIGHT = 24.dp
 
+/** Long enough to read a failure line; the bar is small and the error must not pin forever. */
+private const val ACTION_ERROR_DWELL_MS = 6_000L
+
 object LiveSessionBarTestTags {
     const val ROOT = "live-session-bar"
 }
@@ -76,9 +80,19 @@ fun LiveSessionBar(
     onDiscard: () -> Unit,
     modifier: Modifier = Modifier,
     actionError: String? = null,
+    onActionErrorShown: () -> Unit = {},
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
+    // The error must not be sticky: without this it stayed on the bar until
+    // some later action happened to succeed — the pinned-banner pattern the
+    // Home screen already had fixed.
+    if (actionError != null) {
+        LaunchedEffect(actionError) {
+            kotlinx.coroutines.delay(ACTION_ERROR_DWELL_MS)
+            onActionErrorShown()
+        }
+    }
 
     Column(
         modifier = modifier

@@ -217,6 +217,7 @@ fun ExerciseLibraryScreen(
                             modifier = Modifier
                                 .padding(horizontal = Metrics.gutter)
                                 .padding(bottom = Metrics.space3),
+                            onDismissed = viewModel::dismissMessage,
                         )
                     }
                     state.error?.let { err ->
