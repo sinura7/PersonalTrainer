@@ -341,7 +341,9 @@ def main():
         plural = "s" if len(missing) > 1 else ""
         print(f"{path}:{line}  {name}(...) is missing required argument{plural}: {missing}")
     print(f"\n{len(findings)} missing required argument(s) across {len(files)} files")
-    return len(findings)
+    # 1, not len(findings): POSIX truncates exit status to 8 bits, so exactly
+    # 256 findings would exit 0 and pass preflight.
+    return 1 if findings else 0
 
 
 if __name__ == "__main__":

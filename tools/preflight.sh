@@ -159,6 +159,13 @@ case "$out" in
 esac
 
 # --- JVM tests -------------------------------------------------------------
+# PT_STATIC_ONLY=1 runs just the checks above. CI uses it: Gradle runs the
+# full unit suite in its own step, so preflight there only needs the static
+# gate — and duplicating the checker list in ci.yml is how the two drift.
+if [ "${PT_STATIC_ONLY:-}" = "1" ]; then
+    printf '\npreflight: OK (static only)\n'
+    exit 0
+fi
 if [ -d "$JARS" ]; then
     step "JVM tests (tools/run-domain-tests.sh $JARS)"
     tools/run-domain-tests.sh "$JARS" || fail "JVM tests"

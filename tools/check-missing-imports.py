@@ -325,7 +325,9 @@ def main():
         print(f"{path}: '{name}' {verb} -> {' | '.join(options)}")
 
     print(f"\n{len(findings)} unresolvable reference(s)")
-    return len(findings)
+    # 1, not len(findings): POSIX truncates exit status to 8 bits, so exactly
+    # 256 findings would exit 0 and pass preflight.
+    return 1 if findings else 0
 
 
 if __name__ == "__main__":

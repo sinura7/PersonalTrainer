@@ -77,12 +77,16 @@ def state_classes(files):
             params_end = balanced_end(body, match.end() - 1, "(", ")")
             names = set(PROP_RE.findall(body[match.end():params_end]))
             # A class body is optional; when present its properties count too.
+            # A fresh name, NOT a reassignment of `body`: the finditer above walks
+            # the original string, and truncating it here made every LATER state
+            # class in the same file index against garbage offsets — the second
+            # class silently indexed zero members.
             rest = body[params_end + 1:]
             brace = rest.find("{")
             if brace != -1 and rest[:brace].strip() == "":
-                body = rest[brace:balanced_end(rest, brace, "{", "}")]
-                names.update(PROP_RE.findall(body))
-                names.update(METHOD_RE.findall(body))
+                class_body = rest[brace:balanced_end(rest, brace, "{", "}")]
+                names.update(PROP_RE.findall(class_body))
+                names.update(METHOD_RE.findall(class_body))
             index[match.group(1)] = names
     return index
 
@@ -132,7 +136,9 @@ def main():
     print(f"\n{len(findings)} unresolved state member(s); "
           f"{checked} file(s) checked against {len(index)} state class(es), "
           f"{skipped} skipped as ambiguous")
-    return len(findings)
+    # 1, not len(findings): POSIX truncates exit status to 8 bits, so exactly
+    # 256 findings would exit 0 and pass preflight.
+    return 1 if findings else 0
 
 
 if __name__ == "__main__":

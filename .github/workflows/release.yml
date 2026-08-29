@@ -46,19 +46,19 @@ jobs:
 
     steps:
       - name: Check out
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v4
+        uses: android-actions/setup-android@v3
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
@@ -79,6 +79,22 @@ jobs:
           if [ "$tag_version" != "$build_version" ]; then
             echo "Tag $GITHUB_REF_NAME does not match appVersionName=$build_version." >&2
             echo "Bump appVersionCode and appVersionName in app/build.gradle.kts, or retag." >&2
+            exit 1
+          fi
+          # The name check alone cannot catch a forgotten CODE bump — the exact
+          # invisible failure this step's comment promises to catch. The floor
+          # file is ratcheted to the shipped code in the same release commit
+          # (tools/released-version-code.txt), so a tag must carry a code
+          # STRICTLY above the last release's.
+          build_code="$(sed -n 's/^val appVersionCode = \([0-9]*\)$/\1/p' app/build.gradle.kts)"
+          floor="$(tr -d '[:space:]' < tools/released-version-code.txt)"
+          if [ -z "$build_code" ]; then
+            echo "Could not read appVersionCode from app/build.gradle.kts" >&2
+            exit 1
+          fi
+          if [ "$build_code" -le "$floor" ]; then
+            echo "appVersionCode=$build_code is not above the released floor $floor." >&2
+            echo "Bump appVersionCode AND set tools/released-version-code.txt to the new code in the release commit." >&2
             exit 1
           fi
           echo "version=$build_version" >> "$GITHUB_ENV"
@@ -156,7 +172,7 @@ jobs:
       # Always keep the build, even on workflow_dispatch where no Release is published —
       # otherwise a manual run spends 15 minutes and throws the APK away.
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: release-apk
           path: ${{ steps.apk.outputs.path }}

@@ -33,31 +33,37 @@ jobs:
 
     steps:
       - name: Check out
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v4
+        uses: android-actions/setup-android@v3
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      # The same static gate preflight runs locally (17 checkers + named-args +
+      # syntax). PT_STATIC_ONLY skips its JVM test step — Gradle runs the full
+      # suite next — so the checker list lives in exactly one place.
+      - name: Static checks (tools/preflight.sh)
+        run: PT_STATIC_ONLY=1 sh tools/preflight.sh
+
       - name: Unit tests
         run: ./gradlew testDebugUnitTest --stacktrace
 
-      # Non-blocking on purpose: lint has never run against this project, so its error
-      # count is unknown and gating on zero today would just wedge every push. Read the
-      # report, fix what matters, then delete continue-on-error to make it a real gate.
+      # Blocking: the stated precondition for that (a known-clean lint state) has
+      # been met for a while — lint-baseline.xml is committed and EMPTY, and
+      # warningsAsErrors/abortOnError are already on in the build. A non-blocking
+      # lint whose rationale says "error count unknown" was stale doctrine.
       - name: Lint
-        continue-on-error: true
         run: ./gradlew lintDebug --stacktrace
 
       - name: Debug build
@@ -66,7 +72,7 @@ jobs:
       # Failures are useless without the report, and Gradle's console output truncates.
       - name: Upload test + lint reports
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: reports
           path: |
@@ -82,7 +88,7 @@ jobs:
       # depends on this artifact: with CI unbilled, the owner's own build is the source.
       - name: Upload generated Room schemas
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: room-schemas
           path: app/schemas/
@@ -91,7 +97,7 @@ jobs:
 
       # Lets you sideload a build from any machine without opening Android Studio.
       - name: Upload debug APK
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: debug-apk
           path: app/build/outputs/apk/debug/*.apk
@@ -110,19 +116,19 @@ jobs:
     continue-on-error: true
     steps:
       - name: Check out
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v4
+        uses: android-actions/setup-android@v3
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
@@ -143,7 +149,7 @@ jobs:
 
       - name: Upload instrumented reports
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: instrumented-reports
           path: app/build/reports/androidTests/
