@@ -34,6 +34,10 @@ class AccessibilityMatrixTest {
             "Start today's planned session when a week is pinned. Generate a schedule on a first visit. Free workout stays quiet.",
             AccessibilityMatrix.page("home").voltAction,
         )
+        assertEquals(
+            "None. History is a readout; Start lives on Home.",
+            AccessibilityMatrix.page("history").voltAction,
+        )
     }
 
     @Test

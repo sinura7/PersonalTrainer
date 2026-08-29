@@ -3,7 +3,7 @@ package com.sinura.personaltrainer.domain
 /**
  * Honesty for History chips and the calendar heat ramp.
  *
- * Week / Month / Year / All time only retotal. The calendar still pages
+ * Day / Week / Month / Year / All only retotal. The calendar still pages
  * months; the session list is still all history. Body uses the same
  * [com.sinura.personaltrainer.ui.theme.heatColor] ramp for a different quantity.
  */
@@ -13,4 +13,17 @@ object HistoryCopy {
 
     const val CALENDAR_HEAT =
         "Heat is sets that month, relative to that month's hardest day."
+
+    const val EMPTY_LOG = "Finished sessions land here."
+
+    fun windowTitle(horizon: AnalyticsHorizon): String = when (horizon) {
+        AnalyticsHorizon.DAY -> "Today"
+        AnalyticsHorizon.WEEK -> "This week"
+        AnalyticsHorizon.MONTH -> "This month"
+        AnalyticsHorizon.YEAR -> "This year"
+        AnalyticsHorizon.ALL_TIME -> "All time"
+    }
+
+    fun sessionsLabel(count: Int): String =
+        if (count == 1) "session" else "sessions"
 }

@@ -37,6 +37,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -73,7 +75,6 @@ import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
-import com.sinura.personaltrainer.ui.workout.StartOptionsSheet
 import com.sinura.personaltrainer.util.toYearMonth
 import java.text.DateFormat
 import java.time.LocalDate
@@ -85,11 +86,8 @@ import java.util.Date
 fun HistoryScreen(
     onOpenSession: (String) -> Unit,
     onOpenExercise: (String) -> Unit,
-    onWorkoutStarted: (String) -> Unit,
     onOpenActiveSession: (String) -> Unit,
     onOpenActivity: (String) -> Unit = {},
-    onLogActivity: (String) -> Unit = {},
-    onOpenLiveCardio: (String) -> Unit = {},
     viewModel: HistoryViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -101,9 +99,6 @@ fun HistoryScreen(
     val today = remember { LocalDate.now() }
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedDayEpoch by rememberSaveable { mutableStateOf<Long?>(null) }
-    // The third host of the shared start sheet: History's empty state used to navigate to the
-    // interstitial, which no longer exists.
-    var startOptionsOpen by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(navigateToSession) {
         val target = navigateToSession ?: return@LaunchedEffect
@@ -151,17 +146,6 @@ fun HistoryScreen(
                             .padding(Metrics.gutter),
                     )
                 }
-                state.summaries.isEmpty() -> {
-                    EmptyState(
-                        title = "No sessions yet",
-                        body = "Finish a workout or log cardio and it lands here.",
-                        actionLabel = "Start a workout",
-                        onAction = { startOptionsOpen = true },
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(Metrics.gutter),
-                    )
-                }
                 else -> {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -197,7 +181,20 @@ fun HistoryScreen(
                                 modifier = Modifier.padding(bottom = Metrics.sectionGap),
                             )
                         }
-                        state.monthGroups.forEach { group ->
+                        if (state.summaries.isEmpty()) {
+                            item(key = "empty-log") {
+                                Text(
+                                    HistoryCopy.EMPTY_LOG,
+                                    style = InstrumentType.body,
+                                    color = TextSecondary,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag(HistoryTags.EMPTY)
+                                        .padding(bottom = Metrics.space3),
+                                )
+                            }
+                        } else {
+                            state.monthGroups.forEach { group ->
                             // Pinned while its own sessions scroll, so a long log always says
                             // which month you are looking at. A flat list had no landmarks at
                             // all past the first screenful.
@@ -243,6 +240,7 @@ fun HistoryScreen(
                                         },
                                     )
                                 }
+                            }
                             }
                         }
                         if (state.pastBlocks.isNotEmpty()) {
@@ -317,15 +315,6 @@ fun HistoryScreen(
         }
     }
 
-    if (startOptionsOpen) {
-        StartOptionsSheet(
-            onDismiss = { startOptionsOpen = false },
-            onWorkoutStarted = onOpenActiveSession,
-            onLogPast = { onLogActivity("strength") },
-            onLogCardio = { onLogActivity("cardio") },
-            onLogMixed = { onLogActivity("mixed") },
-            onOpenLiveActivity = onOpenLiveCardio,
-        )
     }
 
     if (blockedRepeat != null) {
@@ -342,11 +331,10 @@ fun HistoryScreen(
 }
 
 /**
- * The sessions of one day, when there is more than one of them.
+ * Day / Week / Month / Year / All. Totals for the selected window.
  *
- * A calendar cell can only ever show that *something* happened; two sessions on a Saturday
- * look exactly like one. This is the disambiguation, and it exists so that tapping a day is
- * never a guess about which workout you are about to open.
+ * History is a readout. The chips retotal; they do not hide the calendar
+ * or the log. One hero numeral (sessions) plus days / sets / min.
  */
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
@@ -381,39 +369,62 @@ internal fun HorizonPicker(
             color = TextTertiary,
         )
         totals?.let { numbers ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space5),
+            val title = HistoryCopy.windowTitle(numbers.horizon)
+            val spoken = "$title, ${numbers.sessionCount} ${HistoryCopy.sessionsLabel(numbers.sessionCount)}"
+            GymCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(HistoryTags.READOUT)
+                    .semantics(mergeDescendants = true) { contentDescription = spoken },
             ) {
-                MetricCluster(
-                    value = numbers.sessionCount.toString(),
-                    label = "sessions",
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.Start,
+                Kicker(title)
+                Text(
+                    numbers.sessionCount.toString(),
+                    style = InstrumentType.numeralLg,
+                    color = TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                MetricCluster(
-                    value = numbers.trainedDays.toString(),
-                    label = "days",
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.Start,
+                Text(
+                    HistoryCopy.sessionsLabel(numbers.sessionCount),
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
                 )
-                MetricCluster(
-                    value = numbers.workingSets.toString(),
-                    label = "sets",
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.Start,
-                )
-                MetricCluster(
-                    value = numbers.activeMinutes.toString(),
-                    label = "min",
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.Start,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space5),
+                ) {
+                    MetricCluster(
+                        value = numbers.trainedDays.toString(),
+                        label = "days",
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.Start,
+                    )
+                    MetricCluster(
+                        value = numbers.workingSets.toString(),
+                        label = "sets",
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.Start,
+                    )
+                    MetricCluster(
+                        value = numbers.activeMinutes.toString(),
+                        label = "min",
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.Start,
+                    )
+                }
             }
         }
     }
 }
 
+/**
+ * The sessions of one day, when there is more than one of them.
+ *
+ * A calendar cell can only ever show that *something* happened; two sessions on a Saturday
+ * look exactly like one. This is the disambiguation, and it exists so that tapping a day is
+ * never a guess about which workout you are about to open.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DaySessionsSheet(
@@ -614,12 +625,16 @@ private fun groupedRowShape(index: Int, count: Int): Shape = when {
 private val BLOCK_MONTH: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM yyyy")
 
 object HistoryTags {
+    const val DAY = "history-horizon-day"
     const val WEEK = "history-horizon-week"
     const val MONTH = "history-horizon-month"
     const val YEAR = "history-horizon-year"
     const val ALL = "history-horizon-all"
+    const val READOUT = "history-horizon-readout"
+    const val EMPTY = "history-empty-log"
 
     fun horizon(horizon: AnalyticsHorizon): String = when (horizon) {
+        AnalyticsHorizon.DAY -> DAY
         AnalyticsHorizon.WEEK -> WEEK
         AnalyticsHorizon.MONTH -> MONTH
         AnalyticsHorizon.YEAR -> YEAR

@@ -30,7 +30,7 @@ Walk this once, in order:
    30 days ago should still show recency, not "Not trained yet."
    Recommendations sit above the map.
 4. Plan — pin, replay, or suggest a week. Two timed items can share a day.
-5. History — Week / Month / Year / All time chips, then a session row.
+5. History — Day / Week / Month / Year / All chips, readout, then a session row. No Start on this tab.
 6. Settings — export a file. Do not restore over a phone that holds real history.
    Share diagnostics is optional and redacted.
 

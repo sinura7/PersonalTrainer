@@ -59,6 +59,32 @@ class HorizonMathTest {
         assertEquals(today.epochDay, end)
     }
 
+    @Test
+    fun dayIsOnlyToday() {
+        val projections = listOf(
+            day(CivilDate(2026, 8, 23).epochDay, sessions = 1, minutes = 30),
+            day(today.epochDay, sessions = 2, minutes = 80),
+        )
+        val dayTotals = HorizonMath.totals(
+            AnalyticsHorizon.DAY,
+            projections,
+            today,
+            weekStart,
+        )
+        assertEquals(2, dayTotals.sessionCount)
+        assertEquals(1, dayTotals.trainedDays)
+        assertEquals(today.epochDay, dayTotals.startEpochDay)
+        assertEquals(today.epochDay, dayTotals.endEpochDay)
+        val (start, end) = HorizonMath.range(
+            AnalyticsHorizon.DAY,
+            today,
+            weekStart,
+            earliestEpochDay = null,
+        )
+        assertEquals(today.epochDay, start)
+        assertEquals(today.epochDay, end)
+    }
+
     private fun day(epochDay: Long, sessions: Int, minutes: Int) = DailyProjection(
         localEpochDay = epochDay,
         sessionCount = sessions,
