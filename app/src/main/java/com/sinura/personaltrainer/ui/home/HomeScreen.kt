@@ -9,10 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -75,7 +71,6 @@ fun HomeScreen(
     onOpenPlan: () -> Unit,
     onOpenHistory: () -> Unit,
     onOpenExercise: (String) -> Unit,
-    onOpenSettings: () -> Unit,
     onOpenGoals: () -> Unit = {},
     onOpenLibrary: () -> Unit = {},
     onLogActivity: (String) -> Unit = {},
@@ -190,7 +185,6 @@ fun HomeScreen(
                         hasPlan = hasPlan,
                         agenda = state.agenda,
                     ),
-                    onOpenSettings = onOpenSettings,
                 )
                 HomeStatRow(
                     lastSession = state.lastSession,
@@ -418,39 +412,29 @@ internal fun LinkRow(
  * The date, then the one thing the user opened the app to find out.
  *
  * What this replaces led with the app's own name under a greeting, with the unit preference
- * as a third line and a settings entry built as an [IconButton] nested inside a clickable
- * column with its own caption — two overlapping targets around one 24dp glyph. A product's
- * face states today's answer; its name is on the launcher icon.
+ * as a third line and a settings gear nested in the masthead. Settings is a tab now.
+ * A product's face states today's answer; its name is on the launcher icon.
  */
 @Composable
-private fun HomeMasthead(
+internal fun HomeMasthead(
     epochDay: Long,
     headline: String,
-    onOpenSettings: () -> Unit,
 ) {
     val dateLine = remember(epochDay) {
         DateTimeFormatter.ofPattern(DATE_LINE_PATTERN).format(LocalDate.ofEpochDay(epochDay))
     }
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.Top,
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-        ) {
-            Kicker(dateLine)
-            Text(
-                headline,
-                style = InstrumentType.display,
-                color = TextPrimary,
-                maxLines = LogLoopScale.headlineLines(LocalDensity.current.fontScale),
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        IconButton(onClick = onOpenSettings) {
-            Icon(Icons.Outlined.Settings, contentDescription = "Settings", tint = TextSecondary)
-        }
+        Kicker(dateLine)
+        Text(
+            headline,
+            style = InstrumentType.display,
+            color = TextPrimary,
+            maxLines = LogLoopScale.headlineLines(LocalDensity.current.fontScale),
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

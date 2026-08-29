@@ -74,7 +74,7 @@ named packet, not a wish.
 | FND-043 | Build | P1.2, P9.6, P9.7 |
 | FND-044 | Evidence-only skin | P9.3, P9.6 |
 | FND-045 | Permanent decision | [ADR-005](ADR-005-instrument-identity.md) |
-| FND-046 | Permanent default + gate | [ADR-006](ADR-006-information-architecture.md) |
+| FND-046 | Permanent default + gate; Settings tab | [ADR-006](ADR-006-information-architecture.md), [ADR-014](ADR-014-settings-tab.md) |
 | FND-047 | Permanent decision | [ADR-008](ADR-008-deterministic-rules.md) |
 | FND-048 | Permanent decision | [ADR-004](ADR-004-offline-core-and-entitlements.md) |
 
@@ -97,7 +97,7 @@ named packet, not a wish.
    | Constraint | Authority |
    |---|---|
    | `fallbackToDestructiveMigration` | ADR-010 |
-   | Fifth tab without a new ADR | ADR-006 |
+   | Sixth tab, or Library/Goals as a tab, without a new ADR | ADR-006, [ADR-014](ADR-014-settings-tab.md) |
    | LLM / chat coach as author | ADR-008 |
    | Package or Drive-folder rename | install identity |
    | Job 2 P5 sex question | no sentence exists |

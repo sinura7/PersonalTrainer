@@ -32,7 +32,7 @@ Each line is unambiguous. The ADR is the full text.
 | 3 | Recording, history, templates, schedules, reminders, goals, rules, backup, and recovery work offline without an account | [ADR-004](architecture/ADR-004-offline-core-and-entitlements.md) |
 | 4 | Those capabilities are never subscription-gated | [ADR-004](architecture/ADR-004-offline-core-and-entitlements.md) |
 | 5 | Instrument is the only visual direction: dark, semantic color, tabular numerals, one Volt act | [ADR-005](architecture/ADR-005-instrument-identity.md) |
-| 6 | Starting IA is Home · Body · Plan · History, Library pushed; no fifth tab is planned | [ADR-006](architecture/ADR-006-information-architecture.md) |
+| 6 | Shipping IA is Home · Body · Plan · History · Settings; Library and Goals stay pushed; no sixth tab is planned | [ADR-006](architecture/ADR-006-information-architecture.md), [ADR-014](architecture/ADR-014-settings-tab.md) |
 | 7 | Multiple scheduled and completed activities per day; **one live activity at a time** | [ADR-007](architecture/ADR-007-activity-model.md) |
 | 8 | Cardio is a first-class typed activity, never a fake exercise or a metric bag | [ADR-007](architecture/ADR-007-activity-model.md) |
 | 9 | Recommendations stay local and deterministic; a future API may explain a `RuleTrace` only | [ADR-008](architecture/ADR-008-deterministic-rules.md) |
@@ -70,7 +70,8 @@ contain the original sentences.
   ThisWeekCard fallback.
 - **Drive as sync** — superseded as vocabulary and as architecture.
 
-Permanent refusals that remain: fifth tab without a new ADR, LLM-as-author,
+Permanent refusals that remain: sixth tab without a new ADR, Library or
+Goals as a tab, LLM-as-author,
 package/Drive-folder rename, GitHub runners as the test lane, auto-scaled
 deload sets, overlay rest clock, subscription-gating the local core.
 
@@ -656,7 +657,7 @@ Implements [ADR-007](architecture/ADR-007-activity-model.md),
   Two occurrences can complete independently on one date.
 - **P7.2** Occurrence-aware Plan editing. · **done**
   The Plan day sheet lists occurrences and can add morning cardio.
-  Four-tab IA preserved. No fifth tab.
+  Library stayed off the bar. Settings-as-tab is ADR-014.
 - **P7.3** One persisted missed-work decision. · **done**
   Closes FND-017. Recurrence is unchanged. Read paths do not mutate
   the week.
@@ -680,7 +681,7 @@ Implements [ADR-007](architecture/ADR-007-activity-model.md),
 - **P8.2** Typed measurable goals: adherence, session count, active
   minutes, lift target, cardio duration/distance, optional bodyweight.
   · **done**
-  No punitive streaks. Pushed route from Home/Plan, not a fifth tab.
+  No punitive streaks. Pushed route from Home/Plan, not a tab.
   Home shows at most one compact snapshot.
 - **P8.3** Comparable horizons including year and all-time. · **done**
   History chips: Today / This week / This month / This year / All time.
@@ -701,8 +702,9 @@ Implements [ADR-007](architecture/ADR-007-activity-model.md),
 ### Phase 9 — Product coherence, design system, accessibility, IA evidence · in progress
 
 - **P9.1** Formal IA user evidence against ADR-006 canonical tasks. · **done**
-  T1–T7 have named first-click landings. Four tabs stay. Library and
-  Goals remain pushed. The reconsideration gate is encoded and unfired.
+  T1–T8 have named first-click landings. Five tabs stay (Settings is
+  ADR-014). Library and Goals remain pushed. The reconsideration gate is
+  encoded and unfired.
 - **P9.2** Semantic contrast and reduced motion. · **done**
   Closes FND-024 / FND-045 as tested decisions. `TextTertiary` is not
   load-bearing. Unselected tabs use `TextSecondary`. Reduced motion
@@ -838,6 +840,8 @@ for conflicting reset, schema, IA, cloud, and subscription instructions.
   from history. No packet before Phase 5 may bump `TrainerDatabase`.
 - IA: four tabs + pushed Library; fifth tab requires a new ADR after the
   80% / no-majority-first-click gate. No `AppNav` change in this phase.
+  Later (29 Aug 2026): [ADR-014](architecture/ADR-014-settings-tab.md)
+  signed Settings as the fifth tab. Library and Goals stay pushed.
 - Cloud: Drive is backup. Sync is Phase 11 after an explicit start gate.
   No current-voice file calls Drive sync.
 - Subscription: local core is never gated. Goals cannot become Pro.

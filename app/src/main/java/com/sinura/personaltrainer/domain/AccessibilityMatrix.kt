@@ -34,7 +34,7 @@ object AccessibilityMatrix {
             title = "Home",
             states = requiredStates,
             voltAction = "Start today's planned session when a week is pinned. Generate a schedule on a first visit. Free workout stays quiet.",
-            talkBackNotes = "Last session and days-since tiles merge into one name each.",
+            talkBackNotes = "Last session and days-since tiles merge into one name each. Settings is a tab, not a masthead gear.",
             automatedEvidence = true,
         ),
         PagePass(
@@ -50,7 +50,7 @@ object AccessibilityMatrix {
             title = "Plan",
             states = requiredStates,
             voltAction = "Use my answers again, Suggest a week, or Use this week — one Volt",
-            talkBackNotes = "Tune and Library are named. Lighter stays behind Tune.",
+            talkBackNotes = "Tune and Library are named. Lighter stays behind Tune. Settings is a tab, not a header gear.",
             automatedEvidence = true,
         ),
         PagePass(
@@ -74,7 +74,7 @@ object AccessibilityMatrix {
             title = "Settings",
             states = requiredStates,
             voltAction = "Export to file — backup is never the page's Volt gym act",
-            talkBackNotes = "Reminders and export stay reachable. Share diagnostics is quiet.",
+            talkBackNotes = "Settings is a tab. Back is gone. Reminders and export stay reachable. Share diagnostics is quiet.",
             automatedEvidence = true,
         ),
         PagePass(

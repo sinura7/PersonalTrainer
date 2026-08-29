@@ -105,7 +105,7 @@ private fun fromSeed(seed: SeedExercise): Exercise = Exercise(
     muscles = seed.credits,
 )
 
-@Preview(name = "Tab marks", widthDp = 420, heightDp = 180)
+@Preview(name = "Tab marks", widthDp = 520, heightDp = 180)
 @Composable
 private fun TabMarksPreview() {
     PersonalTrainerTheme {
@@ -119,6 +119,7 @@ private fun TabMarksPreview() {
                     "Body" to TemperIcons.Body,
                     "Plan" to TemperIcons.Plan,
                     "History" to TemperIcons.History,
+                    "Settings" to TemperIcons.Settings,
                 ).forEach { (label, icon) ->
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,

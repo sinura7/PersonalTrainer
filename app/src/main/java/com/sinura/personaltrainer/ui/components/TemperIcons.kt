@@ -26,10 +26,14 @@ object TemperIcons {
     val History: ImageVector
         get() = history ?: stackMark("History", ticks = true).also { history = it }
 
+    val Settings: ImageVector
+        get() = settings ?: settingsMark().also { settings = it }
+
     private var home: ImageVector? = null
     private var body: ImageVector? = null
     private var plan: ImageVector? = null
     private var history: ImageVector? = null
+    private var settings: ImageVector? = null
 }
 
 private fun ImageVector.Builder.plate(vararg xy: Float) {
@@ -85,4 +89,17 @@ private fun stackMark(name: String, ticks: Boolean): ImageVector = vector(name) 
         plate(2.2f, 9.8f, 4.0f, 9.8f, 4.0f, 11.4f, 2.2f, 11.4f)
         plate(2.2f, 15.2f, 4.0f, 15.2f, 4.0f, 16.8f, 2.2f, 16.8f)
     }
+}
+
+/** A cog from plates: Settings is a tab, not a Material gear on another page. */
+private fun settingsMark(): ImageVector = vector("Settings") {
+    plate(8.8f, 8.8f, 15.2f, 8.8f, 15.2f, 15.2f, 8.8f, 15.2f)
+    plate(10.2f, 2.4f, 13.8f, 2.4f, 13.8f, 7.6f, 10.2f, 7.6f)
+    plate(10.2f, 16.4f, 13.8f, 16.4f, 13.8f, 21.6f, 10.2f, 21.6f)
+    plate(2.4f, 10.2f, 7.6f, 10.2f, 7.6f, 13.8f, 2.4f, 13.8f)
+    plate(16.4f, 10.2f, 21.6f, 10.2f, 21.6f, 13.8f, 16.4f, 13.8f)
+    plate(16.0f, 4.2f, 19.8f, 7.2f, 16.8f, 9.0f, 14.2f, 6.0f)
+    plate(4.2f, 7.2f, 8.0f, 4.2f, 9.8f, 6.0f, 7.2f, 9.0f)
+    plate(16.0f, 19.8f, 19.8f, 16.8f, 16.8f, 15.0f, 14.2f, 18.0f)
+    plate(4.2f, 16.8f, 8.0f, 19.8f, 9.8f, 18.0f, 7.2f, 15.0f)
 }
