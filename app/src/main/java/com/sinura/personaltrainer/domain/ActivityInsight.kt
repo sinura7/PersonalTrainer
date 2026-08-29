@@ -8,17 +8,21 @@ package com.sinura.personaltrainer.domain
  * their strength sets.
  */
 /**
- * Strength graphs for heat and coach. Workouts arrive already windowed;
- * activities must use the same cutoff or old mixed sessions overweight
- * the 30-day pass.
+ * Strength graphs for heat and coach. BOTH inputs are re-filtered against
+ * [minPerformedAtMs]: the SQL lower bound upstream is computed once when the
+ * pipeline is built, so in a long-lived process (rest service, cached app) the
+ * query silently widens past 30 days — sessions passing through unfiltered let
+ * the coach's window grow with process age.
  */
 fun windowedInsightHistory(
     sessions: List<WorkoutSession>,
     activities: List<ActivitySession>,
     minPerformedAtMs: Long,
-): List<WorkoutSession> = sessions + activities.mapNotNull { activity ->
-    activity.toInsightSession()?.takeIf { it.performedAtMs() >= minPerformedAtMs }
-}
+): List<WorkoutSession> =
+    sessions.filter { it.performedAtMs() >= minPerformedAtMs } +
+        activities.mapNotNull { activity ->
+            activity.toInsightSession()?.takeIf { it.performedAtMs() >= minPerformedAtMs }
+        }
 
 fun ActivitySession.toInsightSession(): WorkoutSession? {
     if (strengthBlocks.isEmpty()) return null
