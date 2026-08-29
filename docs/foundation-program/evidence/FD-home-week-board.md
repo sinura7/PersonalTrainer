@@ -22,7 +22,9 @@ hour on add, Core auxiliary pack.
 
 ## Commands
 
-Recorded after the JVM gate in this packet.
+- `tools/preflight.sh` — PASS. 1018 domain tests. 0 authority findings.
+- `./gradlew testDebugUnitTest` — 1484 tests, 0 failures.
+- `./gradlew assembleDebug` — SUCCESS
 
 ## Known limitations
 
