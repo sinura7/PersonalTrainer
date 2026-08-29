@@ -9,10 +9,12 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -68,6 +70,29 @@ class BodyPassInstrumentedTest {
         compose.onNodeWithTag(BodyTags.WINDOW_WEEK).assertDoesNotExist()
     }
 
+    @Test
+    fun emptyReadoutHasNoStartVolt() {
+        setConstrainedContent(1f) {
+            BodyWindowPicker(
+                window = HeatWindow.DAY,
+                onSelectWindow = {},
+            )
+            BodyMapCard(
+                snapshot = EMPTY,
+                view = BodyView.FRONT,
+                onViewChange = {},
+                selected = null,
+                onSelect = {},
+            )
+        }
+        compose.onNodeWithTag(BodyTags.WINDOW_DAY).assertIsDisplayed()
+        compose.onNodeWithTag(BodyTags.WINDOW_WEEK).assertIsDisplayed()
+        compose.onNodeWithTag(BodyTags.WINDOW_MONTH).assertIsDisplayed()
+        compose.onNodeWithTag(BodyTags.MAP).assertIsDisplayed()
+        compose.onNodeWithText("Start a workout").assertDoesNotExist()
+        compose.onNodeWithText("See what you trained").assertDoesNotExist()
+    }
+
     private fun setConstrainedContent(fontScale: Float, content: @Composable () -> Unit) {
         compose.setContent {
             val density = LocalDensity.current
@@ -106,6 +131,14 @@ class BodyPassInstrumentedTest {
             loads = listOf(CHEST),
             hasAnyWorkingSets = true,
             hasWindowWorkingSets = true,
+        )
+        val EMPTY = BodyHeatSnapshot(
+            window = HeatWindow.DAY,
+            windowStartMs = 1L,
+            generatedAtMs = 2L,
+            loads = emptyList(),
+            hasAnyWorkingSets = false,
+            hasWindowWorkingSets = false,
         )
     }
 }

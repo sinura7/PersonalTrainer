@@ -41,7 +41,7 @@ object AccessibilityMatrix {
             id = "body",
             title = "Body",
             states = requiredStates,
-            voltAction = "Start a workout on the empty map; Find lifts from a muscle sheet",
+            voltAction = "None. Body is a readout; Start lives on Home.",
             talkBackNotes = "Map is an illustration. Muscle rows are the 48 dp target.",
             automatedEvidence = true,
         ),

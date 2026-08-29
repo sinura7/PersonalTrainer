@@ -25,7 +25,7 @@ class WorkingVolumeAgreementTest {
             exercises = listOf(sessionExercise("ex-pu", "Pull-Up", "Back", LoadType.BODYWEIGHT)),
         )
         val onTheBodyMap = MuscleLoadCalculator
-            .snapshot(listOf(pullUps), HeatWindow.LAST_30_DAYS, at, ZoneOffset.UTC)
+            .snapshot(listOf(pullUps), HeatWindow.CURRENT_MONTH, at, ZoneOffset.UTC)
             .load(CanonicalMuscle.BACK)
 
         assertEquals(0.0, onTheBodyMap.volumeKg, 0.0001)

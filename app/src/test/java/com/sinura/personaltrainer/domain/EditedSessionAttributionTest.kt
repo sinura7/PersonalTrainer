@@ -62,7 +62,7 @@ class EditedSessionAttributionTest {
 
         val lifetime = MuscleLoadCalculator.snapshot(
             sessions = listOf(edited),
-            window = HeatWindow.LAST_30_DAYS,
+            window = HeatWindow.CURRENT_MONTH,
             nowMs = oldFinished,
             zone = zone,
         )

@@ -177,7 +177,7 @@ class WeeklySchedulePlannerTest {
 
     @Test
     fun thinHistoryUsesCleanDefaultAndLowConfidence() {
-        val emptySnap = MuscleLoadCalculator.snapshot(emptyList(), HeatWindow.LAST_30_DAYS, now, zone)
+        val emptySnap = MuscleLoadCalculator.snapshot(emptyList(), HeatWindow.CURRENT_MONTH, now, zone)
         val plan = plan(
             prefs = SchedulePreferences(trainingDaysPerWeek = 3, splitStyle = SplitStyle.FULL_BODY),
             snapshot = emptySnap,
@@ -463,7 +463,7 @@ class WeeklySchedulePlannerTest {
                 sessionExercise("ex-row", "Row", "Back"),
             ),
         )
-        return MuscleLoadCalculator.snapshot(listOf(session), HeatWindow.LAST_30_DAYS, now, zone)
+        return MuscleLoadCalculator.snapshot(listOf(session), HeatWindow.CURRENT_MONTH, now, zone)
     }
 
     private fun finished(id: String, at: Long, muscle: String): WorkoutSession = session(

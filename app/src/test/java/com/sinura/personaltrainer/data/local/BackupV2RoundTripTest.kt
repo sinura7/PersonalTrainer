@@ -156,7 +156,7 @@ class BackupV2RoundTripTest {
         preferences.setTrainingGoal(TrainingGoal.STRENGTH)
         preferences.setTrainingEmphasis(TrainingEmphasis.UPPER)
         preferences.setAvailableEquipment(setOf("BARBELL", "DUMBBELL"))
-        preferences.setHeatWindow(HeatWindow.LAST_30_DAYS)
+        preferences.setHeatWindow(HeatWindow.CURRENT_MONTH)
         preferences.recordBodyweight(82.5, 20_000L)
         preferences.setOnboardingComplete(true)
         preferences.dismissCollision("ex-custom-1")
@@ -178,7 +178,7 @@ class BackupV2RoundTripTest {
         assertEquals(TrainingGoal.STRENGTH, coach.goal)
         assertEquals(TrainingEmphasis.UPPER, coach.emphasis)
         assertEquals(setOf("BARBELL", "DUMBBELL"), coach.availableEquipment)
-        assertEquals(HeatWindow.LAST_30_DAYS, preferences.heatWindow.first())
+        assertEquals(HeatWindow.CURRENT_MONTH, preferences.heatWindow.first())
         assertEquals(82.5, preferences.bodyweightKg.first()!!, 0.001)
         // The weigh-in history travels too — it is what lets a block review say what
         // bodyweight did over its twelve weeks.

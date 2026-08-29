@@ -3,20 +3,20 @@ package com.sinura.personaltrainer.domain
 import com.sinura.personaltrainer.util.JvmTime
 
 /**
- * The two windows the body map offers.
+ * The three windows the body map offers.
  *
- * There used to be four candidates and three shipped — 7 days, 14 days, this week — and they
- * are not different questions. "Last 7 days" and "this week" answer the same one badly: a
- * rolling week has no boundary you can plan against, so a Sunday session and a Monday session
- * look the same in it, and the number never settles. "This week so far" and "a month's
- * average" are genuinely different questions, and two chips is a choice rather than a menu.
+ * Day / this week / this month are the same questions History totals, asked of
+ * muscle load rather than session counts. Year and all-time stay History
+ * chips — a second silhouette for those horizons is a different product.
+ * A stored `LAST_30_DAYS` from an older build becomes this month.
  */
 enum class HeatWindow(
     val label: String,
     val shortLabel: String,
 ) {
+    DAY("Today", "Day"),
     CURRENT_WEEK("This week", "Week"),
-    LAST_30_DAYS("Last 30 days", "30 days"),
+    CURRENT_MONTH("This month", "Month"),
     ;
 
     /**
@@ -29,18 +29,31 @@ enum class HeatWindow(
         time: TimePort = JvmTime,
         weekStart: Weekday = Weekday.MONDAY,
         zoneId: String = time.defaultZoneId(),
-    ): Long = when (this) {
-        LAST_30_DAYS -> time.minusCivilDays(nowMs, zoneId, 30)
-        CURRENT_WEEK -> {
-            val weekStartDate = time.civilDate(nowMs, zoneId).previousOrSame(weekStart)
-            time.startOfDayMillis(weekStartDate, zoneId)
+    ): Long {
+        val today = time.civilDate(nowMs, zoneId)
+        return when (this) {
+            DAY -> time.startOfDayMillis(today, zoneId)
+            CURRENT_WEEK -> {
+                val weekStartDate = today.previousOrSame(weekStart)
+                time.startOfDayMillis(weekStartDate, zoneId)
+            }
+            CURRENT_MONTH -> time.startOfDayMillis(
+                CivilDate(today.year, today.month, 1),
+                zoneId,
+            )
         }
     }
 
     companion object {
+        /** Older Body chips stored this name. Map it so a restore still has a window. */
+        const val LEGACY_LAST_30_DAYS = "LAST_30_DAYS"
+
         /** Tolerant by design: a window stored by an older build must not break the map. */
-        fun fromStorage(raw: String?): HeatWindow =
-            entries.firstOrNull { it.name == raw } ?: CURRENT_WEEK
+        fun fromStorage(raw: String?): HeatWindow = when (raw) {
+            null -> CURRENT_WEEK
+            LEGACY_LAST_30_DAYS -> CURRENT_MONTH
+            else -> entries.firstOrNull { it.name == raw } ?: CURRENT_WEEK
+        }
     }
 }
 
@@ -77,8 +90,23 @@ enum class HeatBand {
         const val PRODUCTIVE_MIN_SETS = 10.0
         const val HIGH_MIN_SETS = 20.0
 
+        /**
+         * Coach dose: below four weekly sets is not enough, even if the
+         * silhouette already shows that the muscle was touched.
+         */
         fun fromWeeklySets(sets: Double): HeatBand = when {
             sets < LOW_MIN_SETS -> UNTRAINED
+            sets < PRODUCTIVE_MIN_SETS -> LOW
+            sets <= HIGH_MIN_SETS -> PRODUCTIVE
+            else -> HIGH
+        }
+
+        /**
+         * Map readout: any work in the window is Low, not Rest. Rest is
+         * reserved for a muscle the window never touched.
+         */
+        fun fromWindowSets(sets: Double): HeatBand = when {
+            sets <= 0.0 -> UNTRAINED
             sets < PRODUCTIVE_MIN_SETS -> LOW
             sets <= HIGH_MIN_SETS -> PRODUCTIVE
             else -> HIGH
@@ -115,18 +143,17 @@ data class MuscleLoadSummary(
     val lastTrainedAtMs: Long?,
     val daysSinceLastTrained: Int?,
     /**
-     * Weighted sets per week for this muscle in the window.
+     * Weighted stimulus in this window: junction weight × effort (reps and RPE).
      *
-     * "Weighted" because a set credits each muscle it trains by that lift's junction weight —
-     * a bench press is one set of chest and half a set of triceps — and "per week" because the
-     * 30-day window is averaged down so the two chips are comparable numbers rather than one
-     * number that is four times bigger for being four times longer.
+     * Named weekly for the coach, which still reasons in sets per week. The map
+     * uses the raw window total so Day / Week / Month answer "what did I hit
+     * in this window", not a rate that lights Day on fire.
      */
     val weeklySets: Double,
     val heat: Double,
     val exercises: List<ExerciseLoadContribution>,
 ) {
-    val band: HeatBand get() = HeatBand.fromWeeklySets(weeklySets)
+    val band: HeatBand get() = HeatBand.fromWindowSets(weeklySets)
     val trainedInWindow: Boolean get() = workingSets > 0
     val work: SetWork get() = SetWork(volumeKg = volumeKg, bodyweightReps = bodyweightReps)
 }

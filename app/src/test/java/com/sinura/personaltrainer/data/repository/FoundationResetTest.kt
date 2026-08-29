@@ -80,7 +80,7 @@ class FoundationResetTest {
         preferences.setRestVibrationEnabled(false)
         preferences.setDefaultRestSeconds(45)
         preferences.setTrainingGoal(TrainingGoal.HYPERTROPHY)
-        preferences.setHeatWindow(HeatWindow.LAST_30_DAYS)
+        preferences.setHeatWindow(HeatWindow.CURRENT_MONTH)
         preferences.setOnboardingComplete(true)
 
         val reset = reset(frozen = false, temperExists = false, legacyExists = true)

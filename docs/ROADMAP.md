@@ -14,9 +14,9 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
-> 29 Aug 2026 — History is a readout. Day / Week / Month / Year / All
-> chips retotal a hero sessions numeral. No Start on this tab. Empty
-> still shows the calendar. Start lives on Home.
+> 29 Aug 2026 — Body is a readout. Day / Week / Month chips wash the
+> silhouette from logged sets, reps, and RPE. Empty still shows the
+> figure. No Start on this tab. Start lives on Home.
 >
 > 28 Aug 2026 — A weekday can hold more than two sessions: morning
 > cardio, the pinned workout, and a later accessory / Hyper Pro

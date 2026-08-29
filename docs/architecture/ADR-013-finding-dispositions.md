@@ -87,7 +87,7 @@ named packet, not a wish.
    |---|---|
    | Room v3 won’t | Superseded by [ADR-010](ADR-010-schema-reset-migrations.md) for the one Phase 5 cutover |
    | No backdated session creation | Superseded by [ADR-007](ADR-007-activity-model.md) |
-   | Day/year heat windows cut | Current Body windows stay This week + Last 30 days until Phase 8 adds comparable year/all-time *analytics*, which are not heat-window chips |
+   | Day/year heat windows cut | Body heat is Day / This week / This month. Year and all-time stay History analytics, not heat-window chips |
    | D2 silent missed-day shift as product policy | Superseded by [ADR-012](ADR-012-rest-and-reminders.md) |
    | ROADMAP / AUDIT as source of what is being built | Superseded by [ADR-001](ADR-001-documentation-authority.md) |
    | Job 6 as the current program | Superseded by [FOUNDATION_PROGRAM.md](../FOUNDATION_PROGRAM.md) |

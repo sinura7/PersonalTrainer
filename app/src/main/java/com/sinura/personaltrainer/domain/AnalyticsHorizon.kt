@@ -3,9 +3,8 @@ package com.sinura.personaltrainer.domain
 /**
  * Comparable analytics windows (P8.3 / FND-009).
  *
- * These are not [HeatWindow] chips. Body heat stays This week / Last 30
- * days. Day / year / all-time are progress horizons, not a third
- * silhouette.
+ * These are not [HeatWindow] chips. Body heat is Day / This week / This
+ * month. Year and all-time stay History totals, not a second silhouette.
  */
 enum class AnalyticsHorizon(val label: String) {
     DAY("Day"),

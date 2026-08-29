@@ -24,5 +24,10 @@ class HistoryCopyTest {
         assertEquals(HistoryCopy.EMPTY_LOG, "Finished sessions land here.")
         assertTrue(BodyHeatCopy.LEGEND_CAPTION.contains("muscle load"))
         assertTrue(BodyHeatCopy.LEGEND_CAPTION.contains("not calendar"))
+        assertEquals("Today", BodyHeatCopy.windowTitle(HeatWindow.DAY))
+        assertEquals("This week", BodyHeatCopy.windowTitle(HeatWindow.CURRENT_WEEK))
+        assertEquals("This month", BodyHeatCopy.windowTitle(HeatWindow.CURRENT_MONTH))
+        assertEquals(BodyHeatCopy.EMPTY_LOG, "Finished sets light the figure.")
+        assertFalse(BodyHeatCopy.WINDOW_CAPTION.contains("Start", ignoreCase = true))
     }
 }
