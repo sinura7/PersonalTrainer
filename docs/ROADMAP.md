@@ -15,6 +15,12 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 29 Aug 2026 — A leftover Home session (yesterday’s Friday, a missed
+> block) moves onto today when you confirm **Do it today**. Today lists
+> **Still open**. Recurrence does not change. Live test 12 is this drop
+> (`debugLiveCode` 12)
+> ([ADR-019](architecture/ADR-019-move-to-today.md)).
+>
 > 29 Aug 2026 — Home planned rows and the Volt open a start confirm
 > with the session summary. Confirm starts it. The tag prefers a
 > workout over Stretch. Live test 11 is this drop (`debugLiveCode` 11)

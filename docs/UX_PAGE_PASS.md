@@ -136,7 +136,9 @@ keeps the draft.
   `Start {title}` on the next planned row (non-aux strength preferred).
   That row also shows the numbered lift order. Planned rows — including
   the tagged one — open a start confirm with the session summary.
-  Confirm starts it. Free workout stays quiet.
+  Confirm starts it. A leftover from an earlier day (Still open, or the
+  past day’s board) confirms as **Do it today**, which moves it here
+  then starts. Free workout stays quiet.
 - Two-a-day: one Volt. The other planned row stays tappable, not a second
   filled Start. A three-session day is the same rule: one Volt on the
   first planned workout; later accessory stays tappable and uses the

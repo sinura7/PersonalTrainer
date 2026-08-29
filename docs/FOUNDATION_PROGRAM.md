@@ -49,7 +49,7 @@ Supporting decisions that later packets also treat as closed:
 - KMP and cloud sync have start gates and do not begin because they are interesting ([ADR-003](architecture/ADR-003-shipping-platform.md), [ADR-009](architecture/ADR-009-backup-privacy-sync.md)).
 - FND-037 is a numbering gap, not a finding ([ADR-013](architecture/ADR-013-finding-dispositions.md)).
 - Plan is a schedule workshop; Start is Home. A weekday is a pushed page of workout / cardio / auxiliary blocks. Adding a block may set an hour ([ADR-015](architecture/ADR-015-plan-day-blocks.md), [ADR-017](architecture/ADR-017-home-week-board.md)).
-- Settings display, weekly weigh-in, and equipment filters share the questionnaire store; Goals UI is gone; reminder prefs live on Settings; Home is the day’s board with a week picker ([ADR-016](architecture/ADR-016-settings-home-trim.md), [ADR-017](architecture/ADR-017-home-week-board.md)). Home planned rows confirm before start ([ADR-018](architecture/ADR-018-home-start-confirm.md)).
+- Settings display, weekly weigh-in, and equipment filters share the questionnaire store; Goals UI is gone; reminder prefs live on Settings; Home is the day’s board with a week picker ([ADR-016](architecture/ADR-016-settings-home-trim.md), [ADR-017](architecture/ADR-017-home-week-board.md)). Home planned rows confirm before start ([ADR-018](architecture/ADR-018-home-start-confirm.md)). A leftover session can move onto today ([ADR-019](architecture/ADR-019-move-to-today.md)).
 
 There is **no remaining TBD** that would change schema, scheduling, privacy,
 or entitlement design. Implementation packets refine mechanisms inside

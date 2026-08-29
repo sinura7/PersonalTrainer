@@ -2,6 +2,8 @@
 
 - **Status:** Accepted
 - **Date:** 29 August 2026
+- **Amended:** 29 August 2026 — [ADR-019](ADR-019-move-to-today.md)
+  leftover Home starts move the occurrence onto today
 - **Supersedes:** [ADR-017](ADR-017-home-week-board.md) §1 only the
   reading that Volt (or a planned row) **starts** the next undone block
   immediately
@@ -26,21 +28,26 @@ want to start **this** workout, and what does it entail.
 
 1. **Planned Home rows are tappable** when the occurrence is `PLANNED`
    and nothing is live — including the Volt-tagged row. Done, skipped,
-   missed, and moved rows stay readouts. Live still hides Start; the
+   and moved rows stay readouts. A leftover `PLANNED` or `MISSED` row
+   (civil day before today) is tappable
+   ([ADR-019](ADR-019-move-to-today.md)). Live still hides Start; the
    bar is the way back.
 
 2. **Tap does not start.** A row tap or the Home Volt opens a confirm
    dialog for **that** occurrence. Confirm starts it. Cancel, back, or
    tap-outside dismisses. Free workout stays quiet and does not gain
    this dialog. A notification / pending occurrence id still starts.
+   **[ADR-019](ADR-019-move-to-today.md):** a leftover (civil day before
+   today) confirms as **Do it today**, which relocates then starts.
 
-3. **The dialog is a summary of that session.** Title `Start {title}?`.
-   Body: clock · kind (Workout / Ride / Stretch / …), then the numbered
-   lift order (or `Ready` for cardio, `No lifts yet` for empty
-   strength). Strength / aux may add a set-count and about-minutes
-   line; an auxiliary pack may lead with its caption. Confirm label is
-   `Start` (Volt ink, not a second filled button). One filled Volt
-   remains on the Home floor.
+3. **The dialog is a summary of that session.** Title `Start {title}?`
+   (leftover: `Do {title} today?`). Body: clock · kind (Workout / Ride /
+   Stretch / …), then the numbered lift order (or `Ready` for cardio,
+   `No lifts yet` for empty strength). A leftover adds a line that it
+   was the earlier weekday. Strength / aux may add a set-count and
+   about-minutes line; an auxiliary pack may lead with its caption.
+   Confirm label is `Start` (leftover: `Do it today`). Volt ink, not a
+   second filled button. One filled Volt remains on the Home floor.
 
 4. **Volt still names the next preferred planned block** and opens the
    **same** confirm. It is not a second start path and not
