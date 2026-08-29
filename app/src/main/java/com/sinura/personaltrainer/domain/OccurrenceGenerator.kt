@@ -24,7 +24,11 @@ object OccurrenceGenerator {
         val existingKeys = kept.map { it.ruleId to it.localEpochDay }.toSet()
         val generated = mutableListOf<ScheduleOccurrence>()
         for (rule in rules.filter { it.enabled }) {
-            val date = weekStart.plusDays(rule.weekday.ordinal.toLong())
+            // The rule's weekday within THIS week. plusDays(ordinal) assumed the
+            // week starts on Monday; a Sunday week start put every rule one day
+            // early (a FRIDAY rule landed on Thursday) and, after a preference
+            // change, minted duplicate rows on the corrected day.
+            val date = weekStart.nextOrSame(rule.weekday)
             if ((rule.id to date.epochDay) in existingKeys) continue
             val zoneId = rule.resolveZoneId(deviceZoneId)
             val captured = time.resolveLocal(

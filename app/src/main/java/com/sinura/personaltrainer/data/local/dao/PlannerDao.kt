@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Upsert
 import com.sinura.personaltrainer.data.local.entity.MissedWorkDecisionEntity
 import com.sinura.personaltrainer.data.local.entity.ReminderDeliveryEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleOccurrenceEntity
@@ -24,10 +25,10 @@ interface PlannerDao {
     @Query("SELECT * FROM schedule_rules WHERE id = :id")
     suspend fun getRule(id: String): ScheduleRuleEntity?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun upsertRules(rows: List<ScheduleRuleEntity>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun upsertRule(row: ScheduleRuleEntity)
 
     @Query("DELETE FROM schedule_rules WHERE id = :id")
@@ -53,10 +54,10 @@ interface PlannerDao {
     @Query("SELECT * FROM schedule_occurrences WHERE ruleId = :ruleId")
     suspend fun getOccurrencesForRule(ruleId: String): List<ScheduleOccurrenceEntity>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun upsertOccurrences(rows: List<ScheduleOccurrenceEntity>)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun upsertOccurrence(row: ScheduleOccurrenceEntity)
 
     @Query("DELETE FROM schedule_occurrences WHERE id = :id")

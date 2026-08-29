@@ -35,6 +35,39 @@ class OccurrenceGeneratorTest {
     }
 
     @Test
+    fun sundayWeekStartKeepsEveryRuleOnItsOwnWeekday() {
+        val sundayStart = CivilDate(2026, 8, 23) // Sunday
+        val rules = listOf(
+            rule("r-sun", Weekday.SUNDAY, hour = 9),
+            rule("r-fri", Weekday.FRIDAY, hour = 18),
+        )
+        val week =
+            OccurrenceGenerator.generateWeek(sundayStart, rules, emptyList(), JvmTime, zone, NOW)
+        assertEquals(2, week.size)
+        assertEquals(Weekday.SUNDAY, Weekday.fromEpochDay(week[0].localEpochDay))
+        assertEquals(sundayStart.epochDay, week[0].localEpochDay)
+        assertEquals(Weekday.FRIDAY, Weekday.fromEpochDay(week[1].localEpochDay))
+        assertEquals(sundayStart.plusDays(5).epochDay, week[1].localEpochDay)
+    }
+
+    @Test
+    fun sundayWeekStartDoesNotMintADuplicateBesideAKeptRow() {
+        val sundayStart = CivilDate(2026, 8, 23) // Sunday
+        val rules = listOf(rule("r-fri", Weekday.FRIDAY, hour = 18))
+        val friday = sundayStart.plusDays(5)
+        val kept = occ(
+            OccurrenceGenerator.occurrenceId("r-fri", friday.epochDay),
+            "r-fri",
+            friday.epochDay,
+            OccurrenceStatus.DONE,
+        )
+        val week =
+            OccurrenceGenerator.generateWeek(sundayStart, rules, listOf(kept), JvmTime, zone, NOW)
+        assertEquals(1, week.size)
+        assertEquals(OccurrenceStatus.DONE, week.single().status)
+    }
+
+    @Test
     fun disabledRulesDoNotGenerate() {
         val rules = listOf(rule("r-mon", Weekday.MONDAY, hour = 18, enabled = false))
         val week = OccurrenceGenerator.generateWeek(weekStart, rules, emptyList(), JvmTime, zone, NOW)
