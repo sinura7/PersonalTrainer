@@ -272,7 +272,6 @@ class SettingsViewModelTest {
     @Test
     fun shrinkingTrainingDaysTrimsPreferredDays() = runBlocking {
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
-        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         deps.preferencesRepository.setPreferredDays(
             setOf(
                 com.sinura.personaltrainer.domain.Weekday.MONDAY,
@@ -283,8 +282,10 @@ class SettingsViewModelTest {
             ),
         )
         deps.preferencesRepository.setWeekStart(com.sinura.personaltrainer.domain.Weekday.MONDAY)
-        viewModel!!.setTrainingDays(3)
-        dispatcher.scheduler.advanceUntilIdle()
+        withTimeout(5_000) {
+            deps.preferencesRepository.preferredDays.first { it.size == 5 }
+        }
+        deps.preferencesRepository.setTrainingDaysPerWeek(3)
         val days = withTimeout(5_000) {
             deps.preferencesRepository.preferredDays.first { it.size == 3 }
         }
