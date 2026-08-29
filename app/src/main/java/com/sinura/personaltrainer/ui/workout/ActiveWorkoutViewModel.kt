@@ -190,6 +190,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 
     /** What the database already holds, so a re-seed or a no-op edit does not re-write it. */
     private var lastPersistedNotes: String? = null
+    private var notesHydrated = false
     private var pendingResumeDraft: WorkoutDraft? = null
     /** Blocks a late Room emission from recreating a draft after finish/discard cleared it. */
     private var terminalExit = false
@@ -261,8 +262,14 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                         selectedExerciseId.value = resolved
                     }
                     lastPersistedNotes = current.notes
-                    if (notes.value.isEmpty() && current.notes.isNotEmpty()) {
-                        notes.value = current.notes
+                    // Hydrate once. "Field is empty" cannot tell not-yet-seeded from
+                    // deliberately-cleared, and re-seeding on a later emission restored
+                    // notes the user had just deleted mid-debounce.
+                    if (!notesHydrated) {
+                        notesHydrated = true
+                        if (notes.value.isEmpty() && current.notes.isNotEmpty()) {
+                            notes.value = current.notes
+                        }
                     }
                     persistDraft()
                 }
@@ -1067,7 +1074,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             when (container.discardWorkout(sessionId)) {
                 DiscardOutcome.Discarded -> {
-                    PendingOccurrence.forget(container)
+                    PendingOccurrence.forgetIfSession(container, sessionId)
                     error.value = null
                     terminalExit = true
                     draftCache.clear(sessionId)

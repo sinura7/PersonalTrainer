@@ -166,7 +166,10 @@ class HomeViewModel @JvmOverloads constructor(
                 rules,
                 insights.routines.associate { it.id to it.name },
             ),
-            missedWorkPrompt = MissedWorkPolicy.promptNeeded(overdue, decision),
+            // Not while a session is live: a lifter mid-workout at 18:20 answering
+            // "1 planned session was not done" burns the week's one decision on a
+            // session they are in the middle of doing.
+            missedWorkPrompt = inProgress == null && MissedWorkPolicy.promptNeeded(overdue, decision),
             overdueCount = overdue.size,
             twoADayEpochDays = DailyAgenda.twoADayEpochDays(weekOcc),
             setupComplete = cadence.setupComplete,
@@ -233,8 +236,7 @@ class HomeViewModel @JvmOverloads constructor(
 
     fun startSuggestedDay(day: SuggestedTrainingDay) {
         viewModelScope.launch {
-            PendingOccurrence.bindForPlannedDay(container, day)
-            start(day)
+            start(day, PendingOccurrence.plannedOccurrenceId(container, day))
         }
     }
 
@@ -245,9 +247,11 @@ class HomeViewModel @JvmOverloads constructor(
      */
     fun startFreeWorkout() {
         viewModelScope.launch {
-            PendingOccurrence.forget(container)
             when (val outcome = container.workoutRepository.startFreeWorkoutSafely()) {
                 is StartSessionOutcome.Started -> {
+                    // Cleared only on a real start: a Blocked free tap must not unbind
+                    // the planned session that is still running.
+                    PendingOccurrence.forget(container)
                     actionError.value = null
                     _navigateToSession.value = outcome.session.id
                 }
@@ -315,7 +319,6 @@ class HomeViewModel @JvmOverloads constructor(
             val rule = container.plannerRepository.getRule(toStart.ruleId)
             when (rule?.modality ?: ScheduleModality.STRENGTH) {
                 ScheduleModality.CARDIO -> {
-                    PendingOccurrence.forget(container)
                     val now = JvmTime.captureNow()
                     val type = ScheduleKind.cardioTypeOrRun(rule?.templateId)
                     val block = CardioBlock(
@@ -334,6 +337,7 @@ class HomeViewModel @JvmOverloads constructor(
                     )
                     when (val write = container.startLiveActivity(CardioCopy.name(type), listOf(block), now, toStart.id)) {
                         is ActivityWrite.Accepted -> {
+                            PendingOccurrence.forget(container)
                             val nowElapsed = android.os.SystemClock.elapsedRealtime()
                             val nowWall = System.currentTimeMillis()
                             container.cardioTimerPersistence.save(
@@ -355,7 +359,6 @@ class HomeViewModel @JvmOverloads constructor(
                     _navigateToComposer.value = "mixed"
                 }
                 ScheduleModality.STRENGTH -> {
-                    PendingOccurrence.bind(container, toStart.id)
                     val item = AgendaItem(toStart, rule)
                     start(
                         SuggestedTrainingDay(
@@ -373,20 +376,33 @@ class HomeViewModel @JvmOverloads constructor(
                             confidence = ScheduleConfidence.HIGH,
                             slotId = null,
                         ),
+                        occurrenceId = toStart.id,
                     )
                 }
             }
         }
     }
 
-    private suspend fun start(day: SuggestedTrainingDay) {
+    private suspend fun start(day: SuggestedTrainingDay, occurrenceId: String? = null) {
         when (val outcome = container.startTrainingDay(day)) {
             is StartDayOutcome.Open -> {
+                // The binding is armed only now, for exactly this session. Arming
+                // before the outcome let a Blocked start leave the intent live, so
+                // finishing an unrelated session marked the wrong plan row DONE.
+                if (occurrenceId != null) {
+                    PendingOccurrence.bindForSession(container, occurrenceId, outcome.sessionId)
+                } else {
+                    PendingOccurrence.forget(container)
+                }
                 actionError.value = null
                 _navigateToSession.value = outcome.sessionId
             }
             is StartDayOutcome.Blocked ->
-                _blockedByInProgress.value = BlockedStart(day = day, sessionId = outcome.inProgressSessionId)
+                _blockedByInProgress.value = BlockedStart(
+                    day = day,
+                    sessionId = outcome.inProgressSessionId,
+                    occurrenceId = occurrenceId,
+                )
             is StartDayOutcome.Failed -> actionError.value = outcome.message
             StartDayOutcome.Ignored -> Unit
         }
@@ -404,8 +420,8 @@ class HomeViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             when (val result = container.discardWorkout(blocked.sessionId)) {
                 DiscardOutcome.Discarded -> {
-                    PendingOccurrence.bindForPlannedDay(container, blocked.day)
-                    start(blocked.day)
+                    PendingOccurrence.forgetIfSession(container, blocked.sessionId)
+                    start(blocked.day, blocked.occurrenceId)
                 }
                 is DiscardOutcome.Failed -> actionError.value = result.message
             }
@@ -414,6 +430,10 @@ class HomeViewModel @JvmOverloads constructor(
 
     fun dismissBlockedStart() {
         _blockedByInProgress.value = null
+    }
+
+    fun dismissError() {
+        actionError.value = null
     }
 
     /**
@@ -437,7 +457,11 @@ class HomeViewModel @JvmOverloads constructor(
         container.pendingAnswerReplay.value = true
     }
 
-    data class BlockedStart(val day: SuggestedTrainingDay, val sessionId: String)
+    data class BlockedStart(
+        val day: SuggestedTrainingDay,
+        val sessionId: String,
+        val occurrenceId: String? = null,
+    )
 
     fun recordBodyweight(kg: Double) {
         viewModelScope.launch {

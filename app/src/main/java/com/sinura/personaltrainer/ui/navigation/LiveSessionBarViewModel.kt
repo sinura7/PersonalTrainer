@@ -133,6 +133,18 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
         _finishedActivityNavigation.value = null
     }
 
+    /**
+     * A finish or discard the user confirmed on the bar that then failed.
+     * The bar renders it: a confirmed destructive act that silently
+     * no-ops (log-only) leaves the user believing it worked.
+     */
+    private val _actionError = MutableStateFlow<String?>(null)
+    val actionError: StateFlow<String?> = _actionError.asStateFlow()
+
+    fun onActionErrorShown() {
+        _actionError.value = null
+    }
+
     fun finishFromBar() {
         val live = uiState.value ?: return
         viewModelScope.launch {
@@ -152,18 +164,29 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
                 when (val write = container.finishActivity(live.sessionId, now, blocks)) {
                     is com.sinura.personaltrainer.domain.ActivityWrite.Accepted -> {
                         container.cardioTimerPersistence.clear()
+                        _actionError.value = null
                         _finishedActivityNavigation.value = write.session.id
                     }
-                    is com.sinura.personaltrainer.domain.ActivityWrite.Rejected ->
+                    is com.sinura.personaltrainer.domain.ActivityWrite.Rejected -> {
                         AppLog.w(TAG, "Finishing live cardio from the bar failed: ${write.reason}")
+                        _actionError.value = write.reason
+                    }
                 }
             } else {
                 when (val outcome = container.finishWorkout(live.sessionId, notes = null)) {
                     is FinishOutcome.Finished -> {
                         PendingOccurrence.complete(container, outcome.sessionId)
+                        _actionError.value = null
                         _finishedNavigation.value = outcome.sessionId
                     }
-                    else -> AppLog.w(TAG, "Finishing from the bar did not complete: $outcome")
+                    FinishOutcome.NothingLogged -> {
+                        AppLog.w(TAG, "Finishing from the bar did not complete: nothing logged")
+                        _actionError.value = "Log at least one set before finishing."
+                    }
+                    else -> {
+                        AppLog.w(TAG, "Finishing from the bar did not complete: $outcome")
+                        _actionError.value = "Could not finish this workout. Try again."
+                    }
                 }
             }
         }
@@ -177,8 +200,14 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
                 container.cardioTimerPersistence.clear()
             } else {
                 when (val outcome = container.discardWorkout(live.sessionId)) {
-                    DiscardOutcome.Discarded -> PendingOccurrence.forget(container)
-                    is DiscardOutcome.Failed -> AppLog.w(TAG, "Discarding from the bar failed")
+                    DiscardOutcome.Discarded -> {
+                        PendingOccurrence.forgetIfSession(container, live.sessionId)
+                        _actionError.value = null
+                    }
+                    is DiscardOutcome.Failed -> {
+                        AppLog.w(TAG, "Discarding from the bar failed")
+                        _actionError.value = outcome.message
+                    }
                 }
             }
         }

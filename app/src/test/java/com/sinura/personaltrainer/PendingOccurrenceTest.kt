@@ -57,7 +57,7 @@ class PendingOccurrenceTest {
         val strength = monday.single { it.hour == 18 }
 
         deps.plannerRepository.markOccurrenceDone(cardio.id, "activity-cardio", nowMs = 2L)
-        PendingOccurrence.bind(deps, strength.id)
+        PendingOccurrence.bindForSession(deps, strength.id, "session-strength")
         PendingOccurrence.complete(deps, "session-strength")
 
         val after = deps.plannerRepository.occurrencesBetween(weekStart.epochDay, weekStart.epochDay)
@@ -77,7 +77,7 @@ class PendingOccurrenceTest {
         deps.scheduleRepository.pin(routine.id, null, Weekday.MONDAY)
         deps.plannerRepository.importSlotsIfNeeded()
         val occ = deps.plannerRepository.ensureWeek(weekStart, "UTC", 1L).single()
-        PendingOccurrence.bindForPlannedDay(
+        val plannedId = PendingOccurrence.plannedOccurrenceId(
             deps,
             SuggestedTrainingDay(
                 epochDay = weekStart.epochDay,
@@ -92,7 +92,77 @@ class PendingOccurrenceTest {
                 confidence = ScheduleConfidence.HIGH,
             ),
         )
-        assertEquals(occ.id, deps.pendingOccurrenceId.value)
+        assertEquals(occ.id, plannedId)
+    }
+
+    @Test
+    fun finishingADifferentSessionDoesNotConsumeTheBinding() = runBlocking {
+        deps.plannerRepository.addTimedRule(
+            weekday = Weekday.MONDAY,
+            hour = 18,
+            minute = 0,
+            modality = ScheduleModality.STRENGTH,
+        )
+        val occ = deps.plannerRepository.ensureWeek(weekStart, "UTC", 1L).single()
+        PendingOccurrence.bindForSession(deps, occ.id, "session-planned")
+
+        // Tuesday's free workout finishing must not mark Wednesday's plan DONE.
+        PendingOccurrence.complete(deps, "session-free")
+        assertEquals(
+            OccurrenceStatus.PLANNED,
+            deps.plannerRepository.occurrencesBetween(weekStart.epochDay, weekStart.epochDay)
+                .single().status,
+        )
+
+        PendingOccurrence.complete(deps, "session-planned")
+        assertEquals(
+            OccurrenceStatus.DONE,
+            deps.plannerRepository.occurrencesBetween(weekStart.epochDay, weekStart.epochDay)
+                .single().status,
+        )
+    }
+
+    @Test
+    fun forgetIfSessionLeavesAnotherSessionsBindingAlone() = runBlocking {
+        deps.plannerRepository.addTimedRule(
+            weekday = Weekday.MONDAY,
+            hour = 18,
+            minute = 0,
+            modality = ScheduleModality.STRENGTH,
+        )
+        val occ = deps.plannerRepository.ensureWeek(weekStart, "UTC", 1L).single()
+        PendingOccurrence.bindForSession(deps, occ.id, "session-planned")
+        PendingOccurrence.forgetIfSession(deps, "session-other")
+        // Still armed: the right session's finish still completes it.
+        PendingOccurrence.complete(deps, "session-planned")
+        assertEquals(
+            OccurrenceStatus.DONE,
+            deps.plannerRepository.occurrencesBetween(weekStart.epochDay, weekStart.epochDay)
+                .single().status,
+        )
+        assertNull(deps.pendingOccurrenceId.value)
+    }
+
+    @Test
+    fun composerTakesOnlyAComposerArm() = runBlocking {
+        deps.plannerRepository.addTimedRule(
+            weekday = Weekday.MONDAY,
+            hour = 18,
+            minute = 0,
+            modality = ScheduleModality.STRENGTH,
+        )
+        val occ = deps.plannerRepository.ensureWeek(weekStart, "UTC", 1L).single()
+
+        // A session-tagged binding is not the composer's to take.
+        PendingOccurrence.bindForSession(deps, occ.id, "session-planned")
+        assertNull(PendingOccurrence.takeForComposer(deps))
+        PendingOccurrence.forget(deps)
+
+        // A composer arm transfers exactly once.
+        PendingOccurrence.bind(deps, occ.id)
+        assertEquals(occ.id, PendingOccurrence.takeForComposer(deps))
+        assertNull(deps.pendingOccurrenceId.value)
+        assertNull(PendingOccurrence.takeForComposer(deps))
     }
 
     @Test

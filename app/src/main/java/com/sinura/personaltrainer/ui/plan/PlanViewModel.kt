@@ -235,7 +235,9 @@ class PlanViewModel @JvmOverloads constructor(
             },
             occurrences = weekOcc,
             rules = planner.rules,
-            missedWorkPrompt = MissedWorkPolicy.promptNeeded(overdue, decision),
+            // Not while a session is live — same guard as Home: the week's one
+            // decision must not be burned mid-workout.
+            missedWorkPrompt = inProgress == null && MissedWorkPolicy.promptNeeded(overdue, decision),
             overdueCount = overdue.size,
         )
     }
@@ -475,8 +477,7 @@ class PlanViewModel @JvmOverloads constructor(
 
     fun startDay(day: SuggestedTrainingDay) {
         viewModelScope.launch {
-            PendingOccurrence.bindForPlannedDay(container, day)
-            start(day)
+            start(day, PendingOccurrence.plannedOccurrenceId(container, day))
         }
     }
 
@@ -487,9 +488,11 @@ class PlanViewModel @JvmOverloads constructor(
      */
     fun startFreeWorkout() {
         viewModelScope.launch {
-            PendingOccurrence.forget(container)
             when (val outcome = container.workoutRepository.startFreeWorkoutSafely()) {
                 is StartSessionOutcome.Started -> {
+                    // Cleared only on a real start: a Blocked free tap must not unbind
+                    // the planned session that is still running.
+                    PendingOccurrence.forget(container)
                     actionError.value = null
                     _navigateToSession.value = outcome.session.id
                 }
@@ -674,7 +677,6 @@ class PlanViewModel @JvmOverloads constructor(
             val rule = container.plannerRepository.getRule(occurrence.ruleId)
             when (rule?.modality ?: ScheduleModality.STRENGTH) {
                 ScheduleModality.CARDIO -> {
-                    PendingOccurrence.forget(container)
                     startCardioOccurrence(occurrence, rule)
                 }
                 ScheduleModality.MIXED -> {
@@ -682,7 +684,6 @@ class PlanViewModel @JvmOverloads constructor(
                     _navigateToComposer.value = "mixed"
                 }
                 ScheduleModality.STRENGTH -> {
-                    PendingOccurrence.bind(container, occurrence.id)
                     val item = AgendaItem(occurrence, rule)
                     start(
                         SuggestedTrainingDay(
@@ -703,6 +704,7 @@ class PlanViewModel @JvmOverloads constructor(
                             confidence = com.sinura.personaltrainer.domain.ScheduleConfidence.HIGH,
                             slotId = null,
                         ),
+                        occurrenceId = occurrence.id,
                     )
                 }
             }
@@ -731,6 +733,7 @@ class PlanViewModel @JvmOverloads constructor(
         )
         when (val write = container.startLiveActivity(CardioCopy.name(type), listOf(block), now, occurrence.id)) {
             is ActivityWrite.Accepted -> {
+                PendingOccurrence.forget(container)
                 val nowElapsed = android.os.SystemClock.elapsedRealtime()
                 val nowWall = System.currentTimeMillis()
                 container.cardioTimerPersistence.save(
@@ -753,14 +756,22 @@ class PlanViewModel @JvmOverloads constructor(
         return DailyAgenda.forDay(epochDay, uiState.value.occurrences, uiState.value.rules, names)
     }
 
-    private suspend fun start(day: SuggestedTrainingDay) {
+    private suspend fun start(day: SuggestedTrainingDay, occurrenceId: String? = null) {
         when (val outcome = container.startTrainingDay(day)) {
             is StartDayOutcome.Open -> {
+                // Armed only now, for exactly this session — a Blocked start must
+                // not leave the intent live for an unrelated finish to consume.
+                if (occurrenceId != null) {
+                    PendingOccurrence.bindForSession(container, occurrenceId, outcome.sessionId)
+                } else {
+                    PendingOccurrence.forget(container)
+                }
                 actionError.value = null
                 _navigateToSession.value = outcome.sessionId
             }
             is StartDayOutcome.Blocked ->
-                _blockedByInProgress.value = BlockedStart(day, outcome.inProgressSessionId)
+                _blockedByInProgress.value =
+                    BlockedStart(day, outcome.inProgressSessionId, occurrenceId)
             is StartDayOutcome.Failed -> actionError.value = outcome.message
             StartDayOutcome.Ignored -> Unit
         }
@@ -777,7 +788,10 @@ class PlanViewModel @JvmOverloads constructor(
         _blockedByInProgress.value = null
         viewModelScope.launch {
             when (val result = container.discardWorkout(blocked.sessionId)) {
-                DiscardOutcome.Discarded -> start(blocked.day)
+                DiscardOutcome.Discarded -> {
+                    PendingOccurrence.forgetIfSession(container, blocked.sessionId)
+                    start(blocked.day, blocked.occurrenceId)
+                }
                 is DiscardOutcome.Failed -> actionError.value = result.message
             }
         }
@@ -897,7 +911,11 @@ class PlanViewModel @JvmOverloads constructor(
     }
 
     /** The day whose Start was refused, held so the screen can ask instead of the app deciding. */
-    data class BlockedStart(val day: SuggestedTrainingDay, val sessionId: String)
+    data class BlockedStart(
+        val day: SuggestedTrainingDay,
+        val sessionId: String,
+        val occurrenceId: String? = null,
+    )
 
     private suspend fun refreshPlanner() {
         val prefs = container.preferencesRepository.schedulePreferences.first()

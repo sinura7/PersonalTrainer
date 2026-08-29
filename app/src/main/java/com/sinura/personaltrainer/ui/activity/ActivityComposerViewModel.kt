@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.appContainer
+import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.domain.ActivityBlock
 import com.sinura.personaltrainer.domain.ActivityDraft
 import com.sinura.personaltrainer.domain.ActivityOrigin
@@ -18,8 +19,11 @@ import com.sinura.personaltrainer.domain.CivilDateTime
 import com.sinura.personaltrainer.domain.ComposerCopy
 import com.sinura.personaltrainer.domain.DstGapPolicy
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.MuscleGroups
+import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.StrengthBlock
 import com.sinura.personaltrainer.domain.StrengthSet
+import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.IdFactory
 import com.sinura.personaltrainer.util.JvmTime
@@ -73,7 +77,7 @@ data class ActivityComposerUiState(
 
 class ActivityComposerViewModel @JvmOverloads constructor(
     application: Application,
-    savedStateHandle: SavedStateHandle,
+    private val savedStateHandle: SavedStateHandle,
     container: AppDependencies = application.appContainer(),
     private val ids: IdFactory = IdFactory.Uuid,
     private val clock: com.sinura.personaltrainer.domain.TimePort = JvmTime,
@@ -111,9 +115,26 @@ class ActivityComposerViewModel @JvmOverloads constructor(
     private val _savedId = MutableStateFlow<String?>(null)
     val savedId: StateFlow<String?> = _savedId.asStateFlow()
 
+    /**
+     * The planned occurrence this composer was opened for, transferred out of
+     * [PendingOccurrence] at init and mirrored into [SavedStateHandle]. Taking it
+     * immediately means an abandoned composer leaves nothing armed for an
+     * unrelated later save or finish to consume; holding it here (not re-reading
+     * the store at save time) means a rejected first save keeps the link for the
+     * retry instead of losing the Plan row forever.
+     */
+    private var heldOccurrenceId: String?
+        get() = savedStateHandle.get<String>(KEY_HELD_OCCURRENCE)
+        set(value) = savedStateHandle.set(KEY_HELD_OCCURRENCE, value)
+
     init {
         viewModelScope.launch {
             container.exerciseRepository.observeAll().collect { catalog.value = it }
+        }
+        viewModelScope.launch {
+            if (!savedStateHandle.contains(KEY_HELD_OCCURRENCE)) {
+                heldOccurrenceId = PendingOccurrence.takeForComposer(container)
+            }
         }
     }
 
@@ -183,6 +204,40 @@ class ActivityComposerViewModel @JvmOverloads constructor(
         _savedId.value = null
     }
 
+    /**
+     * One-shot result of the picker's Create row. The screen selects it and
+     * closes the picker, same as tapping a catalog lift.
+     */
+    private val _createdExercise = MutableStateFlow<Exercise?>(null)
+    val createdExercise: StateFlow<Exercise?> = _createdExercise.asStateFlow()
+
+    fun onCreatedExerciseHandled() {
+        _createdExercise.value = null
+    }
+
+    fun createExercise(name: String, muscleGroup: String) {
+        viewModelScope.launch {
+            if (name.isBlank()) {
+                error.value = "Give that lift a name."
+                return@launch
+            }
+            runCatchingCancellable {
+                when (val result = container.exerciseRepository.createCustom(name, muscleGroup)) {
+                    is SaveExerciseResult.DuplicateName -> error.value = DUPLICATE_NAME_MESSAGE
+                    is SaveExerciseResult.MissingMuscle ->
+                        error.value = MuscleGroups.MISSING_MESSAGE
+                    is SaveExerciseResult.Saved -> {
+                        error.value = null
+                        _createdExercise.value = result.exercise
+                    }
+                }
+            }.onFailure { thrown ->
+                AppLog.w(TAG, "createExercise failed", thrown)
+                error.value = SessionOrderCopy.CREATE_LIFT_FAILED
+            }
+        }
+    }
+
     internal suspend fun confirmDraft(): ActivityWrite {
         val now = clock.captureNow()
         val performed = clock.resolveLocal(
@@ -196,11 +251,14 @@ class ActivityComposerViewModel @JvmOverloads constructor(
             title = resolvedTitle(),
             performedStart = performed,
             performedEnd = performed,
-            occurrenceId = container.pendingOccurrenceId.value,
+            occurrenceId = heldOccurrenceId,
             blocks = blocks,
         )
-        PendingOccurrence.forget(container)
-        return container.confirmActivity(draft, now)
+        // The link is spent only by an accepted write: "Nothing to save." must
+        // leave it in place so the retry still marks the Plan row DONE.
+        val write = container.confirmActivity(draft, now)
+        if (write is ActivityWrite.Accepted) heldOccurrenceId = null
+        return write
     }
 
     private fun resolvedTitle(): String {
@@ -287,5 +345,6 @@ class ActivityComposerViewModel @JvmOverloads constructor(
 
     private companion object {
         const val TAG = "PT/ActivityComposer"
+        const val KEY_HELD_OCCURRENCE = "composer-held-occurrence"
     }
 }

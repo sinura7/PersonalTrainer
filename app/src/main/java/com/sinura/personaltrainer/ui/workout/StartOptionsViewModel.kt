@@ -42,6 +42,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -53,6 +55,8 @@ data class StartOptionsUiState(
     val isLoading: Boolean = true,
     val inProgress: WorkoutSession? = null,
     val liveActivity: ActivitySession? = null,
+    /** Logged sets in [inProgress] — the summary row's own list is always empty. */
+    val inProgressSetCount: Int = 0,
     val routines: List<Routine> = emptyList(),
     /** The coach's named lift, offered as a one-tap start. Null when it has nothing specific. */
     val suggestion: Exercise? = null,
@@ -91,11 +95,24 @@ class StartOptionsViewModel @JvmOverloads constructor(
                 emit(null)
             }
 
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<StartOptionsUiState> = combine(
         combine(
             container.workoutRepository.observeInProgress(),
             container.activityRepository.observeLive(),
-        ) { workout, activity -> workout to activity },
+            // The discard confirm must state the real logged-set count: the summary
+            // row's sets list is deliberately empty, and "This deletes the session."
+            // in front of 25 logged sets was a misleading destructive confirm.
+            container.workoutRepository.observeInProgress()
+                .flatMapLatest { session ->
+                    if (session == null) {
+                        flowOf(0)
+                    } else {
+                        container.workoutRepository.observeSessionActivity(session.id)
+                            .map { it.totalSets }
+                    }
+                },
+        ) { workout, activity, setCount -> Triple(workout, activity, setCount) },
         combine(
             container.routineRepository.observeAll(),
             suggestedLift,
@@ -120,6 +137,7 @@ class StartOptionsViewModel @JvmOverloads constructor(
             isLoading = false,
             inProgress = live.first,
             liveActivity = live.second,
+            inProgressSetCount = live.third,
             routines = routines,
             suggestion = extras.second?.first,
             suggestionReason = extras.second?.second,
@@ -218,7 +236,6 @@ class StartOptionsViewModel @JvmOverloads constructor(
 
     fun startRoutine(routineId: String) {
         viewModelScope.launch {
-            PendingOccurrence.forget(container)
             val routine = container.routineRepository.getById(routineId)
             if (routine == null) {
                 error.value = "That routine is no longer available."
@@ -249,7 +266,6 @@ class StartOptionsViewModel @JvmOverloads constructor(
     fun startSuggested() {
         val exercise = uiState.value.suggestion ?: return
         viewModelScope.launch {
-            PendingOccurrence.forget(container)
             try {
                 val focus = OwnedLiftResolver.primaryMuscleOf(exercise)?.displayName
                 val outcome = container.workoutRepository.startFreeWorkoutSafely(focusTitle = focus)
@@ -262,6 +278,7 @@ class StartOptionsViewModel @JvmOverloads constructor(
                     return@launch
                 }
                 val session = (outcome as StartSessionOutcome.Started).session
+                PendingOccurrence.forget(container)
                 val defaults = AddDefaults.forExercise(exercise)
                 container.workoutRepository.addExerciseToSession(
                     sessionId = session.id,
@@ -294,7 +311,10 @@ class StartOptionsViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             when {
                 liveWorkout != null -> when (val result = container.discardWorkout(liveWorkout.id)) {
-                    DiscardOutcome.Discarded -> error.value = null
+                    DiscardOutcome.Discarded -> {
+                        PendingOccurrence.forgetIfSession(container, liveWorkout.id)
+                        error.value = null
+                    }
                     is DiscardOutcome.Failed -> error.value = result.message
                 }
                 liveActivity != null -> {
@@ -308,7 +328,6 @@ class StartOptionsViewModel @JvmOverloads constructor(
 
     fun startFree() {
         viewModelScope.launch {
-            PendingOccurrence.forget(container)
             try {
                 handleStart(container.workoutRepository.startFreeWorkoutSafely())
             } catch (thrown: kotlinx.coroutines.CancellationException) {
@@ -334,9 +353,14 @@ class StartOptionsViewModel @JvmOverloads constructor(
                     return@launch
                 }
                 val day = start.leftover ?: return@launch
-                PendingOccurrence.bindForPlannedDay(container, day)
+                val plannedId = PendingOccurrence.plannedOccurrenceId(container, day)
                 when (val outcome = container.startTrainingDay(day)) {
                     is StartDayOutcome.Open -> {
+                        if (plannedId != null) {
+                            PendingOccurrence.bindForSession(container, plannedId, outcome.sessionId)
+                        } else {
+                            PendingOccurrence.forget(container)
+                        }
                         error.value = null
                         _navigateToSession.value = outcome.sessionId
                     }
@@ -358,7 +382,6 @@ class StartOptionsViewModel @JvmOverloads constructor(
         val rule = container.plannerRepository.getRule(occurrence.ruleId)
         when (rule?.modality ?: ScheduleModality.STRENGTH) {
             ScheduleModality.CARDIO -> {
-                PendingOccurrence.forget(container)
                 val now = JvmTime.captureNow()
                 val block = CardioBlock(
                     id = IdFactory.Uuid.newId(),
@@ -376,6 +399,7 @@ class StartOptionsViewModel @JvmOverloads constructor(
                 )
                 when (val write = container.startLiveActivity("Cardio", listOf(block), now, occurrence.id)) {
                     is ActivityWrite.Accepted -> {
+                        PendingOccurrence.forget(container)
                         val nowElapsed = android.os.SystemClock.elapsedRealtime()
                         val nowWall = System.currentTimeMillis()
                         container.cardioTimerPersistence.save(
@@ -397,7 +421,6 @@ class StartOptionsViewModel @JvmOverloads constructor(
                 _navigateToComposer.value = "mixed"
             }
             ScheduleModality.STRENGTH -> {
-                PendingOccurrence.bind(container, occurrence.id)
                 val item = AgendaItem(occurrence, rule)
                 val day = SuggestedTrainingDay(
                     epochDay = occurrence.localEpochDay,
@@ -416,6 +439,7 @@ class StartOptionsViewModel @JvmOverloads constructor(
                 )
                 when (val outcome = container.startTrainingDay(day)) {
                     is StartDayOutcome.Open -> {
+                        PendingOccurrence.bindForSession(container, occurrence.id, outcome.sessionId)
                         error.value = null
                         _navigateToSession.value = outcome.sessionId
                     }
@@ -427,9 +451,10 @@ class StartOptionsViewModel @JvmOverloads constructor(
         }
     }
 
-    private fun handleStart(outcome: StartSessionOutcome) {
+    private suspend fun handleStart(outcome: StartSessionOutcome) {
         when (outcome) {
             is StartSessionOutcome.Started -> {
+                PendingOccurrence.forget(container)
                 error.value = null
                 _navigateToSession.value = outcome.session.id
             }

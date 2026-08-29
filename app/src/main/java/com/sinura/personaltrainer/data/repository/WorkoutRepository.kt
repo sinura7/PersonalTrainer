@@ -689,7 +689,17 @@ class WorkoutRepository(
             database.exerciseDao().getById(exerciseId)?.loadType?.let(LoadType::fromStorage),
         )
 
+    /**
+     * Deletes an in-progress session and everything under it.
+     *
+     * Refuses a finished session by quietly doing nothing: discard belongs to the
+     * live-workout use case, and a stale Active Workout screen (finished from the live
+     * bar, or reopened from an old notification) must not delete logged history through
+     * it. [deleteFinishedSession] is the deliberate act on history, behind its own confirm.
+     */
     suspend fun discardSession(sessionId: String) {
+        val current = workoutDao.getSessionRow(sessionId) ?: return
+        if (current.finishedAt != null) return
         workoutDao.deleteSession(sessionId)
     }
 
