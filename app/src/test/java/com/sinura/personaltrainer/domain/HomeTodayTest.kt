@@ -90,9 +90,11 @@ class HomeTodayTest {
             planned.copy(routineName = "Push"),
             listOf(pushRoutine()),
             ClockFormat.TWELVE,
+            TODAY,
         )
         assertEquals("Start Push?", confirm.heading)
         assertEquals(HomeToday.CONFIRM, confirm.confirmLabel)
+        assertFalse(confirm.leftover)
         assertTrue(confirm.body.startsWith("6 PM · Workout"))
         assertTrue(confirm.body.contains("1 Squat"))
         assertTrue(confirm.body.contains("2 Row"))
@@ -112,6 +114,7 @@ class HomeTodayTest {
             planned.copy(routineName = "Push"),
             listOf(routine),
             ClockFormat.TWELVE,
+            TODAY,
         )
         assertTrue(confirm.body.contains("1 Squat"))
         assertTrue(confirm.body.contains("4 Fly"))
@@ -125,6 +128,7 @@ class HomeTodayTest {
             item("c", ScheduleModality.CARDIO, hour = 7),
             emptyList(),
             ClockFormat.TWELVE,
+            TODAY,
         )
         assertEquals("Start Cardio?", confirm.heading)
         assertTrue(confirm.body.startsWith("7 AM · Cardio"))
@@ -154,12 +158,54 @@ class HomeTodayTest {
             stretch.copy(routineName = "Stretch"),
             listOf(routine),
             ClockFormat.TWELVE,
+            TODAY,
         )
         assertEquals("Start Stretch?", confirm.heading)
         assertTrue(confirm.body.contains(AuxiliaryPacks.Stretch.caption))
         assertTrue(confirm.body.contains("1 Calf stretch"))
         assertTrue(confirm.body.contains("2 Couch stretch"))
         assertFalse(confirm.body.contains("lifts · about"))
+    }
+
+    @Test
+    fun startConfirmLeftoverIsDoItToday() {
+        val planned = item("s", ScheduleModality.STRENGTH, hour = 18, routineId = "r-Push")
+            .copy(routineName = "Push")
+        val confirm = HomeToday.startConfirm(
+            planned,
+            listOf(pushRoutine()),
+            ClockFormat.TWELVE,
+            TODAY + 1,
+        )
+        assertEquals("Do Push today?", confirm.heading)
+        assertEquals(MoveToToday.DO_IT_TODAY, confirm.confirmLabel)
+        assertTrue(confirm.leftover)
+        assertTrue(confirm.body.contains(MoveToToday.leftoverNote(Weekday.FRIDAY)))
+    }
+
+    @Test
+    fun startTagFallsToStillOpenWhenTodayIsEmpty() {
+        val leftover = item("s", ScheduleModality.STRENGTH, hour = 18)
+        assertEquals("s", HomeToday.startTagOccurrenceId(emptyList(), listOf(leftover)))
+    }
+
+    @Test
+    fun todayWorkoutBeatsStillOpen() {
+        val todayItem = item("t", ScheduleModality.STRENGTH, hour = 18)
+        val leftover = item("s", ScheduleModality.STRENGTH, hour = 18)
+        assertEquals("t", HomeToday.startTagOccurrenceId(listOf(todayItem), listOf(leftover)))
+    }
+
+    @Test
+    fun stillOpenKeepsAgendaSurfaceWhenTodayIsEmpty() {
+        assertEquals(
+            HomeToday.Surface.AGENDA,
+            HomeToday.surface(
+                emptyList(),
+                leftoverBelongs = true,
+                stillOpen = listOf(item("s", ScheduleModality.STRENGTH)),
+            ),
+        )
     }
 
     @Test
@@ -307,4 +353,8 @@ class HomeTodayTest {
         targetWeightKg = null,
         restSeconds = 90,
     )
+
+    private companion object {
+        const val TODAY = 20_000L
+    }
 }
