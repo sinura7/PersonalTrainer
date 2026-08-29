@@ -30,6 +30,9 @@ enum class Weekday {
     /** Three-letter title case: Mon, Tue. Locale-free; UI may format via the platform. */
     fun shortLabel(): String = name.take(3).lowercase().replaceFirstChar { it.titlecase() }
 
+    /** Monday, Friday. Locale-free. */
+    fun titleLabel(): String = name.lowercase().replaceFirstChar { it.titlecase() }
+
     companion object {
         const val DAYS_IN_WEEK = 7
 

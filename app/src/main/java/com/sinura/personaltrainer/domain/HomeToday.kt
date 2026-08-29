@@ -10,23 +10,27 @@ package com.sinura.personaltrainer.domain
 object HomeToday {
     enum class Surface { AGENDA, WEEK_FALLBACK }
 
-    fun surface(agenda: List<AgendaItem>, leftoverBelongs: Boolean = false): Surface =
-        if (agenda.isEmpty() && leftoverBelongs) Surface.WEEK_FALLBACK else Surface.AGENDA
+    fun surface(
+        agenda: List<AgendaItem>,
+        leftoverBelongs: Boolean = false,
+        stillOpen: List<AgendaItem> = emptyList(),
+    ): Surface =
+        if (agenda.isEmpty() && stillOpen.isEmpty() && leftoverBelongs) {
+            Surface.WEEK_FALLBACK
+        } else {
+            Surface.AGENDA
+        }
 
     /**
-     * The one Home Start tag. Prefers a still-planned workout (non-aux
-     * strength or mixed) so Stretch cannot steal Volt while Friday is
-     * undone. TalkBack still finds "today's planned session" on a day stack.
+     * The one Home Start tag. Prefers a still-planned workout on [agenda]
+     * (non-aux strength or mixed) so Stretch cannot steal Volt while a
+     * workout is undone. If today has nothing planned, the tag may name
+     * a leftover from [stillOpen].
      */
-    fun startTagOccurrenceId(agenda: List<AgendaItem>): String? {
-        val planned = agenda.filter { it.occurrence.status == OccurrenceStatus.PLANNED }
-        val workout = planned.firstOrNull { isPlannedWorkout(it) }
-        if (workout != null) return workout.occurrence.id
-        val strength = planned.firstOrNull {
-            (it.rule?.modality ?: ScheduleModality.STRENGTH) == ScheduleModality.STRENGTH
-        }
-        return strength?.occurrence?.id ?: planned.firstOrNull()?.occurrence?.id
-    }
+    fun startTagOccurrenceId(
+        agenda: List<AgendaItem>,
+        stillOpen: List<AgendaItem> = emptyList(),
+    ): String? = pickStart(agenda) ?: pickStart(stillOpen)
 
     /**
      * Summary shown before Home starts [item]. Confirm, then start.
@@ -37,12 +41,14 @@ object HomeToday {
         item: AgendaItem,
         routines: List<Routine>,
         clockFormat: ClockFormat,
+        todayEpochDay: Long,
     ): StartSessionConfirm {
         val clock = ClockCopy.format(item.occurrence.hour, item.occurrence.minute, clockFormat)
         val pack = ScheduleKind.auxPackId(item.rule?.templateId)?.let { AuxiliaryPacks.byId(it) }
         val names = sessionLiftNames(item.rule?.routineId, routines)
         val routine = item.rule?.routineId?.let { id -> routines.firstOrNull { it.id == id } }
         val modality = item.rule?.modality ?: ScheduleModality.STRENGTH
+        val leftover = MoveToToday.isLeftover(item.occurrence, todayEpochDay)
         val lines = buildList {
             add("$clock · ${item.kindCaption}")
             pack?.caption?.takeIf { it.isNotBlank() }?.let { caption ->
@@ -61,12 +67,30 @@ object HomeToday {
                 modality == ScheduleModality.STRENGTH -> add(SessionOrderCopy.EMPTY_PREVIEW)
                 else -> add(SessionOrderCopy.READY)
             }
+            if (leftover) {
+                add("")
+                add(
+                    MoveToToday.leftoverNote(
+                        Weekday.fromEpochDay(item.occurrence.localEpochDay),
+                    ),
+                )
+            }
         }
-        return StartSessionConfirm(
-            heading = "Start ${item.title}?",
-            body = lines.joinToString("\n").trim(),
-            confirmLabel = CONFIRM,
-        )
+        return if (leftover) {
+            StartSessionConfirm(
+                heading = "Do ${item.title} today?",
+                body = lines.joinToString("\n").trim(),
+                confirmLabel = MoveToToday.DO_IT_TODAY,
+                leftover = true,
+            )
+        } else {
+            StartSessionConfirm(
+                heading = "Start ${item.title}?",
+                body = lines.joinToString("\n").trim(),
+                confirmLabel = CONFIRM,
+                leftover = false,
+            )
+        }
     }
 
     /**
@@ -100,6 +124,19 @@ object HomeToday {
 
     const val CONFIRM = "Start"
 
+    private fun pickStart(items: List<AgendaItem>): String? {
+        val open = items.filter {
+            it.occurrence.status == OccurrenceStatus.PLANNED ||
+                it.occurrence.status == OccurrenceStatus.MISSED
+        }
+        val workout = open.firstOrNull { isPlannedWorkout(it) }
+        if (workout != null) return workout.occurrence.id
+        val strength = open.firstOrNull {
+            (it.rule?.modality ?: ScheduleModality.STRENGTH) == ScheduleModality.STRENGTH
+        }
+        return strength?.occurrence?.id ?: open.firstOrNull()?.occurrence?.id
+    }
+
     private fun isPlannedWorkout(item: AgendaItem): Boolean {
         if (ScheduleKind.isAux(item.rule?.templateId)) return false
         val modality = item.rule?.modality ?: ScheduleModality.STRENGTH
@@ -116,6 +153,7 @@ data class StartSessionConfirm(
     val heading: String,
     val body: String,
     val confirmLabel: String,
+    val leftover: Boolean = false,
 )
 
 data class TodaySheetStart(
