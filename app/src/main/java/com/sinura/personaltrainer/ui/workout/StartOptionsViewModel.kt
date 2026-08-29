@@ -18,6 +18,7 @@ import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.TodaySheetStart
+import com.sinura.personaltrainer.domain.WeekBoard
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.workout.StartDayOutcome
@@ -123,7 +124,13 @@ class StartOptionsViewModel @JvmOverloads constructor(
             suggestion = extras.second?.first,
             suggestionReason = extras.second?.second,
             error = extras.third,
-            todayStart = HomeToday.sheetStart(agenda, leftover, routines),
+            todayStart = HomeToday.sheetStart(
+                agenda,
+                leftover?.takeIf {
+                    WeekBoard.leftoverBelongsOn(today, leftover, planner.second, planner.third)
+                },
+                routines,
+            ),
         )
     }.stateIn(
         scope = viewModelScope,

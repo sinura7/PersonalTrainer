@@ -23,10 +23,8 @@ import com.sinura.personaltrainer.domain.Weekday
  * The three preferences that shape a suggested week: how many days, which split, where the
  * week starts.
  *
- * Moved here from the old Schedule screen, unchanged. It now lives behind the Plan header's
- * "Tune" toggle rather than on a screen of its own, because tuning is something you do to the
- * week you are looking at — the old arrangement put the controls one navigation away from
- * their effect, and Settings held a second copy of the route to them.
+ * Moved here from the old Schedule screen. Days, split and week start live
+ * on Settings. Lighter week is a Plan chip (ADR-017), not a Tune disclosure.
  */
 @Composable
 fun PreferenceBlock(

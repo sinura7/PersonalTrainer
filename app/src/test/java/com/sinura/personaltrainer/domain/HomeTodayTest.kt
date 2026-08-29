@@ -6,8 +6,12 @@ import org.junit.Test
 
 class HomeTodayTest {
     @Test
-    fun emptyAgendaUsesTheSlotWeekLeftover() {
-        assertEquals(HomeToday.Surface.WEEK_FALLBACK, HomeToday.surface(emptyList()))
+    fun emptyAgendaUsesTheSlotWeekLeftoverOnlyWhenItBelongs() {
+        assertEquals(HomeToday.Surface.AGENDA, HomeToday.surface(emptyList()))
+        assertEquals(
+            HomeToday.Surface.WEEK_FALLBACK,
+            HomeToday.surface(emptyList(), leftoverBelongs = true),
+        )
         assertNull(HomeToday.startTagOccurrenceId(emptyList()))
     }
 

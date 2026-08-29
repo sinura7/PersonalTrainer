@@ -34,9 +34,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.ClockCopy
 import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.AuxiliaryPacks
 import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.SlotRuleImport
 import com.sinura.personaltrainer.domain.PlanDayCopy
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.ScheduleKind
@@ -147,29 +149,29 @@ fun PlanDayScreen(
                             routines = state.routines,
                             onPickKind = { picking = it },
                             onCancel = { picking = DayPicker.NONE },
-                            onAddWorkout = { routineId ->
+                            onAddWorkout = { routineId, hour ->
                                 picking = DayPicker.NONE
                                 if (pinned) {
-                                    viewModel.addLaterSession(epochDay, routineId)
+                                    viewModel.addLaterSession(epochDay, routineId, hour)
                                 } else {
-                                    viewModel.pinRoutine(epochDay, routineId)
+                                    viewModel.pinRoutine(epochDay, routineId, hour)
                                 }
                             },
-                            onNewWorkout = {
+                            onNewWorkout = { hour ->
                                 picking = DayPicker.NONE
                                 if (pinned) {
-                                    viewModel.composeLaterSession(epochDay)
+                                    viewModel.composeLaterSession(epochDay, hour)
                                 } else {
-                                    viewModel.buildDay(epochDay)
+                                    viewModel.buildDay(epochDay, hour)
                                 }
                             },
-                            onAddCardio = { type ->
+                            onAddCardio = { type, hour ->
                                 picking = DayPicker.NONE
-                                viewModel.addCardio(epochDay, type)
+                                viewModel.addCardio(epochDay, type, hour)
                             },
-                            onAddAux = { packId ->
+                            onAddAux = { packId, hour ->
                                 picking = DayPicker.NONE
-                                viewModel.addAuxiliary(epochDay, packId)
+                                viewModel.addAuxiliary(epochDay, packId, hour)
                             },
                         )
                     }
@@ -318,15 +320,31 @@ private fun AddPicker(
     routines: List<Routine>,
     onPickKind: (DayPicker) -> Unit,
     onCancel: () -> Unit,
-    onAddWorkout: (String) -> Unit,
-    onNewWorkout: () -> Unit,
-    onAddCardio: (CardioType) -> Unit,
-    onAddAux: (String) -> Unit,
+    onAddWorkout: (String, Int) -> Unit,
+    onNewWorkout: (Int) -> Unit,
+    onAddCardio: (CardioType, Int) -> Unit,
+    onAddAux: (String, Int) -> Unit,
 ) {
+    val clockFormat = com.sinura.personaltrainer.ui.units.LocalClockFormat.current
     val hasCardio = occurrences.any { it.rule?.modality == ScheduleModality.CARDIO }
     val usedAux = occurrences.mapNotNull { ScheduleKind.auxPackId(it.rule?.templateId) }.toSet()
     val usedRoutineIds = occurrences.mapNotNull { it.rule?.routineId }.toSet()
     val laterChoices = routines.filter { it.id !in usedRoutineIds }
+    val occupiedHours = occurrences.map { it.occurrence.hour }
+    var hour by rememberSaveable(picking) {
+        mutableStateOf(
+            when (picking) {
+                DayPicker.CARDIO -> SlotRuleImport.DEFAULT_CARDIO_HOUR
+                DayPicker.AUX -> SlotRuleImport.nextLaterHour(occupiedHours)
+                DayPicker.WORKOUT -> if (pinned) {
+                    SlotRuleImport.nextLaterHour(occupiedHours)
+                } else {
+                    SlotRuleImport.DEFAULT_STRENGTH_HOUR
+                }
+                else -> SlotRuleImport.DEFAULT_STRENGTH_HOUR
+            },
+        )
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -350,6 +368,21 @@ private fun AddPicker(
                     style = InstrumentType.bodyStrong,
                     color = TextSecondary,
                 )
+            }
+        }
+        if (picking != DayPicker.KIND && picking != DayPicker.NONE) {
+            Kicker(PlanDayCopy.WHEN)
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+            ) {
+                ClockCopy.hourChoices(hour).forEach { choice ->
+                    InstrumentChip(
+                        label = ClockCopy.hourChip(choice, clockFormat),
+                        selected = hour == choice,
+                        onClick = { hour = choice },
+                    )
+                }
             }
         }
         when (picking) {
@@ -386,7 +419,7 @@ private fun AddPicker(
                             InstrumentChip(
                                 label = PlanDayCopy.cardioPickLabel(type),
                                 selected = false,
-                                onClick = { onAddCardio(type) },
+                                onClick = { onAddCardio(type, hour) },
                             )
                         }
                     }
@@ -407,7 +440,7 @@ private fun AddPicker(
                             InstrumentRow(
                                 title = pack.title,
                                 subtitle = pack.caption,
-                                onClick = { onAddAux(pack.id) },
+                                onClick = { onAddAux(pack.id, hour) },
                             )
                         }
                     }
@@ -422,7 +455,7 @@ private fun AddPicker(
                         } else {
                             PlanDayCopy.BUILD_WEEKDAY
                         },
-                        onClick = onNewWorkout,
+                        onClick = { onNewWorkout(hour) },
                     )
                 }
                 if (laterChoices.isEmpty()) {
@@ -443,7 +476,7 @@ private fun AddPicker(
                                 title = routine.name,
                                 subtitle = "${routine.exercises.size} " +
                                     if (routine.exercises.size == 1) "lift" else "lifts",
-                                onClick = { onAddWorkout(routine.id) },
+                                onClick = { onAddWorkout(routine.id, hour) },
                             )
                         }
                     }

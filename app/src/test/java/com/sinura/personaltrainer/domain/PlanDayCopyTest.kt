@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PlanDayCopyTest {
@@ -15,5 +16,7 @@ class PlanDayCopyTest {
         assertEquals("Run / sprints", PlanDayCopy.cardioPickLabel(CardioType.RUN))
         assertEquals("Walk", PlanDayCopy.cardioPickLabel(CardioType.WALK))
         assertEquals("Add session", PlanDayCopy.ADD_SESSION)
+        assertEquals("When", PlanDayCopy.WHEN)
+        assertTrue(PlanDayCopy.AUX_SUBTITLE.contains("core"))
     }
 }

@@ -43,7 +43,7 @@ class AccessibilityMatrixTest {
             AccessibilityMatrix.page("body").voltAction,
         )
         assertEquals(
-            "Settings is a tab. Back is gone. Weight and hours sit at the top. Export stays reachable. Reminders live on Plan. Share diagnostics is quiet.",
+            "Settings is a tab. Back is gone. Weight and hours sit at the top. Reminders (opt-out and quiet hours) live here. Export stays reachable. Share diagnostics is quiet.",
             AccessibilityMatrix.page("settings").talkBackNotes,
         )
         assertEquals(
@@ -52,7 +52,7 @@ class AccessibilityMatrixTest {
         )
         assertEquals("Add session", AccessibilityMatrix.page("plan-day").voltAction)
         assertEquals(
-            "Tune, Library, Add session, and Reminders behind Tune are named. Start is Home, not Plan. Lighter stays behind Tune. Settings is a tab, not a header gear.",
+            "Library and Add session are named. Start is Home, not Plan. Lighter is a quiet chip. Settings is a tab, not a header gear. Reminders live on Settings.",
             AccessibilityMatrix.page("plan").talkBackNotes,
         )
     }

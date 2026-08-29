@@ -60,19 +60,21 @@ databases, different icons.
 
 Five tabs — **Home · Body · Plan · History · Settings**. Library is a pushed route, not a tab.
 
-- **Home** — today's plan and one next-session act. Last session and days
-  since come from all-time summaries. A live session is resumed from the
-  live bar, not from a Home Resume button. Library is a pushed route
-  from Plan, Body, and in-workout. Goals UI is gone.
+- **Home** — the selected day's planned blocks and one Start act. A week
+  strip picks the day. Last session and days since come from all-time
+  summaries. A live session is resumed from the live bar, not from a
+  Home Resume button. Library is a pushed route from Plan, Body, and
+  in-workout. Goals UI is gone.
 - **Body** — muscle heat from logged sets, reps, and RPE over **Day**,
   **This week**, or **This month**. The silhouette stays up when empty.
   Start lives on Home. The coach basis is a fixed trailing 14 days.
-- **Plan** — the pinned week and the routines that fill it. Suggest / Replay / Tune /
-  Lighter week are four different acts.
+- **Plan** — fill each civil day with workout, cardio, or auxiliary
+  blocks. Add session is the act. Suggest / Replay recover an empty
+  week. Lighter week is a quiet chip. Library is pushed.
 - **History** — finished sessions, calendar, personal records, and
   comparable Week / Month / Year / All time totals.
-- **Settings** — units, hours, schedule, coaching, rest, export and restore.
-  The fifth tab. Not a gear on Home or Plan. Reminders live on Plan.
+- **Settings** — units, hours, schedule, coaching, reminders, rest,
+  export and restore. The fifth tab. Not a gear on Home or Plan.
 - **Library** (pushed) — search the lift list, filter by muscle, add custom exercises.
 - **Activities** — strength, cardio, or mixed; live or backdated. One live
   activity at a time. Two timed items can sit on one day.

@@ -96,6 +96,9 @@ import com.sinura.personaltrainer.ui.components.RestPresetChips
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.components.TemperMark
 import com.sinura.personaltrainer.ui.plan.PreferenceBlock
+import com.sinura.personaltrainer.ui.reminders.ReminderPrefsSection
+import com.sinura.personaltrainer.ui.reminders.openAppNotificationSettings
+import com.sinura.personaltrainer.ui.reminders.rememberNotificationsEnabled
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -117,6 +120,7 @@ fun SettingsScreen(
     val selectedUnit by viewModel.weightUnit.collectAsStateWithLifecycle()
     val clockFormat by viewModel.clockFormat.collectAsStateWithLifecycle()
     val schedulePrefs by viewModel.schedulePreferences.collectAsStateWithLifecycle()
+    val reminderPrefs by viewModel.reminderPreferences.collectAsStateWithLifecycle()
     val restPrefs by viewModel.restTimerPreferences.collectAsStateWithLifecycle()
     val offerExactAlarmAccess by viewModel.offerExactAlarmAccess.collectAsStateWithLifecycle()
     val coachPrefs by viewModel.coachPreferences.collectAsStateWithLifecycle()
@@ -202,6 +206,16 @@ fun SettingsScreen(
                 onDays = viewModel::setTrainingDays,
                 onSplit = viewModel::setSplitStyle,
                 onWeekStart = viewModel::setWeekStart,
+            )
+            ReminderPrefsSection(
+                preferences = reminderPrefs,
+                clockFormat = clockFormat,
+                notificationsEnabled = rememberNotificationsEnabled(),
+                onOptOut = viewModel::setReminderOptOut,
+                onQuietHours = viewModel::setReminderQuietHours,
+                onOpenNotificationSettings = {
+                    openAppNotificationSettings(context)
+                },
             )
             CoachingSection(
                 preferences = coachPrefs,

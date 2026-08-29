@@ -301,7 +301,7 @@ class PlanViewModel @JvmOverloads constructor(
     // Pinning
     // -----------------------------------------------------------------------
 
-    fun pinRoutine(epochDay: Long, routineId: String) {
+    fun pinRoutine(epochDay: Long, routineId: String, hour: Int = SlotRuleImport.DEFAULT_STRENGTH_HOUR) {
         write("Could not pin that routine. Try again.") {
             container.scheduleRepository.pin(
                 routineId = routineId,
@@ -309,6 +309,7 @@ class PlanViewModel @JvmOverloads constructor(
                 anchorDay = dayOfWeekFor(epochDay),
             )
             refreshPlanner()
+            applyHourToRoutine(epochDay, routineId, hour)
         }
     }
 
@@ -343,7 +344,7 @@ class PlanViewModel @JvmOverloads constructor(
      * so lifts / sets / reps are added on that day. Reuses an unpinned
      * routine already named for the weekday.
      */
-    fun buildDay(epochDay: Long) {
+    fun buildDay(epochDay: Long, hour: Int = SlotRuleImport.DEFAULT_STRENGTH_HOUR) {
         write("Could not build that day. Try again.") {
             val weekday = dayOfWeekFor(epochDay)
             val name = CustomWeekPolicy.routineName(weekday)
@@ -358,6 +359,7 @@ class PlanViewModel @JvmOverloads constructor(
                 anchorDay = weekday,
             )
             refreshPlanner()
+            applyHourToRoutine(epochDay, routineId, hour)
             _navigateToEditor.value = routineId
         }
     }
@@ -517,7 +519,7 @@ class PlanViewModel @JvmOverloads constructor(
         addCardio(epochDay, CardioType.RUN)
     }
 
-    fun addCardio(epochDay: Long, type: CardioType) {
+    fun addCardio(epochDay: Long, type: CardioType, hour: Int = SlotRuleImport.DEFAULT_CARDIO_HOUR) {
         write("Could not add cardio. Try again.") {
             val weekday = dayOfWeekFor(epochDay)
             val already = container.plannerRepository.rules().any {
@@ -526,7 +528,7 @@ class PlanViewModel @JvmOverloads constructor(
             if (already) return@write
             container.plannerRepository.addTimedRule(
                 weekday = weekday,
-                hour = SlotRuleImport.DEFAULT_CARDIO_HOUR,
+                hour = hour.coerceIn(0, 23),
                 minute = 0,
                 modality = ScheduleModality.CARDIO,
                 templateId = ScheduleKind.cardio(type),
@@ -540,7 +542,7 @@ class PlanViewModel @JvmOverloads constructor(
      * row. Recurring. Bound to [routineId] so accessory / Hyper Pro work
      * is its own start, not a rewrite of the evening pin.
      */
-    fun addLaterSession(epochDay: Long, routineId: String) {
+    fun addLaterSession(epochDay: Long, routineId: String, hour: Int? = null) {
         write("Could not add that session. Try again.") {
             val weekday = dayOfWeekFor(epochDay)
             val hours = container.plannerRepository.rules()
@@ -548,7 +550,7 @@ class PlanViewModel @JvmOverloads constructor(
                 .map { it.hour }
             container.plannerRepository.addTimedRule(
                 weekday = weekday,
-                hour = SlotRuleImport.nextLaterHour(hours),
+                hour = (hour ?: SlotRuleImport.nextLaterHour(hours)).coerceIn(0, 23),
                 minute = 0,
                 modality = ScheduleModality.STRENGTH,
                 routineId = routineId,
@@ -557,7 +559,7 @@ class PlanViewModel @JvmOverloads constructor(
         }
     }
 
-    fun addAuxiliary(epochDay: Long, packId: String) {
+    fun addAuxiliary(epochDay: Long, packId: String, hour: Int? = null) {
         val pack = AuxiliaryPacks.byId(packId) ?: return
         write("Could not add that block. Try again.") {
             val weekday = dayOfWeekFor(epochDay)
@@ -572,7 +574,7 @@ class PlanViewModel @JvmOverloads constructor(
                 .map { it.hour }
             container.plannerRepository.addTimedRule(
                 weekday = weekday,
-                hour = SlotRuleImport.nextLaterHour(hours),
+                hour = (hour ?: SlotRuleImport.nextLaterHour(hours)).coerceIn(0, 23),
                 minute = 0,
                 modality = ScheduleModality.STRENGTH,
                 routineId = routineId,
@@ -619,7 +621,7 @@ class PlanViewModel @JvmOverloads constructor(
      * Mint (or reuse) a weekday-extra routine, attach it as a later
      * session, then open the editor so the lifts exist before Home Start.
      */
-    fun composeLaterSession(epochDay: Long) {
+    fun composeLaterSession(epochDay: Long, hour: Int? = null) {
         write("Could not add that session. Try again.") {
             val weekday = dayOfWeekFor(epochDay)
             val name = CustomWeekPolicy.extraRoutineName(weekday)
@@ -633,7 +635,7 @@ class PlanViewModel @JvmOverloads constructor(
                 .map { it.hour }
             container.plannerRepository.addTimedRule(
                 weekday = weekday,
-                hour = SlotRuleImport.nextLaterHour(hours),
+                hour = (hour ?: SlotRuleImport.nextLaterHour(hours)).coerceIn(0, 23),
                 minute = 0,
                 modality = ScheduleModality.STRENGTH,
                 routineId = routineId,
@@ -822,31 +824,20 @@ class PlanViewModel @JvmOverloads constructor(
         }
     }
 
-    val reminderPreferences: StateFlow<com.sinura.personaltrainer.domain.ReminderPreferences> =
-        container.preferencesRepository.reminderPreferences
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000),
-                initialValue = com.sinura.personaltrainer.domain.ReminderPreferences.DEFAULT,
-            )
-
-    fun setReminderOptOut(optOut: Boolean) {
-        viewModelScope.launch {
-            container.preferencesRepository.setReminderOptOut(optOut)
-        }
-    }
-
-    fun setReminderQuietHours(startHour: Int, endHour: Int) {
-        viewModelScope.launch {
-            runCatchingCancellable {
-                container.preferencesRepository.setReminderQuietHours(startHour, endHour)
-            }.onFailure { AppLog.w(TAG, "Saving reminder quiet hours failed", it) }
-        }
-    }
-
     fun setSessionHour(ruleId: String, hour: Int) {
         write("Could not set that time. Try again.") {
             container.plannerRepository.setRuleHour(ruleId, hour)
+            refreshPlanner()
+        }
+    }
+
+    private suspend fun applyHourToRoutine(epochDay: Long, routineId: String, hour: Int) {
+        val weekday = dayOfWeekFor(epochDay)
+        val rule = container.plannerRepository.rules()
+            .filter { it.weekday == weekday && it.routineId == routineId }
+            .maxByOrNull { it.updatedAtMs } ?: return
+        if (rule.hour != hour) {
+            container.plannerRepository.setRuleHour(rule.id, hour.coerceIn(0, 23))
             refreshPlanner()
         }
     }

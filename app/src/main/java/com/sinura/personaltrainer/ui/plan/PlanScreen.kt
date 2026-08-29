@@ -21,6 +21,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -30,7 +31,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
@@ -39,18 +39,16 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.MissedWorkCopy
 import com.sinura.personaltrainer.domain.PlanDayCopy
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.WeekBoard
 import com.sinura.personaltrainer.domain.WeekTwoCopy
+import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
 import com.sinura.personaltrainer.domain.todayEpochDay
-import com.sinura.personaltrainer.ui.reminders.ReminderPrefsSection
-import com.sinura.personaltrainer.ui.reminders.openAppNotificationSettings
-import com.sinura.personaltrainer.ui.reminders.rememberNotificationsEnabled
 import com.sinura.personaltrainer.ui.units.LocalClockFormat
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
@@ -59,6 +57,8 @@ import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.theme.Hairline
+import com.sinura.personaltrainer.ui.components.InstrumentChip
+import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.components.MetricCluster
@@ -266,13 +266,12 @@ fun PlanScreen(
     viewModel: PlanViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val reminderPrefs by viewModel.reminderPreferences.collectAsStateWithLifecycle()
     val navigateToEditor by viewModel.navigateToEditor.collectAsStateWithLifecycle()
     val dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM)
     val today = remember { todayEpochDay() }
 
-    var tuning by rememberSaveable { mutableStateOf(false) }
     var pendingDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedEpochDay by rememberSaveable { mutableLongStateOf(today) }
 
     LaunchedEffect(navigateToEditor) {
         val id = navigateToEditor ?: return@LaunchedEffect
@@ -285,13 +284,7 @@ fun PlanScreen(
             .fillMaxSize()
             .background(Pit),
     ) {
-        PlanHeader(
-            tuning = tuning,
-            canCreate = state.routines.isNotEmpty(),
-            onToggleTune = { tuning = !tuning },
-            onCreate = onCreateRoutine,
-            onOpenLibrary = onOpenLibrary,
-        )
+        PlanHeader(onOpenLibrary = onOpenLibrary)
 
         if (state.isLoading) {
             ScreenLoading()
@@ -299,9 +292,25 @@ fun PlanScreen(
         }
 
         val week = state.week
-        // Proposals are drawn into the same cells as pins, so the strip always answers the
-        // same question — "what is this day?" — and the answer is styled by where it came from.
+        val weekStart = week?.weekStartEpochDay
+            ?: WeekBoard.weekStartEpochDay(today, state.preferences.weekStart)
+        LaunchedEffect(weekStart, today) {
+            val end = weekStart + 6
+            if (selectedEpochDay !in weekStart..end) {
+                selectedEpochDay = today.coerceIn(weekStart, end)
+            }
+        }
+        val names = remember(state.routines) { state.routines.associate { it.id to it.name } }
+        val cells = WeekBoard.forWeek(weekStart, state.occurrences, state.rules, names)
         val proposalsByDay = state.proposals.associateBy { it.epochDay }
+        val selectedAgenda = viewModel.agendaFor(selectedEpochDay)
+        val hasProposals = state.proposals.isNotEmpty()
+        val addSessionVolt = !hasProposals && !state.missedWorkPrompt
+        val selectedTitle = if (selectedEpochDay == today) {
+            "Today"
+        } else {
+            PlanDayCopy.weekdayTitle(Weekday.fromEpochDay(selectedEpochDay))
+        }
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -356,75 +365,72 @@ fun PlanScreen(
                 }
             }
 
-            if (week != null) {
-                item(key = "strip") {
-                    WeekStrip(
-                        days = week.days,
-                        proposals = proposalsByDay,
-                        loggedEpochDays = state.loggedEpochDays,
-                        today = today,
-                        twoADayEpochDays = DailyAgenda.twoADayEpochDays(state.occurrences),
-                        onOpenDay = { onOpenDay(it, false) },
+            item(key = "strip") {
+                WeekStrip(
+                    cells = cells,
+                    today = today,
+                    selected = selectedEpochDay,
+                    onSelectDay = { selectedEpochDay = it },
+                    proposals = proposalsByDay,
+                )
+            }
+            item(key = "summary") {
+                Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                    if (state.lighterWeek) {
+                        Text(
+                            LighterWeek.CAPTION,
+                            style = InstrumentType.caption,
+                            color = TextSecondary,
+                        )
+                    }
+                    Text(
+                        WeekBoard.summary(cells),
+                        style = InstrumentType.caption,
+                        color = TextTertiary,
+                    )
+                    PlanLighterChip(
+                        enabled = state.lighterWeek,
+                        onToggle = viewModel::setLighterWeek,
                     )
                 }
-                item(key = "summary") {
-                    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-                        if (state.lighterWeek) {
-                            Text(
-                                LighterWeek.CAPTION,
-                                style = InstrumentType.caption,
-                                color = TextSecondary,
-                            )
-                        }
-                        Text(week.summary, style = InstrumentType.caption, color = TextTertiary)
-                        TextButton(
-                            onClick = { onOpenDay(today, true) },
-                            contentPadding = PaddingValues(0.dp),
-                            modifier = Modifier
-                                .testTag(PlanTags.ADD_SESSION)
-                                .semantics {
-                                    contentDescription = PlanDayCopy.ADD_SESSION
-                                },
-                        ) {
-                            Text(
-                                PlanDayCopy.ADD_SESSION,
-                                style = InstrumentType.bodyStrong,
-                                color = TextSecondary,
-                            )
-                        }
-                        Text(
-                            PlanDayCopy.ADD_SESSION_SUBTITLE,
-                            style = InstrumentType.caption,
-                            color = TextTertiary,
-                        )
-                    }
-                }
             }
-
-            if (tuning) {
-                item(key = "tune") {
-                    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
-                        PreferenceBlock(
-                            preferences = state.preferences,
-                            onDays = viewModel::setTrainingDays,
-                            onSplit = viewModel::setSplit,
-                            onWeekStart = viewModel::setWeekStart,
-                            lighterWeek = state.lighterWeek,
-                            onLighterWeek = viewModel::setLighterWeek,
-                        )
-                        val context = LocalContext.current
-                        ReminderPrefsSection(
-                            preferences = reminderPrefs,
-                            clockFormat = LocalClockFormat.current,
-                            notificationsEnabled = rememberNotificationsEnabled(),
-                            onOptOut = viewModel::setReminderOptOut,
-                            onQuietHours = viewModel::setReminderQuietHours,
-                            onOpenNotificationSettings = {
-                                openAppNotificationSettings(context)
-                            },
+            item(key = "day-board") {
+                PlanSelectedDayBoard(
+                    title = selectedTitle,
+                    items = selectedAgenda,
+                    empty = selectedAgenda.isEmpty(),
+                    onOpenDay = { onOpenDay(selectedEpochDay, false) },
+                )
+            }
+            item(key = "add-session") {
+                if (addSessionVolt) {
+                    PrimaryGymButton(
+                        text = PlanDayCopy.ADD_SESSION,
+                        onClick = { onOpenDay(selectedEpochDay, true) },
+                        modifier = Modifier
+                            .testTag(PlanTags.ADD_SESSION)
+                            .semantics { contentDescription = PlanDayCopy.ADD_SESSION },
+                    )
+                } else {
+                    TextButton(
+                        onClick = { onOpenDay(selectedEpochDay, true) },
+                        contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier
+                            .testTag(PlanTags.ADD_SESSION)
+                            .semantics { contentDescription = PlanDayCopy.ADD_SESSION },
+                    ) {
+                        Text(
+                            PlanDayCopy.ADD_SESSION,
+                            style = InstrumentType.bodyStrong,
+                            color = TextSecondary,
                         )
                     }
                 }
+                Text(
+                    PlanDayCopy.ADD_SESSION_SUBTITLE,
+                    style = InstrumentType.caption,
+                    color = TextTertiary,
+                )
             }
 
             item(key = "commands") {
@@ -439,8 +445,9 @@ fun PlanScreen(
                     hasPins = hasPins,
                     hasRoutines = state.routines.isNotEmpty(),
                     hasOpenDay = hasOpenDay,
-                    hasProposals = state.proposals.isNotEmpty(),
-                    quiet = MissedWorkCopy.suppressRecoveryVolt(state.missedWorkPrompt),
+                    hasProposals = hasProposals,
+                    quiet = MissedWorkCopy.suppressRecoveryVolt(state.missedWorkPrompt) ||
+                        addSessionVolt,
                     onReplay = viewModel::replayStoredAnswers,
                     onSuggest = viewModel::suggestFills,
                     onAccept = viewModel::acceptFills,
@@ -452,7 +459,7 @@ fun PlanScreen(
                 item(key = "routines-empty") {
                     EmptyState(
                         title = "Build your first plan",
-                        body = "Tap a weekday. Add a workout, cardio, or a short stretch. Start lives on Home.",
+                        body = "Add session puts a workout, cardio, or stretch on the selected day. Start lives on Home.",
                         actionLabel = "Create a routine",
                         onAction = onCreateRoutine,
                     )
@@ -504,10 +511,6 @@ fun PlanScreen(
 
 @Composable
 internal fun PlanHeader(
-    tuning: Boolean,
-    canCreate: Boolean,
-    onToggleTune: () -> Unit,
-    onCreate: () -> Unit,
     onOpenLibrary: () -> Unit,
 ) {
     val stacked = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
@@ -530,24 +533,12 @@ internal fun PlanHeader(
                 color = TextPrimary,
             )
             if (!stacked) {
-                PlanHeaderActions(
-                    tuning = tuning,
-                    canCreate = canCreate,
-                    onToggleTune = onToggleTune,
-                    onCreate = onCreate,
-                    onOpenLibrary = onOpenLibrary,
-                )
+                PlanHeaderActions(onOpenLibrary = onOpenLibrary)
             }
         }
         if (stacked) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                PlanHeaderActions(
-                    tuning = tuning,
-                    canCreate = canCreate,
-                    onToggleTune = onToggleTune,
-                    onCreate = onCreate,
-                    onOpenLibrary = onOpenLibrary,
-                )
+                PlanHeaderActions(onOpenLibrary = onOpenLibrary)
             }
         }
     }
@@ -555,29 +546,8 @@ internal fun PlanHeader(
 
 @Composable
 private fun PlanHeaderActions(
-    tuning: Boolean,
-    canCreate: Boolean,
-    onToggleTune: () -> Unit,
-    onCreate: () -> Unit,
     onOpenLibrary: () -> Unit,
 ) {
-    TextButton(
-        onClick = onToggleTune,
-        modifier = Modifier
-            .heightIn(min = Metrics.touchMin)
-            .testTag(PlanTags.TUNE)
-            .semantics {
-                contentDescription = if (tuning) "Done tuning week" else PlanTags.TUNE_SPOKEN
-            },
-    ) {
-        Text(
-            if (tuning) "Done" else "Tune",
-            style = InstrumentType.bodyStrong,
-            color = TextSecondary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
     TextButton(
         onClick = onOpenLibrary,
         modifier = Modifier
@@ -593,18 +563,53 @@ private fun PlanHeaderActions(
             overflow = TextOverflow.Ellipsis,
         )
     }
-    if (canCreate) {
-        TextButton(
-            onClick = onCreate,
-            modifier = Modifier.heightIn(min = Metrics.touchMin),
-        ) {
+}
+
+@Composable
+internal fun PlanLighterChip(
+    enabled: Boolean,
+    onToggle: (Boolean) -> Unit,
+) {
+    InstrumentChip(
+        label = LighterWeek.TUNE_LABEL,
+        selected = enabled,
+        onClick = { onToggle(!enabled) },
+        modifier = Modifier.testTag(PlanTags.LIGHTER),
+    )
+}
+
+@Composable
+private fun PlanSelectedDayBoard(
+    title: String,
+    items: List<com.sinura.personaltrainer.domain.AgendaItem>,
+    empty: Boolean,
+    onOpenDay: () -> Unit,
+) {
+    val clockFormat = LocalClockFormat.current
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+        Kicker(title)
+        if (empty) {
             Text(
-                "New",
-                style = InstrumentType.bodyStrong,
-                color = TextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                PlanDayCopy.EMPTY,
+                style = InstrumentType.body,
+                color = TextPrimary,
             )
+            Text(
+                PlanDayCopy.EMPTY_BODY,
+                style = InstrumentType.caption,
+                color = TextSecondary,
+            )
+        } else {
+            GroupedList {
+                items.forEachIndexed { index, item ->
+                    if (index > 0) HairlineDivider()
+                    InstrumentRow(
+                        title = "${com.sinura.personaltrainer.domain.ClockCopy.format(item.occurrence.hour, item.occurrence.minute, clockFormat)}  ·  ${item.title}",
+                        subtitle = item.kindCaption,
+                        onClick = onOpenDay,
+                    )
+                }
+            }
         }
     }
 }
@@ -675,8 +680,8 @@ private fun routineUpdatedLabel(routine: Routine, dateFormat: DateFormat): Strin
 /**
  * FND-031: one Volt command at a time. Replay recovers an empty week that
  * already has routines. Suggest fills holes. Use this week confirms a
- * proposal. Tune and Lighter stay behind the header so they cannot stack
- * with the recovery act.
+ * proposal. Add session is the fill Volt; recovery stays quiet while that
+ * act is up. Lighter is a chip on the week, not a second filled button.
  */
 @Composable
 internal fun PlanRecoveryCommands(
@@ -792,7 +797,6 @@ private fun RecoveryCommand(
 }
 
 object PlanTags {
-    const val TUNE = "plan-tune"
     const val LIBRARY = "plan-library"
     const val REPLAY = "plan-replay"
     const val SUGGEST = "plan-suggest"
@@ -800,7 +804,6 @@ object PlanTags {
     const val DISMISS = "plan-dismiss"
     const val ADD_SESSION = "plan-add-session"
     const val LIGHTER = "plan-lighter"
-    const val TUNE_SPOKEN = "Tune week preferences"
     const val LIBRARY_SPOKEN = "Library"
 }
 

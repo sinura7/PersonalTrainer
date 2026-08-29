@@ -140,6 +140,21 @@ data class AgendaItem(
             }
         }
 
+    /** Week-strip / fill caption. Never a weekday-named routine. */
+    val kindCaption: String
+        get() {
+            val rule = rule ?: return "Workout"
+            ScheduleKind.cardioType(rule.templateId)?.let { return CardioCopy.name(it) }
+            ScheduleKind.auxPackId(rule.templateId)?.let { packId ->
+                AuxiliaryPacks.byId(packId)?.let { return it.title }
+            }
+            return when (rule.modality) {
+                ScheduleModality.CARDIO -> "Cardio"
+                ScheduleModality.MIXED -> "Mixed"
+                ScheduleModality.STRENGTH -> "Workout"
+            }
+        }
+
     val timeLabel: String =
         "${occurrence.hour.toString().padStart(2, '0')}:${occurrence.minute.toString().padStart(2, '0')}"
 }

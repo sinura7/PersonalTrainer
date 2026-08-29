@@ -83,6 +83,9 @@ data class HomeUiState(
     val setupComplete: Boolean = true,
     val bodyweightCheckInDue: Boolean = false,
     val latestBodyweightKg: Double? = null,
+    val occurrences: List<com.sinura.personaltrainer.domain.ScheduleOccurrence> = emptyList(),
+    val rules: List<com.sinura.personaltrainer.domain.ScheduleRule> = emptyList(),
+    val weekStartEpochDay: Long = 0L,
 )
 
 class HomeViewModel @JvmOverloads constructor(
@@ -175,6 +178,9 @@ class HomeViewModel @JvmOverloads constructor(
                 log = cadence.bodyweightLog,
             ),
             latestBodyweightKg = cadence.bodyweightLog.lastOrNull()?.kg,
+            occurrences = occurrences,
+            rules = rules,
+            weekStartEpochDay = weekStart,
         )
     }
         // Same reason as Plan: this transform walks every finished session to build the logged

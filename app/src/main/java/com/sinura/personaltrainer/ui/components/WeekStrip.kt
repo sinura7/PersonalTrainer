@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
@@ -22,51 +21,59 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.domain.CivilDate
+import com.sinura.personaltrainer.domain.DayFill
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
+import com.sinura.personaltrainer.domain.WeekBoard
+import com.sinura.personaltrainer.domain.WeekBoardCell
+import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.HairlineStrong
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Radius
+import com.sinura.personaltrainer.ui.theme.SurfacePressed
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
+import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
-import java.time.LocalDate
+import com.sinura.personaltrainer.ui.theme.Warn
 
 /**
  * Seven days, side by side, never scrolling.
  *
- * Shared by Plan and Home so the week is one thing rendered twice, not two things that agree
- * by convention. A Home-only variant would have drifted the moment either screen changed.
- *
- * A week you have to scroll is not a week you can see. Each cell is the same width and carries
- * the same five things in the same order, so the row reads down a shared baseline: today's
- * marker, the day letter, the date, what is on it, and whether it happened.
+ * Shared by Plan and Home. Captions come from occurrence [WeekBoardCell]s,
+ * never leftover slot-week routine names. Today is the 3 dp Volt bar.
+ * Selected (when it is not today) is a hairline bar plus a pressed fill —
+ * not a second Volt. Fill colour is rest / none / some / all, not brand green.
  */
 @Composable
 fun WeekStrip(
-    days: List<SuggestedTrainingDay>,
-    proposals: Map<Long, SuggestedTrainingDay>,
-    loggedEpochDays: Set<Long>,
+    cells: List<WeekBoardCell>,
     today: Long,
-    onOpenDay: (Long) -> Unit,
-    twoADayEpochDays: Set<Long> = emptySet(),
+    selected: Long,
+    onSelectDay: (Long) -> Unit,
+    proposals: Map<Long, SuggestedTrainingDay> = emptyMap(),
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(WeekStripTags.STRIP),
         horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
     ) {
-        days.forEach { day ->
+        cells.forEach { cell ->
             WeekCell(
-                day = day,
-                proposal = proposals[day.epochDay],
-                isToday = day.epochDay == today,
-                logged = day.epochDay in loggedEpochDays,
-                twoADay = day.epochDay in twoADayEpochDays,
-                onClick = { onOpenDay(day.epochDay) },
+                cell = cell,
+                proposal = proposals[cell.epochDay],
+                isToday = cell.epochDay == today,
+                selected = cell.epochDay == selected,
+                spoken = WeekBoard.spoken(cell, today, selected),
+                onClick = { onSelectDay(cell.epochDay) },
                 modifier = Modifier.weight(1f),
             )
         }
@@ -75,48 +82,55 @@ fun WeekStrip(
 
 @Composable
 private fun WeekCell(
-    day: SuggestedTrainingDay,
+    cell: WeekBoardCell,
     proposal: SuggestedTrainingDay?,
     isToday: Boolean,
-    logged: Boolean,
-    twoADay: Boolean,
+    selected: Boolean,
+    spoken: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val dayOfMonth = remember(day.epochDay) { LocalDate.ofEpochDay(day.epochDay).dayOfMonth }
-    val pinned = !day.isRest
+    val dayOfMonth = remember(cell.epochDay) {
+        CivilDate.fromEpochDay(cell.epochDay).dayOfMonth
+    }
+    val preview = cell.fill == DayFill.EMPTY && proposal != null && !proposal.isRest
     val label = when {
-        pinned -> day.routineName ?: day.focusTitle
-        proposal != null -> proposal.routineName ?: proposal.focusTitle
-        else -> "Rest"
+        cell.fill != DayFill.EMPTY -> cell.caption
+        preview -> proposal?.focusTitle ?: WeekBoard.REST
+        else -> WeekBoard.REST
+    }
+    val labelColor = when {
+        preview -> TextTertiary
+        cell.fill == DayFill.NONE -> Danger
+        cell.fill == DayFill.PARTIAL -> Warn
+        cell.fill == DayFill.EMPTY -> TextSecondary
+        else -> TextSecondary
     }
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(Radius.sm))
+            .background(if (selected && !isToday) SurfacePressed else Color.Transparent)
             .clickable(onClick = onClick)
             .heightIn(min = Metrics.touchMin)
-            .padding(vertical = Metrics.space1),
+            .padding(vertical = Metrics.space1)
+            .testTag(WeekStripTags.cell(cell.epochDay))
+            .semantics { contentDescription = spoken },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Metrics.space1),
     ) {
-        // The same 3dp accent rule the nav bar uses for the selected tab, so "here" means the
-        // same thing in both places. It is the strip's only accent.
         Box(
             modifier = Modifier
                 .size(width = TODAY_MARKER_WIDTH, height = TODAY_MARKER_HEIGHT)
-                .background(if (isToday) Volt else Color.Transparent),
+                .background(
+                    when {
+                        isToday -> Volt
+                        selected -> HairlineStrong
+                        else -> Color.Transparent
+                    },
+                ),
         )
-        if (twoADay) {
-            Box(
-                modifier = Modifier
-                    .size(TWO_A_DAY_MARK)
-                    .clip(CircleShape)
-                    .background(HairlineStrong)
-                    .semantics { contentDescription = "Multiple sessions" },
-            )
-        }
         Kicker(
-            day.dayOfWeek.shortLabel().take(1),
+            cell.weekday.shortLabel().take(1),
             color = if (isToday) Volt else TextSecondary,
         )
         Text(
@@ -127,16 +141,14 @@ private fun WeekCell(
         Text(
             label,
             style = InstrumentType.caption,
-            // A proposal is quieter than a pin, so a previewed week never looks like a decided
-            // one. Quiet is [TextSecondary], not [TextTertiary]: these cells are tappable.
-            color = TextSecondary,
+            color = labelColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        if (logged) {
+        if (cell.fill == DayFill.ALL) {
             Icon(
                 Icons.Outlined.Check,
-                contentDescription = "Logged",
+                contentDescription = null,
                 tint = TextSecondary,
                 modifier = Modifier.size(LOGGED_TICK),
             )
@@ -146,8 +158,11 @@ private fun WeekCell(
     }
 }
 
-// The same 3dp rule the nav bar uses for the selected tab, so "here" reads identically in both.
+object WeekStripTags {
+    const val STRIP = "week-strip"
+    fun cell(epochDay: Long): String = "week-cell-$epochDay"
+}
+
 private val TODAY_MARKER_WIDTH = 16.dp
 private val TODAY_MARKER_HEIGHT = 3.dp
 private val LOGGED_TICK = 12.dp
-private val TWO_A_DAY_MARK = 4.dp
