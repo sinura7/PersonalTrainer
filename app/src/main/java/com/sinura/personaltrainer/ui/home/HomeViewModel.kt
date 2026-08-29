@@ -15,6 +15,7 @@ import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.MissedWorkChoice
 import com.sinura.personaltrainer.domain.MissedWorkPolicy
+import com.sinura.personaltrainer.domain.MoveToToday
 import com.sinura.personaltrainer.domain.ScheduleConfidence
 import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SessionFocusKind
@@ -296,7 +297,22 @@ class HomeViewModel @JvmOverloads constructor(
     fun startOccurrence(occurrenceId: String) {
         viewModelScope.launch {
             val occurrence = container.plannerRepository.getOccurrence(occurrenceId) ?: return@launch
-            val rule = container.plannerRepository.getRule(occurrence.ruleId)
+            val today = todayEpochDay()
+            val startId = if (MoveToToday.isLeftover(occurrence, today)) {
+                when (val moved = container.plannerRepository.moveOccurrenceToDay(occurrenceId, today)) {
+                    is MoveToToday.Outcome.Relocate -> moved.created.id
+                    is MoveToToday.Outcome.AlreadyThere -> moved.occurrence.id
+                    is MoveToToday.Outcome.Blocked -> {
+                        actionError.value = moved.message
+                        return@launch
+                    }
+                    null -> return@launch
+                }
+            } else {
+                occurrenceId
+            }
+            val toStart = container.plannerRepository.getOccurrence(startId) ?: return@launch
+            val rule = container.plannerRepository.getRule(toStart.ruleId)
             when (rule?.modality ?: ScheduleModality.STRENGTH) {
                 ScheduleModality.CARDIO -> {
                     PendingOccurrence.forget(container)
@@ -316,7 +332,7 @@ class HomeViewModel @JvmOverloads constructor(
                         rpe = null,
                         routeRef = null,
                     )
-                    when (val write = container.startLiveActivity(CardioCopy.name(type), listOf(block), now, occurrence.id)) {
+                    when (val write = container.startLiveActivity(CardioCopy.name(type), listOf(block), now, toStart.id)) {
                         is ActivityWrite.Accepted -> {
                             val nowElapsed = android.os.SystemClock.elapsedRealtime()
                             val nowWall = System.currentTimeMillis()
@@ -335,16 +351,16 @@ class HomeViewModel @JvmOverloads constructor(
                     }
                 }
                 ScheduleModality.MIXED -> {
-                    PendingOccurrence.bind(container, occurrence.id)
+                    PendingOccurrence.bind(container, toStart.id)
                     _navigateToComposer.value = "mixed"
                 }
                 ScheduleModality.STRENGTH -> {
-                    PendingOccurrence.bind(container, occurrence.id)
-                    val item = AgendaItem(occurrence, rule)
+                    PendingOccurrence.bind(container, toStart.id)
+                    val item = AgendaItem(toStart, rule)
                     start(
                         SuggestedTrainingDay(
-                            epochDay = occurrence.localEpochDay,
-                            dayOfWeek = Weekday.fromEpochDay(occurrence.localEpochDay),
+                            epochDay = toStart.localEpochDay,
+                            dayOfWeek = Weekday.fromEpochDay(toStart.localEpochDay),
                             isRest = false,
                             focusKind = rule?.focusKind ?: SessionFocusKind.FULL_BODY,
                             focusTitle = item.title,
