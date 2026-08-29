@@ -93,7 +93,7 @@ class ProgressViewModel @JvmOverloads constructor(
     }
 
     /**
-     * Marks this calendar week lighter. The same write as Plan's Tune chip.
+     * Marks this calendar week lighter. The same write as Plan's lighter chip.
      *
      * Body observes insights without a week plan, so the start day is computed from
      * today and the stored week-start — not from `insights.weekPlan`.

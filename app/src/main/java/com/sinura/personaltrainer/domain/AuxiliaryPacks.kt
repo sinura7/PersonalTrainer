@@ -66,7 +66,18 @@ object AuxiliaryPacks {
         ),
     )
 
-    val all: List<AuxiliaryPack> = listOf(Stretch, LowerBack, Hips, Holds)
+    val Core = AuxiliaryPack(
+        id = "core",
+        title = "Core",
+        caption = "About eight minutes. Crunches and leg raises. Not a static hold.",
+        lifts = listOf(
+            AuxiliaryLift("ex-hanging-leg-raise", 2, 8, 30),
+            AuxiliaryLift("ex-machine-crunch", 2, 12, 30),
+            AuxiliaryLift("ex-cable-crunch", 2, 12, 30),
+        ),
+    )
+
+    val all: List<AuxiliaryPack> = listOf(Stretch, LowerBack, Hips, Holds, Core)
 
     fun byId(id: String): AuxiliaryPack? = all.firstOrNull { it.id == id }
 }

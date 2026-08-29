@@ -20,13 +20,7 @@ import com.sinura.personaltrainer.ui.theme.Pit
 private fun PlanReplayPreview() {
     PersonalTrainerTheme {
         PlanPreviewColumn {
-            PlanHeader(
-                tuning = false,
-                canCreate = true,
-                onToggleTune = {},
-                onCreate = {},
-                onOpenLibrary = {},
-            )
+            PlanHeader(onOpenLibrary = {})
             PlanRecoveryCommands(
                 hasPins = false,
                 hasRoutines = true,
@@ -65,13 +59,7 @@ private fun PlanProposalPreview() {
 private fun PlanReducedMotionPreview() {
     PersonalTrainerTheme(reduceMotion = true) {
         PlanPreviewColumn {
-            PlanHeader(
-                tuning = true,
-                canCreate = true,
-                onToggleTune = {},
-                onCreate = {},
-                onOpenLibrary = {},
-            )
+            PlanHeader(onOpenLibrary = {})
         }
     }
 }

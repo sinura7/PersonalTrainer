@@ -1,6 +1,8 @@
 # ADR-016 — Settings / Home trim
 
-- **Status:** Accepted
+- **Status:** Accepted (superseded in part by
+  [ADR-017](ADR-017-home-week-board.md): Home week strip as a day
+  picker; reminder opt-out / quiet hours return to Settings)
 - **Date:** 29 August 2026
 - **Supersedes:** [ADR-006](ADR-006-information-architecture.md) §1 Goals-as-pushed-route
   and §7 (Goals snapshot on Home) only; [ADR-014](ADR-014-settings-tab.md) §3
@@ -38,17 +40,23 @@ tab bar. Goals as a product idea were unused.
 4. **Equipment is grouped** (free weights / gym / other). Opt-out remains:
    empty set is gym floor except Hyper Pro. Generated weeks and coach recs
    honour `CoachPreferences.allows()`. Catalog seed is unchanged.
-5. **Session reminders and quiet hours live on Plan** (Tune), not Settings.
+5. **Session reminders and quiet hours lived on Plan** (Tune), not Settings.
    Existing Plan-day blocks can set an hour. Adding a block still uses
    defaults and has no clock picker. Home agenda times follow the stored
    hour and the clock format.
+   **Superseded by [ADR-017](ADR-017-home-week-board.md):** opt-out and
+   quiet hours are Settings prefs. Adding a block may set an hour. Tune
+   is gone.
 6. **Goals UI is removed.** Room goal tables, `GoalRepository`, and backup
    `measurableGoals` stay (schema freeze). There is no Goals route, no Home
    snapshot, no Plan link. Goals are not a tab. Promoting them onto the bar
    still needs a new ADR.
-7. **Home is Start**, not a second tab bar. This week, Library, Goals, the
-   training-calendar link, and the Home week strip are gone. Library stays
-   pushed from Plan, Body, and in-workout. Five tabs unchanged.
+7. **Home is Start**, not a second tab bar. This week, Library, Goals, and
+   the training-calendar *link* are gone. Library stays pushed from Plan,
+   Body, and in-workout. Five tabs unchanged.
+   **Superseded in part by [ADR-017](ADR-017-home-week-board.md):** Home
+   shows a week strip as a day picker bound to occurrences. That is not
+   a second tab bar.
 
    Shipping IA: Home · Body · Plan · History · Settings.
 
@@ -57,12 +65,17 @@ tab bar. Goals as a product idea were unused.
 - Feature packets do not restore Goals chrome or Home tab-bar duplicates.
 - Plan Tune is allowed a reminders disclosure. The Plan Volt remains
   recovery (Suggest / Replay / Use this week).
+  **Superseded by [ADR-017](ADR-017-home-week-board.md):** Tune is gone;
+  reminder prefs are Settings; Add session is the Plan Volt.
 - New display and check-in prefs travel in DataStore and in backup
   preferences. No Room schema bump.
 
 ## Review questions
 
 - Are Goals a pushed route? No. The UI is gone. Tables stay.
-- May Home show This week / Library / a calendar strip? No. Those are tabs.
-- Does adding a Plan block require a clock? No. Existing blocks may set one.
+- May Home show This week / Library / a calendar strip? This week,
+  Library, and Goals: no. A week strip as a day picker: yes
+  ([ADR-017](ADR-017-home-week-board.md)).
+- Does adding a Plan block require a clock? No. It may set one
+  ([ADR-017](ADR-017-home-week-board.md)).
 - Do Settings equipment toggles change generated weeks? Yes, via `allows()`.

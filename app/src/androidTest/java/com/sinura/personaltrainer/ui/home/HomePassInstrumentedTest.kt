@@ -148,7 +148,69 @@ class HomePassInstrumentedTest {
     }
 
     @Test
-    fun emptyWeekReplayStaysNamedAt360Font2() {
+    fun emptyDayBoardKeepsFreeAndHidesStart() {
+        setConstrainedContent(fontScale = 1f) {
+            DailyAgendaCard(
+                items = emptyList(),
+                sessionLive = false,
+                onStartOccurrence = {},
+                onStartFree = {},
+            )
+        }
+        compose.onNodeWithTag(HomeTags.START).assertDoesNotExist()
+        compose.onNodeWithTag(HomeTags.FREE).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Start a free workout").assertIsDisplayed()
+    }
+
+    @Test
+    fun weekStripCaptionsSaturdayRestWhenFridayHoldsTheWorkout() {
+        val friday = 20_000L
+        val saturday = friday + 1
+        val weekStart = friday - 4
+        val rule = ScheduleRule(
+            id = "rule-fri",
+            weekday = Weekday.FRIDAY,
+            hour = 18,
+            minute = 0,
+            modality = ScheduleModality.STRENGTH,
+            routineId = "r-friday",
+            createdAtMs = 1L,
+            updatedAtMs = 1L,
+        )
+        val occ = ScheduleOccurrence(
+            id = "occ-fri",
+            ruleId = rule.id,
+            status = OccurrenceStatus.PLANNED,
+            captured = CapturedCivilTime(1L, "UTC", 0, friday),
+            hour = 18,
+            minute = 0,
+            createdAtMs = 1L,
+            updatedAtMs = 1L,
+        )
+        val cells = com.sinura.personaltrainer.domain.WeekBoard.forWeek(
+            weekStart,
+            listOf(occ),
+            listOf(rule),
+            mapOf("r-friday" to "Friday"),
+        )
+        setConstrainedContent(fontScale = 1f) {
+            com.sinura.personaltrainer.ui.components.WeekStrip(
+                cells = cells,
+                today = saturday,
+                selected = saturday,
+                onSelectDay = {},
+            )
+        }
+        compose.onNodeWithTag(
+            com.sinura.personaltrainer.ui.components.WeekStripTags.cell(saturday),
+        ).assertIsDisplayed()
+        compose.onNodeWithTag(
+            com.sinura.personaltrainer.ui.components.WeekStripTags.cell(saturday),
+        ).assertTextContains("Rest", substring = true)
+        compose.onNodeWithTag(
+            com.sinura.personaltrainer.ui.components.WeekStripTags.cell(friday),
+        ).assertTextContains("Workout", substring = true)
+    }
         setConstrainedContent(fontScale = 2f) {
             ThisWeekCard(
                 day = null,

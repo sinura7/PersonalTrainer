@@ -15,6 +15,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -27,11 +28,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.HomeToday
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.MastheadCopy
+import com.sinura.personaltrainer.domain.PlanDayCopy
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.SessionSummary
+import com.sinura.personaltrainer.domain.WeekBoard
+import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.daysSince
@@ -53,6 +58,7 @@ import com.sinura.personaltrainer.ui.components.NumberEntryDialog
 import com.sinura.personaltrainer.ui.components.ResumeOrDiscardDialog
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.StatTile
+import com.sinura.personaltrainer.ui.components.WeekStrip
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -164,20 +170,49 @@ fun HomeScreen(
     }
 
     val today = todayEpochDay()
+    val weekStart = state.weekStartEpochDay.takeIf { it != 0L }
+        ?: today
+    var selectedEpochDay by rememberSaveable { mutableLongStateOf(today) }
+    LaunchedEffect(weekStart, today) {
+        val end = weekStart + 6
+        if (selectedEpochDay !in weekStart..end) {
+            selectedEpochDay = today.coerceIn(weekStart, end)
+        }
+    }
     val plan = state.weekPlan
-    val todayDay = plan?.dayOn(today)
-    // Read from the full logged-day set, not the three-session stat feed: a fourth session
-    // today would otherwise push today's own entry out of the window the masthead reads.
-    val loggedToday = today in state.loggedEpochDays
-    // "Nothing is planned" and "today is a planned rest day" are different sentences, and the
-    // derivation cannot tell them apart on its own — an unpinned day and a rest day are the
-    // same object.
+    val names = remember(state.routines) { state.routines.associate { it.id to it.name } }
+    val selectedAgenda = DailyAgenda.forDay(
+        selectedEpochDay,
+        state.occurrences,
+        state.rules,
+        names,
+    )
+    val leftoverSlot = plan?.dayOn(selectedEpochDay)
+    val leftoverBelongs = WeekBoard.leftoverBelongsOn(
+        selectedEpochDay,
+        leftoverSlot,
+        state.occurrences,
+        state.rules,
+    )
+    val leftoverDay = leftoverSlot.takeIf { leftoverBelongs }
+    val loggedSelected = selectedEpochDay in state.loggedEpochDays
     val hasPlan = plan?.days?.any { !it.isRest } == true
-    val liftCount = MastheadCopy.headlineLiftCount(state.agenda, todayDay, state.routines)
-    val nextDay = plan?.nextTrainingOnOrAfter(today)
-    // The session Home is actually talking about. One derivation, shared by the card's headline
-    // and by the lift list underneath it — see featuredSession.
-    val featured = featuredSession(today = todayDay, next = nextDay)
+    val liftCount = MastheadCopy.headlineLiftCount(selectedAgenda, leftoverDay, state.routines)
+    val nextDay = plan?.nextTrainingOnOrAfter(selectedEpochDay)
+    val featured = featuredSession(today = leftoverDay, next = nextDay)
+    val mastheadDay = leftoverDay ?: leftoverSlot?.copy(
+        isRest = true,
+        routineId = null,
+        routineName = null,
+    )
+    val weekCells = remember(weekStart, state.occurrences, state.rules, names) {
+        WeekBoard.forWeek(weekStart, state.occurrences, state.rules, names)
+    }
+    val dayKicker = if (selectedEpochDay == today) {
+        "Today"
+    } else {
+        PlanDayCopy.weekdayTitle(Weekday.fromEpochDay(selectedEpochDay))
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -192,17 +227,23 @@ fun HomeScreen(
         item {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
                 HomeMasthead(
-                    epochDay = today,
+                    epochDay = selectedEpochDay,
                     // The masthead describes the DAY, never the session. The live bar owns
                     // live, and a masthead that switched to narrating the workout would be a
                     // second answer to "where is my workout" on the screen that had three.
                     headline = MastheadCopy.headline(
-                        day = todayDay,
-                        loggedToday = loggedToday,
+                        day = mastheadDay,
+                        loggedToday = loggedSelected,
                         liftCount = liftCount,
                         hasPlan = hasPlan,
-                        agenda = state.agenda,
+                        agenda = selectedAgenda,
                     ),
+                )
+                WeekStrip(
+                    cells = weekCells,
+                    today = today,
+                    selected = selectedEpochDay,
+                    onSelectDay = { selectedEpochDay = it },
                 )
                 HomeStatRow(
                     lastSession = state.lastSession,
@@ -245,18 +286,19 @@ fun HomeScreen(
         }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                when (HomeToday.surface(state.agenda)) {
+                when (HomeToday.surface(selectedAgenda, leftoverBelongs)) {
                     HomeToday.Surface.AGENDA -> DailyAgendaCard(
-                        items = state.agenda,
+                        items = selectedAgenda,
                         sessionLive = inProgress != null,
                         onStartOccurrence = viewModel::startOccurrence,
                         onStartFree = { viewModel.startFreeWorkout() },
                         routines = state.routines,
+                        kicker = dayKicker,
                     )
                     HomeToday.Surface.WEEK_FALLBACK -> ThisWeekCard(
-                        day = todayDay,
+                        day = leftoverDay,
                         nextDay = nextDay,
-                        loggedToday = loggedToday,
+                        loggedToday = loggedSelected,
                         sessionLive = inProgress != null,
                         hasRoutines = state.routines.isNotEmpty(),
                         lifts = leftoverLiftNames(featured, state.routines),
@@ -274,7 +316,7 @@ fun HomeScreen(
                             onOpenPlan()
                         },
                         onPrimary = {
-                            todayDay?.takeUnless { it.isRest }?.let(viewModel::startSuggestedDay)
+                            leftoverDay?.takeUnless { it.isRest }?.let(viewModel::startSuggestedDay)
                         },
                         onStartFree = { viewModel.startFreeWorkout() },
                     )

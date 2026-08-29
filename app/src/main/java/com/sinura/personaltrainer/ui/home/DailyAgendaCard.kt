@@ -51,38 +51,52 @@ fun DailyAgendaCard(
     onStartOccurrence: (String) -> Unit,
     onStartFree: () -> Unit,
     routines: List<Routine> = emptyList(),
+    kicker: String = "Today",
 ) {
     val clockFormat = com.sinura.personaltrainer.ui.units.LocalClockFormat.current
     val startTagId = HomeToday.startTagOccurrenceId(items)
     val startItem = items.firstOrNull { it.occurrence.id == startTagId }
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
-        Kicker("Today")
-        if (items.size > 1) {
+        Kicker(kicker)
+        if (items.isEmpty()) {
+            Text(
+                com.sinura.personaltrainer.domain.PlanDayCopy.EMPTY,
+                style = InstrumentType.body,
+                color = TextPrimary,
+            )
+            Text(
+                com.sinura.personaltrainer.domain.PlanDayCopy.EMPTY_BODY,
+                style = InstrumentType.caption,
+                color = TextSecondary,
+            )
+        } else if (items.size > 1) {
             Text(
                 SessionOrderCopy.AGENDA_SEPARATE,
                 style = InstrumentType.caption,
                 color = TextSecondary,
             )
         }
-        GroupedList {
-            items.forEachIndexed { index, item ->
-                if (index > 0) HairlineDivider()
-                val planned = item.occurrence.status == OccurrenceStatus.PLANNED
-                val names = sessionLiftNames(item.rule?.routineId, routines)
-                val tagged = item.occurrence.id == startTagId
-                InstrumentRow(
-                    title = "${com.sinura.personaltrainer.domain.ClockCopy.format(item.occurrence.hour, item.occurrence.minute, clockFormat)}  ·  ${item.title}",
-                    subtitle = SessionOrderCopy.occurrenceLine(
-                        item.occurrence.status,
-                        names,
-                        item.rule?.modality ?: ScheduleModality.STRENGTH,
-                    ),
-                    onClick = if (planned && !sessionLive && !tagged) {
-                        { onStartOccurrence(item.occurrence.id) }
-                    } else {
-                        null
-                    },
-                )
+        if (items.isNotEmpty()) {
+            GroupedList {
+                items.forEachIndexed { index, item ->
+                    if (index > 0) HairlineDivider()
+                    val planned = item.occurrence.status == OccurrenceStatus.PLANNED
+                    val names = sessionLiftNames(item.rule?.routineId, routines)
+                    val tagged = item.occurrence.id == startTagId
+                    InstrumentRow(
+                        title = "${com.sinura.personaltrainer.domain.ClockCopy.format(item.occurrence.hour, item.occurrence.minute, clockFormat)}  ·  ${item.title}",
+                        subtitle = SessionOrderCopy.occurrenceLine(
+                            item.occurrence.status,
+                            names,
+                            item.rule?.modality ?: ScheduleModality.STRENGTH,
+                        ),
+                        onClick = if (planned && !sessionLive && !tagged) {
+                            { onStartOccurrence(item.occurrence.id) }
+                        } else {
+                            null
+                        },
+                    )
+                }
             }
         }
         if (sessionLive) {

@@ -37,7 +37,8 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 
 /**
- * Session reminder opt-out and quiet hours. Lives on Plan Tune (ADR-016).
+ * Session reminder opt-out and quiet hours. Lives on Settings (ADR-017).
+ * Session hours stay on the Plan day.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

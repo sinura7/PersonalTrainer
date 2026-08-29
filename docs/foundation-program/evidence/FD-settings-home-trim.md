@@ -14,8 +14,11 @@ weeks, reminders on Plan, Goals UI gone, Home is Start.
 - Equipment is grouped. `CoachPreferences.allows()` filters generated
   weeks and recs.
 - Reminders and session hours live on Plan Tune / the day page.
+  **Later:** [ADR-017](../../architecture/ADR-017-home-week-board.md)
+  moved reminder prefs to Settings and put hours on add as well.
 - Goals UI is unwired. Room tables stay.
-- Home no longer repeats This week, Goals, Library, or a calendar strip.
+- Home no longer repeats This week, Goals, Library, or a training-calendar
+  link. **Later:** ADR-017 restores a week strip as a day picker.
 
 ## Commands
 

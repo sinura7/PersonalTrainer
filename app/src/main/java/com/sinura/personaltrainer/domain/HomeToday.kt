@@ -10,8 +10,8 @@ package com.sinura.personaltrainer.domain
 object HomeToday {
     enum class Surface { AGENDA, WEEK_FALLBACK }
 
-    fun surface(agenda: List<AgendaItem>): Surface =
-        if (agenda.isNotEmpty()) Surface.AGENDA else Surface.WEEK_FALLBACK
+    fun surface(agenda: List<AgendaItem>, leftoverBelongs: Boolean = false): Surface =
+        if (agenda.isEmpty() && leftoverBelongs) Surface.WEEK_FALLBACK else Surface.AGENDA
 
     /**
      * The one Home Start tag. Prefers the first planned strength so

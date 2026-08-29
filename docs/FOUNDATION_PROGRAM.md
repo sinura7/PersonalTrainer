@@ -48,8 +48,8 @@ Supporting decisions that later packets also treat as closed:
 - Missed work keeps recurrence unchanged and asks once ([ADR-012](architecture/ADR-012-rest-and-reminders.md)).
 - KMP and cloud sync have start gates and do not begin because they are interesting ([ADR-003](architecture/ADR-003-shipping-platform.md), [ADR-009](architecture/ADR-009-backup-privacy-sync.md)).
 - FND-037 is a numbering gap, not a finding ([ADR-013](architecture/ADR-013-finding-dispositions.md)).
-- Plan is a schedule workshop; Start is Home. A weekday is a pushed page of untimed workout / cardio / auxiliary blocks ([ADR-015](architecture/ADR-015-plan-day-blocks.md)).
-- Settings display, weekly weigh-in, and equipment filters share the questionnaire store; Goals UI is gone; Home is Start, not a second tab bar ([ADR-016](architecture/ADR-016-settings-home-trim.md)).
+- Plan is a schedule workshop; Start is Home. A weekday is a pushed page of workout / cardio / auxiliary blocks. Adding a block may set an hour ([ADR-015](architecture/ADR-015-plan-day-blocks.md), [ADR-017](architecture/ADR-017-home-week-board.md)).
+- Settings display, weekly weigh-in, and equipment filters share the questionnaire store; Goals UI is gone; reminder prefs live on Settings; Home is the day’s board with a week picker ([ADR-016](architecture/ADR-016-settings-home-trim.md), [ADR-017](architecture/ADR-017-home-week-board.md)).
 
 There is **no remaining TBD** that would change schema, scheduling, privacy,
 or entitlement design. Implementation packets refine mechanisms inside
@@ -724,8 +724,9 @@ Implements [ADR-007](architecture/ADR-007-activity-model.md),
   the active-workout Volt act have named controls, one Volt action, and
   360 dp / font 2.0 evidence. Body map hotspots are a sighted shortcut;
   TalkBack uses the 48 dp muscle rows (FND-023). Plan recovery is one
-  Volt command; Tune / Lighter stay disclosed (FND-031). Library stays
-  a pushed route (FND-032). FND-044 remains evidence-only — no
+  Volt command; Add session is the Plan fill act (ADR-017). Lighter stays
+  a quiet Plan chip. Library stays a pushed route (FND-032). FND-044
+  remains evidence-only — no
   Switch/FAB/menu skin without a golden mismatch.
   Evidence:
   [P9.6 Home evidence](foundation-program/evidence/P9.6-home.md),

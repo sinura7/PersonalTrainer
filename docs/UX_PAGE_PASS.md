@@ -145,8 +145,9 @@ keeps the draft.
   ~~Card never knows about live, so it still says Start.~~ That Start would lie.
 - `LinkRow` is a full-width 48 dp row. Label and trailing ellipsize.
   Rec Why is a dialog; the card tap does not wrap it.
-- Home is Start, not a second tab bar. This week, Goals, Library, and
-  the calendar strip are gone. Weekly weigh-in is a quiet card on the
+- Home is Start, not a second tab bar. This week, Goals, and Library
+  stay off this screen. A week strip is the day’s picker, bound to
+  occurrences. Weekly weigh-in is a quiet card on the
   check-in day.
 
 ### 4 — Start sheet + live bar · **done**
@@ -193,8 +194,8 @@ keeps the draft.
   secondary gym buttons. Copy never says “recurrence”.
 - Plan day Start sits **under** the grouped occurrence list, not inside
   the window. Day sheets skip the half-expanded detent.
-- Reminders sit behind Tune, not on Settings. Existing day-page blocks
-  can set an hour. Adding a block still has no clock picker.
+- Reminders sit on Settings. Existing and new day-page blocks
+  can set an hour.
 
 ### 6 — Editor · **done** (this pass)
 
@@ -289,13 +290,14 @@ and the screen says so *before* the tap, not only after the repository refuses.
 - Equipment is grouped (free weights / gym / other) and filters
   generated weeks and recs.
 - Weekly bodyweight check-in day. Auto is the first training day.
-- Reminders are not on this screen. They live on Plan Tune.
+- Reminders are on this screen (opt-out and quiet hours). Session
+  hours live on the Plan day.
 
 **Won't.** Silent WorkManager Drive upload. Renaming the Drive folder.
 Inventing a casual `TrainerDatabase` v3 during a page pass. Job 5 / P5 is a
 stale-backup prompt, still a tap. The foundation cutover is not this file.
-Settings is a tab, not a gear on Home or Plan. Reminders are not a
-Settings control.
+Settings is a tab, not a gear on Home or Plan. Reminder prefs live
+here. Session hours live on the Plan day.
 
 ---
 
@@ -319,6 +321,14 @@ Job 4 / P1. Home empty-week volt becomes replay when routines exist
 ## Floor findings (newest first)
 
 Record every deviation here. Oldest stay; do not delete.
+
+Owner asked for **Home as the day’s board** (29 Aug 2026): a selectable
+week on Home, bound to occurrences so Saturday is Saturday. Completion
+is rest / none / some / all on planned blocks (Danger / Warn / check,
+not Volt-green cells). Plan is fill-the-day. Add session is the Volt.
+Tune and header New are gone. Reminder prefs return to Settings. Adding
+a block may set an hour. Core is a fifth auxiliary pack from existing
+ids ([ADR-017](architecture/ADR-017-home-week-board.md)).
 
 Owner asked for **Settings / Home trim** (29 Aug 2026): Display at the
 top (lbs/kg, Regular/Military). Schedule and coaching share the
@@ -431,8 +441,11 @@ and a 240 dp ring on the log stay won’ts.
 28. **Settings / Home trim.** Display is lbs/kg and Regular/Military.
     Schedule and coaching share the questionnaire. Weekly weigh-in
     follows the first training day. Equipment groups filter generated
-    weeks. Reminders live on Plan. Goals UI is gone. Home is Start,
+    weeks. Goals UI is gone. Home is Start,
     not a second tab bar.
+29. **Home week board.** Selectable week on Home, bound to occurrences.
+    Completion is rest / none / some / all. Plan Add session is the
+    Volt. Tune / New gone. Reminder prefs on Settings. Hours on the day.
 
 ---
 

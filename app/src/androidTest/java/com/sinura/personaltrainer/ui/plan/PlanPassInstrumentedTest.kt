@@ -9,6 +9,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -17,7 +18,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sinura.personaltrainer.domain.LighterWeek
-import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.WeekTwoCopy
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import org.junit.Rule
@@ -25,8 +25,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * P9.6 Plan / FND-031: one Volt recovery command; Tune and Lighter stay
- * disclosed. 360 dp / font 2.0 keeps the named acts.
+ * P9.6 Plan / FND-031: Add session is the fill Volt; Tune / New are gone.
+ * Recovery stays named. 360 dp / font 2.0 keeps the named acts.
  */
 @RunWith(AndroidJUnit4::class)
 class PlanPassInstrumentedTest {
@@ -34,15 +34,9 @@ class PlanPassInstrumentedTest {
     val compose = createComposeRule()
 
     @Test
-    fun emptyWeekReplayIsTheVoltActAt360Font2() {
+    fun emptyWeekReplayStaysNamedAt360Font2() {
         setConstrainedContent(2f) {
-            PlanHeader(
-                tuning = false,
-                canCreate = true,
-                onToggleTune = {},
-                onCreate = {},
-                onOpenLibrary = {},
-            )
+            PlanHeader(onOpenLibrary = {})
             PlanRecoveryCommands(
                 hasPins = false,
                 hasRoutines = true,
@@ -57,11 +51,11 @@ class PlanPassInstrumentedTest {
         compose.onNodeWithTag(PlanTags.REPLAY).assertIsDisplayed()
         compose.onNodeWithContentDescription(WeekTwoCopy.VOLT).assertIsDisplayed()
         compose.onNodeWithTag(PlanTags.SUGGEST).assertIsDisplayed()
-        compose.onNodeWithTag(PlanTags.TUNE).assertIsDisplayed()
-        compose.onNodeWithContentDescription(PlanTags.TUNE_SPOKEN).assertIsDisplayed()
         compose.onNodeWithTag(PlanTags.LIBRARY).assertIsDisplayed()
         compose.onNodeWithTag(PlanTags.USE_WEEK).assertDoesNotExist()
         compose.onNodeWithContentDescription("Settings").assertDoesNotExist()
+        compose.onNodeWithText("Tune").assertDoesNotExist()
+        compose.onNodeWithText("New").assertDoesNotExist()
     }
 
     @Test
@@ -84,16 +78,9 @@ class PlanPassInstrumentedTest {
     }
 
     @Test
-    fun lighterWeekStaysBehindTune() {
+    fun lighterWeekChipIsOnTheWeek() {
         setConstrainedContent(1f) {
-            PreferenceBlock(
-                preferences = SchedulePreferences(),
-                onDays = {},
-                onSplit = {},
-                onWeekStart = {},
-                lighterWeek = false,
-                onLighterWeek = {},
-            )
+            PlanLighterChip(enabled = false, onToggle = {})
         }
         compose.onNodeWithTag(PlanTags.LIGHTER).assertIsDisplayed()
         compose.onNodeWithText(LighterWeek.TUNE_LABEL).assertIsDisplayed()

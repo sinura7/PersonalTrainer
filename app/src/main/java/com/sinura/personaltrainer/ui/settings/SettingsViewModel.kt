@@ -23,6 +23,7 @@ import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RestTimerPreferences
+import com.sinura.personaltrainer.domain.ReminderPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.TrainingEmphasis
@@ -117,6 +118,14 @@ class SettingsViewModel @JvmOverloads constructor(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000),
                 initialValue = SchedulePreferences.DEFAULT,
+            )
+
+    val reminderPreferences: StateFlow<ReminderPreferences> =
+        container.preferencesRepository.reminderPreferences
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = ReminderPreferences.DEFAULT,
             )
 
     val restTimerPreferences: StateFlow<RestTimerPreferences> =
@@ -348,6 +357,20 @@ class SettingsViewModel @JvmOverloads constructor(
     fun setWeekStart(day: Weekday) {
         viewModelScope.launch {
             container.preferencesRepository.setWeekStart(day)
+        }
+    }
+
+    fun setReminderOptOut(optOut: Boolean) {
+        viewModelScope.launch {
+            container.preferencesRepository.setReminderOptOut(optOut)
+        }
+    }
+
+    fun setReminderQuietHours(startHour: Int, endHour: Int) {
+        viewModelScope.launch {
+            runCatchingCancellable {
+                container.preferencesRepository.setReminderQuietHours(startHour, endHour)
+            }.onFailure { AppLog.w(TAG, "Saving reminder quiet hours failed", it) }
         }
     }
 

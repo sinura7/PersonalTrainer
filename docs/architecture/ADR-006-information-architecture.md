@@ -3,7 +3,8 @@
 - **Status:** Accepted (superseded in part by
   [ADR-014](ADR-014-settings-tab.md): Settings is a fifth tab. Library
   remains pushed. [ADR-016](ADR-016-settings-home-trim.md) removes the
-  Goals UI. The reconsideration gate still binds a sixth tab.)
+  Goals UI. [ADR-017](ADR-017-home-week-board.md) removes Tune as a
+  Plan command. The reconsideration gate still binds a sixth tab.)
 - **Date:** 24 August 2026
 - **Supersedes:** Five-tab shipping IA (Library on the bar); three-tab
   UI_REDESIGN §6 as a live target. Historical D1 remains the *reason*
@@ -64,9 +65,11 @@ below fails.
    tab without passing (5), is rejected.
 7. Goals UI is removed ([ADR-016](ADR-016-settings-home-trim.md)). Room
    goal tables stay. Goals are not a tab and are not a pushed route.
-8. Plan command vocabulary (Suggest / Replay / Tune / Lighter) remains four
-   ideas. Evidence may change copy and disclosure, not collapse the ideas
-   into one control.
+8. Plan command vocabulary (Suggest / Replay / Lighter) remains three
+   ideas plus **Add session** as the fill act
+   ([ADR-017](ADR-017-home-week-board.md)). Tune is gone (days / split /
+   week-start live on Settings). Evidence may change copy and
+   disclosure, not collapse Suggest into Replay.
 
 ## Consequences
 

@@ -6,10 +6,10 @@ import org.junit.Test
 
 class AuxiliaryPacksTest {
     @Test
-    fun fourPacksReferenceExistingCatalogIds() {
+    fun fivePacksReferenceExistingCatalogIds() {
         val ids = DefaultExercises.catalog().map { it.id }.toSet()
         assertEquals(
-            listOf("stretch", "lower-back", "hips", "holds"),
+            listOf("stretch", "lower-back", "hips", "holds", "core"),
             AuxiliaryPacks.all.map { it.id },
         )
         AuxiliaryPacks.all.forEach { pack ->
@@ -21,5 +21,6 @@ class AuxiliaryPacksTest {
             }
         }
         assertEquals(AuxiliaryPacks.Stretch, AuxiliaryPacks.byId("stretch"))
+        assertEquals(AuxiliaryPacks.Core, AuxiliaryPacks.byId("core"))
     }
 }
