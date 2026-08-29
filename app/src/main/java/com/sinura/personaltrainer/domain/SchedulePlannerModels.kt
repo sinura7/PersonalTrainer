@@ -124,13 +124,20 @@ data class AgendaItem(
     val routineName: String? = null,
 ) {
     val title: String
-        get() = when (rule?.modality ?: ScheduleModality.STRENGTH) {
-            ScheduleModality.CARDIO -> "Cardio"
-            ScheduleModality.MIXED -> "Mixed"
-            ScheduleModality.STRENGTH ->
-                routineName?.takeIf { it.isNotBlank() }
-                    ?: rule?.focusKind?.label
-                    ?: "Strength"
+        get() {
+            val rule = rule ?: return "Strength"
+            ScheduleKind.cardioType(rule.templateId)?.let { return CardioCopy.name(it) }
+            ScheduleKind.auxPackId(rule.templateId)?.let { packId ->
+                AuxiliaryPacks.byId(packId)?.let { return it.title }
+            }
+            return when (rule.modality) {
+                ScheduleModality.CARDIO -> "Cardio"
+                ScheduleModality.MIXED -> "Mixed"
+                ScheduleModality.STRENGTH ->
+                    routineName?.takeIf { it.isNotBlank() }
+                        ?: rule.focusKind?.label
+                        ?: "Strength"
+            }
         }
 
     val timeLabel: String =

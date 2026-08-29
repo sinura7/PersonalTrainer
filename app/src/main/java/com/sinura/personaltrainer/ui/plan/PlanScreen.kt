@@ -41,6 +41,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.MissedWorkCopy
+import com.sinura.personaltrainer.domain.PlanDayCopy
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.WeekTwoCopy
@@ -57,7 +58,6 @@ import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
-import com.sinura.personaltrainer.ui.components.ResumeOrDiscardDialog
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.WeekStrip
 import com.sinura.personaltrainer.ui.theme.Haptics
@@ -73,7 +73,6 @@ import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Volt
-import com.sinura.personaltrainer.ui.workout.StartOptionsSheet
 import java.text.DateFormat
 import java.util.Date
 
@@ -257,42 +256,19 @@ private fun BlockReviewPanel(review: BlockReview) {
 fun PlanScreen(
     onCreateRoutine: () -> Unit,
     onOpenRoutine: (String) -> Unit,
-    onWorkoutStarted: (String) -> Unit,
     onOpenLibrary: () -> Unit,
+    onOpenDay: (Long, Boolean) -> Unit,
     onOpenGoals: () -> Unit = {},
-    onLogActivity: (String) -> Unit = {},
-    onOpenLiveCardio: (String) -> Unit = {},
     viewModel: PlanViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val navigateToSession by viewModel.navigateToSession.collectAsStateWithLifecycle()
-    val navigateToCardio by viewModel.navigateToCardio.collectAsStateWithLifecycle()
-    val navigateToComposer by viewModel.navigateToComposer.collectAsStateWithLifecycle()
     val navigateToEditor by viewModel.navigateToEditor.collectAsStateWithLifecycle()
-    val blocked by viewModel.blockedByInProgress.collectAsStateWithLifecycle()
     val dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM)
     val today = remember { todayEpochDay() }
 
     var tuning by rememberSaveable { mutableStateOf(false) }
-    var openDay by rememberSaveable { mutableStateOf<Long?>(null) }
     var pendingDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
-    var startOptionsOpen by rememberSaveable { mutableStateOf(false) }
 
-    LaunchedEffect(navigateToSession) {
-        val target = navigateToSession ?: return@LaunchedEffect
-        onWorkoutStarted(target)
-        viewModel.onSessionNavigationHandled()
-    }
-    LaunchedEffect(navigateToCardio) {
-        val target = navigateToCardio ?: return@LaunchedEffect
-        onOpenLiveCardio(target)
-        viewModel.onCardioNavigationHandled()
-    }
-    LaunchedEffect(navigateToComposer) {
-        val mode = navigateToComposer ?: return@LaunchedEffect
-        onLogActivity(mode)
-        viewModel.onComposerNavigationHandled()
-    }
     LaunchedEffect(navigateToEditor) {
         val id = navigateToEditor ?: return@LaunchedEffect
         onOpenRoutine(id)
@@ -383,7 +359,7 @@ fun PlanScreen(
                         loggedEpochDays = state.loggedEpochDays,
                         today = today,
                         twoADayEpochDays = DailyAgenda.twoADayEpochDays(state.occurrences),
-                        onOpenDay = { openDay = it },
+                        onOpenDay = { onOpenDay(it, false) },
                     )
                 }
                 item(key = "summary") {
@@ -407,6 +383,26 @@ fun PlanScreen(
                                 color = TextSecondary,
                             )
                         }
+                        TextButton(
+                            onClick = { onOpenDay(today, true) },
+                            contentPadding = PaddingValues(0.dp),
+                            modifier = Modifier
+                                .testTag(PlanTags.ADD_SESSION)
+                                .semantics {
+                                    contentDescription = PlanDayCopy.ADD_SESSION
+                                },
+                        ) {
+                            Text(
+                                PlanDayCopy.ADD_SESSION,
+                                style = InstrumentType.bodyStrong,
+                                color = TextSecondary,
+                            )
+                        }
+                        Text(
+                            PlanDayCopy.ADD_SESSION_SUBTITLE,
+                            style = InstrumentType.caption,
+                            color = TextTertiary,
+                        )
                     }
                 }
             }
@@ -449,7 +445,7 @@ fun PlanScreen(
                 item(key = "routines-empty") {
                     EmptyState(
                         title = "Build your first plan",
-                        body = "Open a weekday on the strip. Name that day, add lifts, sets and reps. Cardio can sit on the same day.",
+                        body = "Tap a weekday. Add a workout, cardio, or a short stretch. Start lives on Home.",
                         actionLabel = "Create a routine",
                         onAction = onCreateRoutine,
                     )
@@ -480,88 +476,6 @@ fun PlanScreen(
                 }
             }
         }
-    }
-
-    val sheetDay = openDay?.let { epochDay ->
-        state.week?.days?.firstOrNull { it.epochDay == epochDay }
-            ?: state.proposals.firstOrNull { it.epochDay == epochDay }
-    }
-    if (sheetDay != null) {
-        PlanDaySheet(
-            day = sheetDay,
-            routines = state.routines,
-            isPast = sheetDay.epochDay < today,
-            logged = sheetDay.epochDay in state.loggedEpochDays,
-            onPinRoutine = { routineId ->
-                openDay = null
-                viewModel.pinRoutine(sheetDay.epochDay, routineId)
-            },
-            onPinFocus = { kind ->
-                openDay = null
-                viewModel.pinFocus(sheetDay.epochDay, kind)
-            },
-            onSwapRoutine = { routineId ->
-                openDay = null
-                sheetDay.slotId?.let { viewModel.swapRoutine(it, routineId) }
-            },
-            onEditRoutine = sheetDay.routineId?.let { routineId ->
-                {
-                    openDay = null
-                    onOpenRoutine(routineId)
-                }
-            },
-            onUnpin = {
-                openDay = null
-                sheetDay.slotId?.let(viewModel::unpin)
-            },
-            onDismiss = { openDay = null },
-            occurrences = viewModel.agendaFor(sheetDay.epochDay),
-            onStartOccurrence = { occurrenceId ->
-                openDay = null
-                viewModel.startOccurrence(occurrenceId)
-            },
-            onAddMorningCardio = {
-                viewModel.addMorningCardio(sheetDay.epochDay)
-            },
-            onAddLaterSession = { routineId ->
-                viewModel.addLaterSession(sheetDay.epochDay, routineId)
-            },
-            onComposeLaterSession = {
-                openDay = null
-                viewModel.composeLaterSession(sheetDay.epochDay)
-            },
-            onRemoveTimedRule = { ruleId ->
-                viewModel.removeTimedRule(ruleId)
-            },
-            onBuildDay = {
-                openDay = null
-                viewModel.buildDay(sheetDay.epochDay)
-            },
-            onStartFree = {
-                openDay = null
-                startOptionsOpen = true
-            },
-            sessionLive = state.inProgress != null,
-        )
-    }
-
-    if (startOptionsOpen) {
-        StartOptionsSheet(
-            onDismiss = { startOptionsOpen = false },
-            onWorkoutStarted = onWorkoutStarted,
-            onLogPast = { onLogActivity("strength") },
-            onLogCardio = { onLogActivity("cardio") },
-            onLogMixed = { onLogActivity("mixed") },
-            onOpenLiveActivity = onOpenLiveCardio,
-        )
-    }
-
-    if (blocked != null) {
-        ResumeOrDiscardDialog(
-            onResume = viewModel::resumeBlocked,
-            onDiscardAndStart = viewModel::discardBlockedAndStart,
-            onDismiss = viewModel::dismissBlockedStart,
-        )
     }
 
     pendingDeleteId?.let { id ->
@@ -878,6 +792,7 @@ object PlanTags {
     const val USE_WEEK = "plan-use-week"
     const val DISMISS = "plan-dismiss"
     const val GOALS = "plan-goals"
+    const val ADD_SESSION = "plan-add-session"
     const val LIGHTER = "plan-lighter"
     const val TUNE_SPOKEN = "Tune week preferences"
     const val LIBRARY_SPOKEN = "Library"

@@ -50,7 +50,15 @@ object AccessibilityMatrix {
             title = "Plan",
             states = requiredStates,
             voltAction = "Use my answers again, Suggest a week, or Use this week — one Volt",
-            talkBackNotes = "Tune and Library are named. Lighter stays behind Tune. Settings is a tab, not a header gear.",
+            talkBackNotes = "Tune, Library, and Add session are named. Start is Home, not Plan. Lighter stays behind Tune. Settings is a tab, not a header gear.",
+            automatedEvidence = true,
+        ),
+        PagePass(
+            id = "plan-day",
+            title = "Plan day",
+            states = requiredStates,
+            voltAction = "Add session",
+            talkBackNotes = "Back and Add session are named. Session rows open the editor. Remove deletes. No Start, Swap, or Unpin. Clocks are hidden.",
             automatedEvidence = true,
         ),
         PagePass(

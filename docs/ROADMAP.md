@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 29 Aug 2026 — Plan is a schedule workshop. A weekday is a pushed
+> page of untimed blocks (workout, cardio, auxiliary). Start is Home.
+> No Start Cardio, Swap, or Unpin. Add session is on Plan and the day
+> page. Live test 8 is this drop ([ADR-015](architecture/ADR-015-plan-day-blocks.md)).
+>
 > 29 Aug 2026 — Settings is the fifth tab. The gear is gone from Home
 > and Plan. Library and Goals stay pushed.
 >
@@ -33,7 +38,7 @@
 > screen (chronometer, not overlay rest on the log).
 >
 > 29 Aug 2026 — Temper Debug Obtainium drops bump `debugLiveCode`.
-> Live test 7 is the Settings tab (fifth tab, no gears on Home/Plan).
+> Live test 8 is Plan day blocks (pushed day page, no Start on Plan).
 > Same versionCode is why a check for updates can show nothing.
 >
 > 28 Aug 2026 — Phone lane is Obtainium, not Android Studio. Cursor

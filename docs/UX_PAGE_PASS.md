@@ -50,7 +50,7 @@ The written plan **wins** when the floor idea:
 - invents a new route
 - renames the package, Room version, or Drive folder
 - uses `fallbackToDestructiveMigration`
-- adds Start/Resume on a screen that is not Home, the start sheet, a Plan day, or Repeat
+- adds Start/Resume on a screen that is not Home, the start sheet, or Repeat
 
 If you deviate, do not silently overwrite the gate. Strike the old line, add the
 finding, keep the gate honest.
@@ -303,6 +303,12 @@ Job 4 / P1. Home empty-week volt becomes replay when routines exist
 ## Floor findings (newest first)
 
 Record every deviation here. Oldest stay; do not delete.
+
+Owner asked for **Plan as a day-block schedule** (29 Aug 2026): tapping
+a weekday opens a pushed page, not a sheet. Workout, cardio, and short
+auxiliary / longevity blocks. No clocks on the page. No Start Cardio,
+Swap, or Unpin. Add session lives on Plan and as the day page Volt.
+Start lives on Home. Catalog seed stays a won’t.
 
 Owner asked for **Settings as the fifth tab** (29 Aug 2026): the gear
 leaves Home and Plan. Settings is a dedicated tab. The bar stays

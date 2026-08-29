@@ -98,6 +98,7 @@ class PlannerRepository(
         minute: Int,
         modality: ScheduleModality,
         routineId: String? = null,
+        templateId: String? = null,
         nowMs: Long = time.nowMillis(),
     ): ScheduleRule {
         val rule = ScheduleRule(
@@ -108,6 +109,7 @@ class PlannerRepository(
             modality = modality,
             zonePolicy = ZonePolicy.FOLLOW_DEVICE,
             routineId = routineId,
+            templateId = templateId,
             reminderOffsetMinutes = 0,
             enabled = true,
             createdAtMs = nowMs,

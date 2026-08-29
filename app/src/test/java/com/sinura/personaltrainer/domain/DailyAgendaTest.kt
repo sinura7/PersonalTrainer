@@ -25,6 +25,34 @@ class DailyAgendaTest {
     }
 
     @Test
+    fun typedCardioTitleUsesTheCardioName() {
+        val day = 20_000L
+        val items = DailyAgenda.forDay(
+            day,
+            listOf(occ("c", "r-c", day, 7)),
+            listOf(
+                rule("r-c", ScheduleModality.CARDIO)
+                    .copy(templateId = ScheduleKind.cardio(CardioType.WALK)),
+            ),
+        )
+        assertEquals("Walk", items.single().title)
+    }
+
+    @Test
+    fun auxiliaryTitleUsesThePackName() {
+        val day = 20_000L
+        val items = DailyAgenda.forDay(
+            day,
+            listOf(occ("a", "r-a", day, 20)),
+            listOf(
+                rule("r-a", ScheduleModality.STRENGTH)
+                    .copy(templateId = ScheduleKind.aux("stretch")),
+            ),
+        )
+        assertEquals("Stretch", items.single().title)
+    }
+
+    @Test
     fun startableKeepsOnlyPlanned() {
         val day = 20_000L
         val planned = occ("p", "r", day, 7)

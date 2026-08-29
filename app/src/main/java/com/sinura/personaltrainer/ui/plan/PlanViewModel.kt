@@ -7,10 +7,14 @@ import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.AgendaItem
+import com.sinura.personaltrainer.domain.AuxiliaryPack
+import com.sinura.personaltrainer.domain.AuxiliaryPacks
 import com.sinura.personaltrainer.domain.CardioBlock
+import com.sinura.personaltrainer.domain.CardioCopy
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.CustomWeekPolicy
+import com.sinura.personaltrainer.domain.ScheduleKind
 import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.ExistingLayoutMatcher
 import com.sinura.personaltrainer.domain.MissedWorkChoice
@@ -510,12 +514,22 @@ class PlanViewModel @JvmOverloads constructor(
     }
 
     fun addMorningCardio(epochDay: Long) {
-        write("Could not add morning cardio. Try again.") {
+        addCardio(epochDay, CardioType.RUN)
+    }
+
+    fun addCardio(epochDay: Long, type: CardioType) {
+        write("Could not add cardio. Try again.") {
+            val weekday = dayOfWeekFor(epochDay)
+            val already = container.plannerRepository.rules().any {
+                it.weekday == weekday && it.modality == ScheduleModality.CARDIO
+            }
+            if (already) return@write
             container.plannerRepository.addTimedRule(
-                weekday = dayOfWeekFor(epochDay),
+                weekday = weekday,
                 hour = SlotRuleImport.DEFAULT_CARDIO_HOUR,
                 minute = 0,
                 modality = ScheduleModality.CARDIO,
+                templateId = ScheduleKind.cardio(type),
             )
             refreshPlanner()
         }
@@ -541,6 +555,64 @@ class PlanViewModel @JvmOverloads constructor(
             )
             refreshPlanner()
         }
+    }
+
+    fun addAuxiliary(epochDay: Long, packId: String) {
+        val pack = AuxiliaryPacks.byId(packId) ?: return
+        write("Could not add that block. Try again.") {
+            val weekday = dayOfWeekFor(epochDay)
+            val tag = ScheduleKind.aux(pack.id)
+            val already = container.plannerRepository.rules().any {
+                it.weekday == weekday && it.templateId == tag
+            }
+            if (already) return@write
+            val routineId = ensureAuxiliaryRoutine(pack)
+            val hours = container.plannerRepository.rules()
+                .filter { it.weekday == weekday }
+                .map { it.hour }
+            container.plannerRepository.addTimedRule(
+                weekday = weekday,
+                hour = SlotRuleImport.nextLaterHour(hours),
+                minute = 0,
+                modality = ScheduleModality.STRENGTH,
+                routineId = routineId,
+                templateId = tag,
+            )
+            refreshPlanner()
+        }
+    }
+
+    fun deleteSession(epochDay: Long, ruleId: String) {
+        write("Could not remove that session. Try again.") {
+            when {
+                SlotRuleImport.isUserTimedRule(ruleId) ->
+                    container.plannerRepository.removeTimedRule(ruleId)
+                SlotRuleImport.isImportedSlotRule(ruleId) -> {
+                    val slotId = ruleId.removePrefix("rule-")
+                    container.scheduleRepository.unpin(slotId)
+                }
+            }
+            refreshPlanner()
+        }
+    }
+
+    private suspend fun ensureAuxiliaryRoutine(pack: AuxiliaryPack): String {
+        val existing = container.routineRepository.observeAll().first()
+            .firstOrNull { it.name.equals(pack.title, ignoreCase = true) }
+        if (existing != null) return existing.id
+        val created = container.routineRepository.create(pack.title, pack.caption)
+        for (lift in pack.lifts) {
+            val exercise = container.exerciseRepository.getById(lift.exerciseId) ?: continue
+            container.routineRepository.addExercise(
+                routineId = created.id,
+                exercise = exercise,
+                targetSets = lift.sets,
+                targetReps = lift.reps,
+                targetWeightKg = null,
+                restSeconds = lift.restSeconds,
+            )
+        }
+        return created.id
     }
 
     /**
@@ -601,7 +673,7 @@ class PlanViewModel @JvmOverloads constructor(
             when (rule?.modality ?: ScheduleModality.STRENGTH) {
                 ScheduleModality.CARDIO -> {
                     PendingOccurrence.forget(container)
-                    startCardioOccurrence(occurrence)
+                    startCardioOccurrence(occurrence, rule)
                 }
                 ScheduleModality.MIXED -> {
                     PendingOccurrence.bind(container, occurrence.id)
@@ -635,12 +707,16 @@ class PlanViewModel @JvmOverloads constructor(
         }
     }
 
-    private suspend fun startCardioOccurrence(occurrence: ScheduleOccurrence) {
+    private suspend fun startCardioOccurrence(
+        occurrence: ScheduleOccurrence,
+        rule: com.sinura.personaltrainer.domain.ScheduleRule?,
+    ) {
+        val type = ScheduleKind.cardioTypeOrRun(rule?.templateId)
         val now = JvmTime.captureNow()
         val block = CardioBlock(
             id = IdFactory.Uuid.newId(),
             sortOrder = 0,
-            type = CardioType.RUN,
+            type = type,
             indoor = false,
             elapsedSeconds = 0L,
             movingSeconds = 0L,
@@ -651,7 +727,7 @@ class PlanViewModel @JvmOverloads constructor(
             rpe = null,
             routeRef = null,
         )
-        when (val write = container.startLiveActivity("Cardio", listOf(block), now, occurrence.id)) {
+        when (val write = container.startLiveActivity(CardioCopy.name(type), listOf(block), now, occurrence.id)) {
             is ActivityWrite.Accepted -> {
                 val nowElapsed = android.os.SystemClock.elapsedRealtime()
                 val nowWall = System.currentTimeMillis()

@@ -76,6 +76,7 @@ import com.sinura.personaltrainer.ui.routines.RoutineEditorScreen
 import com.sinura.personaltrainer.ui.onboarding.OnboardingGate
 import com.sinura.personaltrainer.ui.onboarding.OnboardingGateViewModel
 import com.sinura.personaltrainer.ui.onboarding.OnboardingScreen
+import com.sinura.personaltrainer.ui.plan.PlanDayScreen
 import com.sinura.personaltrainer.ui.plan.PlanScreen
 import com.sinura.personaltrainer.ui.settings.SettingsScreen
 import com.sinura.personaltrainer.ui.summary.WorkoutSummaryScreen
@@ -134,6 +135,10 @@ sealed class Route(val path: String) {
     data object Onboarding : Route("onboarding")
     data object CustomWeek : Route("custom-week")
     data object Goals : Route("goals")
+    data object PlanDay : Route("plan-day/{epochDay}?add={add}") {
+        fun create(epochDay: Long, add: Boolean = false): String =
+            "plan-day/$epochDay?add=$add"
+    }
     data object Progress : Route("progress")
     data object Library : Route("library") {
         /**
@@ -475,26 +480,31 @@ fun PersonalTrainerNav(
                 composable(Route.Goals.path) {
                     GoalsScreen(onBack = { navController.popBackStack() })
                 }
+                composable(
+                    route = Route.PlanDay.path,
+                    arguments = listOf(
+                        navArgument("epochDay") { type = NavType.LongType },
+                        navArgument("add") {
+                            type = NavType.BoolType
+                            defaultValue = false
+                        },
+                    ),
+                ) { entry ->
+                    PlanDayScreen(
+                        epochDay = entry.arguments?.getLong("epochDay") ?: 0L,
+                        startInAdd = entry.arguments?.getBoolean("add") == true,
+                        onBack = { navController.popBackStack() },
+                        onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
+                    )
+                }
                 composable(Route.Routines.path) {
                     PlanScreen(
                         onCreateRoutine = { navController.navigate(Route.RoutineEditor.create("new")) },
                         onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
-                        // No popUpTo: the Plan tab stays underneath the workout, matching how
-                        // Home starts one.
-                        onWorkoutStarted = { sessionId ->
-                            navController.navigate(Route.ActiveWorkout.create(sessionId)) {
-                                launchSingleTop = true
-                            }
-                        },
                         onOpenLibrary = { navController.navigate(Route.Library.create(null)) },
                         onOpenGoals = { navController.navigate(Route.Goals.path) },
-                        onLogActivity = { mode ->
-                            navController.navigate(Route.ActivityComposer.create(mode))
-                        },
-                        onOpenLiveCardio = { sessionId ->
-                            navController.navigate(Route.LiveCardio.create(sessionId)) {
-                                launchSingleTop = true
-                            }
+                        onOpenDay = { epochDay, add ->
+                            navController.navigate(Route.PlanDay.create(epochDay, add))
                         },
                     )
                 }

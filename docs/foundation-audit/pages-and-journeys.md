@@ -220,7 +220,7 @@ Runtime evidence: [recommendations](evidence/16-body-recommendations.png).
 ### 4.3 Plan
 
 **Files:** [`PlanScreen.kt`](../../app/src/main/java/com/sinura/personaltrainer/ui/plan/PlanScreen.kt),
-[`PlanDaySheet.kt`](../../app/src/main/java/com/sinura/personaltrainer/ui/plan/PlanDaySheet.kt),
+[`PlanDayScreen.kt`](../../app/src/main/java/com/sinura/personaltrainer/ui/plan/PlanDayScreen.kt),
 [`PreferenceBlock.kt`](../../app/src/main/java/com/sinura/personaltrainer/ui/plan/PreferenceBlock.kt)
 
 **Job:** Own the pinned week, reusable routines, and schedule suggestions.
@@ -522,8 +522,7 @@ Runtime evidence: [populated detail](evidence/15-exercise-detail.png).
 
 | Surface | Hosts | Purpose | Writes |
 |---|---|---|---|
-| `StartOptionsSheet` | Body, History, Plan | Today’s plan, routine/free start, or return to live workout | Starts/discards session |
-| `PlanDaySheet` | Plan | Start, edit, swap, or unpin one day | Schedule/session |
+| `StartOptionsSheet` | Home | Today’s plan, routine/free start, or return to live workout | Starts/discards session |
 | `MuscleDetailSheet` | Body | Contributors and destinations | None |
 | `DaySessionsSheet` | History | Choose among same-day sessions | None |
 | `SetEditSheet` | Session Detail | Add/edit completed set | Set row |
