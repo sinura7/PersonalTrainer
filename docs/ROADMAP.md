@@ -20,7 +20,8 @@
 > rest / none / some / all on planned blocks. Plan is fill-the-day;
 > Add session is the Volt; Tune and header New are gone. Reminder
 > prefs live on Settings; hours live on the day. Live test 10 is this
-> drop ([ADR-017](architecture/ADR-017-home-week-board.md)).
+> drop (`debugLiveCode` 10)
+> ([ADR-017](architecture/ADR-017-home-week-board.md)).
 >
 > 29 Aug 2026 — Settings opens on lbs/kg and Regular/Military hours.
 > Schedule and coaching are the same store as the questionnaire.
