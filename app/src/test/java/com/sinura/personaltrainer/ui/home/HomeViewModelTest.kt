@@ -184,6 +184,39 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun leftoverStartMovesTheOccurrenceOntoTodayThenOpensTheSession() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        val today = todayEpochDay()
+        val yesterday = today - 1
+        val yesterdayWeekday = Weekday.fromEpochDay(yesterday)
+        val yesterdayWeekStart = CivilDate.fromEpochDay(yesterday).previousOrSame(Weekday.MONDAY)
+        val todayWeekStart = CivilDate.fromEpochDay(today).previousOrSame(Weekday.MONDAY)
+        val routine = deps.routineRepository.create("Push")
+        val squat = insertTestExercise(deps, "ex-home-leftover-squat", "Squat")
+        deps.routineRepository.addExercise(routine.id, squat, 3, 5, 100.0, 90)
+        deps.scheduleRepository.pin(routine.id, null, yesterdayWeekday)
+        deps.plannerRepository.importSlotsIfNeeded()
+        deps.plannerRepository.ensureWeek(yesterdayWeekStart)
+        if (todayWeekStart.epochDay != yesterdayWeekStart.epochDay) {
+            deps.plannerRepository.ensureWeek(todayWeekStart)
+        }
+        viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+
+        val leftover = deps.plannerRepository.occurrencesBetween(yesterday, yesterday).single()
+        viewModel!!.startOccurrence(leftover.id)
+        val sessionId = viewModel!!.navigateToSession.first { it != null }!!
+        assertEquals(OccurrenceStatus.MOVED, leftover.id.let { deps.plannerRepository.getOccurrence(it) }!!.status)
+        val moved = deps.plannerRepository.occurrencesBetween(today, today).single()
+        assertEquals(today, moved.localEpochDay)
+        assertEquals(OccurrenceStatus.PLANNED, moved.status)
+        PendingOccurrence.complete(deps, sessionId)
+        assertEquals(OccurrenceStatus.DONE, deps.plannerRepository.getOccurrence(moved.id)!!.status)
+        assertEquals(sessionId, deps.plannerRepository.getOccurrence(moved.id)!!.completedActivityId)
+        assertEquals(OccurrenceStatus.MOVED, deps.plannerRepository.getOccurrence(leftover.id)!!.status)
+    }
+
+    @Test
     fun freeWorkoutOpensAnEmptySessionWithoutMarkingThePlan() = runBlocking {
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
         val today = todayEpochDay()

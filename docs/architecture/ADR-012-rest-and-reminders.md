@@ -7,6 +7,9 @@
   derivation and the leftover ThisWeekCard week strip. P7.3 is the
   product rule. Documentation that the rest alarm is “exempt” or
   unconditionally reliable is superseded.
+- **Amended:** 29 August 2026 — [ADR-019](ADR-019-move-to-today.md)
+  lets one leftover occurrence move onto today from Home; week-level
+  missed-work is unchanged
 - **Related:** FND-001, FND-007, FND-017; P2.1–P2.3, P7.3–P7.5
 
 ## Context
@@ -70,7 +73,9 @@ day. The agreed product asks once, then adapts only if the user says so.
     still generates the next week from the unchanged rule
     ([ADR-007](ADR-007-activity-model.md) occurrences).
 17. Silent D2-style shifting is removed as user-visible policy. Occurrences
-    stay dated until one persisted missed-work decision. The leftover
+    stay dated until one persisted missed-work decision **or** an explicit
+    Home **Do it today** on a single leftover
+    ([ADR-019](ADR-019-move-to-today.md)). The leftover
     slot-week strip may still derive a shifted day; that is not the
     product rule and must not grow.
 

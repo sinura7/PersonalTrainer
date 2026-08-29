@@ -115,6 +115,29 @@ class DailyAgendaTest {
         assertEquals(setOf(day), DailyAgenda.twoADayEpochDays(listOf(cardio, main, extra)))
     }
 
+    @Test
+    fun stillOpenListsEarlierPlannedAndMissed() {
+        val friday = 20_000L
+        val saturday = friday + 1
+        val weekStart = friday - 4
+        val leftover = occ("fri", "r-fri", friday, 18)
+        val missed = leftover.copy(id = "miss", status = OccurrenceStatus.MISSED)
+        val today = occ("sat", "r-sat", saturday, 18)
+        val skipped = leftover.copy(id = "skip", status = OccurrenceStatus.SKIPPED)
+        val open = DailyAgenda.stillOpen(
+            saturday,
+            weekStart,
+            listOf(leftover, missed, today, skipped),
+            listOf(
+                rule("r-fri", ScheduleModality.STRENGTH).copy(routineId = "r-friday"),
+                rule("r-sat", ScheduleModality.STRENGTH),
+            ),
+            mapOf("r-friday" to "Friday"),
+        )
+        assertEquals(listOf("fri", "miss"), open.map { it.occurrence.id })
+        assertEquals("Friday", open.first().title)
+    }
+
     private fun rule(id: String, modality: ScheduleModality) = ScheduleRule(
         id = id,
         weekday = Weekday.MONDAY,

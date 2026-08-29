@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.MissedWorkChoice
 import com.sinura.personaltrainer.domain.MissedWorkDecision
 import com.sinura.personaltrainer.domain.MissedWorkPolicy
+import com.sinura.personaltrainer.domain.MoveToToday
 import com.sinura.personaltrainer.domain.OccurrenceGenerator
 import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.ReminderDecision
@@ -372,10 +373,51 @@ class PlannerRepository(
             updatedAtMs = nowMs,
         )
         dao.upsertOccurrence(moved.toEntity())
+        scheduleIfPending(moved, rule, nowMs)
+    }
+
+    /**
+     * Put one leftover occurrence on [todayEpochDay] (ADR-019). Recurrence
+     * does not change. Returns null when the id is gone.
+     */
+    suspend fun moveOccurrenceToDay(
+        occurrenceId: String,
+        todayEpochDay: Long,
+        nowMs: Long = time.nowMillis(),
+    ): MoveToToday.Outcome? {
+        val current = getOccurrence(occurrenceId) ?: return null
+        val rule = getRule(current.ruleId)
+        val onToday = dao.getOccurrencesBetween(todayEpochDay, todayEpochDay).map { it.toDomain() }
+        val outcome = MoveToToday.decide(
+            current = current,
+            todayEpochDay = todayEpochDay,
+            existingOnToday = onToday,
+            rule = rule,
+            nowMs = nowMs,
+            time = time,
+            deviceZoneId = time.defaultZoneId(),
+        )
+        if (outcome is MoveToToday.Outcome.Relocate) {
+            dao.upsertOccurrence(outcome.vacated.toEntity())
+            cancelReminders(current.id)
+            dao.upsertOccurrence(outcome.created.toEntity())
+            scheduleIfPending(outcome.created, rule, nowMs)
+        }
+        return outcome
+    }
+
+    private suspend fun scheduleIfPending(
+        occurrence: ScheduleOccurrence,
+        rule: ScheduleRule?,
+        nowMs: Long,
+    ) {
         val delivery = ReminderDelivery(
-            id = "rem-${moved.id}",
-            occurrenceId = moved.id,
-            scheduledAtMs = ReminderPolicy.scheduledAtMillis(moved, rule?.reminderOffsetMinutes ?: 0),
+            id = "rem-${occurrence.id}",
+            occurrenceId = occurrence.id,
+            scheduledAtMs = ReminderPolicy.scheduledAtMillis(
+                occurrence,
+                rule?.reminderOffsetMinutes ?: 0,
+            ),
             status = ReminderDeliveryStatus.PENDING,
             createdAtMs = nowMs,
             updatedAtMs = nowMs,

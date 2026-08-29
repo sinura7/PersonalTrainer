@@ -47,6 +47,7 @@ No ADR may leave a schema, scheduling, privacy, or entitlement choice as TBD.
 | [ADR-016](ADR-016-settings-home-trim.md) | Settings / Home trim | Display, check-in, Goals UI gone |
 | [ADR-017](ADR-017-home-week-board.md) | Home week board and Plan day fill | Occurrence days, Add session Volt |
 | [ADR-018](ADR-018-home-start-confirm.md) | Home start confirm | Confirm-then-start; workout over aux |
+| [ADR-019](ADR-019-move-to-today.md) | Move a leftover session to today | Do it today; Still open |
 
 ## Supporting records
 
@@ -68,7 +69,7 @@ No ADR may leave a schema, scheduling, privacy, or entitlement choice as TBD.
 These are not superseded by the foundation program:
 
 - `fallbackToDestructiveMigration` ([ADR-010](ADR-010-schema-reset-migrations.md))
-- A sixth tab, or Library as a tab, without a new signed decision ([ADR-006](ADR-006-information-architecture.md), [ADR-014](ADR-014-settings-tab.md), [ADR-016](ADR-016-settings-home-trim.md), [ADR-017](ADR-017-home-week-board.md), [ADR-018](ADR-018-home-start-confirm.md))
+- A sixth tab, or Library as a tab, without a new signed decision ([ADR-006](ADR-006-information-architecture.md), [ADR-014](ADR-014-settings-tab.md), [ADR-016](ADR-016-settings-home-trim.md), [ADR-017](ADR-017-home-week-board.md), [ADR-018](ADR-018-home-start-confirm.md), [ADR-019](ADR-019-move-to-today.md))
 - An LLM or chat coach that authors loads, plans, or records ([ADR-008](ADR-008-deterministic-rules.md))
 - Package or Drive-folder rename
 - GitHub-hosted runners as the project test lane ([ADR-002](ADR-002-execution-protocol.md))

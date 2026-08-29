@@ -213,6 +213,17 @@ fun HomeScreen(
     } else {
         PlanDayCopy.weekdayTitle(Weekday.fromEpochDay(selectedEpochDay))
     }
+    val stillOpen = if (selectedEpochDay == today) {
+        DailyAgenda.stillOpen(
+            today,
+            weekStart,
+            state.occurrences,
+            state.rules,
+            names,
+        )
+    } else {
+        emptyList()
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -286,7 +297,7 @@ fun HomeScreen(
         }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                when (HomeToday.surface(selectedAgenda, leftoverBelongs)) {
+                when (HomeToday.surface(selectedAgenda, leftoverBelongs, stillOpen)) {
                     HomeToday.Surface.AGENDA -> DailyAgendaCard(
                         items = selectedAgenda,
                         sessionLive = inProgress != null,
@@ -294,6 +305,8 @@ fun HomeScreen(
                         onStartFree = { viewModel.startFreeWorkout() },
                         routines = state.routines,
                         kicker = dayKicker,
+                        stillOpen = stillOpen,
+                        today = today,
                     )
                     HomeToday.Surface.WEEK_FALLBACK -> ThisWeekCard(
                         day = leftoverDay,
@@ -519,6 +532,7 @@ object HomeTags {
     const val BUILD_WEEK = "home-build-week"
     const val STARTER_WORKOUT = "home-starter-workout"
     const val BODYWEIGHT_CHECK_IN = "home-bodyweight-check-in"
+    const val STILL_OPEN = "home-still-open"
 
     fun agendaRow(occurrenceId: String): String = "home-agenda-$occurrenceId"
 }

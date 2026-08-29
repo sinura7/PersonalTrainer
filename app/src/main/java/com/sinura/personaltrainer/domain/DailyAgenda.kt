@@ -31,6 +31,35 @@ object DailyAgenda {
     fun startable(items: List<AgendaItem>): List<AgendaItem> =
         items.filter { it.occurrence.status == OccurrenceStatus.PLANNED }
 
+    /**
+     * Earlier this week, still undone: planned or missed. Home lists these
+     * on today so a leftover does not require paging back to Friday.
+     */
+    fun stillOpen(
+        todayEpochDay: Long,
+        weekStartEpochDay: Long,
+        occurrences: List<ScheduleOccurrence>,
+        rules: List<ScheduleRule>,
+        routineNames: Map<String, String> = emptyMap(),
+    ): List<AgendaItem> {
+        if (todayEpochDay <= weekStartEpochDay) return emptyList()
+        val byId = rules.associateBy { it.id }
+        return occurrences
+            .filter { occurrence ->
+                occurrence.localEpochDay in weekStartEpochDay until todayEpochDay &&
+                    MoveToToday.isLeftover(occurrence, todayEpochDay)
+            }
+            .sortedWith(compareBy({ it.localEpochDay }, { it.minutesOfDay }, { it.id }))
+            .map { occurrence ->
+                val rule = byId[occurrence.ruleId]
+                AgendaItem(
+                    occurrence = occurrence,
+                    rule = rule,
+                    routineName = rule?.routineId?.let { routineNames[it] },
+                )
+            }
+    }
+
     /** Days with two or more scheduled rows — the week-strip second mark. */
     fun twoADayEpochDays(occurrences: List<ScheduleOccurrence>): Set<Long> =
         occurrences.groupingBy { it.localEpochDay }.eachCount().filterValues { it >= 2 }.keys

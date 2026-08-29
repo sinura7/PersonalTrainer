@@ -102,6 +102,7 @@ class HomePassInstrumentedTest {
                 onStartOccurrence = {},
                 onStartFree = {},
                 routines = listOf(PUSH_ROUTINE),
+                today = TODAY,
             )
         }
         compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
@@ -120,6 +121,7 @@ class HomePassInstrumentedTest {
                 onStartOccurrence = {},
                 onStartFree = {},
                 routines = listOf(PUSH_ROUTINE),
+                today = TODAY,
             )
         }
         compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
@@ -139,6 +141,7 @@ class HomePassInstrumentedTest {
                 onStartOccurrence = {},
                 onStartFree = {},
                 routines = listOf(PUSH_ROUTINE, EXTRA_ROUTINE),
+                today = TODAY,
             )
         }
         compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
@@ -157,6 +160,7 @@ class HomePassInstrumentedTest {
                 sessionLive = false,
                 onStartOccurrence = {},
                 onStartFree = {},
+                today = TODAY,
             )
         }
         compose.onNodeWithTag(HomeTags.START).assertDoesNotExist()
@@ -247,6 +251,7 @@ class HomePassInstrumentedTest {
                 onStartOccurrence = { started = it },
                 onStartFree = {},
                 routines = listOf(PUSH_ROUTINE),
+                today = TODAY,
             )
         }
         compose.onNodeWithText("Start Push?").assertDoesNotExist()
@@ -270,6 +275,7 @@ class HomePassInstrumentedTest {
                 onStartOccurrence = { started = it },
                 onStartFree = {},
                 routines = listOf(PUSH_ROUTINE),
+                today = TODAY,
             )
         }
         compose.onNodeWithTag(HomeTags.START).performClick()
@@ -289,6 +295,7 @@ class HomePassInstrumentedTest {
                 onStartOccurrence = { started = it },
                 onStartFree = {},
                 routines = listOf(PUSH_ROUTINE),
+                today = TODAY,
             )
         }
         compose.onNodeWithTag(HomeTags.agendaRow("occ-pm")).performClick()
@@ -308,12 +315,87 @@ class HomePassInstrumentedTest {
                 onStartOccurrence = {},
                 onStartFree = {},
                 routines = listOf(PUSH_ROUTINE, STRETCH_ROUTINE),
+                today = TODAY,
             )
         }
         compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
         compose.onNodeWithText("Start Push").assertIsDisplayed()
         compose.onNodeWithText("Start Stretch").assertDoesNotExist()
         compose.onNodeWithTag(HomeTags.agendaRow("occ-stretch")).assertIsDisplayed()
+    }
+
+    @Test
+    fun stillOpenLeftoverConfirmsAsDoItToday() {
+        var started: String? = null
+        setConstrainedContent(fontScale = 1f) {
+            DailyAgendaCard(
+                items = emptyList(),
+                sessionLive = false,
+                onStartOccurrence = { started = it },
+                onStartFree = {},
+                routines = listOf(PUSH_ROUTINE),
+                stillOpen = listOf(STRENGTH_ITEM),
+                today = TODAY + 1,
+            )
+        }
+        compose.onNodeWithTag(HomeTags.STILL_OPEN).assertIsDisplayed()
+        compose.onNodeWithText("Start moves it to today.").assertIsDisplayed()
+        compose.onNodeWithText("Friday  ·  Push").assertIsDisplayed()
+        compose.onNodeWithText("Do Push today").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Do this session today").assertIsDisplayed()
+        compose.onNodeWithTag(HomeTags.agendaRow("occ-pm")).performClick()
+        compose.onNodeWithText("Do Push today?").assertIsDisplayed()
+        compose.onNodeWithText("This was Friday. Starting it today moves it here.").assertIsDisplayed()
+        org.junit.Assert.assertNull(started)
+        compose.onNodeWithText(com.sinura.personaltrainer.domain.MoveToToday.DO_IT_TODAY).performClick()
+        org.junit.Assert.assertEquals("occ-pm", started)
+    }
+
+    @Test
+    fun leftoverOnPastDayBoardConfirmsAsDoItToday() {
+        var started: String? = null
+        setConstrainedContent(fontScale = 1f) {
+            DailyAgendaCard(
+                items = listOf(STRENGTH_ITEM),
+                sessionLive = false,
+                onStartOccurrence = { started = it },
+                onStartFree = {},
+                routines = listOf(PUSH_ROUTINE),
+                today = TODAY + 1,
+            )
+        }
+        compose.onNodeWithText("Do Push today").assertIsDisplayed()
+        compose.onNodeWithText("Start Push").assertDoesNotExist()
+        compose.onNodeWithTag(HomeTags.START).performClick()
+        compose.onNodeWithText("Do Push today?").assertIsDisplayed()
+        compose.onNodeWithText("Cancel").performClick()
+        org.junit.Assert.assertNull(started)
+        compose.onNodeWithText("Do Push today?").assertDoesNotExist()
+    }
+
+    @Test
+    fun todayWorkoutKeepsStartWhileStillOpenShowsLeftover() {
+        val leftover = EXTRA_ITEM.copy(
+            occurrence = EXTRA_ITEM.occurrence.copy(
+                id = "occ-leftover",
+                captured = EXTRA_ITEM.occurrence.captured.copy(localEpochDay = TODAY - 1),
+            ),
+        )
+        setConstrainedContent(fontScale = 1f) {
+            DailyAgendaCard(
+                items = listOf(STRENGTH_ITEM),
+                sessionLive = false,
+                onStartOccurrence = {},
+                onStartFree = {},
+                routines = listOf(PUSH_ROUTINE, EXTRA_ROUTINE),
+                stillOpen = listOf(leftover),
+                today = TODAY,
+            )
+        }
+        compose.onNodeWithText("Start Push").assertIsDisplayed()
+        compose.onNodeWithText("Do Push today").assertDoesNotExist()
+        compose.onNodeWithTag(HomeTags.STILL_OPEN).assertIsDisplayed()
+        compose.onNodeWithTag(HomeTags.agendaRow("occ-leftover")).assertIsDisplayed()
     }
 
     private fun assertHomeAboveFold(fontScale: Float) {

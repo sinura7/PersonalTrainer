@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.MissedWorkChoice
+import com.sinura.personaltrainer.domain.MoveToToday
 import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SessionFocusKind
@@ -156,5 +157,28 @@ class PlannerRepositoryTest {
         ).single()
         assertEquals(OccurrenceStatus.MISSED, monday.status)
         assertEquals(1, deps.plannerRepository.observeDecisions().first().size)
+    }
+
+    @Test
+    fun moveOccurrenceToDayVacatesFridayAndPlansSaturday() = runBlocking {
+        val routine = deps.routineRepository.create(name = "Push")
+        deps.scheduleRepository.pin(routine.id, null, Weekday.FRIDAY)
+        deps.plannerRepository.importSlotsIfNeeded()
+        deps.plannerRepository.ensureWeek(weekStart, "UTC", 1_700_000_000_000L)
+        val friday = weekStart.plusDays(4).epochDay
+        val saturday = weekStart.plusDays(5).epochDay
+        val leftover = deps.plannerRepository.occurrencesBetween(friday, friday).single()
+        val outcome = deps.plannerRepository.moveOccurrenceToDay(
+            leftover.id,
+            saturday,
+            nowMs = 2L,
+        )
+        val relocate = outcome as MoveToToday.Outcome.Relocate
+        assertEquals(OccurrenceStatus.MOVED, deps.plannerRepository.getOccurrence(leftover.id)!!.status)
+        val todayRow = deps.plannerRepository.getOccurrence(relocate.created.id)!!
+        assertEquals(OccurrenceStatus.PLANNED, todayRow.status)
+        assertEquals(saturday, todayRow.localEpochDay)
+        assertEquals(leftover.hour, todayRow.hour)
+        assertEquals(leftover.ruleId, todayRow.ruleId)
     }
 }

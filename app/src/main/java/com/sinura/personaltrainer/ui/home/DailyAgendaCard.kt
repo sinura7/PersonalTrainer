@@ -20,11 +20,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.AgendaItem
+import com.sinura.personaltrainer.domain.ClockCopy
 import com.sinura.personaltrainer.domain.HomeToday
+import com.sinura.personaltrainer.domain.MoveToToday
 import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.sessionLiftNames
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.GroupedList
@@ -46,7 +49,8 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
  * live activity still blocks a second start. One filled Volt names the
  * next planned row (workout preferred over Stretch); every planned row
  * — including that one — opens a confirm with the session summary.
- * Confirm starts it. Strength rows speak the same numbered order Plan
+ * A leftover from an earlier day confirms as Do it today, which moves
+ * it here then starts. Strength rows speak the same numbered order Plan
  * and the editor already built.
  *
  * The group is the list. Start sits under it so a card does not wrap a card.
@@ -59,30 +63,30 @@ fun DailyAgendaCard(
     onStartFree: () -> Unit,
     routines: List<Routine> = emptyList(),
     kicker: String = "Today",
+    stillOpen: List<AgendaItem> = emptyList(),
+    today: Long = com.sinura.personaltrainer.domain.todayEpochDay(),
 ) {
     val clockFormat = com.sinura.personaltrainer.ui.units.LocalClockFormat.current
-    val startTagId = HomeToday.startTagOccurrenceId(items)
-    val startItem = items.firstOrNull { it.occurrence.id == startTagId }
+    val startTagId = HomeToday.startTagOccurrenceId(items, stillOpen)
+    val catalog = items + stillOpen
+    val startItem = catalog.firstOrNull { it.occurrence.id == startTagId }
     var pendingOccurrenceId by rememberSaveable { mutableStateOf<String?>(null) }
-    val pendingItem = items.firstOrNull { item ->
-        item.occurrence.id == pendingOccurrenceId &&
-            item.occurrence.status == OccurrenceStatus.PLANNED
+    val pendingItem = catalog.firstOrNull { item ->
+        item.occurrence.id == pendingOccurrenceId && canOpenStart(item, today)
     }?.takeUnless { sessionLive }
 
-    LaunchedEffect(pendingOccurrenceId, items, sessionLive) {
+    LaunchedEffect(pendingOccurrenceId, items, stillOpen, sessionLive, today) {
         val id = pendingOccurrenceId ?: return@LaunchedEffect
         if (sessionLive) {
             pendingOccurrenceId = null
             return@LaunchedEffect
         }
-        val stillPlanned = items.any {
-            it.occurrence.id == id && it.occurrence.status == OccurrenceStatus.PLANNED
-        }
-        if (!stillPlanned) pendingOccurrenceId = null
+        val still = catalog.any { it.occurrence.id == id && canOpenStart(it, today) }
+        if (!still) pendingOccurrenceId = null
     }
 
     if (pendingItem != null) {
-        val confirm = HomeToday.startConfirm(pendingItem, routines, clockFormat)
+        val confirm = HomeToday.startConfirm(pendingItem, routines, clockFormat, today)
         ConfirmActionDialog(
             title = confirm.heading,
             body = confirm.body,
@@ -98,7 +102,7 @@ fun DailyAgendaCard(
 
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
         Kicker(kicker)
-        if (items.isEmpty()) {
+        if (items.isEmpty() && stillOpen.isEmpty()) {
             Text(
                 com.sinura.personaltrainer.domain.PlanDayCopy.EMPTY,
                 style = InstrumentType.body,
@@ -120,21 +124,38 @@ fun DailyAgendaCard(
             GroupedList {
                 items.forEachIndexed { index, item ->
                     if (index > 0) HairlineDivider()
-                    val planned = item.occurrence.status == OccurrenceStatus.PLANNED
-                    val names = sessionLiftNames(item.rule?.routineId, routines)
-                    InstrumentRow(
-                        title = "${com.sinura.personaltrainer.domain.ClockCopy.format(item.occurrence.hour, item.occurrence.minute, clockFormat)}  ·  ${item.title}",
-                        subtitle = SessionOrderCopy.occurrenceLine(
-                            item.occurrence.status,
-                            names,
-                            item.rule?.modality ?: ScheduleModality.STRENGTH,
-                        ),
-                        modifier = Modifier.testTag(HomeTags.agendaRow(item.occurrence.id)),
-                        onClick = if (planned && !sessionLive) {
-                            { pendingOccurrenceId = item.occurrence.id }
-                        } else {
-                            null
-                        },
+                    AgendaRow(
+                        item = item,
+                        routines = routines,
+                        clockFormat = clockFormat,
+                        todayEpochDay = today,
+                        sessionLive = sessionLive,
+                        leftoverLabel = false,
+                        onOpen = { pendingOccurrenceId = item.occurrence.id },
+                    )
+                }
+            }
+        }
+        if (stillOpen.isNotEmpty()) {
+            Kicker(MoveToToday.STILL_OPEN)
+            Text(
+                MoveToToday.STILL_OPEN_BODY,
+                style = InstrumentType.caption,
+                color = TextSecondary,
+            )
+            GroupedList(
+                modifier = Modifier.testTag(HomeTags.STILL_OPEN),
+            ) {
+                stillOpen.forEachIndexed { index, item ->
+                    if (index > 0) HairlineDivider()
+                    AgendaRow(
+                        item = item,
+                        routines = routines,
+                        clockFormat = clockFormat,
+                        todayEpochDay = today,
+                        sessionLive = sessionLive,
+                        leftoverLabel = true,
+                        onOpen = { pendingOccurrenceId = item.occurrence.id },
                     )
                 }
             }
@@ -146,13 +167,20 @@ fun DailyAgendaCard(
                 color = TextPrimary,
             )
         } else {
-            startItem?.takeIf { it.occurrence.status == OccurrenceStatus.PLANNED }?.let { item ->
+            startItem?.takeIf { canOpenStart(it, today) }?.let { item ->
+                val leftover = MoveToToday.isLeftover(item.occurrence, today)
                 PrimaryGymButton(
-                    text = "Start ${item.title}",
+                    text = if (leftover) {
+                        "Do ${item.title} today"
+                    } else {
+                        "Start ${item.title}"
+                    },
                     onClick = { pendingOccurrenceId = item.occurrence.id },
                     modifier = Modifier
                         .testTag(HomeTags.START)
-                        .semantics { contentDescription = PLANNED_SESSION },
+                        .semantics {
+                            contentDescription = if (leftover) DO_TODAY else PLANNED_SESSION
+                        },
                 )
             }
             TextButton(
@@ -176,4 +204,52 @@ fun DailyAgendaCard(
     }
 }
 
+@Composable
+private fun AgendaRow(
+    item: AgendaItem,
+    routines: List<Routine>,
+    clockFormat: com.sinura.personaltrainer.domain.ClockFormat,
+    todayEpochDay: Long,
+    sessionLive: Boolean,
+    leftoverLabel: Boolean,
+    onOpen: () -> Unit,
+) {
+    val names = sessionLiftNames(item.rule?.routineId, routines)
+    val clock = ClockCopy.format(item.occurrence.hour, item.occurrence.minute, clockFormat)
+    val title = if (leftoverLabel) {
+        "${Weekday.fromEpochDay(item.occurrence.localEpochDay).titleLabel()}  ·  ${item.title}"
+    } else {
+        "$clock  ·  ${item.title}"
+    }
+    val subtitle = if (leftoverLabel) {
+        "$clock  ·  ${
+            SessionOrderCopy.occurrenceLine(
+                item.occurrence.status,
+                names,
+                item.rule?.modality ?: ScheduleModality.STRENGTH,
+            )
+        }"
+    } else {
+        SessionOrderCopy.occurrenceLine(
+            item.occurrence.status,
+            names,
+            item.rule?.modality ?: ScheduleModality.STRENGTH,
+        )
+    }
+    InstrumentRow(
+        title = title,
+        subtitle = subtitle,
+        modifier = Modifier.testTag(HomeTags.agendaRow(item.occurrence.id)),
+        onClick = if (canOpenStart(item, todayEpochDay) && !sessionLive) onOpen else null,
+    )
+}
+
+private fun canOpenStart(item: AgendaItem, todayEpochDay: Long): Boolean {
+    val status = item.occurrence.status
+    if (status == OccurrenceStatus.PLANNED) return true
+    return status == OccurrenceStatus.MISSED &&
+        MoveToToday.isLeftover(item.occurrence, todayEpochDay)
+}
+
 private const val PLANNED_SESSION = "Start today's planned session"
+private const val DO_TODAY = "Do this session today"
