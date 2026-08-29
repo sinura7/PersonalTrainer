@@ -822,6 +822,35 @@ class PlanViewModel @JvmOverloads constructor(
         }
     }
 
+    val reminderPreferences: StateFlow<com.sinura.personaltrainer.domain.ReminderPreferences> =
+        container.preferencesRepository.reminderPreferences
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = com.sinura.personaltrainer.domain.ReminderPreferences.DEFAULT,
+            )
+
+    fun setReminderOptOut(optOut: Boolean) {
+        viewModelScope.launch {
+            container.preferencesRepository.setReminderOptOut(optOut)
+        }
+    }
+
+    fun setReminderQuietHours(startHour: Int, endHour: Int) {
+        viewModelScope.launch {
+            runCatchingCancellable {
+                container.preferencesRepository.setReminderQuietHours(startHour, endHour)
+            }.onFailure { AppLog.w(TAG, "Saving reminder quiet hours failed", it) }
+        }
+    }
+
+    fun setSessionHour(ruleId: String, hour: Int) {
+        write("Could not set that time. Try again.") {
+            container.plannerRepository.setRuleHour(ruleId, hour)
+            refreshPlanner()
+        }
+    }
+
     fun onErrorShown() {
         actionError.value = null
     }

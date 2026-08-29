@@ -87,6 +87,30 @@ class SettingsViewModel @JvmOverloads constructor(
             initialValue = WeightUnit.LBS,
         )
 
+    val clockFormat: StateFlow<com.sinura.personaltrainer.domain.ClockFormat> =
+        container.preferencesRepository.clockFormat
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = com.sinura.personaltrainer.domain.ClockFormat.TWELVE,
+            )
+
+    val preferredDays: StateFlow<Set<Weekday>> =
+        container.preferencesRepository.preferredDays
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = emptySet(),
+            )
+
+    val bodyweightCheckInWeekday: StateFlow<Weekday?> =
+        container.preferencesRepository.bodyweightCheckInWeekday
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = null,
+            )
+
     val schedulePreferences: StateFlow<SchedulePreferences> =
         container.preferencesRepository.schedulePreferences
             .stateIn(
@@ -102,28 +126,6 @@ class SettingsViewModel @JvmOverloads constructor(
                 started = SharingStarted.WhileSubscribed(5_000),
                 initialValue = RestTimerPreferences.DEFAULT,
             )
-
-    val reminderPreferences: StateFlow<com.sinura.personaltrainer.domain.ReminderPreferences> =
-        container.preferencesRepository.reminderPreferences
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000),
-                initialValue = com.sinura.personaltrainer.domain.ReminderPreferences.DEFAULT,
-            )
-
-    fun setReminderOptOut(optOut: Boolean) {
-        viewModelScope.launch {
-            container.preferencesRepository.setReminderOptOut(optOut)
-        }
-    }
-
-    fun setReminderQuietHours(startHour: Int, endHour: Int) {
-        viewModelScope.launch {
-            runCatchingCancellable {
-                container.preferencesRepository.setReminderQuietHours(startHour, endHour)
-            }.onFailure { AppLog.w(TAG, "Saving reminder quiet hours failed", it) }
-        }
-    }
 
     /**
      * Honest inexact copy + Settings tap. Shown only after rest is used or
@@ -315,6 +317,19 @@ class SettingsViewModel @JvmOverloads constructor(
     fun setWeightUnit(unit: WeightUnit) {
         viewModelScope.launch {
             container.preferencesRepository.setWeightUnit(unit)
+        }
+    }
+
+    fun setClockFormat(format: com.sinura.personaltrainer.domain.ClockFormat) {
+        viewModelScope.launch {
+            container.preferencesRepository.setClockFormat(format)
+        }
+    }
+
+    fun setBodyweightCheckInWeekday(day: Weekday?) {
+        viewModelScope.launch {
+            runCatchingCancellable { container.preferencesRepository.setBodyweightCheckInWeekday(day) }
+                .onFailure { AppLog.w(TAG, "Saving bodyweight check-in day failed", it) }
         }
     }
 

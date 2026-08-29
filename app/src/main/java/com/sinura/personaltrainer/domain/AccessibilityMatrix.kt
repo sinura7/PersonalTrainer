@@ -34,7 +34,7 @@ object AccessibilityMatrix {
             title = "Home",
             states = requiredStates,
             voltAction = "Start today's planned session when a week is pinned. Generate a schedule on a first visit. Free workout stays quiet.",
-            talkBackNotes = "Last session and days-since tiles merge into one name each. Settings is a tab, not a masthead gear.",
+            talkBackNotes = "Last session and days-since tiles merge into one name each. Settings is a tab. Home does not repeat This week, Library, Goals, or a calendar strip.",
             automatedEvidence = true,
         ),
         PagePass(
@@ -50,7 +50,7 @@ object AccessibilityMatrix {
             title = "Plan",
             states = requiredStates,
             voltAction = "Use my answers again, Suggest a week, or Use this week — one Volt",
-            talkBackNotes = "Tune, Library, and Add session are named. Start is Home, not Plan. Lighter stays behind Tune. Settings is a tab, not a header gear.",
+            talkBackNotes = "Tune, Library, Add session, and Reminders behind Tune are named. Start is Home, not Plan. Lighter stays behind Tune. Settings is a tab, not a header gear.",
             automatedEvidence = true,
         ),
         PagePass(
@@ -58,7 +58,7 @@ object AccessibilityMatrix {
             title = "Plan day",
             states = requiredStates,
             voltAction = "Add session",
-            talkBackNotes = "Back and Add session are named. Session rows open the editor. Remove deletes. No Start, Swap, or Unpin. Clocks are hidden.",
+            talkBackNotes = "Back and Add session are named. Session rows open the editor. Hour chips set when the block happens. Remove deletes. No Start, Swap, or Unpin.",
             automatedEvidence = true,
         ),
         PagePass(
@@ -82,7 +82,7 @@ object AccessibilityMatrix {
             title = "Settings",
             states = requiredStates,
             voltAction = "Export to file — backup is never the page's Volt gym act",
-            talkBackNotes = "Settings is a tab. Back is gone. Reminders and export stay reachable. Share diagnostics is quiet.",
+            talkBackNotes = "Settings is a tab. Back is gone. Weight and hours sit at the top. Export stays reachable. Reminders live on Plan. Share diagnostics is quiet.",
             automatedEvidence = true,
         ),
         PagePass(
@@ -163,14 +163,6 @@ object AccessibilityMatrix {
             states = requiredStates,
             voltAction = "Save",
             talkBackNotes = "Nothing writes until Save. Future dates are refused.",
-            automatedEvidence = true,
-        ),
-        PagePass(
-            id = "goals",
-            title = "Goals",
-            states = requiredStates,
-            voltAction = "Add goal",
-            talkBackNotes = "Pushed from Home and Plan. No streak-red framing.",
             automatedEvidence = true,
         ),
         PagePass(

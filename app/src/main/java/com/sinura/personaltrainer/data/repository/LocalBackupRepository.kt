@@ -60,6 +60,7 @@ import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.Weekday
 import kotlinx.coroutines.flow.first
 import java.io.File
@@ -184,6 +185,8 @@ class LocalBackupRepository(
                 reminderOptOut = preferencesRepository.reminderPreferences.first().optOut,
                 reminderQuietStartHour = preferencesRepository.reminderPreferences.first().quietStartHour,
                 reminderQuietEndHour = preferencesRepository.reminderPreferences.first().quietEndHour,
+                clockFormat = preferencesRepository.clockFormat.first().storageKey,
+                bodyweightCheckInWeekday = preferencesRepository.bodyweightCheckInWeekday.first()?.name.orEmpty(),
             ),
             exercises = exercises.map {
                 BackupExercise(
@@ -605,6 +608,10 @@ class LocalBackupRepository(
                 reminderOptOut = document.preferences.reminderOptOut,
                 reminderQuietStartHour = document.preferences.reminderQuietStartHour,
                 reminderQuietEndHour = document.preferences.reminderQuietEndHour,
+                clockFormat = ClockFormat.fromStorage(document.preferences.clockFormat),
+                bodyweightCheckInWeekday = Weekday.fromStorage(
+                    document.preferences.bodyweightCheckInWeekday.takeIf { it.isNotBlank() },
+                ),
             )
             true
         } catch (_: Exception) {

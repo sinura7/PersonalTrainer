@@ -92,6 +92,42 @@ class PlannerRepository(
         dao.upsertRule(rule.toEntity())
     }
 
+    /**
+     * Hour on an existing block. Planned occurrences for the rule move with
+     * it so Home and reminders do not keep the old clock.
+     */
+    suspend fun setRuleHour(ruleId: String, hour: Int) {
+        val nextHour = hour.coerceIn(0, 23)
+        val nowMs = time.nowMillis()
+        database.withTransaction {
+            val current = dao.getRule(ruleId)?.toDomain() ?: return@withTransaction
+            val rule = current.copy(hour = nextHour, updatedAtMs = nowMs)
+            dao.upsertRule(rule.toEntity())
+            val zoneId = rule.resolveZoneId(time.defaultZoneId())
+            val updated = mutableListOf<ScheduleOccurrence>()
+            for (row in dao.getOccurrencesForRule(ruleId)) {
+                if (row.status != OccurrenceStatus.PLANNED.name) continue
+                val captured = time.resolveLocal(
+                    com.sinura.personaltrainer.domain.CivilDateTime(
+                        CivilDate.fromEpochDay(row.localEpochDay),
+                        nextHour,
+                        row.minute,
+                    ),
+                    zoneId,
+                )
+                val next = row.toDomain().copy(
+                    hour = nextHour,
+                    captured = captured,
+                    updatedAtMs = nowMs,
+                )
+                cancelReminders(row.id)
+                dao.upsertOccurrence(next.toEntity())
+                updated.add(next)
+            }
+            scheduleRemindersLocked(updated, listOf(rule), nowMs)
+        }
+    }
+
     suspend fun addTimedRule(
         weekday: Weekday,
         hour: Int,

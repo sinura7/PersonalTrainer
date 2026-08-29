@@ -14,7 +14,6 @@ import com.sinura.personaltrainer.ui.activity.ElapsedReadout
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.exercise.ExerciseDetailHeader
-import com.sinura.personaltrainer.ui.goals.GoalsHeader
 import com.sinura.personaltrainer.ui.preview.TemperAccessibilityPreviews
 import com.sinura.personaltrainer.ui.preview.TemperWidthPreviews
 import com.sinura.personaltrainer.ui.routines.RoutineEditorHeader
@@ -62,7 +61,6 @@ private fun RemainingSessionPagesPreview() {
 private fun RemainingPushedPagesPreview() {
     PersonalTrainerTheme {
         RemainingPreviewColumn {
-            GoalsHeader(onBack = {}, onToggleAdd = {}, adding = false)
             PrimaryGymButton(text = "Use this plan", onClick = {})
             SecondaryGymButton(text = "Export to file", onClick = {})
             SecondaryGymButton(text = "Share diagnostics", onClick = {})

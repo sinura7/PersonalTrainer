@@ -136,6 +136,7 @@ fun PlanDayScreen(
                             onRemove = { ruleId ->
                                 viewModel.deleteSession(epochDay, ruleId)
                             },
+                            onSetHour = viewModel::setSessionHour,
                         )
                     }
                     if (!isPast && picking != DayPicker.NONE) {
@@ -230,6 +231,7 @@ internal fun PlanDayHeader(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SessionBlocks(
     occurrences: List<AgendaItem>,
@@ -237,7 +239,9 @@ private fun SessionBlocks(
     isPast: Boolean,
     onOpenRoutine: (String) -> Unit,
     onRemove: (String) -> Unit,
+    onSetHour: (String, Int) -> Unit,
 ) {
+    val clockFormat = com.sinura.personaltrainer.ui.units.LocalClockFormat.current
     GroupedList {
         occurrences.forEachIndexed { index, item ->
             if (index > 0) HairlineDivider()
@@ -247,36 +251,60 @@ private fun SessionBlocks(
             val modality = item.rule?.modality ?: ScheduleModality.STRENGTH
             val canEdit = routineId != null &&
                 modality == ScheduleModality.STRENGTH
-            InstrumentRow(
-                title = item.title,
-                subtitle = SessionOrderCopy.occurrenceLine(
-                    item.occurrence.status,
-                    names,
-                    modality,
-                ),
-                onClick = if (canEdit) {
-                    { onOpenRoutine(routineId) }
-                } else {
-                    null
-                },
-                trailing = if (!isPast && ruleId != null) {
-                    {
-                        TextButton(
-                            onClick = { onRemove(ruleId) },
-                            contentPadding = PaddingValues(0.dp),
-                            modifier = Modifier.heightIn(min = Metrics.touchMin),
-                        ) {
-                            Text(
-                                PlanDayCopy.REMOVE,
-                                style = InstrumentType.bodyStrong,
-                                color = TextSecondary,
+            Column(
+                modifier = Modifier.padding(bottom = if (!isPast && ruleId != null) Metrics.space3 else 0.dp),
+            ) {
+                InstrumentRow(
+                    title = item.title,
+                    subtitle = SessionOrderCopy.occurrenceLine(
+                        item.occurrence.status,
+                        names,
+                        modality,
+                    ),
+                    onClick = if (canEdit) {
+                        { onOpenRoutine(routineId) }
+                    } else {
+                        null
+                    },
+                    trailing = if (!isPast && ruleId != null) {
+                        {
+                            TextButton(
+                                onClick = { onRemove(ruleId) },
+                                contentPadding = PaddingValues(0.dp),
+                                modifier = Modifier.heightIn(min = Metrics.touchMin),
+                            ) {
+                                Text(
+                                    PlanDayCopy.REMOVE,
+                                    style = InstrumentType.bodyStrong,
+                                    color = TextSecondary,
+                                )
+                            }
+                        }
+                    } else {
+                        null
+                    },
+                )
+                if (!isPast && ruleId != null) {
+                    val currentHour = item.occurrence.hour
+                    FlowRow(
+                        modifier = Modifier.padding(
+                            start = Metrics.space4,
+                            end = Metrics.space4,
+                            bottom = Metrics.space3,
+                        ),
+                        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    ) {
+                        com.sinura.personaltrainer.domain.ClockCopy.hourChoices(currentHour).forEach { hour ->
+                            InstrumentChip(
+                                label = com.sinura.personaltrainer.domain.ClockCopy.hourChip(hour, clockFormat),
+                                selected = currentHour == hour,
+                                onClick = { onSetHour(ruleId, hour) },
                             )
                         }
                     }
-                } else {
-                    null
-                },
-            )
+                }
+            }
         }
     }
 }

@@ -42,7 +42,6 @@ object InformationArchitecture {
 
     val pushedNeverTabs: List<LandingSurface> = listOf(
         LandingSurface.LIBRARY,
-        LandingSurface.GOALS,
         LandingSurface.COMPOSER,
     )
 

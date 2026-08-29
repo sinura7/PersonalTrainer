@@ -201,6 +201,11 @@ class OnboardingViewModel @JvmOverloads constructor(
                 }
                 .collect { unit -> storedWeightUnit.value = unit }
         }
+        viewModelScope.launch {
+            runCatchingCancellable { container.preferencesRepository.storedOnboardingAnswers() }
+                .onSuccess { stored -> answers.value = stored }
+                .onFailure { AppLog.w(TAG, "Seeding setup from stored answers failed", it) }
+        }
     }
 
     fun back(): Boolean {
@@ -269,6 +274,11 @@ class OnboardingViewModel @JvmOverloads constructor(
 
     fun beginGuided() {
         step.value = OnboardingStep.FOCUS
+        viewModelScope.launch {
+            runCatchingCancellable { container.preferencesRepository.storedOnboardingAnswers() }
+                .onSuccess { stored -> answers.value = stored }
+                .onFailure { AppLog.w(TAG, "Seeding setup from stored answers failed", it) }
+        }
     }
 
     fun setFocus(value: TrainingFocus) = advance { it.copy(focus = value) }

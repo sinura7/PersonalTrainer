@@ -201,6 +201,11 @@ data class OnboardingAnswers(
     /** Null when skipped. Replaces the flat stand-in in bodyweight-set volume. */
     val bodyweightKg: Double? = null,
     val focus: TrainingFocus = TrainingFocus.STRENGTH,
+    /**
+     * Explicit kit from Settings. Empty means derive from [resolvedPlaces]
+     * — the same opt-out as [CoachPreferences].
+     */
+    val availableEquipment: Set<String> = emptySet(),
 ) {
     fun resolvedPlaces(): Set<TrainingPlace> =
         (if (places.isNotEmpty()) places else setOf(place)).ifEmpty { setOf(TrainingPlace.FULL_GYM) }
@@ -222,7 +227,11 @@ data class OnboardingAnswers(
             target in current -> (current - target).ifEmpty { current }
             else -> current + target
         }
-        return copy(places = next, place = TrainingPlace.widest(next))
+        return copy(
+            places = next,
+            place = TrainingPlace.widest(next),
+            availableEquipment = emptySet(),
+        )
     }
 
     fun sanitized(): OnboardingAnswers {
@@ -255,11 +264,16 @@ data class OnboardingAnswers(
             goal = goal,
             // A full gym filters nothing except Hyper Pro, and storing every gym type
             // would be a list that has to be updated every time the enum grows. Empty
-            // already means "gym floor, no specialty benches".
-            availableEquipment = when {
-                TrainingPlace.FULL_GYM in resolved && TrainingPlace.HYPER_PRO !in resolved ->
-                    emptySet()
-                else -> TrainingPlace.equipmentOf(resolved).map { it.name }.toSet()
+            // already means "gym floor, no specialty benches". An explicit Settings
+            // set wins until place changes and clears it.
+            availableEquipment = if (availableEquipment.isNotEmpty()) {
+                availableEquipment
+            } else {
+                when {
+                    TrainingPlace.FULL_GYM in resolved && TrainingPlace.HYPER_PRO !in resolved ->
+                        emptySet()
+                    else -> TrainingPlace.equipmentOf(resolved).map { it.name }.toSet()
+                }
             },
             emphasis = emphasis,
         )
@@ -295,6 +309,7 @@ data class OnboardingAnswers(
             bodyweightKg: Double?,
             places: Set<TrainingPlace> = emptySet(),
             focus: TrainingFocus = TrainingFocus.STRENGTH,
+            availableEquipment: Set<String> = emptySet(),
         ): OnboardingAnswers = OnboardingAnswers(
             trainingAge = trainingAge,
             daysPerWeek = daysPerWeek,
@@ -305,6 +320,7 @@ data class OnboardingAnswers(
             emphasis = emphasis,
             bodyweightKg = bodyweightKg,
             focus = focus,
+            availableEquipment = availableEquipment,
         ).sanitized()
 
         /**

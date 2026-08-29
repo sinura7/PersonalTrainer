@@ -259,6 +259,8 @@ object BackupJson {
             reminderOptOut = prefs.bool("reminderOptOut", false),
             reminderQuietStartHour = prefs.int("reminderQuietStartHour", 22),
             reminderQuietEndHour = prefs.int("reminderQuietEndHour", 7),
+            clockFormat = prefs.string("clockFormat", "12h"),
+            bodyweightCheckInWeekday = prefs.string("bodyweightCheckInWeekday", ""),
         )
     }
 
