@@ -23,5 +23,6 @@ class ShippingTabsTest {
         )
         assertFalse(shippingTabs.any { it.route == Route.Library })
         assertFalse(shippingTabs.any { it.route == Route.Goals })
+        assertFalse(shippingTabs.any { it.route == Route.PlanDay })
     }
 }

@@ -11,7 +11,7 @@ class AccessibilityMatrixTest {
         val ids = AccessibilityMatrix.pages.map { it.id }
         assertTrue(ids.containsAll(
             listOf(
-                "home", "body", "plan", "history", "library", "settings",
+                "home", "body", "plan", "plan-day", "history", "library", "settings",
                 "active-strength", "active-cardio", "active-mixed",
                 "routine-editor", "custom-week", "summary", "session-detail",
                 "exercise-detail", "activity-detail", "activity-composer",
@@ -49,6 +49,11 @@ class AccessibilityMatrixTest {
         assertEquals(
             "Export to file — backup is never the page's Volt gym act",
             AccessibilityMatrix.page("settings").voltAction,
+        )
+        assertEquals("Add session", AccessibilityMatrix.page("plan-day").voltAction)
+        assertEquals(
+            "Tune, Library, and Add session are named. Start is Home, not Plan. Lighter stays behind Tune. Settings is a tab, not a header gear.",
+            AccessibilityMatrix.page("plan").talkBackNotes,
         )
     }
 

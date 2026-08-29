@@ -178,7 +178,106 @@ class PlanViewModelTest {
         assertEquals(2, mondayOcc.count { it.localEpochDay == monday.toEpochDay() })
         assertTrue(
             deps.plannerRepository.rules().any {
-                it.modality == com.sinura.personaltrainer.domain.ScheduleModality.CARDIO
+                it.modality == com.sinura.personaltrainer.domain.ScheduleModality.CARDIO &&
+                    it.templateId == com.sinura.personaltrainer.domain.ScheduleKind.cardio(
+                        com.sinura.personaltrainer.domain.CardioType.RUN,
+                    )
+            },
+        )
+    }
+
+    @Test
+    fun addWalkCardioStoresTheTypeTag() = runBlocking {
+        val today = LocalDate.now(ZoneId.systemDefault())
+        val monday = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+        val insights = MutableStateFlow(
+            TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
+        )
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.pinFocus(monday.toEpochDay(), SessionFocusKind.PUSH)
+        withTimeout(5_000) {
+            viewModel!!.uiState.first { it.rules.isNotEmpty() }
+        }
+        viewModel!!.addCardio(monday.toEpochDay(), com.sinura.personaltrainer.domain.CardioType.WALK)
+        dispatcher.scheduler.advanceUntilIdle()
+        val cardio = withTimeout(5_000) {
+            deps.plannerRepository.observeRules().first { rows ->
+                rows.any { it.modality == com.sinura.personaltrainer.domain.ScheduleModality.CARDIO }
+            }.single { it.modality == com.sinura.personaltrainer.domain.ScheduleModality.CARDIO }
+        }
+        assertEquals(
+            com.sinura.personaltrainer.domain.ScheduleKind.cardio(
+                com.sinura.personaltrainer.domain.CardioType.WALK,
+            ),
+            cardio.templateId,
+        )
+        assertEquals(7, cardio.hour)
+    }
+
+    @Test
+    fun addAuxiliaryMintsAStretchRoutine() = runBlocking {
+        val today = LocalDate.now(ZoneId.systemDefault())
+        val monday = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+        val insights = MutableStateFlow(
+            TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
+        )
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps.dbMaintenance.seedCatalog()
+        viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.pinFocus(monday.toEpochDay(), SessionFocusKind.PUSH)
+        withTimeout(5_000) {
+            viewModel!!.uiState.first { it.rules.isNotEmpty() }
+        }
+        viewModel!!.addAuxiliary(monday.toEpochDay(), "stretch")
+        dispatcher.scheduler.advanceUntilIdle()
+        val aux = withTimeout(5_000) {
+            deps.plannerRepository.observeRules().first { rows ->
+                rows.any {
+                    it.templateId == com.sinura.personaltrainer.domain.ScheduleKind.aux("stretch")
+                }
+            }.single {
+                it.templateId == com.sinura.personaltrainer.domain.ScheduleKind.aux("stretch")
+            }
+        }
+        assertEquals(com.sinura.personaltrainer.domain.ScheduleModality.STRENGTH, aux.modality)
+        val routine = deps.routineRepository.getById(aux.routineId!!)!!
+        assertEquals("Stretch", routine.name)
+        assertTrue(routine.exercises.isNotEmpty())
+    }
+
+    @Test
+    fun deleteSessionUnpinsTheImportedEveningPin() = runBlocking {
+        val today = LocalDate.now(ZoneId.systemDefault())
+        val monday = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+        val insights = MutableStateFlow(
+            TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
+        )
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.pinFocus(monday.toEpochDay(), SessionFocusKind.PUSH)
+        withTimeout(5_000) {
+            viewModel!!.uiState.first { it.rules.isNotEmpty() }
+        }
+        val imported = deps.plannerRepository.rules().single {
+            com.sinura.personaltrainer.domain.SlotRuleImport.isImportedSlotRule(it.id)
+        }
+        viewModel!!.deleteSession(monday.toEpochDay(), imported.id)
+        dispatcher.scheduler.advanceUntilIdle()
+        withTimeout(5_000) {
+            deps.plannerRepository.observeRules().first { rows ->
+                rows.none {
+                    com.sinura.personaltrainer.domain.SlotRuleImport.isImportedSlotRule(it.id)
+                }
+            }
+        }
+        assertTrue(deps.scheduleRepository.slots().isEmpty())
+        assertTrue(
+            deps.plannerRepository.rules().none {
+                com.sinura.personaltrainer.domain.SlotRuleImport.isImportedSlotRule(it.id)
             },
         )
     }
