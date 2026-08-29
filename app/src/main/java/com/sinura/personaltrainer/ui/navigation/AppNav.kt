@@ -416,20 +416,7 @@ fun PersonalTrainerNav(
                     ProgressScreen(
                         onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
                         onOpenLibrary = { muscle -> navController.navigate(Route.Library.create(muscle)) },
-                        onWorkoutStarted = { sessionId ->
-                            navController.navigate(Route.ActiveWorkout.create(sessionId)) {
-                                launchSingleTop = true
-                            }
-                        },
                         onOpenRoutines = { goToTab(Route.Routines.path) },
-                        onLogActivity = { mode ->
-                            navController.navigate(Route.ActivityComposer.create(mode))
-                        },
-                        onOpenLiveCardio = { sessionId ->
-                            navController.navigate(Route.LiveCardio.create(sessionId)) {
-                                launchSingleTop = true
-                            }
-                        },
                     )
                 }
                 composable(

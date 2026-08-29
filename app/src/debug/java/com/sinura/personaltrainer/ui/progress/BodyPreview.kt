@@ -14,7 +14,6 @@ import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.MuscleLoadSummary
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.BodyView
-import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.preview.TemperAccessibilityPreviews
 import com.sinura.personaltrainer.ui.preview.TemperReducedMotionPreview
 import com.sinura.personaltrainer.ui.preview.TemperWidthPreviews
@@ -47,16 +46,16 @@ private fun BodyPopulatedPreview() {
 }
 
 @TemperWidthPreviews
-@TemperAccessibilityPreviews
 @Composable
 private fun BodyEmptyPreview() {
     PersonalTrainerTheme {
         BodyPreviewColumn {
-            EmptyState(
-                title = "See what you trained",
-                body = "Weekly working sets light the map for the window you pick.",
-                actionLabel = "Start a workout",
-                onAction = {},
+            BodyMapCard(
+                snapshot = BodyPreviewFixtures.empty,
+                view = BodyView.FRONT,
+                onViewChange = {},
+                selected = null,
+                onSelect = {},
             )
         }
     }
@@ -112,5 +111,14 @@ internal object BodyPreviewFixtures {
         loads = listOf(chest),
         hasAnyWorkingSets = true,
         hasWindowWorkingSets = true,
+    )
+
+    val empty = BodyHeatSnapshot(
+        window = HeatWindow.DAY,
+        windowStartMs = 1L,
+        generatedAtMs = 2L,
+        loads = emptyList(),
+        hasAnyWorkingSets = false,
+        hasWindowWorkingSets = false,
     )
 }

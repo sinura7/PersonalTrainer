@@ -53,10 +53,10 @@ class ProgressViewModelTest {
     @Test
     fun firstMapUsesTheStoredHeatWindow() = runBlocking {
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
-        deps.preferencesRepository.setHeatWindow(HeatWindow.LAST_30_DAYS)
+        deps.preferencesRepository.setHeatWindow(HeatWindow.CURRENT_MONTH)
         viewModel = ProgressViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         val state = viewModel!!.uiState.first { !it.isLoading }
-        assertEquals(HeatWindow.LAST_30_DAYS, state.window)
+        assertEquals(HeatWindow.CURRENT_MONTH, state.window)
     }
 
     @Test

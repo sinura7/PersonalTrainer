@@ -102,7 +102,7 @@ class CoachDecouplingTest {
         // Both snapshots are built, exactly as the two chips would build them, and the coach's
         // basis is constructed independently of either.
         MuscleLoadCalculator.snapshot(history, HeatWindow.CURRENT_WEEK, now, zone)
-        MuscleLoadCalculator.snapshot(history, HeatWindow.LAST_30_DAYS, now, zone)
+        MuscleLoadCalculator.snapshot(history, HeatWindow.CURRENT_MONTH, now, zone)
 
         val basis = MuscleLoadCalculator.coachBasis(history, now, zone)
         val first = RecommendationEngine.recommend(inputsFor(basis, history))

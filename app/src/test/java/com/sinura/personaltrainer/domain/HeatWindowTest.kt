@@ -44,16 +44,31 @@ class HeatWindowTest {
     }
 
     @Test
-    fun rollingWindowsIgnoreWeekStart() {
+    fun dayAndMonthIgnoreWeekStart() {
         val now = millis(LocalDate.of(2026, 8, 20))
         assertEquals(
-            HeatWindow.LAST_30_DAYS.startMs(now, zone),
-            HeatWindow.LAST_30_DAYS.startMs(now, zone, Weekday.SUNDAY),
+            HeatWindow.DAY.startMs(now, zone),
+            HeatWindow.DAY.startMs(now, zone, Weekday.SUNDAY),
         )
         assertEquals(
-            HeatWindow.LAST_30_DAYS.startMs(now, zone),
-            HeatWindow.LAST_30_DAYS.startMs(now, zone, Weekday.FRIDAY),
+            HeatWindow.CURRENT_MONTH.startMs(now, zone),
+            HeatWindow.CURRENT_MONTH.startMs(now, zone, Weekday.FRIDAY),
         )
+    }
+
+    @Test
+    fun dayIsStartOfToday() {
+        val thursday = LocalDate.of(2026, 8, 20)
+        val start = HeatWindow.DAY.startMs(millis(thursday, hour = 23), zone)
+        assertEquals(thursday.atStartOfDay(zone).toInstant().toEpochMilli(), start)
+    }
+
+    @Test
+    fun monthStartsOnTheFirst() {
+        val thursday = LocalDate.of(2026, 8, 20)
+        val start = HeatWindow.CURRENT_MONTH.startMs(millis(thursday), zone)
+        val expected = LocalDate.of(2026, 8, 1).atStartOfDay(zone).toInstant().toEpochMilli()
+        assertEquals(expected, start)
     }
 
     @Test
@@ -83,11 +98,18 @@ class HeatWindowTest {
     }
 
     @Test
-    fun rollingWindowCrossesADstBoundaryWithoutDrift() {
-        // 2026-03-08 is the US spring-forward. minusDays must stay calendar-correct.
+    fun monthStartIsCivilMidnightNotARollingOffset() {
         val afterDst = LocalDateTime.of(2026, 3, 10, 9, 0).atZone(zone).toInstant().toEpochMilli()
-        val start = HeatWindow.LAST_30_DAYS.startMs(afterDst, zone)
-        val expected = LocalDateTime.of(2026, 2, 8, 9, 0).atZone(zone).toInstant().toEpochMilli()
+        val start = HeatWindow.CURRENT_MONTH.startMs(afterDst, zone)
+        val expected = LocalDate.of(2026, 3, 1).atStartOfDay(zone).toInstant().toEpochMilli()
         assertEquals(expected, start)
+    }
+
+    @Test
+    fun storedLastThirtyDaysBecomesThisMonth() {
+        assertEquals(HeatWindow.CURRENT_MONTH, HeatWindow.fromStorage("LAST_30_DAYS"))
+        assertEquals(HeatWindow.DAY, HeatWindow.fromStorage("DAY"))
+        assertEquals(HeatWindow.CURRENT_WEEK, HeatWindow.fromStorage(null))
+        assertEquals(HeatWindow.CURRENT_WEEK, HeatWindow.fromStorage("nope"))
     }
 }

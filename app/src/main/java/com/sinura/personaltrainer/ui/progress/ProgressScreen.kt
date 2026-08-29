@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.SetCopy
+import com.sinura.personaltrainer.domain.BodyHeatCopy
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.HeatWindow
@@ -55,24 +56,18 @@ import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.Surface3
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
+import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
-import com.sinura.personaltrainer.ui.workout.StartOptionsSheet
 
 @Composable
 fun ProgressScreen(
     onOpenLibrary: (CanonicalMuscle?) -> Unit,
     onOpenExercise: (String) -> Unit,
-    onWorkoutStarted: (String) -> Unit,
     onOpenRoutines: () -> Unit,
-    onLogActivity: (String) -> Unit = {},
-    onOpenLiveCardio: (String) -> Unit = {},
     viewModel: ProgressViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
-    // Body hosts the shared start sheet: its empty state and its coach cards both used to
-    // navigate to an interstitial screen whose only job was to ask what you meant.
-    var startOptionsOpen by rememberSaveable { mutableStateOf(false) }
     var bodyView by rememberSaveable { mutableStateOf(BodyView.FRONT) }
     var selectedName by rememberSaveable { mutableStateOf<String?>(null) }
     val selected = selectedName?.let { runCatching { CanonicalMuscle.valueOf(it) }.getOrNull() }
@@ -86,7 +81,7 @@ fun ProgressScreen(
         // The window governs every number below it, so it belongs to the chrome rather than to
         // the content: it used to be repeated inside all three branches and scrolled away with
         // the map it labels.
-        ProgressHeader(window = state.window, onSelectWindow = viewModel::setWindow)
+        BodyWindowPicker(window = state.window, onSelectWindow = viewModel::setWindow)
 
         when {
             state.isLoading -> {
@@ -106,17 +101,11 @@ fun ProgressScreen(
                 )
             }
 
-            snapshot == null || !snapshot.hasAnyWorkingSets -> {
-                EmptyState(
-                    title = "See what you trained",
-                    body = "Weekly working sets light the map for the window you pick.",
-                    actionLabel = "Start a workout",
-                    onAction = { startOptionsOpen = true },
-                    modifier = Modifier.padding(Metrics.gutter),
-                )
-            }
-
             else -> {
+                val snap = snapshot ?: emptySnapshot(state.window)
+                val readoutRecs = state.recommendations.filter { rec ->
+                    RecommendationIntents.from(rec) !is RecommendationIntent.StartWorkout
+                }
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
@@ -141,27 +130,53 @@ fun ProgressScreen(
                             )
                         }
                     }
-                    if (!snapshot.hasWindowWorkingSets) {
+                    item(key = "map") {
+                        BodyMapCard(
+                            snapshot = snap,
+                            view = bodyView,
+                            onViewChange = { bodyView = it },
+                            selected = selected,
+                            onSelect = { selectedName = it.name },
+                        )
+                    }
+                    if (!snap.hasWindowWorkingSets) {
                         item(key = "window-empty") {
-                            val anyRecency = snapshot.loads.any { it.lastTrainedAtMs != null }
                             Text(
-                                if (anyRecency) {
-                                    "You haven’t logged a working set ${state.window.sentenceLabel()}. " +
-                                        "Each muscle below still shows how long ago it was last trained."
+                                if (snap.hasAnyWorkingSets) {
+                                    BodyHeatCopy.EMPTY_WINDOW
                                 } else {
-                                    "You haven’t logged a working set ${state.window.sentenceLabel()}. " +
-                                        "The map is cold until you do. History still has older sessions."
+                                    BodyHeatCopy.EMPTY_LOG
                                 },
                                 style = InstrumentType.body,
                                 color = TextSecondary,
+                                modifier = Modifier.testTag(BodyTags.EMPTY),
                             )
                         }
                     }
-                    if (state.recommendations.isNotEmpty()) {
-                        item(key = "recommended-header") {
-                            GymSectionHeader("Recommended")
+                    item(key = "muscles-header") {
+                        GymSectionHeader("Muscles", modifier = Modifier.padding(top = Metrics.space5))
+                    }
+                    item(key = "muscles") {
+                        GroupedList(modifier = Modifier.testTag(BodyTags.MUSCLES)) {
+                            muscleRows(snap).forEachIndexed { index, load ->
+                                if (index > 0) HairlineDivider()
+                                MuscleHeatRow(
+                                    load = load,
+                                    selected = selected == load.muscle,
+                                    onClick = { selectedName = load.muscle.name },
+                                    unit = unit,
+                                )
+                            }
                         }
-                        items(state.recommendations, key = { it.id }) { rec ->
+                    }
+                    if (readoutRecs.isNotEmpty()) {
+                        item(key = "recommended-header") {
+                            GymSectionHeader(
+                                "Recommended",
+                                modifier = Modifier.padding(top = Metrics.space5),
+                            )
+                        }
+                        items(readoutRecs, key = { it.id }) { rec ->
                             RecommendationCard(
                                 recommendation = rec,
                                 onClick = {
@@ -170,8 +185,7 @@ fun ProgressScreen(
                                             onOpenLibrary(intent.muscle)
                                         is RecommendationIntent.OpenExercise ->
                                             onOpenExercise(intent.exerciseId)
-                                        RecommendationIntent.StartWorkout ->
-                                            startOptionsOpen = true
+                                        RecommendationIntent.StartWorkout -> Unit
                                         RecommendationIntent.OpenRoutines -> onOpenRoutines()
                                         RecommendationIntent.OpenBodyMap ->
                                             selectedName = rec.actionMuscle?.name
@@ -184,69 +198,32 @@ fun ProgressScreen(
                             )
                         }
                     }
-                    item(key = "map") {
-                        BodyMapCard(
-                            snapshot = snapshot,
-                            view = bodyView,
-                            onViewChange = { bodyView = it },
-                            selected = selected,
-                            onSelect = { selectedName = it.name },
-                        )
-                    }
-                    item(key = "muscles-header") {
-                        GymSectionHeader("Muscles", modifier = Modifier.padding(top = Metrics.space5))
-                    }
-                    item(key = "muscles") {
-                        GroupedList(modifier = Modifier.testTag(BodyTags.MUSCLES)) {
-                            muscleRows(snapshot).forEachIndexed { index, load ->
-                                if (index > 0) HairlineDivider()
-                                MuscleHeatRow(
-                                    load = load,
-                                    selected = selected == load.muscle,
-                                    onClick = { selectedName = load.muscle.name },
-                                    unit = unit,
-                                )
-                            }
-                        }
-                    }
                 }
             }
         }
     }
 
     selected?.let { muscle ->
-        snapshot?.let { snap ->
-            MuscleDetailSheet(
-                load = snap.load(muscle),
-                unit = unit,
-                windowLabel = state.window.label,
-                onDismiss = { selectedName = null },
-                onOpenExercise = { exerciseId ->
-                    selectedName = null
-                    onOpenExercise(exerciseId)
-                },
-                onFindLifts = {
-                    selectedName = null
-                    onOpenLibrary(muscle)
-                },
-            )
-        }
-    }
-
-    if (startOptionsOpen) {
-        StartOptionsSheet(
-            onDismiss = { startOptionsOpen = false },
-            onWorkoutStarted = onWorkoutStarted,
-            onLogPast = { onLogActivity("strength") },
-            onLogCardio = { onLogActivity("cardio") },
-            onLogMixed = { onLogActivity("mixed") },
-            onOpenLiveActivity = onOpenLiveCardio,
+        val snap = snapshot ?: emptySnapshot(state.window)
+        MuscleDetailSheet(
+            load = snap.load(muscle),
+            unit = unit,
+            windowLabel = state.window.label,
+            onDismiss = { selectedName = null },
+            onOpenExercise = { exerciseId ->
+                selectedName = null
+                onOpenExercise(exerciseId)
+            },
+            onFindLifts = {
+                selectedName = null
+                onOpenLibrary(muscle)
+            },
         )
     }
 }
 
 @Composable
-private fun ProgressHeader(
+internal fun BodyWindowPicker(
     window: HeatWindow,
     onSelectWindow: (HeatWindow) -> Unit,
 ) {
@@ -265,18 +242,18 @@ private fun ProgressHeader(
         Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
             HeatWindow.entries.forEach { entry ->
                 InstrumentChip(
-                    label = entry.pickerLabel,
+                    label = entry.shortLabel,
                     selected = window == entry,
                     onClick = { onSelectWindow(entry) },
-                    modifier = Modifier.testTag(
-                        when (entry) {
-                            HeatWindow.CURRENT_WEEK -> BodyTags.WINDOW_WEEK
-                            HeatWindow.LAST_30_DAYS -> BodyTags.WINDOW_30
-                        },
-                    ),
+                    modifier = Modifier.testTag(BodyTags.window(entry)),
                 )
             }
         }
+        Text(
+            BodyHeatCopy.WINDOW_CAPTION,
+            style = InstrumentType.caption,
+            color = TextTertiary,
+        )
     }
 }
 
@@ -398,19 +375,11 @@ private fun muscleRows(snapshot: BodyHeatSnapshot): List<MuscleLoadSummary> =
         snapshot.load(CanonicalMuscle.OTHER).takeIf { it.workingSets > 0 },
     )
 
-/**
- * A bare "7" beside the word "Week" made the picker read as two different kinds of thing.
- * Both units are spelled now, and the labels are the picker's own — no copy elsewhere has to
- * quote them back at the reader.
- */
-private val HeatWindow.pickerLabel: String
-    get() = when (this) {
-        HeatWindow.CURRENT_WEEK -> "THIS WEEK"
-        HeatWindow.LAST_30_DAYS -> "30 DAYS"
-    }
-
-/** The window as it reads inside a sentence about training, preposition included. */
-private fun HeatWindow.sentenceLabel(): String = when (this) {
-    HeatWindow.CURRENT_WEEK -> "this week"
-    HeatWindow.LAST_30_DAYS -> "in the last 30 days"
-}
+private fun emptySnapshot(window: HeatWindow): BodyHeatSnapshot = BodyHeatSnapshot(
+    window = window,
+    windowStartMs = 0L,
+    generatedAtMs = 0L,
+    loads = emptyList(),
+    hasAnyWorkingSets = false,
+    hasWindowWorkingSets = false,
+)

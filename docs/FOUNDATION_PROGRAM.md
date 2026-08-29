@@ -683,8 +683,9 @@ Implements [ADR-007](architecture/ADR-007-activity-model.md),
   No punitive streaks. Pushed route from Home/Plan, not a fifth tab.
   Home shows at most one compact snapshot.
 - **P8.3** Comparable horizons including year and all-time. · **done**
-  History chips: This week / This month / This year / All time.
-  Body heat stays This week / Last 30 days. Closes FND-009.
+  History chips: Today / This week / This month / This year / All time.
+  Body heat is Day / This week / This month. Year and all-time stay
+  History, not a second silhouette. Closes FND-009.
 - **P8.4** Structured local `RuleTrace`. · **done**
   Recommendations and progression hints emit a trace. UI renders
   Why offline. No remote API.

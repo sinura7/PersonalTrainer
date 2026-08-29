@@ -28,7 +28,7 @@ class TrainingInsightsCalculatorTest {
         catalog: Map<String, Exercise> = emptyMap(),
         hints: List<ProgressionHint>? = emptyList(),
         preferences: SchedulePreferences = SchedulePreferences.DEFAULT,
-        window: HeatWindow = HeatWindow.LAST_30_DAYS,
+        window: HeatWindow = HeatWindow.CURRENT_MONTH,
         includeWeekPlan: Boolean = true,
         slots: List<ScheduleSlot> = emptyList(),
     ) = TrainingInsightsInput(

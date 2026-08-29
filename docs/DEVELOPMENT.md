@@ -26,9 +26,9 @@ Walk this once, in order:
 
 1. Home — last session, days since, Start, Library, Goals.
 2. Start today's plan (or Start a workout), log a set, rest, finish.
-3. Body — This week / Last 30 days. A muscle last trained more than
-   30 days ago should still show recency, not "Not trained yet."
-   Recommendations sit above the map.
+3. Body — Day / Week / Month chips. The silhouette is the readout, even
+   with no sessions. A muscle last trained more than a month ago should
+   still show recency, not "Not trained yet." Start is not on this tab.
 4. Plan — pin, replay, or suggest a week. Two timed items can share a day.
 5. History — Day / Week / Month / Year / All chips, readout, then a session row. No Start on this tab.
 6. Settings — export a file. Do not restore over a phone that holds real history.

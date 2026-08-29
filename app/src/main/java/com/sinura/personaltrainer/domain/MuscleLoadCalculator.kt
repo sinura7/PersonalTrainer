@@ -15,15 +15,15 @@ object MuscleLoadCalculator {
     const val HIGH_SATURATION_SETS = 30.0
 
     /**
-     * Where each band sits on the 0..1 ramp `heatColor` paints.
+     * A wash starts at the first credited set. Four weekly sets is the coach's
+     * "enough" floor, not the silhouette's on-switch — otherwise a real chest
+     * day of three working sets looked like rest.
      *
-     * [FRACTION_LOW] is 0.05 rather than 0.02 on purpose: 0.02 is exactly `heatColor`'s
-     * empty/not-empty cutoff, so a muscle that has just reached the LOW floor would render at
-     * the boundary and read as untrained. [FRACTION_PRODUCTIVE] is where Heat3 sits exactly on
-     * that ramp ((2/3) × 0.98 + 0.02), so the productive band is a flat, recognisable colour
-     * rather than a gradient you have to compare against a legend.
+     * [FRACTION_TOUCHED] matches the legend's Low swatch so one set is visible,
+     * not parked on `heatColor`'s empty cutoff.
      */
-    const val FRACTION_LOW = 0.05
+    const val FRACTION_TOUCHED = 0.22
+    const val FRACTION_LOW = FRACTION_TOUCHED
     const val FRACTION_PRODUCTIVE = 0.6733
     const val FRACTION_HIGH = 1.0
 
@@ -80,7 +80,7 @@ object MuscleLoadCalculator {
                             // trains, which is also how a rep count is read out loud.
                             volumeKg = work.volumeKg * weight,
                             bodyweightReps = work.bodyweightReps,
-                            weightedSets = weight,
+                            weightedSets = weight * setStimulus(set),
                             set = set,
                         )
                     }
@@ -117,24 +117,18 @@ object MuscleLoadCalculator {
     }
 
     /**
-     * How hot a muscle looks, from how much work it is actually getting.
+     * How hot a muscle looks, from how much work it actually got in the window.
      *
-     * This replaces a relative normalisation — volume over the window's maximum — that made
-     * the map answer the wrong question. Under the old rule the hottest muscle was always
-     * fully hot, whatever you had done, and every other muscle's colour moved when it changed.
-     * A week with one hard session and nothing else looked like a week of excellent balance
-     * with one standout; a week of even, adequate training looked flat.
-     *
-     * Now the number means something on its own: below the LOW floor the muscle renders as
-     * untrained, the productive band is a flat recognisable tone, and past it the ramp climbs
-     * to saturation. Two different weeks that got a muscle the same work look the same.
+     * Rest is zero. Any credited set paints at [FRACTION_TOUCHED] so the figure
+     * answers "what did I hit", not only "was it enough for the week". The
+     * productive band stays a flat tone; past it the ramp climbs to saturation.
      */
     fun heatFraction(weeklySets: Double): Double = when {
-        weeklySets < LOW_MIN_SETS -> 0.0
+        weeklySets <= 0.0 -> 0.0
         weeklySets < PRODUCTIVE_MIN_SETS -> lerp(
-            from = FRACTION_LOW,
+            from = FRACTION_TOUCHED,
             to = FRACTION_PRODUCTIVE,
-            t = (weeklySets - LOW_MIN_SETS) / (PRODUCTIVE_MIN_SETS - LOW_MIN_SETS),
+            t = weeklySets / PRODUCTIVE_MIN_SETS,
         )
         weeklySets <= HIGH_MIN_SETS -> FRACTION_PRODUCTIVE
         weeklySets < HIGH_SATURATION_SETS -> lerp(
@@ -146,16 +140,21 @@ object MuscleLoadCalculator {
     }
 
     /**
-     * A window's weighted-set total, expressed per week.
+     * Window stimulus, as the map's dose number.
      *
-     * The 30-day window is averaged rather than shown raw so the two chips are the same unit:
-     * "18 weighted sets" has to mean the same thing on both, or the bands mean nothing on one
-     * of them. `CURRENT_WEEK` is deliberately NOT scaled up — early in the week it reads low,
-     * which is the honest answer to "this week so far".
+     * Day / week / month are totals for that window. A rolling 30-day average
+     * used to make the long chip comparable to the week chip; the month chip
+     * is "this month so far", the same honesty as an early week.
      */
-    fun weeklySetsFor(windowWeightedSets: Double, window: HeatWindow): Double = when (window) {
-        HeatWindow.CURRENT_WEEK -> windowWeightedSets
-        HeatWindow.LAST_30_DAYS -> windowWeightedSets * 7.0 / 30.0
+    fun weeklySetsFor(windowWeightedSets: Double, window: HeatWindow): Double {
+        // Window is part of the signature so call sites stay honest about which
+        // chip produced the number. All three windows use the raw total.
+        return when (window) {
+            HeatWindow.DAY,
+            HeatWindow.CURRENT_WEEK,
+            HeatWindow.CURRENT_MONTH,
+            -> windowWeightedSets
+        }
     }
 
     private fun lerp(from: Double, to: Double, t: Double): Double =
@@ -201,7 +200,7 @@ object MuscleLoadCalculator {
                     lastTrained[muscle] = max(lastTrained[muscle] ?: 0L, trainedAt)
                     if (trainedAt >= basisStart && trainedAt <= nowMs) {
                         basisWorkingSets = true
-                        weighted[muscle] = (weighted[muscle] ?: 0.0) + weight
+                        weighted[muscle] = (weighted[muscle] ?: 0.0) + weight * setStimulus(set)
                     }
                 }
             }
@@ -330,6 +329,37 @@ object MuscleLoadCalculator {
     internal fun trainedAtMs(session: WorkoutSession, set: SetLog): Long {
         val candidates = listOf(set.completedAt, session.date, session.finishedAt ?: 0L, session.startedAt)
         return candidates.firstOrNull { it > 0L } ?: 0L
+    }
+
+    /**
+     * How much one working set is worth on the figure.
+     *
+     * Junction weight already says *which* muscles. This says *how hard* that
+     * set was: skipped RPE is a completed set (1.0); a grind at nine is more
+     * than a six; a single is less muscle fill than a set of eight.
+     */
+    internal fun setStimulus(set: SetLog): Double {
+        if (set.reps <= 0) return 0.0
+        return rpeFactor(set.rpe) * repsFactor(set.reps)
+    }
+
+    private fun rpeFactor(rpe: Int?): Double = when (rpe) {
+        null -> 1.0
+        else -> when (rpe.coerceIn(1, 10)) {
+            in 1..5 -> 0.55
+            6 -> 0.70
+            7 -> 0.85
+            8 -> 1.00
+            9 -> 1.10
+            else -> 1.15
+        }
+    }
+
+    private fun repsFactor(reps: Int): Double = when (reps) {
+        in 1..4 -> 0.85
+        in 5..12 -> 1.00
+        in 13..20 -> 0.95
+        else -> 0.80
     }
 
     private class MuscleAccumulator {

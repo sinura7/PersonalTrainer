@@ -227,7 +227,7 @@ universal 3 × 5.
 
 **Job.** Heat + hole.
 
-**Gate.** Changing THIS WEEK / 30 DAYS **does not change recommendations**.
+**Gate.** Changing Day / Week / Month **does not change recommendations**.
 (Already true in `TrainingInsightsCalculator` — coach uses a fixed 14-day basis.
 The pass is to keep it that way and to make the map actionable.)
 
@@ -237,7 +237,7 @@ The pass is to keep it that way and to make the map actionable.)
 - Empty / error offering Start when the remedy is retry (error already says retry).
 - Window chips that look like they change the advice. If they do, that is a defect.
 
-**Won't.** Day / year windows. Head-level anatomy. LLM coach.
+**Won't.** Year / all-time heat windows. Head-level anatomy. LLM coach.
 
 - Muscle sheet metrics share width. Name and recency ellipsize.
 
@@ -300,6 +300,11 @@ Job 4 / P1. Home empty-week volt becomes replay when routines exist
 ## Floor findings (newest first)
 
 Record every deviation here. Oldest stay; do not delete.
+
+Owner asked for a **Body readout** (29 Aug 2026): the tab is the
+silhouette. Day / Week / Month chips. No Start on this page. Empty
+still shows the figure. Heat follows sets, reps, and RPE. Instrument
+stays.
 
 Owner asked for a **History readout** (29 Aug 2026): the tab is
 information. Day / Week / Month / Year / All chips. No Start on this

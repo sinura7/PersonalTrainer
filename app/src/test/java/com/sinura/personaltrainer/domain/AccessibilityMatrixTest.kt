@@ -38,6 +38,10 @@ class AccessibilityMatrixTest {
             "None. History is a readout; Start lives on Home.",
             AccessibilityMatrix.page("history").voltAction,
         )
+        assertEquals(
+            "None. Body is a readout; Start lives on Home.",
+            AccessibilityMatrix.page("body").voltAction,
+        )
     }
 
     @Test

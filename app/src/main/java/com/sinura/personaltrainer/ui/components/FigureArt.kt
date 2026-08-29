@@ -22,7 +22,8 @@ import kotlin.math.roundToInt
 /**
  * The Temper figure: the locked unlit still, with live heat as a wash.
  *
- * Body paints this week's (or 30 days') load onto the ChatGPT person.
+ * Body paints today's (or this week's, or this month's) load onto the
+ * ChatGPT person.
  * Untrained plates stay the still. A missing still falls back to steel
  * plates so unit tests and a failed decode still have a map.
  *

@@ -63,9 +63,9 @@ Four tabs — **Home · Body · Plan · History**. Library is a pushed route, no
 - **Home** — today's plan and one next-session act. Last session and days
   since come from all-time summaries. A live session is resumed from the
   live bar, not from a Home Resume button. Library and Goals are links, not tabs.
-- **Body** — muscle heat from real working sets over **This week** or **Last 30 days**,
-  muscle detail, rule-based recommendations above the map. The coach basis is a
-  fixed trailing 14 days. An empty heat window is not “never trained.”
+- **Body** — muscle heat from logged sets, reps, and RPE over **Day**,
+  **This week**, or **This month**. The silhouette stays up when empty.
+  Start lives on Home. The coach basis is a fixed trailing 14 days.
 - **Plan** — the pinned week and the routines that fill it. Suggest / Replay / Tune /
   Lighter week are four different acts.
 - **History** — finished sessions, calendar, personal records, and

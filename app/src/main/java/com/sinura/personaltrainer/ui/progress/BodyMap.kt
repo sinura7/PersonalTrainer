@@ -37,6 +37,7 @@ import com.sinura.personaltrainer.domain.BodyHeatCopy
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.CanonicalMuscle
+import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.MuscleLoadSummary
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.BodyView
@@ -270,13 +271,21 @@ object BodyTags {
     const val MAP_SPOKEN =
         "Body map illustration. Use the muscle list below to open a muscle."
     const val MUSCLES = "body-muscles"
+    const val WINDOW_DAY = "body-window-day"
     const val WINDOW_WEEK = "body-window-week"
-    const val WINDOW_30 = "body-window-30"
+    const val WINDOW_MONTH = "body-window-month"
     const val FIND_LIFTS = "body-find-lifts"
     const val VIEW_FRONT = "body-view-front"
     const val VIEW_BACK = "body-view-back"
+    const val EMPTY = "body-empty-window"
 
     fun muscle(muscle: CanonicalMuscle): String = "body-muscle-${muscle.name}"
+
+    fun window(window: HeatWindow): String = when (window) {
+        HeatWindow.DAY -> WINDOW_DAY
+        HeatWindow.CURRENT_WEEK -> WINDOW_WEEK
+        HeatWindow.CURRENT_MONTH -> WINDOW_MONTH
+    }
 }
 
 private val PANEL_HEIGHT = 440.dp

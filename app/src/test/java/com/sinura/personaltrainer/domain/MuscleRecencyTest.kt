@@ -12,7 +12,7 @@ class MuscleRecencyTest {
         val now = 40L * DAY_MS
         val fortyDaysAgo = now - 40L * DAY_MS
         val snapshot = BodyHeatSnapshot(
-            window = HeatWindow.LAST_30_DAYS,
+            window = HeatWindow.CURRENT_MONTH,
             windowStartMs = now - 30L * DAY_MS,
             generatedAtMs = now,
             loads = listOf(
@@ -99,7 +99,7 @@ class MuscleRecencyTest {
                 hints = emptyList(),
                 preferences = SchedulePreferences(),
                 unit = WeightUnit.KG,
-                window = HeatWindow.LAST_30_DAYS,
+                window = HeatWindow.CURRENT_MONTH,
                 nowMs = now,
                 zone = ZoneId.of("UTC"),
                 lastLoggedAtByExerciseId = mapOf(bench.id to fortyDaysAgo),
