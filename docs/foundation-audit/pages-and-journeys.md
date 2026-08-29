@@ -522,8 +522,7 @@ Runtime evidence: [populated detail](evidence/15-exercise-detail.png).
 
 | Surface | Hosts | Purpose | Writes |
 |---|---|---|---|
-| `StartOptionsSheet` | Body, History, Plan | Today’s plan, routine/free start, or return to live workout | Starts/discards session |
-| `PlanDaySheet` | Plan | Start, edit, swap, or unpin one day | Schedule/session |
+| `StartOptionsSheet` | Home | Today’s plan, routine/free start, or return to live workout | Starts/discards session |
 | `MuscleDetailSheet` | Body | Contributors and destinations | None |
 | `DaySessionsSheet` | History | Choose among same-day sessions | None |
 | `SetEditSheet` | Session Detail | Add/edit completed set | Set row |
