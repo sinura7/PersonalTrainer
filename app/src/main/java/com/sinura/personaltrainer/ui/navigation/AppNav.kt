@@ -510,29 +510,12 @@ fun PersonalTrainerNav(
                     HistoryScreen(
                         onOpenSession = { navController.navigate(Route.SessionDetail.create(it)) },
                         onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
-                        onWorkoutStarted = { sessionId ->
-                            navController.navigate(Route.ActiveWorkout.create(sessionId)) {
-                                launchSingleTop = true
-                            }
-                        },
                         onOpenActiveSession = { sessionId ->
                             navController.navigate(Route.ActiveWorkout.create(sessionId)) {
                                 launchSingleTop = true
                             }
                         },
                         onOpenActivity = { navController.navigate(Route.ActivityDetail.create(it)) },
-                        onLogActivity = { mode ->
-                            if (mode == "live-cardio") {
-                                navController.navigate(Route.LiveCardio.create("live"))
-                            } else {
-                                navController.navigate(Route.ActivityComposer.create(mode))
-                            }
-                        },
-                        onOpenLiveCardio = { sessionId ->
-                            navController.navigate(Route.LiveCardio.create(sessionId)) {
-                                launchSingleTop = true
-                            }
-                        },
                     )
                 }
                 composable(

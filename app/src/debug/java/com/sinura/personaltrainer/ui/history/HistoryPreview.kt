@@ -12,7 +12,6 @@ import com.sinura.personaltrainer.domain.AnalyticsHorizon
 import com.sinura.personaltrainer.domain.HorizonTotals
 import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.WeightUnit
-import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.SessionLogRow
 import com.sinura.personaltrainer.ui.preview.TemperAccessibilityPreviews
 import com.sinura.personaltrainer.ui.preview.TemperWidthPreviews
@@ -50,11 +49,10 @@ private fun HistoryPopulatedPreview() {
 private fun HistoryEmptyPreview() {
     PersonalTrainerTheme {
         HistoryPreviewColumn {
-            EmptyState(
-                title = "No sessions yet",
-                body = "Finished workouts land here.",
-                actionLabel = "Start a workout",
-                onAction = {},
+            HorizonPicker(
+                horizon = AnalyticsHorizon.MONTH,
+                totals = HistoryPreviewFixtures.emptyMonth,
+                onSelect = {},
             )
         }
     }
@@ -85,6 +83,18 @@ internal object HistoryPreviewFixtures {
         workingSets = 1_200,
         volumeKg = 400_000.0,
         activeMinutes = 4_000,
+        cardioSeconds = 0,
+        cardioDistanceMeters = 0.0,
+    )
+    val emptyMonth = HorizonTotals(
+        horizon = AnalyticsHorizon.MONTH,
+        startEpochDay = 1,
+        endEpochDay = 31,
+        sessionCount = 0,
+        trainedDays = 0,
+        workingSets = 0,
+        volumeKg = 0.0,
+        activeMinutes = 0,
         cardioSeconds = 0,
         cardioDistanceMeters = 0.0,
     )

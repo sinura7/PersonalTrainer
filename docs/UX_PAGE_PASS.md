@@ -248,15 +248,19 @@ The pass is to keep it that way and to make the map actionable.)
 **Gate.** Edit a finished set → heat and volume move. Repeat = a **new** live
 session. Repeat while live → “Go to session”, not a silent resume.
 
-**Look for**
+**Floor findings**
 
+- History is a readout. Day / Week / Month / Year / All chips retotal.
+  Empty still shows the calendar. There is no Start Volt on this tab.
 - Repeat copy that says Resume.
 - A calendar day with two sessions opening only the first (already a sheet).
   The day sheet skips the half-expanded detent and scrolls.
 - Session-missing empty with no way back.
 - Four-up metric clusters use `weight(1f)` so 360 dp does not clip a column.
+  The horizon readout now leads with sessions, then days / sets / min.
 
-**Won't.** Recomputing duration on a repair. Changing `completedAt`.
+**Won't.** Recomputing duration on a repair. Changing `completedAt`. A Start
+button on History. Restyling Instrument.
 
 ### 10 — Settings · **done** (this pass)
 
@@ -296,6 +300,10 @@ Job 4 / P1. Home empty-week volt becomes replay when routines exist
 ## Floor findings (newest first)
 
 Record every deviation here. Oldest stay; do not delete.
+
+Owner asked for a **History readout** (29 Aug 2026): the tab is
+information. Day / Week / Month / Year / All chips. No Start on this
+page. Empty still shows the calendar. Instrument stays.
 
 Owner asked for a **day stack** (28 Aug 2026): more than two sessions
 on one weekday — morning cardio, the pinned workout, and later
@@ -376,6 +384,9 @@ and a 240 dp ring on the log stay won’ts.
 26. **A weekday can hold more than two sessions.** Morning cardio,
     the pinned workout, and a later accessory session are independent
     rows. One Volt. Finish one before starting the next.
+27. **History has no Start.** Day / Week / Month / Year / All retotal a
+    hero sessions numeral. Empty still shows the calendar. Start lives
+    on Home.
 
 ---
 

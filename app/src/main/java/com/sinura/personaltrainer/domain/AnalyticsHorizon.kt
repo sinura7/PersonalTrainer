@@ -4,13 +4,15 @@ package com.sinura.personaltrainer.domain
  * Comparable analytics windows (P8.3 / FND-009).
  *
  * These are not [HeatWindow] chips. Body heat stays This week / Last 30
- * days. Year and all-time are progress horizons, not a third silhouette.
+ * days. Day / year / all-time are progress horizons, not a third
+ * silhouette.
  */
 enum class AnalyticsHorizon(val label: String) {
-    WEEK("This week"),
-    MONTH("This month"),
-    YEAR("This year"),
-    ALL_TIME("All time"),
+    DAY("Day"),
+    WEEK("Week"),
+    MONTH("Month"),
+    YEAR("Year"),
+    ALL_TIME("All"),
 }
 
 data class HorizonTotals(
@@ -35,6 +37,7 @@ object HorizonMath {
     ): Pair<Long, Long> {
         val end = today.epochDay
         val start = when (horizon) {
+            AnalyticsHorizon.DAY -> today.epochDay
             AnalyticsHorizon.WEEK -> today.previousOrSame(weekStart).epochDay
             AnalyticsHorizon.MONTH -> CivilDate(today.year, today.month, 1).epochDay
             AnalyticsHorizon.YEAR -> CivilDate(today.year, 1, 1).epochDay
