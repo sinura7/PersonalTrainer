@@ -168,7 +168,18 @@ fun SettingsScreen(
     ) { uri ->
         val id = pendingSafetyExportId
         pendingSafetyExportId = null
-        if (uri != null && id != null) viewModel.exportSafetySnapshot(id, uri)
+        if (uri != null && id != null) {
+            viewModel.exportSafetySnapshot(id, uri)
+        } else {
+            viewModel.cancelProtect()
+        }
+    }
+
+    LaunchedEffect(backup.launchSafetyExportPicker) {
+        if (backup.launchSafetyExportPicker) {
+            exportSafetyLauncher.launch(viewModel.exportSafetyFileName())
+            viewModel.onSafetyExportPickerLaunched()
+        }
     }
 
     // State, not an event: a consent request raised while this screen was recomposing or
@@ -261,7 +272,7 @@ fun SettingsScreen(
                 },
                 onExportSafety = { id ->
                     pendingSafetyExportId = id
-                    exportSafetyLauncher.launch(viewModel.exportSafetyFileName())
+                    viewModel.beginSafetyExport()
                 },
                 onRestoreSafety = viewModel::requestSafetyRestore,
                 onDeleteSafety = { id -> pendingSafetyDeleteId = id },
@@ -1128,9 +1139,12 @@ private fun ProtectBackupDialog(
     onAdvanced: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var password by rememberSaveable { mutableStateOf("") }
-    var confirm by rememberSaveable { mutableStateOf("") }
-    var invalid by rememberSaveable { mutableStateOf<String?>(null) }
+    // remember, not rememberSaveable: a saveable field serializes the plaintext
+    // password into the Activity's saved-state Bundle, which the OS persists
+    // across process death — exactly the copy the ViewModel wipes elsewhere.
+    var password by remember { mutableStateOf("") }
+    var confirm by remember { mutableStateOf("") }
+    var invalid by remember { mutableStateOf<String?>(null) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -1214,7 +1228,8 @@ private fun UnlockBackupDialog(
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var password by rememberSaveable { mutableStateOf("") }
+    // remember, not rememberSaveable — see ProtectBackupDialog.
+    var password by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("This backup is protected", style = InstrumentType.title) },

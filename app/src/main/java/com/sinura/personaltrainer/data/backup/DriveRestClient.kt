@@ -135,9 +135,17 @@ class DriveRestClient {
         }
         return try {
             val code = connection.responseCode
+            // Bounded: the Drive folder is writable by anything holding the account,
+            // and an unbounded readText of a planted multi-hundred-MB file OOM-kills
+            // the app. No genuine backup or API reply approaches the budget.
             val text = (if (code in 200..299) connection.inputStream else connection.errorStream)
-                ?.bufferedReader()
-                ?.use { it.readText() }
+                ?.use { stream ->
+                    val bytes = stream.readNBytes(BackupScaleBudget.IMPORT_BYTES_MAX + 1)
+                    if (bytes.size > BackupScaleBudget.IMPORT_BYTES_MAX) {
+                        throw BackupException(BackupScaleBudget.TOO_BIG_TO_IMPORT)
+                    }
+                    bytes.toString(Charsets.UTF_8)
+                }
                 .orEmpty()
             if (code == 401) {
                 throw BackupException("Google sign-in expired. Sign in again.")

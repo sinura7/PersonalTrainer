@@ -13,6 +13,7 @@ import com.sinura.personaltrainer.data.backup.AuthoredInventory
 import com.sinura.personaltrainer.data.backup.BackupEnvelope
 import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.BackupJson
+import com.sinura.personaltrainer.data.backup.BackupScaleBudget
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
 import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
 import com.sinura.personaltrainer.data.repository.RestorePlan
@@ -70,9 +71,10 @@ data class BackupUiState(
     val pendingUnlock: Boolean = false,
     val pendingPlaintextWarning: Boolean = false,
     val launchExportPicker: Boolean = false,
+    val launchSafetyExportPicker: Boolean = false,
 )
 
-enum class BackupProtectKind { FILE_EXPORT, DRIVE_BACKUP }
+enum class BackupProtectKind { FILE_EXPORT, DRIVE_BACKUP, SAFETY_EXPORT }
 
 private const val TAG = "PT/SettingsVM"
 
@@ -243,6 +245,16 @@ class SettingsViewModel @JvmOverloads constructor(
     private var pendingCiphertext: String? = null
     private var pendingCipherName: String? = null
     private var plaintextKind: BackupProtectKind? = null
+
+    /**
+     * One-shot approvals from the plaintext warning dialog. exportToFile /
+     * exportSafetySnapshot write plaintext ONLY while one is armed: after
+     * process death in the system file picker both this and [heldPassword]
+     * are gone, and the export refuses instead of silently writing the
+     * unprotected file the user never chose.
+     */
+    private var plaintextExportApproved = false
+    private var plaintextSafetyApproved = false
     private var resolutionWaiter: CompletableDeferred<Boolean>? = null
 
     /**
@@ -304,6 +316,7 @@ class SettingsViewModel @JvmOverloads constructor(
             pendingUnlock = flags.dialogs.unlock,
             pendingPlaintextWarning = flags.dialogs.plaintextWarning,
             launchExportPicker = flags.dialogs.launchExportPicker,
+            launchSafetyExportPicker = flags.dialogs.launchSafetyExportPicker,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -417,6 +430,15 @@ class SettingsViewModel @JvmOverloads constructor(
         dialogs.value = BackupDialogs(protect = BackupProtectKind.FILE_EXPORT)
     }
 
+    /**
+     * A safety copy is the same full history as any export, so it gets the
+     * same protect-or-warn gate — it used to write plaintext straight to the
+     * picked file with neither.
+     */
+    fun beginSafetyExport() {
+        dialogs.value = BackupDialogs(protect = BackupProtectKind.SAFETY_EXPORT)
+    }
+
     fun beginDriveBackup() {
         dialogs.value = BackupDialogs(protect = BackupProtectKind.DRIVE_BACKUP)
     }
@@ -430,6 +452,8 @@ class SettingsViewModel @JvmOverloads constructor(
     fun cancelProtect() {
         wipeHeldPassword()
         plaintextKind = null
+        plaintextExportApproved = false
+        plaintextSafetyApproved = false
         dialogs.value = BackupDialogs()
     }
 
@@ -443,8 +467,14 @@ class SettingsViewModel @JvmOverloads constructor(
         plaintextKind = null
         wipeHeldPassword()
         when (kind) {
-            BackupProtectKind.FILE_EXPORT ->
+            BackupProtectKind.FILE_EXPORT -> {
+                plaintextExportApproved = true
                 dialogs.value = BackupDialogs(launchExportPicker = true)
+            }
+            BackupProtectKind.SAFETY_EXPORT -> {
+                plaintextSafetyApproved = true
+                dialogs.value = BackupDialogs(launchSafetyExportPicker = true)
+            }
             BackupProtectKind.DRIVE_BACKUP -> {
                 dialogs.value = BackupDialogs()
                 if (activity != null) createBackup(activity)
@@ -468,12 +498,17 @@ class SettingsViewModel @JvmOverloads constructor(
         plaintextKind = null
         dialogs.value = when (kind) {
             BackupProtectKind.FILE_EXPORT -> BackupDialogs(launchExportPicker = true)
+            BackupProtectKind.SAFETY_EXPORT -> BackupDialogs(launchSafetyExportPicker = true)
             BackupProtectKind.DRIVE_BACKUP, null -> BackupDialogs()
         }
         if (kind == BackupProtectKind.DRIVE_BACKUP && activity != null) {
             createBackup(activity)
         }
         return true
+    }
+
+    fun onSafetyExportPickerLaunched() {
+        dialogs.value = dialogs.value.copy(launchSafetyExportPicker = false)
     }
 
     fun onExportPickerLaunched() {
@@ -575,16 +610,40 @@ class SettingsViewModel @JvmOverloads constructor(
     fun exportSafetyFileName(): String = BackupJson.fileName()
 
     fun exportSafetySnapshot(id: String, uri: Uri) {
+        val password = heldPassword
+        heldPassword = null
+        val plaintextApproved = plaintextSafetyApproved
+        plaintextSafetyApproved = false
         runBackupAction("Saving safety copy…") {
-            val json = container.backupRepository.readSafetySnapshot(id)
-            withContext(Dispatchers.IO) {
-                val resolver = getApplication<Application>().contentResolver
-                resolver.openOutputStream(uri, "wt")?.use { stream ->
-                    stream.write(json.toByteArray(Charsets.UTF_8))
-                    stream.flush()
-                } ?: throw BackupException("Couldn't write to that location. Pick another folder.")
+            try {
+                if (password == null && !plaintextApproved) {
+                    // Process death in the file picker dropped the chosen protection.
+                    // Never downgrade to plaintext on the user's behalf.
+                    throw BackupException(
+                        "That export lost its protection choice. Start it again.",
+                    )
+                }
+                val json = container.backupRepository.readSafetySnapshot(id)
+                val payload = if (password != null) {
+                    BackupEnvelope.wrap(json, password, envelopeIterations)
+                } else {
+                    json
+                }
+                withContext(Dispatchers.IO) {
+                    val resolver = getApplication<Application>().contentResolver
+                    resolver.openOutputStream(uri, "wt")?.use { stream ->
+                        stream.write(payload.toByteArray(Charsets.UTF_8))
+                        stream.flush()
+                    } ?: throw BackupException("Couldn't write to that location. Pick another folder.")
+                }
+                status.value = if (password != null) {
+                    "Protected safety copy saved. It opens with the password you chose."
+                } else {
+                    "Safety copy saved to your chosen file. Anyone who can read it can read your history."
+                }
+            } finally {
+                password?.fill('\u0000')
             }
-            status.value = "Safety copy saved to your chosen file."
         }
     }
 
@@ -604,8 +663,17 @@ class SettingsViewModel @JvmOverloads constructor(
     fun exportToFile(uri: Uri) {
         val password = heldPassword
         heldPassword = null
+        val plaintextApproved = plaintextExportApproved
+        plaintextExportApproved = false
         runBackupAction("Saving backup file…") {
             try {
+                if (password == null && !plaintextApproved) {
+                    // Process death in the file picker dropped the chosen protection.
+                    // Never downgrade to plaintext on the user's behalf.
+                    throw BackupException(
+                        "That export lost its protection choice. Start it again.",
+                    )
+                }
                 val payload = if (password != null) {
                     container.backupRepository.exportProtected(password, envelopeIterations)
                 } else {
@@ -641,7 +709,13 @@ class SettingsViewModel @JvmOverloads constructor(
             val json = withContext(Dispatchers.IO) {
                 val resolver = getApplication<Application>().contentResolver
                 resolver.openInputStream(uri)?.use { stream ->
-                    stream.readBytes().toString(Charsets.UTF_8)
+                    // Bounded read: a multi-hundred-MB pick must fail with copy,
+                    // not OOM-kill the app. The +1 detects over-budget cleanly.
+                    val bytes = stream.readNBytes(BackupScaleBudget.IMPORT_BYTES_MAX + 1)
+                    if (bytes.size > BackupScaleBudget.IMPORT_BYTES_MAX) {
+                        throw BackupException(BackupScaleBudget.TOO_BIG_TO_IMPORT)
+                    }
+                    bytes.toString(Charsets.UTF_8)
                 } ?: throw BackupException("Couldn't read that file. Pick another one.")
             }
             ingestRaw(json, displayName(uri))
@@ -797,6 +871,7 @@ class SettingsViewModel @JvmOverloads constructor(
         val unlock: Boolean = false,
         val plaintextWarning: Boolean = false,
         val launchExportPicker: Boolean = false,
+        val launchSafetyExportPicker: Boolean = false,
     )
 }
 

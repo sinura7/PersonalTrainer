@@ -29,7 +29,16 @@ object BackupEnvelope {
     const val ENVELOPE_VERSION = 1
     const val KDF = "PBKDF2WithHmacSHA256"
     const val CIPHER = "AES/GCM/NoPadding"
-    const val DEFAULT_ITERATIONS = 210_000
+    const val DEFAULT_ITERATIONS = 600_000
+
+    /**
+     * Ceiling on the iteration count [unwrap] will honour. The field is read
+     * BEFORE anything can be authenticated, so a forged file demanding two
+     * billion iterations pins a core for hours on the first password attempt.
+     * Genuine files carry [DEFAULT_ITERATIONS]; the ceiling leaves generous
+     * headroom for future bumps.
+     */
+    const val MAX_ITERATIONS = 5_000_000
     const val MIN_PASSWORD = 8
     const val KEY_BYTES = 32
     const val SALT_BYTES = 16
@@ -71,14 +80,20 @@ object BackupEnvelope {
         return null
     }
 
+    /** Length-only check for a [CharArray] the caller will wipe — no String copy. */
+    fun validatePasswordLength(password: CharArray): String? =
+        if (password.size < MIN_PASSWORD) PASSWORD_TOO_SHORT else null
+
     fun wrap(
         plaintext: String,
         password: CharArray,
         iterations: Int = DEFAULT_ITERATIONS,
         random: SecureRandom = SecureRandom(),
     ): String {
-        validateNewPassword(String(password), String(password))?.let { throw BackupException(it) }
-        if (iterations < 1) throw BackupException(UNKNOWN_METHOD)
+        // No String copies of the passphrase: a String is unwipeable on the heap,
+        // defeating the CharArray.fill discipline every caller follows.
+        validatePasswordLength(password)?.let { throw BackupException(it) }
+        if (iterations < 1 || iterations > MAX_ITERATIONS) throw BackupException(UNKNOWN_METHOD)
         val salt = ByteArray(SALT_BYTES).also { random.nextBytes(it) }
         val nonce = ByteArray(NONCE_BYTES).also { random.nextBytes(it) }
         val keyBytes = derive(password, salt, iterations)
@@ -149,7 +164,7 @@ object BackupEnvelope {
         } catch (_: Exception) {
             null
         } ?: throw BackupException(UNKNOWN_METHOD)
-        if (iterations < 1) throw BackupException(UNKNOWN_METHOD)
+        if (iterations < 1 || iterations > MAX_ITERATIONS) throw BackupException(UNKNOWN_METHOD)
         val salt = decodeB64(root, "salt")
         val nonce = decodeB64(root, "nonce")
         val ciphertext = decodeB64(root, "ciphertext")

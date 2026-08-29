@@ -197,7 +197,21 @@ class BackupRepository(
             )
             try {
                 restoreJournal.mark(RestoreJournal.WIPING)
-                localBackupRepository.replaceRoom(plan.document)
+                try {
+                    localBackupRepository.replaceRoom(plan.document)
+                } catch (thrown: kotlinx.coroutines.CancellationException) {
+                    throw thrown
+                } catch (thrown: Exception) {
+                    // The replace is one Room transaction: a throw here means it rolled
+                    // back and the phone is unchanged. Close the journal (nothing to
+                    // recover, and an open one blocks every workout start) and say the
+                    // truth instead of RECOVERED_MIXED's "was replaced".
+                    restoreJournal.clear()
+                    throw BackupException(
+                        (thrown as? BackupException)?.message
+                            ?: "Restore failed. Nothing was changed.",
+                    )
+                }
                 restoreJournal.mark(RestoreJournal.ROOM)
                 val preferencesRestored = localBackupRepository.applyPreferences(plan.document)
                 if (preferencesRestored) restoreJournal.mark(RestoreJournal.PREFS)
@@ -264,7 +278,11 @@ class BackupRepository(
 
     private suspend fun finishFromRoom(record: RestoreJournalRecord) {
         val document = BackupJson.decode(restoreJournal.readIncoming())
-        if (record.phase == RestoreJournal.ROOM) {
+        // WIPING recovery reaches here only when the fingerprint proved Room
+        // already holds the incoming file — the crash landed between the
+        // transaction commit and mark(ROOM) — so preferences are owed exactly
+        // as they are for ROOM. Gating on ROOM alone skipped them.
+        if (record.phase == RestoreJournal.WIPING || record.phase == RestoreJournal.ROOM) {
             val prefsOk = localBackupRepository.applyPreferences(document)
             if (prefsOk) restoreJournal.mark(RestoreJournal.PREFS)
         }

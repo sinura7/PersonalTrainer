@@ -59,6 +59,19 @@ class BackupEnvelopeTest {
     }
 
     @Test
+    fun aForgedIterationCountAboveTheCeilingIsRefusedBeforeDeriving() {
+        // The count is read before anything can be authenticated; without the
+        // ceiling a forged file demanding two billion iterations pinned a core
+        // for hours on the first password attempt.
+        val envelope = BackupEnvelope.wrap(PLAINTEXT, PASSWORD, iterations = TEST_ITERATIONS)
+        val forged = envelope.replace(
+            "\"iterations\": $TEST_ITERATIONS",
+            "\"iterations\": 2000000000",
+        )
+        expectWrong(BackupEnvelope.UNKNOWN_METHOD) { BackupEnvelope.unwrap(forged, PASSWORD) }
+    }
+
+    @Test
     fun unknownMethodAndNewerEnvelopeAreNamed() {
         val envelope = BackupEnvelope.wrap(PLAINTEXT, PASSWORD, iterations = TEST_ITERATIONS)
         expectWrong(BackupEnvelope.UNKNOWN_METHOD) {

@@ -31,6 +31,14 @@ object RestoreJournal {
     const val INTERRUPTED =
         "A restore was interrupted. Temper is finishing it from the copy already on this phone."
 
+    /**
+     * The Room-transaction witness. Bodyweight entries and blocks are restored
+     * by the PREFERENCES phase, not by replaceRoom's transaction, so including
+     * them compared the document's counts against stores the wipe never wrote:
+     * any cross-device or older-file restore then read as "rolled back" on
+     * WIPING recovery, cleared the journal, and silently dropped the
+     * preferences half of the restore.
+     */
     fun fingerprint(authored: AuthoredInventory, firstSessionId: String?): String =
         listOf(
             authored.sessions,
@@ -38,8 +46,6 @@ object RestoreJournal {
             authored.routines,
             authored.customExercises,
             authored.scheduleSlots,
-            authored.bodyweightEntries,
-            authored.blocks,
             firstSessionId.orEmpty(),
         ).joinToString("|")
 

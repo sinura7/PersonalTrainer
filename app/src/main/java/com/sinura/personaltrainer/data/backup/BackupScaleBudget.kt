@@ -19,4 +19,10 @@ object BackupScaleBudget {
     const val DECODE_MS = 2_000L
     const val SNAPSHOT_AND_ENCODE_MS = 4_000L
     const val ENCODED_BYTES_MAX = 8L * 1024L * 1024L
+
+    /** The byte budget as the Int a bounded stream read needs. */
+    const val IMPORT_BYTES_MAX = 8 * 1024 * 1024
+
+    const val TOO_BIG_TO_IMPORT =
+        "That file is far larger than any Temper backup. Pick the backup file itself."
 }
