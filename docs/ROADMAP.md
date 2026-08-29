@@ -15,6 +15,17 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 29 Aug 2026 — Full-tree adversarial audit: eight independent passes,
+> every finding source-verified. Worst: occurrences generated on the
+> wrong weekday for non-Monday week starts; REPLACE+CASCADE wiping a
+> rule’s history on an hour change; discard deleting finished
+> sessions; the plan-row binding marking the wrong day DONE; the
+> reminder Start button dead on Android 12+; restore recovery
+> silently dropping preferences. All fixed on this branch, with the
+> deferred queue and owner actions in
+> [FD-full-audit.md](foundation-program/evidence/FD-full-audit.md).
+> These fixes ride the staged live test 13 (`debugLiveCode` 13).
+>
 > 29 Aug 2026 — The empty-agenda leftover card’s Volt (Start this
 > session) opens the same session-summary confirm as the agenda card
 > before starting — it was the one Home start left that jumped straight

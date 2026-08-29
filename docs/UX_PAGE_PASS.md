@@ -151,6 +151,10 @@ keeps the draft.
   *(those labels never shipped on the leftover card; free is the honest second path)*.
 - **Live → no Start at all.** The card names the plan. The bar is the way back.
   ~~Card never knows about live, so it still says Start.~~ That Start would lie.
+- **Missed-work prompt up → the day's Start goes quiet.** Keep the dates
+  stays the one filled Volt (same rule Plan applies to its recovery act),
+  and the prompt never shows while a session is live — the week's one
+  decision must not be burned mid-workout.
 - `LinkRow` is a full-width 48 dp row. Label and trailing ellipsize.
   Rec Why is a dialog; the card tap does not wrap it.
 - Home is Start, not a second tab bar. This week, Goals, and Library
