@@ -9,7 +9,7 @@
   UI_REDESIGN §6 as a live target. Historical D1 remains the *reason*
   Library is not a tab.
 - **Related:** FND-031, FND-032, FND-033, FND-046; P0.3; P9.1;
-  [ADR-014](ADR-014-settings-tab.md)
+  [ADR-014](ADR-014-settings-tab.md); [ADR-015](ADR-015-plan-day-blocks.md)
 
 ## Context
 
@@ -28,8 +28,8 @@ rejected unless the gate below fails.
    - Library is a pushed route, entered from Plan, recommendations, muscle
      detail, and in-workout add/swap.
    - Editors, Active Workout, Summary, Session/Activity Detail,
-     Exercise Detail, Goals, and the future Activity Composer are pushed
-     routes.
+     Exercise Detail, Goals, Plan day, and the future Activity Composer are
+     pushed routes.
    - The Live Session Bar is chrome, not a tab, and is the only live-session
      affordance.
 2. **No sixth tab is planned.** Adding one — or promoting Library or Goals
@@ -43,7 +43,7 @@ rejected unless the gate below fails.
    |---|---|---|
    | T1 | Start today’s planned strength activity | Home, one filled act |
    | T2 | Record a cardio activity, live or manual | Home or start sheet → composer/live cardio |
-   | T3 | Schedule morning cardio and evening strength on one day | Plan day sheet |
+   | T3 | Schedule cardio and a workout on one day | Plan day page ([ADR-015](ADR-015-plan-day-blocks.md)) |
    | T4 | Find the latest completed activity | History |
    | T5 | Find a lift by the muscle it trains | Body or Library from Body/Plan |
    | T6 | Inspect annual progress | History or a pushed analytics route from Home/History |

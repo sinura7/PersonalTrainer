@@ -42,7 +42,8 @@ No ADR may leave a schema, scheduling, privacy, or entitlement choice as TBD.
 | [ADR-011](ADR-011-time-semantics.md) | Captured time and travel policy | FND-039 |
 | [ADR-012](ADR-012-rest-and-reminders.md) | Exact rest, reminders, and missed-work policy | FND-001, FND-007, FND-017 |
 | [ADR-013](ADR-013-finding-dispositions.md) | Finding dispositions and superseded doctrine | FND-037 and the full map |
-| [ADR-014](ADR-014-settings-tab.md) | Settings is the fifth tab | FND-046 Settings landing |
+| [ADR-014](ADR-014-settings-tab.md) | Settings is the fifth tab | FND-031 Settings gear |
+| [ADR-015](ADR-015-plan-day-blocks.md) | Plan is a day-block schedule | T3 Plan day page |
 
 ## Supporting records
 

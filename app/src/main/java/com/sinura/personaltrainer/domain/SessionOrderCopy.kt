@@ -25,7 +25,7 @@ object SessionOrderCopy {
     const val NEED_A_LIFT = "Add at least one lift before starting this routine."
     const val EMPTY_SESSION_BODY = "Pick the first lift, then log weight and reps."
     const val CARDIO_ON_THIS_DAY =
-        "Morning cardio on this day. Starts at 07:00. Does not replace the lifts."
+        "Cardio on this day. Does not replace the lifts."
     const val LATER_SESSION =
         "Another session this weekday. Pick a routine. Does not replace the others."
     const val COMPOSE_LATER = "Name a new session and set the lifts."

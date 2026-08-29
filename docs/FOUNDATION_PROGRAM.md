@@ -48,6 +48,7 @@ Supporting decisions that later packets also treat as closed:
 - Missed work keeps recurrence unchanged and asks once ([ADR-012](architecture/ADR-012-rest-and-reminders.md)).
 - KMP and cloud sync have start gates and do not begin because they are interesting ([ADR-003](architecture/ADR-003-shipping-platform.md), [ADR-009](architecture/ADR-009-backup-privacy-sync.md)).
 - FND-037 is a numbering gap, not a finding ([ADR-013](architecture/ADR-013-finding-dispositions.md)).
+- Plan is a schedule workshop; Start is Home. A weekday is a pushed page of untimed workout / cardio / auxiliary blocks ([ADR-015](architecture/ADR-015-plan-day-blocks.md)).
 
 There is **no remaining TBD** that would change schema, scheduling, privacy,
 or entitlement design. Implementation packets refine mechanisms inside
