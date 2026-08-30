@@ -2,7 +2,6 @@ package com.sinura.personaltrainer.ui.workout
 
 import android.content.Intent
 import android.os.SystemClock
-import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasSetTextAction
