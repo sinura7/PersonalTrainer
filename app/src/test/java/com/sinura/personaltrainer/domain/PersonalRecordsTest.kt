@@ -128,4 +128,18 @@ class PersonalRecordsTest {
         val broken = PersonalRecords.detect(rec(60.0, 30, 2), prior, LoadClass.LOADED)
         assertTrue(PersonalRecordKind.ESTIMATED_ONE_REP_MAX !in broken)
     }
+
+    @Test
+    fun aggregatePriorsMatchTheListPath() {
+        val prior = listOf(rec(100.0, 5, 1), rec(110.0, 3, 2), rec(110.0, 4, 3))
+        val candidate = rec(112.5, 3, 4)
+        val fromList = PersonalRecords.detect(candidate, prior, LoadClass.LOADED)
+        val fromPriors = PersonalRecords.detect(
+            candidate,
+            PersonalRecords.RecordPriors.from(prior, candidate.weightKg),
+            LoadClass.LOADED,
+        )
+        assertEquals(fromList, fromPriors)
+        assertTrue(PersonalRecordKind.WEIGHT in fromPriors)
+    }
 }

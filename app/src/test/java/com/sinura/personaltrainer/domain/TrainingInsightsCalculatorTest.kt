@@ -156,6 +156,37 @@ class TrainingInsightsCalculatorTest {
     }
 
     @Test
+    fun retargetingTheWindowRebuildsOnlyTheSnapshot() {
+        val history = listOf(detachedSet(now - 1L * 24 * 60 * 60 * 1000))
+        val week = TrainingInsightsCalculator.compute(
+            input(history = history, window = HeatWindow.CURRENT_WEEK),
+        )
+        val month = TrainingInsightsCalculator.retargetWindow(
+            insights = week,
+            window = HeatWindow.CURRENT_MONTH,
+            nowMs = now,
+            zoneId = zone.id,
+            weekStart = SchedulePreferences.DEFAULT.weekStart,
+            exerciseCatalog = emptyMap(),
+            lastLoggedAtByExerciseId = emptyMap(),
+        )
+        assertEquals(HeatWindow.CURRENT_WEEK, week.snapshot!!.window)
+        assertEquals(HeatWindow.CURRENT_MONTH, month.snapshot!!.window)
+        assertSame(week.recommendations, month.recommendations)
+        assertSame(week.hints, month.hints)
+        assertSame(week.weekPlan, month.weekPlan)
+        assertSame(week, TrainingInsightsCalculator.retargetWindow(
+            insights = week,
+            window = HeatWindow.CURRENT_WEEK,
+            nowMs = now,
+            zoneId = zone.id,
+            weekStart = SchedulePreferences.DEFAULT.weekStart,
+            exerciseCatalog = emptyMap(),
+            lastLoggedAtByExerciseId = emptyMap(),
+        ))
+    }
+
+    @Test
     fun hintsCarryALocalTrace() {
         val hint = ProgressionHint(
             exerciseId = "ex-1",

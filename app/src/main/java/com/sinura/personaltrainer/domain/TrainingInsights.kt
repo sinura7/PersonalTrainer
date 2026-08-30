@@ -212,4 +212,45 @@ object TrainingInsightsCalculator {
             failures = failures,
         )
     }
+
+    /**
+     * Rebuilds only the heat snapshot for a new window. Recommendations, hints,
+     * and the week plan do not depend on the Body chip — flipping it must not
+     * re-run the coach.
+     */
+    fun retargetWindow(
+        insights: TrainingInsights,
+        window: HeatWindow,
+        nowMs: Long,
+        zoneId: String,
+        weekStart: Weekday,
+        exerciseCatalog: Map<String, Exercise>,
+        lastLoggedAtByExerciseId: Map<String, Long>,
+        time: TimePort = JvmTime,
+    ): TrainingInsights {
+        if (insights.snapshot?.window == window) return insights
+        val failures = insights.failures.toMutableSet()
+        val snapshot = recoverWith(TAG, "The muscle heat snapshot", null) {
+            MuscleLoadCalculator.snapshot(
+                sessions = insights.history,
+                window = window,
+                nowMs = nowMs,
+                time = time,
+                zoneId = zoneId,
+                exerciseCatalog = exerciseCatalog,
+                weekStart = weekStart,
+            )
+        }?.rememberLifetimeWork(insights.summaries)
+            ?.rememberLifetimeRecency(
+                lastTrainedByMuscle = MuscleRecency.byMuscle(
+                    lastLoggedAtByExerciseId,
+                    exerciseCatalog,
+                ),
+                nowMs = nowMs,
+                time = time,
+                zoneId = zoneId,
+            )
+        if (snapshot == null) failures += InsightFailure.HEAT else failures -= InsightFailure.HEAT
+        return insights.copy(snapshot = snapshot, failures = failures)
+    }
 }

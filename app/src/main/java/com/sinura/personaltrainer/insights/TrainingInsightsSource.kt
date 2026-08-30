@@ -31,10 +31,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.shareIn
 
@@ -74,16 +77,10 @@ class TrainingInsightsSource(
     /**
      * One computation for every screen that wants the default view of it.
      *
-     * [observe] returns a cold flow, so each collector used to run the whole pipeline for
-     * itself: the full history query, a heat snapshot over every session ever logged, the
-     * coach, and the planner. Four screens collect it — Home, Plan, the active workout and the
-     * start sheet — and two or three of them are alive at once routinely, each recomputing the
-     * same answer from the same rows on every emission.
-     *
-     * Shared by [includeWeekPlan] because that is the only parameter these four vary, and the
-     * plan is genuinely extra work the workout screens have no use for. Progress keeps a cold
-     * flow of its own: it drives the heat window from a chip the user taps, so its input is not
-     * the same input.
+     * Home, Plan, the active workout and the start sheet share one pipeline per
+     * [includeWeekPlan]. Progress used to run a cold copy of the whole chain so
+     * its heat-window chip could move independently; the chip now retargets only
+     * the snapshot stage of this same shared assembly.
      *
      * `WhileSubscribed` rather than `Eagerly`: with nothing on screen there is nothing to
      * compute, and the five-second grace covers a rotation or a tab switch without a recompute.
@@ -92,16 +89,21 @@ class TrainingInsightsSource(
      * next to it already knew.
      */
     override fun observeShared(includeWeekPlan: Boolean): Flow<TrainingInsights> =
-        if (includeWeekPlan) sharedWithPlan else sharedWithoutPlan
+        assembled(includeWeekPlan).map { retarget(it, HeatWindow.CURRENT_WEEK) }
 
     private val sharedScope = CoroutineScope(SupervisorJob() + computeDispatcher)
+    private val coreNudge = MutableStateFlow(0L)
+    private val hintLock = Any()
+    private var hintCache: Pair<HintCacheKey, List<ProgressionHint>?>? = null
 
-    private val sharedWithPlan: Flow<TrainingInsights> by lazy { share(includeWeekPlan = true) }
+    private val assembledWithPlan: Flow<Assembled> by lazy { shareAssembled(includeWeekPlan = true) }
+    private val assembledWithoutPlan: Flow<Assembled> by lazy { shareAssembled(includeWeekPlan = false) }
 
-    private val sharedWithoutPlan: Flow<TrainingInsights> by lazy { share(includeWeekPlan = false) }
+    private fun assembled(includeWeekPlan: Boolean): Flow<Assembled> =
+        if (includeWeekPlan) assembledWithPlan else assembledWithoutPlan
 
-    private fun share(includeWeekPlan: Boolean): Flow<TrainingInsights> =
-        observe(includeWeekPlan = includeWeekPlan)
+    private fun shareAssembled(includeWeekPlan: Boolean): Flow<Assembled> =
+        assemble(includeWeekPlan)
             .shareIn(
                 scope = sharedScope,
                 started = SharingStarted.WhileSubscribed(shareGraceMs),
@@ -118,14 +120,29 @@ class TrainingInsightsSource(
         window: Flow<HeatWindow>,
         refresh: Flow<Any?>,
         includeWeekPlan: Boolean,
-    ): Flow<TrainingInsights> {
+    ): Flow<TrainingInsights> = combine(
+        assembled(includeWeekPlan),
+        window,
+        refreshNudgesCore(refresh),
+    ) { assembled, heatWindow, _ ->
+        retarget(assembled, heatWindow)
+    }.flowOn(computeDispatcher)
+
+    private fun refreshNudgesCore(refresh: Flow<Any?>): Flow<Any?> = flow {
+        var first = true
+        refresh.collect { value ->
+            if (!first) coreNudge.value = nowMs()
+            first = false
+            emit(value)
+        }
+    }
+
+    private fun assemble(includeWeekPlan: Boolean): Flow<Assembled> {
         val activitySummaries = activityRepository?.observeCompletedSummaries()
             ?: flowOf(emptyList())
         val windowStart = nowMs() - WINDOW_MS
+        // Slot flow and retry nudge sit outside the five-way combine: typed overloads stop at five.
         return combine(
-        // Six sources, five at a time: combine's typed overloads stop at five, so the slot flow
-        // is folded in around the original group rather than the group being re-shaped.
-        combine(
             combine(
                 combine(
                     combine(
@@ -171,7 +188,8 @@ class TrainingInsightsSource(
                 preferencesRepository.coachPreferences,
                 preferencesRepository.lighterWeekStartEpochDay,
             ) { coachPrefs, marked -> coachPrefs to marked },
-        ) { sources, slots, coachAndMarked ->
+            coreNudge,
+        ) { sources, slots, coachAndMarked, _ ->
             val today = Instant.ofEpochMilli(nowMs()).atZone(zone()).toLocalDate()
             val thisWeek = LighterWeek.weekStartEpochDay(
                 com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(today.toEpochDay()),
@@ -182,40 +200,64 @@ class TrainingInsightsSource(
                 coachPrefs = coachAndMarked.first,
                 lighterWeek = LighterWeek.isCurrent(coachAndMarked.second, thisWeek),
             )
-        },
-        window,
-        refresh,
-    ) { sources, heatWindow, _ ->
-        sources to heatWindow
-    }.mapLatest { (sources, heatWindow) ->
-        // Null, not emptyList: "the query failed" and "nothing is ready to progress" render
-        // very differently, and the old code collapsed them into the same empty section.
+        }.mapLatest { sources ->
+            val hints = cachedHints(sources)
+            val insights = compute(
+                TrainingInsightsInput(
+                    history = sources.history,
+                    summaries = sources.summaries,
+                    routines = sources.routines,
+                    exerciseCatalog = sources.exercises,
+                    lastLoggedAtByExerciseId = sources.lastLoggedAtByExerciseId,
+                    hints = hints,
+                    preferences = sources.preferences,
+                    unit = sources.unit,
+                    slots = sources.slots,
+                    coachPrefs = sources.coachPrefs,
+                    window = HeatWindow.CURRENT_WEEK,
+                    nowMs = nowMs(),
+                    zoneId = zone().id,
+                    includeWeekPlan = includeWeekPlan,
+                ),
+            )
+            Assembled(sources, insights)
+        }.flowOn(computeDispatcher)
+    }
+
+    private suspend fun cachedHints(sources: Sources): List<ProgressionHint>? {
+        val key = HintCacheKey(
+            unit = sources.unit,
+            lighterWeek = sources.lighterWeek,
+            routines = sources.routines,
+            summaries = sources.summaries,
+        )
+        synchronized(hintLock) {
+            hintCache?.let { cached ->
+                if (cached.first == key) return cached.second
+            }
+        }
         val hints = runCatchingCancellable {
             loadHints(sources.routines, sources.unit, sources.lighterWeek)
         }.getOrElse { thrown ->
             AppLog.w(TAG, "Reading the progression hints failed", thrown)
             null
         }
-        compute(
-            TrainingInsightsInput(
-                history = sources.history,
-                summaries = sources.summaries,
-                routines = sources.routines,
-                exerciseCatalog = sources.exercises,
-                lastLoggedAtByExerciseId = sources.lastLoggedAtByExerciseId,
-                hints = hints,
-                preferences = sources.preferences,
-                unit = sources.unit,
-                slots = sources.slots,
-                coachPrefs = sources.coachPrefs,
-                window = heatWindow,
-                nowMs = nowMs(),
-                zoneId = zone().id,
-                includeWeekPlan = includeWeekPlan,
-            ),
-        )
-    }.flowOn(computeDispatcher)
+        if (hints != null) {
+            synchronized(hintLock) { hintCache = key to hints }
+        }
+        return hints
     }
+
+    private fun retarget(assembled: Assembled, window: HeatWindow): TrainingInsights =
+        TrainingInsightsCalculator.retargetWindow(
+            insights = assembled.insights,
+            window = window,
+            nowMs = nowMs(),
+            zoneId = zone().id,
+            weekStart = assembled.sources.preferences.weekStart,
+            exerciseCatalog = assembled.sources.exercises,
+            lastLoggedAtByExerciseId = assembled.sources.lastLoggedAtByExerciseId,
+        )
 
     internal companion object {
         /** Long enough to survive a rotation or a tab switch, short enough not to hold work. */
@@ -242,5 +284,17 @@ class TrainingInsightsSource(
         val slots: List<ScheduleSlot> = emptyList(),
         val coachPrefs: CoachPreferences = CoachPreferences.DEFAULT,
         val lighterWeek: Boolean = false,
+    )
+
+    private data class Assembled(
+        val sources: Sources,
+        val insights: TrainingInsights,
+    )
+
+    private data class HintCacheKey(
+        val unit: WeightUnit,
+        val lighterWeek: Boolean,
+        val routines: List<Routine>,
+        val summaries: List<SessionSummary>,
     )
 }

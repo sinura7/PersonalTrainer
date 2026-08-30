@@ -57,10 +57,28 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
     private val clock: AppClock = AppClock.System,
 ) : AppViewModel(application, container) {
 
-    private val ticker = flow {
-        while (true) {
-            emit(clock.nowMs())
-            delay(1_000)
+    private val routeHidesBar = MutableStateFlow(false)
+
+    /**
+     * The host composition hides the bar on routes that already own the
+     * session. Stop the 1 Hz elapsed poll and the rest-seconds collector
+     * there — Active Workout / Rest already tick for themselves.
+     */
+    fun setRouteHidesBar(hidden: Boolean) {
+        routeHidesBar.value = hidden
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val ticker = routeHidesBar.flatMapLatest { hidden ->
+        if (hidden) {
+            flowOf(clock.nowMs())
+        } else {
+            flow {
+                while (true) {
+                    emit(clock.nowMs())
+                    delay(1_000)
+                }
+            }
         }
     }
 
@@ -74,7 +92,9 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
                 when {
                     session != null -> combine(
                         container.workoutRepository.observeSessionActivity(session.id),
-                        container.restTimerController.remainingSeconds,
+                        routeHidesBar.flatMapLatest { hidden ->
+                            if (hidden) flowOf(0) else container.restTimerController.remainingSeconds
+                        },
                         ticker,
                     ) { activity, restSeconds, now ->
                         val lastActivity = LiveSessionRules.lastActivityMs(
