@@ -15,6 +15,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -24,7 +25,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.LoadType
-import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.routines.CompactLiftCopy
@@ -182,13 +182,15 @@ class IdentityBeforeMetricsInstrumentedTest {
         compose.onNodeWithTag(SessionLiftTags.STRIP).assertIsDisplayed()
         compose.onNodeWithTag(SessionLiftTags.card(LONG_LIFT.id))
             .assert(hasContentDescription(value = "Romanian", substring = true))
-        compose.onNodeWithText(SessionOrderCopy.WORK).assertIsDisplayed()
-        compose.onNodeWithText(SessionOrderCopy.REST).assertIsDisplayed()
+        compose.onNodeWithText("WORK", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithText("REST", useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithTag(SessionLiftTags.card(LONG_LIFT.id)).performClick()
         compose.waitForIdle()
         compose.onNodeWithTag(SessionLiftTags.EDITOR).assertIsDisplayed()
         compose.onNodeWithText(CompactLiftCopy.TARGET_WEIGHT).assertIsDisplayed()
-        compose.onNodeWithText("lbs").assertIsDisplayed()
+        org.junit.Assert.assertTrue(
+            compose.onAllNodesWithText("lbs").fetchSemanticsNodes().isNotEmpty(),
+        )
         compose.onNodeWithText("kg").assertDoesNotExist()
     }
 

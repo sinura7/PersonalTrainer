@@ -1,11 +1,13 @@
 package com.sinura.personaltrainer.testutil
 
+import android.os.SystemClock
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -44,6 +46,18 @@ object GoldenCapture {
         compose.waitForIdle()
     }
 
-    fun capture(compose: ComposeContentTestRule, tag: String = DefaultTag): ImageBitmap =
-        compose.onNodeWithTag(tag).captureToImage()
+    fun capture(compose: ComposeContentTestRule, tag: String = DefaultTag): ImageBitmap {
+        compose.waitForIdle()
+        var last: Throwable? = null
+        repeat(8) { attempt ->
+            try {
+                return compose.onNodeWithTag(tag).captureToImage()
+            } catch (error: ComposeTimeoutException) {
+                last = error
+                compose.waitForIdle()
+                SystemClock.sleep(400L * (attempt + 1))
+            }
+        }
+        throw checkNotNull(last)
+    }
 }

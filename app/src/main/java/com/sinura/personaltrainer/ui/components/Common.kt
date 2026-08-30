@@ -667,7 +667,8 @@ fun <T> NumberEntryDialog(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .focusRequester(focus),
+                    .focusRequester(focus)
+                    .testTag(NumberEntryTags.FIELD),
             )
         },
         confirmButton = {
@@ -688,6 +689,10 @@ fun <T> NumberEntryDialog(
             }
         },
     )
+}
+
+object NumberEntryTags {
+    const val FIELD = "number-entry-field"
 }
 
 // ---------------------------------------------------------------------------

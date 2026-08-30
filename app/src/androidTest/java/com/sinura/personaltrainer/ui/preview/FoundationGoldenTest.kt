@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.preview
 
+import android.os.Build
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -13,6 +14,7 @@ import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.Warn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -22,6 +24,10 @@ class FoundationGoldenTest {
 
     @Test
     fun galleryMatchesCommittedApi29Golden() {
+        assumeTrue(
+            "Committed gallery PNG is the API 29 temper-tests-api29 profile; this device is API ${Build.VERSION.SDK_INT}",
+            Build.VERSION.SDK_INT == 29,
+        )
         setGallery()
         GoldenImageAssert.assertMatches(GalleryGoldenName, capture())
     }
