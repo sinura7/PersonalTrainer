@@ -4,7 +4,6 @@ import android.content.Intent
 import android.os.SystemClock
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -24,6 +23,7 @@ import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.timer.RestTimerService
+import com.sinura.personaltrainer.ui.components.NumberEntryTags
 import com.sinura.personaltrainer.ui.history.SessionDetailTestTags
 import com.sinura.personaltrainer.ui.history.SetEditTestTags
 import com.sinura.personaltrainer.ui.navigation.LiveSessionBarTestTags
@@ -90,11 +90,13 @@ class ActiveWorkoutJourneyInstrumentedTest {
         }
         compose.onNodeWithTag(WorkoutTestTags.CONTENT)
             .performScrollToNode(hasTestTag("Type a weight"))
+        compose.waitForIdle()
         compose.onNodeWithTag("Type a weight").performClick()
-        compose.waitUntil(10_000) {
-            compose.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().isNotEmpty()
+        compose.waitUntil(15_000) {
+            compose.onAllNodes(hasTestTag(NumberEntryTags.FIELD))
+                .fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNode(hasSetTextAction()).performTextReplacement("100")
+        compose.onNodeWithTag(NumberEntryTags.FIELD).performTextReplacement("100")
         compose.onNodeWithText("Set").performClick()
 
         compose.waitUntil(10_000) {

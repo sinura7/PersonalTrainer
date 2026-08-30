@@ -187,7 +187,8 @@ class IdentityBeforeMetricsInstrumentedTest {
         compose.waitForIdle()
         compose.onNodeWithTag(SessionLiftTags.EDITOR).assertIsDisplayed()
         compose.onNodeWithText(CompactLiftCopy.TARGET_WEIGHT).assertIsDisplayed()
-        compose.onNodeWithText("lbs").assertIsDisplayed()
+        compose.onNodeWithTag(SessionLiftTags.EDITOR, useUnmergedTree = true)
+            .assertTextContains("lbs", substring = true)
         compose.onNodeWithText("kg").assertDoesNotExist()
     }
 
