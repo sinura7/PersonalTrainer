@@ -32,8 +32,12 @@ object DailyAgenda {
         items.filter { it.occurrence.status == OccurrenceStatus.PLANNED }
 
     /**
-     * Earlier this week, still undone: planned or missed. Home lists these
-     * on today so a leftover does not require paging back to Friday.
+     * Still undone from earlier days: planned or missed. Home lists these
+     * on today so a leftover does not require paging back.
+     *
+     * Includes the previous week. On Monday, `today == weekStart` used to
+     * return nothing, so last week's PLANNED rows sat in the database
+     * with no Home surface.
      */
     fun stillOpen(
         todayEpochDay: Long,
@@ -42,11 +46,11 @@ object DailyAgenda {
         rules: List<ScheduleRule>,
         routineNames: Map<String, String> = emptyMap(),
     ): List<AgendaItem> {
-        if (todayEpochDay <= weekStartEpochDay) return emptyList()
+        val from = weekStartEpochDay - Weekday.DAYS_IN_WEEK
         val byId = rules.associateBy { it.id }
         return occurrences
             .filter { occurrence ->
-                occurrence.localEpochDay in weekStartEpochDay until todayEpochDay &&
+                occurrence.localEpochDay in from until todayEpochDay &&
                     MoveToToday.isLeftover(occurrence, todayEpochDay)
             }
             .sortedWith(compareBy({ it.localEpochDay }, { it.minutesOfDay }, { it.id }))

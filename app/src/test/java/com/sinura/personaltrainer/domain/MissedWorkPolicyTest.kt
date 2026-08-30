@@ -84,6 +84,33 @@ class MissedWorkPolicyTest {
     }
 
     @Test
+    fun moveRemainingOntoAVacatedDayDoesNotReuseTheMovedId() {
+        val planned = occ("o1", "r1", wednesday, OccurrenceStatus.PLANNED)
+        val vacated = occ(
+            OccurrenceGenerator.occurrenceId("r1", thursday),
+            "r1",
+            thursday,
+            OccurrenceStatus.MOVED,
+        )
+        val result = MissedWorkPolicy.apply(
+            MissedWorkChoice.MOVE_REMAINING,
+            listOf(planned, vacated),
+            weekStart,
+            today.epochDay,
+            12 * 60,
+            NOW,
+            JvmTime,
+            zone,
+            rules = listOf(rule("r1")),
+        )
+        val created = result.created.single()
+        assertTrue(created.id != vacated.id)
+        assertEquals(thursday, created.localEpochDay)
+        assertEquals(OccurrenceStatus.MOVED, result.occurrences.first { it.id == vacated.id }.status)
+        assertEquals(OccurrenceStatus.MOVED, result.occurrences.first { it.id == "o1" }.status)
+    }
+
+    @Test
     fun adaptWeekMarksMissedAndFillsMissingFutureRules() {
         val mondayRule = rule("r-mon", Weekday.MONDAY)
         val fridayRule = rule("r-fri", Weekday.FRIDAY)

@@ -25,6 +25,26 @@ class OccurrenceGeneratorTest {
     }
 
     @Test
+    fun unusedOccurrenceIdKeepsTheCanonicalWhenFree() {
+        val id = OccurrenceGenerator.unusedOccurrenceId("r-fri", 20_000L, emptySet(), 19_999L)
+        assertEquals(OccurrenceGenerator.occurrenceId("r-fri", 20_000L), id)
+    }
+
+    @Test
+    fun unusedOccurrenceIdSuffixesWhenTheCanonicalIsTaken() {
+        val canonical = OccurrenceGenerator.occurrenceId("r-fri", 20_000L)
+        val id = OccurrenceGenerator.unusedOccurrenceId("r-fri", 20_000L, setOf(canonical), 19_999L)
+        assertEquals("$canonical-from-19999", id)
+        val again = OccurrenceGenerator.unusedOccurrenceId(
+            "r-fri",
+            20_000L,
+            setOf(canonical, id),
+            19_999L,
+        )
+        assertEquals("$id-2", again)
+    }
+
+    @Test
     fun keepsExistingDoneAndDoesNotInventAShift() {
         val rules = listOf(rule("r-mon", Weekday.MONDAY, hour = 18))
         val done = occ("occ-r-mon-${weekStart.epochDay}", "r-mon", weekStart.epochDay, OccurrenceStatus.DONE)

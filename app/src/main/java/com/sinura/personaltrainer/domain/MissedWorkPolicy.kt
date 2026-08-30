@@ -150,7 +150,12 @@ object MissedWorkPolicy {
                 gap = DstGapPolicy.SHIFT_FORWARD,
             )
             val moved = ScheduleOccurrence(
-                id = OccurrenceGenerator.occurrenceId(item.ruleId, target),
+                id = OccurrenceGenerator.unusedOccurrenceId(
+                    ruleId = item.ruleId,
+                    epochDay = target,
+                    takenIds = working.map { it.id },
+                    fromEpochDay = item.localEpochDay,
+                ),
                 ruleId = item.ruleId,
                 status = OccurrenceStatus.PLANNED,
                 captured = captured,

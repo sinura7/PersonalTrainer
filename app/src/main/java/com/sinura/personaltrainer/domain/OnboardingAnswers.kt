@@ -143,16 +143,27 @@ object BodyweightSteps {
     const val DEFAULT_KG = 75.0
 
     fun displayValues(unit: WeightUnit): List<Int> {
-        val min = WeightConverter.toDisplayValue(OnboardingAnswers.MIN_BODYWEIGHT_KG, unit).toInt()
-        val max = WeightConverter.toDisplayValue(OnboardingAnswers.MAX_BODYWEIGHT_KG, unit).toInt()
+        val min = displayOf(OnboardingAnswers.MIN_BODYWEIGHT_KG, unit)
+        val max = displayOf(OnboardingAnswers.MAX_BODYWEIGHT_KG, unit)
         return (min..max).toList()
     }
 
-    fun defaultDisplay(unit: WeightUnit): Int =
-        WeightConverter.toDisplayValue(DEFAULT_KG, unit).toInt()
+    fun defaultDisplay(unit: WeightUnit): Int = displayOf(DEFAULT_KG, unit)
 
-    fun displayOf(kg: Double, unit: WeightUnit): Int =
-        WeightConverter.toDisplayValue(kg, unit).toInt()
+    /**
+     * Nearest whole numeral in [unit].
+     *
+     * [WeightConverter.toDisplayValue] half-rounds pounds, and `toInt()` then
+     * truncates 176.5→176. Combined with a commit on pager restart that
+     * walked ~2 lb off every kg⇄lb toggle. Round the raw conversion instead.
+     */
+    fun displayOf(kg: Double, unit: WeightUnit): Int {
+        val raw = when (unit) {
+            WeightUnit.KG -> WeightConverter.sanitizeKg(kg)
+            WeightUnit.LBS -> WeightConverter.kgToLbs(kg)
+        }
+        return kotlin.math.round(raw).toInt()
+    }
 
     fun toKg(display: Int, unit: WeightUnit): Double =
         WeightConverter.toKg(display.toDouble(), unit)
@@ -160,14 +171,11 @@ object BodyweightSteps {
     /**
      * The wheel parks on a default numeral without storing it.
      *
-     * First settle on the initial page is not a choice. A flick, or a later settle after a
-     * number was already chosen, is.
+     * First settle on the page we opened (or restarted onto after a unit
+     * change) is not a choice. A flick is.
      */
-    fun shouldCommitSettledPage(
-        settledPage: Int,
-        initialPage: Int,
-        alreadyChosen: Boolean,
-    ): Boolean = alreadyChosen || settledPage != initialPage
+    fun shouldCommitSettledPage(settledPage: Int, initialPage: Int): Boolean =
+        settledPage != initialPage
 }
 
 /**

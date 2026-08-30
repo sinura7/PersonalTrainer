@@ -162,8 +162,10 @@ superseded by the 32-day month fix above.
   `remainingSeconds` is `shareIn`'d and wakes on the next whole-second
   boundary. The live bar unsubscribes the rest poll and the 1 Hz elapsed
   ticker on routes that already own the session.
-- **MoveToToday id collision with a MOVED row (scheduling P3);
-  previous-week PLANNED rows stuck invisible (P3).**
+- **MoveToToday id collision with a MOVED row; previous-week PLANNED
+  rows stuck invisible** — **done 30 August 2026.** Relocate mints a
+  distinct id when the canonical row is already `MOVED`. Still open
+  includes the previous week, so Monday still lists Sunday.
 - **Bodyweight/blocks restore is two stores without a transaction
   (data P2); ACTIVE activities counted in the confirm but filtered on
   restore (P3).**
@@ -196,11 +198,13 @@ Added by round two (all need a compiler or a UX decision):
   sits beside `StartTrainingDay`. Home relocates leftovers then maps the
   sealed outcome; the start sheet maps it directly. Plan's start spine
   was already deleted. `StartLiveCardio` is the cardio-start ritual.
-- **BodyweightWheel unit toggle drifts the value (P3):** `toInt()`
-  truncation + commit-on-restart loses ~2 lb per kg/lb round-trip.
+- **BodyweightWheel unit toggle drifts the value** — **done 30 August
+  2026.** Nearest whole numeral from the raw conversion; the parked
+  page after a unit change is not a commit.
 - **Cardio onboarding can show a lift-catalog error over a valid cardio
-  plan (P3);** trend charts are index-spaced so layoffs vanish from the
-  x-axis (P3, arguably deliberate).
+  plan** — **done 30 August 2026.** Cardio preview does not retry the
+  lift catalog. Trend charts are still index-spaced so layoffs vanish
+  from the x-axis (P3, arguably deliberate).
 - **Build fat** — **done 30 August 2026.** Gson encodes the three
   toolchain pin files. kotlinx.serialization is not shipped; 1.8.1 is
   still the Room 2.8 ceiling. Five outlined marks are vendored so

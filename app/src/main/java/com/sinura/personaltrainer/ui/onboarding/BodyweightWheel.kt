@@ -62,18 +62,17 @@ fun BodyweightWheel(
     val initialPage = remember(unit) { startPage }
     val pagerState = rememberPagerState(initialPage = startPage, pageCount = { values.size })
     val view = LocalView.current
-    val alreadyChosen = kg != null
 
     LaunchedEffect(unit, values, startPage) {
         if (pagerState.currentPage != startPage) {
             pagerState.scrollToPage(startPage)
         }
     }
-    LaunchedEffect(pagerState, values, unit, alreadyChosen, initialPage) {
+    LaunchedEffect(pagerState, values, unit, initialPage) {
         snapshotFlow { pagerState.settledPage }
             .distinctUntilChanged()
             .collect { page ->
-                if (!BodyweightSteps.shouldCommitSettledPage(page, initialPage, alreadyChosen)) {
+                if (!BodyweightSteps.shouldCommitSettledPage(page, initialPage)) {
                     return@collect
                 }
                 val display = values.getOrNull(page) ?: return@collect
