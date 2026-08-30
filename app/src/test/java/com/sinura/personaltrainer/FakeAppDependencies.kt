@@ -50,6 +50,8 @@ import com.sinura.personaltrainer.timer.RestTimerStore
 import com.sinura.personaltrainer.timer.SharedPrefsRestTimerStatePersistence
 import com.sinura.personaltrainer.workout.DiscardWorkout
 import com.sinura.personaltrainer.workout.FinishWorkout
+import com.sinura.personaltrainer.workout.StartLiveCardio
+import com.sinura.personaltrainer.workout.StartOccurrence
 import com.sinura.personaltrainer.workout.StartTrainingDay
 import com.sinura.personaltrainer.workout.WorkoutDraftCache
 import java.io.File
@@ -120,6 +122,10 @@ class FakeAppDependencies(
     override val discardActivity: DiscardActivity = DiscardActivity(activityRepository)
     override val finishActivity: FinishActivity = FinishActivity(activityRepository, JvmTime)
     override val cardioTimerPersistence: CardioTimerPersistence = InMemoryCardioTimerPersistence()
+    override val startLiveCardio: StartLiveCardio = StartLiveCardio(
+        startLiveActivity = startLiveActivity,
+        cardioTimerPersistence = cardioTimerPersistence,
+    )
     override val onboardingApplier: OnboardingApplier = OnboardingApplier(
         routineRepository = routineRepository,
         scheduleRepository = scheduleRepository,
@@ -160,6 +166,12 @@ class FakeAppDependencies(
     override val startTrainingDay: StartTrainingDay = StartTrainingDay(
         workoutRepository = workoutRepository,
         routineRepository = routineRepository,
+    )
+    override val startOccurrence: StartOccurrence = StartOccurrence(
+        plannerRepository = plannerRepository,
+        routineRepository = routineRepository,
+        startTrainingDay = startTrainingDay,
+        startLiveCardio = startLiveCardio,
     )
     val restoreJournal = RestoreJournalStore(
         File(context.cacheDir, "restore-journal-${System.nanoTime()}").also { it.mkdirs() },

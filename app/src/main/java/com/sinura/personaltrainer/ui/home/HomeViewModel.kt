@@ -6,22 +6,13 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.appContainer
-import com.sinura.personaltrainer.domain.ActivityWrite
-import com.sinura.personaltrainer.domain.AgendaItem
-import com.sinura.personaltrainer.domain.CardioBlock
-import com.sinura.personaltrainer.domain.CardioCopy
-import com.sinura.personaltrainer.domain.ScheduleKind
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.MissedWorkChoice
 import com.sinura.personaltrainer.domain.MissedWorkPolicy
 import com.sinura.personaltrainer.domain.MoveToToday
 import com.sinura.personaltrainer.domain.ScheduleConfidence
-import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.Weekday
-import com.sinura.personaltrainer.timer.CardioElapsed
-import com.sinura.personaltrainer.timer.PersistedCardioTimer
-import com.sinura.personaltrainer.util.IdFactory
 import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.domain.BodyweightCheckIn
 import com.sinura.personaltrainer.domain.LighterWeek
@@ -37,6 +28,7 @@ import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.workout.DiscardOutcome
 import com.sinura.personaltrainer.workout.StartDayOutcome
+import com.sinura.personaltrainer.workout.StartOccurrenceOutcome
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -290,70 +282,33 @@ class HomeViewModel @JvmOverloads constructor(
             } else {
                 occurrenceId
             }
-            val toStart = container.plannerRepository.getOccurrence(startId) ?: return@launch
-            val rule = container.plannerRepository.getRule(toStart.ruleId)
-            when (rule?.modality ?: ScheduleModality.STRENGTH) {
-                ScheduleModality.CARDIO -> {
-                    val now = JvmTime.captureNow()
-                    val type = ScheduleKind.cardioTypeOrRun(rule?.templateId)
-                    val block = CardioBlock(
-                        id = IdFactory.Uuid.newId(),
-                        sortOrder = 0,
-                        type = type,
-                        indoor = false,
-                        elapsedSeconds = 0L,
-                        movingSeconds = 0L,
-                        distanceMeters = null,
-                        elevationMeters = null,
-                        heartRateBpm = null,
-                        energyKj = null,
-                        rpe = null,
-                        routeRef = null,
+            when (val outcome = container.startOccurrence(startId)) {
+                is StartOccurrenceOutcome.OpenWorkout -> {
+                    PendingOccurrence.bindForSession(
+                        container,
+                        outcome.occurrenceId,
+                        outcome.sessionId,
                     )
-                    when (val write = container.startLiveActivity(CardioCopy.name(type), listOf(block), now, toStart.id)) {
-                        is ActivityWrite.Accepted -> {
-                            PendingOccurrence.forget(container)
-                            val nowElapsed = android.os.SystemClock.elapsedRealtime()
-                            val nowWall = System.currentTimeMillis()
-                            container.cardioTimerPersistence.save(
-                                PersistedCardioTimer(
-                                    sessionId = write.session.id,
-                                    startedAtElapsedRealtime = nowElapsed,
-                                    startedAtWallClockMillis = nowWall,
-                                    bootMarker = CardioElapsed.bootMarker(nowWall, nowElapsed),
-                                ),
-                            )
-                            actionError.value = null
-                            _navigateToCardio.value = write.session.id
-                        }
-                        is ActivityWrite.Rejected -> actionError.value = write.reason
-                    }
+                    actionError.value = null
+                    _navigateToSession.value = outcome.sessionId
                 }
-                ScheduleModality.MIXED -> {
-                    PendingOccurrence.bind(container, toStart.id)
+                is StartOccurrenceOutcome.OpenCardio -> {
+                    PendingOccurrence.forget(container)
+                    actionError.value = null
+                    _navigateToCardio.value = outcome.sessionId
+                }
+                is StartOccurrenceOutcome.OpenComposer -> {
+                    PendingOccurrence.bind(container, outcome.occurrenceId)
                     _navigateToComposer.value = "mixed"
                 }
-                ScheduleModality.STRENGTH -> {
-                    val item = AgendaItem(toStart, rule)
-                    start(
-                        SuggestedTrainingDay(
-                            epochDay = toStart.localEpochDay,
-                            dayOfWeek = Weekday.fromEpochDay(toStart.localEpochDay),
-                            isRest = false,
-                            focusKind = rule?.focusKind ?: SessionFocusKind.FULL_BODY,
-                            focusTitle = item.title,
-                            routineId = rule?.routineId,
-                            routineName = rule?.routineId?.let { id ->
-                                uiState.value.routines.firstOrNull { it.id == id }?.name
-                            },
-                            reason = "Planned.",
-                            emphasisMuscles = emptyList(),
-                            confidence = ScheduleConfidence.HIGH,
-                            slotId = null,
-                        ),
-                        occurrenceId = toStart.id,
+                is StartOccurrenceOutcome.Blocked ->
+                    _blockedByInProgress.value = BlockedStart(
+                        day = outcome.day,
+                        sessionId = outcome.inProgressSessionId,
+                        occurrenceId = outcome.occurrenceId,
                     )
-                }
+                is StartOccurrenceOutcome.Failed -> actionError.value = outcome.message
+                StartOccurrenceOutcome.Missing -> Unit
             }
         }
     }

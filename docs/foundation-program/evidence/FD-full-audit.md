@@ -189,9 +189,10 @@ Added by round two (all need a compiler or a UX decision):
   spine, `beginGuided()`, `LinkRow`, dead `HomeUiState` fields, and the
   unused `CompactLiftRow` composable are gone. `CompactTargetFields`
   stayed with the live session-lift strip.
-- **Start-spine triplication.** Home/Plan/StartOptions each reimplement
-  occurrence-start; the cardio-type drift fixed above is the proof it
-  bites. Extract a `StartOccurrence` use case beside `StartTrainingDay`.
+- **Start-spine triplication** — **done 30 August 2026.** `StartOccurrence`
+  sits beside `StartTrainingDay`. Home relocates leftovers then maps the
+  sealed outcome; the start sheet maps it directly. Plan's start spine
+  was already deleted. `StartLiveCardio` is the cardio-start ritual.
 - **BodyweightWheel unit toggle drifts the value (P3):** `toInt()`
   truncation + commit-on-restart loses ~2 lb per kg/lb round-trip.
 - **Cardio onboarding can show a lift-catalog error over a valid cardio
