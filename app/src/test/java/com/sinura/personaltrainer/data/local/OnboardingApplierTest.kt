@@ -76,7 +76,7 @@ class OnboardingApplierTest {
         routines = RoutineRepository(database.routineDao())
         schedule = ScheduleRepository(database.scheduleDao())
         preferences = PreferencesRepository(context)
-        applier = OnboardingApplier(routines, schedule, preferences)
+        applier = OnboardingApplier(database, routines, schedule, preferences)
     }
 
     @After
@@ -174,6 +174,33 @@ class OnboardingApplierTest {
         applier.apply(input, RoutineGenerator.generate(input, catalog), catalog, WEEK_START, TODAY)
         assertEquals(picked, schedule.slots().mapNotNull { it.anchorDay }.toSet())
         assertEquals(picked, preferences.preferredDays.first())
+    }
+
+    @Test
+    fun aFailedApplyLeavesNoRoutinesForTheRetryToDuplicate() = runBlocking {
+        val mine = routines.create(name = "My Own Thing")
+        preferences.setOnboardingComplete(false)
+        val input = answers(days = 3)
+        val blueprint = RoutineGenerator.generate(input, catalog)
+        val failing = OnboardingApplier(
+            database = database,
+            routineRepository = routines,
+            scheduleRepository = schedule,
+            preferencesRepository = preferences,
+            failAfterRoutines = true,
+        )
+        val failed = failing.apply(input, blueprint, catalog, WEEK_START, TODAY)
+        assertTrue(failed is ApplyPlanResult.Failed)
+        assertEquals(1, routines.count())
+        assertEquals(mine.id, routines.observeAll().first().single().id)
+        assertEquals(emptyList<com.sinura.personaltrainer.domain.ScheduleSlot>(), schedule.slots())
+        assertEquals(false, preferences.onboardingComplete.first())
+
+        val retry = applier.apply(input, blueprint, catalog, WEEK_START, TODAY)
+        val applied = retry as ApplyPlanResult.Applied
+        assertEquals(1 + applied.routineCount, routines.count())
+        assertTrue(routines.getById(mine.id) != null)
+        assertEquals(true, preferences.onboardingComplete.first())
     }
 
     @Test

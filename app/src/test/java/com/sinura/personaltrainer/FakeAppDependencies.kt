@@ -127,6 +127,7 @@ class FakeAppDependencies(
         cardioTimerPersistence = cardioTimerPersistence,
     )
     override val onboardingApplier: OnboardingApplier = OnboardingApplier(
+        database = database,
         routineRepository = routineRepository,
         scheduleRepository = scheduleRepository,
         preferencesRepository = preferencesRepository,
