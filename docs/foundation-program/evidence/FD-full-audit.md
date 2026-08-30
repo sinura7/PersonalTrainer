@@ -201,10 +201,10 @@ Added by round two (all need a compiler or a UX decision):
 - **Cardio onboarding can show a lift-catalog error over a valid cardio
   plan (P3);** trend charts are index-spaced so layoffs vanish from the
   x-axis (P3, arguably deliberate).
-- **Build fat:** kotlinx-serialization plugin exists for three
-  toolchain-pin files (port to Gson or constants);
-  `material-icons-extended` ships megabytes of unused vectors into the
-  unminified debug APK Obtainium installs — vendor the ~20 used icons.
+- **Build fat** — **done 30 August 2026.** Gson encodes the three
+  toolchain pin files. kotlinx.serialization is not shipped; 1.8.1 is
+  still the Room 2.8 ceiling. Five outlined marks are vendored so
+  `material-icons-extended` is not on the debug APK.
 - **SettingsViewModel (~900 lines):** extract the backup/Drive/restore
   state machine (~475 lines) into its own coordinator next time it is
   touched. Common.kt's rest-dock family (~500 lines) is a mechanical

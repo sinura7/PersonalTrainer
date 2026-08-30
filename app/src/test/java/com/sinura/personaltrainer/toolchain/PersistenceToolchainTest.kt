@@ -7,7 +7,7 @@ import org.junit.Test
 
 class PersistenceToolchainTest {
     @Test
-    fun signedMatrixRoundTripsThroughKotlinxSerialization() {
+    fun signedMatrixRoundTripsThroughGson() {
         val encoded = PersistenceToolchain.encode()
         val decoded = PersistenceToolchain.decode(encoded)
         assertEquals(PersistenceToolchain.SIGNED, decoded)

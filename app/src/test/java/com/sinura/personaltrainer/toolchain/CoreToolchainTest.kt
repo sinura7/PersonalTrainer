@@ -7,7 +7,7 @@ import org.junit.Test
 
 class CoreToolchainTest {
     @Test
-    fun signedMatrixRoundTripsThroughKotlinxSerialization() {
+    fun signedMatrixRoundTripsThroughGson() {
         val encoded = CoreToolchain.encode()
         val decoded = CoreToolchain.decode(encoded)
         assertEquals(CoreToolchain.SIGNED, decoded)
@@ -23,7 +23,9 @@ class CoreToolchainTest {
         assertEquals(signed.lifecycle, catalogVersion(catalog, "lifecycleRuntimeKtx"))
         assertEquals(signed.activity, catalogVersion(catalog, "activityCompose"))
         assertEquals(signed.coroutines, catalogVersion(catalog, "coroutines"))
-        assertEquals(signed.serialization, catalogVersion(catalog, "serialization"))
+        assertEquals("1.8.1", signed.serialization)
+        assertTrue(!catalog.contains("kotlinx-serialization-json"))
+        assertTrue(!catalog.contains("kotlin-serialization"))
         assertEquals(signed.robolectric, catalogVersion(catalog, "robolectric"))
         assertEquals(signed.androidxTestCore, catalogVersion(catalog, "androidxTestCore"))
         assertEquals(signed.androidxTestRunner, catalogVersion(catalog, "androidxTestRunner"))

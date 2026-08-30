@@ -516,7 +516,9 @@ Start versus Restore, catalog-only and bodyweight-only files).
   coroutines 1.10.2, kotlinx.serialization 1.8.1, Robolectric 4.16
   emulating API 36, AndroidX Test 1.7.0 / ext-junit 1.3.0.
   Lifecycle 2.11 and coroutines 1.11 are refused on this AGP/Kotlin
-  pair. Gson remains the backup codec.
+  pair. Gson encodes BackupJson and the toolchain pin files. The
+  kotlinx.serialization *artifact* was dropped 30 August 2026; 1.8.1
+  remains the Room 2.8 ceiling.
   [core-toolchain.md](architecture/core-toolchain.md).
   Evidence:
   [P4.2 evidence](foundation-program/evidence/P4.2-core-toolchain.md).

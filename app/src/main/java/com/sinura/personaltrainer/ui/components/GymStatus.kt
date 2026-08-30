@@ -18,8 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.EmojiEvents
-import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -126,7 +124,7 @@ fun GymErrorBanner(
         body = message,
         modifier = modifier,
         icon = {
-            Icon(Icons.Outlined.ErrorOutline, contentDescription = null, tint = Danger)
+            Icon(OutlinedMarks.ErrorOutline, contentDescription = null, tint = Danger)
         },
         actionLabel = if (onRetry != null) "Retry" else null,
         onAction = onRetry,
@@ -240,7 +238,7 @@ fun PersonalRecordBanner(
                 title = headline,
                 body = detail,
                 icon = {
-                    Icon(Icons.Outlined.EmojiEvents, contentDescription = null, tint = PrGold)
+                    Icon(OutlinedMarks.EmojiEvents, contentDescription = null, tint = PrGold)
                 },
                 onDismiss = onDismiss,
             )

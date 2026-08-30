@@ -7,7 +7,7 @@ import org.junit.Test
 
 class ComposeToolchainTest {
     @Test
-    fun signedMatrixRoundTripsThroughKotlinxSerialization() {
+    fun signedMatrixRoundTripsThroughGson() {
         val encoded = ComposeToolchain.encode()
         val decoded = ComposeToolchain.decode(encoded)
         assertEquals(ComposeToolchain.SIGNED, decoded)

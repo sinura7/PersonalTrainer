@@ -2,7 +2,8 @@
 """Drift check: SDK 36 plus the P4.2/P4.3 family floors.
 
 P4.1 signed the SDK triple. P4.2 ratchets Core KTX, Lifecycle, Activity,
-coroutines, serialization, Robolectric, and AndroidX Test. P4.3 ratchets
+coroutines, Robolectric, and AndroidX Test. The serialization *ceiling*
+(1.8.1) still blocks Room 2.8; the artifact is not shipped. P4.3 ratchets
 Compose BOM, Navigation, and the Kotlin Compose compiler pin. P4.4
 ratchets Room and DataStore. P4.5 ratchets play-services-auth and
 forbids Google Sign-In remnants.
@@ -49,7 +50,6 @@ CATALOG_MIN = {
     "lifecycleRuntimeKtx": ((2, 10, 0), "2.10.0"),
     "activityCompose": ((1, 12, 4), "1.12.4"),
     "coroutines": ((1, 10, 2), "1.10.2"),
-    "serialization": ((1, 8, 1), "1.8.1"),
     "robolectric": ((4, 16, 0), "4.16"),
     "androidxTestCore": ((1, 7, 0), "1.7.0"),
     "androidxTestRunner": ((1, 7, 0), "1.7.0"),
@@ -106,10 +106,12 @@ def main() -> int:
                 f"gradle/libs.versions.toml  {key} must be >= {label} (found {match.group(1)})",
             )
 
-    if "kotlin-serialization" not in catalog:
-        findings.append("gradle/libs.versions.toml  missing kotlin-serialization plugin")
-    if "kotlinx-serialization-json" not in catalog:
-        findings.append("gradle/libs.versions.toml  missing kotlinx-serialization-json")
+    if "kotlin-serialization" in catalog:
+        findings.append("gradle/libs.versions.toml  still ships kotlin-serialization")
+    if "kotlinx-serialization-json" in catalog:
+        findings.append("gradle/libs.versions.toml  still ships kotlinx-serialization-json")
+    if "material-icons-extended" in catalog:
+        findings.append("gradle/libs.versions.toml  still ships material-icons-extended")
 
     wrapper = open(WRAPPER, encoding="utf-8").read()
     gradle = re.search(r"gradle-(\d+)\.(\d+)\.(\d+)-bin\.zip", wrapper)
