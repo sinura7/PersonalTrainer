@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.data.repository
 
+import androidx.room.withTransaction
+import com.sinura.personaltrainer.data.local.AppRoomDatabase
 import com.sinura.personaltrainer.domain.BlueprintRoutine
 import com.sinura.personaltrainer.domain.CustomWeekLift
 import com.sinura.personaltrainer.domain.CustomWeekPolicy
@@ -29,15 +31,22 @@ sealed interface ApplyPlanResult {
  * stores at once — preferences, routines, their exercises, and the schedule — and the ordering
  * between them matters. Kept out of the repositories because it belongs to none of them.
  *
- * **It does not clear anything.** Setup can be re-run from Settings, and a lifter who does that
- * has weeks of history pointing at routines they still use. Adding a second Upper is a mess
- * they can see and fix in ten seconds; deleting the one their last month of sessions points at
- * is not recoverable from inside the app.
+ * **A finished program is never deleted.** Setup can be re-run from Settings, and a
+ * lifter who does that has weeks of history pointing at routines they still use.
+ * Adding a second Upper is a mess they can see and fix in ten seconds; deleting
+ * the one their last month of sessions points at is not recoverable from inside
+ * the app.
+ *
+ * **A failed attempt is.** Routine creates and pins run in one Room transaction.
+ * If that write — or the onboarding-complete flag after it — fails, the routines
+ * this attempt just created are dropped so "try again" cannot mint a second copy.
  */
 class OnboardingApplier(
+    private val database: AppRoomDatabase,
     private val routineRepository: RoutineRepository,
     private val scheduleRepository: ScheduleRepository,
     private val preferencesRepository: PreferencesRepository,
+    private val failAfterRoutines: Boolean = false,
 ) {
     /**
      * @param weekStart the lifter's stored first day of the week. Required, and deliberately
@@ -58,6 +67,7 @@ class OnboardingApplier(
         today: LocalDate,
     ): ApplyPlanResult {
         val clean = answers.sanitized()
+        val createdIds = LinkedHashMap<String, String>()
         return runCatchingCancellable {
             // Preferences first. If anything below fails the lifter still gets an app that
             // knows their days, their goal and their equipment — a worse outcome than the
@@ -98,29 +108,12 @@ class OnboardingApplier(
             )
 
             val byId = catalog.associateBy { it.id }
-            val createdIds = LinkedHashMap<String, String>()
-            blueprint.routines.forEach { routine ->
-                createdIds[routine.key] = createRoutine(routine, byId)
-            }
-
-            // Then the week. Anchored to the weekday rather than to a date, because a slot is
-            // "Tuesday is an upper day" and not "the 14th was" — that is what lets the week
-            // regenerate itself next Monday without anyone touching it.
-            var pinned = 0
-            blueprint.days.forEach { day ->
-                val routineId = day.routineKey?.let(createdIds::get) ?: return@forEach
-                scheduleRepository.pin(
-                    routineId = routineId,
-                    focusKind = null,
-                    anchorDay = day.dayOfWeek,
-                )
-                pinned += 1
-            }
-
+            val pinned = writeGeneratedProgram(blueprint, byId, createdIds)
             preferencesRepository.setOnboardingComplete(true)
             ApplyPlanResult.Applied(routineCount = createdIds.size, pinnedDays = pinned)
         }.getOrElse { thrown ->
             AppLog.e(TAG, "Applying the generated plan failed", thrown)
+            dropAttempt(createdIds.values)
             ApplyPlanResult.Failed("Couldn’t build that plan. Your answers are saved — try again.")
         }
     }
@@ -149,6 +142,74 @@ class OnboardingApplier(
     }
 
     /**
+     * Then the week. Anchored to the weekday rather than to a date, because a slot is
+     * "Tuesday is an upper day" and not "the 14th was" — that is what lets the week
+     * regenerate itself next Monday without anyone touching it.
+     */
+    private suspend fun writeGeneratedProgram(
+        blueprint: PlanBlueprint,
+        byId: Map<String, Exercise>,
+        createdIds: MutableMap<String, String>,
+    ): Int = database.withTransaction {
+        createdIds.clear()
+        blueprint.routines.forEach { routine ->
+            createdIds[routine.key] = createRoutine(routine, byId)
+        }
+        if (failAfterRoutines) error("test: fail after routine creates")
+        var pinned = 0
+        blueprint.days.forEach { day ->
+            val routineId = day.routineKey?.let(createdIds::get) ?: return@forEach
+            scheduleRepository.pin(
+                routineId = routineId,
+                focusKind = null,
+                anchorDay = day.dayOfWeek,
+            )
+            pinned += 1
+        }
+        pinned
+    }
+
+    private suspend fun writeCustomProgram(
+        days: Map<Weekday, List<CustomWeekLift>>,
+        createdIds: MutableList<String>,
+    ): Int = database.withTransaction {
+        createdIds.clear()
+        var pinned = 0
+        days.entries
+            .filter { it.value.isNotEmpty() }
+            .forEach { (day, lifts) ->
+                val created = routineRepository.create(
+                    name = CustomWeekPolicy.routineName(day),
+                )
+                createdIds += created.id
+                if (failAfterRoutines) error("test: fail after routine creates")
+                lifts.forEach { lift ->
+                    routineRepository.addExercise(
+                        routineId = created.id,
+                        exercise = lift.exercise,
+                        targetSets = lift.targetSets,
+                        targetReps = lift.targetReps,
+                        targetWeightKg = lift.targetWeightKg,
+                        restSeconds = lift.restSeconds,
+                    )
+                }
+                scheduleRepository.pin(
+                    routineId = created.id,
+                    focusKind = null,
+                    anchorDay = day,
+                )
+                pinned += 1
+            }
+        pinned
+    }
+
+    private suspend fun dropAttempt(routineIds: Collection<String>) {
+        routineIds.forEach { id ->
+            runCatchingCancellable { routineRepository.delete(id) }
+        }
+    }
+
+    /**
      * Writes a week the lifter built by hand.
      *
      * Same stores as [apply]. Questionnaire fields are written only when [answers] is
@@ -164,6 +225,7 @@ class OnboardingApplier(
         if (!CustomWeekPolicy.canConfirm(days)) {
             return ApplyPlanResult.Failed("Add at least one lift to a day.")
         }
+        val createdIds = mutableListOf<String>()
         return runCatchingCancellable {
             val trainingDays = CustomWeekPolicy.trainingDayCount(days)
             preferencesRepository.setTrainingDaysPerWeek(trainingDays)
@@ -188,34 +250,12 @@ class OnboardingApplier(
                 ),
                 todayEpochDay = today.toEpochDay(),
             )
-            var pinned = 0
-            days.entries
-                .filter { it.value.isNotEmpty() }
-                .forEach { (day, lifts) ->
-                    val created = routineRepository.create(
-                        name = CustomWeekPolicy.routineName(day),
-                    )
-                    lifts.forEach { lift ->
-                        routineRepository.addExercise(
-                            routineId = created.id,
-                            exercise = lift.exercise,
-                            targetSets = lift.targetSets,
-                            targetReps = lift.targetReps,
-                            targetWeightKg = lift.targetWeightKg,
-                            restSeconds = lift.restSeconds,
-                        )
-                    }
-                    scheduleRepository.pin(
-                        routineId = created.id,
-                        focusKind = null,
-                        anchorDay = day,
-                    )
-                    pinned += 1
-                }
+            val pinned = writeCustomProgram(days, createdIds)
             preferencesRepository.setOnboardingComplete(true)
             ApplyPlanResult.Applied(routineCount = pinned, pinnedDays = pinned)
         }.getOrElse { thrown ->
             AppLog.e(TAG, "Applying a custom week failed", thrown)
+            dropAttempt(createdIds)
             ApplyPlanResult.Failed("Couldn’t save that week. Try again.")
         }
     }

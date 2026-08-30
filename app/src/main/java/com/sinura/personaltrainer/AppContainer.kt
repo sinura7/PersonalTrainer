@@ -85,6 +85,7 @@ class AppContainer(context: Context) : AppDependencies {
      * of a screen.
      */
     override val onboardingApplier: OnboardingApplier = OnboardingApplier(
+        database = database,
         routineRepository = routineRepository,
         scheduleRepository = scheduleRepository,
         preferencesRepository = preferencesRepository,

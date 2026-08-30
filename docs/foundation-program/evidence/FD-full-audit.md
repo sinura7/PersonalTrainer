@@ -178,10 +178,10 @@ superseded by the 32-day month fix above.
 
 Added by round two (all need a compiler or a UX decision):
 
-- **Onboarding "Use this plan" is not idempotent (P2/P3).** Preferences →
-  N routine creates → pins → complete, no transaction, no cleanup; the
-  failure copy invites the retry that duplicates the program. Wrap the
-  routine/pin writes or delete-before-retry.
+- **Onboarding "Use this plan" is not idempotent (P2/P3)** — **done 30
+  August 2026.** Routine/pin writes run in one Room transaction. A
+  failed attempt drops the routines it created so the invited retry
+  cannot mint a second copy. A finished program is still never deleted.
 - **`ui/goals` is a dead package** — **done 30 August 2026.** Package,
   `GoalCopy`, Goals tests and preview deleted. `goalDao` /
   `GoalRepository` stay for the backup format.
