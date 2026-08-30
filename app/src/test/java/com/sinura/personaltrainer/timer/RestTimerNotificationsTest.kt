@@ -62,14 +62,14 @@ class RestTimerNotificationsTest {
     }
 
     @Test
-    fun doneNotificationUsesFullScreenLockActivity() {
+    fun doneNotificationSkipsFullScreenWhenTheApi34GateIsClosed() {
         RestTimerNotifications.ensureChannels(context)
         RestTimerNotifications.showDone(context, "session-1")
         val posted = context.getSystemService(NotificationManager::class.java)
             .activeNotifications
             .first { it.id == RestTimerNotifications.DONE_ID }
             .notification
-        assertNotNull(posted.fullScreenIntent)
+        assertNull(posted.fullScreenIntent)
         assertEquals("Rest done", posted.extras.getString(Notification.EXTRA_TITLE))
     }
 }
