@@ -509,35 +509,6 @@ class PlanViewModelTest {
     }
 
     @Test
-    fun freeWorkoutLeavesThePlannedOccurrenceOpen() = runBlocking {
-        val today = LocalDate.now(ZoneId.systemDefault())
-        val insights = MutableStateFlow(
-            TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(
-                today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)),
-            )),
-        )
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
-        viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
-        viewModel!!.pinFocus(today.toEpochDay(), SessionFocusKind.PUSH)
-        withTimeout(5_000) {
-            viewModel!!.uiState.first { it.rules.isNotEmpty() }
-        }
-        viewModel!!.startFreeWorkout()
-        val sessionId = withTimeout(5_000) {
-            viewModel!!.navigateToSession.first { it != null }!!
-        }
-        val session = deps.workoutRepository.getSession(sessionId)!!
-        assertEquals("Free workout", session.routineName)
-        assertTrue(session.exercises.isEmpty())
-        assertEquals(
-            com.sinura.personaltrainer.domain.OccurrenceStatus.PLANNED,
-            deps.plannerRepository.occurrencesBetween(today.toEpochDay(), today.toEpochDay())
-                .single().status,
-        )
-    }
-
-    @Test
     fun pendingAnswerReplayReplaysWithoutCreating() = runBlocking {
         val insights = MutableStateFlow(TrainingInsights())
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)

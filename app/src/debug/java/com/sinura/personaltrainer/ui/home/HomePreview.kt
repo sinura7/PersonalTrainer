@@ -60,8 +60,6 @@ private fun HomePopulatedPreview() {
                 onStartFree = {},
                 routines = HomePreviewFixtures.routines,
             )
-            LinkRow(label = "Goals", onClick = {})
-            LinkRow(label = "Library", onClick = {})
         }
     }
 }
@@ -90,8 +88,6 @@ private fun HomeEmptyPreview() {
                 onPrimary = {},
                 onStartFree = {},
             )
-            LinkRow(label = "Goals", onClick = {})
-            LinkRow(label = "Library", onClick = {})
         }
     }
 }

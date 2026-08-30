@@ -48,7 +48,6 @@ class OnboardingFocusTest {
     @Test
     fun guidedPathAsksFocusBeforeExperienceAndWritesNothingUntilApply() = runBlocking {
         viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.beginGuided()
         val focused = withTimeout(5_000) { viewModel!!.uiState.first { it.step == OnboardingStep.FOCUS } }
         assertEquals(OnboardingStep.FOCUS, focused.step)
         viewModel!!.setFocus(TrainingFocus.CARDIO)
@@ -84,7 +83,6 @@ class OnboardingFocusTest {
     @Test
     fun cardioPathSkipsLiftOnlyQuestions() = runBlocking {
         viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.beginGuided()
         withTimeout(5_000) { viewModel!!.uiState.first { it.step == OnboardingStep.FOCUS } }
         viewModel!!.setFocus(TrainingFocus.CARDIO)
         val days = withTimeout(5_000) {

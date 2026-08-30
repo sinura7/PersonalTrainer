@@ -276,19 +276,6 @@ class OnboardingViewModel @JvmOverloads constructor(
         }
     }
 
-    fun beginGuided() {
-        step.value = OnboardingStep.FOCUS
-        answersDirty = false
-        viewModelScope.launch {
-            runCatchingCancellable { container.preferencesRepository.storedOnboardingAnswers() }
-                .onSuccess { stored ->
-                    answers.value = stored
-                    answersDirty = false
-                }
-                .onFailure { AppLog.w(TAG, "Seeding setup from stored answers failed", it) }
-        }
-    }
-
     fun setFocus(value: TrainingFocus) = advance { it.copy(focus = value) }
 
     fun setExperience(value: TrainingAge) = advance { it.copy(trainingAge = value) }
