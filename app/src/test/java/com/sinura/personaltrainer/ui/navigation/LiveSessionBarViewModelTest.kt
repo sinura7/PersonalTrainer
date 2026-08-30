@@ -161,6 +161,25 @@ class LiveSessionBarViewModelTest {
     }
 
     @Test
+    fun aHiddenRouteStopsElapsedTicksUntilTheBarIsShownAgain() = runBlocking {
+        val fixture = seedTestWorkout(deps)
+        val clock = FakeClock(fixture.session.startedAt + 5_000)
+        val vm = createViewModel(clock)
+        assertEquals("0:05", checkNotNull(vm.uiState.first { it != null }).elapsedLabel)
+
+        vm.setRouteHidesBar(true)
+        clock.nowMs = fixture.session.startedAt + 90_000
+        dispatcher.scheduler.advanceTimeBy(5_000)
+        dispatcher.scheduler.runCurrent()
+        assertEquals("0:05", checkNotNull(vm.uiState.value).elapsedLabel)
+
+        vm.setRouteHidesBar(false)
+        dispatcher.scheduler.advanceTimeBy(1)
+        dispatcher.scheduler.runCurrent()
+        assertEquals("1:30", checkNotNull(vm.uiState.first { it?.elapsedLabel == "1:30" }).elapsedLabel)
+    }
+
+    @Test
     fun discardFromBarDeletesZeroSetSessionAndDraft() = runBlocking {
         val fixture = seedTestWorkout(deps)
         deps.workoutDraftCache.put(

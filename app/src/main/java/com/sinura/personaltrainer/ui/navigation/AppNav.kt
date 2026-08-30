@@ -277,6 +277,10 @@ fun PersonalTrainerNav(
     // is the difference between "the workout is somewhere" and "the workout is right here".
     val showLiveBar = liveSession != null &&
         currentDestination?.route !in LIVE_BAR_HIDDEN_ROUTES
+    val hidesLiveBar = currentDestination?.route in LIVE_BAR_HIDDEN_ROUTES
+    LaunchedEffect(hidesLiveBar) {
+        liveBarViewModel.setRouteHidesBar(hidesLiveBar)
+    }
     // Before the back-stack flow emits, currentDestination is null. The start destination
     // is a tab, so treat that first frame as one — otherwise the bar slides up from nothing
     // on every cold start.

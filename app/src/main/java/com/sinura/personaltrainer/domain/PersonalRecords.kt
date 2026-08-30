@@ -142,6 +142,43 @@ object PersonalRecords {
     }
 
     /**
+     * Standing bests a candidate is judged against.
+     *
+     * The four numbers [detect] actually reads. A SQL MAX per lift produces
+     * this directly; the list overload folds history into the same shape so
+     * both paths cannot drift.
+     */
+    data class RecordPriors(
+        val priorSetCount: Int = 0,
+        val maxWeightKg: Double? = null,
+        val maxReps: Int? = null,
+        val maxRepsAtCandidateWeight: Int? = null,
+        val maxEstimatedOneRepMaxKg: Double? = null,
+    ) {
+        val isEmpty: Boolean get() = priorSetCount <= 0
+
+        companion object {
+            fun from(
+                priorHistory: List<ExerciseSetRecord>,
+                candidateWeightKg: Double,
+            ): RecordPriors {
+                if (priorHistory.isEmpty()) return RecordPriors()
+                return RecordPriors(
+                    priorSetCount = priorHistory.size,
+                    maxWeightKg = priorHistory.maxOf { it.weightKg },
+                    maxReps = priorHistory.maxOf { it.reps },
+                    maxRepsAtCandidateWeight = priorHistory
+                        .filter { it.weightKg == candidateWeightKg }
+                        .maxOfOrNull { it.reps },
+                    maxEstimatedOneRepMaxKg = priorHistory
+                        .mapNotNull { estimatedOneRepMaxKg(it.weightKg, it.reps) }
+                        .maxOrNull(),
+                )
+            }
+        }
+    }
+
+    /**
      * Which records [candidate] breaks, given everything logged before it.
      *
      * A record has to be *beaten*, not equalled: repeating last week's top set is not a PR, and
@@ -152,34 +189,44 @@ object PersonalRecords {
         candidate: ExerciseSetRecord,
         priorHistory: List<ExerciseSetRecord>,
         loadClass: LoadClass,
+    ): Set<PersonalRecordKind> = detect(
+        candidate,
+        RecordPriors.from(priorHistory, candidate.weightKg),
+        loadClass,
+    )
+
+    fun detect(
+        candidate: ExerciseSetRecord,
+        priors: RecordPriors,
+        loadClass: LoadClass,
     ): Set<PersonalRecordKind> {
-        if (priorHistory.isEmpty() || candidate.reps <= 0) return emptySet()
+        if (priors.isEmpty || candidate.reps <= 0) return emptySet()
         val broken = linkedSetOf<PersonalRecordKind>()
 
         if (loadClass.repsAreTheMeasure) {
-            if (candidate.reps > priorHistory.maxOf { it.reps }) broken += PersonalRecordKind.REPS
+            val maxReps = priors.maxReps ?: return emptySet()
+            if (candidate.reps > maxReps) broken += PersonalRecordKind.REPS
             // A vest has a heaviest, and it is worth chasing: the same eight pull-ups with ten
             // more kilograms on is a better set, and nothing else here would notice.
             if (loadClass == LoadClass.BODYWEIGHT_ADDED && candidate.weightKg > 0.0) {
-                if (candidate.weightKg > priorHistory.maxOf { it.weightKg }) {
+                val heaviest = priors.maxWeightKg ?: 0.0
+                if (candidate.weightKg > heaviest) {
                     broken += PersonalRecordKind.WEIGHT
                 }
             }
             return broken
         }
 
-        val heaviest = priorHistory.maxOf { it.weightKg }
+        val heaviest = priors.maxWeightKg ?: return emptySet()
         if (candidate.weightKg > heaviest) broken += PersonalRecordKind.WEIGHT
 
-        val bestRepsAtWeight = priorHistory
-            .filter { it.weightKg == candidate.weightKg }
-            .maxOfOrNull { it.reps }
+        val bestRepsAtWeight = priors.maxRepsAtCandidateWeight
         if (bestRepsAtWeight != null && candidate.reps > bestRepsAtWeight) {
             broken += PersonalRecordKind.REPS_AT_WEIGHT
         }
 
         val estimate = estimatedOneRepMaxKg(candidate.weightKg, candidate.reps)
-        val bestEstimate = priorHistory.mapNotNull { estimatedOneRepMaxKg(it.weightKg, it.reps) }.maxOrNull()
+        val bestEstimate = priors.maxEstimatedOneRepMaxKg
         if (estimate != null && bestEstimate != null && estimate > bestEstimate) {
             broken += PersonalRecordKind.ESTIMATED_ONE_REP_MAX
         }

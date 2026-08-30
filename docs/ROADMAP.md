@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 30 Aug 2026 — Insights perf: one coach-hint query per pass, Body's
+> window chip retargets the shared snapshot, PR/summaries stop
+> rescanning history on every live set, rest seconds share one clock.
+> Live test 13 is still the Obtainium drop (`debugLiveCode` 13).
+>
 > 29 Aug 2026 — Full-tree adversarial audit: eight independent passes,
 > every finding source-verified. Worst: occurrences generated on the
 > wrong weekday for non-Monday week starts; REPLACE+CASCADE wiping a

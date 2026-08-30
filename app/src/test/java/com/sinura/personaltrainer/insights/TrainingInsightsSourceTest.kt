@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.insights
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
+import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.InsightFailure
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.Routine
@@ -80,14 +81,36 @@ class TrainingInsightsSourceTest {
     }
 
     @Test
-    fun coldObserveDoesNotShareAcrossCollectors() = runBlocking {
+    fun observeCollectorsShareTheAssembly() = runBlocking {
         val src = source()
         val first = async { src.observe(includeWeekPlan = true).first() }
         val second = async { src.observe(includeWeekPlan = true).first() }
         val a = first.await()
         val b = second.await()
-        assertNotSame(a, b)
-        assertEquals(2, inputs.size)
+        assertSame(a, b)
+        assertEquals(1, inputs.size)
+    }
+
+    @Test
+    fun flippingTheHeatWindowDoesNotReloadHintsOrRecomputeTheCoach() = runBlocking {
+        val window = MutableStateFlow(HeatWindow.CURRENT_WEEK)
+        var loads = 0
+        val emissions = mutableListOf<TrainingInsights>()
+        val src = source(
+            loadHints = { _, _, _ ->
+                loads++
+                emptyList()
+            },
+        )
+        val job = launch {
+            src.observe(window = window, includeWeekPlan = false).collect { emissions.add(it) }
+        }
+        awaitUntil { loads == 1 && emissions.any { it.snapshot?.window == HeatWindow.CURRENT_WEEK } }
+        window.value = HeatWindow.CURRENT_MONTH
+        awaitUntil { emissions.any { it.snapshot?.window == HeatWindow.CURRENT_MONTH } }
+        assertEquals(1, loads)
+        assertEquals(1, inputs.size)
+        job.cancel()
     }
 
     @Test

@@ -144,22 +144,24 @@ superseded by the 32-day month fix above.
 
 ## Deferred, with recommendation (the queue)
 
-- **Coach hint fan-out (perf P1).** `readyForProgression` runs ~200
-  sequential DAO round-trips per insights emission — 1–3× per logged
-  set. Batch it: one query for last-session top sets across the
-  routine's lifts, one for the RPE window. Same pass: cache hints on
-  (routines, unit, last-set-id).
-- **Second full pipeline per tab (perf P2).** Progress runs a cold copy
-  of the whole insights pipeline for its window chip; History re-runs
-  its own graphs. Fold the chip into the shared flow's snapshot stage.
-- **Per-set write amplification (perf P2).** Summaries/last-logged
-  aggregates re-scan all history per logged set; PR detection reloads a
-  lift's lifetime sets per log. Aggregate queries (MAX per lift) and a
-  windowed summary invalidation are the shape.
-- **Rest poll sharing (perf P3).** `remainingSeconds` is a cold 5 Hz
-  poll per collector (up to three at once); `shareIn` or align to the
-  second boundary. The live-bar pipeline also ticks on routes where the
-  bar is hidden.
+- **Coach hint fan-out (perf P1)** — **done 30 August 2026.**
+  `readyForProgression` reads every requested lift's finished working
+  sets in one query and picks last-session top sets / the RPE window in
+  Kotlin. Insights caches the hint list on (routines, unit, lighter week,
+  finished summaries), so an in-progress log does not repeat the pass.
+- **Second full pipeline per tab (perf P2)** — **done 30 August 2026.**
+  Progress collects the shared without-plan assembly and retargets only
+  `MuscleLoadCalculator.snapshot` when the window chip moves. History
+  still has its own graph reads (not this packet).
+- **Per-set write amplification (perf P2)** — **done 30 August 2026.**
+  `recordsBrokenBy` uses one MAX aggregate (plus in-session earlier
+  sets) instead of the lift's lifetime graph. Finished summaries and the
+  32-day session graph gate on `FinishedWorkGeneration`, so logging into
+  an in-progress session does not re-aggregate history.
+- **Rest poll sharing (perf P3)** — **done 30 August 2026.**
+  `remainingSeconds` is `shareIn`'d and wakes on the next whole-second
+  boundary. The live bar unsubscribes the rest poll and the 1 Hz elapsed
+  ticker on routes that already own the session.
 - **MoveToToday id collision with a MOVED row (scheduling P3);
   previous-week PLANNED rows stuck invisible (P3).**
 - **Bodyweight/blocks restore is two stores without a transaction

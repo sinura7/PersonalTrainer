@@ -11,6 +11,9 @@ import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
 import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toSummary
 import com.sinura.personaltrainer.data.local.dao.ExerciseSetRow
+import com.sinura.personaltrainer.data.local.dao.FinishedWorkingSetRow
+import com.sinura.personaltrainer.data.local.entity.ExerciseRecordPriorsRow
+import com.sinura.personaltrainer.data.local.entity.SessionSummaryRow
 import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseHistoryBuilder
@@ -23,12 +26,14 @@ import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.PersonalRecords
+import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.ProgressionAction
 import com.sinura.personaltrainer.domain.ProgressionBasis
 import com.sinura.personaltrainer.domain.ProgressionCalculator
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RepeatSessionPlan
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.RoutineExercise
 import com.sinura.personaltrainer.domain.LighterWeekModifier
 import com.sinura.personaltrainer.domain.RpeModifier
 import com.sinura.personaltrainer.domain.DataHealth
@@ -42,8 +47,11 @@ import com.sinura.personaltrainer.domain.WorkingSetCandidate
 import com.sinura.personaltrainer.domain.WorkoutSession
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
 
 sealed interface RepeatOutcome {
     data class Started(val sessionId: String) : RepeatOutcome
@@ -101,26 +109,18 @@ class WorkoutRepository(
      * [SessionSummary.date] in the device default zone at read time. That is
      * the documented leftover until a freeze-legal ADR-011 column exists on
      * `workout_sessions`. Do not "fix" it by switching to [SessionSummary.finishedAt].
+     *
+     * Gated on [com.sinura.personaltrainer.data.local.entity.FinishedWorkGeneration]:
+     * logging a set on an in-progress session must not re-aggregate every
+     * finished session.
      */
-    fun observeSessionSummaries(): Flow<List<com.sinura.personaltrainer.domain.SessionSummary>> =
-        workoutDao.observeSessionSummaries().map { rows ->
-            rows.map { row ->
-                com.sinura.personaltrainer.domain.SessionSummary(
-                    id = row.id,
-                    routineId = row.routineId,
-                    routineName = row.routineName,
-                    date = row.date,
-                    finishedAt = row.finishedAt,
-                    durationMinutes = row.durationMinutes,
-                    workingSets = row.workingSets,
-                    volumeKg = row.volumeKg,
-                    localEpochDay = com.sinura.personaltrainer.util.JvmTime
-                        .civilDate(row.date).epochDay,
-                )
-            }
-        }
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun observeSessionSummaries(): Flow<List<SessionSummary>> =
+        workoutDao.observeFinishedWorkGeneration()
+            .distinctUntilChanged()
+            .mapLatest { workoutDao.sessionSummaries().map { it.toDomainSummary() } }
 
-    fun observeSessionSummariesHealth(): Flow<DataHealth<List<com.sinura.personaltrainer.domain.SessionSummary>>> =
+    fun observeSessionSummariesHealth(): Flow<DataHealth<List<SessionSummary>>> =
         observeSessionSummaries().observeHealth("workout history")
 
     fun observeLastLogged(): Flow<Map<String, Long>> =
@@ -133,8 +133,13 @@ class WorkoutRepository(
             rows.associate { it.exerciseId to it.bestKg }
         }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun observeFinishedSince(minDateMs: Long): Flow<List<WorkoutSession>> =
-        workoutDao.observeFinishedSessionsSince(minDateMs).map { list -> list.map { it.toDomain() } }
+        workoutDao.observeFinishedWorkGeneration()
+            .distinctUntilChanged()
+            .mapLatest {
+                workoutDao.getFinishedSessionsSince(minDateMs).map { it.toDomain() }
+            }
 
     suspend fun sessionsBetween(minDateMs: Long, maxDateMs: Long): List<WorkoutSession> =
         workoutDao.getFinishedSessionsBetween(minDateMs, maxDateMs).map { it.toDomain() }
@@ -829,18 +834,7 @@ class WorkoutRepository(
         reps: Int,
         completedAt: Long,
     ): Set<PersonalRecordKind> {
-        val finished = workoutDao.finishedWorkingSets(exerciseId).map { it.toEntry().record }
-        val thisSession = workoutDao.workingSetsForExerciseInSession(sessionId, exerciseId)
-            .map { set ->
-                ExerciseSetRecord(
-                    setId = set.id,
-                    sessionId = set.sessionId,
-                    weightKg = set.weightKg,
-                    reps = set.reps,
-                    completedAt = set.completedAt,
-                )
-            }
-        val prior = (finished + thisSession).filter { it.completedAt < completedAt }
+        val row = workoutDao.recordPriorsBefore(exerciseId, sessionId, weightKg, completedAt)
         return PersonalRecords.detect(
             candidate = ExerciseSetRecord(
                 setId = "",
@@ -849,7 +843,7 @@ class WorkoutRepository(
                 reps = reps,
                 completedAt = completedAt,
             ),
-            priorHistory = prior,
+            priors = row.toPriors(),
             loadClass = loadClassOf(exerciseId),
         )
     }
@@ -906,35 +900,50 @@ class WorkoutRepository(
         unit: WeightUnit,
         lighterWeek: Boolean = false,
     ): List<ProgressionHint> {
-        val seen = linkedSetOf<String>()
-        val hints = mutableListOf<ProgressionHint>()
+        val items = linkedMapOf<String, RoutineExercise>()
         routines.forEach { routine ->
             routine.exercises.forEach { item ->
-                if (seen.add(item.exercise.id)) {
-                    val topSet = topSetOfLastSession(item.exercise.id) ?: return@forEach
-                    val hint = ProgressionCalculator.hint(
-                        exerciseId = item.exercise.id,
-                        exerciseName = item.exercise.name,
-                        lastWeightKg = topSet.weightKg,
-                        lastWorkingReps = topSet.reps,
-                        targetReps = item.targetReps,
-                        stepKg = IncrementTable.stepKg(item.exercise.loadType, unit),
-                        loadType = item.exercise.loadType,
-                    )
-                    // The RPE rule downgrades a grinding lift to HOLD, which drops it out of
-                    // this list automatically — "ready to progress" must not name a lift the
-                    // in-workout strip is simultaneously telling you to hold.
-                    val adjusted = LighterWeekModifier.apply(
-                        RpeModifier.apply(
-                            hint,
-                            recentTopSetRpes(item.exercise.id, excludeSessionId = ""),
-                        ),
-                        lighterWeek,
-                    )
-                    if (adjusted.action == ProgressionAction.INCREASE) {
-                        hints += adjusted
-                    }
-                }
+                items.putIfAbsent(item.exercise.id, item)
+            }
+        }
+        if (items.isEmpty()) return emptyList()
+        val rows = workoutDao.finishedWorkingSetsForExercises(items.keys.toList())
+        val byExercise = rows.groupBy { it.exerciseId }
+        val hints = mutableListOf<ProgressionHint>()
+        items.values.forEach { item ->
+            val sessionsNewestFirst = byExercise[item.exercise.id]
+                .orEmpty()
+                .groupBy { it.sessionId }
+                .entries
+                .sortedByDescending { (_, sets) -> sets.first().sessionFinishedAt }
+            if (sessionsNewestFirst.isEmpty()) return@forEach
+            val loadClass = LoadClass.of(item.exercise.loadType)
+            val lastSessionSets = sessionsNewestFirst.first().value
+            val topSet = ProgressionBasis.topWorkingSet(
+                lastSessionSets.map { WorkingSetCandidate(it.weightKg, it.reps, it.completedAt) },
+                loadClass.weightMeaning,
+            ) ?: return@forEach
+            val hint = ProgressionCalculator.hint(
+                exerciseId = item.exercise.id,
+                exerciseName = item.exercise.name,
+                lastWeightKg = topSet.weightKg,
+                lastWorkingReps = topSet.reps,
+                targetReps = item.targetReps,
+                stepKg = IncrementTable.stepKg(item.exercise.loadType, unit),
+                loadType = item.exercise.loadType,
+            )
+            val recentRpes = sessionsNewestFirst.take(RpeModifier.RPE_HOLD_SESSIONS).map { (_, sets) ->
+                rpeOfTopSet(sets, loadClass)
+            }
+            // The RPE rule downgrades a grinding lift to HOLD, which drops it out of
+            // this list automatically — "ready to progress" must not name a lift the
+            // in-workout strip is simultaneously telling you to hold.
+            val adjusted = LighterWeekModifier.apply(
+                RpeModifier.apply(hint, recentRpes),
+                lighterWeek,
+            )
+            if (adjusted.action == ProgressionAction.INCREASE) {
+                hints += adjusted
             }
         }
         return hints
@@ -958,6 +967,40 @@ class WorkoutRepository(
             .map { WorkingSetCandidate(it.weightKg, it.reps, it.completedAt) }
         return ProgressionBasis.topWorkingSet(candidates, loadClassOf(exerciseId).weightMeaning)
     }
+
+    private fun rpeOfTopSet(
+        sets: List<FinishedWorkingSetRow>,
+        loadClass: LoadClass,
+    ): Int? {
+        val top = ProgressionBasis.topWorkingSet(
+            sets.map { WorkingSetCandidate(it.weightKg, it.reps, it.completedAt) },
+            loadClass.weightMeaning,
+        ) ?: return null
+        return sets.firstOrNull {
+            it.weightKg == top.weightKg && it.reps == top.reps && it.completedAt == top.completedAt
+        }?.rpe
+    }
+
+    private fun SessionSummaryRow.toDomainSummary(): SessionSummary = SessionSummary(
+        id = id,
+        routineId = routineId,
+        routineName = routineName,
+        date = date,
+        finishedAt = finishedAt,
+        durationMinutes = durationMinutes,
+        workingSets = workingSets,
+        volumeKg = volumeKg,
+        localEpochDay = com.sinura.personaltrainer.util.JvmTime.civilDate(date).epochDay,
+    )
+
+    private fun ExerciseRecordPriorsRow.toPriors(): PersonalRecords.RecordPriors =
+        PersonalRecords.RecordPriors(
+            priorSetCount = priorSetCount,
+            maxWeightKg = maxWeightKg,
+            maxReps = maxReps,
+            maxRepsAtCandidateWeight = maxRepsAtWeight,
+            maxEstimatedOneRepMaxKg = maxEstimatedOneRepMaxKg,
+        )
 }
 
 private const val TAG = "PT/WorkoutRepository"

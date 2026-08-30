@@ -7,6 +7,8 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
 import com.sinura.personaltrainer.data.local.entity.ExerciseRecencyRow
+import com.sinura.personaltrainer.data.local.entity.ExerciseRecordPriorsRow
+import com.sinura.personaltrainer.data.local.entity.FinishedWorkGeneration
 import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SessionSummaryRow
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
@@ -40,11 +42,37 @@ interface WorkoutDao {
         ORDER BY s.date DESC
         """,
     )
-    fun observeSessionSummaries(): Flow<List<SessionSummaryRow>>
+    suspend fun sessionSummaries(): List<SessionSummaryRow>
+
+    /**
+     * Cheap fingerprint of finished work. Mentions `set_logs`, so Room still
+     * re-runs it on every log; the result is equal until a finished session
+     * actually changes.
+     */
+    @Query(
+        """
+        SELECT
+          (SELECT COUNT(*) FROM workout_sessions WHERE finishedAt IS NOT NULL) AS finishedSessionCount,
+          (SELECT COALESCE(SUM(durationMinutes), 0) FROM workout_sessions WHERE finishedAt IS NOT NULL) AS durationSum,
+          (SELECT MAX(finishedAt) FROM workout_sessions WHERE finishedAt IS NOT NULL) AS lastFinishedAt,
+          (
+            SELECT COUNT(*) FROM set_logs sl
+            INNER JOIN workout_sessions ws ON ws.id = sl.sessionId
+            WHERE sl.isWarmup = 0 AND ws.finishedAt IS NOT NULL
+          ) AS finishedWorkingSetCount,
+          (
+            SELECT MAX(sl.completedAt) FROM set_logs sl
+            INNER JOIN workout_sessions ws ON ws.id = sl.sessionId
+            WHERE sl.isWarmup = 0 AND ws.finishedAt IS NOT NULL
+          ) AS lastFinishedSetAt
+        FROM (SELECT 1)
+        """,
+    )
+    fun observeFinishedWorkGeneration(): Flow<FinishedWorkGeneration>
 
     @Transaction
     @Query("SELECT * FROM workout_sessions WHERE finishedAt IS NOT NULL AND date >= :minDateMs ORDER BY date DESC")
-    fun observeFinishedSessionsSince(minDateMs: Long): Flow<List<SessionWithDetails>>
+    suspend fun getFinishedSessionsSince(minDateMs: Long): List<SessionWithDetails>
 
     @Transaction
     @Query("SELECT * FROM workout_sessions WHERE finishedAt IS NOT NULL AND date >= :minDateMs AND date <= :maxDateMs ORDER BY date DESC")
@@ -242,6 +270,66 @@ interface WorkoutDao {
         sessionId: String,
         exerciseId: String,
     ): List<SetLogEntity>
+
+    /**
+     * Every finished working set of the requested lifts, for a batched
+     * progression pass. No window functions — minSdk 26's SQLite cannot.
+     * Kotlin groups by lift and session and keeps the last two sessions.
+     */
+    @Query(
+        """
+        SELECT sl.exerciseId AS exerciseId,
+               sl.sessionId AS sessionId,
+               sl.weightKg AS weightKg,
+               sl.reps AS reps,
+               sl.completedAt AS completedAt,
+               sl.rpe AS rpe,
+               ws.finishedAt AS sessionFinishedAt
+        FROM set_logs sl
+        JOIN workout_sessions ws ON ws.id = sl.sessionId
+        WHERE sl.exerciseId IN (:exerciseIds)
+          AND sl.isWarmup = 0
+          AND ws.finishedAt IS NOT NULL
+        ORDER BY sl.exerciseId ASC, ws.finishedAt DESC, sl.sessionId ASC
+        """,
+    )
+    suspend fun finishedWorkingSetsForExercises(
+        exerciseIds: List<String>,
+    ): List<FinishedWorkingSetRow>
+
+    /**
+     * Standing bests before [completedAt] for one lift. Includes earlier
+     * sets of the in-progress [sessionId] so a work-up cannot beat itself.
+     */
+    @Query(
+        """
+        SELECT COUNT(*) AS priorSetCount,
+               MAX(sl.weightKg) AS maxWeightKg,
+               MAX(sl.reps) AS maxReps,
+               MAX(CASE WHEN sl.weightKg = :weightKg THEN sl.reps ELSE NULL END) AS maxRepsAtWeight,
+               MAX(
+                 CASE
+                   WHEN sl.weightKg <= 0 THEN NULL
+                   WHEN sl.reps = 1 THEN sl.weightKg
+                   WHEN sl.reps BETWEEN 2 AND 12 THEN sl.weightKg * (1.0 + sl.reps / 30.0)
+                   ELSE NULL
+                 END
+               ) AS maxEstimatedOneRepMaxKg
+        FROM set_logs sl
+        JOIN workout_sessions ws ON ws.id = sl.sessionId
+        WHERE sl.exerciseId = :exerciseId
+          AND sl.isWarmup = 0
+          AND sl.reps > 0
+          AND sl.completedAt < :completedAt
+          AND (ws.finishedAt IS NOT NULL OR sl.sessionId = :sessionId)
+        """,
+    )
+    suspend fun recordPriorsBefore(
+        exerciseId: String,
+        sessionId: String,
+        weightKg: Double,
+        completedAt: Long,
+    ): ExerciseRecordPriorsRow
 
     @Query(
         """

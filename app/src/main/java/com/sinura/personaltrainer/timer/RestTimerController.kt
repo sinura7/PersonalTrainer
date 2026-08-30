@@ -13,6 +13,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -39,20 +41,33 @@ class RestTimerController(
     private val announceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     override val snapshot: StateFlow<RestTimerSnapshot> = store.snapshot
 
+    /**
+     * One poll for every collector. Remaining seconds are an Int, so waking on
+     * the next whole-second boundary is enough; 5 Hz per Live-bar / workout /
+     * rest-page collector was three clocks for the same number.
+     */
     override val remainingSeconds: Flow<Int> = snapshot.flatMapLatest { state ->
         if (!state.running) {
             flowOf(0)
         } else {
             flow {
                 while (true) {
-                    val left = state.remainingSeconds(SystemClock.elapsedRealtime())
+                    val now = SystemClock.elapsedRealtime()
+                    val left = state.remainingSeconds(now)
                     emit(left)
                     if (left <= 0) break
-                    delay(200)
+                    val leftMs = state.endsAtElapsedRealtime - now
+                    val nextBoundaryMs = ((leftMs - 1L) / 1000L) * 1000L
+                    delay((leftMs - nextBoundaryMs).coerceAtLeast(1L))
                 }
             }
         }
     }.distinctUntilChanged()
+        .shareIn(
+            scope = announceScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            replay = 1,
+        )
 
     override val runningSessionId: Flow<String?> = snapshot.map { snap ->
         snap.sessionId.takeIf { snap.running }
