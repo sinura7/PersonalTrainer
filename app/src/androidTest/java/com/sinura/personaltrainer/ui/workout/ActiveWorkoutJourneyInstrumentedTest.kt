@@ -4,7 +4,6 @@ import android.content.Intent
 import android.os.SystemClock
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
@@ -12,16 +11,14 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
-import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.printToString
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.platform.app.InstrumentationRegistry
 import com.sinura.personaltrainer.AppContainer
 import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.PersonalTrainerApp
@@ -66,6 +63,10 @@ class ActiveWorkoutJourneyInstrumentedTest {
 
     private val seedRule = object : ExternalResource() {
         override fun before() {
+            // Soft keyboard animations never go idle on this SwiftShader emulator.
+            InstrumentationRegistry.getInstrumentation().uiAutomation
+                .executeShellCommand("settings put secure show_ime_with_hard_keyboard 1")
+                .close()
             seedBeforeActivityLaunch()
             launchIntent.putExtra(RestTimerService.EXTRA_SESSION_ID, fixture.sessionId)
         }
@@ -99,22 +100,10 @@ class ActiveWorkoutJourneyInstrumentedTest {
                 .fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).performScrollTo()
-        compose.onNodeWithTag("Type a weight").performScrollTo()
-        compose.waitForIdle()
-        compose.onNodeWithTag("Type a weight")
-            .assertHasClickAction()
-            .performTouchInput { click(percentOffset(0.5f, 0.2f)) }
-        val typed = runCatching {
-            compose.waitUntil(15_000) {
-                compose.onAllNodes(hasTestTag(NumberEntryTags.FIELD))
-                    .fetchSemanticsNodes().isNotEmpty()
-            }
-            true
-        }.getOrDefault(false)
-        if (!typed) {
-            org.junit.Assert.fail(
-                "Weight dialog did not open.\n${compose.onRoot(useUnmergedTree = true).printToString()}",
-            )
+        compose.onNodeWithTag("Type a weight").performScrollTo().performClick()
+        compose.waitUntil(15_000) {
+            compose.onAllNodes(hasTestTag(NumberEntryTags.FIELD))
+                .fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag(NumberEntryTags.FIELD).performTextReplacement("100")
         compose.onNodeWithText("Set").performClick()
