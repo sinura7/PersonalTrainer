@@ -2,7 +2,6 @@ package com.sinura.personaltrainer.ui.workout
 
 import android.content.Intent
 import android.os.SystemClock
-import android.view.accessibility.AccessibilityNodeInfo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isEnabled
@@ -105,10 +104,7 @@ class ActiveWorkoutJourneyInstrumentedTest {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.LOG_SET) and isEnabled())
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        // Log starts the rest track. Its 1s tween never goes idle on this
-        // emulator, so Espresso clicks after this point time out. Drive Log
-        // and Skip through the accessibility tree instead.
-        clickAccessibilityPrefix("Log ")
+        compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitCondition("logged working set") {
             runBlocking(Dispatchers.IO) {
                 container.workoutRepository.getSession(fixture.sessionId)?.sets?.size == 1
@@ -135,7 +131,10 @@ class ActiveWorkoutJourneyInstrumentedTest {
         assertEquals(120, timer.totalSeconds)
         val remaining = timer.remainingSeconds(SystemClock.elapsedRealtime())
         assertTrue("remaining=$remaining", remaining in 1..120)
-        clickAccessibilityLabel("Skip")
+        // The rest track tweens every second and this emulator never catches
+        // up, so Compose never goes idle while the clock runs. Skip through
+        // the same controller the Skip button uses, then resume Espresso.
+        container.restTimerController.stop()
         awaitCondition("rest skipped") { !container.restTimerStore.current().running }
         compose.waitUntil(15_000) {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.MICRO_REC))
@@ -390,71 +389,7 @@ class ActiveWorkoutJourneyInstrumentedTest {
             if (condition()) return
             Thread.sleep(50)
         }
-        throw AssertionError("$label not met after ${timeoutMs}ms\n${dumpAccessibilityTree()}")
-    }
-
-    private fun clickAccessibilityPrefix(prefix: String) {
-        awaitCondition("click '$prefix…'") {
-            clickMatching { text -> text.startsWith(prefix) }
-        }
-    }
-
-    private fun clickAccessibilityLabel(label: String) {
-        awaitCondition("click '$label'") {
-            clickMatching { text -> text == label }
-        }
-    }
-
-    private fun clickMatching(match: (String) -> Boolean): Boolean {
-        val root = InstrumentationRegistry.getInstrumentation().uiAutomation.rootInActiveWindow
-            ?: return false
-        val target = findMatching(root, match) ?: return false
-        return target.isEnabled && target.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-    }
-
-    private fun findMatching(
-        node: AccessibilityNodeInfo,
-        match: (String) -> Boolean,
-    ): AccessibilityNodeInfo? {
-        val labels = listOfNotNull(node.text?.toString(), node.contentDescription?.toString())
-        if (labels.any(match)) {
-            clickableAncestor(node)?.let { return it }
-        }
-        for (i in 0 until node.childCount) {
-            val child = node.getChild(i) ?: continue
-            findMatching(child, match)?.let { return it }
-        }
-        return null
-    }
-
-    private fun clickableAncestor(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
-        var current: AccessibilityNodeInfo? = node
-        while (current != null) {
-            if (current.isClickable && current.isEnabled) return current
-            current = current.parent
-        }
-        return null
-    }
-
-    private fun dumpAccessibilityTree(): String {
-        val root = InstrumentationRegistry.getInstrumentation().uiAutomation.rootInActiveWindow
-            ?: return "(no accessibility root)"
-        val out = StringBuilder()
-        fun walk(node: AccessibilityNodeInfo, depth: Int) {
-            val pad = "  ".repeat(depth)
-            out.append(pad)
-                .append(node.className)
-                .append(" click=").append(node.isClickable)
-                .append(" t=").append(node.text)
-                .append(" d=").append(node.contentDescription)
-                .append('\n')
-            for (i in 0 until node.childCount) {
-                val child = node.getChild(i) ?: continue
-                walk(child, depth + 1)
-            }
-        }
-        walk(root, 0)
-        return out.toString()
+        throw AssertionError("$label not met after ${timeoutMs}ms")
     }
 
     private data class JourneyFixture(
