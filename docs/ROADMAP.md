@@ -15,9 +15,14 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 30 Aug 2026 — Obtainium live test 14 (`debugLiveCode` 14, tag
+> `debug-live-2026-08-30`): Task 2 queue (dead code, StartOccurrence,
+> onboarding retry, insights perf, silent-defect tests, build fat,
+> small UX) plus the audit/emulator-lane work from live test 13.
+>
 > 30 Aug 2026 — Small UX: bodyweight wheel unit toggle, cardio catalog
 > banner, Move-to-today MOVED ids, previous-week Still open. Live test
-> 13 is still the Obtainium drop.
+> 14 is the Obtainium drop.
 >
 > 30 Aug 2026 — Debug APK fat: Gson toolchain pins, vendored outlined
 > marks, no kotlinx.serialization or material-icons-extended. Live test
