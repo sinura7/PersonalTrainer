@@ -111,7 +111,6 @@ composables, not a second layout:
 | Surface | Preview file | States drawn |
 |---|---|---|
 | Home + DailyAgenda + MissedWork | `ui/home/HomePreview.kt` | populated (agenda + missed), empty |
-| Goals | `ui/goals/GoalsPreview.kt` | populated, empty, loading, error |
 | Live cardio | `ui/activity/LiveCardioPreview.kt` | active, missing, error |
 | Activity composer | `ui/activity/ActivityComposerPreview.kt` | populated, empty, error |
 

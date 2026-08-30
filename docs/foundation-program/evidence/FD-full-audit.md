@@ -182,18 +182,13 @@ Added by round two (all need a compiler or a UX decision):
   N routine creates → pins → complete, no transaction, no cleanup; the
   failure copy invites the retry that duplicates the program. Wrap the
   routine/pin writes or delete-before-retry.
-- **`ui/goals` is a dead package** (nothing navigates to it; docs
-  already say the Goals UI is gone). Its two live defects — LIFT_TARGET
-  ignores its own period, and assisted lifts pin at 0 kg forever — are
-  therefore latent. Delete the package (GoalsScreen, GoalsViewModel,
-  GoalCopy, tests, the `goalRepository` graph entry); the data layer
-  stays for the backup format.
-- **Dead code inventory:** PlanViewModel's entire start spine (~250
-  lines, no production caller — delete rather than dedupe),
-  `beginGuided()` (test-only, and missing the `answersDirty` guard),
-  `LinkRow` + four dead `HomeUiState` fields (`heatSnapshot`, `block`,
-  `twoADayEpochDays`, `agenda`), `CompactLiftRow.kt` (287 lines,
-  referenced only by one instrumented test).
+- **`ui/goals` is a dead package** — **done 30 August 2026.** Package,
+  `GoalCopy`, Goals tests and preview deleted. `goalDao` /
+  `GoalRepository` stay for the backup format.
+- **Dead code inventory** — **done 30 August 2026.** PlanViewModel start
+  spine, `beginGuided()`, `LinkRow`, dead `HomeUiState` fields, and the
+  unused `CompactLiftRow` composable are gone. `CompactTargetFields`
+  stayed with the live session-lift strip.
 - **Start-spine triplication.** Home/Plan/StartOptions each reimplement
   occurrence-start; the cardio-type drift fixed above is the proof it
   bites. Extract a `StartOccurrence` use case beside `StartTrainingDay`.

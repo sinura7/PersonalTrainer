@@ -1,13 +1,11 @@
 package com.sinura.personaltrainer.ui.home
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,13 +16,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -377,48 +371,6 @@ fun HomeScreen(
                     onOpenExercise = onOpenExercise,
                 )
             }
-        }
-    }
-}
-
-/**
- * A tertiary row that goes somewhere.
- *
- * Kept for page-pass tests. Home itself no longer lists tab destinations.
- */
-
-@Composable
-internal fun LinkRow(
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    trailing: String? = null,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = Metrics.touchMin)
-            .clickable(role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = label },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-    ) {
-        Text(
-            "$label  \u203a",
-            modifier = Modifier.weight(1f),
-            style = InstrumentType.bodyStrong,
-            color = TextSecondary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        if (trailing != null) {
-            Text(
-                trailing,
-                style = InstrumentType.caption,
-                color = TextTertiary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
         }
     }
 }

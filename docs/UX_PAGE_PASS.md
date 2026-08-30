@@ -155,8 +155,7 @@ keeps the draft.
   stays the one filled Volt (same rule Plan applies to its recovery act),
   and the prompt never shows while a session is live — the week's one
   decision must not be burned mid-workout.
-- `LinkRow` is a full-width 48 dp row. Label and trailing ellipsize.
-  Rec Why is a dialog; the card tap does not wrap it.
+- Rec Why is a dialog; the card tap does not wrap it.
 - Home is Start, not a second tab bar. This week, Goals, and Library
   stay off this screen. A week strip is the day’s picker, bound to
   occurrences. Weekly weigh-in is a quiet card on the

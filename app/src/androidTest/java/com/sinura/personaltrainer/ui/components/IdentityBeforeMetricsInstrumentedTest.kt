@@ -28,8 +28,6 @@ import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.routines.CompactLiftCopy
-import com.sinura.personaltrainer.ui.routines.CompactLiftRow
-import com.sinura.personaltrainer.ui.routines.CompactLiftTags
 import com.sinura.personaltrainer.ui.routines.SessionLiftItem
 import com.sinura.personaltrainer.ui.routines.SessionLiftStrip
 import com.sinura.personaltrainer.ui.routines.SessionLiftTags
@@ -53,12 +51,6 @@ class IdentityBeforeMetricsInstrumentedTest {
 
     @Test
     fun sessionRowKeepsTitleAndDateAt360Font2() = assertSessionRow(fontScale = 2f)
-
-    @Test
-    fun compactLiftKeepsNameAndTargetLabelAt360Font1() = assertCompactLift(fontScale = 1f)
-
-    @Test
-    fun compactLiftKeepsNameAndTargetLabelAt360Font2() = assertCompactLift(fontScale = 2f)
 
     @Test
     fun sessionStripKeepsNameAndTargetLabelAt360Font1() = assertSessionStrip(fontScale = 1f)
@@ -100,47 +92,6 @@ class IdentityBeforeMetricsInstrumentedTest {
             .assertTextContains("24 Aug", substring = true)
         compose.onNodeWithText("SETS").assertIsDisplayed()
         compose.onNodeWithText("MIN").assertIsDisplayed()
-    }
-
-    private fun assertCompactLift(fontScale: Float) {
-        compose.setContent {
-            val density = LocalDensity.current
-            PersonalTrainerTheme {
-                CompositionLocalProvider(
-                    LocalDensity provides Density(density.density, fontScale = fontScale),
-                    LocalWeightUnit provides WeightUnit.LBS,
-                ) {
-                    Box(Modifier.fillMaxSize()) {
-                        Box(Modifier.size(360.dp, 800.dp)) {
-                            CompactLiftRow(
-                                exercise = LONG_LIFT,
-                                sets = 4,
-                                reps = 6,
-                                restSeconds = 120,
-                                canMoveUp = true,
-                                canMoveDown = true,
-                                expanded = true,
-                                onToggle = {},
-                                onMoveUp = {},
-                                onMoveDown = {},
-                                onRemove = {},
-                                onSwap = {},
-                                onStageTargets = { _, _, _, _ -> },
-                                onCommitTargets = {},
-                                targetWeightKg = 100.0,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        compose.waitForIdle()
-        compose.onNodeWithTag(CompactLiftTags.ROW).assertIsDisplayed()
-        compose.onNodeWithTag(CompactLiftTags.NAME, useUnmergedTree = true)
-            .assertTextContains("Romanian", substring = true)
-        compose.onNodeWithText(CompactLiftCopy.TARGET_WEIGHT).assertIsDisplayed()
-        compose.onNodeWithText("lbs").assertIsDisplayed()
-        compose.onNodeWithText("kg").assertDoesNotExist()
     }
 
     private fun assertSessionStrip(fontScale: Float) {

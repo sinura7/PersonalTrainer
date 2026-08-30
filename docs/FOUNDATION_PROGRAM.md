@@ -376,7 +376,7 @@ Status legend: **done** · **next** · pending · gated · skipped
 
 #### P2.5 — Identity before metrics · **done**
 
-- `SessionLogRow` and `CompactLiftRow` protect title/date; metrics wrap
+- `SessionLogRow` and `SessionLiftStrip` protect title/date; metrics wrap
   first; target weight is the label with kg/lbs as suffix.
 - Constrained Compose tests at 360 dp / font 1.0–2.0.
 - Exit: FND-006 and FND-016 closed.

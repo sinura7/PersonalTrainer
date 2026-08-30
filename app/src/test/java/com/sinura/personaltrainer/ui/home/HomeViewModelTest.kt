@@ -118,15 +118,22 @@ class HomeViewModelTest {
         )
         deps.plannerRepository.ensureWeek(weekStart)
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        val state = viewModel!!.uiState.first { !it.isLoading && it.agenda.size == 2 }
-        assertEquals(listOf(7, 18), state.agenda.map { it.occurrence.hour })
+        val state = viewModel!!.uiState.first { !it.isLoading && it.occurrences.size >= 2 }
+        val names = state.routines.associate { it.id to it.name }
+        val agenda = com.sinura.personaltrainer.domain.DailyAgenda.forDay(
+            com.sinura.personaltrainer.domain.todayEpochDay(),
+            state.occurrences,
+            state.rules,
+            names,
+        )
+        assertEquals(listOf(7, 18), agenda.map { it.occurrence.hour })
         assertEquals(
             listOf("Cardio", "Strength"),
-            state.agenda.map { it.title },
+            agenda.map { it.title },
         )
         assertEquals(
             com.sinura.personaltrainer.domain.HomeToday.Surface.AGENDA,
-            com.sinura.personaltrainer.domain.HomeToday.surface(state.agenda),
+            com.sinura.personaltrainer.domain.HomeToday.surface(agenda),
         )
     }
 

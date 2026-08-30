@@ -178,7 +178,11 @@ class ActiveWorkoutViewModelTest {
     fun logSetPersistsSetClearsErrorAndEmitsRecord() = runBlocking {
         val fixture = seedWorkout(priorWeightKg = 80.0)
         val vm = createViewModel(fixture.session.id)
-        vm.awaitFound()
+        // Prefill can overwrite a typed 100 with the 80 kg + step suggestion if we log first.
+        vm.awaitState {
+            val suggested = it.hint?.suggestedWeightKg ?: return@awaitState false
+            it.loadState == SessionLoadState.FOUND && it.draft.weightKg == suggested
+        }
 
         vm.setWeight(100.0)
         vm.awaitState { it.draft.weightKg == 100.0 }

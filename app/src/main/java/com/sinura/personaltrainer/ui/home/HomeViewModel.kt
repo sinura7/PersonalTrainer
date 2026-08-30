@@ -12,7 +12,6 @@ import com.sinura.personaltrainer.domain.CardioBlock
 import com.sinura.personaltrainer.domain.CardioCopy
 import com.sinura.personaltrainer.domain.ScheduleKind
 import com.sinura.personaltrainer.domain.CivilDate
-import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.MissedWorkChoice
 import com.sinura.personaltrainer.domain.MissedWorkPolicy
 import com.sinura.personaltrainer.domain.MoveToToday
@@ -24,14 +23,12 @@ import com.sinura.personaltrainer.timer.CardioElapsed
 import com.sinura.personaltrainer.timer.PersistedCardioTimer
 import com.sinura.personaltrainer.util.IdFactory
 import com.sinura.personaltrainer.util.JvmTime
-import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.BodyweightCheckIn
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
-import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.domain.WeeklySchedulePlan
 import com.sinura.personaltrainer.domain.WorkoutSession
@@ -61,7 +58,6 @@ data class HomeUiState(
      */
     val lastSession: SessionSummary? = null,
     val readyToProgress: List<ProgressionHint> = emptyList(),
-    val heatSnapshot: BodyHeatSnapshot? = null,
     val recommendations: List<TrainingRecommendation> = emptyList(),
     val weekPlan: WeeklySchedulePlan? = null,
     /**
@@ -72,14 +68,10 @@ data class HomeUiState(
      * in the current week as untrained after a travel-week gap.
      */
     val loggedEpochDays: Set<Long> = emptySet(),
-    /** The block this week belongs to, or null when the lifter is not in one. */
-    val block: TrainingBlock? = null,
     val lighterWeek: Boolean = false,
     val error: String? = null,
-    val agenda: List<com.sinura.personaltrainer.domain.AgendaItem> = emptyList(),
     val missedWorkPrompt: Boolean = false,
     val overdueCount: Int = 0,
-    val twoADayEpochDays: Set<Long> = emptySet(),
     /** False until a plan or custom week is accepted. Home shows the get-started sheet. */
     val setupComplete: Boolean = true,
     val bodyweightCheckInDue: Boolean = false,
@@ -101,14 +93,13 @@ class HomeViewModel @JvmOverloads constructor(
         actionError,
         combine(
             combine(
-                container.preferencesRepository.trainingBlock,
                 container.preferencesRepository.lighterWeekStartEpochDay,
                 combine(
                     container.plannerRepository.observeOccurrences(),
                     container.plannerRepository.observeRules(),
                     container.plannerRepository.observeDecisions(),
                 ) { occurrences, rules, decisions -> Triple(occurrences, rules, decisions) },
-            ) { block, lighterStart, planner -> Triple(block, lighterStart, planner) },
+            ) { lighterStart, planner -> lighterStart to planner },
             combine(
                 container.preferencesRepository.schedulePreferences,
                 container.preferencesRepository.preferredDays,
@@ -118,13 +109,12 @@ class HomeViewModel @JvmOverloads constructor(
             ) { preferences, preferredDays, log, checkIn, setupComplete ->
                 HomeCadence(preferences, preferredDays, log, checkIn, setupComplete)
             },
-        ) { plannerBlock, cadence -> plannerBlock to cadence },
+        ) { planner, cadence -> planner to cadence },
     ) { insights, inProgress, error, extras ->
-        val block = extras.first.first
-        val lighterStart = extras.first.second
-        val occurrences = extras.first.third.first
-        val rules = extras.first.third.second
-        val decisions = extras.first.third.third
+        val lighterStart = extras.first.first
+        val occurrences = extras.first.second.first
+        val rules = extras.first.second.second
+        val decisions = extras.first.second.third
         val cadence = extras.second
         val today = todayEpochDay()
         val now = JvmTime.captureNow()
@@ -143,7 +133,6 @@ class HomeViewModel @JvmOverloads constructor(
             routines = insights.routines,
             lastSession = insights.summaries.latest(),
             readyToProgress = insights.hints,
-            heatSnapshot = insights.snapshot,
             // Home already devotes a section to the ready-to-progress lifts, so the card that
             // only says "some lifts are ready" is noise next to the list naming them.
             recommendations = insights.recommendations.filterNot { rec ->
@@ -151,24 +140,16 @@ class HomeViewModel @JvmOverloads constructor(
             },
             weekPlan = insights.weekPlan,
             loggedEpochDays = insights.summaries.map { it.localEpochDay }.toSet(),
-            block = block,
             lighterWeek = LighterWeek.isCurrent(
                 lighterStart,
                 insights.weekPlan?.weekStartEpochDay,
             ),
             error = error,
-            agenda = DailyAgenda.forDay(
-                today,
-                occurrences,
-                rules,
-                insights.routines.associate { it.id to it.name },
-            ),
             // Not while a session is live: a lifter mid-workout at 18:20 answering
             // "1 planned session was not done" burns the week's one decision on a
             // session they are in the middle of doing.
             missedWorkPrompt = inProgress == null && MissedWorkPolicy.promptNeeded(overdue, decision),
             overdueCount = overdue.size,
-            twoADayEpochDays = DailyAgenda.twoADayEpochDays(weekOcc),
             setupComplete = cadence.setupComplete,
             bodyweightCheckInDue = BodyweightCheckIn.isDueToday(
                 todayEpochDay = today,
