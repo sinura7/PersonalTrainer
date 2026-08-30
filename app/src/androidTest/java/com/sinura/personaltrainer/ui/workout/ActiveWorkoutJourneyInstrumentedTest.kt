@@ -97,15 +97,23 @@ class ActiveWorkoutJourneyInstrumentedTest {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.SET_ENTRY))
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        // Target seed is 140 kg. The number-entry dialog's IME never goes idle
-        // on this emulator; the plates are the same write path as typing.
-        repeat(16) {
-            compose.onNodeWithText("−2.5").performClick()
-        }
-        compose.waitUntil(10_000) {
+        // Draft opens at last-session / suggestion, not the 140 kg target. The
+        // number-entry dialog's IME never goes idle on this emulator; the plates
+        // are the same write path as typing.
+        fun logShows100(): Boolean =
             compose.onAllNodesWithText("Log 100 kg × 5")
                 .fetchSemanticsNodes().isNotEmpty()
+        var steps = 0
+        while (!logShows100() && steps < 80) {
+            compose.onNodeWithText("−2.5").performClick()
+            steps++
         }
+        steps = 0
+        while (!logShows100() && steps < 80) {
+            compose.onNodeWithText("+2.5").performClick()
+            steps++
+        }
+        org.junit.Assert.assertTrue("never reached 100 kg on the log button", logShows100())
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
 
         compose.waitUntil(10_000) {
