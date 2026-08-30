@@ -21,19 +21,22 @@ class WorkManagerReminderScheduler(
             .setInitialDelay(delay, TimeUnit.MILLISECONDS)
             .build()
         WorkManager.getInstance(appContext).enqueueUniqueWork(
-            workName(delivery.id),
+            uniqueWorkName(delivery.id),
             ExistingWorkPolicy.REPLACE,
             request,
         )
     }
 
     override fun cancel(deliveryId: String) {
-        WorkManager.getInstance(appContext).cancelUniqueWork(workName(deliveryId))
+        WorkManager.getInstance(appContext).cancelUniqueWork(uniqueWorkName(deliveryId))
     }
 
     override fun cancelForOccurrence(occurrenceId: String) {
-        WorkManager.getInstance(appContext).cancelUniqueWork(workName("rem-$occurrenceId"))
+        WorkManager.getInstance(appContext).cancelUniqueWork(uniqueWorkName("rem-$occurrenceId"))
     }
 
-    private fun workName(deliveryId: String): String = "reminder-$deliveryId"
+    companion object {
+        /** Unique work id. Two schedules for the same delivery replace, they do not stack. */
+        internal fun uniqueWorkName(deliveryId: String): String = "reminder-$deliveryId"
+    }
 }
