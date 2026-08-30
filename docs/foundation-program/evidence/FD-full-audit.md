@@ -225,11 +225,13 @@ Added by round two (all need a compiler or a UX decision):
 1. **Assign a GitHub Actions runner** (account billing). Every guard
    above then runs on every push; today all 542 runs die in ~5 s before
    checkout. This is the single highest-leverage fix in the repo.
-2. **Cut the pending drop** — **done 30 August 2026.** Pre-release
-   `debug-live-13` carries `PersonalTrainer-1.0.0-debug.apk`
-   (versionCode 13, `1.0.0+debug.13`). `tools/released-version-code.txt`
-   stays at 1 (gym-floor `appVersionCode` floor). Hosted Actions still
-   have no runner; the drop was hand-published.
+2. **Cut the pending drop** — **done 30 August 2026.** Live test 13
+   was `debug-live-13`. Live test 14 is the current Obtainium drop:
+   pre-release `debug-live-2026-08-30` carries
+   `PersonalTrainer-1.0.0-debug.apk` (versionCode 14,
+   `1.0.0+debug.14`). `tools/released-version-code.txt` stays at 1
+   (gym-floor `appVersionCode` floor). Hosted Actions still have no
+   runner; the drop was hand-published.
 3. **Physical TalkBack pass** (blocks Android Public Candidate) and the
    **Play rehearsal** (blocks Commercial RC), per P9.7/P12.4.
 
@@ -240,6 +242,5 @@ Added by round two (all need a compiler or a UX decision):
   findings from all static checkers, including the repaired
   `check-state-members`.
 - `./gradlew testDebugUnitTest` / `assembleDebug` — PASS on 30 August
-  2026 (1535 JVM tests). `connectedDebugAndroidTest` on temper30 API 30:
-  72 tests, 0 failures, 1 skipped (API 29 golden). Live test 13 is
-  `debug-live-13`.
+  2026. Live test 14 is `debug-live-2026-08-30` (versionCode 14).
+  Live test 13 remains `debug-live-13`.
