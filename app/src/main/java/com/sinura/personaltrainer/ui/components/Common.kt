@@ -35,9 +35,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ExpandLess
-import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -1308,7 +1305,7 @@ fun NotesBlock(
     Column(modifier = modifier) {
         TextButton(onClick = onToggle, contentPadding = PaddingValues(0.dp)) {
             Icon(
-                if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                if (expanded) OutlinedMarks.ExpandLess else OutlinedMarks.ExpandMore,
                 contentDescription = null,
                 tint = TextSecondary,
             )

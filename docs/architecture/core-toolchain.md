@@ -18,7 +18,7 @@ Kotlin compiler or AGP 9 are refused.
 | Lifecycle | 2.8.7 | **2.10.0** | 2.11.0 compiles Compose against API 37 and requires AGP ≥ 9.2.0. |
 | Activity | 1.9.3 | **1.12.4** | Latest 1.12 patch. 1.13.0 is left for a later Compose/AGP train. |
 | Coroutines | 1.9.0 | **1.10.2** | 1.11.0 is the Kotlin 2.2.20 companion. We stay on Kotlin 2.0.21. |
-| Serialization | (absent) | **1.8.1** + compiler plugin 2.0.21 | Gson remains the backup codec. kotlinx.serialization is the signed core JSON seam. |
+| Serialization | 1.8.1 artifact | **not shipped** | Ceiling only. Gson encodes pin files and BackupJson. `1.8.1` remains the Room 2.8 stop. |
 | Robolectric | 4.14.1 | **4.16** | Ships API 36. `robolectric.properties` now pins `sdk=36`. |
 | AndroidX Test | 1.6.x / 1.2.1 | **1.7.0 / 1.3.0** | core, runner, rules 1.7.0; ext-junit 1.3.0. |
 
@@ -29,10 +29,14 @@ Kotlin compiler or AGP 9 are refused.
 2. **Do not take Lifecycle 2.11 or Coroutines 1.11** on this AGP/Kotlin
    pair.
 3. **Domain stays serialization-free.** `CoreToolchain` lives in
-   `toolchain/` so the plain-JVM domain lane does not need the
-   serialization plugin.
-4. **Gson still encodes BackupJson.** A later packet may migrate the
-   document; this one does not.
+   `toolchain/` so the plain-JVM domain lane does not need Android
+   libraries. Gson encodes the pin files.
+4. **Gson encodes BackupJson and the toolchain pins.** kotlinx.serialization
+   is not a shipped app dependency.
+
+Amended 30 August 2026: the kotlinx.serialization artifact and compiler
+plugin were dropped (debug APK fat). The 1.8.1 ceiling still refuses
+Room 2.8.
 
 ## Finding coverage
 

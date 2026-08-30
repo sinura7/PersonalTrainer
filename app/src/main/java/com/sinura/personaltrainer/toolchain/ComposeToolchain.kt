@@ -1,8 +1,5 @@
 package com.sinura.personaltrainer.toolchain
 
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-
 /**
  * The P4.3 Compose matrix. Room, DataStore, and Sign-In stay on the
  * versions P4.4–P4.5 own. The BOM stops at 2026.06.01 because
@@ -11,9 +8,9 @@ import kotlinx.serialization.json.Json
  * Kotlin 2.0.21.
  *
  * Lives outside `domain/` so the plain-JVM domain lane stays free of
- * serialization and Android libraries.
+ * Android libraries. Gson encodes the pin; kotlinx.serialization is
+ * not a compile plugin on this module.
  */
-@Serializable
 data class ComposeToolchain(
     val composeBom: String,
     val navigation: String,
@@ -30,12 +27,10 @@ data class ComposeToolchain(
             material3 = "1.4.0",
         )
 
-        private val json = Json { ignoreUnknownKeys = false }
-
         fun encode(value: ComposeToolchain = SIGNED): String =
-            json.encodeToString(serializer(), value)
+            ToolchainJson.gson.toJson(value)
 
         fun decode(raw: String): ComposeToolchain =
-            json.decodeFromString(serializer(), raw)
+            ToolchainJson.gson.fromJson(raw, ComposeToolchain::class.java)
     }
 }

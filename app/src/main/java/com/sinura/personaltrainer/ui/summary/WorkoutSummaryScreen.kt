@@ -20,8 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -55,6 +53,7 @@ import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
+import com.sinura.personaltrainer.ui.components.OutlinedMarks
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
@@ -293,7 +292,7 @@ private fun PersonalRecordPanel(summary: WorkoutSummary, modifier: Modifier = Mo
             horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(Icons.Outlined.EmojiEvents, contentDescription = null, tint = PrGold)
+            Icon(OutlinedMarks.EmojiEvents, contentDescription = null, tint = PrGold)
             Text(
                 if (summary.recordCount == 1) {
                     "1 personal record"

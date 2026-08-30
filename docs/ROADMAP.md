@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 30 Aug 2026 — Debug APK fat: Gson toolchain pins, vendored outlined
+> marks, no kotlinx.serialization or material-icons-extended. Live test
+> 13 is still the Obtainium drop.
+>
 > 30 Aug 2026 — Silent-defect tests: mapper wire names, ExerciseRepository,
 > reminder receivers/worker. Live test 13 is still the Obtainium drop.
 >

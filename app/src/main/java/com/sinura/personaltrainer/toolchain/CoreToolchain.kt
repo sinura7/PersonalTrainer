@@ -1,8 +1,5 @@
 package com.sinura.personaltrainer.toolchain
 
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-
 /**
  * The P4.2 core-family matrix. Compose is signed in P4.3. Room and
  * Sign-In stay on the versions P4.4–P4.5 own. Core KTX stops at 1.17.0 because 1.18+
@@ -10,10 +7,10 @@ import kotlinx.serialization.json.Json
  * 2.11 requires AGP 9.2. Coroutines stay on 1.10.2 because 1.11 is
  * a Kotlin 2.2 companion.
  *
- * Lives outside `domain/` so the plain-JVM domain lane stays free of
- * serialization and Android libraries.
+ * [serialization] is the Room 2.8 ceiling, not a shipped artifact.
+ * Gson encodes this pin file and BackupJson. Lives outside `domain/`
+ * so the plain-JVM domain lane stays free of Android libraries.
  */
-@Serializable
 data class CoreToolchain(
     val coreKtx: String,
     val lifecycle: String,
@@ -40,12 +37,10 @@ data class CoreToolchain(
             androidxTestJunit = "1.3.0",
         )
 
-        private val json = Json { ignoreUnknownKeys = false }
-
         fun encode(value: CoreToolchain = SIGNED): String =
-            json.encodeToString(serializer(), value)
+            ToolchainJson.gson.toJson(value)
 
         fun decode(raw: String): CoreToolchain =
-            json.decodeFromString(serializer(), raw)
+            ToolchainJson.gson.fromJson(raw, CoreToolchain::class.java)
     }
 }
