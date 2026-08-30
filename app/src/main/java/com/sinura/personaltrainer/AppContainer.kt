@@ -34,6 +34,8 @@ import com.sinura.personaltrainer.timer.RestTimerStore
 import com.sinura.personaltrainer.timer.SharedPrefsRestTimerStatePersistence
 import com.sinura.personaltrainer.workout.DiscardWorkout
 import com.sinura.personaltrainer.workout.FinishWorkout
+import com.sinura.personaltrainer.workout.StartLiveCardio
+import com.sinura.personaltrainer.workout.StartOccurrence
 import com.sinura.personaltrainer.workout.StartTrainingDay
 import com.sinura.personaltrainer.workout.WorkoutDraftCache
 
@@ -145,6 +147,16 @@ class AppContainer(context: Context) : AppDependencies {
     override val finishActivity: FinishActivity = FinishActivity(activityRepository, JvmTime)
     override val cardioTimerPersistence: SharedPrefsCardioTimerPersistence =
         SharedPrefsCardioTimerPersistence(context)
+    override val startLiveCardio: StartLiveCardio = StartLiveCardio(
+        startLiveActivity = startLiveActivity,
+        cardioTimerPersistence = cardioTimerPersistence,
+    )
+    override val startOccurrence: StartOccurrence = StartOccurrence(
+        plannerRepository = plannerRepository,
+        routineRepository = routineRepository,
+        startTrainingDay = startTrainingDay,
+        startLiveCardio = startLiveCardio,
+    )
     override val backupRepository: BackupRepository = BackupRepository(
         localBackupRepository = LocalBackupRepository(
             database = database,

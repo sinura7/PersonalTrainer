@@ -8,32 +8,21 @@ import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.ActivitySession
-import com.sinura.personaltrainer.domain.ActivityWrite
-import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.HomeToday
-import com.sinura.personaltrainer.domain.ScheduleConfidence
-import com.sinura.personaltrainer.domain.ScheduleModality
-import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SessionOrderCopy
-import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.TodaySheetStart
 import com.sinura.personaltrainer.domain.WeekBoard
-import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.todayEpochDay
+import com.sinura.personaltrainer.workout.StartCardioOutcome
 import com.sinura.personaltrainer.workout.StartDayOutcome
+import com.sinura.personaltrainer.workout.StartOccurrenceOutcome
 import com.sinura.personaltrainer.domain.AddDefaults
-import com.sinura.personaltrainer.domain.CardioBlock
-import com.sinura.personaltrainer.domain.CardioCopy
 import com.sinura.personaltrainer.domain.CardioType
-import com.sinura.personaltrainer.domain.ScheduleKind
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.OwnedLiftResolver
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.WorkoutSession
-import com.sinura.personaltrainer.timer.CardioElapsed
-import com.sinura.personaltrainer.timer.PersistedCardioTimer
-import com.sinura.personaltrainer.util.IdFactory
 import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.workout.DiscardOutcome
@@ -193,39 +182,18 @@ class StartOptionsViewModel @JvmOverloads constructor(
     fun startCardio() {
         viewModelScope.launch {
             try {
-                val now = JvmTime.captureNow()
-                val block = CardioBlock(
-                    id = IdFactory.Uuid.newId(),
-                    sortOrder = 0,
-                    type = CardioType.RUN,
-                    indoor = false,
-                    elapsedSeconds = 0L,
-                    movingSeconds = 0L,
-                    distanceMeters = null,
-                    elevationMeters = null,
-                    heartRateBpm = null,
-                    energyKj = null,
-                    rpe = null,
-                    routeRef = null,
-                )
-                when (val write = container.startLiveActivity("Cardio", listOf(block), now)) {
-                    is com.sinura.personaltrainer.domain.ActivityWrite.Accepted -> {
-                        val nowElapsed = android.os.SystemClock.elapsedRealtime()
-                        val nowWall = System.currentTimeMillis()
-                        container.cardioTimerPersistence.save(
-                            PersistedCardioTimer(
-                                sessionId = write.session.id,
-                                startedAtElapsedRealtime = nowElapsed,
-                                startedAtWallClockMillis = nowWall,
-                                bootMarker = CardioElapsed.bootMarker(nowWall, nowElapsed),
-                            ),
-                        )
+                when (
+                    val outcome = container.startLiveCardio(
+                        type = CardioType.RUN,
+                        now = JvmTime.captureNow(),
+                        title = "Cardio",
+                    )
+                ) {
+                    is StartCardioOutcome.Open -> {
                         error.value = null
-                        _navigateToCardio.value = write.session.id
+                        _navigateToCardio.value = outcome.sessionId
                     }
-                    is com.sinura.personaltrainer.domain.ActivityWrite.Rejected -> {
-                        error.value = write.reason
-                    }
+                    is StartCardioOutcome.Rejected -> error.value = outcome.reason
                 }
             } catch (thrown: kotlinx.coroutines.CancellationException) {
                 throw thrown
@@ -380,79 +348,28 @@ class StartOptionsViewModel @JvmOverloads constructor(
     }
 
     private suspend fun startOccurrence(occurrenceId: String) {
-        val occurrence = container.plannerRepository.getOccurrence(occurrenceId) ?: return
-        val rule = container.plannerRepository.getRule(occurrence.ruleId)
-        when (rule?.modality ?: ScheduleModality.STRENGTH) {
-            ScheduleModality.CARDIO -> {
-                val now = JvmTime.captureNow()
-                // Same resolution Home and Plan use: a scheduled bike must not
-                // start as a generic run because it was launched from this sheet.
-                val type = ScheduleKind.cardioTypeOrRun(rule?.templateId)
-                val block = CardioBlock(
-                    id = IdFactory.Uuid.newId(),
-                    sortOrder = 0,
-                    type = type,
-                    indoor = false,
-                    elapsedSeconds = 0L,
-                    movingSeconds = 0L,
-                    distanceMeters = null,
-                    elevationMeters = null,
-                    heartRateBpm = null,
-                    energyKj = null,
-                    rpe = null,
-                    routeRef = null,
+        when (val outcome = container.startOccurrence(occurrenceId)) {
+            is StartOccurrenceOutcome.OpenWorkout -> {
+                PendingOccurrence.bindForSession(
+                    container,
+                    outcome.occurrenceId,
+                    outcome.sessionId,
                 )
-                when (val write = container.startLiveActivity(CardioCopy.name(type), listOf(block), now, occurrence.id)) {
-                    is ActivityWrite.Accepted -> {
-                        PendingOccurrence.forget(container)
-                        val nowElapsed = android.os.SystemClock.elapsedRealtime()
-                        val nowWall = System.currentTimeMillis()
-                        container.cardioTimerPersistence.save(
-                            PersistedCardioTimer(
-                                sessionId = write.session.id,
-                                startedAtElapsedRealtime = nowElapsed,
-                                startedAtWallClockMillis = nowWall,
-                                bootMarker = CardioElapsed.bootMarker(nowWall, nowElapsed),
-                            ),
-                        )
-                        error.value = null
-                        _navigateToCardio.value = write.session.id
-                    }
-                    is ActivityWrite.Rejected -> error.value = write.reason
-                }
+                error.value = null
+                _navigateToSession.value = outcome.sessionId
             }
-            ScheduleModality.MIXED -> {
-                PendingOccurrence.bind(container, occurrence.id)
+            is StartOccurrenceOutcome.OpenCardio -> {
+                PendingOccurrence.forget(container)
+                error.value = null
+                _navigateToCardio.value = outcome.sessionId
+            }
+            is StartOccurrenceOutcome.OpenComposer -> {
+                PendingOccurrence.bind(container, outcome.occurrenceId)
                 _navigateToComposer.value = "mixed"
             }
-            ScheduleModality.STRENGTH -> {
-                val item = AgendaItem(occurrence, rule)
-                val day = SuggestedTrainingDay(
-                    epochDay = occurrence.localEpochDay,
-                    dayOfWeek = Weekday.fromEpochDay(occurrence.localEpochDay),
-                    isRest = false,
-                    focusKind = rule?.focusKind ?: SessionFocusKind.FULL_BODY,
-                    focusTitle = item.title,
-                    routineId = rule?.routineId,
-                    routineName = rule?.routineId?.let { id ->
-                        uiState.value.routines.firstOrNull { it.id == id }?.name
-                    },
-                    reason = "",
-                    emphasisMuscles = emptyList(),
-                    confidence = ScheduleConfidence.HIGH,
-                    slotId = null,
-                )
-                when (val outcome = container.startTrainingDay(day)) {
-                    is StartDayOutcome.Open -> {
-                        PendingOccurrence.bindForSession(container, occurrence.id, outcome.sessionId)
-                        error.value = null
-                        _navigateToSession.value = outcome.sessionId
-                    }
-                    is StartDayOutcome.Blocked -> error.value = START_BLOCKED_MESSAGE
-                    is StartDayOutcome.Failed -> error.value = outcome.message
-                    StartDayOutcome.Ignored -> Unit
-                }
-            }
+            is StartOccurrenceOutcome.Blocked -> error.value = START_BLOCKED_MESSAGE
+            is StartOccurrenceOutcome.Failed -> error.value = outcome.message
+            StartOccurrenceOutcome.Missing -> Unit
         }
     }
 

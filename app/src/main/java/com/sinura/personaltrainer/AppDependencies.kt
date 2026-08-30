@@ -22,6 +22,8 @@ import com.sinura.personaltrainer.timer.RestTimerStatePersistence
 import com.sinura.personaltrainer.timer.RestTimerStore
 import com.sinura.personaltrainer.workout.DiscardWorkout
 import com.sinura.personaltrainer.workout.FinishWorkout
+import com.sinura.personaltrainer.workout.StartLiveCardio
+import com.sinura.personaltrainer.workout.StartOccurrence
 import com.sinura.personaltrainer.workout.StartTrainingDay
 import com.sinura.personaltrainer.workout.WorkoutDraftCache
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,6 +58,8 @@ interface AppDependencies {
     /** Home / onboarding arms this; the custom-week route consumes it once. */
     val pendingCustomWeek: MutableStateFlow<com.sinura.personaltrainer.domain.CustomWeekLaunch?>
     val startTrainingDay: StartTrainingDay
+    val startLiveCardio: StartLiveCardio
+    val startOccurrence: StartOccurrence
     val backupRepository: BackupRepository
     val activityRepository: ActivityRepository
     val confirmActivity: ConfirmActivity
