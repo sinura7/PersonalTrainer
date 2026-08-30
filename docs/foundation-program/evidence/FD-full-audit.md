@@ -172,11 +172,12 @@ superseded by the 32-day month fix above.
 - **Coverage ratchet is unreachable** outside the owner's machine; add
   `jacocoTestReport` + `check-coverage.py` to CI once the runner exists,
   and floor `data.repository`/`reminder`/`insights` (P2).
-- **Zero-test packages:** `data.mapper` (real logic, no tests at any
-  level — one enum rename bricks history reads; pin the wire names
-  first), `data.local.entity/relation`, `ui.reminders`, `ui.units`.
-  Also `ExerciseRepository` (the only repository class with no tests)
-  and the reminder receivers/worker.
+- **Zero-test packages:** `data.mapper`, `ExerciseRepository`, and the
+  reminder receivers/worker — **done 30 August 2026.** Mapper tests pin
+  enum wire names and round-trips. Exercise create/rename/delete/search
+  and reminder Start/Snooze/Move/Skip plus the worker's reread path now
+  fail the JVM lane instead of the phone. Still untested:
+  `data.local.entity/relation`, `ui.reminders`, `ui.units`.
 
 Added by round two (all need a compiler or a UX decision):
 

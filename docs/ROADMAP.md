@@ -15,6 +15,9 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 30 Aug 2026 — Silent-defect tests: mapper wire names, ExerciseRepository,
+> reminder receivers/worker. Live test 13 is still the Obtainium drop.
+>
 > 30 Aug 2026 — Insights perf: one coach-hint query per pass, Body's
 > window chip retargets the shared snapshot, PR/summaries stop
 > rescanning history on every live set, rest seconds share one clock.

@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 class ReminderRebuildReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.getAction() ?: return
-        if (action !in ALLOWED_ACTIONS) return
+        if (!ReminderRebuild.shouldHandle(action)) return
         val app = context.applicationContext as? PersonalTrainerApp ?: return
         val pending = goAsync()
         scope.launch {
@@ -34,10 +34,5 @@ class ReminderRebuildReceiver : BroadcastReceiver() {
     private companion object {
         const val TAG = "PT/ReminderRebuild"
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        val ALLOWED_ACTIONS = setOf(
-            Intent.ACTION_BOOT_COMPLETED,
-            Intent.ACTION_TIMEZONE_CHANGED,
-            Intent.ACTION_TIME_CHANGED,
-        )
     }
 }

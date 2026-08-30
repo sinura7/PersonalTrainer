@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.sinura.personaltrainer.PersonalTrainerApp
-import com.sinura.personaltrainer.domain.ReminderDeliveryStatus
 import com.sinura.personaltrainer.logging.AppLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,41 +18,18 @@ class ReminderActionReceiver : BroadcastReceiver() {
         val pending = goAsync()
         scope.launch {
             try {
-                when (intent.action) {
-                    // Kept only for notifications posted by builds whose Start action still
-                    // pointed here. Since API 31 a receiver cannot launch an activity from
-                    // a notification action — the system drops the startActivity silently —
-                    // so new notifications carry an activity PendingIntent instead
-                    // (ReminderNotifications.startApp). This branch records the tap and
-                    // clears the notification; it must not pretend to open the app.
-                    ReminderNotifications.ACTION_START -> {
-                        app.container.plannerRepository.markDeliveryStatus(
-                            deliveryId,
-                            ReminderDeliveryStatus.STARTED,
-                        )
-                        ReminderNotifications.cancel(context, occurrenceId)
-                    }
-                    ReminderNotifications.ACTION_SNOOZE -> {
-                        app.container.plannerRepository.snoozeDelivery(deliveryId)
-                        ReminderNotifications.cancel(context, occurrenceId)
-                    }
-                    ReminderNotifications.ACTION_MOVE -> {
-                        app.container.plannerRepository.markDeliveryStatus(
-                            deliveryId,
-                            ReminderDeliveryStatus.MOVED,
-                        )
-                        app.container.plannerRepository.moveOccurrenceForward(occurrenceId)
-                        ReminderNotifications.cancel(context, occurrenceId)
-                    }
-                    ReminderNotifications.ACTION_SKIP -> {
-                        app.container.plannerRepository.markDeliveryStatus(
-                            deliveryId,
-                            ReminderDeliveryStatus.SKIPPED,
-                        )
-                        app.container.plannerRepository.skipOccurrence(occurrenceId)
-                        ReminderNotifications.cancel(context, occurrenceId)
-                    }
-                }
+                // Start records the tap and clears the notification. It must not
+                // call startActivity: since API 31 the system drops that from a
+                // receiver. New notifications use an activity PendingIntent
+                // (ReminderNotifications.startApp); this path is only for taps
+                // still pointing here from an older build.
+                ReminderActionApply.apply(
+                    action = intent.action,
+                    occurrenceId = occurrenceId,
+                    deliveryId = deliveryId,
+                    planner = app.container.plannerRepository,
+                    cancelNotification = { id -> ReminderNotifications.cancel(context, id) },
+                )
             } catch (error: Exception) {
                 AppLog.w(TAG, "Reminder action failed", error)
             } finally {
