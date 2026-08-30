@@ -12,8 +12,8 @@ change.
   ([ADR-019](../../architecture/ADR-019-move-to-today.md)).
 - Confirm vacates the old day as `MOVED` and mints a `PLANNED` row for
   today, then starts that row. Cancel does not move.
-- When Home is on today, earlier-this-week leftovers sit under **Still
-  open**. Volt still prefers a planned block on today.
+- When Home is on today, leftovers from this week and the previous
+  week sit under **Still open**. Volt still prefers a planned block on today.
 - Same-day planned rows keep ADR-018 `Start`. Week-level missed-work
   (Keep the dates) is unchanged. Plan still does not Start.
 

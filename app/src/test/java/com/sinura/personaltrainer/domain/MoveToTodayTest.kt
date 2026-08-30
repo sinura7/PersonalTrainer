@@ -128,6 +128,29 @@ class MoveToTodayTest {
     }
 
     @Test
+    fun relocatingOntoADayWhoseCanonicalIdIsMovedKeepsBothRows() {
+        val canonical = OccurrenceGenerator.occurrenceId("rule-fri", saturday)
+        val vacatedSaturday = occ(canonical, "rule-fri", saturday, OccurrenceStatus.MOVED)
+        val leftover = occ("thu", "rule-fri", friday - 1, OccurrenceStatus.PLANNED)
+        val outcome = MoveToToday.decide(
+            leftover,
+            saturday,
+            listOf(vacatedSaturday),
+            rule("rule-fri"),
+            NOW,
+            JvmTime,
+            zone,
+        )
+        val relocate = outcome as MoveToToday.Outcome.Relocate
+        assertEquals(canonical, vacatedSaturday.id)
+        assertTrue(relocate.created.id != canonical)
+        assertEquals(saturday, relocate.created.localEpochDay)
+        assertEquals(OccurrenceStatus.PLANNED, relocate.created.status)
+        assertEquals(OccurrenceStatus.MOVED, relocate.vacated.status)
+        assertEquals(friday - 1, relocate.vacated.localEpochDay)
+    }
+
+    @Test
     fun isLeftoverIgnoresTodayAndDone() {
         val plannedFri = occ("a", "r", friday, OccurrenceStatus.PLANNED)
         val plannedSat = occ("b", "r", saturday, OccurrenceStatus.PLANNED)

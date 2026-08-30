@@ -11,6 +11,28 @@ object OccurrenceGenerator {
 
     fun occurrenceId(ruleId: String, epochDay: Long): String = "occ-$ruleId-$epochDay"
 
+    /**
+     * Id for a row relocated onto [epochDay].
+     *
+     * The canonical id is already the vacated-slot row when that day was
+     * itself moved away (ADR-019). Reusing it would upsert MOVED back to
+     * PLANNED and erase the vacancy.
+     */
+    fun unusedOccurrenceId(
+        ruleId: String,
+        epochDay: Long,
+        takenIds: Collection<String>,
+        fromEpochDay: Long,
+    ): String {
+        val canonical = occurrenceId(ruleId, epochDay)
+        if (canonical !in takenIds) return canonical
+        val relocated = "$canonical-from-$fromEpochDay"
+        if (relocated !in takenIds) return relocated
+        var n = 2
+        while ("$relocated-$n" in takenIds) n++
+        return "$relocated-$n"
+    }
+
     fun generateWeek(
         weekStart: CivilDate,
         rules: List<ScheduleRule>,

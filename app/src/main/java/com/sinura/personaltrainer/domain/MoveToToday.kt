@@ -59,10 +59,16 @@ object MoveToToday {
             overlap = DstOverlapChoice.EARLIER,
             gap = DstGapPolicy.SHIFT_FORWARD,
         )
+        val createdId = OccurrenceGenerator.unusedOccurrenceId(
+            ruleId = current.ruleId,
+            epochDay = todayEpochDay,
+            takenIds = existingOnToday.map { it.id },
+            fromEpochDay = current.localEpochDay,
+        )
         return Outcome.Relocate(
             vacated = current.copy(status = OccurrenceStatus.MOVED, updatedAtMs = nowMs),
             created = ScheduleOccurrence(
-                id = OccurrenceGenerator.occurrenceId(current.ruleId, todayEpochDay),
+                id = createdId,
                 ruleId = current.ruleId,
                 status = OccurrenceStatus.PLANNED,
                 captured = captured,

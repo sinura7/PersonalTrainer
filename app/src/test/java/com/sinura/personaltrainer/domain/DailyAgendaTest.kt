@@ -131,6 +131,22 @@ class DailyAgendaTest {
         assertEquals("Friday", open.first().title)
     }
 
+    @Test
+    fun stillOpenIncludesPreviousWeekOnMonday() {
+        val thisMonday = 20_000L
+        val lastSunday = thisMonday - 1
+        val leftover = occ("sun", "r-sun", lastSunday, 18)
+        val open = DailyAgenda.stillOpen(
+            thisMonday,
+            thisMonday,
+            listOf(leftover),
+            listOf(rule("r-sun", ScheduleModality.STRENGTH).copy(routineId = "r-sunday")),
+            mapOf("r-sunday" to "Sunday"),
+        )
+        assertEquals(listOf("sun"), open.map { it.occurrence.id })
+        assertEquals("Sunday", open.single().title)
+    }
+
     private fun rule(id: String, modality: ScheduleModality) = ScheduleRule(
         id = id,
         weekday = Weekday.MONDAY,

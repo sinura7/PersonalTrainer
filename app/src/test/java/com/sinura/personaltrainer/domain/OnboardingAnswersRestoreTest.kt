@@ -209,9 +209,25 @@ class OnboardingAnswersRestoreTest {
 
     @Test
     fun wheelDoesNotCommitTheParkedPageUntilTheLifterFlicks() {
-        assertFalse(BodyweightSteps.shouldCommitSettledPage(settledPage = 40, initialPage = 40, alreadyChosen = false))
-        assertTrue(BodyweightSteps.shouldCommitSettledPage(settledPage = 41, initialPage = 40, alreadyChosen = false))
-        assertTrue(BodyweightSteps.shouldCommitSettledPage(settledPage = 40, initialPage = 40, alreadyChosen = true))
+        assertFalse(BodyweightSteps.shouldCommitSettledPage(settledPage = 40, initialPage = 40))
+        assertTrue(BodyweightSteps.shouldCommitSettledPage(settledPage = 41, initialPage = 40))
+        assertFalse(BodyweightSteps.shouldCommitSettledPage(settledPage = 40, initialPage = 40))
+    }
+
+    @Test
+    fun wheelUnitToggleDoesNotWalkTheStoredKilograms() {
+        val start = 80.0
+        assertEquals(176, BodyweightSteps.displayOf(start, WeightUnit.LBS))
+        assertEquals(80, BodyweightSteps.displayOf(start, WeightUnit.KG))
+        var kg = start
+        repeat(5) {
+            val lbs = BodyweightSteps.displayOf(kg, WeightUnit.LBS)
+            kg = BodyweightSteps.toKg(lbs, WeightUnit.LBS)
+            val kilos = BodyweightSteps.displayOf(kg, WeightUnit.KG)
+            kg = BodyweightSteps.toKg(kilos, WeightUnit.KG)
+        }
+        assertEquals(80, BodyweightSteps.displayOf(kg, WeightUnit.KG))
+        assertEquals(176, BodyweightSteps.displayOf(kg, WeightUnit.LBS))
     }
 
     @Test

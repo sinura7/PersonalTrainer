@@ -11,6 +11,10 @@
   [ADR-017](ADR-017-home-week-board.md);
   [ADR-018](ADR-018-home-start-confirm.md); owner request 29 August 2026
   (Saturday, start yesterday’s workout today)
+- **Amended:** 30 August 2026 — **Still open** includes the previous
+  week so Monday still lists Sunday. Relocating onto a day whose
+  canonical id is already a `MOVED` row mints a distinct id instead of
+  upserting the vacancy away.
 
 ## Context
 
@@ -28,9 +32,10 @@ pushes +1 day. Recurrence rules must not change.
 
 1. **A leftover session can move to today.** A planned or missed
    occurrence whose civil day is before today may be relocated onto
-   today. The old row becomes `MOVED`. A new `PLANNED` row is minted
-   for today (`OccurrenceGenerator.occurrenceId(ruleId, today)`), same
-   hour and minute, same rule. Recurrence is untouched.
+   today.    The old row becomes `MOVED`. A new `PLANNED` row is minted
+   for today (`OccurrenceGenerator.occurrenceId(ruleId, today)` when
+   that id is free; a `-from-<day>` suffix when a `MOVED` row already
+   holds it), same hour and minute, same rule. Recurrence is untouched.
 
 2. **Home confirm is the act.** When that leftover is what they tapped
    (a past day’s row, or a **Still open** row on today), the dialog is
@@ -40,9 +45,10 @@ pushes +1 day. Recurrence rules must not change.
    rows keep ADR-018 `Start {title}?` / `Start`.
 
 3. **Today lists leftovers.** When the selected day is today, Home
-   shows earlier-this-week `PLANNED` and `MISSED` rows under **Still
-   open**. They are tappable. You do not have to select Friday to start
-   Friday’s work. Volt still prefers a still-planned block **on today**;
+   shows leftover `PLANNED` and `MISSED` rows from this week and the
+   previous week under **Still open**. They are tappable. You do not
+   have to select Friday to start Friday’s work, and Monday still lists
+   Sunday. Volt still prefers a still-planned block **on today**;
    if today has none, Volt may name the preferred leftover
    (`Do {title} today`).
 

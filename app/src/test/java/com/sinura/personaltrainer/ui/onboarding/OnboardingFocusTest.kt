@@ -99,4 +99,18 @@ class OnboardingFocusTest {
         withTimeout(5_000) { viewModel!!.uiState.first { it.step == OnboardingStep.FOCUS } }
         assertEquals(OnboardingStep.FOCUS, viewModel!!.uiState.value.step)
     }
+
+    @Test
+    fun cardioPreviewDoesNotRaiseACatalogError() = runBlocking {
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        withTimeout(5_000) { viewModel!!.uiState.first { it.step == OnboardingStep.FOCUS } }
+        viewModel!!.setFocus(TrainingFocus.CARDIO)
+        repeat(4) { viewModel!!.next() }
+        val preview = withTimeout(5_000) {
+            viewModel!!.uiState.first { it.step == OnboardingStep.PREVIEW }
+        }
+        assertEquals(OnboardingStep.PREVIEW, preview.step)
+        assertTrue(preview.preview != null)
+        assertTrue(preview.error == null)
+    }
 }

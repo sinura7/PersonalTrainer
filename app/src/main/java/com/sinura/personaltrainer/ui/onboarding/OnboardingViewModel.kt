@@ -246,7 +246,12 @@ class OnboardingViewModel @JvmOverloads constructor(
             else -> step.value
         }
         step.value = nextStep
-        if (step.value == OnboardingStep.PREVIEW && catalog.value.isEmpty()) {
+        // Cardio preview does not need the lift catalog. Retrying the seed
+        // here showed the catalog-missing banner over a valid cardio plan.
+        if (step.value == OnboardingStep.PREVIEW &&
+            catalog.value.isEmpty() &&
+            answers.value.focus != TrainingFocus.CARDIO
+        ) {
             retryCatalog()
         }
     }
@@ -268,10 +273,14 @@ class OnboardingViewModel @JvmOverloads constructor(
             }
             seeded.onSuccess { exercises ->
                 catalog.value = exercises
-                if (exercises.isEmpty()) error.value = CATALOG_MISSING_MESSAGE
+                if (exercises.isEmpty() && answers.value.focus != TrainingFocus.CARDIO) {
+                    error.value = CATALOG_MISSING_MESSAGE
+                }
             }.onFailure { thrown ->
                 AppLog.w(TAG, "Retrying the catalog seed failed", thrown)
-                error.value = CATALOG_MISSING_MESSAGE
+                if (answers.value.focus != TrainingFocus.CARDIO) {
+                    error.value = CATALOG_MISSING_MESSAGE
+                }
             }
         }
     }
