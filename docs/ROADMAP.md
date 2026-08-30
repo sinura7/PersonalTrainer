@@ -24,7 +24,8 @@
 > silently dropping preferences. All fixed on this branch, with the
 > deferred queue and owner actions in
 > [FD-full-audit.md](foundation-program/evidence/FD-full-audit.md).
-> These fixes ride the staged live test 13 (`debugLiveCode` 13).
+> These fixes shipped as live test 13 (`debugLiveCode` 13, tag
+> `debug-live-13`).
 >
 > 29 Aug 2026 — The empty-agenda leftover card’s Volt (Start this
 > session) opens the same session-summary confirm as the agenda card

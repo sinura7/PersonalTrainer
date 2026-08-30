@@ -22,15 +22,12 @@ starts it. Cancel does not.
 ## Commands
 
 - `tools/preflight.sh` — PASS. 1040 domain tests. 0 authority findings.
-- `./gradlew testDebugUnitTest` / `assembleDebug` — **not runnable from
-  this environment**: the network policy blocks `dl.google.com`, so AGP
-  and the Android SDK cannot resolve, and hosted CI has no assigned
-  runner. The Gradle gate and the live test 13 APK cut belong to the
-  next Gradle-capable lane (Cursor or the owner's machine).
+- `./gradlew testDebugUnitTest` / `assembleDebug` — PASS (see
+  `docs/HANDOFF-2026-08-29.md` Status). Live test 13 is cut as
+  pre-release `debug-live-13`.
 
 ## Known limitations
 
 - Phone judges Temper Debug via Obtainium.
 - Physical TalkBack is still outstanding.
-- The `debug-live` pre-release for `debugLiveCode` 13 is not yet cut —
-  see Commands above.
+- Live test 13 is `debug-live-13` (`PersonalTrainer-1.0.0-debug.apk`).
