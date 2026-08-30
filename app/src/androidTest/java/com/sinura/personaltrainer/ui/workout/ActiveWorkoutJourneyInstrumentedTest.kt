@@ -91,6 +91,9 @@ class ActiveWorkoutJourneyInstrumentedTest {
         compose.onNodeWithTag(WorkoutTestTags.CONTENT)
             .performScrollToNode(hasTestTag("Type a weight"))
         compose.onNodeWithTag("Type a weight").performClick()
+        compose.waitUntil(10_000) {
+            compose.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNode(hasSetTextAction()).performTextReplacement("100")
         compose.onNodeWithText("Set").performClick()
 

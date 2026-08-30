@@ -24,7 +24,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.LoadType
-import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.routines.CompactLiftCopy
@@ -182,8 +181,8 @@ class IdentityBeforeMetricsInstrumentedTest {
         compose.onNodeWithTag(SessionLiftTags.STRIP).assertIsDisplayed()
         compose.onNodeWithTag(SessionLiftTags.card(LONG_LIFT.id))
             .assert(hasContentDescription(value = "Romanian", substring = true))
-        compose.onNodeWithText(SessionOrderCopy.WORK).assertIsDisplayed()
-        compose.onNodeWithText(SessionOrderCopy.REST).assertIsDisplayed()
+        compose.onNodeWithText("WORK", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithText("REST", useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithTag(SessionLiftTags.card(LONG_LIFT.id)).performClick()
         compose.waitForIdle()
         compose.onNodeWithTag(SessionLiftTags.EDITOR).assertIsDisplayed()
