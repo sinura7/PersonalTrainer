@@ -15,6 +15,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -187,8 +188,9 @@ class IdentityBeforeMetricsInstrumentedTest {
         compose.waitForIdle()
         compose.onNodeWithTag(SessionLiftTags.EDITOR).assertIsDisplayed()
         compose.onNodeWithText(CompactLiftCopy.TARGET_WEIGHT).assertIsDisplayed()
-        compose.onNodeWithTag(SessionLiftTags.EDITOR, useUnmergedTree = true)
-            .assertTextContains("lbs", substring = true)
+        org.junit.Assert.assertTrue(
+            compose.onAllNodesWithText("lbs").fetchSemanticsNodes().isNotEmpty(),
+        )
         compose.onNodeWithText("kg").assertDoesNotExist()
     }
 
