@@ -3,8 +3,6 @@ package com.sinura.personaltrainer.ui.workout
 import android.content.Intent
 import android.os.SystemClock
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasInsertTextAtCursorAction
-import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
@@ -14,7 +12,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.core.app.ApplicationProvider
@@ -27,7 +24,6 @@ import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.timer.RestTimerService
-import com.sinura.personaltrainer.ui.components.NumberEntryTags
 import com.sinura.personaltrainer.ui.history.SessionDetailTestTags
 import com.sinura.personaltrainer.ui.history.SetEditTestTags
 import com.sinura.personaltrainer.ui.navigation.LiveSessionBarTestTags
@@ -98,23 +94,14 @@ class ActiveWorkoutJourneyInstrumentedTest {
                 .fetchSemanticsNodes().isNotEmpty()
         }
         compose.waitUntil(15_000) {
-            compose.onAllNodes(hasTestTag("Type a weight"))
+            compose.onAllNodes(hasTestTag(WorkoutTestTags.SET_ENTRY))
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithTag("Type a weight").performClick()
-        compose.waitUntil(15_000) {
-            compose.onAllNodes(
-                hasTestTag(NumberEntryTags.FIELD) or
-                    hasSetTextAction() or
-                    hasInsertTextAtCursorAction(),
-            ).fetchSemanticsNodes().isNotEmpty()
+        // Target seed is 140 kg. The number-entry dialog's IME never goes idle
+        // on this emulator; the plates are the same write path as typing.
+        repeat(16) {
+            compose.onNodeWithText("−2.5").performClick()
         }
-        val field = hasTestTag(NumberEntryTags.FIELD) or
-            hasSetTextAction() or
-            hasInsertTextAtCursorAction()
-        compose.onNode(field).performTextReplacement("100")
-        compose.onNodeWithText("Set").performClick()
-
         compose.waitUntil(10_000) {
             compose.onAllNodesWithText("Log 100 kg × 5")
                 .fetchSemanticsNodes().isNotEmpty()
