@@ -2,8 +2,9 @@ package com.sinura.personaltrainer.ui.workout
 
 import android.content.Intent
 import android.os.SystemClock
-import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasInsertTextAtCursorAction
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
@@ -12,13 +13,13 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
+import java.io.FileInputStream
 import com.sinura.personaltrainer.AppContainer
 import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.PersonalTrainerApp
@@ -64,9 +65,10 @@ class ActiveWorkoutJourneyInstrumentedTest {
     private val seedRule = object : ExternalResource() {
         override fun before() {
             // Soft keyboard animations never go idle on this SwiftShader emulator.
-            InstrumentationRegistry.getInstrumentation().uiAutomation
-                .executeShellCommand("settings put secure show_ime_with_hard_keyboard 1")
-                .close()
+            runShell("settings put secure show_ime_with_hard_keyboard 1")
+            runShell("settings put global window_animation_scale 0")
+            runShell("settings put global transition_animation_scale 0")
+            runShell("settings put global animator_duration_scale 0")
             seedBeforeActivityLaunch()
             launchIntent.putExtra(RestTimerService.EXTRA_SESSION_ID, fixture.sessionId)
         }
@@ -99,13 +101,18 @@ class ActiveWorkoutJourneyInstrumentedTest {
             compose.onAllNodes(hasTestTag("Type a weight"))
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).performScrollTo()
-        compose.onNodeWithTag("Type a weight").performScrollTo().performClick()
+        compose.onNodeWithTag("Type a weight").performClick()
         compose.waitUntil(15_000) {
-            compose.onAllNodes(hasTestTag(NumberEntryTags.FIELD))
-                .fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodes(
+                hasTestTag(NumberEntryTags.FIELD) or
+                    hasSetTextAction() or
+                    hasInsertTextAtCursorAction(),
+            ).fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithTag(NumberEntryTags.FIELD).performTextReplacement("100")
+        val field = hasTestTag(NumberEntryTags.FIELD) or
+            hasSetTextAction() or
+            hasInsertTextAtCursorAction()
+        compose.onNode(field).performTextReplacement("100")
         compose.onNodeWithText("Set").performClick()
 
         compose.waitUntil(10_000) {
@@ -391,6 +398,14 @@ class ActiveWorkoutJourneyInstrumentedTest {
         container.exerciseRepository.observeAll().first()
             .filter { it.isCustom && it.name.startsWith("Journey squat") }
             .forEach { runCatching { container.exerciseRepository.deleteCustom(it.id) } }
+    }
+
+    private fun runShell(command: String) {
+        InstrumentationRegistry.getInstrumentation().uiAutomation
+            .executeShellCommand(command)
+            .use { pipe ->
+                FileInputStream(pipe.fileDescriptor).use { it.readBytes() }
+            }
     }
 
     private data class JourneyFixture(
