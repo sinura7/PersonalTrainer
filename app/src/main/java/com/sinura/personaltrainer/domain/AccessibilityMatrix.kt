@@ -34,7 +34,7 @@ object AccessibilityMatrix {
             title = "Home",
             states = requiredStates,
             voltAction = "Start today's planned session when a week is pinned. Generate a schedule on a first visit. Free workout stays quiet.",
-            talkBackNotes = "Last session and days-since tiles merge into one name each. Settings is a tab. Home week strip picks the day. Planned rows and the Volt open a start confirm — the empty-agenda leftover Volt included. Leftovers confirm as Do it today. This week, Library, and Goals stay off this screen.",
+            talkBackNotes = "Last session and days-since tiles merge into one name each. Settings is a tab. Home week strip picks the day. Planned rows and the Volt open a start confirm — the empty-agenda leftover Volt included. Leftovers confirm as Do it today. Day blocks have no clocks; Up / Down rearranges them. Add extra mints a same-day warm-up or mobility pack. This week, Library, and Goals stay off this screen.",
             automatedEvidence = true,
         ),
         PagePass(
@@ -58,7 +58,7 @@ object AccessibilityMatrix {
             title = "Plan day",
             states = requiredStates,
             voltAction = "Add session",
-            talkBackNotes = "Back and Add session are named. Session rows open the editor. Hour chips set when the block happens. Remove deletes. No Start, Swap, or Unpin.",
+            talkBackNotes = "Back and Add session are named. Session rows open the editor. Up / Down rearranges the day's blocks. Remove deletes. No clocks, Start, Swap, or Unpin.",
             automatedEvidence = true,
         ),
         PagePass(

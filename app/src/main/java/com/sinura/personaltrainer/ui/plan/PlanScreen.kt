@@ -49,7 +49,6 @@ import com.sinura.personaltrainer.domain.WeekTwoCopy
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
 import com.sinura.personaltrainer.domain.todayEpochDay
-import com.sinura.personaltrainer.ui.units.LocalClockFormat
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GroupedList
@@ -585,7 +584,6 @@ private fun PlanSelectedDayBoard(
     empty: Boolean,
     onOpenDay: () -> Unit,
 ) {
-    val clockFormat = LocalClockFormat.current
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
         Kicker(title)
         if (empty) {
@@ -604,7 +602,7 @@ private fun PlanSelectedDayBoard(
                 items.forEachIndexed { index, item ->
                     if (index > 0) HairlineDivider()
                     InstrumentRow(
-                        title = "${com.sinura.personaltrainer.domain.ClockCopy.format(item.occurrence.hour, item.occurrence.minute, clockFormat)}  ·  ${item.title}",
+                        title = item.title,
                         subtitle = item.kindCaption,
                         onClick = onOpenDay,
                     )

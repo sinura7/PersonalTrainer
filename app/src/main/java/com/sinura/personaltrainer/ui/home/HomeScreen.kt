@@ -218,6 +218,7 @@ fun HomeScreen(
     } else {
         emptyList()
     }
+    var pickingExtra by rememberSaveable(selectedEpochDay) { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -304,6 +305,17 @@ fun HomeScreen(
                         stillOpen = stillOpen,
                         today = today,
                         quietStart = state.missedWorkPrompt,
+                        canEditDay = selectedEpochDay >= today,
+                        onMoveOccurrence = { occurrenceId, delta ->
+                            viewModel.moveDayBlock(selectedAgenda, occurrenceId, delta)
+                        },
+                        onAddExtra = { pickingExtra = true },
+                        pickingExtra = pickingExtra,
+                        onPickExtra = { packId ->
+                            pickingExtra = false
+                            viewModel.addExtra(selectedEpochDay, packId)
+                        },
+                        onCancelExtra = { pickingExtra = false },
                     )
                     HomeToday.Surface.WEEK_FALLBACK -> ThisWeekCard(
                         day = leftoverDay,
@@ -490,6 +502,7 @@ object HomeTags {
     const val STARTER_WORKOUT = "home-starter-workout"
     const val BODYWEIGHT_CHECK_IN = "home-bodyweight-check-in"
     const val STILL_OPEN = "home-still-open"
+    const val ADD_EXTRA = "home-add-extra"
 
     fun agendaRow(occurrenceId: String): String = "home-agenda-$occurrenceId"
 }

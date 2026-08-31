@@ -20,11 +20,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.AgendaItem
-import com.sinura.personaltrainer.domain.ClockCopy
 import com.sinura.personaltrainer.domain.HomeToday
 import com.sinura.personaltrainer.domain.MoveToToday
 import com.sinura.personaltrainer.domain.OccurrenceStatus
+import com.sinura.personaltrainer.domain.PlanDayCopy
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.ScheduleKind
 import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.Weekday
@@ -36,6 +37,8 @@ import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
+import com.sinura.personaltrainer.ui.plan.AuxiliaryPackList
+import com.sinura.personaltrainer.ui.plan.ReorderRow
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
@@ -67,8 +70,13 @@ fun DailyAgendaCard(
     stillOpen: List<AgendaItem> = emptyList(),
     today: Long = com.sinura.personaltrainer.domain.todayEpochDay(),
     quietStart: Boolean = false,
+    canEditDay: Boolean = false,
+    onMoveOccurrence: (String, Int) -> Unit = { _, _ -> },
+    onAddExtra: () -> Unit = {},
+    pickingExtra: Boolean = false,
+    onPickExtra: (String) -> Unit = {},
+    onCancelExtra: () -> Unit = {},
 ) {
-    val clockFormat = com.sinura.personaltrainer.ui.units.LocalClockFormat.current
     val startTagId = HomeToday.startTagOccurrenceId(items, stillOpen)
     val catalog = items + stillOpen
     val startItem = catalog.firstOrNull { it.occurrence.id == startTagId }
@@ -88,7 +96,7 @@ fun DailyAgendaCard(
     }
 
     if (pendingItem != null) {
-        val confirm = HomeToday.startConfirm(pendingItem, routines, clockFormat, today)
+        val confirm = HomeToday.startConfirm(pendingItem, routines, today)
         ConfirmActionDialog(
             title = confirm.heading,
             body = confirm.body,
@@ -129,10 +137,13 @@ fun DailyAgendaCard(
                     AgendaRow(
                         item = item,
                         routines = routines,
-                        clockFormat = clockFormat,
                         todayEpochDay = today,
                         sessionLive = sessionLive,
                         leftoverLabel = false,
+                        showReorder = canEditDay && items.size > 1,
+                        index = index,
+                        lastIndex = items.lastIndex,
+                        onMove = onMoveOccurrence,
                         onOpen = { pendingOccurrenceId = item.occurrence.id },
                     )
                 }
@@ -153,10 +164,13 @@ fun DailyAgendaCard(
                     AgendaRow(
                         item = item,
                         routines = routines,
-                        clockFormat = clockFormat,
                         todayEpochDay = today,
                         sessionLive = sessionLive,
                         leftoverLabel = true,
+                        showReorder = false,
+                        index = index,
+                        lastIndex = stillOpen.lastIndex,
+                        onMove = { _, _ -> },
                         onOpen = { pendingOccurrenceId = item.occurrence.id },
                     )
                 }
@@ -178,9 +192,6 @@ fun DailyAgendaCard(
                         contentDescription = if (leftover) DO_TODAY else PLANNED_SESSION
                     }
                 if (quietStart) {
-                    // The missed-work prompt above is the decision Home is asking
-                    // first; its Keep-the-dates keeps the one filled Volt (same
-                    // rule Plan applies to its recovery act).
                     SecondaryGymButton(
                         text = text,
                         onClick = { pendingOccurrenceId = item.occurrence.id },
@@ -211,6 +222,36 @@ fun DailyAgendaCard(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+            if (canEditDay) {
+                if (pickingExtra) {
+                    AuxiliaryPackList(
+                        usedPackIds = items.mapNotNull {
+                            ScheduleKind.auxPackId(it.rule?.templateId)
+                        }.toSet(),
+                        onPick = onPickExtra,
+                        onCancel = onCancelExtra,
+                        title = PlanDayCopy.ADD_EXTRA,
+                    )
+                } else {
+                    TextButton(
+                        onClick = onAddExtra,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = Metrics.touchMin)
+                            .testTag(HomeTags.ADD_EXTRA)
+                            .semantics { contentDescription = PlanDayCopy.ADD_EXTRA },
+                        contentPadding = PaddingValues(0.dp),
+                    ) {
+                        Text(
+                            PlanDayCopy.ADD_EXTRA,
+                            style = InstrumentType.bodyStrong,
+                            color = TextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -219,40 +260,43 @@ fun DailyAgendaCard(
 private fun AgendaRow(
     item: AgendaItem,
     routines: List<Routine>,
-    clockFormat: com.sinura.personaltrainer.domain.ClockFormat,
     todayEpochDay: Long,
     sessionLive: Boolean,
     leftoverLabel: Boolean,
+    showReorder: Boolean,
+    index: Int,
+    lastIndex: Int,
+    onMove: (String, Int) -> Unit,
     onOpen: () -> Unit,
 ) {
     val names = sessionLiftNames(item.rule?.routineId, routines)
-    val clock = ClockCopy.format(item.occurrence.hour, item.occurrence.minute, clockFormat)
     val title = if (leftoverLabel) {
         "${Weekday.fromEpochDay(item.occurrence.localEpochDay).titleLabel()}  ·  ${item.title}"
     } else {
-        "$clock  ·  ${item.title}"
+        item.title
     }
-    val subtitle = if (leftoverLabel) {
-        "$clock  ·  ${
-            SessionOrderCopy.occurrenceLine(
-                item.occurrence.status,
-                names,
-                item.rule?.modality ?: ScheduleModality.STRENGTH,
-            )
-        }"
-    } else {
-        SessionOrderCopy.occurrenceLine(
-            item.occurrence.status,
-            names,
-            item.rule?.modality ?: ScheduleModality.STRENGTH,
-        )
-    }
-    InstrumentRow(
-        title = title,
-        subtitle = subtitle,
-        modifier = Modifier.testTag(HomeTags.agendaRow(item.occurrence.id)),
-        onClick = if (canOpenStart(item, todayEpochDay) && !sessionLive) onOpen else null,
+    val subtitle = SessionOrderCopy.occurrenceLine(
+        item.occurrence.status,
+        names,
+        item.rule?.modality ?: ScheduleModality.STRENGTH,
     )
+    Column {
+        InstrumentRow(
+            title = title,
+            subtitle = subtitle,
+            modifier = Modifier.testTag(HomeTags.agendaRow(item.occurrence.id)),
+            onClick = if (canOpenStart(item, todayEpochDay) && !sessionLive) onOpen else null,
+        )
+        if (showReorder) {
+            ReorderRow(
+                title = item.title,
+                occurrenceId = item.occurrence.id,
+                index = index,
+                lastIndex = lastIndex,
+                onMove = onMove,
+            )
+        }
+    }
 }
 
 private fun canOpenStart(item: AgendaItem, todayEpochDay: Long): Boolean {

@@ -4,7 +4,8 @@ package com.sinura.personaltrainer.domain
  * Kind tags stored on [ScheduleRule.templateId] so Plan can name a cardio
  * type or an auxiliary pack without a schema bump.
  *
- * Hours stay on the rule (ADR-015). The Plan day page does not show them.
+ * Hours stay on the rule as a sort key (ADR-015, ADR-020). Home and
+ * Plan do not show clocks; Up / Down permutes the stored hours.
  */
 object ScheduleKind {
     private const val CARDIO = "cardio:"

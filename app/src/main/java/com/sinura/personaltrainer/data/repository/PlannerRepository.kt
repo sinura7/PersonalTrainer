@@ -5,6 +5,8 @@ import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toEntity
 import com.sinura.personaltrainer.domain.CivilDate
+import com.sinura.personaltrainer.domain.CivilDateTime
+import com.sinura.personaltrainer.domain.DayBlockOrder
 import com.sinura.personaltrainer.domain.MissedWorkChoice
 import com.sinura.personaltrainer.domain.MissedWorkDecision
 import com.sinura.personaltrainer.domain.MissedWorkPolicy
@@ -127,6 +129,58 @@ class PlannerRepository(
             }
             scheduleRemindersLocked(updated, listOf(rule), nowMs)
         }
+    }
+
+    /**
+     * Permute stored hours so Home/Plan order matches [moves].
+     * Hours remain the sort key; they are not shown (ADR-020).
+     */
+    suspend fun applyDayOrder(moves: List<DayBlockOrder.HourMove>) {
+        if (moves.isEmpty()) return
+        val nowMs = time.nowMillis()
+        database.withTransaction {
+            val updated = mutableListOf<ScheduleOccurrence>()
+            val touchedRules = mutableListOf<ScheduleRule>()
+            for (move in moves) {
+                val nextHour = move.hour.coerceIn(0, 23)
+                val occRow = dao.getOccurrence(move.occurrenceId) ?: continue
+                val ruleRow = dao.getRule(move.ruleId) ?: continue
+                var rule = ruleRow.toDomain()
+                if (rule.hour != nextHour) {
+                    rule = rule.copy(hour = nextHour, updatedAtMs = nowMs)
+                    dao.upsertRule(rule.toEntity())
+                }
+                touchedRules.add(rule)
+                val zoneId = rule.resolveZoneId(time.defaultZoneId())
+                val captured = time.resolveLocal(
+                    CivilDateTime(
+                        CivilDate.fromEpochDay(occRow.localEpochDay),
+                        nextHour,
+                        occRow.minute,
+                    ),
+                    zoneId,
+                )
+                val next = occRow.toDomain().copy(
+                    hour = nextHour,
+                    captured = captured,
+                    updatedAtMs = nowMs,
+                )
+                if (occRow.status == OccurrenceStatus.PLANNED.name) {
+                    cancelReminders(occRow.id)
+                }
+                dao.upsertOccurrence(next.toEntity())
+                if (next.status == OccurrenceStatus.PLANNED) updated.add(next)
+            }
+            scheduleRemindersLocked(updated, touchedRules.distinctBy { it.id }, nowMs)
+        }
+    }
+
+    suspend fun setRuleEnabled(ruleId: String, enabled: Boolean) {
+        val current = dao.getRule(ruleId)?.toDomain() ?: return
+        if (current.enabled == enabled) return
+        dao.upsertRule(
+            current.copy(enabled = enabled, updatedAtMs = time.nowMillis()).toEntity(),
+        )
     }
 
     suspend fun addTimedRule(

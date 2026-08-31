@@ -34,11 +34,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.sinura.personaltrainer.domain.ClockCopy
 import com.sinura.personaltrainer.domain.AgendaItem
-import com.sinura.personaltrainer.domain.AuxiliaryPacks
 import com.sinura.personaltrainer.domain.CardioType
-import com.sinura.personaltrainer.domain.SlotRuleImport
 import com.sinura.personaltrainer.domain.PlanDayCopy
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.ScheduleKind
@@ -138,7 +135,9 @@ fun PlanDayScreen(
                             onRemove = { ruleId ->
                                 viewModel.deleteSession(epochDay, ruleId)
                             },
-                            onSetHour = viewModel::setSessionHour,
+                            onMove = { occurrenceId, delta ->
+                                viewModel.moveDayBlock(occurrences, occurrenceId, delta)
+                            },
                         )
                     }
                     if (!isPast && picking != DayPicker.NONE) {
@@ -149,29 +148,29 @@ fun PlanDayScreen(
                             routines = state.routines,
                             onPickKind = { picking = it },
                             onCancel = { picking = DayPicker.NONE },
-                            onAddWorkout = { routineId, hour ->
+                            onAddWorkout = { routineId ->
                                 picking = DayPicker.NONE
                                 if (pinned) {
-                                    viewModel.addLaterSession(epochDay, routineId, hour)
+                                    viewModel.addLaterSession(epochDay, routineId)
                                 } else {
-                                    viewModel.pinRoutine(epochDay, routineId, hour)
+                                    viewModel.pinRoutine(epochDay, routineId)
                                 }
                             },
-                            onNewWorkout = { hour ->
+                            onNewWorkout = {
                                 picking = DayPicker.NONE
                                 if (pinned) {
-                                    viewModel.composeLaterSession(epochDay, hour)
+                                    viewModel.composeLaterSession(epochDay)
                                 } else {
-                                    viewModel.buildDay(epochDay, hour)
+                                    viewModel.buildDay(epochDay)
                                 }
                             },
-                            onAddCardio = { type, hour ->
+                            onAddCardio = { type ->
                                 picking = DayPicker.NONE
-                                viewModel.addCardio(epochDay, type, hour)
+                                viewModel.addCardio(epochDay, type)
                             },
-                            onAddAux = { packId, hour ->
+                            onAddAux = { packId ->
                                 picking = DayPicker.NONE
-                                viewModel.addAuxiliary(epochDay, packId, hour)
+                                viewModel.addAuxiliary(epochDay, packId)
                             },
                         )
                     }
@@ -241,9 +240,8 @@ private fun SessionBlocks(
     isPast: Boolean,
     onOpenRoutine: (String) -> Unit,
     onRemove: (String) -> Unit,
-    onSetHour: (String, Int) -> Unit,
+    onMove: (String, Int) -> Unit,
 ) {
-    val clockFormat = com.sinura.personaltrainer.ui.units.LocalClockFormat.current
     GroupedList {
         occurrences.forEachIndexed { index, item ->
             if (index > 0) HairlineDivider()
@@ -286,26 +284,62 @@ private fun SessionBlocks(
                         null
                     },
                 )
-                if (!isPast && ruleId != null) {
-                    val currentHour = item.occurrence.hour
-                    FlowRow(
-                        modifier = Modifier.padding(
-                            start = Metrics.space4,
-                            end = Metrics.space4,
-                            bottom = Metrics.space3,
-                        ),
-                        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-                        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-                    ) {
-                        com.sinura.personaltrainer.domain.ClockCopy.hourChoices(currentHour).forEach { hour ->
-                            InstrumentChip(
-                                label = com.sinura.personaltrainer.domain.ClockCopy.hourChip(hour, clockFormat),
-                                selected = currentHour == hour,
-                                onClick = { onSetHour(ruleId, hour) },
-                            )
-                        }
-                    }
+                if (!isPast && occurrences.size > 1) {
+                    ReorderRow(
+                        title = item.title,
+                        occurrenceId = item.occurrence.id,
+                        index = index,
+                        lastIndex = occurrences.lastIndex,
+                        onMove = onMove,
+                    )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun ReorderRow(
+    title: String,
+    occurrenceId: String,
+    index: Int,
+    lastIndex: Int,
+    onMove: (String, Int) -> Unit,
+) {
+    Row(
+        modifier = Modifier.padding(horizontal = Metrics.space4),
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+    ) {
+        if (index > 0) {
+            TextButton(
+                onClick = { onMove(occurrenceId, -1) },
+                contentPadding = PaddingValues(0.dp),
+                modifier = Modifier
+                    .heightIn(min = Metrics.touchMin)
+                    .testTag(PlanDayTags.moveUp(occurrenceId))
+                    .semantics { contentDescription = PlanDayCopy.moveUp(title) },
+            ) {
+                Text(
+                    PlanDayCopy.UP,
+                    style = InstrumentType.bodyStrong,
+                    color = TextSecondary,
+                )
+            }
+        }
+        if (index < lastIndex) {
+            TextButton(
+                onClick = { onMove(occurrenceId, 1) },
+                contentPadding = PaddingValues(0.dp),
+                modifier = Modifier
+                    .heightIn(min = Metrics.touchMin)
+                    .testTag(PlanDayTags.moveDown(occurrenceId))
+                    .semantics { contentDescription = PlanDayCopy.moveDown(title) },
+            ) {
+                Text(
+                    PlanDayCopy.DOWN,
+                    style = InstrumentType.bodyStrong,
+                    color = TextSecondary,
+                )
             }
         }
     }
@@ -320,70 +354,38 @@ private fun AddPicker(
     routines: List<Routine>,
     onPickKind: (DayPicker) -> Unit,
     onCancel: () -> Unit,
-    onAddWorkout: (String, Int) -> Unit,
-    onNewWorkout: (Int) -> Unit,
-    onAddCardio: (CardioType, Int) -> Unit,
-    onAddAux: (String, Int) -> Unit,
+    onAddWorkout: (String) -> Unit,
+    onNewWorkout: () -> Unit,
+    onAddCardio: (CardioType) -> Unit,
+    onAddAux: (String) -> Unit,
 ) {
-    val clockFormat = com.sinura.personaltrainer.ui.units.LocalClockFormat.current
     val hasCardio = occurrences.any { it.rule?.modality == ScheduleModality.CARDIO }
     val usedAux = occurrences.mapNotNull { ScheduleKind.auxPackId(it.rule?.templateId) }.toSet()
     val usedRoutineIds = occurrences.mapNotNull { it.rule?.routineId }.toSet()
     val laterChoices = routines.filter { it.id !in usedRoutineIds }
-    val occupiedHours = occurrences.map { it.occurrence.hour }
-    var hour by rememberSaveable(picking) {
-        mutableStateOf(
-            when (picking) {
-                DayPicker.CARDIO -> SlotRuleImport.DEFAULT_CARDIO_HOUR
-                DayPicker.AUX -> SlotRuleImport.nextLaterHour(occupiedHours)
-                DayPicker.WORKOUT -> if (pinned) {
-                    SlotRuleImport.nextLaterHour(occupiedHours)
-                } else {
-                    SlotRuleImport.DEFAULT_STRENGTH_HOUR
-                }
-                else -> SlotRuleImport.DEFAULT_STRENGTH_HOUR
-            },
-        )
-    }
 
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Kicker(
-                when (picking) {
-                    DayPicker.KIND -> PlanDayCopy.PICK_KIND
-                    DayPicker.CARDIO -> PlanDayCopy.PICK_CARDIO
-                    DayPicker.AUX -> PlanDayCopy.PICK_AUX
-                    DayPicker.WORKOUT -> PlanDayCopy.PICK_WORKOUT
-                    DayPicker.NONE -> PlanDayCopy.ADD_SESSION
-                },
-                modifier = Modifier.weight(1f),
-            )
-            TextButton(
-                onClick = onCancel,
-                contentPadding = PaddingValues(0.dp),
-                modifier = Modifier.heightIn(min = Metrics.touchMin),
-            ) {
-                Text(
-                    PlanDayCopy.CANCEL,
-                    style = InstrumentType.bodyStrong,
-                    color = TextSecondary,
+        if (picking != DayPicker.AUX) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Kicker(
+                    when (picking) {
+                        DayPicker.KIND -> PlanDayCopy.PICK_KIND
+                        DayPicker.CARDIO -> PlanDayCopy.PICK_CARDIO
+                        DayPicker.AUX -> PlanDayCopy.PICK_AUX
+                        DayPicker.WORKOUT -> PlanDayCopy.PICK_WORKOUT
+                        DayPicker.NONE -> PlanDayCopy.ADD_SESSION
+                    },
+                    modifier = Modifier.weight(1f),
                 )
-            }
-        }
-        // No hour chips over a terminal "already has cardio" message: two live
-        // controls leading into a state with no possible action is a dead end.
-        val terminalCardio = picking == DayPicker.CARDIO && hasCardio
-        if (picking != DayPicker.KIND && picking != DayPicker.NONE && !terminalCardio) {
-            Kicker(PlanDayCopy.WHEN)
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-            ) {
-                ClockCopy.hourChoices(hour).forEach { choice ->
-                    InstrumentChip(
-                        label = ClockCopy.hourChip(choice, clockFormat),
-                        selected = hour == choice,
-                        onClick = { hour = choice },
+                TextButton(
+                    onClick = onCancel,
+                    contentPadding = PaddingValues(0.dp),
+                    modifier = Modifier.heightIn(min = Metrics.touchMin),
+                ) {
+                    Text(
+                        PlanDayCopy.CANCEL,
+                        style = InstrumentType.bodyStrong,
+                        color = TextSecondary,
                     )
                 }
             }
@@ -400,8 +402,6 @@ private fun AddPicker(
                 InstrumentRow(
                     title = PlanDayCopy.CARDIO,
                     subtitle = if (hasCardio) PlanDayCopy.CARDIO_ALREADY else SessionOrderCopy.CARDIO_ON_THIS_DAY,
-                    // A readout when the day already has cardio: the row said why
-                    // in its subtitle and then drilled into a dead end anyway.
                     onClick = if (hasCardio) null else ({ onPickKind(DayPicker.CARDIO) }),
                 )
                 HairlineDivider()
@@ -424,33 +424,17 @@ private fun AddPicker(
                             InstrumentChip(
                                 label = PlanDayCopy.cardioPickLabel(type),
                                 selected = false,
-                                onClick = { onAddCardio(type, hour) },
+                                onClick = { onAddCardio(type) },
                             )
                         }
                     }
                 }
             }
-            DayPicker.AUX -> {
-                val packs = AuxiliaryPacks.all.filter { it.id !in usedAux }
-                if (packs.isEmpty()) {
-                    Text(
-                        PlanDayCopy.AUX_ALREADY,
-                        style = InstrumentType.body,
-                        color = TextPrimary,
-                    )
-                } else {
-                    GroupedList {
-                        packs.forEachIndexed { index, pack ->
-                            if (index > 0) HairlineDivider()
-                            InstrumentRow(
-                                title = pack.title,
-                                subtitle = pack.caption,
-                                onClick = { onAddAux(pack.id, hour) },
-                            )
-                        }
-                    }
-                }
-            }
+            DayPicker.AUX -> AuxiliaryPackList(
+                usedPackIds = usedAux,
+                onPick = onAddAux,
+                onCancel = onCancel,
+            )
             DayPicker.WORKOUT -> {
                 GroupedList {
                     InstrumentRow(
@@ -460,7 +444,7 @@ private fun AddPicker(
                         } else {
                             PlanDayCopy.BUILD_WEEKDAY
                         },
-                        onClick = { onNewWorkout(hour) },
+                        onClick = onNewWorkout,
                     )
                 }
                 if (laterChoices.isEmpty()) {
@@ -481,7 +465,7 @@ private fun AddPicker(
                                 title = routine.name,
                                 subtitle = "${routine.exercises.size} " +
                                     if (routine.exercises.size == 1) "lift" else "lifts",
-                                onClick = { onAddWorkout(routine.id, hour) },
+                                onClick = { onAddWorkout(routine.id) },
                             )
                         }
                     }
@@ -496,6 +480,10 @@ private enum class DayPicker { NONE, KIND, WORKOUT, CARDIO, AUX }
 object PlanDayTags {
     const val BACK = "plan-day-back"
     const val ADD = "plan-day-add"
+
+    fun moveUp(occurrenceId: String): String = "plan-move-up-$occurrenceId"
+
+    fun moveDown(occurrenceId: String): String = "plan-move-down-$occurrenceId"
 }
 
 private val DATE_CAPTION: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM")

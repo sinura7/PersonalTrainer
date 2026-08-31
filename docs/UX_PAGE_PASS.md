@@ -207,7 +207,7 @@ keeps the draft.
 - Plan day Start sits **under** the grouped occurrence list, not inside
   the window. Day sheets skip the half-expanded detent.
 - Reminders sit on Settings. Existing and new day-page blocks
-  can set an hour.
+  do not show a clock; Up / Down sets order.
 
 ### 6 — Editor · **done** (this pass)
 
@@ -334,6 +334,12 @@ Job 4 / P1. Home empty-week volt becomes replay when routines exist
 
 Record every deviation here. Oldest stay; do not delete.
 
+Owner asked for **warm-up extras** (31 Aug 2026): golf, lower-body,
+upper-body, and shoulder warm-ups as their own sessions from existing
+catalog ids. Plan Add session is weekly. Home **Add extra** is once.
+Home and Plan hide clocks. Up / Down rearranges the day's blocks
+([ADR-020](architecture/ADR-020-warmup-extras.md)).
+
 Owner asked for **Home as the day’s board** (29 Aug 2026): a selectable
 week on Home, bound to occurrences so Saturday is Saturday. Completion
 is rest / none / some / all on planned blocks (Danger / Warn / check,
@@ -341,6 +347,7 @@ not Volt-green cells). Plan is fill-the-day. Add session is the Volt.
 Tune and header New are gone. Reminder prefs return to Settings. Adding
 a block may set an hour. Core is a fifth auxiliary pack from existing
 ids ([ADR-017](architecture/ADR-017-home-week-board.md)).
+**Superseded in part by ADR-020** (no visible clocks; more packs).
 
 Owner asked for **Settings / Home trim** (29 Aug 2026): Display at the
 top (lbs/kg, Regular/Military). Schedule and coaching share the

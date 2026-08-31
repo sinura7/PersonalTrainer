@@ -7,7 +7,9 @@
   empty-agenda leftover card's Volt (`Start this session`) opens the
   same summary confirm instead of starting immediately — the last Home
   start that jumped straight into the log. A slot day is untimed, so
-  its summary has no clock line and never relocates
+  its summary has no clock line and never relocates.
+  31 August 2026 — [ADR-020](ADR-020-warmup-extras.md) drops the clock
+  line from planned-row confirms as well.
 - **Supersedes:** [ADR-017](ADR-017-home-week-board.md) §1 only the
   reading that Volt (or a planned row) **starts** the next undone block
   immediately
@@ -45,9 +47,10 @@ want to start **this** workout, and what does it entail.
    today) confirms as **Do it today**, which relocates then starts.
 
 3. **The dialog is a summary of that session.** Title `Start {title}?`
-   (leftover: `Do {title} today?`). Body: clock · kind (Workout / Ride /
+   (leftover: `Do {title} today?`). Body: kind (Workout / Ride /
    Stretch / …), then the numbered lift order (or `Ready` for cardio,
-   `No lifts yet` for empty strength). A leftover adds a line that it
+   `No lifts yet` for empty strength). **[ADR-020](ADR-020-warmup-extras.md):**
+   no clock line. A leftover adds a line that it
    was the earlier weekday. Strength / aux may add a set-count and
    about-minutes line; an auxiliary pack may lead with its caption.
    Confirm label is `Start` (leftover: `Do it today`). Volt ink, not a
