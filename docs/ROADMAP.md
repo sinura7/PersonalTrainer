@@ -15,10 +15,16 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 31 Aug 2026 — Obtainium live test 15 (`debugLiveCode` 15, tag
+> `debug-live-2026-08-31`): warm-up extras (golf, lower-body,
+> upper-body, shoulder), Home Add extra once, untimed day board,
+> Up/Down reorder. [ADR-020](architecture/ADR-020-warmup-extras.md).
+>
 > 31 Aug 2026 — Warm-up extras (golf, lower-body, upper-body, shoulder)
 > plus the existing mobility packs. Plan Add session is weekly. Home
 > **Add extra** is once for that day. Home and Plan hide session clocks;
 > Up / Down rearranges the day's blocks. [ADR-020](architecture/ADR-020-warmup-extras.md).
+> Live test 15 is the Obtainium drop.
 >
 > 30 Aug 2026 — Obtainium live test 14 (`debugLiveCode` 14, tag
 > `debug-live-2026-08-30`): Task 2 queue (dead code, StartOccurrence,
