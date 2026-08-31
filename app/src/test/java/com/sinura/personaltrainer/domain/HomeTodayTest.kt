@@ -84,18 +84,18 @@ class HomeTodayTest {
     }
 
     @Test
-    fun startConfirmNamesTheClockKindAndLiftOrder() {
+    fun startConfirmNamesTheKindAndLiftOrder() {
         val planned = item("s", ScheduleModality.STRENGTH, hour = 18, routineId = "r-Push")
         val confirm = HomeToday.startConfirm(
             planned.copy(routineName = "Push"),
             listOf(pushRoutine()),
-            ClockFormat.TWELVE,
             TODAY,
         )
         assertEquals("Start Push?", confirm.heading)
         assertEquals(HomeToday.CONFIRM, confirm.confirmLabel)
         assertFalse(confirm.leftover)
-        assertTrue(confirm.body.startsWith("6 PM · Workout"))
+        assertTrue(confirm.body.startsWith("Workout"))
+        assertFalse(confirm.body.contains("6 PM"))
         assertTrue(confirm.body.contains("1 Squat"))
         assertTrue(confirm.body.contains("2 Row"))
         assertTrue(confirm.body.contains("2 lifts · about 13 min"))
@@ -113,7 +113,6 @@ class HomeTodayTest {
         val confirm = HomeToday.startConfirm(
             planned.copy(routineName = "Push"),
             listOf(routine),
-            ClockFormat.TWELVE,
             TODAY,
         )
         assertTrue(confirm.body.contains("1 Squat"))
@@ -127,11 +126,11 @@ class HomeTodayTest {
         val confirm = HomeToday.startConfirm(
             item("c", ScheduleModality.CARDIO, hour = 7),
             emptyList(),
-            ClockFormat.TWELVE,
             TODAY,
         )
         assertEquals("Start Cardio?", confirm.heading)
-        assertTrue(confirm.body.startsWith("7 AM · Cardio"))
+        assertTrue(confirm.body.startsWith("Cardio"))
+        assertFalse(confirm.body.contains("7 AM"))
         assertTrue(confirm.body.contains(SessionOrderCopy.READY))
     }
 
@@ -157,7 +156,6 @@ class HomeTodayTest {
         val confirm = HomeToday.startConfirm(
             stretch.copy(routineName = "Stretch"),
             listOf(routine),
-            ClockFormat.TWELVE,
             TODAY,
         )
         assertEquals("Start Stretch?", confirm.heading)
@@ -198,7 +196,6 @@ class HomeTodayTest {
         val confirm = HomeToday.startConfirm(
             planned,
             listOf(pushRoutine()),
-            ClockFormat.TWELVE,
             TODAY + 1,
         )
         assertEquals("Do Push today?", confirm.heading)

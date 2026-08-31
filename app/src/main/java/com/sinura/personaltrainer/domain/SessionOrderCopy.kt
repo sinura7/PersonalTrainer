@@ -16,6 +16,7 @@ object SessionOrderCopy {
     const val EMPTY_PREVIEW = "No lifts yet"
     const val READY = "Ready"
     const val FREE_WORKOUT = "Start a free workout"
+    const val ADD_EXTRA = PlanDayCopy.ADD_EXTRA
     const val ADD_LIFT_FAILED = "Could not add that lift. Try again."
     const val LIFT_NAME_REQUIRED = "Lift name is required."
     const val CREATE_LIFT_FAILED = "Could not create that lift. Try again."

@@ -181,4 +181,62 @@ class PlannerRepositoryTest {
         assertEquals(leftover.hour, todayRow.hour)
         assertEquals(leftover.ruleId, todayRow.ruleId)
     }
+
+    @Test
+    fun applyDayOrderPermutesHoursOnTheOccurrenceAndRule() = runBlocking {
+        val push = deps.routineRepository.create(name = "Push")
+        deps.scheduleRepository.pin(push.id, null, Weekday.MONDAY)
+        deps.plannerRepository.importSlotsIfNeeded()
+        val extra = deps.routineRepository.create(name = "Golf warm-up")
+        deps.plannerRepository.addTimedRule(
+            weekday = Weekday.MONDAY,
+            hour = 20,
+            minute = 0,
+            modality = ScheduleModality.STRENGTH,
+            routineId = extra.id,
+            templateId = com.sinura.personaltrainer.domain.ScheduleKind.aux("golf"),
+        )
+        val week = deps.plannerRepository.ensureWeek(weekStart, "UTC", 1_700_000_000_000L)
+        val monday = week.filter { it.localEpochDay == weekStart.epochDay }
+            .sortedBy { it.hour }
+        assertEquals(listOf(18, 20), monday.map { it.hour })
+        deps.plannerRepository.applyDayOrder(
+            listOf(
+                com.sinura.personaltrainer.domain.DayBlockOrder.HourMove(
+                    monday[1].id, monday[1].ruleId, 18,
+                ),
+                com.sinura.personaltrainer.domain.DayBlockOrder.HourMove(
+                    monday[0].id, monday[0].ruleId, 20,
+                ),
+            ),
+        )
+        val reordered = deps.plannerRepository.occurrencesBetween(
+            weekStart.epochDay,
+            weekStart.epochDay,
+        ).sortedBy { it.hour }
+        assertEquals(monday[1].id, reordered[0].id)
+        assertEquals(18, reordered[0].hour)
+        assertEquals(monday[0].id, reordered[1].id)
+        assertEquals(20, reordered[1].hour)
+        assertEquals(18, deps.plannerRepository.getRule(monday[1].ruleId)!!.hour)
+    }
+
+    @Test
+    fun setRuleEnabledStopsNextWeekGeneration() = runBlocking {
+        val extra = deps.routineRepository.create(name = "Shoulder warm-up")
+        val rule = deps.plannerRepository.addTimedRule(
+            weekday = Weekday.MONDAY,
+            hour = 17,
+            minute = 0,
+            modality = ScheduleModality.STRENGTH,
+            routineId = extra.id,
+            templateId = com.sinura.personaltrainer.domain.ScheduleKind.aux("shoulder"),
+        )
+        deps.plannerRepository.ensureWeek(weekStart, "UTC", 1_700_000_000_000L)
+        assertEquals(1, deps.plannerRepository.occurrencesBetween(weekStart.epochDay, weekStart.epochDay).size)
+        deps.plannerRepository.setRuleEnabled(rule.id, false)
+        val nextWeek = weekStart.plusDays(7)
+        val generated = deps.plannerRepository.ensureWeek(nextWeek, "UTC", 1_700_000_000_000L)
+        assertTrue(generated.none { it.localEpochDay == nextWeek.epochDay && it.ruleId == rule.id })
+    }
 }

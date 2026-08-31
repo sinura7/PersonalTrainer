@@ -16,7 +16,8 @@ class PlanDayCopyTest {
         assertEquals("Run / sprints", PlanDayCopy.cardioPickLabel(CardioType.RUN))
         assertEquals("Walk", PlanDayCopy.cardioPickLabel(CardioType.WALK))
         assertEquals("Add session", PlanDayCopy.ADD_SESSION)
-        assertEquals("When", PlanDayCopy.WHEN)
-        assertTrue(PlanDayCopy.AUX_SUBTITLE.contains("core"))
+        assertEquals("Add extra", PlanDayCopy.ADD_EXTRA)
+        assertEquals("Warm-up", PlanDayCopy.WARM_UP)
+        assertTrue(PlanDayCopy.AUX_SUBTITLE.contains("warm-up"))
     }
 }

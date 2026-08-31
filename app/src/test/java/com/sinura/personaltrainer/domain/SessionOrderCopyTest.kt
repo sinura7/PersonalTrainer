@@ -61,6 +61,7 @@ class SessionOrderCopyTest {
             ),
         )
         assertEquals(SessionOrderCopy.FREE_WORKOUT, "Start a free workout")
+        assertEquals(SessionOrderCopy.ADD_EXTRA, "Add extra")
         assertEquals(SessionOrderCopy.NEED_A_LIFT, "Add at least one lift before starting this routine.")
         assertEquals(
             SessionOrderCopy.AGENDA_SEPARATE,

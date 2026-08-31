@@ -209,6 +209,49 @@ class HomePassInstrumentedTest {
     }
 
     @Test
+    fun agendaRowsOmitClocksAndOfferReorderWhenTheDayCanBeEdited() {
+        setConstrainedContent(fontScale = 1f) {
+            DailyAgendaCard(
+                items = listOf(CARDIO_ITEM, STRENGTH_ITEM),
+                sessionLive = false,
+                onStartOccurrence = {},
+                onStartFree = {},
+                routines = listOf(PUSH_ROUTINE),
+                today = TODAY,
+                canEditDay = true,
+            )
+        }
+        compose.onNodeWithText("Push").assertIsDisplayed()
+        compose.onNodeWithText("Cardio").assertIsDisplayed()
+        compose.onNodeWithText("6 PM", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("7 AM", substring = true).assertDoesNotExist()
+        compose.onNodeWithContentDescription("Move Cardio down").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Move Push up").assertIsDisplayed()
+        compose.onNodeWithTag(HomeTags.ADD_EXTRA).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Add extra").assertIsDisplayed()
+    }
+
+    @Test
+    fun addExtraOpensTheWarmUpPacks() {
+        setConstrainedContent(fontScale = 1f) {
+            DailyAgendaCard(
+                items = listOf(STRENGTH_ITEM),
+                sessionLive = false,
+                onStartOccurrence = {},
+                onStartFree = {},
+                routines = listOf(PUSH_ROUTINE),
+                today = TODAY,
+                canEditDay = true,
+                pickingExtra = true,
+            )
+        }
+        compose.onNodeWithText("Golf warm-up").assertIsDisplayed()
+        compose.onNodeWithText("Lower-body warm-up").assertIsDisplayed()
+        compose.onNodeWithText("Shoulder warm-up").assertIsDisplayed()
+        compose.onNodeWithText("Stretch").assertIsDisplayed()
+    }
+
+    @Test
     fun emptyDayBoardKeepsFreeAndHidesStart() {
         setConstrainedContent(fontScale = 1f) {
             DailyAgendaCard(

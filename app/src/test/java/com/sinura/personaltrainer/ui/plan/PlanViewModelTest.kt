@@ -284,6 +284,37 @@ class PlanViewModelTest {
     }
 
     @Test
+    fun addAuxiliaryOnceDisablesTheRuleAfterMintingThisWeek() = runBlocking {
+        val today = LocalDate.now(ZoneId.systemDefault())
+        val monday = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+        val insights = MutableStateFlow(
+            TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
+        )
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps.dbMaintenance.seedCatalog()
+        viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.addAuxiliary(monday.toEpochDay(), "golf", once = true)
+        dispatcher.scheduler.advanceUntilIdle()
+        val aux = withTimeout(5_000) {
+            deps.plannerRepository.observeRules().first { rows ->
+                rows.any {
+                    it.templateId == com.sinura.personaltrainer.domain.ScheduleKind.aux("golf") &&
+                        !it.enabled
+                }
+            }.single {
+                it.templateId == com.sinura.personaltrainer.domain.ScheduleKind.aux("golf")
+            }
+        }
+        assertEquals("Golf warm-up", deps.routineRepository.getById(aux.routineId!!)!!.name)
+        assertFalse(aux.enabled)
+        assertTrue(
+            deps.plannerRepository.occurrencesBetween(monday.toEpochDay(), monday.toEpochDay())
+                .any { it.ruleId == aux.id },
+        )
+    }
+
+    @Test
     fun deleteSessionUnpinsTheImportedEveningPin() = runBlocking {
         val today = LocalDate.now(ZoneId.systemDefault())
         val monday = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))

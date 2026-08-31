@@ -6,11 +6,18 @@ import org.junit.Test
 
 class AuxiliaryPacksTest {
     @Test
-    fun fivePacksReferenceExistingCatalogIds() {
+    fun packsReferenceExistingCatalogIds() {
         val ids = DefaultExercises.catalog().map { it.id }.toSet()
         assertEquals(
-            listOf("stretch", "lower-back", "hips", "holds", "core"),
+            listOf(
+                "golf", "lower-body", "upper-body", "shoulder",
+                "stretch", "lower-back", "hips", "holds", "core",
+            ),
             AuxiliaryPacks.all.map { it.id },
+        )
+        assertEquals(
+            listOf("golf", "lower-body", "upper-body", "shoulder"),
+            AuxiliaryPacks.warmups.map { it.id },
         )
         AuxiliaryPacks.all.forEach { pack ->
             assertTrue(pack.title, pack.lifts.isNotEmpty())
@@ -21,6 +28,9 @@ class AuxiliaryPacksTest {
             }
         }
         assertEquals(AuxiliaryPacks.Stretch, AuxiliaryPacks.byId("stretch"))
+        assertEquals(AuxiliaryPacks.Golf, AuxiliaryPacks.byId("golf"))
         assertEquals(AuxiliaryPacks.Core, AuxiliaryPacks.byId("core"))
+        assertEquals(AuxiliaryKind.WARMUP, AuxiliaryPacks.Shoulder.kind)
+        assertEquals(AuxiliaryKind.MOBILITY, AuxiliaryPacks.Hips.kind)
     }
 }

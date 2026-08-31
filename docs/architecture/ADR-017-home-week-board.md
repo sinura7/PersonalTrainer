@@ -4,7 +4,9 @@
 - **Date:** 29 August 2026
 - **Amended:** 29 August 2026 — [ADR-018](ADR-018-home-start-confirm.md)
   replaces one-tap Home Start with confirm-then-start; the start tag
-  prefers a workout over an auxiliary pack
+  prefers a workout over an auxiliary pack. 31 August 2026 —
+  [ADR-020](ADR-020-warmup-extras.md) hides clocks, adds warm-up packs,
+  Home Add extra (once), and Up / Down order.
 - **Supersedes:** [ADR-016](ADR-016-settings-home-trim.md) §5 (reminders
   live on Plan Tune) and §7 (Home must not show a week strip);
   [ADR-015](ADR-015-plan-day-blocks.md) §5 only to the extent that
@@ -75,18 +77,19 @@ set on the day.
    this week while a proposal is up. The routines list is the program
    catalog, not the selected day’s board.
 
-5. **Adding a block may set an hour.** Defaults stay 07:00 cardio,
-   18:00 imported strength, +2h later. The add picker offers the same
-   hour chips existing blocks already have. Stored hours still drive
-   ADR-012 best-effort reminders.
+5. **Adding a block does not require a clock.** Defaults stay 07:00
+   cardio, 18:00 imported strength, +2h later. **[ADR-020](ADR-020-warmup-extras.md):**
+   the add picker and existing blocks do not offer hour chips. Stored
+   hours still drive ADR-012 best-effort reminders and day order.
 
 6. **Reminder opt-out and quiet hours live on Settings**, not Plan Tune.
-   Session hours stay on the Plan day (add + existing). No second
+   Session hours stay in the model as a sort key. No second
    exact-alarm path.
 
-7. **Auxiliary packs** remain Stretch, Lower back, Hips, Holds, plus
-   **Core**, minted from existing catalog ids. Not a catalog seed. No
-   Room schema bump.
+7. **Auxiliary packs** are warm-ups (Golf, Lower-body, Upper-body,
+   Shoulder) plus mobility (Stretch, Lower back, Hips, Holds, Core),
+   minted from existing catalog ids. Not a catalog seed. No Room schema
+   bump. **[ADR-020](ADR-020-warmup-extras.md).**
 
    Shipping IA: Home · Body · Plan · History · Settings.
 
@@ -105,5 +108,5 @@ set on the day.
 - May Saturday show a routine named Friday? No.
 - Is Add session the Plan act? Yes, except while confirming a proposed
   week or answering missed work.
-- Does adding a block require a clock? No. It may set one.
-- Do reminder prefs live on Plan? No. Settings. Hours live on the day.
+- Does adding a block require a clock? No.
+- Do reminder prefs live on Plan? No. Settings. Hours stay in the model.

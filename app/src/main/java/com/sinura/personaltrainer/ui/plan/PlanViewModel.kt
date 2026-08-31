@@ -6,11 +6,11 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.AgendaItem
-import com.sinura.personaltrainer.domain.AuxiliaryPack
 import com.sinura.personaltrainer.domain.AuxiliaryPacks
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.CustomWeekPolicy
+import com.sinura.personaltrainer.domain.DayBlockOrder
 import com.sinura.personaltrainer.domain.ScheduleKind
 import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.ExistingLayoutMatcher
@@ -21,6 +21,7 @@ import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.ScheduleOccurrence
 import com.sinura.personaltrainer.domain.SlotRuleImport
 import com.sinura.personaltrainer.util.JvmTime
+import com.sinura.personaltrainer.data.repository.AuxiliaryBlocks
 import com.sinura.personaltrainer.domain.InsightFailure
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.Routine
@@ -489,26 +490,17 @@ class PlanViewModel @JvmOverloads constructor(
         }
     }
 
-    fun addAuxiliary(epochDay: Long, packId: String, hour: Int? = null) {
+    fun addAuxiliary(epochDay: Long, packId: String, once: Boolean = false) {
         val pack = AuxiliaryPacks.byId(packId) ?: return
         write("Could not add that block. Try again.") {
-            val weekday = dayOfWeekFor(epochDay)
-            val tag = ScheduleKind.aux(pack.id)
-            val already = container.plannerRepository.rules().any {
-                it.weekday == weekday && it.templateId == tag
-            }
-            if (already) return@write
-            val routineId = ensureAuxiliaryRoutine(pack)
-            val hours = container.plannerRepository.rules()
-                .filter { it.weekday == weekday }
-                .map { it.hour }
-            container.plannerRepository.addTimedRule(
-                weekday = weekday,
-                hour = (hour ?: SlotRuleImport.nextLaterHour(hours)).coerceIn(0, 23),
-                minute = 0,
-                modality = ScheduleModality.STRENGTH,
-                routineId = routineId,
-                templateId = tag,
+            AuxiliaryBlocks.add(
+                planner = container.plannerRepository,
+                routines = container.routineRepository,
+                exercises = container.exerciseRepository,
+                preferences = container.preferencesRepository,
+                epochDay = epochDay,
+                packId = pack.id,
+                once = once,
             )
             refreshPlanner()
         }
@@ -526,25 +518,6 @@ class PlanViewModel @JvmOverloads constructor(
             }
             refreshPlanner()
         }
-    }
-
-    private suspend fun ensureAuxiliaryRoutine(pack: AuxiliaryPack): String {
-        val existing = container.routineRepository.observeAll().first()
-            .firstOrNull { it.name.equals(pack.title, ignoreCase = true) }
-        if (existing != null) return existing.id
-        val created = container.routineRepository.create(pack.title, pack.caption)
-        for (lift in pack.lifts) {
-            val exercise = container.exerciseRepository.getById(lift.exerciseId) ?: continue
-            container.routineRepository.addExercise(
-                routineId = created.id,
-                exercise = exercise,
-                targetSets = lift.sets,
-                targetReps = lift.reps,
-                targetWeightKg = null,
-                restSeconds = lift.restSeconds,
-            )
-        }
-        return created.id
     }
 
     /**
@@ -635,6 +608,15 @@ class PlanViewModel @JvmOverloads constructor(
         write("Could not set that time. Try again.") {
             container.plannerRepository.setRuleHour(ruleId, hour)
             refreshPlanner()
+        }
+    }
+
+    fun moveDayBlock(items: List<AgendaItem>, occurrenceId: String, delta: Int) {
+        write("Could not reorder that session. Try again.") {
+            val from = items.indexOfFirst { it.occurrence.id == occurrenceId }
+            val moves = DayBlockOrder.move(items, from, delta)
+            if (moves.isEmpty()) return@write
+            container.plannerRepository.applyDayOrder(moves)
         }
     }
 

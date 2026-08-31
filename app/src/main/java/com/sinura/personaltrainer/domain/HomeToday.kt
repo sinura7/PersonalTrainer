@@ -34,23 +34,22 @@ object HomeToday {
 
     /**
      * Summary shown before Home starts [item]. Confirm, then start.
-     * Clock · kind, then the session order — never a truncated 1 · 2 · 3
-     * preview that hides the rest of the work.
+     * Kind, then the session order — never a truncated 1 · 2 · 3
+     * preview that hides the rest of the work. Hours stay in the
+     * model as a sort key; they are not spoken here (ADR-020).
      */
     fun startConfirm(
         item: AgendaItem,
         routines: List<Routine>,
-        clockFormat: ClockFormat,
         todayEpochDay: Long,
     ): StartSessionConfirm {
-        val clock = ClockCopy.format(item.occurrence.hour, item.occurrence.minute, clockFormat)
         val pack = ScheduleKind.auxPackId(item.rule?.templateId)?.let { AuxiliaryPacks.byId(it) }
         val names = sessionLiftNames(item.rule?.routineId, routines)
         val routine = item.rule?.routineId?.let { id -> routines.firstOrNull { it.id == id } }
         val modality = item.rule?.modality ?: ScheduleModality.STRENGTH
         val leftover = MoveToToday.isLeftover(item.occurrence, todayEpochDay)
         val lines = buildList {
-            add("$clock · ${item.kindCaption}")
+            add(item.kindCaption)
             pack?.caption?.takeIf { it.isNotBlank() }?.let { caption ->
                 add("")
                 add(caption)

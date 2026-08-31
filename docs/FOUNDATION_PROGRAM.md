@@ -48,7 +48,7 @@ Supporting decisions that later packets also treat as closed:
 - Missed work keeps recurrence unchanged and asks once ([ADR-012](architecture/ADR-012-rest-and-reminders.md)).
 - KMP and cloud sync have start gates and do not begin because they are interesting ([ADR-003](architecture/ADR-003-shipping-platform.md), [ADR-009](architecture/ADR-009-backup-privacy-sync.md)).
 - FND-037 is a numbering gap, not a finding ([ADR-013](architecture/ADR-013-finding-dispositions.md)).
-- Plan is a schedule workshop; Start is Home. A weekday is a pushed page of workout / cardio / auxiliary blocks. Adding a block may set an hour ([ADR-015](architecture/ADR-015-plan-day-blocks.md), [ADR-017](architecture/ADR-017-home-week-board.md)).
+- Plan is a schedule workshop; Start is Home. A weekday is a pushed page of workout / cardio / auxiliary blocks. Hours stay in the model as a sort key; Home and Plan do not show clocks ([ADR-015](architecture/ADR-015-plan-day-blocks.md), [ADR-017](architecture/ADR-017-home-week-board.md), [ADR-020](architecture/ADR-020-warmup-extras.md)). Warm-up packs (golf / lower / upper / shoulder) are extras. Plan add is weekly; Home Add extra is once.
 - Settings display, weekly weigh-in, and equipment filters share the questionnaire store; Goals UI is gone; reminder prefs live on Settings; Home is the day’s board with a week picker ([ADR-016](architecture/ADR-016-settings-home-trim.md), [ADR-017](architecture/ADR-017-home-week-board.md)). Home planned rows and the empty-week leftover Volt confirm before start ([ADR-018](architecture/ADR-018-home-start-confirm.md)). A leftover session can move onto today ([ADR-019](architecture/ADR-019-move-to-today.md)).
 
 There is **no remaining TBD** that would change schema, scheduling, privacy,

@@ -6,7 +6,9 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.appContainer
+import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.CivilDate
+import com.sinura.personaltrainer.domain.DayBlockOrder
 import com.sinura.personaltrainer.domain.MissedWorkChoice
 import com.sinura.personaltrainer.domain.MissedWorkPolicy
 import com.sinura.personaltrainer.domain.MoveToToday
@@ -25,6 +27,7 @@ import com.sinura.personaltrainer.domain.WeeklySchedulePlan
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.latest
 import com.sinura.personaltrainer.domain.todayEpochDay
+import com.sinura.personaltrainer.data.repository.AuxiliaryBlocks
 import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.workout.DiscardOutcome
 import com.sinura.personaltrainer.workout.StartDayOutcome
@@ -364,6 +367,35 @@ class HomeViewModel @JvmOverloads constructor(
 
     fun dismissError() {
         actionError.value = null
+    }
+
+    fun addExtra(epochDay: Long, packId: String) {
+        viewModelScope.launch {
+            runCatching {
+                AuxiliaryBlocks.add(
+                    planner = container.plannerRepository,
+                    routines = container.routineRepository,
+                    exercises = container.exerciseRepository,
+                    preferences = container.preferencesRepository,
+                    epochDay = epochDay,
+                    packId = packId,
+                    once = true,
+                )
+            }.onSuccess { actionError.value = null }
+                .onFailure { actionError.value = "Could not add that extra. Try again." }
+        }
+    }
+
+    fun moveDayBlock(items: List<AgendaItem>, occurrenceId: String, delta: Int) {
+        viewModelScope.launch {
+            val from = items.indexOfFirst { it.occurrence.id == occurrenceId }
+            val moves = DayBlockOrder.move(items, from, delta)
+            if (moves.isEmpty()) return@launch
+            runCatching {
+                container.plannerRepository.applyDayOrder(moves)
+            }.onSuccess { actionError.value = null }
+                .onFailure { actionError.value = "Could not reorder that session. Try again." }
+        }
     }
 
     /**
