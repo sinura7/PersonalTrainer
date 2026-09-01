@@ -70,6 +70,60 @@ class BodyweightRecordsTest {
     }
 
     @Test
+    fun moreRepsBoughtWithMoreAssistanceIsNotARecord() {
+        // Eight pull-ups with ten kilograms of help, then nine with twenty. That is one more
+        // rep and twice the machine — a worse set, and "most reps ever" was the badge for it.
+        val prior = listOf(rec(10.0, 8, 1))
+        assertTrue(
+            PersonalRecords.detect(rec(20.0, 9, 2), prior, LoadClass.BODYWEIGHT_ASSISTED).isEmpty(),
+        )
+    }
+
+    @Test
+    fun moreRepsAtLessAssistanceIsARecord() {
+        // The improvement the rule must not suppress while it is busy suppressing the other.
+        val prior = listOf(rec(20.0, 8, 1))
+        assertEquals(
+            setOf(PersonalRecordKind.REPS),
+            PersonalRecords.detect(rec(10.0, 9, 2), prior, LoadClass.BODYWEIGHT_ASSISTED),
+        )
+    }
+
+    @Test
+    fun moreRepsAtTheSameAssistanceIsARecord() {
+        val prior = listOf(rec(10.0, 8, 1))
+        assertEquals(
+            setOf(PersonalRecordKind.REPS),
+            PersonalRecords.detect(rec(10.0, 9, 2), prior, LoadClass.BODYWEIGHT_ASSISTED),
+        )
+    }
+
+    @Test
+    fun theRepCountStillHasToBeTheHighestEverNotJustTheHighestAtThisHelp() {
+        // Ten unassisted, then three at thirty kilograms of help, then five at thirty. Five
+        // beats the other assisted set, and is nowhere near the ten this lifter has done.
+        val prior = listOf(rec(0.0, 10, 1), rec(30.0, 3, 2))
+        assertTrue(
+            PersonalRecords.detect(rec(30.0, 5, 3), prior, LoadClass.BODYWEIGHT_ASSISTED).isEmpty(),
+        )
+    }
+
+    @Test
+    fun anAssistedRuleDoesNotLeakIntoTheOtherRepsClasses() {
+        // Bodyweight and vest lifts read the same weight column as ADDED load, where more is
+        // harder. Gating their rep records on "some earlier set used at least this much" would
+        // deny a bodyweight PR to anyone whose first set was heavier.
+        assertEquals(
+            setOf(PersonalRecordKind.REPS),
+            PersonalRecords.detect(rec(0.0, 9, 2), listOf(rec(0.0, 8, 1)), LoadClass.BODYWEIGHT),
+        )
+        assertTrue(
+            PersonalRecordKind.REPS in
+                PersonalRecords.detect(rec(20.0, 9, 2), listOf(rec(10.0, 8, 1)), LoadClass.BODYWEIGHT_ADDED),
+        )
+    }
+
+    @Test
     fun aLoadedLiftIsUntouched() {
         val prior = listOf(rec(100.0, 5, 1))
         val broken = PersonalRecords.detect(rec(110.0, 5, 2), prior, LoadClass.LOADED)

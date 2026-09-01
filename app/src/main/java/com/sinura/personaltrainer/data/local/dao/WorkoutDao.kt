@@ -300,6 +300,13 @@ interface WorkoutDao {
     /**
      * Standing bests before [completedAt] for one lift. Includes earlier
      * sets of the in-progress [sessionId] so a work-up cannot beat itself.
+     *
+     * `priorSetsAtEqualOrMoreAssistance` is read only for assisted lifts, where
+     * `weightKg` is machine help: a rep count bought by turning the assistance up
+     * is not a record, so a rep record also requires that some earlier set was
+     * done at no less help than this one. The `>=` is deliberate and is not a typo
+     * for the `=` on the line above, which answers a different question for loaded
+     * work.
      */
     @Query(
         """
@@ -307,6 +314,9 @@ interface WorkoutDao {
                MAX(sl.weightKg) AS maxWeightKg,
                MAX(sl.reps) AS maxReps,
                MAX(CASE WHEN sl.weightKg = :weightKg THEN sl.reps ELSE NULL END) AS maxRepsAtWeight,
+               COUNT(
+                 CASE WHEN sl.weightKg >= :weightKg THEN 1 ELSE NULL END
+               ) AS priorSetsAtEqualOrMoreAssistance,
                MAX(
                  CASE
                    WHEN sl.weightKg <= 0 THEN NULL

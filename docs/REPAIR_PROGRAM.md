@@ -300,8 +300,11 @@ every reps-are-the-measure class without comparing the assistance.
    before the block start.
 2. Resolve the load class in `DeloadSignal` and use negated assistance as
    the strength proxy (or exclude assisted lifts from the top-three).
-3. For `BODYWEIGHT_ASSISTED`, count a rep record only at equal-or-less
-   assistance; extend `recordPriorsBefore` with the matching aggregate.
+3. For `BODYWEIGHT_ASSISTED`, ~~count a rep record only at equal-or-less
+   assistance~~ **keep the all-time rep count as the bar and gate it on
+   having trained at this assistance or easier before**; extend
+   `recordPriorsBefore` with the matching aggregate. (See *Floor findings*,
+   2026-09-01.)
 
 **Proof.** Three tests, each red today: a pre-block best suppresses the
 in-block "record"; an improving assisted lift vetoes the deload card; more
@@ -1374,6 +1377,30 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-01 — A6, the assisted rep rule.** The plan said "count a rep
+record only at equal-or-less assistance", which reads as *replacing* the bar
+— compare the candidate only against sets done at equal-or-more help. Coded
+literally that awards a record to five reps at 30 kg of assistance from
+someone who has done ten unassisted, because the only comparable set was a
+three-rep one at the same help. The bar stays the all-time rep count, and
+the assistance clause becomes a second condition on top of it: a rep record
+needs more reps than ever before **and** at least one earlier set done at no
+less help than this one. Both cases in the symptom now answer correctly, and
+`theRepCountStillHasToBeTheHighestEverNotJustTheHighestAtThisHelp` pins the
+one the literal reading got wrong. The aggregate is therefore a COUNT of
+qualifying prior sets rather than a MAX of their reps.
+
+**2026-09-01 — A6, bodyweight lifts in the deload signal.** Not in the
+packet, same cause, so it is fixed here rather than left for a packet that
+does not exist. `DeloadSignal` scored every set with an Epley estimate from
+`SetLog.weightKg`; on a bare bodyweight lift that column is zero, so the
+estimate was null for every push-up and pull-up, `comparable` never reached
+one, and the rule returned null before it could fire. The deload card was
+silently switched off for anyone training without a bar. `strengthOf` now
+answers per load class — kilograms for loaded and vest work, reps for
+bodyweight, and least-help-then-most-reps for assisted — so the "at least
+one comparable lift" guard means what it says for every lift.
 
 **2026-09-01 — A5.** The plan said "drop CORE from `neglectedMuscles`". The
 code disagreed, so the code won. `coreCoverageGap` and `neglectedMuscles`
