@@ -10,6 +10,9 @@ re-verified against source and the pound-progression row was reproduced by
 simulation. It supersedes the 29 August ledger's deferred queue as the work
 list; the ledger's FIXED and "verified sound" rows still stand.
 
+The packet-by-packet plan that works through it is
+[REPAIR_PROGRAM.md](REPAIR_PROGRAM.md).
+
 ## Current foundation audit — 23 August 2026
 
 The canonical, repository-contained review of the current app and agreed fitness-platform
