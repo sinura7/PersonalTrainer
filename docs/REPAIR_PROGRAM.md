@@ -267,9 +267,10 @@ renders null as "no logged work". `CoachBasisTest` passes because it feeds
 
 **Change.** Pass `lastLoggedAtByExerciseId` and the catalog into
 `coachBasis` and overlay `MuscleRecency.byMuscle` onto the basis, mirroring
-`rememberLifetimeRecency`. While in the file, drop CORE from
-`neglectedMuscles` so it stops producing two Coverage cards for the same
-gap with `coreCoverageGap`.
+`rememberLifetimeRecency`. While in the file, ~~drop CORE from
+`neglectedMuscles`~~ **invert the `coreCoverageGap` guard** so it stops
+producing two Coverage cards for the same gap (see *Floor findings*,
+2026-09-01).
 
 **Proof.** A `TrainingInsightsCalculator` test with a 40-day-old session
 absent from the window but present in the recency map: the card must read
@@ -1371,5 +1372,22 @@ The program is complete when all of the following hold:
 
 ## Floor findings
 
-*(Empty. Every deviation from this plan gets a dated line here, with the old
-line struck and the reason given.)*
+*Every deviation from this plan gets a dated line here, with the old line
+struck and the reason given.*
+
+**2026-09-01 — A5.** The plan said "drop CORE from `neglectedMuscles`". The
+code disagreed, so the code won. `coreCoverageGap` and `neglectedMuscles`
+were duplicates only because they fired on the same condition: the guard
+read `if (days != null && days < NEGLECT_DAYS) return null`, so the coverage
+card fired for core at or past the neglect threshold and for core with no
+history at all — precisely the two cases the neglect card already names, in
+its own better words, quoting the actual number of days. Dropping CORE from
+the neglect list would have kept the duplication and lost the good sentence.
+Inverting the guard to `if (days == null || days >= NEGLECT_DAYS) return
+null` makes the two cards complementary instead: neglect covers everything
+at or past the threshold, and coverage keeps the one case neglect cannot
+see — core trained recently enough to escape the threshold with no *direct*
+core work in the basis, which is what a plank logged with no reps, or a
+warm-up, produces. Core stays in `neglectedMuscles`, which is where the
+honest sentence lives. Three tests pin it
+(`RecommendationEngineTest.coreCoverage*`); there were none before.

@@ -33,7 +33,9 @@ fun MuscleLoadCalculator.coachBasis(
     nowMs: Long,
     zone: ZoneId,
     exerciseCatalog: Map<String, Exercise> = emptyMap(),
-): CoachBasis = coachBasis(sessions, nowMs, JvmTime, zone.id, exerciseCatalog)
+    lastTrainedByMuscle: Map<CanonicalMuscle, Long> = emptyMap(),
+): CoachBasis =
+    coachBasis(sessions, nowMs, JvmTime, zone.id, exerciseCatalog, lastTrainedByMuscle)
 
 fun MuscleLoadCalculator.daysSince(
     lastTrainedAtMs: Long?,

@@ -258,7 +258,13 @@ object RecommendationEngine {
         val core = inputs.basis.load(CanonicalMuscle.CORE)
         if (core.weeklySets > 0.0) return null
         val days = core.daysSinceLastTrained
-        if (days != null && days < NEGLECT_DAYS) return null
+        // Complementary to neglectedMuscles, not a second copy of it. That list already
+        // names any muscle at or past NEGLECT_DAYS — core included — so firing here on the
+        // same condition produced two COVERAGE cards for one gap, both naming the same
+        // lift, out of a budget of five. What it cannot see is core trained recently enough
+        // to escape the threshold with no DIRECT core work in the basis: a warm-up, or a
+        // credit that carried no stimulus. That case is this card's whole job.
+        if (days == null || days >= NEGLECT_DAYS) return null
         val lift = resolveLift(CanonicalMuscle.CORE, inputs)
         return card(
             id = "coverage-core",
