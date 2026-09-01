@@ -116,6 +116,35 @@ class BackupEnvelopeTest {
         }
     }
 
+    @Test
+    fun aCommittedV1FixtureStillOpens() {
+        // The regression guard the format did not have. Every other test here wraps and
+        // unwraps with the same build, so the whole suite would stay green while a change to
+        // the header, the AAD string or the KDF parameters quietly orphaned every backup file
+        // already on the owner's phone and in their Drive.
+        //
+        // This envelope was generated OUTSIDE this class, from the documented format, with a
+        // fixed salt and nonce so it is a constant rather than a fresh random file. It must
+        // decrypt byte for byte, forever, on every future build that still claims to read v1.
+        assertEquals(PLAINTEXT, BackupEnvelope.unwrap(V1_FIXTURE, PASSWORD))
+        assertEquals(PLAINTEXT, BackupEnvelope.open(V1_FIXTURE, PASSWORD))
+    }
+
+    @Test
+    fun theTagIsBoundToTheEnvelopeVersionItIsGiven() {
+        // The mechanism behind the fixture, asserted where it cannot drift. The tag covers the
+        // envelope version, so unwrap has to compute it from the version IN THE FILE. Reading
+        // it from the ENVELOPE_VERSION constant works only until that constant moves — and the
+        // day it moves to 2, every v1 file fails its AEAD check and the owner is told "that
+        // password doesn't open this file" about a backup that is perfectly intact.
+        assertNotEquals(
+            String(BackupEnvelope.aad(1, TEST_ITERATIONS)),
+            String(BackupEnvelope.aad(2, TEST_ITERATIONS)),
+        )
+        assertTrue(String(BackupEnvelope.aad(1, TEST_ITERATIONS)).contains("|1|"))
+        assertTrue(String(BackupEnvelope.aad(2, TEST_ITERATIONS)).contains("|2|"))
+    }
+
     private fun expectWrong(fragment: String, block: () -> Unit) {
         try {
             block()
@@ -132,5 +161,26 @@ class BackupEnvelopeTest {
         const val TEST_ITERATIONS = 1_000
         const val PLAINTEXT = """{"version":2,"app":"personal-trainer","sessions":[]}"""
         val PASSWORD = "correct-horse".toCharArray()
+
+        /**
+         * A real v1 envelope over [PLAINTEXT] under [PASSWORD], at [TEST_ITERATIONS].
+         *
+         * Salt and nonce are fixed (01..10 and 40..4b) so this is a committed artefact rather
+         * than something regenerated on each run. Do not "refresh" it: the whole value of the
+         * fixture is that it predates whatever change is being made to the format.
+         */
+        const val V1_FIXTURE = """{
+  "format": "temper-backup-envelope",
+  "envelopeVersion": 1,
+  "app": "personal-trainer",
+  "kdf": "PBKDF2WithHmacSHA256",
+  "iterations": 1000,
+  "keyBytes": 32,
+  "cipher": "AES/GCM/NoPadding",
+  "salt": "AQIDBAUGBwgJCgsMDQ4PEA",
+  "nonce": "QEFCQ0RFRkdISUpL",
+  "ciphertext": "+gM8qcUAA0q1DOvb5sfBu2NKi5V1So2TzqMP9ts1p2b/x0F8VyTc/OkikSuhffM1LS9jS88UM+CwRATnEGJaKJawZ8w"
+}
+"""
     }
 }

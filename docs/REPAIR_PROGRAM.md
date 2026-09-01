@@ -246,9 +246,9 @@ it; and the unlock passphrase (`SettingsViewModel.kt:742-755`) is the one
    password so a future version bump cannot silently orphan every existing
    backup file.
 
-**Proof.** A stage-failure test asserting the journal is closed, the message
-is honest, and a workout can still start; a fixture test decrypting a
-committed v1 envelope.
+**Proof.** ~~A stage-failure test~~ **A `commitFailureMessage` test** asserting
+the message is honest for every phase, plus an orphan-sweep test; a fixture
+test decrypting a committed v1 envelope. (See *Floor findings*, 2026-09-01.)
 
 **Owns.** `data/repository/BackupRepository.kt`,
 `data/backup/RestoreJournalStore.kt`, `data/backup/BackupEnvelope.kt`,
@@ -1379,6 +1379,25 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-01 — A4, where the failure message is decided.** The plan's proof
+was a stage-failure test through `BackupRepository`, which cannot be reached
+without either making `RestoreJournalStore` injectable or flipping a
+directory's permissions between two statements inside one call — and
+`BackupRepository` is Android-coupled, so such a test would be Robolectric
+and unrunnable outside Gradle anyway.
+
+The message policy is a rule, not a repository concern, so it moved to
+`RestoreJournal.commitFailureMessage(phase, reported)` alongside the strings
+it chooses between. `namedCommitFailure` is now a three-line wrapper that
+also closes a STAGED journal — the half that unblocks workout starts without
+a relaunch. The rule is pure, `RestoreJournal.kt` is already in the
+domain-test lane, and the proof therefore *runs in this environment* rather
+than being written and hoped over: reverting it to the old
+pass-the-message-through behaviour fails with `expected:<Restore failed.
+Nothing was changed.> but was:<A restore was interrupted. Temper is finishing
+it from the copy already on this phone.>`, which is the symptom quoted back
+word for word.
 
 **2026-09-01 — A3, where the DONE write lives.** The plan said to route
 `ActivityRepository`'s two DONE writes through

@@ -743,14 +743,23 @@ class SettingsViewModel @JvmOverloads constructor(
         val raw = pendingCiphertext ?: return
         val name = pendingCipherName ?: return
         runBackupAction("Checking backup…") {
-            pendingPlan.value = container.backupRepository.prepareRestore(
-                raw,
-                sourceName = name,
-                password = password.toCharArray(),
-            )
-            pendingCiphertext = null
-            pendingCipherName = null
-            dialogs.value = BackupDialogs()
+            // The one passphrase in this file that was never wiped. Every other CharArray here
+            // is cleared in a finally; this one was handed to prepareRestore and dropped, so a
+            // wrong password left the owner's real passphrase readable on the heap for as long
+            // as the array survived — and a wrong password is the case that repeats.
+            val secret = password.toCharArray()
+            try {
+                pendingPlan.value = container.backupRepository.prepareRestore(
+                    raw,
+                    sourceName = name,
+                    password = secret,
+                )
+                pendingCiphertext = null
+                pendingCipherName = null
+                dialogs.value = BackupDialogs()
+            } finally {
+                secret.fill('\u0000')
+            }
         }
     }
 
