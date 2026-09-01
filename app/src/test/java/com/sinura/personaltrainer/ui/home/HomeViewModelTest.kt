@@ -274,8 +274,12 @@ class HomeViewModelTest {
         val leftover = deps.plannerRepository.occurrencesBetween(yesterday, yesterday).single()
         val enabled = deps.plannerRepository.rules().first { it.id == leftover.ruleId }.enabled
         viewModel!!.skipOccurrence(leftover.id)
-        dispatcher.scheduler.advanceUntilIdle()
-        assertEquals(OccurrenceStatus.SKIPPED, deps.plannerRepository.getOccurrence(leftover.id)!!.status)
+        val skipped = withTimeout(5_000) {
+            deps.plannerRepository.observeOccurrences().first { rows ->
+                rows.any { it.id == leftover.id && it.status == OccurrenceStatus.SKIPPED }
+            }.first { it.id == leftover.id }
+        }
+        assertEquals(OccurrenceStatus.SKIPPED, skipped.status)
         assertEquals(
             enabled,
             deps.plannerRepository.rules().first { it.id == leftover.ruleId }.enabled,

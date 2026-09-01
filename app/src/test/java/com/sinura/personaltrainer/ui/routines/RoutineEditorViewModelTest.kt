@@ -212,10 +212,11 @@ class RoutineEditorViewModelTest {
         val vm = createViewModel("new")
         vm.uiState.first { !it.isLoading }
         vm.saveAndLeave()
-        dispatcher.scheduler.advanceUntilIdle()
         assertFalse(vm.exitRequested.value)
-        eventually { vm.uiState.value.error }
-        assertEquals(SessionOrderCopy.NEED_A_LIFT, vm.uiState.value.error)
+        assertEquals(
+            SessionOrderCopy.NEED_A_LIFT,
+            vm.uiState.first { it.error == SessionOrderCopy.NEED_A_LIFT }.error,
+        )
         assertTrue(deps.routineRepository.observeAll().first().isEmpty())
     }
 
