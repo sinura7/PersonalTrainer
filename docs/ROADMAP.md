@@ -15,10 +15,16 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 1 Sep 2026 — Obtainium live test 17 (`debugLiveCode` 17, tag
+> `debug-live-2026-09-01-2`): keyed catalog stills on the phone
+> (Library thumbs are the Brokenout WebPs). Pull Obtainium on
+> Temper Debug. [ADR-022](architecture/ADR-022-keyed-catalog-stills.md).
+>
 > 1 Sep 2026 — Keyed catalog stills: one WebP per built-in lift,
 > `imageKey` written at catalog v7. Family stills stay the fallback
 > for customs. Body unlit/heat unchanged. Gym-station photo
 > portfolios wait. [ADR-022](architecture/ADR-022-keyed-catalog-stills.md).
+> Live test 17 is the Obtainium drop.
 >
 > 1 Sep 2026 — Obtainium live test 16 (`debugLiveCode` 16): Home row
 > starts the planned session (confirm); filled Volt is Start a workout;

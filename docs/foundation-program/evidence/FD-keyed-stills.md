@@ -20,6 +20,8 @@ Packet: one still per built-in lift, keyed by `imageKey`.
 - `tools/preflight.sh` — OK (1070 domain tests)
 - `./gradlew testDebugUnitTest` — 1601 tests, 0 failures
 - `./gradlew assembleDebug` — SUCCESS
+- Obtainium drop: live test 17, tag `debug-live-2026-09-01-2`,
+  versionCode 17 (`1.0.0+debug.17`)
 
 ## Known limitations
 
