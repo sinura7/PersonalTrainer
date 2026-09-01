@@ -48,8 +48,9 @@ class ProgressionBasisAssistedTest {
             lastWeightKg = top.weightKg,
             lastWorkingReps = top.reps,
             targetReps = 8,
-            stepKg = IncrementTable.STEP_KG,
+            displayStep = IncrementTable.STEP_KG,
             loadType = LoadType.ASSISTED,
+            unit = WeightUnit.KG,
         )
         assertEquals(ProgressionAction.INCREASE, hint.action)
         assertEquals(10.0, hint.lastWeightKg, 0.001) // basis is the hardest set
@@ -88,8 +89,9 @@ class ProgressionBasisAssistedTest {
             lastWeightKg = top.weightKg,
             lastWorkingReps = top.reps,
             targetReps = 8,
-            stepKg = IncrementTable.STEP_KG,
+            displayStep = IncrementTable.STEP_KG,
             weightMeaning = WeightMeaning.ASSISTANCE,
+            unit = WeightUnit.KG,
         )
         assertEquals(22.5, suggestion, 0.001) // more help for someone who is failing
     }
