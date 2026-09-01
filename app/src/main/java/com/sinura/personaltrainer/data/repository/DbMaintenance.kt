@@ -102,9 +102,10 @@ class DbMaintenance(private val database: AppRoomDatabase) {
                     equipment = seed.equipment.name,
                     loadType = seed.loadType.name,
                     movementKey = seed.movementKey,
+                    imageKey = seed.imageKey,
                     nameKey = nameKey,
-                    // notes, isCustom and imageKey are deliberately preserved: notes may hold
-                    // the owner's own cues, and imageKey is written by a later phase.
+                    // notes and isCustom stay: notes may hold the owner's own cues.
+                    // Built-in imageKey is the catalog still; customs keep whatever they have.
                 ) ?: ExerciseEntity(
                     id = seed.id,
                     name = seed.name,
@@ -114,7 +115,7 @@ class DbMaintenance(private val database: AppRoomDatabase) {
                     equipment = seed.equipment.name,
                     loadType = seed.loadType.name,
                     movementKey = seed.movementKey,
-                    imageKey = null,
+                    imageKey = seed.imageKey,
                     nameKey = nameKey,
                 )
                 // Update-or-insert, deliberately NOT INSERT OR REPLACE: `exercises` is the

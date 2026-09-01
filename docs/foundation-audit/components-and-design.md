@@ -125,6 +125,10 @@ No keyed-art loader for the documented `imageKey` hook is implemented. That is n
 defect because the product deliberately uses generated anatomy, but it should not be
 described as an existing asset extension point.
 
+**Update 1 Sep 2026:** [ADR-022](../architecture/ADR-022-keyed-catalog-stills.md)
+ships the loader. Built-ins resolve through `keyedArtwork`; customs still
+fall back to family / unlit stills.
+
 ### 4.5 Visualization and brand
 
 | Component | Responsibility | Review |

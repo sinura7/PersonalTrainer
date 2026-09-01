@@ -240,6 +240,12 @@ universal 3 × 5.
 
 **Won't.** Library as a fifth tab. Merging custom history into a built-in id.
 
+**Shipped (1 Sep 2026).** Built-in thumbs are the keyed still
+(`imageKey` = frozen id with hyphens → underscores). Customs fall
+back to the family still. Body unlit/heat stills are unchanged. Not
+gym-station photo portfolios
+([ADR-022](architecture/ADR-022-keyed-catalog-stills.md)).
+
 ### 8 — Body · **done** (this pass)
 
 **Job.** Heat + hole.

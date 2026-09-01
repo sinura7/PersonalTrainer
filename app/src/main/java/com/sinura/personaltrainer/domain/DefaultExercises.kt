@@ -20,6 +20,8 @@ data class SeedExercise(
     val loadType: LoadType,
     val movementKey: String?,
     val credits: List<MuscleCredit>,
+    /** Drawable name: frozen id with hyphens turned to underscores. */
+    val imageKey: String = id.replace('-', '_'),
 )
 
 /**
@@ -35,9 +37,13 @@ data class SeedExercise(
  * There is one movementKey vocabulary in this app and this is it; the library's family grouping
  * and sibling-swap ride on these exact strings, so they are shipped correct here rather than
  * re-keyed later on data that has already migrated.
+ *
+ * v7 writes [SeedExercise.imageKey] on every built-in (drawable name = frozen id with
+ * hyphens turned to underscores). No new lifts. Family stills stay the fallback for
+ * customs. Body unlit/heat stills are not this bump.
  */
 object DefaultExercises {
-    const val CATALOG_VERSION = 6
+    const val CATALOG_VERSION = 7
 
     /**
      * The family vocabulary. Batch 1 shipped 23 families and batch 2 adds three; a later batch

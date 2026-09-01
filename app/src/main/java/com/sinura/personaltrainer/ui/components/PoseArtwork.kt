@@ -13,10 +13,10 @@ import com.sinura.personaltrainer.R
 import kotlin.math.roundToInt
 
 /**
- * The locked 18-still pack — the ChatGPT pictures, shipped.
+ * The locked 18-still pack — family fallback plus Body unlit/heat.
  *
- * One still per lift family plus unlit/heat front and back. Catalog rows do
- * not get their own `imageKey`. Unknown families stand on the unlit figure
+ * Catalog rows resolve through [keyedArtwork] first. Unknown families and
+ * customs stand on these stills: one pose per family, or the unlit figure
  * of the view [thumbViewFor] already picked.
  *
  * Body live heat paints on the unlit front/back stills. Bind once from

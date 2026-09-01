@@ -1,5 +1,13 @@
 # Silhouette imagery — 27 Aug 2026
 
+> **Superseded in part on 1 Sep 2026.** Catalog `imageKey` is no longer
+> null. One keyed still per built-in lift
+> ([ADR-022](../../architecture/ADR-022-keyed-catalog-stills.md),
+> [FD-keyed-stills.md](FD-keyed-stills.md)). The 18-still family pack
+> remains the fallback. Body still uses the unlit/heat stills. The
+> “not 101 catalog PNGs / `imageKey` stays null” line below is
+> historical for *this* packet.
+
 Library thumbs are the locked 18-still pack. Those pictures ship. They are
 not traced into a second drawing.
 

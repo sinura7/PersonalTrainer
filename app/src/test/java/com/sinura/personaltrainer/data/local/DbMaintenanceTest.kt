@@ -209,9 +209,16 @@ class DbMaintenanceTest {
         val survivor = all.single { it.id == "custom-1" }
         assertEquals("keep this", survivor.notes)
         assertTrue(survivor.isCustom)
+        assertEquals("a custom keeps a null imageKey", null, survivor.imageKey)
 
         // A batch-3 row is present, which is the whole point of the bump.
         assertNotNull(all.firstOrNull { it.id == "ex-hip-abduction-machine" })
+
+        // v7 writes the keyed still name onto built-ins that sat at null.
+        assertEquals(
+            "ex_barbell_back_squat",
+            all.single { it.id == "ex-barbell-back-squat" }.imageKey,
+        )
 
         // And a second run changes nothing.
         maintenance.seedCatalog()
@@ -283,6 +290,7 @@ class DbMaintenanceTest {
         assertEquals("belt above 100", row.notes)
         assertTrue("the row must still claim to be the user's", row.isCustom)
         assertNotEquals(seed.name, row.name)
+        assertEquals("a custom on a built-in id keeps its imageKey", null, row.imageKey)
 
         // It is still reconciled as a custom row: nameKey normalized from ITS name, not the
         // built-in's, and credits derived from the muscle group the user picked.
