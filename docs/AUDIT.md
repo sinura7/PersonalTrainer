@@ -1,5 +1,15 @@
 # Audits
 
+## Current full-tree audit — 1 September 2026
+
+The ranked defect list, optimization queue, and front-end design plan for the
+tree at live test 17 are
+[`foundation-program/evidence/FD-audit-2026-09-01.md`](foundation-program/evidence/FD-audit-2026-09-01.md).
+Ten independent passes plus a lead verification pass; every P1 row was
+re-verified against source and the pound-progression row was reproduced by
+simulation. It supersedes the 29 August ledger's deferred queue as the work
+list; the ledger's FIXED and "verified sound" rows still stand.
+
 ## Current foundation audit — 23 August 2026
 
 The canonical, repository-contained review of the current app and agreed fitness-platform
