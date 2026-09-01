@@ -153,6 +153,24 @@ class ExerciseThumbLogicTest {
     }
 
     @Test
+    fun everyBuiltInImageKeyHasAKeyedStill() {
+        val catalogKeys = DefaultExercises.catalog().map { it.imageKey }.toSet()
+        assertEquals(
+            "two built-ins share an imageKey",
+            DefaultExercises.catalog().size,
+            catalogKeys.size,
+        )
+        assertEquals(catalogKeys, KEYED_STILL_KEYS)
+    }
+
+    @Test
+    fun unknownOrBlankImageKeysDoNotResolve() {
+        assertEquals(null, keyedArtwork(null))
+        assertEquals(null, keyedArtwork(""))
+        assertEquals(null, keyedArtwork("ex_not_a_lift"))
+    }
+
+    @Test
     fun everyBuiltInLiftResolvesToARealMuscleAndALitRegion() {
         // The catalog-wide check: 98 lifts, and not one of them may render as a blank body.
         DefaultExercises.catalog().forEach { seed ->

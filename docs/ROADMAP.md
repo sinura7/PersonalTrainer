@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 1 Sep 2026 — Keyed catalog stills: one WebP per built-in lift,
+> `imageKey` written at catalog v7. Family stills stay the fallback
+> for customs. Body unlit/heat unchanged. Gym-station photo
+> portfolios wait. [ADR-022](architecture/ADR-022-keyed-catalog-stills.md).
+>
 > 1 Sep 2026 — Obtainium live test 16 (`debugLiveCode` 16): Home row
 > starts the planned session (confirm); filled Volt is Start a workout;
 > Add under Today with just-today vs weekly; Skip on Still open; Plan

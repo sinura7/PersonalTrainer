@@ -16,10 +16,22 @@ import org.junit.Test
 class DefaultExercisesTest {
 
     @Test
-    fun catalogHasExactly129EntriesAtVersion6() {
+    fun catalogHasExactly129EntriesAtVersion7() {
         // Batch 1 (37) + batch 2 (33) + batch 3 (28) + batch 4 (3) + batch 5 (28 Hyper Pro).
+        // v7 is the keyed-still write, not a sixth batch.
         assertEquals(129, DefaultExercises.catalog().size)
-        assertEquals(6, DefaultExercises.CATALOG_VERSION)
+        assertEquals(7, DefaultExercises.CATALOG_VERSION)
+    }
+
+    @Test
+    fun everyImageKeyIsTheFrozenIdWithHyphensTurnedToUnderscores() {
+        DefaultExercises.catalog().forEach { seed ->
+            assertEquals(
+                "${seed.id} imageKey drifted from the frozen id",
+                seed.id.replace('-', '_'),
+                seed.imageKey,
+            )
+        }
     }
 
     @Test

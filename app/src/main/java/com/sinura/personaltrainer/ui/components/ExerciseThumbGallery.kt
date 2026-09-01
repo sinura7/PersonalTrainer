@@ -102,6 +102,7 @@ private fun fromSeed(seed: SeedExercise): Exercise = Exercise(
     equipment = seed.equipment,
     loadType = seed.loadType,
     movementKey = seed.movementKey,
+    imageKey = seed.imageKey,
     muscles = seed.credits,
 )
 

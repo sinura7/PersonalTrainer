@@ -35,15 +35,15 @@ import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 
 /**
- * The catalog's pictures: the locked 18-still pack, not a second drawing of them.
+ * The catalog's pictures: one keyed still per built-in lift, family still as fallback.
  *
  * Every exercise row has been reserving a 40dp square since the redesign. A known
- * [Exercise.movementKey] shows that family's still. Customs and unknown families
- * stand on the unlit front or back still. The equipment badge stays the second read.
+ * [Exercise.imageKey] shows that lift's still. Customs and unknown keys fall back
+ * to the family's still, then the unlit front or back figure. The equipment badge
+ * stays the second read.
  *
- * **Identity, not state.** Heat is baked into the family stills. Live weekly heat
- * stays the Body tab's job. `imageKey` remains null on catalog rows — the pack is
- * keyed by family, not 101 files.
+ * **Identity, not state.** Heat is baked into the stills. Live weekly heat stays
+ * the Body tab's job.
  */
 object ThumbSize {
     val row = 40.dp
@@ -129,7 +129,7 @@ internal fun thumbMuscles(exercise: Exercise): Pair<CanonicalMuscle, Set<Canonic
 }
 
 /**
- * One lift: the family's still, plus the equipment badge.
+ * One lift: its keyed still when we have one, else the family still, plus the badge.
  *
  * Decorative by construction: every surface that shows this already names the lift
  * beside it, so the thumb clears its semantics rather than reading a second, worse
@@ -144,6 +144,7 @@ fun ExerciseThumb(
     val (primary, _) = thumbMuscles(exercise)
     val view = thumbViewFor(primary)
     val pose = poseFor(exercise.movementKey)
+    val art = keyedArtwork(exercise.imageKey) ?: artworkFor(pose = pose, view = view)
     val shape = RoundedCornerShape(Radius.xs)
     Box(
         modifier = modifier
@@ -155,7 +156,7 @@ fun ExerciseThumb(
         contentAlignment = Alignment.Center,
     ) {
         Image(
-            painter = painterResource(artworkFor(pose = pose, view = view)),
+            painter = painterResource(art),
             contentDescription = null,
             modifier = Modifier
                 .fillMaxSize()

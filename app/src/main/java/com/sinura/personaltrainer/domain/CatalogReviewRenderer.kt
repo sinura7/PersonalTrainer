@@ -41,6 +41,7 @@ object CatalogReviewRenderer {
         builder.appendLine("- Every secondary weight is in (0, 0.5], and the secondaries of one lift sum to at most 1.0.")
         builder.appendLine("- Every `muscleKey` is exactly `CanonicalMuscle.name.lowercase()` — `quadriceps`, never `quads`.")
         builder.appendLine("- Every `movementKey` comes from the closed family vocabulary; ids are frozen and never re-slugged.")
+        builder.appendLine("- Every `imageKey` is the frozen id with hyphens turned to underscores.")
         builder.appendLine("- `v1 muscleGroup` is unchanged from v1 and survives as display text; the `Gained` column is what v2 added.")
         builder.appendLine()
         builder.appendLine(
