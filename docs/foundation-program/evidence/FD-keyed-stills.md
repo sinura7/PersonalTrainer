@@ -17,9 +17,9 @@ Packet: one still per built-in lift, keyed by `imageKey`.
 
 ## Commands
 
-- `tools/preflight.sh`
-- `./gradlew testDebugUnitTest`
-- `./gradlew assembleDebug`
+- `tools/preflight.sh` — OK (1070 domain tests)
+- `./gradlew testDebugUnitTest` — 1601 tests, 0 failures
+- `./gradlew assembleDebug` — SUCCESS
 
 ## Known limitations
 
