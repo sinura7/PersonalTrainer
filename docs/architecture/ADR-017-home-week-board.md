@@ -6,7 +6,9 @@
   replaces one-tap Home Start with confirm-then-start; the start tag
   prefers a workout over an auxiliary pack. 31 August 2026 —
   [ADR-020](ADR-020-warmup-extras.md) hides clocks, adds warm-up packs,
-  Home Add extra (once), and Up / Down order.
+  Home Add extra (once), and Up / Down order. 1 September 2026 —
+  [ADR-021](ADR-021-home-start-and-day-add.md) moves Home's filled Volt
+  to Start a workout and Home add under Today with a keep choice.
 - **Supersedes:** [ADR-016](ADR-016-settings-home-trim.md) §5 (reminders
   live on Plan Tune) and §7 (Home must not show a week strip);
   [ADR-015](ADR-015-plan-day-blocks.md) §5 only to the extent that
@@ -41,10 +43,13 @@ set on the day.
    masthead. Default selected day is today. The masthead date follows
    the selected day. The board lists that day’s occurrences
    (`DailyAgenda.forDay`) — workout, cardio, and auxiliary as separate
-   rows. Volt names the next undone planned block (first strength
+   rows.    Volt names the next undone planned block (first strength
    preferred). **[ADR-018](ADR-018-home-start-confirm.md):** Volt and
    planned rows open a confirm; they do not start until confirm. Start
    tag prefers a non-aux workout over Stretch. Free workout stays quiet.
+   **[ADR-021](ADR-021-home-start-and-day-add.md):** planned rows (with
+   a trailing Start) open that confirm; Home's filled Volt is
+   **Start a workout**. Add sits under Today.
    One live activity still blocks a second start. This week / Library /
    Goals / a training-calendar *link* stay gone. The strip is a day
    picker, not a second tab bar.

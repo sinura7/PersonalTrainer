@@ -47,6 +47,10 @@ order the day.
    the rule so the generator skips later weeks. Plan remains the weekly
    author. A later Plan add of the same pack on that weekday creates
    (or reuses) an enabled rule.
+   **[ADR-021](ADR-021-home-start-and-day-add.md):** Home add is an
+   **Add** row under Today (workout / cardio / extra). After the pick,
+   Home asks just-today vs every this weekday. Just-today is this once
+   path. Plan add stays weekly.
 
 4. **Clocks stay in the model and leave the floor.** Defaults remain
    07:00 cardio, 18:00 imported strength, +2h later. Reminders still
@@ -70,10 +74,14 @@ order the day.
 - GitHub-hosted runners remain not a test lane.
 - Same-day extras that were only meant for today must be added from
   Home (or deleted from Plan if they were added as weekly by mistake).
+  **[ADR-021](ADR-021-home-start-and-day-add.md):** Home can also add a
+  workout or cardio as just-today.
 
 ## Review questions
 
 - May we seed golf-specific catalog rows? No.
 - Is a golf warm-up a cardio block? No. Exercises only.
-- Does adding Stretch from Home make it every Tuesday? No. Home is once.
+- Does adding Stretch from Home make it every Tuesday? No. Home is once
+  unless they pick Every {weekday}
+  ([ADR-021](ADR-021-home-start-and-day-add.md)).
 - Do reminders still use stored hours? Yes. The hours are not shown.

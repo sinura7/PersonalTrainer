@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -20,6 +23,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.AgendaItem
+import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.HomeToday
 import com.sinura.personaltrainer.domain.MoveToToday
 import com.sinura.personaltrainer.domain.OccurrenceStatus
@@ -37,27 +41,21 @@ import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
-import com.sinura.personaltrainer.ui.plan.AuxiliaryPackList
-import com.sinura.personaltrainer.ui.plan.ReorderRow
+import com.sinura.personaltrainer.ui.plan.DayAddPicker
+import com.sinura.personaltrainer.ui.plan.DayPicker
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
+import com.sinura.personaltrainer.ui.theme.Volt
 
 /**
  * Today's occurrences — Home's only today-surface when the planner
  * generated any row (P7.5). ThisWeekCard is the empty-agenda leftover.
  *
- * Morning cardio, a main lift session, and later accessory work are
- * separate rows. Completing one does not start or hide the other. One
- * live activity still blocks a second start. One filled Volt names the
- * next planned row (workout preferred over Stretch); every planned row
- * — including that one — opens a confirm with the session summary.
- * A leftover from an earlier day confirms as Do it today, which moves
- * it here then starts. Strength rows speak the same numbered order Plan
- * and the editor already built.
- *
- * The group is the list. Start sits under it so a card does not wrap a card.
+ * Planned rows start that session (confirm). The filled Volt is
+ * Start a workout (freestyle). Add sits under the last planned row.
+ * Still open leftovers can skip (ADR-021).
  */
 @Composable
 fun DailyAgendaCard(
@@ -69,18 +67,20 @@ fun DailyAgendaCard(
     kicker: String = "Today",
     stillOpen: List<AgendaItem> = emptyList(),
     today: Long = com.sinura.personaltrainer.domain.todayEpochDay(),
+    epochDay: Long = today,
     quietStart: Boolean = false,
     canEditDay: Boolean = false,
     onMoveOccurrence: (String, Int) -> Unit = { _, _ -> },
-    onAddExtra: () -> Unit = {},
-    pickingExtra: Boolean = false,
-    onPickExtra: (String) -> Unit = {},
-    onCancelExtra: () -> Unit = {},
+    onSkipOccurrence: (String) -> Unit = {},
+    onAddWorkout: (String, Boolean) -> Unit = { _, _ -> },
+    onNewWorkout: (Boolean) -> Unit = {},
+    onAddCardio: (CardioType, Boolean) -> Unit = { _, _ -> },
+    onAddAux: (String, Boolean) -> Unit = { _, _ -> },
 ) {
-    val startTagId = HomeToday.startTagOccurrenceId(items, stillOpen)
     val catalog = items + stillOpen
-    val startItem = catalog.firstOrNull { it.occurrence.id == startTagId }
     var pendingOccurrenceId by rememberSaveable { mutableStateOf<String?>(null) }
+    var picking by rememberSaveable(epochDay) { mutableStateOf(DayPicker.NONE.name) }
+    val picker = runCatching { DayPicker.valueOf(picking) }.getOrNull() ?: DayPicker.NONE
     val pendingItem = catalog.firstOrNull { item ->
         item.occurrence.id == pendingOccurrenceId && canOpenStart(item, today)
     }?.takeUnless { sessionLive }
@@ -110,9 +110,15 @@ fun DailyAgendaCard(
         )
     }
 
+    val weekday = Weekday.fromEpochDay(epochDay)
+    val hasStrength = items.any { item ->
+        val modality = item.rule?.modality ?: ScheduleModality.STRENGTH
+        modality == ScheduleModality.STRENGTH && !ScheduleKind.isAux(item.rule?.templateId)
+    }
+
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
         Kicker(kicker)
-        if (items.isEmpty() && stillOpen.isEmpty()) {
+        if (items.isEmpty() && stillOpen.isEmpty() && picker == DayPicker.NONE) {
             Text(
                 com.sinura.personaltrainer.domain.PlanDayCopy.EMPTY,
                 style = InstrumentType.body,
@@ -149,6 +155,54 @@ fun DailyAgendaCard(
                 }
             }
         }
+        if (canEditDay && !sessionLive) {
+            if (picker != DayPicker.NONE) {
+                DayAddPicker(
+                    picking = picker,
+                    weekday = weekday,
+                    hasStrength = hasStrength,
+                    occurrences = items,
+                    routines = routines,
+                    askKeep = true,
+                    onPickKind = { picking = it.name },
+                    onCancel = { picking = DayPicker.NONE.name },
+                    onAddWorkout = { id, once ->
+                        picking = DayPicker.NONE.name
+                        onAddWorkout(id, once)
+                    },
+                    onNewWorkout = { once ->
+                        picking = DayPicker.NONE.name
+                        onNewWorkout(once)
+                    },
+                    onAddCardio = { type, once ->
+                        picking = DayPicker.NONE.name
+                        onAddCardio(type, once)
+                    },
+                    onAddAux = { packId, once ->
+                        picking = DayPicker.NONE.name
+                        onAddAux(packId, once)
+                    },
+                )
+            } else {
+                GroupedList {
+                    InstrumentRow(
+                        title = PlanDayCopy.ADD,
+                        subtitle = PlanDayCopy.ADD_SUBTITLE,
+                        modifier = Modifier
+                            .testTag(HomeTags.ADD)
+                            .semantics { contentDescription = PlanDayCopy.ADD },
+                        leading = {
+                            Icon(
+                                Icons.Outlined.Add,
+                                contentDescription = null,
+                                tint = TextSecondary,
+                            )
+                        },
+                        onClick = { picking = DayPicker.KIND.name },
+                    )
+                }
+            }
+        }
         if (stillOpen.isNotEmpty()) {
             Kicker(MoveToToday.STILL_OPEN)
             Text(
@@ -172,6 +226,7 @@ fun DailyAgendaCard(
                         lastIndex = stillOpen.lastIndex,
                         onMove = { _, _ -> },
                         onOpen = { pendingOccurrenceId = item.occurrence.id },
+                        onSkip = { onSkipOccurrence(item.occurrence.id) },
                     )
                 }
             }
@@ -183,74 +238,21 @@ fun DailyAgendaCard(
                 color = TextPrimary,
             )
         } else {
-            startItem?.takeIf { canOpenStart(it, today) }?.let { item ->
-                val leftover = MoveToToday.isLeftover(item.occurrence, today)
-                val text = if (leftover) "Do ${item.title} today" else "Start ${item.title}"
-                val tagged = Modifier
-                    .testTag(HomeTags.START)
-                    .semantics {
-                        contentDescription = if (leftover) DO_TODAY else PLANNED_SESSION
-                    }
-                if (quietStart) {
-                    SecondaryGymButton(
-                        text = text,
-                        onClick = { pendingOccurrenceId = item.occurrence.id },
-                        modifier = tagged,
-                    )
-                } else {
-                    PrimaryGymButton(
-                        text = text,
-                        onClick = { pendingOccurrenceId = item.occurrence.id },
-                        modifier = tagged,
-                    )
-                }
-            }
-            TextButton(
-                onClick = onStartFree,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = Metrics.touchMin)
-                    .testTag(HomeTags.FREE)
-                    .semantics { contentDescription = SessionOrderCopy.FREE_WORKOUT },
-                contentPadding = PaddingValues(0.dp),
-            ) {
-                Text(
-                    SessionOrderCopy.FREE_WORKOUT,
-                    style = InstrumentType.bodyStrong,
-                    color = TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+            val startModifier = Modifier
+                .testTag(HomeTags.START)
+                .semantics { contentDescription = SessionOrderCopy.FREE_WORKOUT }
+            if (quietStart) {
+                SecondaryGymButton(
+                    text = SessionOrderCopy.FREE_WORKOUT,
+                    onClick = onStartFree,
+                    modifier = startModifier,
                 )
-            }
-            if (canEditDay) {
-                if (pickingExtra) {
-                    AuxiliaryPackList(
-                        usedPackIds = items.mapNotNull {
-                            ScheduleKind.auxPackId(it.rule?.templateId)
-                        }.toSet(),
-                        onPick = onPickExtra,
-                        onCancel = onCancelExtra,
-                        title = PlanDayCopy.ADD_EXTRA,
-                    )
-                } else {
-                    TextButton(
-                        onClick = onAddExtra,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = Metrics.touchMin)
-                            .testTag(HomeTags.ADD_EXTRA)
-                            .semantics { contentDescription = PlanDayCopy.ADD_EXTRA },
-                        contentPadding = PaddingValues(0.dp),
-                    ) {
-                        Text(
-                            PlanDayCopy.ADD_EXTRA,
-                            style = InstrumentType.bodyStrong,
-                            color = TextSecondary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
+            } else {
+                PrimaryGymButton(
+                    text = SessionOrderCopy.FREE_WORKOUT,
+                    onClick = onStartFree,
+                    modifier = startModifier,
+                )
             }
         }
     }
@@ -268,6 +270,7 @@ private fun AgendaRow(
     lastIndex: Int,
     onMove: (String, Int) -> Unit,
     onOpen: () -> Unit,
+    onSkip: (() -> Unit)? = null,
 ) {
     val names = sessionLiftNames(item.rule?.routineId, routines)
     val title = if (leftoverLabel) {
@@ -280,15 +283,49 @@ private fun AgendaRow(
         names,
         item.rule?.modality ?: ScheduleModality.STRENGTH,
     )
+    val canStart = canOpenStart(item, todayEpochDay) && !sessionLive
+    val leftover = MoveToToday.isLeftover(item.occurrence, todayEpochDay)
     Column {
         InstrumentRow(
             title = title,
             subtitle = subtitle,
             modifier = Modifier.testTag(HomeTags.agendaRow(item.occurrence.id)),
-            onClick = if (canOpenStart(item, todayEpochDay) && !sessionLive) onOpen else null,
+            onClick = if (canStart) onOpen else null,
+            trailing = if (canStart) {
+                {
+                    Text(
+                        if (leftover) MoveToToday.DO_IT_TODAY else SessionOrderCopy.START_ROW,
+                        style = InstrumentType.bodyStrong,
+                        color = Volt,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            } else {
+                null
+            },
         )
+        if (onSkip != null && leftover && !sessionLive) {
+            TextButton(
+                onClick = onSkip,
+                contentPadding = PaddingValues(0.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = Metrics.touchMin)
+                    .testTag(HomeTags.skipRow(item.occurrence.id))
+                    .semantics { contentDescription = "${MoveToToday.SKIP} ${item.title}" },
+            ) {
+                Text(
+                    MoveToToday.SKIP,
+                    style = InstrumentType.bodyStrong,
+                    color = TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
         if (showReorder) {
-            ReorderRow(
+            com.sinura.personaltrainer.ui.plan.ReorderRow(
                 title = item.title,
                 occurrenceId = item.occurrence.id,
                 index = index,
@@ -305,6 +342,3 @@ private fun canOpenStart(item: AgendaItem, todayEpochDay: Long): Boolean {
     return status == OccurrenceStatus.MISSED &&
         MoveToToday.isLeftover(item.occurrence, todayEpochDay)
 }
-
-private const val PLANNED_SESSION = "Start today's planned session"
-private const val DO_TODAY = "Do this session today"

@@ -23,7 +23,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.CapturedCivilTime
 import com.sinura.personaltrainer.domain.Exercise
-import com.sinura.personaltrainer.domain.OccurrenceStatus
+import com.sinura.personaltrainer.domain.PlanDayCopy
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineExercise
 import com.sinura.personaltrainer.domain.ScheduleConfidence
@@ -38,6 +38,7 @@ import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.WeekTwoCopy
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.ui.components.ConfirmActionTags
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import org.junit.Rule
@@ -86,11 +87,11 @@ class HomePassInstrumentedTest {
                 onStartFree = {},
             )
         }
-        compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
+        compose.onNodeWithTag(HomeTags.SESSION).assertIsDisplayed()
         compose.onNodeWithContentDescription("Start today's planned session").assertIsDisplayed()
         compose.onNodeWithText("Start this session").assertIsDisplayed()
-        compose.onNodeWithTag(HomeTags.FREE).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Start a free workout").assertIsDisplayed()
+        compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Start a workout").assertIsDisplayed()
     }
 
     @Test
@@ -113,13 +114,13 @@ class HomePassInstrumentedTest {
             )
         }
         compose.onNodeWithText("Start Upper strength?").assertDoesNotExist()
-        compose.onNodeWithTag(HomeTags.START).performClick()
+        compose.onNodeWithTag(HomeTags.SESSION).performClick()
         compose.onNodeWithText("Start Upper strength?").assertIsDisplayed()
         assertLiftLineVisible("1 Squat")
         assertLiftLineVisible("2 Row")
         compose.onNodeWithText("2 lifts · about 13 min", substring = true).assertIsDisplayed()
         org.junit.Assert.assertFalse(started)
-        compose.onNodeWithText("Start").performClick()
+        compose.onNodeWithTag(ConfirmActionTags.CONFIRM).performClick()
         org.junit.Assert.assertTrue(started)
     }
 
@@ -143,6 +144,8 @@ class HomePassInstrumentedTest {
             )
         }
         compose.onNodeWithTag(HomeTags.START).performClick()
+        compose.onNodeWithText("Start Upper strength?").assertDoesNotExist()
+        compose.onNodeWithTag(HomeTags.SESSION).performClick()
         compose.onNodeWithText("Start Upper strength?").assertIsDisplayed()
         compose.onNodeWithText("Cancel").performClick()
         compose.onNodeWithText("Start Upper strength?").assertDoesNotExist()
@@ -162,9 +165,7 @@ class HomePassInstrumentedTest {
             )
         }
         compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Start today's planned session").assertIsDisplayed()
-        compose.onNodeWithTag(HomeTags.FREE).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Start a free workout").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Start a workout").assertIsDisplayed()
         compose.onNodeWithText(SessionOrderCopy.AGENDA_SEPARATE).assertDoesNotExist()
     }
 
@@ -181,8 +182,8 @@ class HomePassInstrumentedTest {
             )
         }
         compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Start today's planned session").assertIsDisplayed()
-        compose.onNodeWithText("Start Push").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Start a workout").assertIsDisplayed()
+        compose.onNodeWithText("Start Push").assertDoesNotExist()
         compose.onNodeWithText("Start Cardio").assertDoesNotExist()
         compose.onNodeWithText(SessionOrderCopy.AGENDA_SEPARATE).assertIsDisplayed()
         compose.onNodeWithText("1 Squat · 2 Row").assertIsDisplayed()
@@ -201,7 +202,7 @@ class HomePassInstrumentedTest {
             )
         }
         compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
-        compose.onNodeWithText("Start Push").assertIsDisplayed()
+        compose.onNodeWithText(SessionOrderCopy.FREE_WORKOUT).assertIsDisplayed()
         compose.onNodeWithText("Start Cardio").assertDoesNotExist()
         compose.onNodeWithText("Start Monday extra").assertDoesNotExist()
         compose.onNodeWithText(SessionOrderCopy.AGENDA_SEPARATE).assertIsDisplayed()
@@ -227,12 +228,12 @@ class HomePassInstrumentedTest {
         compose.onNodeWithText("7 AM", substring = true).assertDoesNotExist()
         compose.onNodeWithContentDescription("Move Cardio down").assertIsDisplayed()
         compose.onNodeWithContentDescription("Move Push up").assertIsDisplayed()
-        compose.onNodeWithTag(HomeTags.ADD_EXTRA).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Add extra").assertIsDisplayed()
+        compose.onNodeWithTag(HomeTags.ADD).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Add").assertIsDisplayed()
     }
 
     @Test
-    fun addExtraOpensTheWarmUpPacks() {
+    fun addUnderTodayOpensWarmUpPacks() {
         setConstrainedContent(fontScale = 1f) {
             DailyAgendaCard(
                 items = listOf(STRENGTH_ITEM),
@@ -242,9 +243,10 @@ class HomePassInstrumentedTest {
                 routines = listOf(PUSH_ROUTINE),
                 today = TODAY,
                 canEditDay = true,
-                pickingExtra = true,
             )
         }
+        compose.onNodeWithTag(HomeTags.ADD).performClick()
+        compose.onNodeWithText(PlanDayCopy.AUXILIARY).performClick()
         compose.onNodeWithText("Golf warm-up").assertIsDisplayed()
         compose.onNodeWithText("Lower-body warm-up").assertIsDisplayed()
         compose.onNodeWithText("Shoulder warm-up").assertIsDisplayed()
@@ -252,7 +254,32 @@ class HomePassInstrumentedTest {
     }
 
     @Test
-    fun emptyDayBoardKeepsFreeAndHidesStart() {
+    fun addUnderTodayAsksJustTodayOrEveryWeekday() {
+        var addedOnce: Boolean? = null
+        setConstrainedContent(fontScale = 1f) {
+            DailyAgendaCard(
+                items = listOf(STRENGTH_ITEM),
+                sessionLive = false,
+                onStartOccurrence = {},
+                onStartFree = {},
+                routines = listOf(PUSH_ROUTINE),
+                today = TODAY,
+                epochDay = TODAY,
+                canEditDay = true,
+                onNewWorkout = { once -> addedOnce = once },
+            )
+        }
+        compose.onNodeWithTag(HomeTags.ADD).performClick()
+        compose.onNodeWithText(PlanDayCopy.WORKOUT).performClick()
+        compose.onNodeWithText(PlanDayCopy.NEW_WORKOUT).performClick()
+        compose.onNodeWithText(PlanDayCopy.JUST_TODAY).assertIsDisplayed()
+        compose.onNodeWithText(PlanDayCopy.everyWeekday(Weekday.fromEpochDay(TODAY))).assertIsDisplayed()
+        compose.onNodeWithText(PlanDayCopy.JUST_TODAY).performClick()
+        org.junit.Assert.assertEquals(true, addedOnce)
+    }
+
+    @Test
+    fun emptyDayBoardKeepsStartAWorkout() {
         setConstrainedContent(fontScale = 1f) {
             DailyAgendaCard(
                 items = emptyList(),
@@ -262,9 +289,25 @@ class HomePassInstrumentedTest {
                 today = TODAY,
             )
         }
-        compose.onNodeWithTag(HomeTags.START).assertDoesNotExist()
-        compose.onNodeWithTag(HomeTags.FREE).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Start a free workout").assertIsDisplayed()
+        compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Start a workout").assertIsDisplayed()
+    }
+
+    @Test
+    fun emptyEditableDayPutsAddUnderToday() {
+        setConstrainedContent(fontScale = 1f) {
+            DailyAgendaCard(
+                items = emptyList(),
+                sessionLive = false,
+                onStartOccurrence = {},
+                onStartFree = {},
+                today = TODAY,
+                canEditDay = true,
+            )
+        }
+        compose.onNodeWithTag(HomeTags.ADD).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Add").assertIsDisplayed()
+        compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
     }
 
     @Test
@@ -336,8 +379,8 @@ class HomePassInstrumentedTest {
         }
         compose.onNodeWithTag(HomeTags.REPLAY).assertIsDisplayed()
         compose.onNodeWithContentDescription(WeekTwoCopy.VOLT).assertIsDisplayed()
-        compose.onNodeWithTag(HomeTags.FREE).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Start a free workout").assertIsDisplayed()
+        compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Start a workout").assertIsDisplayed()
     }
 
     @Test
@@ -360,7 +403,7 @@ class HomePassInstrumentedTest {
         assertLiftLineVisible("2 Row")
         compose.onNodeWithText("2 lifts · about 13 min", substring = true).assertIsDisplayed()
         org.junit.Assert.assertNull(started)
-        compose.onNodeWithText("Start").performClick()
+        compose.onNodeWithTag(ConfirmActionTags.CONFIRM).performClick()
         org.junit.Assert.assertEquals("occ-pm", started)
     }
 
@@ -377,7 +420,7 @@ class HomePassInstrumentedTest {
                 today = TODAY,
             )
         }
-        compose.onNodeWithTag(HomeTags.START).performClick()
+        compose.onNodeWithTag(HomeTags.agendaRow("occ-pm")).performClick()
         compose.onNodeWithText("Start Push?").assertIsDisplayed()
         compose.onNodeWithText("Cancel").performClick()
         compose.onNodeWithText("Start Push?").assertDoesNotExist()
@@ -385,14 +428,15 @@ class HomePassInstrumentedTest {
     }
 
     @Test
-    fun taggedRowOpensTheSameConfirmAsVolt() {
+    fun plannedRowStartDoesNotUseTheFreestyleVolt() {
         var started: String? = null
+        var free = false
         setConstrainedContent(fontScale = 1f) {
             DailyAgendaCard(
                 items = listOf(CARDIO_ITEM, STRENGTH_ITEM),
                 sessionLive = false,
                 onStartOccurrence = { started = it },
-                onStartFree = {},
+                onStartFree = { free = true },
                 routines = listOf(PUSH_ROUTINE),
                 today = TODAY,
             )
@@ -401,7 +445,7 @@ class HomePassInstrumentedTest {
         compose.onNodeWithText("Start Push?").assertIsDisplayed()
         compose.onNodeWithText("Cancel").performClick()
         compose.onNodeWithTag(HomeTags.START).performClick()
-        compose.onNodeWithText("Start Push?").assertIsDisplayed()
+        org.junit.Assert.assertTrue(free)
         org.junit.Assert.assertNull(started)
     }
 
@@ -418,7 +462,7 @@ class HomePassInstrumentedTest {
             )
         }
         compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
-        compose.onNodeWithText("Start Push").assertIsDisplayed()
+        compose.onNodeWithText(SessionOrderCopy.FREE_WORKOUT).assertIsDisplayed()
         compose.onNodeWithText("Start Stretch").assertDoesNotExist()
         compose.onNodeWithTag(HomeTags.agendaRow("occ-stretch")).assertIsDisplayed()
     }
@@ -438,16 +482,35 @@ class HomePassInstrumentedTest {
             )
         }
         compose.onNodeWithTag(HomeTags.STILL_OPEN).assertIsDisplayed()
-        compose.onNodeWithText("Start moves it to today.").assertIsDisplayed()
+        compose.onNodeWithText(com.sinura.personaltrainer.domain.MoveToToday.STILL_OPEN_BODY).assertIsDisplayed()
         compose.onNodeWithText("Friday  ·  Push").assertIsDisplayed()
-        compose.onNodeWithText("Do Push today").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Do this session today").assertIsDisplayed()
+        compose.onNodeWithText(com.sinura.personaltrainer.domain.MoveToToday.DO_IT_TODAY).assertIsDisplayed()
+        compose.onNodeWithTag(HomeTags.skipRow("occ-pm")).assertIsDisplayed()
         compose.onNodeWithTag(HomeTags.agendaRow("occ-pm")).performClick()
         compose.onNodeWithText("Do Push today?").assertIsDisplayed()
         compose.onNodeWithText("This was Friday", substring = true).fetchSemanticsNode()
         org.junit.Assert.assertNull(started)
-        compose.onNodeWithText(com.sinura.personaltrainer.domain.MoveToToday.DO_IT_TODAY).performClick()
+        compose.onNodeWithTag(ConfirmActionTags.CONFIRM).performClick()
         org.junit.Assert.assertEquals("occ-pm", started)
+    }
+
+    @Test
+    fun stillOpenSkipLeavesTheLeftover() {
+        var skipped: String? = null
+        setConstrainedContent(fontScale = 1f) {
+            DailyAgendaCard(
+                items = emptyList(),
+                sessionLive = false,
+                onStartOccurrence = {},
+                onStartFree = {},
+                routines = listOf(PUSH_ROUTINE),
+                stillOpen = listOf(STRENGTH_ITEM),
+                today = TODAY + 1,
+                onSkipOccurrence = { skipped = it },
+            )
+        }
+        compose.onNodeWithTag(HomeTags.skipRow("occ-pm")).performClick()
+        org.junit.Assert.assertEquals("occ-pm", skipped)
     }
 
     @Test
@@ -463,9 +526,9 @@ class HomePassInstrumentedTest {
                 today = TODAY + 1,
             )
         }
-        compose.onNodeWithText("Do Push today").assertIsDisplayed()
+        compose.onNodeWithText(com.sinura.personaltrainer.domain.MoveToToday.DO_IT_TODAY).assertIsDisplayed()
         compose.onNodeWithText("Start Push").assertDoesNotExist()
-        compose.onNodeWithTag(HomeTags.START).performClick()
+        compose.onNodeWithTag(HomeTags.agendaRow("occ-pm")).performClick()
         compose.onNodeWithText("Do Push today?").assertIsDisplayed()
         compose.onNodeWithText("Cancel").performClick()
         org.junit.Assert.assertNull(started)
@@ -491,10 +554,11 @@ class HomePassInstrumentedTest {
                 today = TODAY,
             )
         }
-        compose.onNodeWithText("Start Push").assertIsDisplayed()
+        compose.onNodeWithTag(HomeTags.agendaRow("occ-pm")).assertIsDisplayed()
         compose.onNodeWithText("Do Push today").assertDoesNotExist()
         compose.onNodeWithTag(HomeTags.STILL_OPEN).assertIsDisplayed()
         compose.onNodeWithTag(HomeTags.agendaRow("occ-leftover")).assertIsDisplayed()
+        compose.onNodeWithTag(HomeTags.skipRow("occ-leftover")).assertIsDisplayed()
     }
 
     /**

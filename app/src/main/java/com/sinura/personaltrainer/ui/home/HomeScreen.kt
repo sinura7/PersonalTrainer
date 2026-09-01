@@ -68,6 +68,7 @@ fun HomeScreen(
     onResumeWorkout: (String) -> Unit,
     onOpenPlan: () -> Unit,
     onOpenExercise: (String) -> Unit,
+    onOpenRoutine: (String) -> Unit = {},
     onLogActivity: (String) -> Unit = {},
     onOpenLiveCardio: (String) -> Unit = {},
     onGenerateSchedule: () -> Unit = {},
@@ -80,6 +81,7 @@ fun HomeScreen(
     val startedSessionId by viewModel.navigateToSession.collectAsStateWithLifecycle()
     val cardioId by viewModel.navigateToCardio.collectAsStateWithLifecycle()
     val composerMode by viewModel.navigateToComposer.collectAsStateWithLifecycle()
+    val editorId by viewModel.navigateToEditor.collectAsStateWithLifecycle()
     LaunchedEffect(startedSessionId) {
         val id = startedSessionId ?: return@LaunchedEffect
         onResumeWorkout(id)
@@ -94,6 +96,11 @@ fun HomeScreen(
         val mode = composerMode ?: return@LaunchedEffect
         onLogActivity(mode)
         viewModel.onComposerNavigationHandled()
+    }
+    LaunchedEffect(editorId) {
+        val id = editorId ?: return@LaunchedEffect
+        onOpenRoutine(id)
+        viewModel.onEditorNavigationHandled()
     }
     LaunchedEffect(pendingOccurrenceStartId) {
         val id = pendingOccurrenceStartId ?: return@LaunchedEffect
@@ -218,7 +225,6 @@ fun HomeScreen(
     } else {
         emptyList()
     }
-    var pickingExtra by rememberSaveable(selectedEpochDay) { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -295,7 +301,7 @@ fun HomeScreen(
         item {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
                 when (HomeToday.surface(selectedAgenda, leftoverBelongs, stillOpen)) {
-                    HomeToday.Surface.AGENDA -> DailyAgendaCard(
+                    HomeToday.Surface.AGENDA ->                     DailyAgendaCard(
                         items = selectedAgenda,
                         sessionLive = inProgress != null,
                         onStartOccurrence = viewModel::startOccurrence,
@@ -304,18 +310,41 @@ fun HomeScreen(
                         kicker = dayKicker,
                         stillOpen = stillOpen,
                         today = today,
+                        epochDay = selectedEpochDay,
                         quietStart = state.missedWorkPrompt,
                         canEditDay = selectedEpochDay >= today,
                         onMoveOccurrence = { occurrenceId, delta ->
                             viewModel.moveDayBlock(selectedAgenda, occurrenceId, delta)
                         },
-                        onAddExtra = { pickingExtra = true },
-                        pickingExtra = pickingExtra,
-                        onPickExtra = { packId ->
-                            pickingExtra = false
-                            viewModel.addExtra(selectedEpochDay, packId)
+                        onSkipOccurrence = viewModel::skipOccurrence,
+                        onAddWorkout = { routineId, once ->
+                            viewModel.addDaySession(
+                                selectedEpochDay,
+                                HomeDayAdd.Workout(routineId),
+                                once,
+                            )
                         },
-                        onCancelExtra = { pickingExtra = false },
+                        onNewWorkout = { once ->
+                            viewModel.addDaySession(
+                                selectedEpochDay,
+                                HomeDayAdd.NewWorkout,
+                                once,
+                            )
+                        },
+                        onAddCardio = { type, once ->
+                            viewModel.addDaySession(
+                                selectedEpochDay,
+                                HomeDayAdd.Cardio(type),
+                                once,
+                            )
+                        },
+                        onAddAux = { packId, once ->
+                            viewModel.addDaySession(
+                                selectedEpochDay,
+                                HomeDayAdd.Aux(packId),
+                                once,
+                            )
+                        },
                     )
                     HomeToday.Surface.WEEK_FALLBACK -> ThisWeekCard(
                         day = leftoverDay,
@@ -502,9 +531,13 @@ object HomeTags {
     const val STARTER_WORKOUT = "home-starter-workout"
     const val BODYWEIGHT_CHECK_IN = "home-bodyweight-check-in"
     const val STILL_OPEN = "home-still-open"
-    const val ADD_EXTRA = "home-add-extra"
+    const val ADD = "home-add"
+    const val ADD_EXTRA = ADD
+    const val SESSION = "home-session-start"
 
     fun agendaRow(occurrenceId: String): String = "home-agenda-$occurrenceId"
+
+    fun skipRow(occurrenceId: String): String = "home-skip-$occurrenceId"
 }
 
 private const val DATE_LINE_PATTERN = "EEEE '·' d MMM"

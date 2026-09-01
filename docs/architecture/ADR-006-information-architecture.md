@@ -43,7 +43,7 @@ below fails.
 
    | ID | Task | Primary expected landing |
    |---|---|---|
-   | T1 | Start today’s planned strength activity | Home, one filled act |
+   | T1 | Start today’s planned strength activity | Home planned row, then confirm ([ADR-021](ADR-021-home-start-and-day-add.md)); filled Volt is Start a workout |
    | T2 | Record a cardio activity, live or manual | Home or start sheet → composer/live cardio |
    | T3 | Schedule cardio and a workout on one day | Plan day page ([ADR-015](ADR-015-plan-day-blocks.md)) |
    | T4 | Find the latest completed activity | History |

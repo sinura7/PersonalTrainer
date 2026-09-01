@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.AgendaItem
+import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.DayBlockOrder
 import com.sinura.personaltrainer.domain.MissedWorkChoice
@@ -28,6 +29,7 @@ import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.latest
 import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.data.repository.AuxiliaryBlocks
+import com.sinura.personaltrainer.data.repository.DayBlocks
 import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.workout.DiscardOutcome
 import com.sinura.personaltrainer.workout.StartDayOutcome
@@ -198,6 +200,8 @@ class HomeViewModel @JvmOverloads constructor(
     val navigateToCardio: StateFlow<String?> = _navigateToCardio.asStateFlow()
     private val _navigateToComposer = MutableStateFlow<String?>(null)
     val navigateToComposer: StateFlow<String?> = _navigateToComposer.asStateFlow()
+    private val _navigateToEditor = MutableStateFlow<String?>(null)
+    val navigateToEditor: StateFlow<String?> = _navigateToEditor.asStateFlow()
 
     fun onCardioNavigationHandled() {
         _navigateToCardio.value = null
@@ -205,6 +209,10 @@ class HomeViewModel @JvmOverloads constructor(
 
     fun onComposerNavigationHandled() {
         _navigateToComposer.value = null
+    }
+
+    fun onEditorNavigationHandled() {
+        _navigateToEditor.value = null
     }
 
     fun startSuggestedDay(day: SuggestedTrainingDay) {
@@ -369,21 +377,65 @@ class HomeViewModel @JvmOverloads constructor(
         actionError.value = null
     }
 
-    fun addExtra(epochDay: Long, packId: String) {
+    fun skipOccurrence(occurrenceId: String) {
         viewModelScope.launch {
             runCatching {
-                AuxiliaryBlocks.add(
-                    planner = container.plannerRepository,
-                    routines = container.routineRepository,
-                    exercises = container.exerciseRepository,
-                    preferences = container.preferencesRepository,
-                    epochDay = epochDay,
-                    packId = packId,
-                    once = true,
-                )
+                val occurrence = container.plannerRepository.getOccurrence(occurrenceId)
+                    ?: return@runCatching
+                if (!MoveToToday.isLeftover(occurrence, todayEpochDay())) return@runCatching
+                container.plannerRepository.skipOccurrence(occurrenceId)
             }.onSuccess { actionError.value = null }
-                .onFailure { actionError.value = "Could not add that extra. Try again." }
+                .onFailure { actionError.value = "Could not skip that session. Try again." }
         }
+    }
+
+    fun addDaySession(epochDay: Long, add: HomeDayAdd, once: Boolean) {
+        viewModelScope.launch {
+            runCatching {
+                when (add) {
+                    is HomeDayAdd.Workout -> DayBlocks.addStrength(
+                        planner = container.plannerRepository,
+                        schedule = container.scheduleRepository,
+                        preferences = container.preferencesRepository,
+                        epochDay = epochDay,
+                        routineId = add.routineId,
+                        once = once,
+                    )
+                    HomeDayAdd.NewWorkout -> {
+                        val routineId = DayBlocks.composeWorkout(
+                            planner = container.plannerRepository,
+                            schedule = container.scheduleRepository,
+                            routines = container.routineRepository,
+                            preferences = container.preferencesRepository,
+                            epochDay = epochDay,
+                            once = once,
+                        )
+                        _navigateToEditor.value = routineId
+                    }
+                    is HomeDayAdd.Cardio -> DayBlocks.addCardio(
+                        planner = container.plannerRepository,
+                        preferences = container.preferencesRepository,
+                        epochDay = epochDay,
+                        type = add.type,
+                        once = once,
+                    )
+                    is HomeDayAdd.Aux -> AuxiliaryBlocks.add(
+                        planner = container.plannerRepository,
+                        routines = container.routineRepository,
+                        exercises = container.exerciseRepository,
+                        preferences = container.preferencesRepository,
+                        epochDay = epochDay,
+                        packId = add.packId,
+                        once = once,
+                    )
+                }
+            }.onSuccess { actionError.value = null }
+                .onFailure { actionError.value = "Could not add that session. Try again." }
+        }
+    }
+
+    fun addExtra(epochDay: Long, packId: String) {
+        addDaySession(epochDay, HomeDayAdd.Aux(packId), once = true)
     }
 
     fun moveDayBlock(items: List<AgendaItem>, occurrenceId: String, delta: Int) {
@@ -438,4 +490,11 @@ class HomeViewModel @JvmOverloads constructor(
         val checkInWeekday: Weekday?,
         val setupComplete: Boolean,
     )
+}
+
+sealed class HomeDayAdd {
+    data class Workout(val routineId: String) : HomeDayAdd()
+    data object NewWorkout : HomeDayAdd()
+    data class Cardio(val type: CardioType) : HomeDayAdd()
+    data class Aux(val packId: String) : HomeDayAdd()
 }

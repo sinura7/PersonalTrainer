@@ -31,7 +31,7 @@ class AccessibilityMatrixTest {
             assertFalse("physical TalkBack is still outstanding", page.physicalTalkBack)
         }
         assertEquals(
-            "Start today's planned session when a week is pinned. Generate a schedule on a first visit. Free workout stays quiet.",
+            "Start a workout (freestyle). Planned rows confirm, then start.",
             AccessibilityMatrix.page("home").voltAction,
         )
         assertEquals(
@@ -52,11 +52,11 @@ class AccessibilityMatrixTest {
         )
         assertEquals("Add session", AccessibilityMatrix.page("plan-day").voltAction)
         assertEquals(
-            "Library and Add session are named. Start is Home, not Plan. Lighter is a quiet chip. Settings is a tab, not a header gear. Reminders live on Settings.",
+            "Library and Add session are named. Start is Home, not Plan. Routines start collapsed. Lighter is a quiet chip. Settings is a tab, not a header gear. Reminders live on Settings.",
             AccessibilityMatrix.page("plan").talkBackNotes,
         )
         assertEquals(
-            "Last session and days-since tiles merge into one name each. Settings is a tab. Home week strip picks the day. Planned rows and the Volt open a start confirm — the empty-agenda leftover Volt included. Leftovers confirm as Do it today. Day blocks have no clocks; Up / Down rearranges them. Add extra mints a same-day warm-up or mobility pack. This week, Library, and Goals stay off this screen.",
+            "Last session and days-since tiles merge into one name each. Settings is a tab. Home week strip picks the day. Planned rows open a start confirm. The filled Volt is Start a workout. Leftovers confirm as Do it today and can Skip. Day blocks have no clocks; Up / Down rearranges them. Add sits under Today and asks just-today vs every this weekday. This week, Library, and Goals stay off this screen.",
             AccessibilityMatrix.page("home").talkBackNotes,
         )
     }

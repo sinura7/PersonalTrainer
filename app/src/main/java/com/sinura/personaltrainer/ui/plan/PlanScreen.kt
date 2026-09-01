@@ -271,6 +271,7 @@ fun PlanScreen(
 
     var pendingDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedEpochDay by rememberSaveable { mutableLongStateOf(today) }
+    var routinesOpen by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(navigateToEditor) {
         val id = navigateToEditor ?: return@LaunchedEffect
@@ -464,28 +465,43 @@ fun PlanScreen(
                     )
                 }
             } else {
-                item(key = "routines-header") { Kicker("Routines") }
-                // One panel of routines rather than one card each: these are instances of a
-                // single thing, and a card apiece reads as a stack of unrelated objects.
-                item(key = "routines") {
-                    GroupedList {
-                        state.routines.forEachIndexed { index, routine ->
-                            if (index > 0) HairlineDivider()
-                            RoutineRow(
-                                routine = routine,
-                                updatedLabel = routineUpdatedLabel(routine, dateFormat),
-                                onOpen = { onOpenRoutine(routine.id) },
-                                onDelete = { pendingDeleteId = routine.id },
-                            )
+                item(key = "routines-header") {
+                    val count = state.routines.size
+                    InstrumentRow(
+                        title = "Routines",
+                        subtitle = if (routinesOpen) {
+                            "Long-press a routine to delete it."
+                        } else if (count == 1) {
+                            "1 program"
+                        } else {
+                            "$count programs"
+                        },
+                        modifier = Modifier
+                            .testTag(PlanTags.ROUTINES)
+                            .semantics {
+                                contentDescription = if (routinesOpen) {
+                                    "Hide routines"
+                                } else {
+                                    "Show routines"
+                                }
+                            },
+                        onClick = { routinesOpen = !routinesOpen },
+                    )
+                }
+                if (routinesOpen) {
+                    item(key = "routines") {
+                        GroupedList {
+                            state.routines.forEachIndexed { index, routine ->
+                                if (index > 0) HairlineDivider()
+                                RoutineRow(
+                                    routine = routine,
+                                    updatedLabel = routineUpdatedLabel(routine, dateFormat),
+                                    onOpen = { onOpenRoutine(routine.id) },
+                                    onDelete = { pendingDeleteId = routine.id },
+                                )
+                            }
                         }
                     }
-                }
-                item(key = "delete-hint") {
-                    Text(
-                        "Long-press a routine to delete it.",
-                        style = InstrumentType.caption,
-                        color = TextTertiary,
-                    )
                 }
             }
         }
@@ -803,6 +819,7 @@ object PlanTags {
     const val ADD_SESSION = "plan-add-session"
     const val LIGHTER = "plan-lighter"
     const val LIBRARY_SPOKEN = "Library"
+    const val ROUTINES = "plan-routines"
 }
 
 /** Thicker than a hairline so the filled portion reads as a position, thin enough not to be a bar. */

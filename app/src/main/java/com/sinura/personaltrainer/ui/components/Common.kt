@@ -226,6 +226,7 @@ fun ConfirmActionDialog(
                     if (destructive) Haptics.commit(view)
                     onConfirm()
                 },
+                modifier = Modifier.testTag(ConfirmActionTags.CONFIRM),
             ) {
                 Text(
                     confirmLabel,
@@ -252,6 +253,10 @@ fun ConfirmActionDialog(
             }
         },
     )
+}
+
+object ConfirmActionTags {
+    const val CONFIRM = "confirm-action-confirm"
 }
 
 // ---------------------------------------------------------------------------

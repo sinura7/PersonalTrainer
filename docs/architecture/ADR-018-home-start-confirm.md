@@ -10,6 +10,9 @@
   its summary has no clock line and never relocates.
   31 August 2026 — [ADR-020](ADR-020-warmup-extras.md) drops the clock
   line from planned-row confirms as well.
+  1 September 2026 — [ADR-021](ADR-021-home-start-and-day-add.md) keeps
+  row-tap confirm, but Home's filled Volt is **Start a workout**
+  (freestyle), not `Start {planned title}`.
 - **Supersedes:** [ADR-017](ADR-017-home-week-board.md) §1 only the
   reading that Volt (or a planned row) **starts** the next undone block
   immediately
@@ -59,6 +62,10 @@ want to start **this** workout, and what does it entail.
 4. **Volt still names the next preferred planned block** and opens the
    **same** confirm. It is not a second start path and not
    `StartOptionsSheet`. Body / History / Plan still host that sheet.
+   **[ADR-021](ADR-021-home-start-and-day-add.md):** Home's filled Volt
+   is **Start a workout** (freestyle). The planned block starts from
+   its row (this confirm). Stretch still cannot steal the preferred
+   row tag.
 
 5. **Start tag prefers a workout over an auxiliary pack.** Non-aux
    planned strength or mixed first, then any planned strength
@@ -74,7 +81,9 @@ want to start **this** workout, and what does it entail.
 
 - Feature packets do not restore one-tap Home start, dump
   `StartOptionsSheet` onto Home, or paint a second filled Start in the
-  confirm.
+  confirm. **[ADR-021](ADR-021-home-start-and-day-add.md)** moved the
+  filled Volt to freestyle Start a workout; do not put
+  `Start {planned title}` back as the Home floor Volt.
 - Treating Stretch as the day’s Volt while a non-aux workout is still
   planned is a defect.
 - Notification deep-links that already identified the occurrence may
@@ -85,5 +94,7 @@ want to start **this** workout, and what does it entail.
 - Does tapping a planned Home row start the session immediately? No.
 - Does the tagged row stay dead? No. It opens the same confirm.
 - Does Volt open `StartOptionsSheet`? No.
+  **[ADR-021](ADR-021-home-start-and-day-add.md):** Home's filled Volt
+  is Start a workout, not the planned-block name.
 - May Stretch own the Home Volt while a workout is still planned? No.
 - Does Plan Start? No.
