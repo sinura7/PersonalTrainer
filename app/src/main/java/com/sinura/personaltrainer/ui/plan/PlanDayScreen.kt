@@ -3,8 +3,6 @@ package com.sinura.personaltrainer.ui.plan
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -35,10 +33,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.AgendaItem
-import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.PlanDayCopy
 import com.sinura.personaltrainer.domain.Routine
-import com.sinura.personaltrainer.domain.ScheduleKind
 import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.Weekday
@@ -48,9 +44,7 @@ import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
-import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.InstrumentRow
-import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -141,14 +135,16 @@ fun PlanDayScreen(
                         )
                     }
                     if (!isPast && picking != DayPicker.NONE) {
-                        AddPicker(
+                        DayAddPicker(
                             picking = picking,
-                            pinned = pinned,
+                            weekday = weekday,
+                            hasStrength = pinned,
                             occurrences = occurrences,
                             routines = state.routines,
+                            askKeep = false,
                             onPickKind = { picking = it },
                             onCancel = { picking = DayPicker.NONE },
-                            onAddWorkout = { routineId ->
+                            onAddWorkout = { routineId, _ ->
                                 picking = DayPicker.NONE
                                 if (pinned) {
                                     viewModel.addLaterSession(epochDay, routineId)
@@ -156,7 +152,7 @@ fun PlanDayScreen(
                                     viewModel.pinRoutine(epochDay, routineId)
                                 }
                             },
-                            onNewWorkout = {
+                            onNewWorkout = { _ ->
                                 picking = DayPicker.NONE
                                 if (pinned) {
                                     viewModel.composeLaterSession(epochDay)
@@ -164,11 +160,11 @@ fun PlanDayScreen(
                                     viewModel.buildDay(epochDay)
                                 }
                             },
-                            onAddCardio = { type ->
+                            onAddCardio = { type, _ ->
                                 picking = DayPicker.NONE
                                 viewModel.addCardio(epochDay, type)
                             },
-                            onAddAux = { packId ->
+                            onAddAux = { packId, _ ->
                                 picking = DayPicker.NONE
                                 viewModel.addAuxiliary(epochDay, packId)
                             },
@@ -232,7 +228,6 @@ internal fun PlanDayHeader(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SessionBlocks(
     occurrences: List<AgendaItem>,
@@ -344,138 +339,6 @@ internal fun ReorderRow(
         }
     }
 }
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun AddPicker(
-    picking: DayPicker,
-    pinned: Boolean,
-    occurrences: List<AgendaItem>,
-    routines: List<Routine>,
-    onPickKind: (DayPicker) -> Unit,
-    onCancel: () -> Unit,
-    onAddWorkout: (String) -> Unit,
-    onNewWorkout: () -> Unit,
-    onAddCardio: (CardioType) -> Unit,
-    onAddAux: (String) -> Unit,
-) {
-    val hasCardio = occurrences.any { it.rule?.modality == ScheduleModality.CARDIO }
-    val usedAux = occurrences.mapNotNull { ScheduleKind.auxPackId(it.rule?.templateId) }.toSet()
-    val usedRoutineIds = occurrences.mapNotNull { it.rule?.routineId }.toSet()
-    val laterChoices = routines.filter { it.id !in usedRoutineIds }
-
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
-        if (picking != DayPicker.AUX) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Kicker(
-                    when (picking) {
-                        DayPicker.KIND -> PlanDayCopy.PICK_KIND
-                        DayPicker.CARDIO -> PlanDayCopy.PICK_CARDIO
-                        DayPicker.AUX -> PlanDayCopy.PICK_AUX
-                        DayPicker.WORKOUT -> PlanDayCopy.PICK_WORKOUT
-                        DayPicker.NONE -> PlanDayCopy.ADD_SESSION
-                    },
-                    modifier = Modifier.weight(1f),
-                )
-                TextButton(
-                    onClick = onCancel,
-                    contentPadding = PaddingValues(0.dp),
-                    modifier = Modifier.heightIn(min = Metrics.touchMin),
-                ) {
-                    Text(
-                        PlanDayCopy.CANCEL,
-                        style = InstrumentType.bodyStrong,
-                        color = TextSecondary,
-                    )
-                }
-            }
-        }
-        when (picking) {
-            DayPicker.NONE -> Unit
-            DayPicker.KIND -> GroupedList {
-                InstrumentRow(
-                    title = PlanDayCopy.WORKOUT,
-                    subtitle = PlanDayCopy.WORKOUT_SUBTITLE,
-                    onClick = { onPickKind(DayPicker.WORKOUT) },
-                )
-                HairlineDivider()
-                InstrumentRow(
-                    title = PlanDayCopy.CARDIO,
-                    subtitle = if (hasCardio) PlanDayCopy.CARDIO_ALREADY else SessionOrderCopy.CARDIO_ON_THIS_DAY,
-                    onClick = if (hasCardio) null else ({ onPickKind(DayPicker.CARDIO) }),
-                )
-                HairlineDivider()
-                InstrumentRow(
-                    title = PlanDayCopy.AUXILIARY,
-                    subtitle = PlanDayCopy.AUX_SUBTITLE,
-                    onClick = { onPickKind(DayPicker.AUX) },
-                )
-            }
-            DayPicker.CARDIO -> {
-                if (hasCardio) {
-                    Text(
-                        PlanDayCopy.CARDIO_ALREADY,
-                        style = InstrumentType.body,
-                        color = TextPrimary,
-                    )
-                } else {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                        ScheduleKind.planCardioTypes.forEach { type ->
-                            InstrumentChip(
-                                label = PlanDayCopy.cardioPickLabel(type),
-                                selected = false,
-                                onClick = { onAddCardio(type) },
-                            )
-                        }
-                    }
-                }
-            }
-            DayPicker.AUX -> AuxiliaryPackList(
-                usedPackIds = usedAux,
-                onPick = onAddAux,
-                onCancel = onCancel,
-            )
-            DayPicker.WORKOUT -> {
-                GroupedList {
-                    InstrumentRow(
-                        title = PlanDayCopy.NEW_WORKOUT,
-                        subtitle = if (pinned) {
-                            SessionOrderCopy.COMPOSE_LATER
-                        } else {
-                            PlanDayCopy.BUILD_WEEKDAY
-                        },
-                        onClick = onNewWorkout,
-                    )
-                }
-                if (laterChoices.isEmpty()) {
-                    Text(
-                        if (pinned) {
-                            PlanDayCopy.PICK_NAMED_PINNED
-                        } else {
-                            PlanDayCopy.PICK_NAMED_OPEN
-                        },
-                        style = InstrumentType.caption,
-                        color = TextSecondary,
-                    )
-                } else {
-                    GroupedList {
-                        laterChoices.forEachIndexed { index, routine ->
-                            if (index > 0) HairlineDivider()
-                            InstrumentRow(
-                                title = routine.name,
-                                subtitle = "${routine.exercises.size} " +
-                                    if (routine.exercises.size == 1) "lift" else "lifts",
-                                onClick = { onAddWorkout(routine.id) },
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-private enum class DayPicker { NONE, KIND, WORKOUT, CARDIO, AUX }
 
 object PlanDayTags {
     const val BACK = "plan-day-back"

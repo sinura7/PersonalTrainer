@@ -65,11 +65,10 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
  * @param sessionLive when a workout is already running. The card still names the plan; it
  * does not offer to start or return. The live bar is the only way back — a Start button
  * here would either lie (it cannot start) or become a second Resume.
- * @param routines resolve the day's routine for the start confirm. The Volt opens the same
- * see-the-work-then-start summary the agenda card uses (ADR-018); it was the one Home start
- * that still jumped straight into the log.
- * @param onStartFree empty session the lifter fills as they go. Quiet on purpose so it
- * does not compete with following today's Plan routine.
+ * @param routines resolve the day's routine for the planned-session confirm. **Start this
+ * session** is secondary (ADR-021). The filled Volt is Start a workout (freestyle).
+ * @param onStartFree empty session the lifter fills as they go. That is Home's filled
+ * Volt on this leftover card (ADR-021).
  */
 @Composable
 fun ThisWeekCard(
@@ -189,7 +188,7 @@ fun ThisWeekCard(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(min = Metrics.touchMin)
-                                .testTag(HomeTags.FREE)
+                                .testTag(HomeTags.START)
                                 .semantics { contentDescription = GetStartedCopy.WORKOUT },
                         ) {
                             Text(
@@ -243,60 +242,54 @@ fun ThisWeekCard(
                 )
             }
             if (setupComplete && !sessionLive) {
-                TextButton(
+                PrimaryGymButton(
+                    text = SessionOrderCopy.FREE_WORKOUT,
                     onClick = onStartFree,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = Metrics.touchMin)
-                        .testTag(HomeTags.FREE)
+                        .testTag(HomeTags.START)
                         .semantics { contentDescription = SessionOrderCopy.FREE_WORKOUT },
+                )
+            }
+        } else if (!sessionLive && trainingToday != null && !loggedToday) {
+            val sessionModifier = Modifier
+                .padding(top = Metrics.space1)
+                .testTag(HomeTags.SESSION)
+                .semantics { contentDescription = "Start today's planned session" }
+            if (quietStart) {
+                TextButton(
+                    onClick = { startPending = true },
+                    modifier = sessionModifier.fillMaxWidth().heightIn(min = Metrics.touchMin),
+                    contentPadding = PaddingValues(0.dp),
                 ) {
                     Text(
-                        SessionOrderCopy.FREE_WORKOUT,
+                        "Start this session",
                         style = InstrumentType.bodyStrong,
                         color = TextSecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-            }
-        } else if (!sessionLive && trainingToday != null && !loggedToday) {
-            // The only volt on Home: follow the routine Plan already designed for today.
-            // Same act as the agenda card — the tap opens the session summary; confirm starts.
-            // While the missed-work prompt is up its Keep-the-dates keeps the one Volt,
-            // so this start goes quiet (same rule Plan applies to its recovery act).
-            val startModifier = Modifier
-                .padding(top = Metrics.space1)
-                .testTag(HomeTags.START)
-                .semantics { contentDescription = "Start today's planned session" }
-            if (quietStart) {
+            } else {
                 SecondaryGymButton(
                     text = "Start this session",
                     onClick = { startPending = true },
+                    modifier = sessionModifier,
+                )
+            }
+            val startModifier = Modifier
+                .testTag(HomeTags.START)
+                .semantics { contentDescription = SessionOrderCopy.FREE_WORKOUT }
+            if (quietStart) {
+                SecondaryGymButton(
+                    text = SessionOrderCopy.FREE_WORKOUT,
+                    onClick = onStartFree,
                     modifier = startModifier,
                 )
             } else {
                 PrimaryGymButton(
-                    text = "Start this session",
-                    onClick = { startPending = true },
+                    text = SessionOrderCopy.FREE_WORKOUT,
+                    onClick = onStartFree,
                     modifier = startModifier,
-                )
-            }
-            TextButton(
-                onClick = onStartFree,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = Metrics.touchMin)
-                    .testTag(HomeTags.FREE)
-                    .semantics { contentDescription = SessionOrderCopy.FREE_WORKOUT },
-                contentPadding = PaddingValues(0.dp),
-            ) {
-                Text(
-                    SessionOrderCopy.FREE_WORKOUT,
-                    style = InstrumentType.bodyStrong,
-                    color = TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
         } else if (!sessionLive) {
@@ -308,7 +301,7 @@ fun ThisWeekCard(
                     .fillMaxWidth()
                     .heightIn(min = Metrics.touchMin)
                     .padding(top = Metrics.space1)
-                    .testTag(HomeTags.FREE)
+                    .testTag(HomeTags.START)
                     .semantics { contentDescription = SessionOrderCopy.FREE_WORKOUT },
                 contentPadding = PaddingValues(0.dp),
             ) {

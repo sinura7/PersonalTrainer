@@ -15,6 +15,12 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 1 Sep 2026 — Obtainium live test 16 (`debugLiveCode` 16): Home row
+> starts the planned session (confirm); filled Volt is Start a workout;
+> Add under Today with just-today vs weekly; Skip on Still open; Plan
+> routines collapsed; routine editor Save. Gym-station photo portfolios
+> wait. [ADR-021](architecture/ADR-021-home-start-and-day-add.md).
+>
 > 31 Aug 2026 — Obtainium live test 15 (`debugLiveCode` 15, tag
 > `debug-live-2026-08-31`): warm-up extras (golf, lower-body,
 > upper-body, shoulder), Home Add extra once, untimed day board,

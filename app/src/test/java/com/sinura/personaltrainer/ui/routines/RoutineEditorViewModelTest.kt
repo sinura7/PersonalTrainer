@@ -192,6 +192,35 @@ class RoutineEditorViewModelTest {
     }
 
     @Test
+    fun saveAndLeaveKeepsACreatedRoutineWithLiftsAndPersistsTheName() = runBlocking {
+        val exercise = insertTestExercise(deps, "row", "Row")
+        val vm = createViewModel("new")
+        vm.uiState.first { !it.isLoading }
+        vm.onNameChange("Push")
+        vm.addExercise(exercise, 3, 8, null, 90)
+        val created = awaitRoutine { it.exercises.size == 1 }
+
+        vm.saveAndLeave()
+        eventually { true.takeIf { vm.exitRequested.value } }
+        val saved = checkNotNull(deps.routineRepository.getById(created.id))
+        assertEquals("Push", saved.name)
+        assertEquals(1, saved.exercises.size)
+    }
+
+    @Test
+    fun saveAndLeaveWithoutLiftsStaysOnTheEditor() = runBlocking {
+        val vm = createViewModel("new")
+        vm.uiState.first { !it.isLoading }
+        vm.saveAndLeave()
+        assertFalse(vm.exitRequested.value)
+        assertEquals(
+            SessionOrderCopy.NEED_A_LIFT,
+            vm.uiState.first { it.error == SessionOrderCopy.NEED_A_LIFT }.error,
+        )
+        assertTrue(deps.routineRepository.observeAll().first().isEmpty())
+    }
+
+    @Test
     fun stagedTargetsCommitWhenTheyDifferAndRejectZeroSets() = runBlocking {
         val fixture = seedTestWorkout(deps, targetSets = 3, targetReps = 5)
         deps.workoutRepository.discardSession(fixture.session.id)

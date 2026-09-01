@@ -27,6 +27,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -247,6 +248,127 @@ class HomeViewModelTest {
         assertEquals(
             OccurrenceStatus.PLANNED,
             deps.plannerRepository.occurrencesBetween(today, today).single().status,
+        )
+    }
+
+    @Test
+    fun skipOccurrenceMarksALeftoverSkippedWithoutChangingTheRule() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        val today = todayEpochDay()
+        val yesterday = today - 1
+        val yesterdayWeekday = Weekday.fromEpochDay(yesterday)
+        val yesterdayWeekStart = CivilDate.fromEpochDay(yesterday).previousOrSame(Weekday.MONDAY)
+        val todayWeekStart = CivilDate.fromEpochDay(today).previousOrSame(Weekday.MONDAY)
+        val routine = deps.routineRepository.create("Push")
+        val squat = insertTestExercise(deps, "ex-home-skip-squat", "Squat")
+        deps.routineRepository.addExercise(routine.id, squat, 3, 5, 100.0, 90)
+        deps.scheduleRepository.pin(routine.id, null, yesterdayWeekday)
+        deps.plannerRepository.importSlotsIfNeeded()
+        deps.plannerRepository.ensureWeek(yesterdayWeekStart)
+        if (todayWeekStart.epochDay != yesterdayWeekStart.epochDay) {
+            deps.plannerRepository.ensureWeek(todayWeekStart)
+        }
+        viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+
+        val leftover = deps.plannerRepository.occurrencesBetween(yesterday, yesterday).single()
+        val enabled = deps.plannerRepository.rules().first { it.id == leftover.ruleId }.enabled
+        viewModel!!.skipOccurrence(leftover.id)
+        val skipped = withTimeout(5_000) {
+            deps.plannerRepository.observeOccurrences().first { rows ->
+                rows.any { it.id == leftover.id && it.status == OccurrenceStatus.SKIPPED }
+            }.first { it.id == leftover.id }
+        }
+        assertEquals(OccurrenceStatus.SKIPPED, skipped.status)
+        assertEquals(
+            enabled,
+            deps.plannerRepository.rules().first { it.id == leftover.ruleId }.enabled,
+        )
+    }
+
+    @Test
+    fun skipOccurrenceDoesNotSkipTodaysPlannedSession() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        val today = todayEpochDay()
+        val weekday = Weekday.fromEpochDay(today)
+        val weekStart = CivilDate.fromEpochDay(today).previousOrSame(Weekday.MONDAY)
+        val routine = deps.routineRepository.create("Push")
+        val squat = insertTestExercise(deps, "ex-home-skip-today", "Squat")
+        deps.routineRepository.addExercise(routine.id, squat, 3, 5, 100.0, 90)
+        deps.scheduleRepository.pin(routine.id, null, weekday)
+        deps.plannerRepository.importSlotsIfNeeded()
+        deps.plannerRepository.ensureWeek(weekStart)
+        viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+
+        val planned = deps.plannerRepository.occurrencesBetween(today, today).single()
+        viewModel!!.skipOccurrence(planned.id)
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(OccurrenceStatus.PLANNED, deps.plannerRepository.getOccurrence(planned.id)!!.status)
+    }
+
+    @Test
+    fun addDaySessionOnceDisablesTheRuleAfterMintingThisWeek() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps.preferencesRepository.setOnboardingComplete(true)
+        val today = todayEpochDay()
+        val routine = deps.routineRepository.create("Push")
+        val squat = insertTestExercise(deps, "ex-home-add-once", "Squat")
+        deps.routineRepository.addExercise(routine.id, squat, 3, 5, 100.0, 90)
+        viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+
+        viewModel!!.addDaySession(today, HomeDayAdd.Workout(routine.id), once = true)
+        dispatcher.scheduler.advanceUntilIdle()
+        val rule = withTimeout(5_000) {
+            deps.plannerRepository.observeRules().first { rows ->
+                rows.any { it.routineId == routine.id && !it.enabled }
+            }.single { it.routineId == routine.id }
+        }
+        assertFalse(rule.enabled)
+        assertTrue(
+            deps.plannerRepository.occurrencesBetween(today, today).any { it.ruleId == rule.id },
+        )
+    }
+
+    @Test
+    fun addDaySessionWeeklyKeepsTheRuleEnabled() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps.preferencesRepository.setOnboardingComplete(true)
+        val today = todayEpochDay()
+        val routine = deps.routineRepository.create("Push")
+        val squat = insertTestExercise(deps, "ex-home-add-week", "Squat")
+        deps.routineRepository.addExercise(routine.id, squat, 3, 5, 100.0, 90)
+        viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+
+        viewModel!!.addDaySession(today, HomeDayAdd.Workout(routine.id), once = false)
+        dispatcher.scheduler.advanceUntilIdle()
+        val rule = withTimeout(5_000) {
+            deps.plannerRepository.observeRules().first { rows ->
+                rows.any { it.routineId == routine.id && it.enabled }
+            }.single { it.routineId == routine.id }
+        }
+        assertTrue(rule.enabled)
+        assertTrue(
+            deps.plannerRepository.occurrencesBetween(today, today).any { it.ruleId == rule.id },
+        )
+    }
+
+    @Test
+    fun addNewWorkoutOnceOpensTheEditor() = runBlocking {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps.preferencesRepository.setOnboardingComplete(true)
+        val today = todayEpochDay()
+        viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+
+        viewModel!!.addDaySession(today, HomeDayAdd.NewWorkout, once = true)
+        val editorId = viewModel!!.navigateToEditor.first { it != null }!!
+        val rule = deps.plannerRepository.rules().single { it.routineId == editorId }
+        assertFalse(rule.enabled)
+        assertTrue(
+            deps.plannerRepository.occurrencesBetween(today, today).any { it.ruleId == rule.id },
         )
     }
 

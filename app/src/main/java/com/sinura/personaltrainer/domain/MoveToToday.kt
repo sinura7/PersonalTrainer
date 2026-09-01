@@ -9,7 +9,9 @@ package com.sinura.personaltrainer.domain
 object MoveToToday {
     const val DO_IT_TODAY = "Do it today"
     const val STILL_OPEN = "Still open"
-    const val STILL_OPEN_BODY = "Start moves it to today."
+    const val STILL_OPEN_BODY = "Start moves it to today. Skip leaves it."
+    const val SKIP = "Skip"
+    const val SKIP_BODY = "It leaves Still open. Next week is unchanged."
     const val ALREADY_HERE = "Today already has this session."
     const val NOT_MOVABLE = "That session cannot move."
 
@@ -83,6 +85,8 @@ object MoveToToday {
 
     fun leftoverNote(fromDay: Weekday): String =
         "This was ${fromDay.titleLabel()}. Starting it today moves it here."
+
+    fun skipHeading(title: String): String = "Skip $title?"
 
     sealed interface Outcome {
         data class Relocate(

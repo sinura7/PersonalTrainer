@@ -33,8 +33,8 @@ object AccessibilityMatrix {
             id = "home",
             title = "Home",
             states = requiredStates,
-            voltAction = "Start today's planned session when a week is pinned. Generate a schedule on a first visit. Free workout stays quiet.",
-            talkBackNotes = "Last session and days-since tiles merge into one name each. Settings is a tab. Home week strip picks the day. Planned rows and the Volt open a start confirm — the empty-agenda leftover Volt included. Leftovers confirm as Do it today. Day blocks have no clocks; Up / Down rearranges them. Add extra mints a same-day warm-up or mobility pack. This week, Library, and Goals stay off this screen.",
+            voltAction = "Start a workout (freestyle). Planned rows confirm, then start.",
+            talkBackNotes = "Last session and days-since tiles merge into one name each. Settings is a tab. Home week strip picks the day. Planned rows open a start confirm. The filled Volt is Start a workout. Leftovers confirm as Do it today and can Skip. Day blocks have no clocks; Up / Down rearranges them. Add sits under Today and asks just-today vs every this weekday. This week, Library, and Goals stay off this screen.",
             automatedEvidence = true,
         ),
         PagePass(
@@ -50,7 +50,7 @@ object AccessibilityMatrix {
             title = "Plan",
             states = requiredStates,
             voltAction = "Add session — recovery stays quiet unless confirming a proposed week",
-            talkBackNotes = "Library and Add session are named. Start is Home, not Plan. Lighter is a quiet chip. Settings is a tab, not a header gear. Reminders live on Settings.",
+            talkBackNotes = "Library and Add session are named. Start is Home, not Plan. Routines start collapsed. Lighter is a quiet chip. Settings is a tab, not a header gear. Reminders live on Settings.",
             automatedEvidence = true,
         ),
         PagePass(
@@ -113,8 +113,8 @@ object AccessibilityMatrix {
             id = "routine-editor",
             title = "Routine editor",
             states = requiredStates,
-            voltAction = "Add lifts — edits write through",
-            talkBackNotes = "Cards are numbered in session order. Tap a card to set work. Back leaves. There is no Save: every edit writes itself.",
+            voltAction = "Add lifts when empty; Save when the routine has lifts",
+            talkBackNotes = "Cards are numbered in session order. Tap a card to set work. Save keeps the program. Back leaves and discards an empty stub.",
             automatedEvidence = true,
         ),
         PagePass(

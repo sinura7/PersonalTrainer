@@ -7,6 +7,12 @@ object PlanDayCopy {
     const val ADD_SESSION = "Add session"
     const val ADD_SESSION_SUBTITLE = "Workout, cardio, or a short extra."
     const val ADD_EXTRA = "Add extra"
+    const val ADD = "Add"
+    const val ADD_SUBTITLE = "A workout, cardio, or extra for this day."
+    const val KEEP = "Keep this session"
+    const val JUST_TODAY = "Just today"
+    const val JUST_TODAY_BODY = "This date only. Next week stays empty."
+    const val EVERY_WEEKDAY_BODY = "Stays on this weekday."
     const val EMPTY = "Nothing on this day yet."
     const val EMPTY_BODY = "Add a workout, cardio, or a warm-up / stretch block."
     const val REMOVE = "Remove"
@@ -33,6 +39,8 @@ object PlanDayCopy {
     const val PICK_NAMED_OPEN = "Or pick a routine you already named."
 
     fun weekdayTitle(day: Weekday): String = CustomWeekPolicy.routineName(day)
+
+    fun everyWeekday(day: Weekday): String = "Every ${day.titleLabel()}"
 
     fun moveUp(title: String): String = "Move $title up"
 

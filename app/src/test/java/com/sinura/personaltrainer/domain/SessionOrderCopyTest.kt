@@ -60,7 +60,9 @@ class SessionOrderCopyTest {
                 ScheduleModality.STRENGTH,
             ),
         )
-        assertEquals(SessionOrderCopy.FREE_WORKOUT, "Start a free workout")
+        assertEquals(SessionOrderCopy.FREE_WORKOUT, "Start a workout")
+        assertEquals(SessionOrderCopy.START_ROW, "Start")
+        assertEquals(SessionOrderCopy.SAVE_ROUTINE, "Save")
         assertEquals(SessionOrderCopy.ADD_EXTRA, "Add extra")
         assertEquals(SessionOrderCopy.NEED_A_LIFT, "Add at least one lift before starting this routine.")
         assertEquals(

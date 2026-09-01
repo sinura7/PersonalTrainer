@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -51,6 +52,7 @@ import com.sinura.personaltrainer.ui.components.ExerciseRow
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.theme.Danger
@@ -87,6 +89,15 @@ fun RoutineEditorScreen(
     Scaffold(
         topBar = {
             RoutineEditorHeader(onBack = { viewModel.leave() })
+        },
+        bottomBar = {
+            val lifts = state.routine?.exercises.orEmpty()
+            if (!state.isLoading && !state.failed && !state.missing && lifts.isNotEmpty()) {
+                RoutineSaveDock(
+                    enabled = !state.addingLifts,
+                    onSave = viewModel::saveAndLeave,
+                )
+            }
         },
     ) { padding ->
         if (state.isLoading) {
@@ -285,14 +296,10 @@ fun RoutineEditorScreen(
 }
 
 /**
- * Back and a label, and nothing else.
+ * Back and a label. Save sits in the dock when the routine has lifts.
  *
- * There used to be a Save here. It wrote the name and the notes, announced "Routine saved",
- * and touched none of the four target fields on the cards below — which had a second Save of
- * their own, one per card. Two buttons named after the same verb, with different scopes, and
- * the prominent one claiming the broader result: typing new targets and pressing it lost them.
- * Both are gone. Every edit on this screen writes itself through, and each card's prescription
- * line reads back what was stored, which is a truer confirmation than a banner.
+ * Lifts, reorder, and targets still write through as they land. Save
+ * flushes the name and notes and keeps the program (ADR-021).
  */
 @Composable
 internal fun RoutineEditorHeader(onBack: () -> Unit) {
@@ -320,6 +327,30 @@ internal fun RoutineEditorHeader(onBack: () -> Unit) {
 object RoutineEditorTags {
     const val BACK = "routine-editor-back"
     const val ADD_LIFTS = "routine-editor-add-lifts"
+    const val SAVE = "routine-editor-save"
+}
+
+@Composable
+private fun RoutineSaveDock(
+    enabled: Boolean,
+    onSave: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Pit)
+            .navigationBarsPadding()
+            .padding(horizontal = Metrics.gutter, vertical = Metrics.space3),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
+        HairlineDivider(startIndent = 0.dp)
+        PrimaryGymButton(
+            text = SessionOrderCopy.SAVE_ROUTINE,
+            onClick = onSave,
+            modifier = Modifier.testTag(RoutineEditorTags.SAVE),
+            enabled = enabled,
+        )
+    }
 }
 
 /**

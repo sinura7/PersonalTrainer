@@ -383,6 +383,28 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     }
 
     /**
+     * Keep the routine and leave. Name, notes, and staged targets land first.
+     * An empty stub still cannot be saved — Add lifts is the empty Volt.
+     */
+    fun saveAndLeave() {
+        if (leaving) return
+        leaving = true
+        viewModelScope.launch {
+            joinWrites()
+            flushStagedTargets()
+            val id = routineId.value
+            val count = if (id == null) 0 else currentExerciseCount(id)
+            if (count <= 0) {
+                error.value = SessionOrderCopy.NEED_A_LIFT
+                leaving = false
+                return@launch
+            }
+            persistDetailsOnExit()
+            _exitRequested.value = true
+        }
+    }
+
+    /**
      * Save the name and notes the user typed but never pressed Save on.
      *
      * This screen writes every edit straight through to Room — adding an exercise, removing

@@ -422,6 +422,7 @@ fun PersonalTrainerNav(
                         },
                         onOpenPlan = { goToTab(Route.Routines.path) },
                         onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
+                        onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
                         onGenerateSchedule = { navController.navigate(Route.Onboarding.path) },
                         onBuildWeek = {
                             container.pendingCustomWeek.value = CustomWeekLaunch()

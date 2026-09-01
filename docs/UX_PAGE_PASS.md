@@ -132,21 +132,19 @@ keeps the draft.
 
 **Floor findings**
 
-- Agenda exists → `DailyAgendaCard` is the only today-surface. Volt is
-  `Start {title}` on the next planned row (non-aux strength preferred).
-  That row also shows the numbered lift order. Planned rows — including
-  the tagged one — open a start confirm with the session summary.
-  Confirm starts it. A leftover from an earlier day (Still open, or the
-  past day’s board) confirms as **Do it today**, which moves it here
-  then starts. Free workout stays quiet.
-- Two-a-day: one Volt. The other planned row stays tappable, not a second
-  filled Start. A three-session day is the same rule: one Volt on the
-  first planned workout; later accessory stays tappable and uses the
-  same confirm. Stretch does not own the Volt while a workout is planned.
-- Empty agenda leftover → `ThisWeekCard`. Planned + not logged → volt
-  “Start this session”, which opens the same session-summary confirm
-  as the agenda card (no clock line — a slot day is untimed). Confirm
-  starts it. Rest / already trained → quiet “Start a free workout”.
+- Agenda exists → `DailyAgendaCard` is the only today-surface. Planned
+  rows carry a trailing **Start** and open a start confirm (ADR-018).
+  Confirm starts that session. The filled Volt is **Start a workout**
+  (freestyle). A leftover from an earlier day (Still open, or the past
+  day’s board) confirms as **Do it today**, which moves it here then
+  starts. Still open leftovers can **Skip**. Add sits under Today and
+  asks just-today vs every this weekday (ADR-021).
+- Two-a-day: one Volt (Start a workout). Planned rows stay tappable,
+  not a second filled Start. Stretch does not own the Volt while a
+  workout is planned.
+- Empty agenda leftover → `ThisWeekCard`. Planned + not logged →
+  secondary **Start this session** (same confirm), filled Volt **Start
+  a workout**. Rest / already trained → quiet **Start a workout**.
   ~~Rest → quiet “Start anyway”. Already trained → quiet “Start another”~~
   *(those labels never shipped on the leftover card; free is the honest second path)*.
 - **Live → no Start at all.** The card names the plan. The bar is the way back.
@@ -333,6 +331,13 @@ Job 4 / P1. Home empty-week volt becomes replay when routines exist
 ## Floor findings (newest first)
 
 Record every deviation here. Oldest stay; do not delete.
+
+Owner asked for **Home start and day add** (1 Sep 2026): tapping a
+Home routine opens the start confirm; the filled Volt is **Start a
+workout**. Add sits under Today and asks just-today vs every this
+weekday. Still open can be skipped. Plan routines start collapsed.
+Creating a routine has Save. Gym-station photo portfolios wait
+([ADR-021](architecture/ADR-021-home-start-and-day-add.md)).
 
 Owner asked for **warm-up extras** (31 Aug 2026): golf, lower-body,
 upper-body, and shoulder warm-ups as their own sessions from existing
