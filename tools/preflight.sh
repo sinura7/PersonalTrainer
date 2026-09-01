@@ -88,14 +88,20 @@ bootstrap_jars() {
 
 jars_usable() {
     [ -n "$(find "$JARS" -name '*.jar' 2>/dev/null | head -1)" ] || return 1
-    # A previous bootstrap could have linked Robolectric's annotations jar.
-    # Rebuild rather than compile against a package that has no NotNull.
+    # A previous bootstrap could have linked Robolectric's annotations jar, whose package
+    # has no NotNull, and the domain lane then dies with NoClassDefFoundError on the first
+    # file that uses it.
+    #
+    # Judge that by what the jar CONTAINS, not by where it came from. The path test this
+    # replaces only recognised a Gradle module cache layout, so a directory assembled by
+    # hand — curl from Maven Central, an offline mirror, a copy from another machine — was
+    # deleted by the `rm -rf` below however correct its contents were, taking the only
+    # test lane on such a machine with it.
     for f in "$JARS"/annotations-*.jar; do
         [ -e "$f" ] || return 1
-        target="$(readlink -f "$f" 2>/dev/null || readlink "$f" || echo "$f")"
-        case "$target" in
-            *org.jetbrains/annotations*) return 0 ;;
-        esac
+        if unzip -l "$f" 2>/dev/null | grep -q 'org/jetbrains/annotations/NotNull\.class'; then
+            return 0
+        fi
         return 1
     done
     return 1
