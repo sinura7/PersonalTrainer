@@ -1002,7 +1002,7 @@ class WorkoutRepository(
             maxReps = maxReps,
             maxRepsAtCandidateWeight = maxRepsAtWeight,
             maxEstimatedOneRepMaxKg = maxEstimatedOneRepMaxKg,
-            priorSetsAtEqualOrMoreAssistance = priorSetsAtEqualOrMoreAssistance,
+            maxRepsAtEqualOrMoreAssistance = maxRepsAtEqualOrMoreAssistance,
         )
 }
 

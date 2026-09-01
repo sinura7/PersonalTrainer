@@ -155,13 +155,13 @@ object PersonalRecords {
         val maxRepsAtCandidateWeight: Int? = null,
         val maxEstimatedOneRepMaxKg: Double? = null,
         /**
-         * How many prior sets used at least as much help as the candidate.
+         * Best rep count reached with at least as much help as the candidate used.
          *
          * Only read for [LoadClass.BODYWEIGHT_ASSISTED], where the weight column is machine
-         * assistance. Zero means every earlier attempt at this lift was *harder* than this
-         * one, so a higher rep count now says nothing about the lifter.
+         * assistance. Equal to [maxReps] exactly when the standing rep record was itself set
+         * at no less help than the candidate — which is the question [detect] asks.
          */
-        val priorSetsAtEqualOrMoreAssistance: Int = 0,
+        val maxRepsAtEqualOrMoreAssistance: Int? = null,
     ) {
         val isEmpty: Boolean get() = priorSetCount <= 0
 
@@ -181,8 +181,9 @@ object PersonalRecords {
                     maxEstimatedOneRepMaxKg = priorHistory
                         .mapNotNull { estimatedOneRepMaxKg(it.weightKg, it.reps) }
                         .maxOrNull(),
-                    priorSetsAtEqualOrMoreAssistance = priorHistory
-                        .count { it.weightKg >= candidateWeightKg },
+                    maxRepsAtEqualOrMoreAssistance = priorHistory
+                        .filter { it.weightKg >= candidateWeightKg }
+                        .maxOfOrNull { it.reps },
                 )
             }
         }
@@ -218,12 +219,16 @@ object PersonalRecords {
             // On an assisted lift the rep count is only half the answer: the weight column is
             // machine help, so nine reps with twenty kilograms of assistance is not a better
             // set than eight with ten, and awarding "most reps ever" for turning the
-            // assistance UP is the app congratulating someone for getting weaker. A rep record
-            // needs both halves — more reps than ever before, AND at no more help than some
-            // earlier set already used. When every earlier attempt was harder than this one,
-            // the extra rep was bought rather than earned.
+            // assistance UP is the app congratulating someone for getting weaker.
+            //
+            // A rep record therefore needs both halves — more reps than ever before, and the
+            // standing rep record set at no LESS help than the candidate just used. The second
+            // half is what `maxRepsAtEqualOrMoreAssistance == maxReps` says. Merely having
+            // trained this easy before is not enough: with eight reps at 10 kg of help and
+            // three at 30, nine reps at 20 would clear that weaker bar on the strength of the
+            // 30 kg set, while the record it is actually beating was set with half the help.
             val assistanceEarnsIt = loadClass != LoadClass.BODYWEIGHT_ASSISTED ||
-                priors.priorSetsAtEqualOrMoreAssistance > 0
+                priors.maxRepsAtEqualOrMoreAssistance == maxReps
             if (candidate.reps > maxReps && assistanceEarnsIt) broken += PersonalRecordKind.REPS
             // A vest has a heaviest, and it is worth chasing: the same eight pull-ups with ten
             // more kilograms on is a better set, and nothing else here would notice.

@@ -301,8 +301,8 @@ every reps-are-the-measure class without comparing the assistance.
 2. Resolve the load class in `DeloadSignal` and use negated assistance as
    the strength proxy (or exclude assisted lifts from the top-three).
 3. For `BODYWEIGHT_ASSISTED`, ~~count a rep record only at equal-or-less
-   assistance~~ **keep the all-time rep count as the bar and gate it on
-   having trained at this assistance or easier before**; extend
+   assistance~~ **keep the all-time rep count as the bar and require the
+   standing rep record to have been set at no less assistance**; extend
    `recordPriorsBefore` with the matching aggregate. (See *Floor findings*,
    2026-09-01.)
 
@@ -1383,13 +1383,18 @@ record only at equal-or-less assistance", which reads as *replacing* the bar
 — compare the candidate only against sets done at equal-or-more help. Coded
 literally that awards a record to five reps at 30 kg of assistance from
 someone who has done ten unassisted, because the only comparable set was a
-three-rep one at the same help. The bar stays the all-time rep count, and
-the assistance clause becomes a second condition on top of it: a rep record
-needs more reps than ever before **and** at least one earlier set done at no
-less help than this one. Both cases in the symptom now answer correctly, and
-`theRepCountStillHasToBeTheHighestEverNotJustTheHighestAtThisHelp` pins the
-one the literal reading got wrong. The aggregate is therefore a COUNT of
-qualifying prior sets rather than a MAX of their reps.
+three-rep one at the same help. So the bar stays the all-time rep count and
+the assistance clause becomes a second condition on top of it.
+
+Written first as "at least one earlier set was done at no less help", which
+is too weak, and the counter-example is in the tests: eight reps at 10 kg of
+help and three at 30, then nine reps at 20. That clears the weaker gate on
+the strength of the 30 kg set, while the record it is actually beating was
+set with half the help — the symptom, laundered by an unrelated easy day.
+The condition is therefore that the standing rep record itself was set at no
+*less* help than the candidate: `maxRepsAtEqualOrMoreAssistance == maxReps`.
+Four tests pin the shape, two of them the cases the weaker readings got
+wrong, and the SQL aggregate is a MAX of reps at equal-or-more assistance.
 
 **2026-09-01 — A6, bodyweight lifts in the deload signal.** Not in the
 packet, same cause, so it is fixed here rather than left for a packet that

@@ -13,10 +13,10 @@ data class ExerciseRecordPriorsRow(
     val maxRepsAtWeight: Int?,
     val maxEstimatedOneRepMaxKg: Double?,
     /**
-     * How many prior sets used at least as much assistance as the candidate.
+     * Best reps reached with at least as much assistance as the candidate used.
      *
      * Assisted lifts only; on every other class the weight column means something
      * else and this number is read by nothing.
      */
-    val priorSetsAtEqualOrMoreAssistance: Int,
+    val maxRepsAtEqualOrMoreAssistance: Int?,
 )

@@ -99,6 +99,30 @@ class BodyweightRecordsTest {
     }
 
     @Test
+    fun anEasierSetElsewhereInHistoryDoesNotUnlockABoughtRepRecord() {
+        // Eight reps at ten kilograms of help is the standing record; three at thirty is an
+        // easy day from months ago. Nine reps at twenty is still the assistance turned UP
+        // against the record it claims to beat, and the existence of the easier set must not
+        // launder it — which a rule that only asked "have you ever trained this easy?" did.
+        val prior = listOf(rec(10.0, 8, 1), rec(30.0, 3, 2))
+        assertTrue(
+            PersonalRecords.detect(rec(20.0, 9, 3), prior, LoadClass.BODYWEIGHT_ASSISTED).isEmpty(),
+        )
+    }
+
+    @Test
+    fun anUnassistedRepRecordSurvivesAnEasierSetInHistory() {
+        // The other side of the same shape: ten unassisted is the record, three at thirty
+        // kilograms of help is history, and eleven unassisted beats the record on its own
+        // terms. Nothing here may suppress it.
+        val prior = listOf(rec(0.0, 10, 1), rec(30.0, 3, 2))
+        assertEquals(
+            setOf(PersonalRecordKind.REPS),
+            PersonalRecords.detect(rec(0.0, 11, 3), prior, LoadClass.BODYWEIGHT_ASSISTED),
+        )
+    }
+
+    @Test
     fun theRepCountStillHasToBeTheHighestEverNotJustTheHighestAtThisHelp() {
         // Ten unassisted, then three at thirty kilograms of help, then five at thirty. Five
         // beats the other assisted set, and is nowhere near the ten this lifter has done.
