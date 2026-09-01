@@ -254,8 +254,12 @@ class CustomWeekViewModelTest {
             answers = null,
             unit = WeightUnit.KG,
         )
-        assertEquals(Weekday.WEDNESDAY, vm.uiState.value.selectedDay)
-        assertEquals(setOf(Weekday.WEDNESDAY, Weekday.FRIDAY), vm.uiState.value.preferredDays)
+        val seeded = vm.uiState.first {
+            it.selectedDay == Weekday.WEDNESDAY &&
+                it.preferredDays == setOf(Weekday.WEDNESDAY, Weekday.FRIDAY)
+        }
+        assertEquals(Weekday.WEDNESDAY, seeded.selectedDay)
+        assertEquals(setOf(Weekday.WEDNESDAY, Weekday.FRIDAY), seeded.preferredDays)
 
         vm.togglePendingAdd(squat)
         vm.confirmPendingAdd()
