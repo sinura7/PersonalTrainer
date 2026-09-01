@@ -56,10 +56,10 @@ other way. Packets that need one are marked; everything else can start now.
 
 ## Packet index
 
-Thirty-four packets. "Evenings" is a working evening at this repo's test
-bar, not an optimistic hour. Total is roughly forty evenings; phases A–C,
-which cover everything that misreports your training or breaks the gym
-floor, are thirteen of them.
+Forty-one packets, plus two held. "Evenings" is a working evening at this
+repo's test bar, not an optimistic hour. The total is about fifty-five;
+phases A–C, which cover everything that misreports your training or breaks
+the gym floor, are fifteen of them.
 
 | # | Packet | Evenings | Needs | Phase |
 |---|---|---|---|---|
