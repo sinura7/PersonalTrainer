@@ -202,9 +202,11 @@ reminders at all.
    to `PLANNED`; a refused call returns quietly, as the other guards do.
 2. Have `cancelForOccurrence` also call
    `ReminderNotifications.cancel(appContext, occurrenceId)`.
-3. Route `ActivityRepository`'s two DONE writes through
-   `PlannerRepository.markOccurrenceDone`, which already cancels reminders —
-   removing the third hand-coded `"DONE"` literal at the same time.
+3. ~~Route `ActivityRepository`'s two DONE writes through
+   `PlannerRepository.markOccurrenceDone`~~ **Keep the DONE write inside the
+   activity transaction and hand the settled occurrence to a callback after
+   it commits**, which cancels reminders — removing the third hand-coded
+   `"DONE"` literal at the same time. (See *Floor findings*, 2026-09-01.)
 
 **Proof.** Three tests: Skip on a DONE row leaves it DONE; Move on a DONE
 row mints nothing; finishing a session cancels its posted reminder. All red
@@ -1377,6 +1379,25 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-01 — A3, where the DONE write lives.** The plan said to route
+`ActivityRepository`'s two DONE writes through
+`PlannerRepository.markOccurrenceDone`. Two things are wrong with that. The
+status write has to stay inside the activity transaction — a committed
+session beside a still-PLANNED day is exactly the inconsistency this packet
+exists to close — while `markOccurrenceDone` also cancels reminders, which
+reaches WorkManager and the notification manager and must not run inside a
+database transaction. And the dependency runs backwards: `activityRepository`
+is built before `plannerRepository`.
+
+So the write stays where it is, with the `"DONE"` literal replaced by
+`OccurrenceStatus.DONE.name` — the actual fragility was the unchecked string,
+not the location — and `ActivityRepository` gains an
+`onOccurrenceCompleted: suspend (String) -> Unit` called after the commit.
+`AppContainer` and `FakeAppDependencies` both wire it to a new
+`PlannerRepository.cancelRemindersFor`, so the fake behaves like production.
+It defaults to doing nothing, which keeps the two tests that construct this
+repository with a bare database compiling.
 
 **2026-09-01 — A6, the assisted rep rule.** The plan said "count a rep
 record only at equal-or-less assistance", which reads as *replacing* the bar

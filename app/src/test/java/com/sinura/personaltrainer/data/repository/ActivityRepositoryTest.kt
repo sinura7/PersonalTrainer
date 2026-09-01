@@ -190,6 +190,72 @@ class ActivityRepositoryTest {
         assertEquals(0, repository.all().size)
     }
 
+    // ---------------------------------------------------------------------------------------
+    // Finishing settles the planned day, so its reminders go with it (A3).
+    // ---------------------------------------------------------------------------------------
+
+    @Test
+    fun completingAnActivityHandsItsPlannedDayOverToBeCleared() = runBlocking {
+        // The third of A3's three gaps: this repository wrote DONE and told nobody, so the
+        // reminder stayed scheduled and any notification already posted kept offering Skip and
+        // Move for a session that was over.
+        val cleared = mutableListOf<String>()
+        val repo = ActivityRepository(database, onOccurrenceCompleted = { cleared += it })
+
+        val write = repo.confirm(
+            draft(
+                ActivityOrigin.BACKDATED,
+                ActivityStatus.COMPLETED,
+                morning,
+                listOf(run()),
+            ).copy(occurrenceId = "occ-1"),
+            now,
+            ids(),
+            JvmTime,
+        )
+
+        assertTrue(write is ActivityWrite.Accepted)
+        assertEquals(listOf("occ-1"), cleared)
+    }
+
+    @Test
+    fun finishingALiveActivityClearsItsPlannedDayToo() = runBlocking {
+        val cleared = mutableListOf<String>()
+        val repo = ActivityRepository(database, onOccurrenceCompleted = { cleared += it })
+        val started = repo.confirm(
+            draft(
+                ActivityOrigin.LIVE,
+                ActivityStatus.ACTIVE,
+                morning,
+                listOf(run()),
+            ).copy(occurrenceId = "occ-1"),
+            now,
+            ids(),
+            JvmTime,
+        )
+        assertTrue(started is ActivityWrite.Accepted)
+        assertTrue("starting settles nothing", cleared.isEmpty())
+
+        repo.completeLive((started as ActivityWrite.Accepted).session.id, now, JvmTime)
+
+        assertEquals(listOf("occ-1"), cleared)
+    }
+
+    @Test
+    fun anActivityWithNoPlannedDayClearsNothing() = runBlocking {
+        val cleared = mutableListOf<String>()
+        val repo = ActivityRepository(database, onOccurrenceCompleted = { cleared += it })
+
+        repo.confirm(
+            draft(ActivityOrigin.BACKDATED, ActivityStatus.COMPLETED, morning, listOf(run())),
+            now,
+            ids(),
+            JvmTime,
+        )
+
+        assertTrue(cleared.isEmpty())
+    }
+
     private fun draft(
         origin: ActivityOrigin,
         status: ActivityStatus,
