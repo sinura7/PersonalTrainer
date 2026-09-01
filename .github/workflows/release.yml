@@ -172,7 +172,7 @@ jobs:
       # Always keep the build, even on workflow_dispatch where no Release is published —
       # otherwise a manual run spends 15 minutes and throws the APK away.
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-apk
           path: ${{ steps.apk.outputs.path }}
