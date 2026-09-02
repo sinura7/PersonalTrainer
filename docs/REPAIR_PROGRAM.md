@@ -1282,6 +1282,10 @@ artifact explicitly instead of inheriting it.
 **Owns.** `app/build.gradle.kts`, `gradle/verification-metadata.xml`,
 `app/src/test/resources/robolectric.properties`.
 
+**Partly done.** The checksum-ledger gaps that were failing every CI run
+were closed on 2 September 2026, ahead of this packet. (See *Floor
+findings*, 2026-09-02.) Everything else in J3 is untouched.
+
 ## J4 — Tests stop sleeping · 2 evenings
 
 **Symptom.** The suite is slower than it needs to be and will flake on a
@@ -1379,6 +1383,43 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-02 — J3, the checksum ledger, opened out of order.** J3 owns
+`gradle/verification-metadata.xml` and sits in Phase J, last. It is opened
+here, before Phase A has merged, because that file is what stopped every
+other packet from ever being compiled. `.github/workflows/ci.yml` is the
+only thing reachable from the executor's environment that has an Android
+SDK and a route to Google's Maven, and its own comment says the branch
+build "is the only thing that ever compiles that code". Every run on this
+branch and on `trunk` failed 23-45 s in, at `./gradlew testDebugUnitTest`,
+on Gradle dependency verification — after checkout, JDK 17, the SDK,
+Gradle and the full 17-checker static gate had all passed. The ledger was
+missing `guava-parent` 33.4.8-jre, `kotlinx-coroutines-bom` 1.6.4, and the
+`.module` files for `junit-bom` 5.9.2 and 5.10.2. `guava-parent` 33.2.1-jre
+went in with them: its child is in the ledger and its parent was not, so it
+fails the moment 33.4.8-jre stops being first. The gap set is closed rather
+than open-ended — walking every `<parent>` and imported-BOM reference
+across all 616 components found three absent coordinates and exactly two
+components lacking a `.module` that exists upstream, and the three new
+entries have no parent of their own and no upstream `.module`, so the
+closure terminates. Each checksum was cross-checked against Maven
+Central's own published `.sha1`. Nothing was loosened: `verify-metadata`
+stays true, no `<trust>` rule was added, and
+`tools/check-supply-chain.py` still reports zero findings.
+
+This is not the CI-billing packet that ADR-002 §6 and `owner-loop.mdc`
+forbid, and hosted runners are still not the gate. The same missing
+checksums fail `./gradlew testDebugUnitTest assembleDebug` — the gate this
+program does name — on any machine, the owner's included; CI is only where
+it was finally visible. `docs/DEVELOPMENT.md:220` and
+`docs/HANDOFF-2026-08-29.md` both claimed the account had no runner and that
+every run died in seconds before checkout. Both were false, both are
+corrected, and the false version is why nine runs were read as noise. J3
+carries no **Proof** line, which by this plan's own rule at `:25-26` makes
+it hoped rather than finished; a green run on this branch is the first proof
+it has had. The rest of J3 — resource filtering, the Play-only block,
+packaging excludes, release lint, Robolectric's Android jar — is untouched
+and still owed.
 
 **2026-09-01 — A4, where the failure message is decided.** The plan's proof
 was a stage-failure test through `BackupRepository`, which cannot be reached
