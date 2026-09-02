@@ -78,7 +78,7 @@ jobs:
 
       # workflow_dispatch keeps the build as an artifact only.
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: debug-live-apk
           path: ${{ steps.apk.outputs.path }}
