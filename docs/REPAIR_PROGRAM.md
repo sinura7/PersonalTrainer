@@ -1384,6 +1384,41 @@ The program is complete when all of the following hold:
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
 
+**2026-09-02 — a fourth way to wait on the wrong thing, found by trunk.**
+J4's first half passed twice on the exact tree that merged — a push run
+and a pull-request run on `5f27e8c` — and then turned trunk red on the
+merge commit: 1650 tests, 2 failed. Both are races those runs did not
+happen to fire, and neither is new — both are the same disease, at sites
+the packet did not reach.
+
+`CustomWeekViewModelTest`'s missing-lift test read `uiState.value`
+synchronously after three writes and asserted the picker was still open.
+That is a class the entry below does not name: **a synchronous `.value` read
+of a shared `stateIn` flow whose upstream crosses a real thread.** `uiState`
+shares through `stateIn` at `:114`, and its `:91` branch folds in
+`resultsFlow` (`:77`), which collects `exerciseRepository.search` and
+`observeLastLogged` — Room flows answering on Room's own query executor —
+so the sharing coroutine resumes off the test thread and the cached value
+can be an emission behind. This is not the partial-combine latch below: a
+`combine` never regresses a field, and the read simply happened before the
+emission existed. Now waits for the error the assertions describe.
+
+`RoutineEditorViewModelTest.confirmPendingAddSkipsLiftsAlreadyOnTheRoutine`
+failed at the same line as before, for two reasons both still open. Its
+catalog barrier was `isNotEmpty()` where the test selects two lifts — the
+very site class tightened to `size >= 2` in two other tests in this file,
+missed here. And the barrier added the day before waits only for the routine
+to carry one exercise, while `:460` returns immediately whenever
+`confirmInFlight` is set and the `finally` at `:516` clears it only after
+the write returns; Room can emit the saved routine first, so the second
+confirm was a no-op against a view model still refusing confirms. Both are
+closed, and the wait is now a conjunction including `!addingLifts`.
+
+The lesson is in how it was proved. Two green runs on this tree preceded
+the merge that went red. A green run does not retire a race, it records
+that the race did not fire — and nothing here is deterministic until the
+`app/src/main` seams the entry below names actually exist.
+
 **2026-09-02 — J4, delivered as half a packet, and a correction.** J4's
 stated change is `runTest` with a standard test dispatcher and value-based
 waits. It cannot be done inside its own **Owns** line. Four real-thread
