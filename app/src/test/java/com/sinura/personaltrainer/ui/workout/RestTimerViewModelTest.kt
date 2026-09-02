@@ -189,13 +189,14 @@ class RestTimerViewModelTest {
         deps.workoutRepository.getSession(sessionId)?.takeIf(predicate)
     }
 
-    // A ceiling, not a target. This polls in real time while Room answers on its own
-    // executor, so a loaded runner can blow a tight budget with nothing actually wrong:
-    // 5 s failed twice on CI in six runs, in this helper, on assertions that hold.
-    // Raising it costs nothing on a passing test. J4 is the real fix — value-based
-    // waits instead of polling — and this is a stopgap until it lands.
+    // Five seconds is deliberate. This was raised to 30 s on the theory that a loaded
+    // runner was blowing a tight budget; the next run failed at 30 s in the same helper,
+    // on a test whose predicate could never come true, and took 5m39s to say so. The
+    // budget was never the problem — a wait on the wrong object was. Keep it short so
+    // the next such hang is reported quickly, and fix the barrier, not the number.
+    // J4 replaces this polling with value-based waits.
     private suspend fun <T : Any> eventually(block: suspend () -> T?): T =
-        withTimeout(30_000) {
+        withTimeout(5_000) {
             while (true) {
                 dispatcher.scheduler.runCurrent()
                 block()?.let { return@withTimeout it }
