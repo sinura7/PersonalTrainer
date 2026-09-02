@@ -31,10 +31,12 @@ class TrainingInsightsCalculatorTest {
         window: HeatWindow = HeatWindow.CURRENT_MONTH,
         includeWeekPlan: Boolean = true,
         slots: List<ScheduleSlot> = emptyList(),
+        lastLoggedAtByExerciseId: Map<String, Long> = emptyMap(),
     ) = TrainingInsightsInput(
         history = history,
         routines = routines,
         exerciseCatalog = catalog,
+        lastLoggedAtByExerciseId = lastLoggedAtByExerciseId,
         hints = hints,
         preferences = preferences,
         slots = slots,
@@ -74,6 +76,70 @@ class TrainingInsightsCalculatorTest {
         )
         assertEquals(0.0, insights.snapshot!!.load(CanonicalMuscle.QUADRICEPS).volumeKg, 0.001)
     }
+
+    @Test
+    fun theCoachReadsTheSameRecencyTheBodyMapShows() {
+        // The history this pipeline receives is windowed at 32 days. A back session 40 days
+        // ago is therefore absent from it, and the coach used to answer "Back has no logged
+        // work — Nothing in history maps to Back" while the body map, which gets the lifetime
+        // overlay, correctly read "40 days since" three lines above it.
+        val catalog = oneExercisePerMuscle()
+        val recency = CanonicalMuscle.entries.associate { muscle ->
+            val daysAgo = if (muscle == CanonicalMuscle.BACK) 40L else 1L
+            "ex-${muscle.name.lowercase()}" to now - daysAgo * 24 * 60 * 60 * 1000
+        }
+
+        val insights = TrainingInsightsCalculator.compute(
+            input(catalog = catalog, lastLoggedAtByExerciseId = recency),
+        )
+
+        assertEquals(40, insights.snapshot!!.load(CanonicalMuscle.BACK).daysSinceLastTrained)
+        val back = insights.recommendations.single { it.id == "neglect-BACK" }
+        assertEquals("Back: 40 days since a working set", back.title)
+        assertTrue(back.reason.startsWith("Last working set was 40 days ago."))
+        assertTrue(
+            "no card may claim a muscle is untrained while the map dates it",
+            insights.recommendations.none { it.title.contains("has no logged work") },
+        )
+    }
+
+    @Test
+    fun aHistoryEntirelyOlderThanTheWindowStillGetsCoaching() {
+        // The other half of the same fault: with every session outside the window the basis
+        // saw no working sets at all, and RecommendationEngine.recommend returns an empty
+        // list on that condition. Someone coming back after two months got a body map full of
+        // real dates and a coach with nothing whatsoever to say.
+        val catalog = oneExercisePerMuscle()
+        val recency = CanonicalMuscle.entries.associate { muscle ->
+            "ex-${muscle.name.lowercase()}" to now - 60L * 24 * 60 * 60 * 1000
+        }
+
+        val insights = TrainingInsightsCalculator.compute(
+            input(catalog = catalog, lastLoggedAtByExerciseId = recency),
+        )
+
+        assertTrue(insights.recommendations.isNotEmpty())
+        assertTrue(
+            insights.recommendations.any { it.title.endsWith("60 days since a working set") },
+        )
+    }
+
+    /**
+     * A catalog that can name every muscle, so the recency overlay has somewhere to land for
+     * each one and no muscle is left null by accident rather than by the case under test.
+     */
+    private fun oneExercisePerMuscle(): Map<String, Exercise> =
+        CanonicalMuscle.entries.associate { muscle ->
+            val id = "ex-${muscle.name.lowercase()}"
+            id to Exercise(
+                id = id,
+                name = muscle.displayName,
+                muscleGroup = muscle.catalogLabel,
+                notes = "",
+                isCustom = false,
+                muscles = listOf(MuscleCredit(muscle.displayName, 1.0)),
+            )
+        }
 
     @Test
     fun currentWeekWindowHonoursTheWeekStartPreference() {

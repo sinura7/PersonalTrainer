@@ -48,6 +48,14 @@ interface WorkoutDao {
      * Cheap fingerprint of finished work. Mentions `set_logs`, so Room still
      * re-runs it on every log; the result is equal until a finished session
      * actually changes.
+     *
+     * The two sums are what makes "actually changes" include an *edit*.
+     * `updateSet` deliberately leaves `completedAt` and `setNumber` alone, so
+     * correcting a mistyped weight moved nothing in the count-and-timestamp
+     * fingerprint this used to be: the screen you edited on updated, and
+     * Home's last session, History's totals and the body map kept the old
+     * number until an unrelated workout happened to finish. Both are
+     * aggregates over a join the query already performs.
      */
     @Query(
         """
@@ -64,7 +72,17 @@ interface WorkoutDao {
             SELECT MAX(sl.completedAt) FROM set_logs sl
             INNER JOIN workout_sessions ws ON ws.id = sl.sessionId
             WHERE sl.isWarmup = 0 AND ws.finishedAt IS NOT NULL
-          ) AS lastFinishedSetAt
+          ) AS lastFinishedSetAt,
+          (
+            SELECT COALESCE(SUM(sl.weightKg * sl.reps), 0) FROM set_logs sl
+            INNER JOIN workout_sessions ws ON ws.id = sl.sessionId
+            WHERE sl.isWarmup = 0 AND ws.finishedAt IS NOT NULL
+          ) AS finishedWorkingVolumeKg,
+          (
+            SELECT COALESCE(SUM(sl.reps), 0) FROM set_logs sl
+            INNER JOIN workout_sessions ws ON ws.id = sl.sessionId
+            WHERE sl.isWarmup = 0 AND ws.finishedAt IS NOT NULL
+          ) AS finishedWorkingRepCount
         FROM (SELECT 1)
         """,
     )
@@ -300,6 +318,13 @@ interface WorkoutDao {
     /**
      * Standing bests before [completedAt] for one lift. Includes earlier
      * sets of the in-progress [sessionId] so a work-up cannot beat itself.
+     *
+     * `maxRepsAtEqualOrMoreAssistance` is read only for assisted lifts, where
+     * `weightKg` is machine help: a rep count bought by turning the assistance up
+     * is not a record, so a rep record also requires that the standing rep record
+     * was itself set at no less help. The `>=` is deliberate and is not a typo for
+     * the `=` on the line above, which answers a different question for loaded
+     * work.
      */
     @Query(
         """
@@ -307,6 +332,9 @@ interface WorkoutDao {
                MAX(sl.weightKg) AS maxWeightKg,
                MAX(sl.reps) AS maxReps,
                MAX(CASE WHEN sl.weightKg = :weightKg THEN sl.reps ELSE NULL END) AS maxRepsAtWeight,
+               MAX(
+                 CASE WHEN sl.weightKg >= :weightKg THEN sl.reps ELSE NULL END
+               ) AS maxRepsAtEqualOrMoreAssistance,
                MAX(
                  CASE
                    WHEN sl.weightKg <= 0 THEN NULL

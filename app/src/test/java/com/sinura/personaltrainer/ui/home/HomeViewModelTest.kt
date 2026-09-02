@@ -350,6 +350,17 @@ class HomeViewModelTest {
             }.single { it.routineId == routine.id }
         }
         assertTrue(rule.enabled)
+        // Wait on the occurrence, not on the rule. `publishPinnedWeek` is two writes and not
+        // one transaction: `syncSlotsToRules` commits the rule and wakes `observeRules()`
+        // before `ensureWeek` has written the week. Waiting for an *enabled* rule therefore
+        // returns inside that gap — which is why the `once` sibling passes on the same path:
+        // its barrier is the rule being *disabled*, which `mintTimed` only does after publish
+        // returns. Reading the occurrences straight after the rule appears reads them early.
+        withTimeout(5_000) {
+            deps.plannerRepository.observeOccurrences().first { occurrences ->
+                occurrences.any { it.ruleId == rule.id && it.localEpochDay == today }
+            }
+        }
         assertTrue(
             deps.plannerRepository.occurrencesBetween(today, today).any { it.ruleId == rule.id },
         )

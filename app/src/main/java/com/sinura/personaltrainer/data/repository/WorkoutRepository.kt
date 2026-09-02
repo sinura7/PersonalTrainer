@@ -736,8 +736,9 @@ class WorkoutRepository(
             // The lift decides the size of the jump and the unit decides its shape. An unknown
             // load type — a custom, or a row from a backup this build predates — is treated as
             // loadable, because refusing to suggest anything is worse than suggesting 2.5 kg.
-            stepKg = IncrementTable.stepKg(loadType ?: LoadType.EXTERNAL, unit),
+            displayStep = IncrementTable.displayStep(loadType ?: LoadType.EXTERNAL, unit),
             loadType = loadType,
+            unit = unit,
         )
         // Hitting the target reps at RPE 9 and hitting them at RPE 6 are the same event to the
         // calculator, and only one of them means "ready for more".
@@ -929,8 +930,9 @@ class WorkoutRepository(
                 lastWeightKg = topSet.weightKg,
                 lastWorkingReps = topSet.reps,
                 targetReps = item.targetReps,
-                stepKg = IncrementTable.stepKg(item.exercise.loadType, unit),
+                displayStep = IncrementTable.displayStep(item.exercise.loadType, unit),
                 loadType = item.exercise.loadType,
+                unit = unit,
             )
             val recentRpes = sessionsNewestFirst.take(RpeModifier.RPE_HOLD_SESSIONS).map { (_, sets) ->
                 rpeOfTopSet(sets, loadClass)
@@ -1000,6 +1002,7 @@ class WorkoutRepository(
             maxReps = maxReps,
             maxRepsAtCandidateWeight = maxRepsAtWeight,
             maxEstimatedOneRepMaxKg = maxEstimatedOneRepMaxKg,
+            maxRepsAtEqualOrMoreAssistance = maxRepsAtEqualOrMoreAssistance,
         )
 }
 

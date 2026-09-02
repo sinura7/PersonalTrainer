@@ -104,7 +104,7 @@ object BackupEnvelope {
                 SecretKeySpec(keyBytes, "AES"),
                 GCMParameterSpec(TAG_BITS, nonce),
             )
-            cipher.updateAAD(aad(iterations))
+            cipher.updateAAD(aad(ENVELOPE_VERSION, iterations))
             val ciphertext = cipher.doFinal(plaintext.toByteArray(Charsets.UTF_8))
             val root = JsonObject()
             root.addProperty("format", FORMAT)
@@ -179,7 +179,12 @@ object BackupEnvelope {
                 SecretKeySpec(keyBytes, "AES"),
                 GCMParameterSpec(TAG_BITS, nonce),
             )
-            cipher.updateAAD(aad(iterations))
+            // The version this FILE was written with, never the constant this build carries.
+            // Bumping ENVELOPE_VERSION to 2 would otherwise recompute every v1 file's tag
+            // over "2", fail the AEAD check, and report it as "that password doesn't open
+            // this file" — orphaning every backup the owner has and blaming their typing.
+            // The version check above already refuses anything newer than this build.
+            cipher.updateAAD(aad(envelopeVersion, iterations))
             String(cipher.doFinal(ciphertext), Charsets.UTF_8)
         } catch (_: AEADBadTagException) {
             throw BackupException(WRONG_PASSWORD)
@@ -192,8 +197,14 @@ object BackupEnvelope {
         }
     }
 
-    private fun aad(iterations: Int): ByteArray =
-        "$FORMAT|$ENVELOPE_VERSION|${BackupJson.APP_ID}|$KDF|$iterations".toByteArray(Charsets.UTF_8)
+    /**
+     * The header fields the tag is bound to, so none of them can be edited in flight.
+     *
+     * [envelopeVersion] is a parameter rather than the constant because it is a property of
+     * the file, not of the build reading it — see the call site in [unwrap].
+     */
+    internal fun aad(envelopeVersion: Int, iterations: Int): ByteArray =
+        "$FORMAT|$envelopeVersion|${BackupJson.APP_ID}|$KDF|$iterations".toByteArray(Charsets.UTF_8)
 
     private fun derive(password: CharArray, salt: ByteArray, iterations: Int): ByteArray {
         val spec = PBEKeySpec(password, salt, iterations, KEY_BYTES * 8)

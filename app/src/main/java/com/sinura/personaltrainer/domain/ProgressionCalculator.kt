@@ -9,7 +9,7 @@ package com.sinura.personaltrainer.domain
  */
 object ProgressionCalculator {
     /**
-     * The step in kilograms, or null for a lift with no weight to add.
+     * The step **in the unit the lifter reads**, or null for a lift with no weight to add.
      *
      * Passed in rather than held as a constant: the right increment depends on the lift's load
      * type and on the unit the lifter reads, and neither is knowable from a weight and a rep
@@ -18,39 +18,45 @@ object ProgressionCalculator {
     /**
      * @param weightMeaning what the stored weight IS for this lift. Required, not defaulted,
      * because getting it wrong inverts the whole suggestion — see below.
+     * @param unit the unit the lifter reads. The arithmetic happens in it — see below.
      */
     fun suggestWeightKg(
         lastWeightKg: Double,
         lastWorkingReps: Int,
         targetReps: Int,
-        stepKg: Double?,
+        displayStep: Double?,
         weightMeaning: WeightMeaning,
+        unit: WeightUnit,
     ): Double {
         // No step means nothing to add. Holding the weight is the honest suggestion; the
         // ACTION still reads INCREASE, and the caller renders that as "add a rep".
-        if (stepKg == null) return lastWeightKg.coerceAtLeast(0.0)
+        if (displayStep == null) return lastWeightKg.coerceAtLeast(0.0)
         val shortfall = targetReps - lastWorkingReps
-        // How much HARDER the next session should be. A step on a bar and a step on an
-        // assistance stack are the same intent expressed by opposite numbers.
-        val harder = when {
-            shortfall <= 0 -> stepKg
-            shortfall <= 2 -> 0.0
-            else -> -stepKg
-        }
+        // A hold holds EXACTLY. Re-deriving it through the display grid would move a pound
+        // user's weight by the rounding alone, which is a suggestion nobody asked for.
+        if (shortfall in 1..2) return lastWeightKg.coerceAtLeast(0.0)
+        // How much HARDER the next session should be, in display units. A step on a bar and a
+        // step on an assistance stack are the same intent expressed by opposite numbers.
+        val harder = if (shortfall <= 0) displayStep else -displayStep
         // Assistance is weight taken OFF the lifter, so less of it is the harder set. Without
         // this the machine rewarded hitting your target reps by offering more help — and
         // answered three missed reps by taking help away, making a lift you were already
         // failing harder still. Both directions were exactly backwards.
         val delta = if (weightMeaning == WeightMeaning.ASSISTANCE) -harder else harder
+        // The whole point of this function's shape: step in the unit the lifter reads, THEN
+        // convert, exactly as WeightConverter.incrementKg does for the +/- plates.
+        //
+        // Adding the step in kilograms instead — 5 lbs as 2.2679618… kg — and re-quantising
+        // to the tenth-of-a-kilogram grid rounds UP every single time, so the real step was
+        // 2.3 kg = 5.07 lbs and the error compounded: 100 lbs became 115.5 by the third
+        // session and 151 by the tenth. It also split records, because a suggestion the
+        // lifter accepted stored a different kilogram from the same weight typed by hand.
+        //
         // Floored at zero, which for an assisted lift is the point of the machine: no
         // assistance left is the first unassisted rep.
-        //
-        // Quantised to the same tenth-of-a-kilogram grid typed and stepped input lands
-        // on (WeightConverter.toKg): the raw lbs step (5 lbs = 2.2679618… kg) otherwise
-        // stores a kg no typed "110 lbs" can ever equal again — the same displayed
-        // weight splits into distinct stored values, announcing a false "Heaviest ever"
-        // for repeating a weight and never accumulating a reps-at-weight record.
-        return WeightConverter.toKg((lastWeightKg + delta).coerceAtLeast(0.0), WeightUnit.KG)
+        val nextDisplay = (WeightConverter.toDisplayValue(lastWeightKg, unit) + delta)
+            .coerceAtLeast(0.0)
+        return WeightConverter.toKg(nextDisplay, unit)
     }
 
     fun action(
@@ -71,8 +77,9 @@ object ProgressionCalculator {
         lastWeightKg: Double,
         lastWorkingReps: Int,
         targetReps: Int,
-        stepKg: Double?,
+        displayStep: Double?,
         loadType: LoadType?,
+        unit: WeightUnit,
     ): ProgressionHint {
         return ProgressionHint(
             exerciseId = exerciseId,
@@ -84,8 +91,9 @@ object ProgressionCalculator {
                 lastWeightKg = lastWeightKg,
                 lastWorkingReps = lastWorkingReps,
                 targetReps = targetReps,
-                stepKg = stepKg,
+                displayStep = displayStep,
                 weightMeaning = LoadClass.of(loadType).weightMeaning,
+                unit = unit,
             ),
             action = action(lastWorkingReps, targetReps),
             loadType = loadType,
