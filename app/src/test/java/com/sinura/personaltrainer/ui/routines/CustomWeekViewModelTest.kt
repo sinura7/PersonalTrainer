@@ -145,7 +145,15 @@ class CustomWeekViewModelTest {
         vm.togglePendingAdd(squat.copy(id = "ghost", name = "Ghost"))
         vm.confirmPendingAdd()
 
-        val state = vm.uiState.value
+        // Not uiState.value. This state is shared through stateIn (:114), and the branch
+        // at :91 folds in resultsFlow (:77), which collects exerciseRepository.search and
+        // observeLastLogged -- two Room flows answering on Room's own query executor. The
+        // sharing coroutine therefore resumes off this thread, so a value read taken right
+        // after a write can be an emission behind: this failed on trunk with showPicker
+        // false for a picker setPickerVisible had already opened. Wait for the emission
+        // the assertions describe instead. J4 owns removing the boundary itself; that needs a dispatcher
+        // seam in app/src/main.
+        val state = vm.uiState.first { it.error == SessionOrderCopy.ADD_LIFT_FAILED }
         assertTrue(state.showPicker)
         assertEquals(listOf("ghost"), state.pendingAddIds)
         assertEquals(SessionOrderCopy.ADD_LIFT_FAILED, state.error)

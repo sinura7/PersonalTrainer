@@ -397,18 +397,26 @@ class RoutineEditorViewModelTest {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val row = insertTestExercise(deps, "row", "Row")
         val vm = createViewModel("new")
-        vm.uiState.first { it.catalog.isNotEmpty() }
+        // Both lifts, not merely one. confirmPendingAdd resolves the selected ids against
+        // uiState.catalog (:463-469), and LiftCart.planConfirm (:66-68) returns blocked --
+        // writing nothing at all, not even the ids it could resolve -- as soon as one is
+        // missing. Catch the emission carrying only squat and the row toggled below is
+        // unresolvable, the second confirm writes nothing, and the size == 2 wait at the
+        // end can never come true. Two other tests in this file were tightened for exactly
+        // this in b29aade; this one was missed and it failed on trunk.
+        vm.uiState.first { it.catalog.size >= 2 }
         vm.togglePendingAdd(squat)
         vm.confirmPendingAdd()
         awaitRoutine { it.exercises.size == 1 }
-        // confirmPendingAdd dedups against routineFlow.value (RoutineEditorViewModel:470) --
-        // the view model's own copy, not the repository. awaitRoutine polls the repository,
-        // which reaches one exercise first, so toggling squat again could run against a view
-        // model that had not seen it yet: `already` came back empty, squat was added a second
-        // time, the routine landed on three, and the size == 2 wait below could never come
-        // true. That is a full-ceiling hang, not a slow pass, which is why raising the
-        // timeout did nothing. Wait for the state the code under test actually reads.
-        vm.uiState.first { it.routine?.exercises?.size == 1 }
+        // Two conditions, because two things must be true before the second confirm is even
+        // legal. confirmPendingAdd dedups against routineFlow.value
+        // (RoutineEditorViewModel:470) -- the view model's own copy, not the repository that
+        // awaitRoutine polls -- so the routine has to have landed there. And :460 returns
+        // immediately while confirmInFlight is set, which the finally at :516 clears only
+        // after the write returns; Room can emit the saved routine before that runs. Wait on
+        // the routine alone and the second confirm is a no-op against a view model still
+        // refusing confirms, which is how this failed on trunk. addingLifts is that flag.
+        vm.uiState.first { it.routine?.exercises?.size == 1 && !it.addingLifts }
 
         vm.setPickerVisible(true)
         vm.togglePendingAdd(squat)
