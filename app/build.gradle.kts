@@ -65,12 +65,12 @@ android {
         // inflates Robolectric-blind timer bytecode and would drop the
         // 18% floor. P4.6 owns zero-warning cleanup.
         disable += setOf("AndroidGradlePluginVersion", "UseKtx", "GradleDependency")
-        // Print every finding, not just the first. AGP's console output names one issue
-        // and then points at a build intermediate that no uploaded artifact carries, so
-        // a run whose report host is unreachable is undiagnosable — four errors took a
-        // round trip each to see. Same reason the test task logs failures in full.
+        // Print every finding, not just the first. Without this AGP names one issue and
+        // then points at a build intermediate that no uploaded artifact carries, so a run
+        // whose report host is unreachable costs a round trip per issue. Same reason the
+        // test task logs failures in full. No textOutput: it is a real path, not a console
+        // alias, and pointing it at "stdout" only drops a stray app/stdout in the tree.
         textReport = true
-        textOutput = file("stdout")
     }
 
     testOptions {

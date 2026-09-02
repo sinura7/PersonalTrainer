@@ -57,8 +57,8 @@ fun WeekStrip(
     today: Long,
     selected: Long,
     onSelectDay: (Long) -> Unit,
-    proposals: Map<Long, SuggestedTrainingDay> = emptyMap(),
     modifier: Modifier = Modifier,
+    proposals: Map<Long, SuggestedTrainingDay> = emptyMap(),
 ) {
     Row(
         modifier = modifier
