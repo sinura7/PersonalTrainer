@@ -16,6 +16,7 @@ import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.BackupScaleBudget
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
 import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
+import com.sinura.personaltrainer.data.backup.readAtMost
 import com.sinura.personaltrainer.data.repository.RestorePlan
 import com.sinura.personaltrainer.data.repository.RestoreResult
 import com.sinura.personaltrainer.domain.BackupPrompt
@@ -728,7 +729,7 @@ class SettingsViewModel @JvmOverloads constructor(
                 resolver.openInputStream(uri)?.use { stream ->
                     // Bounded read: a multi-hundred-MB pick must fail with copy,
                     // not OOM-kill the app. The +1 detects over-budget cleanly.
-                    val bytes = stream.readNBytes(BackupScaleBudget.IMPORT_BYTES_MAX + 1)
+                    val bytes = stream.readAtMost(BackupScaleBudget.IMPORT_BYTES_MAX + 1)
                     if (bytes.size > BackupScaleBudget.IMPORT_BYTES_MAX) {
                         throw BackupException(BackupScaleBudget.TOO_BIG_TO_IMPORT)
                     }

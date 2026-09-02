@@ -1384,6 +1384,31 @@ The program is complete when all of the following hold:
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
 
+**2026-09-02 — outside the packets, a crash lint had never been run to
+find.** `lintDebug` ran for the first time in this repository and found four
+errors. The first: `DriveRestClient.kt:143`, *"Call requires API level 33
+(current min is 26): java.io.InputStream#readNBytes"*. `minSdk` is 26, so on
+Android 8 through 12L that call does not exist and the import dies with
+`NoSuchMethodError`. Both bounded reads used it — `DriveRestClient` for a
+Drive restore and `SettingsViewModel.requestFileRestore` for a picked file —
+so restoring a backup crashed on most of the supported range.
+
+It came from `96bceff`, on trunk: the read was bounded deliberately, so a
+planted multi-hundred-MB file could not OOM-kill the app, and the method
+chosen to bound it was API 33. A hardening change that shipped a crash, and
+nothing ran the checker that says so. Replaced with `readAtMost`, an
+API-26-safe loop next to the budget it enforces, keeping `readNBytes`
+semantics: read until the limit or the stream ends, never trusting one
+`read` to fill the buffer. Seven tests pin it (`BoundedStreamReadTest`),
+proved red-first — a single-read implementation fails
+`assemblesAcrossShortReads` and `aStreamThatDribblesStillStopsAtTheLimit`,
+which is the property the callers' budget-plus-one probe rests on.
+
+Lint now prints its whole report rather than the first finding. It named one
+error of four and pointed at a build intermediate no artifact carries, which
+costs a full round trip per issue from an environment that cannot reach the
+report host. Three of the four are still unseen; the next run names them.
+
 **2026-09-02 — outside the packets, a trunk test the lane had never run.**
 With the Robolectric lane working, 1643 tests ran and one failed:
 `HomeViewModelTest.addDaySessionWeeklyKeepsTheRuleEnabled`, from `3a2a46f`
