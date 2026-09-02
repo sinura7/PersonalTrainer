@@ -90,13 +90,19 @@ object BlockReviewBuilder {
                 day >= block.startEpochDay &&
                 day < block.endExclusiveEpochDay
         }
+        // What [countRecords] compares each in-block set against. Everything the caller handed
+        // over that finished before day one — the same list, differently filtered, so no extra
+        // query and no chance of the two halves coming from different reads.
+        val beforeBlock = sessions.filter { session ->
+            session.isFinished && session.performedEpochDay(time, zoneId) < block.startEpochDay
+        }
         return BlockReview(
             weeks = block.weeks,
             sessions = inBlock.size,
             workingSets = inBlock.sumOf { it.workingSetCount() },
             work = SetWork.sum(inBlock.map { it.work() }),
             daysTrained = inBlock.map { it.performedEpochDay(time, zoneId) }.distinct().size,
-            recordsBroken = countRecords(inBlock),
+            recordsBroken = countRecords(inBlock = inBlock, beforeBlock = beforeBlock),
             movers = movers(block, inBlock, unit, time, zoneId),
             bodyweight = bodyweightChange(block, bodyweightLog),
         )
@@ -126,30 +132,51 @@ object BlockReviewBuilder {
      * Prior history includes sessions from before the block: a personal best set in week one is
      * only a best if it beat what came before, and starting the comparison at the block's first
      * day would hand a returning lifter a record for every lift they touched.
+     *
+     * @param beforeBlock every finished session earlier than the block's first day, in any
+     * order. Only its working sets are read.
      */
-    private fun countRecords(inBlock: List<WorkoutSession>): Int {
+    private fun countRecords(
+        inBlock: List<WorkoutSession>,
+        beforeBlock: List<WorkoutSession>,
+    ): Int {
         var total = 0
+        // The prior history each lift is judged against, keyed by lift so a block that touches
+        // one exercise does not pay for the whole career graph twice.
+        val priorByExercise = beforeBlock
+            .flatMap { session -> session.sets.filterNot { it.isWarmup } }
+            .groupBy { it.exerciseId }
         val byExercise = inBlock
             .flatMap { session -> session.sets.filterNot { it.isWarmup }.map { session to it } }
             .groupBy { (_, set) -> set.exerciseId }
         byExercise.forEach { (exerciseId, pairs) ->
             val loadClass = pairs.first().first.loadClassOf(exerciseId)
             val ordered = pairs.map { (_, set) -> set }.sortedBy { it.completedAt }
-            val seen = mutableListOf<ExerciseSetRecord>()
+            // Seeded from before the block, which is what the paragraph above has always
+            // claimed and what the code did not do: starting from an empty list handed a
+            // returning lifter a record for the first set of every lift they touched, so
+            // 110 kg in week one was celebrated twice against a standing best of 150 kg.
+            val seen = priorByExercise[exerciseId]
+                .orEmpty()
+                .map { it.toSetRecord() }
+                .sortedBy { it.completedAt }
+                .toMutableList()
             ordered.forEach { set ->
-                val record = ExerciseSetRecord(
-                    setId = set.id,
-                    sessionId = set.sessionId,
-                    weightKg = set.weightKg,
-                    reps = set.reps,
-                    completedAt = set.completedAt,
-                )
+                val record = set.toSetRecord()
                 total += PersonalRecords.detect(record, seen, loadClass).size
                 seen += record
             }
         }
         return total
     }
+
+    private fun SetLog.toSetRecord(): ExerciseSetRecord = ExerciseSetRecord(
+        setId = id,
+        sessionId = sessionId,
+        weightKg = weightKg,
+        reps = reps,
+        completedAt = completedAt,
+    )
 
     /**
      * The lifts that improved most, judged on a window at each end of the block.

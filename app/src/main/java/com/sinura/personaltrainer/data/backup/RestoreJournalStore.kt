@@ -14,9 +14,20 @@ class RestoreJournalStore(
 ) {
     private val gson: Gson = GsonBuilder().disableHtmlEscaping().create()
 
+    /**
+     * The open journal, or null when there is none.
+     *
+     * Sweeps an orphaned incoming file on the way past. Nothing points at one — no state file
+     * means no restore to finish — so it is a decrypted copy of the owner's entire training
+     * history sitting in app storage with nothing that will ever come back for it. It can be
+     * left behind by a crash between the two deletes in [clear], or by a staging failure.
+     */
     fun read(): RestoreJournalRecord? {
         val file = File(dir, RestoreJournal.STATE_FILE)
-        if (!file.isFile) return null
+        if (!file.isFile) {
+            File(dir, RestoreJournal.INCOMING_FILE).delete()
+            return null
+        }
         return try {
             val record = gson.fromJson(file.readText(Charsets.UTF_8), RestoreJournalRecord::class.java)
             if (record.phase.isNullOrBlank() || record.sourceName.isNullOrBlank()) null else record
@@ -42,9 +53,18 @@ class RestoreJournalStore(
         writeState(current.copy(phase = phase))
     }
 
+    /**
+     * Closes the journal, incoming copy first.
+     *
+     * The order matters and it is the opposite of what [stage] writes in. A crash between the
+     * two deletes with the state file gone first leaves the decrypted backup on disk with
+     * nothing pointing at it — invisible to [isOpen], never swept, and the owner's whole
+     * history in the clear. Losing the state file first is only ever a lost recovery; losing
+     * the incoming file first is at worst a journal [read] immediately discards.
+     */
     fun clear() {
-        File(dir, RestoreJournal.STATE_FILE).delete()
         File(dir, RestoreJournal.INCOMING_FILE).delete()
+        File(dir, RestoreJournal.STATE_FILE).delete()
     }
 
     fun isOpen(): Boolean = read() != null

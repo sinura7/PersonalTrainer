@@ -69,6 +69,16 @@ jobs:
       - name: Debug build
         run: ./gradlew assembleDebug --stacktrace
 
+      # Nothing above compiles src/androidTest: testDebugUnitTest, lintDebug and
+      # assembleDebug all skip it, and preflight never mentions it. So the emulator
+      # lane -- the migration lane, the one DEVELOPMENT.md calls the truth check --
+      # sat uncompilable from 3a2a46f (1 Sep) until the first run that got this far
+      # (2 Sep), because a commit replaced an import instead of adding one. This
+      # compiles the instrumented sources without needing a device, so the next such
+      # edit fails here in a minute rather than in the non-blocking emulator job.
+      - name: Instrumented sources compile
+        run: ./gradlew assembleDebugAndroidTest --stacktrace
+
       # Failures are useless without the report, and Gradle's console output truncates.
       - name: Upload test + lint reports
         if: always()

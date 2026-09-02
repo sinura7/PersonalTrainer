@@ -16,7 +16,7 @@ val appVersionName = "1.0.0"
 // appVersionCode. The two apps are different ids, so they do not share
 // Android's upgrade counter. Obtainium will not offer an update if this
 // stays put — both previous debug-live APKs were versionCode 1.
-val debugLiveCode = 17
+val debugLiveCode = 18
 
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 val keystoreProperties = Properties()
@@ -65,6 +65,12 @@ android {
         // inflates Robolectric-blind timer bytecode and would drop the
         // 18% floor. P4.6 owns zero-warning cleanup.
         disable += setOf("AndroidGradlePluginVersion", "UseKtx", "GradleDependency")
+        // Print every finding, not just the first. Without this AGP names one issue and
+        // then points at a build intermediate that no uploaded artifact carries, so a run
+        // whose report host is unreachable costs a round trip per issue. Same reason the
+        // test task logs failures in full. No textOutput: it is a real path, not a console
+        // alias, and pointing it at "stdout" only drops a stray app/stdout in the tree.
+        textReport = true
     }
 
     testOptions {
@@ -236,4 +242,21 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         layout.buildDirectory.file("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec"),
         layout.buildDirectory.file("jacoco/testDebugUnitTest.exec"),
     )
+}
+
+// A failing unit test must say why in the console, not only in an HTML report.
+// ci.yml uploads app/build/reports/tests/, but that artifact lives on a host some
+// environments cannot reach, and Gradle's default console output prints only
+// "ClassName > method FAILED" with a bare exception line naming the enclosing
+// `= runBlocking {` declaration rather than the assertion that actually failed.
+// Two never-executed tests were diagnosed blind this way on 2 Sep 2026. The log
+// is the one artifact everyone can always read; make it carry the message.
+tasks.withType<Test>().configureEach {
+    testLogging {
+        events("failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showStackTraces = true
+        showCauses = true
+        showExceptions = true
+    }
 }

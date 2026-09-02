@@ -48,8 +48,12 @@ to run on API 36 devices; it does not move the test lane.
 6. **Device lane stays API 29.** An API 36 emulator is not the gate
    (ADR-002). `ApplicationInfo.targetSdkVersion` is still 36 on that
    device.
-7. **Robolectric 4.14.1 emulated API 35 in P4.1.** P4.2 takes
-   Robolectric 4.16 and pins `sdk=36`. The P4.1 pin is historical.
+7. **The JVM lane emulates API 35, not 36.** P4.2 takes
+   Robolectric 4.16, which does ship an API 36 jar — but its SDK table
+   requires Java 21 to load it and this project is Java 17, so
+   `robolectric.properties` pins `sdk=35`. P4.2 claimed `sdk=36`; that
+   was never executable and threw out of every Robolectric class the
+   first time the lane ran (2 Sep 2026). Raise it only with the JDK.
 8. **AGP 8.9 lint is accepted without jumping to AGP 9.**
    `enableOnBackInvokedCallback` is marked `tools:targetApi="33"`.
    `AndroidGradlePluginVersion`, `UseKtx`, and `GradleDependency` are

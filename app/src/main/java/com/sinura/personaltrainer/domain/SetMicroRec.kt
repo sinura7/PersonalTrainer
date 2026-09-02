@@ -99,10 +99,10 @@ object SetMicroRecCalculator {
             )
         }
         val loadClass = LoadClass.of(inputs.loadType)
-        val stepKg = IncrementTable.stepKg(inputs.loadType ?: LoadType.EXTERNAL, inputs.unit)
+        val displayStep = IncrementTable.displayStep(inputs.loadType ?: LoadType.EXTERNAL, inputs.unit)
             .takeUnless { loadClass == LoadClass.BODYWEIGHT }
         val meaning = loadClass.weightMeaning
-        val bodyweight = stepKg == null || meaning == WeightMeaning.NONE
+        val bodyweight = displayStep == null || meaning == WeightMeaning.NONE
 
         val intentRpe = inputs.draftRpe.takeIf { inputs.rpeIntent }
         if (intentRpe != null) {
@@ -113,7 +113,7 @@ object SetMicroRecCalculator {
                 workingIncludingBasis = inputs.workingLogged,
                 previewOnly = false,
                 bodyweight = bodyweight,
-                stepKg = stepKg,
+                displayStep = displayStep,
                 meaning = meaning,
             )
         }
@@ -130,7 +130,7 @@ object SetMicroRecCalculator {
                 workingIncludingBasis = workingAfter,
                 previewOnly = true,
                 bodyweight = bodyweight,
-                stepKg = stepKg,
+                displayStep = displayStep,
                 meaning = meaning,
             )
         }
@@ -145,7 +145,7 @@ object SetMicroRecCalculator {
             workingIncludingBasis = inputs.workingLogged,
             previewOnly = false,
             bodyweight = bodyweight,
-            stepKg = stepKg,
+            displayStep = displayStep,
             meaning = meaning,
         )
     }
@@ -185,7 +185,7 @@ object SetMicroRecCalculator {
         workingIncludingBasis: Int,
         previewOnly: Boolean,
         bodyweight: Boolean,
-        stepKg: Double?,
+        displayStep: Double?,
         meaning: WeightMeaning,
     ): SetMicroRec {
         if (
@@ -211,8 +211,9 @@ object SetMicroRecCalculator {
             lastWeightKg = basis.weightKg,
             lastWorkingReps = basis.reps,
             targetReps = targetReps,
-            stepKg = stepKg,
+            displayStep = displayStep,
             loadType = inputs.loadType,
+            unit = inputs.unit,
         )
         val rpes = buildList {
             addAll(inputs.thisSessionWorking.map { it.rpe })
@@ -233,10 +234,11 @@ object SetMicroRecCalculator {
             lastWeightKg = basis.weightKg,
             lastReps = basis.reps,
             targetReps = targetReps,
-            stepKg = stepKg,
+            displayStep = displayStep,
             meaning = meaning,
             bodyweight = bodyweight,
             reason = reason,
+            unit = inputs.unit,
         )
         val showApply = !previewOnly && reason != LIFT_DONE
         return rec(
@@ -281,10 +283,11 @@ object SetMicroRecCalculator {
         lastWeightKg: Double,
         lastReps: Int,
         targetReps: Int,
-        stepKg: Double?,
+        displayStep: Double?,
         meaning: WeightMeaning,
         bodyweight: Boolean,
         reason: String,
+        unit: WeightUnit,
     ): Pair<Double, Int> {
         val climb = reason == IN_TANK || reason == BW_ADD_REP
         val drop = reason == FAILED_DROP || reason == SKIP_RPE_DROP || reason == BW_DROP_REP
@@ -301,8 +304,9 @@ object SetMicroRecCalculator {
                 lastWeightKg = lastWeightKg,
                 lastWorkingReps = lastReps,
                 targetReps = targetReps,
-                stepKg = stepKg,
+                displayStep = displayStep,
                 weightMeaning = meaning,
+                unit = unit,
             )
             return nextWeight to lastReps
         }

@@ -95,6 +95,86 @@ class DeloadSignalTest {
     }
 
     // ---------------------------------------------------------------------------------------
+    // What "stronger" means depends on the lift (A6). `SetLog.weightKg` carries three
+    // different things, and this rule used to read all three as bar load.
+    // ---------------------------------------------------------------------------------------
+
+    @Test
+    fun anAssistedLiftThatImprovedVetoesTheCard() {
+        // Twenty kilograms of machine help down to ten is the lifter getting stronger. Read as
+        // bar load it is 20 kg "down to" 10 kg — a regression — so the card fired at exactly
+        // the person who was progressing, and told them to back off.
+        assertNull(DeloadSignal.detect(assistedHistory(improving = true), now, zone))
+    }
+
+    @Test
+    fun anAssistedLiftThatDidNotImproveStillFires() {
+        // The rule is not disabled for assisted work, only corrected: same help, same reps,
+        // three weeks of rising volume is the shape this card exists to name.
+        assertNotNull(DeloadSignal.detect(assistedHistory(improving = false), now, zone))
+    }
+
+    @Test
+    fun aBodyweightLiftIsComparableOnItsReps() {
+        // A push-up logs 0 kg, so the estimated max was null for every set and the "at least
+        // one comparable lift" guard could never be met — the signal was silently switched off
+        // for anyone training without a bar. Reps are what a bodyweight lift progresses in.
+        assertNotNull(DeloadSignal.detect(bodyweightHistory(improving = false), now, zone))
+        assertNull(DeloadSignal.detect(bodyweightHistory(improving = true), now, zone))
+    }
+
+    /** Three weeks of rising assisted-pull-up volume; [improving] drops this week's help. */
+    private fun assistedHistory(improving: Boolean): List<WorkoutSession> =
+        risingWeeks { weekIndex, id, at ->
+            pullUpSession(
+                id = id,
+                at = at,
+                loadType = LoadType.ASSISTED,
+                assistanceOrLoadKg = if (improving && weekIndex == 0) 10.0 else 20.0,
+                reps = 5,
+            )
+        }
+
+    /** The same shape with no bar at all; [improving] adds reps this week. */
+    private fun bodyweightHistory(improving: Boolean): List<WorkoutSession> =
+        risingWeeks { weekIndex, id, at ->
+            pullUpSession(
+                id = id,
+                at = at,
+                loadType = LoadType.BODYWEIGHT,
+                assistanceOrLoadKg = 0.0,
+                reps = if (improving && weekIndex == 0) 12 else 8,
+            )
+        }
+
+    /** 9 / 6 / 4 one-set sessions over three calendar weeks — a rise the volume half accepts. */
+    private fun risingWeeks(
+        build: (weekIndex: Int, id: String, at: Long) -> WorkoutSession,
+    ): List<WorkoutSession> = listOf(9, 6, 4).flatMapIndexed { weekIndex: Int, sets: Int ->
+        (0 until sets).map { setIndex ->
+            build(
+                weekIndex,
+                "w$weekIndex-$setIndex",
+                now - weekIndex * 7 * DAY - setIndex * HOUR - HOUR,
+            )
+        }
+    }
+
+    private fun pullUpSession(
+        id: String,
+        at: Long,
+        loadType: LoadType,
+        assistanceOrLoadKg: Double,
+        reps: Int,
+    ): WorkoutSession = session(
+        id = id,
+        finishedAt = at,
+        sets = listOf(set("$id-0", id, "ex-pu", "Pull-Up", assistanceOrLoadKg, reps, at = at)),
+        exercises = listOf(sessionExercise("ex-pu", "Pull-Up", "Back", loadType)),
+        date = at,
+    )
+
+    // ---------------------------------------------------------------------------------------
     // Calendar-week attribution (N6). The three-week window is anchored to the calendar week
     // that contains now, in the caller's zone — not to three rolling 168-hour slices ending at
     // the instant now. 2024-01-01 is a Monday, so these weeks line up cleanly on the default

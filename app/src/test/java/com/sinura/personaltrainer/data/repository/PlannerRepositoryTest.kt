@@ -221,6 +221,101 @@ class PlannerRepositoryTest {
         assertEquals(18, deps.plannerRepository.getRule(monday[1].ruleId)!!.hour)
     }
 
+    // ---------------------------------------------------------------------------------------
+    // A finished day stays finished (A3). The Skip and Move buttons live on a notification
+    // that can sit in the shade for hours after the session it is about was actually done.
+    // ---------------------------------------------------------------------------------------
+
+    @Test
+    fun skipCannotUnFinishADoneDay() = runBlocking {
+        // You did the session. Hours later you tidy the notification away with Skip, and the
+        // workout you finished is marked skipped: the day loses its credit and the week says
+        // you did nothing.
+        val occurrence = plannedMonday()
+        deps.plannerRepository.markOccurrenceDone(occurrence.id, activityId = "act-1")
+
+        deps.plannerRepository.skipOccurrence(occurrence.id)
+
+        val after = deps.plannerRepository.getOccurrence(occurrence.id)!!
+        assertEquals(OccurrenceStatus.DONE, after.status)
+    }
+
+    @Test
+    fun moveCannotDuplicateADoneDay() = runBlocking {
+        // Worse than Skip: Move restamps the finished row AND mints a second occurrence for
+        // tomorrow — a workout invented out of a tidy-up.
+        val occurrence = plannedMonday()
+        deps.plannerRepository.markOccurrenceDone(occurrence.id, activityId = "act-1")
+        val before = allOccurrenceIds()
+
+        deps.plannerRepository.moveOccurrenceForward(occurrence.id)
+
+        assertEquals(before, allOccurrenceIds())
+        assertEquals(
+            OccurrenceStatus.DONE,
+            deps.plannerRepository.getOccurrence(occurrence.id)!!.status,
+        )
+    }
+
+    @Test
+    fun aPlannedDayCanStillBeSkipped() = runBlocking {
+        // The guards must refuse settled days, not working ones.
+        val occurrence = plannedMonday()
+        deps.plannerRepository.skipOccurrence(occurrence.id)
+        assertEquals(
+            OccurrenceStatus.SKIPPED,
+            deps.plannerRepository.getOccurrence(occurrence.id)!!.status,
+        )
+    }
+
+    @Test
+    fun aPlannedDayCanStillBeMoved() = runBlocking {
+        val occurrence = plannedMonday()
+        val before = allOccurrenceIds()
+
+        deps.plannerRepository.moveOccurrenceForward(occurrence.id)
+
+        assertEquals(
+            OccurrenceStatus.MOVED,
+            deps.plannerRepository.getOccurrence(occurrence.id)!!.status,
+        )
+        assertTrue("Move mints the next free day", allOccurrenceIds().size > before.size)
+    }
+
+    @Test
+    fun aSkippedDayCannotBeSkippedIntoADifferentDayAgain() = runBlocking {
+        // SKIPPED and MOVED are settled too: only PLANNED and MISSED are still the user's to
+        // decide, and Move is PLANNED-only because MISSED days belong to the weekly prompt.
+        val occurrence = plannedMonday()
+        deps.plannerRepository.skipOccurrence(occurrence.id)
+        val before = allOccurrenceIds()
+
+        deps.plannerRepository.moveOccurrenceForward(occurrence.id)
+
+        assertEquals(before, allOccurrenceIds())
+        assertEquals(
+            OccurrenceStatus.SKIPPED,
+            deps.plannerRepository.getOccurrence(occurrence.id)!!.status,
+        )
+    }
+
+    /** One PLANNED Monday occurrence from a real rule, which is what the buttons act on. */
+    private suspend fun plannedMonday(): com.sinura.personaltrainer.domain.ScheduleOccurrence {
+        val routine = deps.routineRepository.create(name = "Push")
+        deps.scheduleRepository.pin(routine.id, null, Weekday.MONDAY)
+        deps.plannerRepository.importSlotsIfNeeded()
+        deps.plannerRepository.ensureWeek(weekStart, "UTC", 1_700_000_000_000L)
+        return deps.plannerRepository
+            .occurrencesBetween(weekStart.epochDay, weekStart.epochDay)
+            .single()
+    }
+
+    private suspend fun allOccurrenceIds(): Set<String> =
+        deps.plannerRepository
+            .occurrencesBetween(weekStart.epochDay - 7, weekStart.epochDay + 21)
+            .map { it.id }
+            .toSet()
+
     @Test
     fun setRuleEnabledStopsNextWeekGeneration() = runBlocking {
         val extra = deps.routineRepository.create(name = "Shoulder warm-up")

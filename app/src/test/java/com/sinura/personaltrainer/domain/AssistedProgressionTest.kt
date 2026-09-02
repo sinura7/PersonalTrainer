@@ -21,8 +21,9 @@ class AssistedProgressionTest {
             lastWeightKg = lastAssistKg,
             lastWorkingReps = reps,
             targetReps = target,
-            stepKg = step,
+            displayStep = step,
             weightMeaning = WeightMeaning.ASSISTANCE,
+            unit = WeightUnit.KG,
         )
 
     @Test
@@ -60,8 +61,9 @@ class AssistedProgressionTest {
             lastWeightKg = 100.0,
             lastWorkingReps = 5,
             targetReps = 5,
-            stepKg = step,
+            displayStep = step,
             weightMeaning = WeightMeaning.LIFTED,
+            unit = WeightUnit.KG,
         )
         assertEquals(102.5, loaded, 0.001)
     }
@@ -73,8 +75,9 @@ class AssistedProgressionTest {
             lastWeightKg = 20.0,
             lastWorkingReps = 8,
             targetReps = 8,
-            stepKg = step,
+            displayStep = step,
             weightMeaning = WeightMeaning.ADDED,
+            unit = WeightUnit.KG,
         )
         assertEquals(22.5, added, 0.001)
     }
@@ -87,8 +90,9 @@ class AssistedProgressionTest {
         lastWeightKg = 20.0,
         lastWorkingReps = reps,
         targetReps = target,
-        stepKg = step,
+        displayStep = step,
         loadType = loadType,
+        unit = WeightUnit.KG,
     )
 
     @Test

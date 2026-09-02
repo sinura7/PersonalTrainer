@@ -128,6 +128,61 @@ class WorkoutRepositoryInsightsQueriesTest {
         job.cancel()
     }
 
+    @Test
+    fun editingAFinishedSetsWeightRefreshesTheSummaries() = runBlocking {
+        // The write-amplification gate keys every finished-work read off one fingerprint, and
+        // `updateSet` deliberately touches neither `completedAt` nor `setNumber` — so a
+        // corrected weight moved nothing in it. The screen you edited on updated; Home's last
+        // session, History's totals and the body map kept the old number until an unrelated
+        // workout happened to finish. Deleting or adding a set did refresh, which is what made
+        // it look random.
+        insertFinishedSession(
+            id = "done",
+            finishedAt = START + 1,
+            sets = listOf(Triple(SQUAT, 100.0, 5)),
+        )
+        val volumes = mutableListOf<Double>()
+        val job = launch {
+            repository.observeSessionSummaries().collect { summaries ->
+                summaries.singleOrNull()?.let { volumes += it.volumeKg }
+            }
+        }
+        awaitUntil { volumes.isNotEmpty() }
+        assertEquals(500.0, volumes.last(), 0.001)
+
+        repository.updateSet("done-$SQUAT-0", weightKg = 110.0, reps = 5, rpe = null, isWarmup = false)
+
+        awaitUntil { volumes.last() != 500.0 }
+        assertEquals(550.0, volumes.last(), 0.001)
+        job.cancel()
+    }
+
+    @Test
+    fun anEditThatHoldsVolumeConstantStillRefreshesTheHistory() = runBlocking {
+        // Why the fingerprint carries two sums rather than one. Six reps at 100 kg and five at
+        // 120 are both 600 kg, so the volume sum cannot see this correction; the rep sum can.
+        // The everyday version is a bodyweight lift, where every set is 0 kg and the volume sum
+        // is blind to every rep the owner ever fixes.
+        insertFinishedSession(
+            id = "done",
+            finishedAt = START + 1,
+            sets = listOf(Triple(SQUAT, 100.0, 6)),
+        )
+        val reps = mutableListOf<Int>()
+        val job = launch {
+            repository.observeFinishedSince(0L).collect { sessions ->
+                sessions.singleOrNull()?.sets?.singleOrNull()?.let { reps += it.reps }
+            }
+        }
+        awaitUntil { reps.isNotEmpty() }
+        assertEquals(6, reps.last())
+
+        repository.updateSet("done-$SQUAT-0", weightKg = 120.0, reps = 5, rpe = null, isWarmup = false)
+
+        awaitUntil { reps.last() == 5 }
+        job.cancel()
+    }
+
     private suspend fun awaitUntil(predicate: () -> Boolean) {
         withTimeout(5_000) {
             while (!predicate()) delay(10)

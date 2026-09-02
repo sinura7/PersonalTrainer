@@ -178,12 +178,21 @@ object MuscleLoadCalculator {
      * background dispatcher as the display snapshot. No caching and no extra queries — the
      * history is already in memory when this runs.
      */
+    /**
+     * @param lastTrainedByMuscle lifetime recency, for the muscles [sessions] cannot see.
+     *
+     * [sessions] is the windowed history — 32 days — so a muscle last trained before that
+     * has no row in it and its recency came back null, which the coach renders as
+     * "has no logged work" beside a body map correctly saying "35 days since". The display
+     * snapshot has always overlaid this (`rememberLifetimeRecency`); the basis did not.
+     */
     fun coachBasis(
         sessions: List<WorkoutSession>,
         nowMs: Long,
         time: TimePort = JvmTime,
         zoneId: String = time.defaultZoneId(),
         exerciseCatalog: Map<String, Exercise> = emptyMap(),
+        lastTrainedByMuscle: Map<CanonicalMuscle, Long> = emptyMap(),
     ): CoachBasis {
         val basisStart = time.minusCivilDays(nowMs, zoneId, COACH_TRAILING_DAYS)
         val weighted = CanonicalMuscle.entries.associateWith { 0.0 }.toMutableMap()
@@ -203,6 +212,15 @@ object MuscleLoadCalculator {
                         weighted[muscle] = (weighted[muscle] ?: 0.0) + weight * setStimulus(set)
                     }
                 }
+            }
+        }
+
+        // Older than the window, so it never appeared in the loop above. Weighted load stays
+        // untouched: this says WHEN a muscle was last worked, never how much.
+        lastTrainedByMuscle.forEach { (muscle, trainedAt) ->
+            if (trainedAt > 0L) {
+                lastTrained[muscle] = max(lastTrained[muscle] ?: 0L, trainedAt)
+                anyWorkingSets = true
             }
         }
 

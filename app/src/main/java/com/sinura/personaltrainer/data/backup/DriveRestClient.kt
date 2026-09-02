@@ -140,7 +140,7 @@ class DriveRestClient {
             // the app. No genuine backup or API reply approaches the budget.
             val text = (if (code in 200..299) connection.inputStream else connection.errorStream)
                 ?.use { stream ->
-                    val bytes = stream.readNBytes(BackupScaleBudget.IMPORT_BYTES_MAX + 1)
+                    val bytes = stream.readAtMost(BackupScaleBudget.IMPORT_BYTES_MAX + 1)
                     if (bytes.size > BackupScaleBudget.IMPORT_BYTES_MAX) {
                         throw BackupException(BackupScaleBudget.TOO_BIG_TO_IMPORT)
                     }
