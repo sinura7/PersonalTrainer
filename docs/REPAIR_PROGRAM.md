@@ -1384,6 +1384,32 @@ The program is complete when all of the following hold:
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
 
+**2026-09-02 — outside the packets, a trunk test the lane had never run.**
+With the Robolectric lane working, 1643 tests ran and one failed:
+`HomeViewModelTest.addDaySessionWeeklyKeepsTheRuleEnabled`, from `3a2a46f`
+(#108), which had never executed. The product is not at fault and the fix is
+in the test, so this is recorded rather than opened as a packet.
+`publishPinnedWeek` (`PlannerRepository.kt:255-258`) is two writes and not
+one transaction: `syncSlotsToRules` commits the rule outside any transaction
+— waking `observeRules()` — and only then does `ensureWeek` write the week.
+The test waited for an *enabled* rule, which is true inside that gap, then
+read the occurrences that `ensureWeek` had not yet written. Its `once`
+sibling passes on the identical path because its barrier is the rule being
+*disabled*, which `mintTimed` does only after `publish` returns. The barrier
+now waits on the occurrence itself.
+
+The product was checked before the test was blamed. `OccurrenceGenerator`
+(`:36-77`) has no notion of now — C1's own Cause says so — and places every
+enabled rule at `weekStart.nextOrSame(rule.weekday)`, which for a rule
+created today resolves to today under any week-start preference. Three
+passing tests depend on it, `StartOccurrenceTest:46-55` on this very
+pin-to-rule-to-generate path; none anywhere asserts the opposite. The real
+seam is that `publishPinnedWeek` is not atomic, so a live Home collector can
+also observe a rule whose week has not landed. Making it one transaction is
+the better repair and is left for C1, which owns that file, rather than
+taken here on a test-timing finding that cannot be exercised against a
+device from this environment.
+
 **2026-09-02 — J3, the Robolectric SDK pin.** With the checksum ledger
 fixed the build reached its tests for the first time, and all 59 Robolectric
 classes failed identically at sandbox creation:
