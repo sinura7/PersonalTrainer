@@ -237,3 +237,20 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         layout.buildDirectory.file("jacoco/testDebugUnitTest.exec"),
     )
 }
+
+// A failing unit test must say why in the console, not only in an HTML report.
+// ci.yml uploads app/build/reports/tests/, but that artifact lives on a host some
+// environments cannot reach, and Gradle's default console output prints only
+// "ClassName > method FAILED" with a bare exception line naming the enclosing
+// `= runBlocking {` declaration rather than the assertion that actually failed.
+// Two never-executed tests were diagnosed blind this way on 2 Sep 2026. The log
+// is the one artifact everyone can always read; make it carry the message.
+tasks.withType<Test>().configureEach {
+    testLogging {
+        events("failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showStackTraces = true
+        showCauses = true
+        showExceptions = true
+    }
+}
