@@ -1384,6 +1384,34 @@ The program is complete when all of the following hold:
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
 
+**2026-09-02 — J3, the Robolectric SDK pin.** With the checksum ledger
+fixed the build reached its tests for the first time, and all 59 Robolectric
+classes failed identically at sandbox creation:
+`UnsupportedOperationException` from `DefaultSdkProvider:170`, which is
+`verifySupportedSdk` throwing when an SDK is known but unsupported —
+"Android SDK 36 requires Java 21 (have Java 17)". `robolectric.properties`
+pinned `sdk=36` above the comment "Robolectric 4.16 ships Android SDK jars
+through API 36 (Baklava)". That comment is true and beside the point:
+4.16's own table maps Baklava to a required Java of 21
+(`knownSdks.put(Baklava.SDK_INT, new DefaultSdk(36, "16", "13921718",
+"REL", 21))`), while this project is Java 17 — `jvmTarget`,
+`sourceCompatibility` and `targetCompatibility` all 17, and every workflow
+pins JDK 17. The pin was unsatisfiable the day it was written.
+
+It survived because nothing had ever run it. A guard
+(`check-sdk-target.py`), a test (`SdkTargetTest`) and three documents all
+asserted `sdk=36`, and all four of them were checking each
+other rather than the lane: CI never reached the tests, and the owner is on
+Windows, where `docs/DEVELOPMENT.md` records the JVM lane as unusable. Four
+agreeing sources, zero executions. The pin is now `sdk=35`, the newest jar
+4.16 supports on Java 17, and the guard, the test and the three documents
+say why and say to raise it only together with the JDK. The cost is real
+and accepted: the JVM lane emulates API 35 while the app targets 36, so
+anything genuinely API-36-specific is covered only by the device lane,
+which ADR-002 already names as the truth check. Bumping to JDK 21 was the
+alternative; it was declined as a larger, unverifiable-from-here toolchain
+change touching J2's workflow files.
+
 **2026-09-02 — J3, the checksum ledger, opened out of order.** J3 owns
 `gradle/verification-metadata.xml` and sits in Phase J, last. It is opened
 here, before Phase A has merged, because that file is what stopped every
