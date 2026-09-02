@@ -166,10 +166,40 @@ class BlockReviewTest {
         // A best set in week one is only a best if it beat what came before. Starting the
         // comparison at the block's first day hands a returning lifter a record for every lift
         // they touch.
+        //
+        // Two in-block sets, not one: with a single set there is nothing to compare it against
+        // either way, so the earlier version of this test passed against the very bug it was
+        // written to catch. The second set is the one that used to be celebrated — 110 kg
+        // "beating" the 100 kg from an hour earlier, twice over (heaviest and estimated max),
+        // in front of a standing best of 150.
         val history = workout("old", dayMs(-3), sets = listOf(150.0 to 5))
-        val weekOne = workout("a", dayMs(0), sets = listOf(100.0 to 5))
+        val weekOne = workout("a", dayMs(0), sets = listOf(100.0 to 5, 110.0 to 5))
         val review = BlockReviewBuilder.build(block, listOf(history, weekOne), WeightUnit.KG, zone)
         assertEquals(0, review.recordsBroken)
+    }
+
+    @Test
+    fun aRealRecordInsideTheBlockIsStillCounted() {
+        // The other direction: seeding the comparison from history must not silence the block.
+        val history = workout("old", dayMs(-3), sets = listOf(100.0 to 5))
+        val weekOne = workout("a", dayMs(0), sets = listOf(120.0 to 5))
+        val review = BlockReviewBuilder.build(block, listOf(history, weekOne), WeightUnit.KG, zone)
+        assertTrue(review.recordsBroken > 0)
+    }
+
+    @Test
+    fun priorHistoryIsReadPerLiftNotPooled() {
+        // A heavy squat behind you says nothing about a bench you have never pressed.
+        val squats = workout("old", dayMs(-3), sets = listOf(200.0 to 5))
+        val benchOne = workout("a", dayMs(0), "ex-bench", "Bench", sets = listOf(60.0 to 5))
+        val benchTwo = workout("b", dayMs(1), "ex-bench", "Bench", sets = listOf(70.0 to 5))
+        val review = BlockReviewBuilder.build(
+            block,
+            listOf(squats, benchOne, benchTwo),
+            WeightUnit.KG,
+            zone,
+        )
+        assertTrue(review.recordsBroken > 0)
     }
 
     @Test

@@ -141,6 +141,12 @@ object TrainingInsightsCalculator {
                 time = input.time,
                 zoneId = input.zoneId,
                 exerciseCatalog = input.exerciseCatalog,
+                // The same overlay the display snapshot gets above. Without it the coach
+                // calls a muscle untrained the moment its last session leaves the window.
+                lastTrainedByMuscle = MuscleRecency.byMuscle(
+                    input.lastLoggedAtByExerciseId,
+                    input.exerciseCatalog,
+                ),
             )
             RecommendationEngine.recommend(
                 CoachInputs(

@@ -151,8 +151,9 @@ class DefaultExercisesTest {
                 lastWeightKg = 30.0,
                 lastWorkingReps = 8,
                 targetReps = 8,
-                stepKg = IncrementTable.stepKg(seed.loadType, WeightUnit.KG),
+                displayStep = IncrementTable.displayStep(seed.loadType, WeightUnit.KG),
                 weightMeaning = loadClass.weightMeaning,
+                unit = WeightUnit.KG,
             )
             assertTrue("${seed.id} suggested $next, which is not lighter assistance", next < 30.0)
         }

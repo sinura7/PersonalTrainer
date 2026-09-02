@@ -890,8 +890,8 @@ fun RestLinearTrack(
     remainingSeconds: Int,
     totalSeconds: Int,
     accent: Color,
-    finished: Boolean = false,
     modifier: Modifier = Modifier,
+    finished: Boolean = false,
 ) {
     val target = RestTimer.sweepFraction(remainingSeconds, totalSeconds)
     val progress by animateFloatAsState(
