@@ -46,7 +46,7 @@ jobs:
 
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up JDK 17
         uses: actions/setup-java@v6
@@ -55,7 +55,7 @@ jobs:
           java-version: '17'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -172,7 +172,7 @@ jobs:
       # Always keep the build, even on workflow_dispatch where no Release is published —
       # otherwise a manual run spends 15 minutes and throws the APK away.
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-apk
           path: ${{ steps.apk.outputs.path }}
