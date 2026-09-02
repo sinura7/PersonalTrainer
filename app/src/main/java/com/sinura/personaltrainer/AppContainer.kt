@@ -48,8 +48,15 @@ class AppContainer(context: Context) : AppDependencies {
      * Live activity confirm uses the same lock as a strength start.
      */
     override val dbMaintenance: DbMaintenance = DbMaintenance(database)
-    override val activityRepository: ActivityRepository =
-        ActivityRepository(database, dbMaintenance = dbMaintenance)
+    override val activityRepository: ActivityRepository = ActivityRepository(
+        database,
+        dbMaintenance = dbMaintenance,
+        // Finishing a cardio session settles its planned day, so its reminder — and any
+        // notification already in the shade offering Skip and Move for it — has to go with it.
+        // A lambda because plannerRepository is built further down this file; it is only ever
+        // called long after construction.
+        onOccurrenceCompleted = { plannerRepository.cancelRemindersFor(it) },
+    )
 
     override val exerciseRepository: ExerciseRepository = ExerciseRepository(
         exerciseDao = database.exerciseDao(),

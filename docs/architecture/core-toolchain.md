@@ -19,7 +19,7 @@ Kotlin compiler or AGP 9 are refused.
 | Activity | 1.9.3 | **1.12.4** | Latest 1.12 patch. 1.13.0 is left for a later Compose/AGP train. |
 | Coroutines | 1.9.0 | **1.10.2** | 1.11.0 is the Kotlin 2.2.20 companion. We stay on Kotlin 2.0.21. |
 | Serialization | 1.8.1 artifact | **not shipped** | Ceiling only. Gson encodes pin files and BackupJson. `1.8.1` remains the Room 2.8 stop. |
-| Robolectric | 4.14.1 | **4.16** | Ships API 36. `robolectric.properties` now pins `sdk=36`. |
+| Robolectric | 4.14.1 | **4.16** | Ships an API 36 jar, but it needs Java 21; we are Java 17, so `robolectric.properties` pins `sdk=35`. |
 | AndroidX Test | 1.6.x / 1.2.1 | **1.7.0 / 1.3.0** | core, runner, rules 1.7.0; ext-junit 1.3.0. |
 
 ## Decisions

@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.domain
 import java.time.ZoneOffset
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -45,6 +46,48 @@ class CoachBasisTest {
     }
 
     @Test
+    fun lifetimeRecencyReachesTheCoachAndNotJustTheBodyMap() {
+        // The history handed to the coach is windowed at 32 days, so a muscle last trained
+        // before that has no row in it and recency came back null — which the coach renders as
+        // "Back has no logged work", directly beneath a body map correctly saying "40 days
+        // since". Same screen, same muscle, two answers. The display snapshot has always been
+        // given the lifetime overlay; the basis was not.
+        val basis = basisOf(
+            sessions = emptyList(),
+            lastTrainedByMuscle = mapOf(CanonicalMuscle.BACK to now - hours(40 * 24)),
+        )
+
+        assertEquals(40, basis.load(CanonicalMuscle.BACK).daysSinceLastTrained)
+        // Recency says WHEN, never how much: nothing landed in the 14-day basis.
+        assertEquals(0.0, basis.load(CanonicalMuscle.BACK).weeklySets, 1e-9)
+        assertTrue("training that left the window still happened", basis.hasAnyWorkingSets)
+        assertFalse("…but none of it is inside the basis", basis.hasBasisWorkingSets)
+    }
+
+    @Test
+    fun theOverlayIsAFloorNotAnOverride() {
+        // The map's own rule: the overlay only answers for muscles the window cannot see. A
+        // stale lifetime row must never age a muscle that was trained yesterday.
+        val basis = basisOf(
+            sessions = listOf(benchSession("yesterday", now - hours(24))),
+            lastTrainedByMuscle = mapOf(CanonicalMuscle.CHEST to now - hours(40 * 24)),
+        )
+        assertEquals(1, basis.load(CanonicalMuscle.CHEST).daysSinceLastTrained)
+    }
+
+    @Test
+    fun aMuscleWithNoHistoryAnywhereIsStillNull() {
+        // "No logged work" has to stay reachable — it is the honest answer for a muscle that
+        // genuinely has none, and an overlay that invented a date for every muscle would make
+        // the coach silent about real gaps.
+        val basis = basisOf(
+            sessions = emptyList(),
+            lastTrainedByMuscle = mapOf(CanonicalMuscle.BACK to now - hours(40 * 24)),
+        )
+        assertNull(basis.load(CanonicalMuscle.QUADRICEPS).daysSinceLastTrained)
+    }
+
+    @Test
     fun secondariesAreCreditedByTheirJunctionWeight() {
         val catalog = mapOf(
             "ex-bench" to Exercise(
@@ -63,8 +106,16 @@ class CoachBasisTest {
         assertEquals(3.5, basis.load(CanonicalMuscle.TRICEPS).weeklySets, 1e-9)
     }
 
-    private fun basisOf(sessions: List<WorkoutSession>): CoachBasis =
-        MuscleLoadCalculator.coachBasis(sessions, now, zone)
+    private fun basisOf(
+        sessions: List<WorkoutSession>,
+        lastTrainedByMuscle: Map<CanonicalMuscle, Long> = emptyMap(),
+    ): CoachBasis =
+        MuscleLoadCalculator.coachBasis(
+            sessions = sessions,
+            nowMs = now,
+            zone = zone,
+            lastTrainedByMuscle = lastTrainedByMuscle,
+        )
 
     private fun benchSession(id: String, at: Long): WorkoutSession = session(
         id = id,

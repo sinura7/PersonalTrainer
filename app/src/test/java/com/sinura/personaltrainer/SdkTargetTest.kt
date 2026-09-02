@@ -27,11 +27,13 @@ class SdkTargetTest {
     }
 
     @Test
-    fun robolectricLaneEmulatesApi36() {
+    fun robolectricLaneEmulatesTheNewestSdkJava17Supports() {
         val properties = source("src/test/resources/robolectric.properties")
         assertTrue(
-            "Robolectric 4.16 must emulate compileSdk 36",
-            Regex("""(?m)^sdk=36\s*$""").containsMatchIn(properties.readText()),
+            "Robolectric must emulate API 35, not 36: 4.16 maps Baklava to Java 21 " +
+                "and this project is Java 17, so sdk=36 fails every sandbox with " +
+                "\"Android SDK 36 requires Java 21 (have Java 17)\". Raise with the JDK.",
+            Regex("""(?m)^sdk=35\s*$""").containsMatchIn(properties.readText()),
         )
     }
 
