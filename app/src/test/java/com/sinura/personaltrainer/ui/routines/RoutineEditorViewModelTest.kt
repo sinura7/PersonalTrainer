@@ -396,6 +396,14 @@ class RoutineEditorViewModelTest {
         vm.togglePendingAdd(squat)
         vm.confirmPendingAdd()
         awaitRoutine { it.exercises.size == 1 }
+        // confirmPendingAdd dedups against routineFlow.value (RoutineEditorViewModel:470) --
+        // the view model's own copy, not the repository. awaitRoutine polls the repository,
+        // which reaches one exercise first, so toggling squat again could run against a view
+        // model that had not seen it yet: `already` came back empty, squat was added a second
+        // time, the routine landed on three, and the size == 2 wait below could never come
+        // true. That is a full-ceiling hang, not a slow pass, which is why raising the
+        // timeout did nothing. Wait for the state the code under test actually reads.
+        vm.uiState.first { it.routine?.exercises?.size == 1 }
 
         vm.setPickerVisible(true)
         vm.togglePendingAdd(squat)
@@ -671,13 +679,14 @@ class RoutineEditorViewModelTest {
             deps.routineRepository.observeAll().first().singleOrNull()?.takeIf(predicate)
         }
 
-    // A ceiling, not a target. This polls in real time while Room answers on its own
-    // executor, so a loaded runner can blow a tight budget with nothing actually wrong:
-    // 5 s failed twice on CI in six runs, in this helper, on assertions that hold.
-    // Raising it costs nothing on a passing test. J4 is the real fix — value-based
-    // waits instead of polling — and this is a stopgap until it lands.
+    // Five seconds is deliberate. This was raised to 30 s on the theory that a loaded
+    // runner was blowing a tight budget; the next run failed at 30 s in the same helper,
+    // on a test whose predicate could never come true, and took 5m39s to say so. The
+    // budget was never the problem — a wait on the wrong object was. Keep it short so
+    // the next such hang is reported quickly, and fix the barrier, not the number.
+    // J4 replaces this polling with value-based waits.
     private suspend fun <T : Any> eventually(block: suspend () -> T?): T =
-        withTimeout(30_000) {
+        withTimeout(5_000) {
             while (true) {
                 dispatcher.scheduler.runCurrent()
                 block()?.let { return@withTimeout it }
