@@ -14,14 +14,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
-import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -49,7 +47,10 @@ class CustomWeekViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
     }
 
     @After
@@ -95,7 +96,7 @@ class CustomWeekViewModelTest {
         assertFalse(staged.showPicker)
 
         vm.confirm()
-        eventually { true.takeIf { vm.finished.value } }
+        vm.finished.first { it }
         val routines = deps.routineRepository.observeAll().first()
         assertEquals(listOf("Tuesday"), routines.map { it.name })
         assertEquals(squat.id, routines.single().exercises.single().exercise.id)
@@ -147,12 +148,9 @@ class CustomWeekViewModelTest {
 
         // Not uiState.value. This state is shared through stateIn (:114), and the branch
         // at :91 folds in resultsFlow (:77), which collects exerciseRepository.search and
-        // observeLastLogged -- two Room flows answering on Room's own query executor. The
-        // sharing coroutine therefore resumes off this thread, so a value read taken right
-        // after a write can be an emission behind: this failed on trunk with showPicker
-        // false for a picker setPickerVisible had already opened. Wait for the emission
-        // the assertions describe instead. J4 owns removing the boundary itself; that needs a dispatcher
-        // seam in app/src/main.
+        // observeLastLogged. Those Room flows now answer on the test dispatcher (see
+        // FakeAppDependencies.scheduler), so this wait is for the combine emission the
+        // assertions describe, not for a real thread to catch up.
         val state = vm.uiState.first { it.error == SessionOrderCopy.ADD_LIFT_FAILED }
         assertTrue(state.showPicker)
         assertEquals(listOf("ghost"), state.pendingAddIds)
@@ -277,7 +275,7 @@ class CustomWeekViewModelTest {
         vm.togglePendingAdd(squat)
         vm.confirmPendingAdd()
         vm.confirm()
-        eventually { true.takeIf { vm.finished.value } }
+        vm.finished.first { it }
         assertEquals(WeightUnit.KG, deps.preferencesRepository.weightUnit.first())
     }
 
@@ -290,7 +288,7 @@ class CustomWeekViewModelTest {
         vm.createAndSelect("Existing lift", "Back")
         assertEquals(
             "That name is already in your library",
-            eventually { vm.uiState.value.error },
+            vm.uiState.first { it.error == "That name is already in your library" }.error,
         )
         assertTrue(vm.uiState.value.pendingAddIds.isEmpty())
     }
@@ -299,7 +297,10 @@ class CustomWeekViewModelTest {
     fun createAndSelectBlankSurfacesTheNameError() = runBlocking {
         val vm = createViewModel()
         vm.createAndSelect("  ", "Back")
-        assertEquals(SessionOrderCopy.LIFT_NAME_REQUIRED, eventually { vm.uiState.value.error })
+        assertEquals(
+            SessionOrderCopy.LIFT_NAME_REQUIRED,
+            vm.uiState.first { it.error == SessionOrderCopy.LIFT_NAME_REQUIRED }.error,
+        )
         assertTrue(deps.exerciseRepository.observeAll().first().isEmpty())
     }
 
@@ -310,11 +311,7 @@ class CustomWeekViewModelTest {
         vm.setPickerVisible(false)
         vm.createAndSelect("Good morning", "Hamstrings")
 
-        eventually {
-            true.takeIf {
-                deps.exerciseRepository.observeAll().first().any { it.name == "Good morning" }
-            }
-        }
+        deps.exerciseRepository.observeAll().first { list -> list.any { it.name == "Good morning" } }
         assertTrue(vm.uiState.value.pendingAddIds.isEmpty())
         assertFalse(vm.uiState.value.showPicker)
     }
@@ -343,21 +340,5 @@ class CustomWeekViewModelTest {
         ).also { vm ->
             viewModel = vm
             keepAlive = CoroutineScope(dispatcher).launch { vm.uiState.collect { } }
-        }
-
-    // Five seconds is deliberate. This was raised to 30 s on the theory that a loaded
-    // runner was blowing a tight budget; the next run failed at 30 s in the same helper,
-    // on a test whose predicate could never come true, and took 5m39s to say so. The
-    // budget was never the problem — a wait on the wrong object was. Keep it short so
-    // the next such hang is reported quickly, and fix the barrier, not the number.
-    // J4 replaces this polling with value-based waits.
-    private suspend fun <T : Any> eventually(block: suspend () -> T?): T =
-        withTimeout(5_000) {
-            while (true) {
-                dispatcher.scheduler.runCurrent()
-                block()?.let { return@withTimeout it }
-                delay(10)
-            }
-            error("unreachable")
         }
 }

@@ -14,7 +14,6 @@ import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -145,7 +144,7 @@ class ExerciseDetailViewModel @JvmOverloads constructor(
         )
     }
         // Bucketing a lift's whole history is real work and does not belong on the main thread.
-        .flowOn(Dispatchers.Default)
+        .flowOn(container.computeDispatcher)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),

@@ -18,7 +18,6 @@ import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -51,7 +50,10 @@ class RoutineEditorViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
     }
 
     @After
@@ -152,7 +154,7 @@ class RoutineEditorViewModelTest {
 
         assertEquals(
             "${fixture.exercise.name} is already in this routine.",
-            eventually { vm.uiState.value.error },
+            vm.uiState.first { it.error == "${fixture.exercise.name} is already in this routine." }.error,
         )
         assertEquals(1, deps.routineRepository.getById(fixture.routine.id)?.exercises?.size)
     }
@@ -168,7 +170,7 @@ class RoutineEditorViewModelTest {
         awaitRoutine { it.exercises.isEmpty() }
 
         vm.leave()
-        eventually { true.takeIf { vm.exitRequested.value } }
+        vm.exitRequested.first { it }
         assertTrue(deps.routineRepository.observeAll().first().isEmpty())
         vm.onExitHandled()
         assertFalse(vm.exitRequested.value)
@@ -185,7 +187,7 @@ class RoutineEditorViewModelTest {
         vm.onNotesChange("tempo on the last set")
         vm.leave()
 
-        eventually { true.takeIf { vm.exitRequested.value } }
+        vm.exitRequested.first { it }
         val saved = checkNotNull(deps.routineRepository.getById(fixture.routine.id))
         assertEquals("Lower strength", saved.name)
         assertEquals("tempo on the last set", saved.notes)
@@ -201,7 +203,7 @@ class RoutineEditorViewModelTest {
         val created = awaitRoutine { it.exercises.size == 1 }
 
         vm.saveAndLeave()
-        eventually { true.takeIf { vm.exitRequested.value } }
+        vm.exitRequested.first { it }
         val saved = checkNotNull(deps.routineRepository.getById(created.id))
         assertEquals("Push", saved.name)
         assertEquals(1, saved.exercises.size)
@@ -237,7 +239,10 @@ class RoutineEditorViewModelTest {
 
         vm.stageTargets(itemId, targetSets = 0, targetReps = 6, targetWeightKg = 110.0, restSeconds = 120)
         vm.commitTargets(itemId)
-        assertEquals("Sets and reps must be at least 1.", eventually { vm.uiState.value.error })
+        assertEquals(
+            "Sets and reps must be at least 1.",
+            vm.uiState.first { it.error == "Sets and reps must be at least 1." }.error,
+        )
         assertEquals(4, deps.routineRepository.getById(fixture.routine.id)!!.exercises.single().targetSets)
     }
 
@@ -292,7 +297,10 @@ class RoutineEditorViewModelTest {
         vm.uiState.first { !it.isLoading }
 
         vm.createAndSelect("  ", "Back")
-        assertEquals(SessionOrderCopy.LIFT_NAME_REQUIRED, eventually { vm.uiState.value.error })
+        assertEquals(
+            SessionOrderCopy.LIFT_NAME_REQUIRED,
+            vm.uiState.first { it.error == SessionOrderCopy.LIFT_NAME_REQUIRED }.error,
+        )
 
         vm.createAndSelect("Existing lift", "Back")
         assertEquals(
@@ -310,11 +318,7 @@ class RoutineEditorViewModelTest {
         vm.setPickerVisible(false)
         vm.createAndSelect("Good morning", "Hamstrings")
 
-        eventually {
-            true.takeIf {
-                deps.exerciseRepository.observeAll().first().any { it.name == "Good morning" }
-            }
-        }
+        deps.exerciseRepository.observeAll().first { list -> list.any { it.name == "Good morning" } }
         assertTrue(vm.uiState.value.pendingAddIds.isEmpty())
         assertFalse(vm.uiState.value.showExercisePicker)
     }
@@ -483,7 +487,7 @@ class RoutineEditorViewModelTest {
         vm.uiState.first { it.routine?.exercises?.singleOrNull()?.exercise?.id == replacement.id }
 
         vm.leave()
-        eventually { true.takeIf { vm.exitRequested.value } }
+        vm.exitRequested.first { it }
         val stored = checkNotNull(deps.routineRepository.getById(fixture.routine.id))
         assertEquals(replacement.id, stored.exercises.single().exercise.id)
         assertNull(stored.exercises.single().targetWeightKg)
@@ -507,7 +511,7 @@ class RoutineEditorViewModelTest {
             assertFalse(vm.exitRequested.value)
 
             gate.complete(Unit)
-            eventually { true.takeIf { vm.exitRequested.value } }
+            vm.exitRequested.first { it }
             val saved = deps.routineRepository.observeAll().first().single()
             assertEquals(listOf(squat.id, row.id), saved.exercises.map { it.exercise.id })
         } finally {
@@ -553,7 +557,7 @@ class RoutineEditorViewModelTest {
             assertEquals(1, deps.routineRepository.observeAll().first().single().exercises.size)
 
             gate.complete(Unit)
-            eventually { true.takeIf { vm.exitRequested.value } }
+            vm.exitRequested.first { it }
             assertTrue(deps.routineRepository.observeAll().first().isEmpty())
         } finally {
             if (!gate.isCompleted) gate.complete(Unit)
@@ -573,7 +577,7 @@ class RoutineEditorViewModelTest {
             assertFalse(vm.exitRequested.value)
 
             gate.complete(Unit)
-            eventually { true.takeIf { vm.exitRequested.value } }
+            vm.exitRequested.first { it }
             val saved = deps.routineRepository.observeAll().first().single()
             assertEquals(squat.id, saved.exercises.single().exercise.id)
         } finally {
@@ -595,7 +599,7 @@ class RoutineEditorViewModelTest {
             dispatcher.scheduler.runCurrent()
             assertFalse(vm.exitRequested.value)
             gate.complete(Unit)
-            eventually { true.takeIf { vm.exitRequested.value } }
+            vm.exitRequested.first { it }
             assertFalse(vm.uiState.value.showExercisePicker)
         } finally {
             if (!gate.isCompleted) gate.complete(Unit)
@@ -688,23 +692,9 @@ class RoutineEditorViewModelTest {
     }
 
     private suspend fun awaitRoutine(predicate: (Routine) -> Boolean): Routine =
-        eventually {
-            deps.routineRepository.observeAll().first().singleOrNull()?.takeIf(predicate)
-        }
-
-    // Five seconds is deliberate. This was raised to 30 s on the theory that a loaded
-    // runner was blowing a tight budget; the next run failed at 30 s in the same helper,
-    // on a test whose predicate could never come true, and took 5m39s to say so. The
-    // budget was never the problem — a wait on the wrong object was. Keep it short so
-    // the next such hang is reported quickly, and fix the barrier, not the number.
-    // J4 replaces this polling with value-based waits.
-    private suspend fun <T : Any> eventually(block: suspend () -> T?): T =
         withTimeout(5_000) {
-            while (true) {
-                dispatcher.scheduler.runCurrent()
-                block()?.let { return@withTimeout it }
-                delay(10)
-            }
-            error("unreachable")
+            deps.routineRepository.observeAll().first { list ->
+                list.singleOrNull()?.let(predicate) == true
+            }.single()
         }
 }

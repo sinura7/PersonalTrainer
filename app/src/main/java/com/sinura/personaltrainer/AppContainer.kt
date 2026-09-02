@@ -1,6 +1,8 @@
 package com.sinura.personaltrainer
 
 import android.content.Context
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import com.sinura.personaltrainer.data.backup.DriveAuthClient
 import com.sinura.personaltrainer.data.backup.DriveRestClient
@@ -40,6 +42,9 @@ import com.sinura.personaltrainer.workout.StartTrainingDay
 import com.sinura.personaltrainer.workout.WorkoutDraftCache
 
 class AppContainer(context: Context) : AppDependencies {
+    override val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+    override val computeDispatcher: CoroutineDispatcher = Dispatchers.Default
+
     private val database: TemperDatabase = TemperDatabase.create(context)
 
     /**
@@ -187,5 +192,6 @@ class AppContainer(context: Context) : AppDependencies {
         networkChecker = NetworkChecker(context),
         restoreJournal = RestoreJournalStore(java.io.File(context.filesDir, "restore-journal")),
         plannerRepository = plannerRepository,
+        ioDispatcher = ioDispatcher,
     )
 }

@@ -12,7 +12,6 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -42,7 +41,10 @@ class RestTimerViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         runBlocking { deps.preferencesRepository.setWeightUnit(WeightUnit.KG) }
     }
 
@@ -83,7 +85,7 @@ class RestTimerViewModelTest {
         // the value rather than hanging. uiState.rest.totalSeconds is restTotal while idle.
         vm.awaitState { it.rest.totalSeconds == 75 }
         vm.startSelectedRest()
-        eventually { deps.restTimerStore.current().takeIf { it.running } }
+        deps.restTimerStore.snapshot.first { it.running }
         val rest = deps.restTimerStore.current()
         assertEquals(fixture.session.id, rest.sessionId)
         assertEquals(75, rest.totalSeconds)
@@ -99,7 +101,7 @@ class RestTimerViewModelTest {
         workout.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
         workout.logSet()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
-        eventually { deps.restTimerStore.current().takeIf { it.running } }
+        deps.restTimerStore.snapshot.first { it.running }
 
         val floor = createViewModel(fixture.session.id)
         val state = floor.awaitState {
@@ -139,7 +141,7 @@ class RestTimerViewModelTest {
         val vm = createViewModel(fixture.session.id)
         vm.awaitState { it.loadState == SessionLoadState.FOUND }
         vm.startSelectedRest()
-        eventually { deps.restTimerStore.current().takeIf { it.running } }
+        deps.restTimerStore.snapshot.first { it.running }
         vm.adjustRest(15)
         assertTrue(deps.restTimerStore.current().totalSeconds >= 90)
         vm.skipRest()
@@ -192,25 +194,13 @@ class RestTimerViewModelTest {
     private suspend fun awaitSession(
         sessionId: String,
         predicate: (WorkoutSession) -> Boolean,
-    ): WorkoutSession = eventually {
-        deps.workoutRepository.getSession(sessionId)?.takeIf(predicate)
+    ): WorkoutSession = withTimeout(5_000) {
+        checkNotNull(
+            deps.workoutRepository.observeSession(sessionId).first { session ->
+                session != null && predicate(session)
+            },
+        )
     }
-
-    // Five seconds is deliberate. This was raised to 30 s on the theory that a loaded
-    // runner was blowing a tight budget; the next run failed at 30 s in the same helper,
-    // on a test whose predicate could never come true, and took 5m39s to say so. The
-    // budget was never the problem — a wait on the wrong object was. Keep it short so
-    // the next such hang is reported quickly, and fix the barrier, not the number.
-    // J4 replaces this polling with value-based waits.
-    private suspend fun <T : Any> eventually(block: suspend () -> T?): T =
-        withTimeout(5_000) {
-            while (true) {
-                dispatcher.scheduler.runCurrent()
-                block()?.let { return@withTimeout it }
-                delay(10)
-            }
-            error("unreachable")
-        }
 
     private suspend fun seedWorkout(
         targetSets: Int = 3,

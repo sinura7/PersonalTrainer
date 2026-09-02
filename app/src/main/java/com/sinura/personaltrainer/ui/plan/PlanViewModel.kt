@@ -46,7 +46,6 @@ import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.domain.Weekday
 import java.time.LocalDate
 import java.time.ZoneId
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -138,7 +137,7 @@ class PlanViewModel @JvmOverloads constructor(
                 )
             }
         }
-        .flowOn(Dispatchers.Default)
+        .flowOn(container.computeDispatcher)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -235,7 +234,7 @@ class PlanViewModel @JvmOverloads constructor(
         // set, and once a block completes it walks every set of it again for the review — with
         // a records check per set, which compares against everything before it. That is not
         // main-thread work, and it was on the main thread before the review made it obvious.
-        .flowOn(Dispatchers.Default)
+        .flowOn(container.computeDispatcher)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -364,7 +363,7 @@ class PlanViewModel @JvmOverloads constructor(
                     AppLog.w(TAG, "Reading the pinned slots failed", thrown)
                     emptyList()
                 }
-            val plan = withContext(Dispatchers.Default) {
+            val plan = withContext(container.computeDispatcher) {
                 WeeklySchedulePlanner.plan(
                     preferences = preferences,
                     snapshot = snapshot,
@@ -425,7 +424,7 @@ class PlanViewModel @JvmOverloads constructor(
                 AppLog.w(TAG, "Reading the catalog for replay failed", thrown)
                 emptyList()
             }
-            val matched = withContext(Dispatchers.Default) {
+            val matched = withContext(container.computeDispatcher) {
                 val blueprint = RoutineGenerator.generate(
                     answers = answers,
                     catalog = catalog,
