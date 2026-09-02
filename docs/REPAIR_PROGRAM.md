@@ -1384,6 +1384,31 @@ The program is complete when all of the following hold:
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
 
+**2026-09-02 — outside the packets, the instrumented lane did not compile.**
+With the blocking job finally green, the non-blocking emulator job ran far
+enough to fail, and it failed at `compileDebugAndroidTestKotlin`:
+`HomePassInstrumentedTest.kt` uses `OccurrenceStatus.PLANNED` at five sites
+with no import. `3a2a46f` replaced the import rather than adding one —
+`-import ...OccurrenceStatus` / `+import ...PlanDayCopy`, alphabetically
+adjacent. The emulator itself booted in 31 s of a 600 s budget and nothing
+ran. Import restored.
+
+The gap is the finding, not the typo. `ci.yml`'s blocking job runs
+`testDebugUnitTest`, `lintDebug` and `assembleDebug`, none of which compile
+`src/androidTest`, and `tools/preflight.sh` never mentions it. So the lane
+`docs/DEVELOPMENT.md` calls the truth check — the migration lane, the one
+every Room change is supposed to be gated on — was uncompilable for a day
+with nothing anywhere able to say so. A blocking `assembleDebugAndroidTest`
+step now compiles those sources without a device. That is
+`.github/workflows/ci.yml`, packet J2's file, so it is recorded here with
+the rest.
+
+`debugLiveCode` goes 17 → 18 in the same change, so the drop carrying the
+backup-restore crash fix is one Obtainium refresh away. `appVersionCode`,
+`appVersionName` and `tools/released-version-code.txt` stay at 1 / 1.0.0 /
+1: that file is the gym-floor ratchet and writing a live-test number into it
+fails `check-version-code.py`, as `be38e55` already records.
+
 **2026-09-02 — outside the packets, a crash lint had never been run to
 find.** `lintDebug` ran for the first time in this repository and found four
 errors. The first: `DriveRestClient.kt:143`, *"Call requires API level 33
