@@ -10,7 +10,6 @@ import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -110,9 +109,10 @@ class ExerciseDetailViewModelTest {
         vm.uiState.first { it.routines.any { membership -> membership.alreadyHolds } }
 
         vm.addToRoutine(fixture.routine.id)
+        val notice = withTimeout(5_000) { vm.uiState.first { it.notice != null }.notice }
         assertEquals(
             "${fixture.exercise.name} is already in ${fixture.routine.name}.",
-            eventually { vm.uiState.value.notice },
+            notice,
         )
         assertEquals(1, deps.routineRepository.getById(fixture.routine.id)?.exercises?.size)
         vm.dismissNotice()
@@ -127,21 +127,22 @@ class ExerciseDetailViewModelTest {
         vm.uiState.first { it.routines.any { it.routine.id == routine.id && !it.alreadyHolds } }
 
         vm.addToRoutine(routine.id)
-        val saved = eventually {
-            deps.routineRepository.getById(routine.id)?.takeIf { it.exercises.size == 1 }
-        }
-        assertEquals(squat.id, saved.exercises.single().exercise.id)
-        assertNull(saved.exercises.single().targetWeightKg)
-        // Notice is set in the same coroutine as the write; Room's observeAll
-        // can emit membership one frame later. Wait for both, not just the toast.
-        val state = eventually {
-            vm.uiState.value.takeIf {
+        // One wait, on the view model, and it has to be both halves. The notice is set in
+        // the same coroutine as the write, but membership arrives through Room's observeAll
+        // a frame later — so the notice alone would let the read below race the commit.
+        // Once membership is true the row is committed, and the one-shot getById is safe.
+        val state = withTimeout(5_000) {
+            vm.uiState.first {
                 it.notice == "Added to ${routine.name}." &&
                     it.routines.any { membership ->
                         membership.routine.id == routine.id && membership.alreadyHolds
                     }
             }
         }
+        val saved = requireNotNull(deps.routineRepository.getById(routine.id))
+        assertEquals(1, saved.exercises.size)
+        assertEquals(squat.id, saved.exercises.single().exercise.id)
+        assertNull(saved.exercises.single().targetWeightKg)
         assertEquals("Added to ${routine.name}.", state.notice)
         assertTrue(state.routines.single { it.routine.id == routine.id }.alreadyHolds)
     }
@@ -152,20 +153,4 @@ class ExerciseDetailViewModelTest {
             savedStateHandle = SavedStateHandle(mapOf("exerciseId" to exerciseId)),
             container = deps,
         ).also { viewModel = it }
-
-    // Five seconds is deliberate. This was raised to 30 s on the theory that a loaded
-    // runner was blowing a tight budget; the next run failed at 30 s in the same helper,
-    // on a test whose predicate could never come true, and took 5m39s to say so. The
-    // budget was never the problem — a wait on the wrong object was. Keep it short so
-    // the next such hang is reported quickly, and fix the barrier, not the number.
-    // J4 replaces this polling with value-based waits.
-    private suspend fun <T : Any> eventually(block: suspend () -> T?): T =
-        withTimeout(5_000) {
-            while (true) {
-                dispatcher.scheduler.runCurrent()
-                block()?.let { return@withTimeout it }
-                delay(10)
-            }
-            error("unreachable")
-        }
 }

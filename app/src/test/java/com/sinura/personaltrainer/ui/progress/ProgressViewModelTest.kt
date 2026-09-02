@@ -10,7 +10,6 @@ import com.sinura.personaltrainer.util.toCivilDate
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -70,15 +69,12 @@ class ProgressViewModelTest {
             weekStart = weekStart,
         )
         viewModel!!.markLighterWeek()
+        // Wait for the key to be written, not for it to hold the value we want. Waiting on
+        // equality means a wrong value never satisfies the predicate and the test dies as an
+        // opaque 5 s timeout; waiting on presence lets the assertion below name both numbers.
+        // The write lands on DataStore's own scope, so this is an emission, not a poll.
         val marked = withTimeout(5_000) {
-            while (true) {
-                dispatcher.scheduler.advanceUntilIdle()
-                deps.preferencesRepository.lighterWeekStartEpochDay.first()
-                    ?.takeIf { it == expected }
-                    ?.let { return@withTimeout it }
-                delay(10)
-            }
-            error("unreachable")
+            deps.preferencesRepository.lighterWeekStartEpochDay.first { it != null }
         }
         assertEquals(expected, marked)
     }
