@@ -97,7 +97,7 @@ class SharedPrefsRestTimerStatePersistence(context: Context) : RestTimerStatePer
 
 /** What rehydration decided to do with a persisted timer. */
 sealed interface RestTimerRehydration {
-    /** Nothing was stored, or what was stored is too stale to act on. */
+    /** Nothing was stored, or the rest belonged to a different boot. */
     data object None : RestTimerRehydration
 
     /** Rest is still running; [endsAtElapsedRealtime] is rebased onto the current boot. */
@@ -108,20 +108,29 @@ sealed interface RestTimerRehydration {
         val timerId: String,
     ) : RestTimerRehydration
 
-    /** Rest ended while the process was dead, recently enough to still be worth announcing. */
+    /**
+     * Rest ended while the process was dead. [lateByMs] is how late we noticed.
+     * Within [RestTimerRehydrator.LATE_ALERT_GRACE_MS] the cue still plays; beyond
+     * it the "Rest done" notification is silent. Same-boot expiry is never dropped.
+     */
     data class Expired(
         val sessionId: String?,
         val lateByMs: Long,
         val endsAtElapsedRealtime: Long,
         val timerId: String,
-    ) : RestTimerRehydration
+    ) : RestTimerRehydration {
+        val playCue: Boolean
+            get() = lateByMs <= RestTimerRehydrator.LATE_ALERT_GRACE_MS
+    }
 }
 
 object RestTimerRehydrator {
     /**
-     * A rest that ended while the process was dead is still announced if it ended within
-     * this window — the user is probably standing at the rack waiting. Older than this and
-     * announcing would be noise, so the timer is dropped silently.
+     * Within this window a rest that ended while the process was dead still plays the
+     * cue — the user is probably standing at the rack. Older than this, the cue is
+     * suppressed and a silent "Rest done" notification is posted instead. Same-boot
+     * expiry is never [RestTimerRehydration.None]; dropping it let a late alarm find
+     * an empty disk and complete in silence.
      */
     const val LATE_ALERT_GRACE_MS = 60_000L
 
@@ -170,13 +179,12 @@ object RestTimerRehydrator {
                 sessionId = stored.sessionId,
                 timerId = stored.timerId,
             )
-            -remainingMs <= LATE_ALERT_GRACE_MS -> RestTimerRehydration.Expired(
+            else -> RestTimerRehydration.Expired(
                 sessionId = stored.sessionId,
                 lateByMs = -remainingMs,
                 endsAtElapsedRealtime = stored.endsAtElapsedRealtime,
                 timerId = stored.timerId,
             )
-            else -> RestTimerRehydration.None
         }
     }
 

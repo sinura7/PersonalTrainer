@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.PowerManager
+import android.os.SystemClock
 import com.sinura.personaltrainer.PersonalTrainerApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -73,6 +74,8 @@ class RestTimerAlarmReceiver : BroadcastReceiver() {
 
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             try {
+                val lateByMs = SystemClock.elapsedRealtime() - deadline
+                val playCue = lateByMs <= RestTimerRehydrator.LATE_ALERT_GRACE_MS
                 withTimeoutOrNull(WAKELOCK_TIMEOUT_MS) {
                     RestTimerCompletion.completeOnce(
                         context = appContext,
@@ -80,6 +83,7 @@ class RestTimerAlarmReceiver : BroadcastReceiver() {
                         expectedTimerId = expectedTimerId,
                         deadlineElapsedRealtime = deadline,
                         sessionId = sessionId,
+                        playCue = playCue,
                     )
                 }
             } catch (_: Exception) {

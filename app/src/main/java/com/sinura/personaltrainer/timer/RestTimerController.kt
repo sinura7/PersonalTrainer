@@ -138,10 +138,9 @@ class RestTimerController(
                 true
             }
             is RestTimerRehydration.Expired -> {
-                // Rest ended while the process was dead, but recently enough to still matter.
-                // This is the alarm-woke-a-dead-process path, so it must alert with sound and
-                // vibration, not just a notification — completeOnce owns that, and its
-                // id claim means the receiver's own call moments later is a no-op.
+                // Rest ended while the process was dead. Keep the disk row until
+                // completeOnce claims it, so a late alarm still has something to
+                // match. Cue inside the grace window; silent "Rest done" beyond it.
                 announceScope.launch {
                     RestTimerCompletion.completeOnce(
                         context = appContext,
@@ -149,6 +148,7 @@ class RestTimerController(
                         expectedTimerId = outcome.timerId,
                         deadlineElapsedRealtime = outcome.endsAtElapsedRealtime,
                         sessionId = outcome.sessionId,
+                        playCue = outcome.playCue,
                     )
                 }
                 false
