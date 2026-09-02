@@ -218,16 +218,26 @@ class RestorePrepareTest {
     @Test
     fun startWaitsForTheMaintenanceLock() = runBlocking {
         val holding = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
         val holder = launch {
             deps.dbMaintenance.withMaintenanceLock {
                 holding.complete(Unit)
-                delay(200)
+                // Held until this test releases it, not for a fixed 200 ms. The old pair of
+                // sleeps raced each other: the hold had to outlast the probe below, and on a
+                // loaded machine it might not, which fails the assertion with nothing wrong.
+                release.await()
             }
         }
         holding.await()
         val started = async { deps.workoutRepository.startFreeWorkoutSafely() }
+        // Still a real wait, and deliberately so: this asserts a negative — that start has
+        // *not* completed — and nothing observable says "is now blocked on the lock".
+        // Proving that needs a waiter seam on DbMaintenance, which is production code and
+        // outside this packet. What matters is that the hold above is now indefinite, so
+        // this probe cannot lose a race against it however slow the machine is.
         delay(50)
         assertFalse(started.isCompleted)
+        release.complete(Unit)
         holder.join()
         val outcome = started.await()
         assertTrue(outcome is com.sinura.personaltrainer.data.repository.StartSessionOutcome.Started)
