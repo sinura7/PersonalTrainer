@@ -125,11 +125,18 @@ def main() -> int:
             )
 
     if not os.path.isfile(ROBOLECTRIC):
-        findings.append("robolectric.properties  missing; JVM lane must pin sdk=36")
+        findings.append("robolectric.properties  missing; JVM lane must pin sdk=35")
     else:
+        # Not 36. Robolectric 4.16 does ship an API-36 jar, but its SDK table
+        # (DefaultSdkProvider: Baklava -> 21) requires Java 21 to load it, and this
+        # project is Java 17 everywhere. sdk=36 threw
+        # "Android SDK 36 requires Java 21 (have Java 17)" out of every Robolectric
+        # class. 35 is the newest jar 4.16 supports on Java 17; raise this with the JDK.
         props = open(ROBOLECTRIC, encoding="utf-8").read()
-        if not re.search(r"(?m)^sdk=36\s*$", props):
-            findings.append("robolectric.properties  must pin sdk=36 after Robolectric 4.16")
+        if not re.search(r"(?m)^sdk=35\s*$", props):
+            findings.append(
+                "robolectric.properties  must pin sdk=35; Robolectric 4.16's API-36 jar needs Java 21 and this project is Java 17",
+            )
 
     if not os.path.isfile(CORE_TOOLCHAIN):
         findings.append("CoreToolchain.kt  missing signed P4.2 matrix")

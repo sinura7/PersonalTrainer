@@ -198,7 +198,20 @@ class BackupRepository(
                 incomingJson,
             )
             try {
-                restoreJournal.mark(RestoreJournal.WIPING)
+                // Its own guard, outside the commit path below. A disk failure here throws
+                // before anything on the phone has been touched, and the catch at the bottom
+                // then read phase STAGED, fell through to "a restore was interrupted, Temper
+                // is finishing it from the copy already on this phone" — about a restore that
+                // never started — and left the STAGED journal open, which refuses every
+                // workout start until the next launch runs recovery.
+                try {
+                    restoreJournal.mark(RestoreJournal.WIPING)
+                } catch (thrown: kotlinx.coroutines.CancellationException) {
+                    throw thrown
+                } catch (_: Exception) {
+                    restoreJournal.clear()
+                    throw BackupException(RestoreJournal.NOTHING_STARTED)
+                }
                 try {
                     localBackupRepository.replaceRoom(plan.document)
                 } catch (thrown: kotlinx.coroutines.CancellationException) {
@@ -210,8 +223,7 @@ class BackupRepository(
                     // truth instead of RECOVERED_MIXED's "was replaced".
                     restoreJournal.clear()
                     throw BackupException(
-                        (thrown as? BackupException)?.message
-                            ?: "Restore failed. Nothing was changed.",
+                        (thrown as? BackupException)?.message ?: RestoreJournal.NOTHING_CHANGED,
                     )
                 }
                 restoreJournal.mark(RestoreJournal.ROOM)
@@ -308,14 +320,26 @@ class BackupRepository(
         }
     }
 
+    /**
+     * What to tell the owner about a restore that threw.
+     *
+     * The phase says how far it got, and only the phases past the wipe have changed anything.
+     * STAGED and a closed journal have not: the honest answer there is that nothing was
+     * changed, and it must not be allowed to inherit [RestoreJournal.INTERRUPTED] from a
+     * journal-write failure underneath — "Temper is finishing it from the copy already on this
+     * phone" describes a recovery that is not going to happen, about data that was never
+     * touched.
+     */
     private fun namedCommitFailure(thrown: Throwable): BackupException {
         val phase = restoreJournal.read()?.phase
-        val message = when (phase) {
-            RestoreJournal.ROOM, RestoreJournal.PREFS, RestoreJournal.WIPING ->
-                RestoreJournal.RECOVERED_MIXED
-            else -> (thrown as? BackupException)?.message ?: thrown.message
-                ?: "Restore failed. Nothing was changed."
-        }
+        // A STAGED journal left open refuses every workout start until the next launch runs
+        // recovery, and there is nothing in it to recover — close it here rather than making
+        // the owner relaunch to lift a block they should never have hit.
+        if (phase == RestoreJournal.STAGED) runCatching { restoreJournal.clear() }
+        val message = RestoreJournal.commitFailureMessage(
+            phase = phase,
+            reported = (thrown as? BackupException)?.message ?: thrown.message,
+        )
         return if (thrown is BackupException && thrown.message == message) {
             thrown
         } else {

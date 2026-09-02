@@ -31,8 +31,18 @@ class WorkManagerReminderScheduler(
         WorkManager.getInstance(appContext).cancelUniqueWork(uniqueWorkName(deliveryId))
     }
 
+    /**
+     * Cancels the scheduled job AND dismisses anything already in the shade.
+     *
+     * Cancelling the job alone left a notification that had already been posted sitting there
+     * with live Start / Skip / Move buttons for a day that is now settled. Only MainActivity
+     * dismissed it, and only on a Start launch — so the two destructive buttons outlived the
+     * decision they were offering. The notification id is the occurrence id's hash, the same
+     * one [ReminderNotifications.show] posts under, so this is exact rather than a sweep.
+     */
     override fun cancelForOccurrence(occurrenceId: String) {
         WorkManager.getInstance(appContext).cancelUniqueWork(uniqueWorkName("rem-$occurrenceId"))
+        ReminderNotifications.cancel(appContext, occurrenceId)
     }
 
     companion object {

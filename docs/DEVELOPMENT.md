@@ -218,13 +218,22 @@ builds the debug APK and publishes the `debug-live-<suffix>`
 pre-release Obtainium watches).
 
 They are written and kept correct, but hosted runners are **not the
-merge gate**: the account currently has no runner assigned (every run
-dies in seconds before checkout — a billing/limits setting only the
-owner can change), so a red X from *that* is noise. The moment a runner
-exists, all three lanes work as written; until then the executable gate
-is `tools/preflight.sh` plus a Gradle-capable machine
-(`./gradlew testDebugUnitTest assembleDebug`) and Obtainium on the
-phone.
+merge gate**: the executable gate is `tools/preflight.sh` plus a
+Gradle-capable machine (`./gradlew testDebugUnitTest assembleDebug`)
+and Obtainium on the phone.
+
+A runner **is** assigned and the lanes do run. This paragraph used to
+say the account had none and that every run "dies in seconds before
+checkout — a billing/limits setting only the owner can change". That
+was wrong, and it cost nine sessions: checkout, JDK 17, the Android
+SDK, Gradle 8.11.1 and the 17-checker static gate all complete, and
+the run then failed 23-45 s in at `./gradlew testDebugUnitTest` on
+Gradle dependency verification. `gradle/verification-metadata.xml` was
+missing `guava-parent` 33.2.1-jre and 33.4.8-jre,
+`kotlinx-coroutines-bom` 1.6.4, and the `.module` files for
+`junit-bom` 5.9.2 and 5.10.2. An in-repo defect, not a billing block —
+and one that fails the *local* Gradle gate on any machine exactly as
+it fails CI. Read the log before calling a red X noise.
 
 ## Instrumented tests
 
@@ -306,7 +315,7 @@ Consequences, in order of cost:
    regardless of host. Phase 3's migration suite is gated on it.
 2. **Optional: WSL2** restores the JVM lane — clone into the Linux filesystem and run
    `./gradlew testDebugUnitTest` there. Worth it only if the fast lane is missed.
-3. **Do not wait on GitHub Actions.** We do not use hosted runners.
+3. **Do not wait on GitHub Actions.** Hosted runners are not the gate.
    Cursor on Linux already has the JVM lane.
 
 Nothing in the plan depends on the JVM lane existing on this machine; the packets name the

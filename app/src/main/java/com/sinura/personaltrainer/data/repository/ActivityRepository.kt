@@ -17,6 +17,7 @@ import com.sinura.personaltrainer.domain.ActivityTemplate
 import com.sinura.personaltrainer.domain.ActivityWrite
 import com.sinura.personaltrainer.domain.CapturedCivilTime
 import com.sinura.personaltrainer.domain.IdPort
+import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.TimePort
 import kotlinx.coroutines.flow.Flow
@@ -26,6 +27,18 @@ class ActivityRepository(
     private val database: TemperDatabase,
     private val dao: ActivityDao = database.activityDao(),
     private val dbMaintenance: DbMaintenance? = null,
+    /**
+     * Called with the occurrence id after a completion commits, so its reminders can be
+     * cancelled and anything already in the shade dismissed.
+     *
+     * A callback rather than a [PlannerRepository] handle, for two reasons. The status write
+     * has to stay inside the activity transaction — a completed session with a still-planned
+     * day is the state this whole packet is about — while cancelling reminders reaches
+     * WorkManager and the notification manager, which must not happen inside one. And the
+     * dependency would otherwise run backwards through the container. Defaults to doing
+     * nothing so a test can construct this repository with a database and no scheduler.
+     */
+    private val onOccurrenceCompleted: suspend (String) -> Unit = {},
 ) {
     private suspend fun <T> serialized(block: suspend () -> T): T =
         dbMaintenance?.withMaintenanceLock(block) ?: block()
@@ -71,7 +84,8 @@ class ActivityRepository(
         ids: IdPort,
         clock: TimePort,
     ): ActivityWrite = serialized {
-        database.withTransaction {
+        var completedOccurrenceId: String? = null
+        val result = database.withTransaction {
             if ((draft.origin == ActivityOrigin.LIVE || draft.status == ActivityStatus.ACTIVE) &&
                 database.workoutDao().getInProgressSession() != null
             ) {
@@ -85,10 +99,11 @@ class ActivityRepository(
                         ActivityBackupIo.insertSession(dao, write.session)
                         if (write.session.status == ActivityStatus.COMPLETED) {
                             write.session.occurrenceId?.let { occId ->
+                                completedOccurrenceId = occId
                                 database.plannerDao().getOccurrence(occId)?.let { row ->
                                     database.plannerDao().upsertOccurrence(
                                         row.copy(
-                                            status = "DONE",
+                                            status = OccurrenceStatus.DONE.name,
                                             completedActivityId = write.session.id,
                                             updatedAtMs = clock.nowMillis(),
                                         ),
@@ -103,6 +118,14 @@ class ActivityRepository(
                 }
             }
         }
+        // After the commit, never inside it: this reaches WorkManager and the notification
+        // manager. Only for a session this call actually completed, so a rejected write cannot
+        // silently clear a reminder for a day that is still planned. It fires even when the
+        // occurrence row has since been deleted — cancelling a job and dismissing a
+        // notification that are not there costs nothing, and a stale notification for a
+        // deleted day is exactly what this packet is about.
+        completedOccurrenceId?.let { onOccurrenceCompleted(it) }
+        result
     }
 
     suspend fun discard(sessionId: String) {
@@ -125,7 +148,8 @@ class ActivityRepository(
         clock: TimePort,
         blocks: List<ActivityBlock>? = null,
     ): ActivityWrite = serialized {
-        database.withTransaction {
+        var completedOccurrenceId: String? = null
+        val result = database.withTransaction {
             val graph = dao.getSessionGraph(sessionId)
                 ?: return@withTransaction ActivityWrite.Rejected("That session is gone.")
             val session = graph.toDomain()
@@ -142,10 +166,11 @@ class ActivityRepository(
             dao.deleteSession(sessionId)
             ActivityBackupIo.insertSession(dao, completed)
             completed.occurrenceId?.let { occId ->
+                completedOccurrenceId = occId
                 database.plannerDao().getOccurrence(occId)?.let { row ->
                     database.plannerDao().upsertOccurrence(
                         row.copy(
-                            status = "DONE",
+                            status = OccurrenceStatus.DONE.name,
                             completedActivityId = completed.id,
                             updatedAtMs = clock.nowMillis(),
                         ),
@@ -154,6 +179,8 @@ class ActivityRepository(
             }
             ActivityWrite.Accepted(completed)
         }
+        completedOccurrenceId?.let { onOccurrenceCompleted(it) }
+        result
     }
 
     suspend fun templates(): List<ActivityTemplate> =

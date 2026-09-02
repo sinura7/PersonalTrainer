@@ -307,13 +307,30 @@ class PlannerRepository(
         cancelReminders(occurrenceId)
     }
 
+    /**
+     * Mark a planned day skipped.
+     *
+     * Refuses anything that is not still ahead of the user. You did the session, the reminder
+     * stayed in the shade for hours, and tidying it away with **Skip** marked the workout you
+     * had already finished as skipped — the day lost its credit and the week said you did
+     * nothing. DONE, SKIPPED and MOVED are all settled; a stale notification must not be able
+     * to unsettle them. A refused call returns quietly, as the other guards here do: the
+     * button came from a notification the user has every right to press.
+     */
     suspend fun skipOccurrence(occurrenceId: String, nowMs: Long = time.nowMillis()) {
         val current = dao.getOccurrence(occurrenceId) ?: return
+        if (current.status !in SKIPPABLE) {
+            cancelReminders(occurrenceId)
+            return
+        }
         dao.upsertOccurrence(
             current.copy(status = OccurrenceStatus.SKIPPED.name, updatedAtMs = nowMs),
         )
         cancelReminders(occurrenceId)
     }
+
+    /** Reminders belong to one occurrence; a caller that settles it elsewhere clears them here. */
+    suspend fun cancelRemindersFor(occurrenceId: String) = cancelReminders(occurrenceId)
 
     suspend fun getDelivery(id: String): ReminderDelivery? = dao.getDelivery(id)?.toDomain()
 
@@ -397,8 +414,21 @@ class PlannerRepository(
         if (status != ReminderDeliveryStatus.PENDING) scheduler.cancel(deliveryId)
     }
 
+    /**
+     * Push a planned day to the next free slot for its rule.
+     *
+     * PLANNED only, and for a worse reason than [skipOccurrence]'s: this both restamps the row
+     * and mints a second one. Pressing **Move** on the hours-old notification of a session you
+     * already finished marked that finished day MOVED and created a duplicate for tomorrow —
+     * a workout invented out of a tidy-up. MISSED is excluded too: the weekly missed-work
+     * decision owns those, and moving one behind its back desynchronises the two.
+     */
     suspend fun moveOccurrenceForward(occurrenceId: String, nowMs: Long = time.nowMillis()) {
         val current = getOccurrence(occurrenceId) ?: return
+        if (current.status != OccurrenceStatus.PLANNED) {
+            cancelReminders(occurrenceId)
+            return
+        }
         val rule = getRule(current.ruleId)
         var day = current.localEpochDay + 1
         val existing = dao.getOccurrencesBetween(day, day + 13).map { it.toDomain() }
@@ -552,3 +582,12 @@ class PlannerRepository(
         scheduler.cancelForOccurrence(occurrenceId)
     }
 }
+
+/**
+ * Statuses still ahead of the user, and so still theirs to skip.
+ *
+ * MISSED is included — the whole point of the weekly missed-work prompt is to let a past-due
+ * day be written off deliberately. DONE, SKIPPED and MOVED are settled, and a notification
+ * that has been sitting in the shade since before they were settled must not undo them.
+ */
+private val SKIPPABLE = setOf(OccurrenceStatus.PLANNED.name, OccurrenceStatus.MISSED.name)

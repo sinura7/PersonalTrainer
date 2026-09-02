@@ -144,9 +144,9 @@ object PersonalRecords {
     /**
      * Standing bests a candidate is judged against.
      *
-     * The four numbers [detect] actually reads. A SQL MAX per lift produces
-     * this directly; the list overload folds history into the same shape so
-     * both paths cannot drift.
+     * The five numbers [detect] actually reads. One aggregate query per lift
+     * produces them directly; the list overload folds history into the same
+     * shape so both paths cannot drift.
      */
     data class RecordPriors(
         val priorSetCount: Int = 0,
@@ -154,6 +154,14 @@ object PersonalRecords {
         val maxReps: Int? = null,
         val maxRepsAtCandidateWeight: Int? = null,
         val maxEstimatedOneRepMaxKg: Double? = null,
+        /**
+         * Best rep count reached with at least as much help as the candidate used.
+         *
+         * Only read for [LoadClass.BODYWEIGHT_ASSISTED], where the weight column is machine
+         * assistance. Equal to [maxReps] exactly when the standing rep record was itself set
+         * at no less help than the candidate — which is the question [detect] asks.
+         */
+        val maxRepsAtEqualOrMoreAssistance: Int? = null,
     ) {
         val isEmpty: Boolean get() = priorSetCount <= 0
 
@@ -173,6 +181,9 @@ object PersonalRecords {
                     maxEstimatedOneRepMaxKg = priorHistory
                         .mapNotNull { estimatedOneRepMaxKg(it.weightKg, it.reps) }
                         .maxOrNull(),
+                    maxRepsAtEqualOrMoreAssistance = priorHistory
+                        .filter { it.weightKg >= candidateWeightKg }
+                        .maxOfOrNull { it.reps },
                 )
             }
         }
@@ -205,7 +216,20 @@ object PersonalRecords {
 
         if (loadClass.repsAreTheMeasure) {
             val maxReps = priors.maxReps ?: return emptySet()
-            if (candidate.reps > maxReps) broken += PersonalRecordKind.REPS
+            // On an assisted lift the rep count is only half the answer: the weight column is
+            // machine help, so nine reps with twenty kilograms of assistance is not a better
+            // set than eight with ten, and awarding "most reps ever" for turning the
+            // assistance UP is the app congratulating someone for getting weaker.
+            //
+            // A rep record therefore needs both halves — more reps than ever before, and the
+            // standing rep record set at no LESS help than the candidate just used. The second
+            // half is what `maxRepsAtEqualOrMoreAssistance == maxReps` says. Merely having
+            // trained this easy before is not enough: with eight reps at 10 kg of help and
+            // three at 30, nine reps at 20 would clear that weaker bar on the strength of the
+            // 30 kg set, while the record it is actually beating was set with half the help.
+            val assistanceEarnsIt = loadClass != LoadClass.BODYWEIGHT_ASSISTED ||
+                priors.maxRepsAtEqualOrMoreAssistance == maxReps
+            if (candidate.reps > maxReps && assistanceEarnsIt) broken += PersonalRecordKind.REPS
             // A vest has a heaviest, and it is worth chasing: the same eight pull-ups with ten
             // more kilograms on is a better set, and nothing else here would notice.
             if (loadClass == LoadClass.BODYWEIGHT_ADDED && candidate.weightKg > 0.0) {

@@ -146,6 +146,71 @@ class RecommendationEngineTest {
     }
 
     // -----------------------------------------------------------------------
+    // Core coverage, which must not restate the neglect card
+    // -----------------------------------------------------------------------
+
+    @Test
+    fun coreCoverageFiresForCoreTrainedRecentlyWithNoStimulus() {
+        // A plank logged with no reps credits recency and no weighted sets, so core is
+        // "trained 3 days ago" and simultaneously absent from the 14-day basis. That case is
+        // invisible to the neglect list, which only looks at how long it has been — and it is
+        // the whole reason this card exists.
+        val coverage = RecommendationEngine.coreCoverageGap(coreInputs(coreDaysAgo = 3))
+        assertNotNull(coverage)
+        assertEquals("No direct core work in the last 14 days", coverage!!.title)
+    }
+
+    @Test
+    fun coreCoverageStandsDownWhenTheNeglectCardAlreadyNamesCore() {
+        // Both cards carry the COVERAGE kicker and both name the same lift, so firing both
+        // spends two of five slots saying one thing twice. Past NEGLECT_DAYS the neglect card
+        // is the better of the two: it quotes the actual number of days.
+        val inputs = coreInputs(coreDaysAgo = 20)
+        val cards = RecommendationEngine.recommend(inputs)
+
+        assertNull(RecommendationEngine.coreCoverageGap(inputs))
+        assertEquals(
+            listOf("neglect-CORE"),
+            cards.filter { it.actionMuscle == CanonicalMuscle.CORE }.map { it.id },
+        )
+    }
+
+    @Test
+    fun coreCoverageStandsDownWhenCoreHasNoHistoryAtAll() {
+        // Same reasoning at the other end: "has no logged work" is the neglect card's own
+        // wording, and a second card saying the basis contains no core lift adds nothing.
+        val inputs = coreInputs(coreDaysAgo = null)
+        assertNull(RecommendationEngine.coreCoverageGap(inputs))
+    }
+
+    /**
+     * Real chest work inside the basis — so [CoachBasis.hasBasisWorkingSets] is true and the
+     * rule is exercised rather than skipped — with every muscle dated recently except core.
+     */
+    private fun coreInputs(coreDaysAgo: Long?): CoachInputs {
+        val sets = liftSets("ex-bench", "Bench", "Chest", 6, 100.0)
+        val history = sessionsFrom(sets)
+        val recency = CanonicalMuscle.entries.mapNotNull { muscle ->
+            val daysAgo = if (muscle == CanonicalMuscle.CORE) coreDaysAgo else 1L
+            daysAgo?.let { muscle to now - days(it) }
+        }.toMap()
+        return CoachInputs(
+            basis = MuscleLoadCalculator.coachBasis(
+                sessions = history,
+                nowMs = now,
+                zone = zone,
+                lastTrainedByMuscle = recency,
+            ),
+            history = history,
+            routines = emptyList(),
+            hints = emptyList(),
+            exerciseCatalog = emptyMap(),
+            nowMs = now,
+            zone = zone,
+        )
+    }
+
+    // -----------------------------------------------------------------------
     // Fixtures
     // -----------------------------------------------------------------------
 

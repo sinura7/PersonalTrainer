@@ -87,8 +87,8 @@ object DeloadSignal {
 
         var comparable = 0
         topLiftIds.forEach { exerciseId ->
-            val recent = bestEstimate(recentSets, exerciseId, comparisonStart, nowMs)
-            val previous = bestEstimate(recentSets, exerciseId, previousStart, comparisonStart)
+            val recent = bestStrength(recentSets, exerciseId, comparisonStart, nowMs)
+            val previous = bestStrength(recentSets, exerciseId, previousStart, comparisonStart)
             if (recent == null || previous == null) return@forEach
             comparable += 1
             // Any lift that actually improved means the volume is buying something.
@@ -103,6 +103,11 @@ object DeloadSignal {
 
     private fun setsBetween(sessions: List<WorkoutSession>, fromMs: Long, toMs: Long): List<Scored> =
         sessions.flatMap { session ->
+            // Built once per session, as everywhere else: `loadClassOf` scans the exercise
+            // list, so resolving it inside the set loop would make this O(sets × lifts).
+            val classes = session.exercises.associate {
+                it.exercise.id to LoadClass.of(it.exercise.loadType)
+            }
             session.sets.filterNot { it.isWarmup }.mapNotNull { set ->
                 val at = MuscleLoadCalculator.trainedAtMs(session, set)
                 if (at < fromMs || at >= toMs) return@mapNotNull null
@@ -110,25 +115,65 @@ object DeloadSignal {
                     exerciseId = set.exerciseId,
                     exerciseName = set.exerciseName,
                     at = at,
-                    estimate = PersonalRecords.estimatedOneRepMaxKg(set.weightKg, set.reps),
+                    strength = strengthOf(set, classes[set.exerciseId] ?: LoadClass.LOADED),
                 )
             }
         }
 
-    private fun bestEstimate(
+    /**
+     * "Did this lift get stronger", in whatever the lift's own answer is.
+     *
+     * This used to be an Epley estimate for every lift, computed from `SetLog.weightKg` without
+     * asking what that column means — and it means three different things. On an assisted
+     * pull-up it is machine help, so a lifter who went from 20 kg of assistance down to 10 kg
+     * scored *worse* after improving, and the deload card fired at exactly the person it should
+     * have left alone. On a bare bodyweight lift the column is zero, so every push-up scored
+     * null and a calisthenics lifter could never satisfy the "at least one comparable lift"
+     * guard at all — the signal was silently switched off for them.
+     *
+     * Comparable only against the same lift, which is the only comparison [detect] makes.
+     */
+    private fun strengthOf(set: SetLog, loadClass: LoadClass): Strength? = when (loadClass) {
+        // Kilograms are the measure, and the vest is the part of a weighted pull-up that
+        // kilograms can honestly describe.
+        LoadClass.LOADED, LoadClass.BODYWEIGHT_ADDED ->
+            PersonalRecords.estimatedOneRepMaxKg(set.weightKg, set.reps)?.let { Strength(it) }
+
+        LoadClass.BODYWEIGHT ->
+            set.reps.takeIf { it > 0 }?.let { Strength(it.toDouble()) }
+
+        // Less help is stronger, and at equal help more reps is stronger. Ordered rather than
+        // added together: assistance is kilograms and reps are a count, and any single number
+        // mixing them would be an invented exchange rate.
+        LoadClass.BODYWEIGHT_ASSISTED ->
+            set.reps.takeIf { it > 0 }?.let {
+                Strength(primary = -set.weightKg.coerceAtLeast(0.0), secondary = it.toDouble())
+            }
+    }
+
+    private fun bestStrength(
         sets: List<Scored>,
         exerciseId: String,
         fromMs: Long,
         toMs: Long,
-    ): Double? = sets
+    ): Strength? = sets
         .filter { it.exerciseId == exerciseId && it.at >= fromMs && it.at < toMs }
-        .mapNotNull { it.estimate }
+        .mapNotNull { it.strength }
         .maxOrNull()
+
+    /** One lift's showing, ordered on its own terms. Never compare two different lifts with it. */
+    private data class Strength(
+        val primary: Double,
+        val secondary: Double = 0.0,
+    ) : Comparable<Strength> {
+        override fun compareTo(other: Strength): Int =
+            compareValuesBy(this, other, { it.primary }, { it.secondary })
+    }
 
     private data class Scored(
         val exerciseId: String,
         val exerciseName: String,
         val at: Long,
-        val estimate: Double?,
+        val strength: Strength?,
     )
 }

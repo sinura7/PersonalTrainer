@@ -26,8 +26,23 @@ case "$CP" in
 esac
 
 OUT=$(mktemp -d)
-trap 'rm -rf "$OUT"' EXIT
+ERR=$(mktemp)
+trap 'rm -rf "$OUT" "$ERR"' EXIT
+# A non-zero exit is EXPECTED: without the Android SDK on the classpath every Compose,
+# Room and Gson reference is unresolved. `|| true` keeps `set -e` from treating that as
+# fatal — it used to be masked only because this ran inside a pipeline, where POSIX sh
+# judges the last command. What we actually care about is in "$ERR", below.
 java -cp "$CP" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
-  -nowarn -no-stdlib -no-reflect -d "$OUT" "$ROOT" 2>&1 >/dev/null \
-  | grep -iE "expecting|unexpected token|misplaced|is not allowed here|Name expected|Type expected|syntax" \
+  -nowarn -no-stdlib -no-reflect -d "$OUT" "$ROOT" 2>"$ERR" >/dev/null || true
+
+# The compiler failing to START is not a clean parse. Without this the script printed
+# NO SYNTAX ERRORS for a NoClassDefFoundError, a missing main class or an OOM — none of
+# which match the parse-diagnostic grep below — and preflight accepted that as a pass.
+if grep -qE "^(Error: |Exception in thread |Could not find or load main class)" "$ERR"; then
+  echo "SYNTAX CHECK DID NOT RUN — the Kotlin compiler failed to start:"
+  sed -n 1,5p "$ERR"
+  exit 1
+fi
+
+grep -iE "expecting|unexpected token|misplaced|is not allowed here|Name expected|Type expected|syntax" "$ERR" \
   || echo "NO SYNTAX ERRORS"
