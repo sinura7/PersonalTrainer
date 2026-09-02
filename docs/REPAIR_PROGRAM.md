@@ -1384,6 +1384,54 @@ The program is complete when all of the following hold:
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
 
+**2026-09-02 — J4, delivered as half a packet, and a correction.** J4's
+stated change is `runTest` with a standard test dispatcher and value-based
+waits. It cannot be done inside its own **Owns** line. Four real-thread
+boundaries separate a test from the work it waits on — Room's query
+executor, DataStore's `Dispatchers.IO` scope, `flowOn(Dispatchers.Default)`
+at five production sites, and `withContext(Dispatchers.IO)` at seventeen —
+and the last two are in `app/src/main/`, which J4 does not own. The same is
+true of "the injected clock instead of `LocalDate.now()`":
+`ProgressViewModel` and `HomeViewModel` read the clock directly and take no
+`TimePort`, so the calendar half needs a production seam too. This slice
+takes the flakiness and leaves the rest owed: full determinism, and moving
+the sixteen source-reading policy tests into the checkers.
+
+What the work actually found is that polling was never the disease. Three
+distinct defects hide behind it, and each one is a wait on the wrong thing.
+**Wrong object:** the test waits on a repository while the code under test
+reads the view model's own flow, or the reverse —
+`ActiveWorkoutViewModelTest`'s swap-and-remove test could hang outright this
+way, and `RestTimerViewModelTest` was losing the race today, starting a rest
+on the 90-second default instead of the fixture's 75. **Partial-combine
+latch:** `first { one field }` on a state assembled by `combine` can catch
+an emission where a sibling field has not landed, which is how
+`CustomWeekViewModelTest` failed asserting a picker was closed when it was
+still open. **Insufficient barrier:** waiting for `catalog.isNotEmpty()`
+before an action that needs two lifts, where `LiftCart.planConfirm` blocks
+and writes nothing if one is missing. Polling masked all three by re-reading
+until things happened to line up.
+
+The correction. The 2 September entry for
+`confirmPendingAddSkipsLiftsAlreadyOnTheRoutine` says a stale dedup let
+squat be added twice and the routine land on three. `RoutineRepository`
+dedups at `:66`, so that cannot happen, and the narrative is wrong. The
+likelier mechanism is the catalog barrier described above. The fix committed
+for it is correct and passing; the reason given for it was not.
+
+One structural finding worth keeping. The poll loops were not only waiting —
+each iteration called `advanceUntilIdle()` or `runCurrent()`, so they were
+also pumping the test scheduler. Delete one and a view model coroutine
+parked on a `Dispatchers.IO` preferences read never resumes, so the write
+never happens and no wait can succeed. `FakeAppDependencies` now takes a
+`prefsDispatcher`, defaulting to `Dispatchers.IO` so nothing changes unless
+a test opts in; passing the test's own dispatcher puts DataStore on the
+scheduler and lets `advanceUntilIdle` drive a whole read-compute-write
+chain, after which no wait is needed at all. `TrainingInsightsSourceTest`
+must never be converted this way: its share grace runs on the test scheduler
+and its `assertSame` tests pass precisely because the polls never advance
+virtual time.
+
 **2026-09-02 — outside the packets, the instrumented lane did not compile.**
 With the blocking job finally green, the non-blocking emulator job ran far
 enough to fail, and it failed at `compileDebugAndroidTestKotlin`:

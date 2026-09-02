@@ -347,7 +347,11 @@ class RoutineEditorViewModelTest {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val row = insertTestExercise(deps, "row", "Row")
         val vm = createViewModel("new")
-        vm.uiState.first { it.catalog.isNotEmpty() }
+        // Both lifts, not merely one. confirmPendingAdd resolves every selected id against
+        // uiState.catalog, and LiftCart.planConfirm returns blocked and writes nothing if one
+        // is missing (LiftCart:66-68) — leaving the routine empty and the size == 2 wait below
+        // unable to come true. isNotEmpty() is satisfied by the first of the two emissions.
+        vm.uiState.first { it.catalog.size >= 2 }
 
         vm.togglePendingAdd(row)
         vm.togglePendingAdd(squat)
@@ -362,7 +366,8 @@ class RoutineEditorViewModelTest {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val row = insertTestExercise(deps, "row", "Row")
         val vm = createViewModel("new")
-        vm.uiState.first { it.catalog.isNotEmpty() }
+        // Both lifts — see confirmPendingAddWritesLiftsInReverseTapOrder above.
+        vm.uiState.first { it.catalog.size >= 2 }
         vm.togglePendingAdd(squat)
         vm.togglePendingAdd(row)
         vm.confirmPendingAdd()

@@ -122,6 +122,13 @@ class WorkoutRepositoryInsightsQueriesTest {
 
         insertLiveSession("live")
         repository.logSet("live", SQUAT, 102.5, 5, rpe = null, isWarmup = false)
+        // Left as a real wait on purpose. This asserts an absence — that no further emission
+        // arrives — and an absence cannot be waited for, only sampled. Unlike the other fixed
+        // sleeps in this packet it is not a flake source: a slow machine makes a stray
+        // emission arrive *after* the window, so the assertion passes rather than fails. The
+        // cost is strength, not stability. Proving it properly means forcing an emission that
+        // must arrive and asserting exactly one new one landed, which rewrites what the test
+        // asserts rather than how it waits, so it is left for the rest of J4.
         delay(50)
         assertEquals("in-progress logs must not re-emit finished summaries", before, emissions.size)
         assertEquals(1, emissions.last())

@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -72,6 +73,19 @@ class FakeAppDependencies(
     insights: Flow<TrainingInsights> = MutableStateFlow(TrainingInsights()),
     val safetySnapshotDir: File = File(context.cacheDir, "safety-snapshots-${System.nanoTime()}")
         .also { it.mkdirs() },
+    /**
+     * Where DataStore does its work.
+     *
+     * Left on [Dispatchers.IO] by default, which is a real thread the test scheduler cannot
+     * see: a view model coroutine that suspends on a preferences read parks until something
+     * pumps the scheduler again, so a test that waits on the resulting write never sees it.
+     * The poll loops this packet is removing were doing that pumping as a side effect of
+     * waiting, which is why deleting one without passing a test dispatcher here hangs.
+     *
+     * Pass the test's own dispatcher to put preferences on the scheduler, and
+     * `advanceUntilIdle()` then drives the whole read-compute-write chain to completion.
+     */
+    prefsDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : AppDependencies {
     val database: TemperDatabase = Room.inMemoryDatabaseBuilder(context, TemperDatabase::class.java)
         .allowMainThreadQueries()
@@ -101,7 +115,7 @@ class FakeAppDependencies(
             restoreInProgress = { backupRepository.restoreInProgress() },
         )
     private val prefsContext = IsolatedAppContext(context.applicationContext)
-    private val prefsScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val prefsScope = CoroutineScope(SupervisorJob() + prefsDispatcher)
     private val prefsStore = PreferenceDataStoreFactory.create(
         scope = prefsScope,
         produceFile = { File(prefsContext.filesDir, "datastore/user_settings.preferences_pb") },

@@ -140,11 +140,17 @@ class TrainingInsightsSourceTest {
 
     @Test
     fun resubscribeAfterGraceRecomputes() = runBlocking {
-        val src = source(computeDispatcher = Dispatchers.Default, shareGraceMs = 50)
+        // Grace shrunk and the wait widened: this used to sleep 80 ms against a 50 ms grace,
+        // a 1.6x margin on Dispatchers.Default, a shared pool. Losing that race leaves the
+        // share still cached, the resubscribe replays instead of recomputing, and
+        // awaitComputes(2) dies as a 5 s timeout. Same property under test, 20x the margin.
+        // The sibling resubscribeWithinGraceReplaysWithoutRecompute uses source()'s default
+        // grace, not this override, so shrinking here cannot make that one tighter.
+        val src = source(computeDispatcher = Dispatchers.Default, shareGraceMs = 10)
         val first = launch { src.observeShared(includeWeekPlan = true).collect { } }
         awaitComputes(1)
         first.cancel()
-        delay(80)
+        delay(200)
         val second = launch { src.observeShared(includeWeekPlan = true).collect { } }
         awaitComputes(2)
         second.cancel()

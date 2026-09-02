@@ -173,7 +173,12 @@ class CustomWeekViewModelTest {
         vm.uiState.first { it.pendingAddIds.isNotEmpty() }
         vm.confirmPendingAdd()
 
-        val staged = vm.uiState.first { it.selectedLifts.size == 1 }
+        // Both fields, because they are written separately and combined. confirmPendingAdd
+        // sets days.value (CustomWeekViewModel:208) and showPicker.value five lines later at
+        // :213, and uiState combines those two MutableStateFlows at :91 — so there is an
+        // emission where the lift has landed and the picker is still open. Latching that one
+        // and then asserting on showPicker fails with the picker true and nothing wrong.
+        val staged = vm.uiState.first { it.selectedLifts.size == 1 && !it.showPicker }
         assertEquals("Good morning", staged.selectedLifts.single().exercise.name)
         assertTrue(staged.selectedLifts.single().exercise.isCustom)
         assertFalse(staged.showPicker)

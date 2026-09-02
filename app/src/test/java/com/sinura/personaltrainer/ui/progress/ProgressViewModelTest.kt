@@ -10,13 +10,11 @@ import com.sinura.personaltrainer.util.toCivilDate
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
-import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -61,7 +59,10 @@ class ProgressViewModelTest {
 
     @Test
     fun markLighterWeekWritesThisWeeksStart() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            prefsDispatcher = dispatcher,
+        )
         viewModel = ProgressViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
         val weekStart = deps.preferencesRepository.schedulePreferences.first().weekStart
@@ -70,16 +71,14 @@ class ProgressViewModelTest {
             weekStart = weekStart,
         )
         viewModel!!.markLighterWeek()
-        val marked = withTimeout(5_000) {
-            while (true) {
-                dispatcher.scheduler.advanceUntilIdle()
-                deps.preferencesRepository.lighterWeekStartEpochDay.first()
-                    ?.takeIf { it == expected }
-                    ?.let { return@withTimeout it }
-                delay(10)
-            }
-            error("unreachable")
-        }
+        // No wait at all. markLighterWeek launches on viewModelScope and immediately suspends
+        // on a preferences read, so its continuation is queued on the test scheduler; with
+        // preferences also on that scheduler (see FakeAppDependencies.prefsDispatcher),
+        // advanceUntilIdle drives read, compute and write to completion. The value is simply
+        // there afterwards, so a wrong one fails as an assertion naming both numbers rather
+        // than as an opaque timeout.
+        dispatcher.scheduler.advanceUntilIdle()
+        val marked = deps.preferencesRepository.lighterWeekStartEpochDay.first()
         assertEquals(expected, marked)
     }
 }

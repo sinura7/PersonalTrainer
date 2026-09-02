@@ -571,6 +571,17 @@ class ActiveWorkoutViewModelTest {
         vm.setPickerVisible(true)
         vm.addExercise(row)
         var session = awaitSession(fixture.session.id) { it.exercises.size == 2 }
+        // Then wait for the view model to have seen it too. requestSwap and removeSelectedLift
+        // below read the view model's own session flow (ActiveWorkoutViewModel:677, :685) and
+        // silently `return` if the lift is not there yet; awaitSession polls the repository, a
+        // different subscription that updates first. The selectedExerciseId barrier on the
+        // next line does not close the gap — selectExercise runs synchronously inside
+        // addExercise, so it flips true without the session having emitted. Miss it and
+        // requestSwap does nothing, addExercise falls into the plain-add path, error is
+        // cleared, and the `it.error != null` wait below can never come true: a full-ceiling
+        // hang. The second add at :578 only looks correct today because the repository dedups
+        // (WorkoutRepository:363); without that guard it would wait on a permanent three.
+        vm.awaitState { it.session?.exercises?.size == 2 }
         assertEquals(ROW, vm.awaitState { it.selectedExerciseId == ROW }.selectedExerciseId)
         assertFalse(vm.uiState.value.showExercisePicker)
 
