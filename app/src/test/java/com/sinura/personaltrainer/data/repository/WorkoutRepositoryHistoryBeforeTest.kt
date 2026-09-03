@@ -41,7 +41,7 @@ class WorkoutRepositoryHistoryBeforeTest {
             .allowMainThreadQueries()
             .setQueryExecutor(queryExecutor)
             .setTransactionExecutor(transactionExecutor)
-            .setQueryCallback({ query, _ -> sql += query }, queryExecutor)
+            .setQueryCallback({ query, _ -> sql += query }, java.util.concurrent.Executor { it.run() })
             .build()
         repository = WorkoutRepository(database, database.workoutDao())
         runBlocking {
