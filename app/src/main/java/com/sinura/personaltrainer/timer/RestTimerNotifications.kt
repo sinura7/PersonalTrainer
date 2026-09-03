@@ -29,17 +29,17 @@ object RestTimerNotifications {
     const val CHANNEL_RUNNING = "rest_timer_running_v2"
 
     /**
-     * v2 because a channel's sound cannot be changed after creation. The original
-     * "rest_timer_done" channel was created at IMPORTANCE_HIGH with the system default
-     * sound, so it played its own tone on top of (or instead of) the app's — meaning the
-     * in-app sound toggle did not actually control the alert. This channel is silent and
-     * vibration-free by design: RestTimerAlerts owns the cue, gated on the user's
-     * preferences, and [ensureChannels] deletes the legacy channel.
+     * v3 because a channel's DND bypass cannot be relied on after creation.
+     * v2 was silent (so RestTimerAlerts owns the cue) but `setBypassDnd(false)`,
+     * so Do Not Disturb swallowed rest. This channel is silent, vibration-free,
+     * and allowed through DND; the Settings sound toggle still gates the cue.
+     * [ensureChannels] deletes the legacy ids.
      */
-    const val CHANNEL_DONE = "rest_timer_done_v2"
+    const val CHANNEL_DONE = "rest_timer_done_v3"
 
     private const val LEGACY_CHANNEL_RUNNING = "rest_timer_running"
     private const val LEGACY_CHANNEL_DONE = "rest_timer_done"
+    private const val LEGACY_CHANNEL_DONE_V2 = "rest_timer_done_v2"
     const val RUNNING_ID = 4101
     const val DONE_ID = 4102
 
@@ -52,6 +52,11 @@ object RestTimerNotifications {
             manager.deleteNotificationChannel(LEGACY_CHANNEL_DONE)
         } catch (_: Exception) {
             // Never existed on a fresh install.
+        }
+        try {
+            manager.deleteNotificationChannel(LEGACY_CHANNEL_DONE_V2)
+        } catch (_: Exception) {
+            // Temper Debug that still holds the v2 done channel.
         }
         try {
             manager.deleteNotificationChannel(LEGACY_CHANNEL_RUNNING)
@@ -77,7 +82,7 @@ object RestTimerNotifications {
             description = "Alerts when rest is over"
             setSound(null, null)
             enableVibration(false)
-            setBypassDnd(false)
+            setBypassDnd(true)
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
         }
         manager.createNotificationChannel(running)
