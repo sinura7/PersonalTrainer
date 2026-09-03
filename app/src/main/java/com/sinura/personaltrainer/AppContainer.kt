@@ -69,6 +69,7 @@ class AppContainer(context: Context) : AppDependencies {
         routineDao = database.routineDao(),
         workoutDao = database.workoutDao(),
         catalogDao = database.catalogDao(),
+        database = database,
     )
     override val plannerRepository: PlannerRepository = PlannerRepository(
         database = database,

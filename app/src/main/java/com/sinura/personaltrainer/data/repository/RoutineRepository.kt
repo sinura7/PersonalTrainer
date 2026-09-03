@@ -75,22 +75,24 @@ class RoutineRepository(
         targetWeightKg: Double?,
         restSeconds: Int,
     ) {
-        val existing = routineDao.getById(routineId)
-        if (existing?.items?.any { it.exercise.id == exercise.id } == true) return
-        val nextOrder = routineDao.maxSortOrder(routineId) + 1
-        routineDao.upsertRoutineExercise(
-            RoutineExerciseEntity(
-                id = UUID.randomUUID().toString(),
-                routineId = routineId,
-                exerciseId = exercise.id,
-                sortOrder = nextOrder,
-                targetSets = targetSets.coerceAtLeast(1),
-                targetReps = targetReps.coerceAtLeast(1),
-                targetWeightKg = targetWeightKg?.takeIf { it > 0.0 },
-                restSeconds = restSeconds.coerceAtLeast(0),
-            ),
-        )
-        touch(routineId)
+        writeRoutine {
+            val existing = routineDao.getById(routineId)
+            if (existing?.items?.any { it.exercise.id == exercise.id } == true) return@writeRoutine
+            val nextOrder = routineDao.maxSortOrder(routineId) + 1
+            routineDao.upsertRoutineExercise(
+                RoutineExerciseEntity(
+                    id = UUID.randomUUID().toString(),
+                    routineId = routineId,
+                    exerciseId = exercise.id,
+                    sortOrder = nextOrder,
+                    targetSets = targetSets.coerceAtLeast(1),
+                    targetReps = targetReps.coerceAtLeast(1),
+                    targetWeightKg = targetWeightKg?.takeIf { it > 0.0 },
+                    restSeconds = restSeconds.coerceAtLeast(0),
+                ),
+            )
+            touch(routineId)
+        }
     }
 
     /**
@@ -144,18 +146,25 @@ class RoutineRepository(
     }
 
     suspend fun moveExercise(routineId: String, itemId: String, direction: Int) {
-        val items = routineDao.getById(routineId)
-            ?.items
-            ?.sortedBy { it.item.sortOrder }
-            .orEmpty()
-        val index = items.indexOfFirst { it.item.id == itemId }
-        val target = index + direction
-        if (index < 0 || target !in items.indices) return
-        val first = items[index].item
-        val second = items[target].item
-        routineDao.updateSortOrder(first.id, second.sortOrder)
-        routineDao.updateSortOrder(second.id, first.sortOrder)
-        touch(routineId)
+        writeRoutine {
+            val items = routineDao.getById(routineId)
+                ?.items
+                ?.sortedBy { it.item.sortOrder }
+                .orEmpty()
+            val index = items.indexOfFirst { it.item.id == itemId }
+            val target = index + direction
+            if (index < 0 || target !in items.indices) return@writeRoutine
+            val first = items[index].item
+            val second = items[target].item
+            routineDao.updateSortOrder(first.id, second.sortOrder)
+            routineDao.updateSortOrder(second.id, first.sortOrder)
+            touch(routineId)
+        }
+    }
+
+    private suspend fun <T> writeRoutine(block: suspend () -> T): T {
+        val db = database
+        return if (db != null) db.withTransaction { block() } else block()
     }
 
     private suspend fun touch(routineId: String) {

@@ -327,6 +327,35 @@ class PlannerRepositoryTest {
     }
 
     @Test
+    fun schedulerFailureMidMoveLeavesAConsistentWeek() = runBlocking {
+        val occurrence = plannedMonday()
+        val throwing = object : com.sinura.personaltrainer.domain.ReminderScheduler {
+            override fun schedule(
+                delivery: com.sinura.personaltrainer.domain.ReminderDelivery,
+            ) = Unit
+            override fun cancel(deliveryId: String) = Unit
+            override fun cancelForOccurrence(occurrenceId: String) {
+                error("work-manager failed")
+            }
+        }
+        val planner = PlannerRepository(deps.database, throwing, deps.time)
+        val thrown = runCatching { planner.moveOccurrenceForward(occurrence.id) }.exceptionOrNull()
+        assertTrue(thrown != null)
+        val week = planner.occurrencesBetween(weekStart.epochDay, weekStart.epochDay + 14)
+        assertEquals(
+            OccurrenceStatus.MOVED,
+            week.single { it.id == occurrence.id }.status,
+        )
+        assertTrue(
+            week.any {
+                it.ruleId == occurrence.ruleId &&
+                    it.status == OccurrenceStatus.PLANNED &&
+                    it.id != occurrence.id
+            },
+        )
+    }
+
+    @Test
     fun aSkippedDayCannotBeSkippedIntoADifferentDayAgain() = runBlocking {
         // SKIPPED and MOVED are settled too: only PLANNED and MISSED are still the user's to
         // decide, and Move is PLANNED-only because MISSED days belong to the weekly prompt.

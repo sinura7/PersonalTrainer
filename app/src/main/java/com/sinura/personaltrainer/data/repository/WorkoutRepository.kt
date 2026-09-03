@@ -358,22 +358,24 @@ class WorkoutRepository(
         targetWeightKg: Double?,
         restSeconds: Int,
     ) {
-        val current = workoutDao.getSession(sessionId) ?: return
-        if (current.session.finishedAt != null) return
-        if (current.exercises.any { it.exercise.id == exercise.id }) return
-        val nextOrder = workoutDao.maxSessionExerciseOrder(sessionId) + 1
-        workoutDao.upsertSessionExercise(
-            SessionExerciseEntity(
-                id = UUID.randomUUID().toString(),
-                sessionId = sessionId,
-                exerciseId = exercise.id,
-                sortOrder = nextOrder,
-                targetSets = targetSets.coerceAtLeast(1),
-                targetReps = targetReps.coerceAtLeast(1),
-                targetWeightKg = targetWeightKg?.takeIf { it > 0.0 },
-                restSeconds = restSeconds.coerceAtLeast(0),
-            ),
-        )
+        database.withTransaction {
+            val current = workoutDao.getSession(sessionId) ?: return@withTransaction
+            if (current.session.finishedAt != null) return@withTransaction
+            if (current.exercises.any { it.exercise.id == exercise.id }) return@withTransaction
+            val nextOrder = workoutDao.maxSessionExerciseOrder(sessionId) + 1
+            workoutDao.upsertSessionExercise(
+                SessionExerciseEntity(
+                    id = UUID.randomUUID().toString(),
+                    sessionId = sessionId,
+                    exerciseId = exercise.id,
+                    sortOrder = nextOrder,
+                    targetSets = targetSets.coerceAtLeast(1),
+                    targetReps = targetReps.coerceAtLeast(1),
+                    targetWeightKg = targetWeightKg?.takeIf { it > 0.0 },
+                    restSeconds = restSeconds.coerceAtLeast(0),
+                ),
+            )
+        }
     }
 
     /**
@@ -634,11 +636,12 @@ class WorkoutRepository(
      * history. The check keeps the two from overlapping.
      */
     suspend fun deleteFinishedSession(sessionId: String) {
+        val deleted = workoutDao.deleteFinishedSessionRow(sessionId)
+        if (deleted > 0) return
         val current = workoutDao.getSessionRow(sessionId) ?: return
         check(current.finishedAt != null) {
             "Only finished sessions can be deleted; discard owns in-progress."
         }
-        workoutDao.deleteSession(sessionId)
     }
 
     /**
@@ -697,15 +700,13 @@ class WorkoutRepository(
     /**
      * Deletes an in-progress session and everything under it.
      *
-     * Refuses a finished session by quietly doing nothing: discard belongs to the
-     * live-workout use case, and a stale Active Workout screen (finished from the live
-     * bar, or reopened from an old notification) must not delete logged history through
-     * it. [deleteFinishedSession] is the deliberate act on history, behind its own confirm.
+     * The delete itself is `WHERE finishedAt IS NULL`, so a Finish that
+     * commits first leaves history in place. A stale Active Workout
+     * screen must not delete logged work. [deleteFinishedSession] is the
+     * deliberate act on history, behind its own confirm.
      */
     suspend fun discardSession(sessionId: String) {
-        val current = workoutDao.getSessionRow(sessionId) ?: return
-        if (current.finishedAt != null) return
-        workoutDao.deleteSession(sessionId)
+        workoutDao.deleteInProgressSession(sessionId)
     }
 
     /**

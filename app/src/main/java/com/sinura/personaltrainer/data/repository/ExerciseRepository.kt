@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.data.repository
 
+import androidx.room.withTransaction
+import com.sinura.personaltrainer.data.local.AppRoomDatabase
 import com.sinura.personaltrainer.data.local.dao.CatalogDao
 import com.sinura.personaltrainer.data.local.dao.ExerciseDao
 import com.sinura.personaltrainer.data.local.dao.RoutineDao
@@ -47,6 +49,7 @@ class ExerciseRepository(
     private val routineDao: RoutineDao,
     private val workoutDao: WorkoutDao,
     private val catalogDao: CatalogDao,
+    private val database: AppRoomDatabase? = null,
 ) {
     /**
      * The catalog, with each lift's junction credits attached.
@@ -136,22 +139,24 @@ class ExerciseRepository(
     ): SaveExerciseResult {
         val trimmedName = name.trim()
         val nameKey = MuscleNormalizer.nameKeyOf(trimmedName)
-        exerciseDao.getByNameKey(nameKey)?.let { clash ->
-            return SaveExerciseResult.DuplicateName(clash.toDomain())
-        }
         val group = MuscleGroups.resolved(muscleGroup)
             ?: return SaveExerciseResult.MissingMuscle
-        val exercise = Exercise(
-            id = "ex-custom-${UUID.randomUUID()}",
-            name = trimmedName,
-            muscleGroup = group,
-            notes = notes.trim(),
-            isCustom = true,
-            muscles = MuscleNormalizer.deriveCredits(group),
-        )
-        exerciseDao.insert(exercise.toEntity())
-        catalogDao.replaceCreditsFor(exercise.id, exercise.muscles.toRows(exercise.id))
-        return SaveExerciseResult.Saved(exercise)
+        return writeExercise {
+            exerciseDao.getByNameKey(nameKey)?.let { clash ->
+                return@writeExercise SaveExerciseResult.DuplicateName(clash.toDomain())
+            }
+            val exercise = Exercise(
+                id = "ex-custom-${UUID.randomUUID()}",
+                name = trimmedName,
+                muscleGroup = group,
+                notes = notes.trim(),
+                isCustom = true,
+                muscles = MuscleNormalizer.deriveCredits(group),
+            )
+            exerciseDao.insert(exercise.toEntity())
+            catalogDao.replaceCreditsFor(exercise.id, exercise.muscles.toRows(exercise.id))
+            SaveExerciseResult.Saved(exercise)
+        }
     }
 
     suspend fun updateCustom(
@@ -160,26 +165,26 @@ class ExerciseRepository(
         muscleGroup: String,
         notes: String,
     ): SaveExerciseResult? {
-        val existing = exerciseDao.getById(id) ?: return null
-        if (!existing.isCustom) return null
         val trimmedName = name.trim()
         val nameKey = MuscleNormalizer.nameKeyOf(trimmedName)
-        exerciseDao.getByNameKey(nameKey)?.takeIf { it.id != id }?.let { clash ->
-            return SaveExerciseResult.DuplicateName(clash.toDomain())
+        return writeExercise {
+            val existing = exerciseDao.getById(id) ?: return@writeExercise null
+            if (!existing.isCustom) return@writeExercise null
+            exerciseDao.getByNameKey(nameKey)?.takeIf { it.id != id }?.let { clash ->
+                return@writeExercise SaveExerciseResult.DuplicateName(clash.toDomain())
+            }
+            val group = muscleGroup.trim().ifBlank { existing.muscleGroup }
+            val updated = existing.copy(
+                name = trimmedName,
+                muscleGroup = group,
+                notes = notes.trim(),
+                nameKey = nameKey,
+            )
+            exerciseDao.update(updated)
+            val credits = MuscleNormalizer.deriveCredits(group)
+            catalogDao.replaceCreditsFor(id, credits.toRows(id))
+            SaveExerciseResult.Saved(updated.toDomain(credits))
         }
-        val group = muscleGroup.trim().ifBlank { existing.muscleGroup }
-        val updated = existing.copy(
-            name = trimmedName,
-            muscleGroup = group,
-            notes = notes.trim(),
-            nameKey = nameKey,
-        )
-        exerciseDao.update(updated)
-        // Re-derive rather than leave the old credits: the user just told us what this lift
-        // trains by changing its group, and a stale junction would keep heating the old muscle.
-        val credits = MuscleNormalizer.deriveCredits(group)
-        catalogDao.replaceCreditsFor(id, credits.toRows(id))
-        return SaveExerciseResult.Saved(updated.toDomain(credits))
     }
 
     suspend fun usageFor(exerciseId: String): ExerciseUsage = ExerciseUsage(
@@ -195,6 +200,11 @@ class ExerciseRepository(
         if (usage.isReferenced) return DeleteExerciseResult.InUse(usage)
         exerciseDao.deleteCustom(id)
         return DeleteExerciseResult.Deleted
+    }
+
+    private suspend fun <T> writeExercise(block: suspend () -> T): T {
+        val db = database
+        return if (db != null) db.withTransaction { block() } else block()
     }
 }
 

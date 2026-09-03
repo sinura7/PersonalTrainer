@@ -453,43 +453,47 @@ class PlannerRepository(
      * decision owns those, and moving one behind its back desynchronises the two.
      */
     suspend fun moveOccurrenceForward(occurrenceId: String, nowMs: Long = time.nowMillis()) {
-        val current = getOccurrence(occurrenceId) ?: return
-        if (current.status != OccurrenceStatus.PLANNED) {
-            cancelReminders(occurrenceId)
-            return
+        val pending = ReminderSideEffects()
+        database.withTransaction {
+            val current = getOccurrence(occurrenceId) ?: return@withTransaction
+            if (current.status != OccurrenceStatus.PLANNED) {
+                cancelRemindersLocked(occurrenceId, pending)
+                return@withTransaction
+            }
+            val rule = getRule(current.ruleId)
+            var day = current.localEpochDay + 1
+            val existing = dao.getOccurrencesBetween(day, day + 13).map { it.toDomain() }
+            val occupied = existing.map { it.ruleId to it.localEpochDay }.toSet()
+            while ((current.ruleId to day) in occupied && day < current.localEpochDay + 14) {
+                day += 1
+            }
+            dao.upsertOccurrence(
+                current.copy(status = OccurrenceStatus.MOVED, updatedAtMs = nowMs).toEntity(),
+            )
+            cancelRemindersLocked(occurrenceId, pending)
+            val zoneId = rule?.resolveZoneId(time.defaultZoneId()) ?: current.captured.zoneId
+            val captured = time.resolveLocal(
+                com.sinura.personaltrainer.domain.CivilDateTime(
+                    CivilDate.fromEpochDay(day),
+                    current.hour,
+                    current.minute,
+                ),
+                zoneId,
+            )
+            val moved = ScheduleOccurrence(
+                id = OccurrenceGenerator.occurrenceId(current.ruleId, day),
+                ruleId = current.ruleId,
+                status = OccurrenceStatus.PLANNED,
+                captured = captured,
+                hour = current.hour,
+                minute = current.minute,
+                createdAtMs = nowMs,
+                updatedAtMs = nowMs,
+            )
+            dao.upsertOccurrence(moved.toEntity())
+            scheduleIfPendingLocked(moved, rule, nowMs, pending)
         }
-        val rule = getRule(current.ruleId)
-        var day = current.localEpochDay + 1
-        val existing = dao.getOccurrencesBetween(day, day + 13).map { it.toDomain() }
-        val occupied = existing.map { it.ruleId to it.localEpochDay }.toSet()
-        while ((current.ruleId to day) in occupied && day < current.localEpochDay + 14) {
-            day += 1
-        }
-        dao.upsertOccurrence(
-            current.copy(status = OccurrenceStatus.MOVED, updatedAtMs = nowMs).toEntity(),
-        )
-        cancelReminders(occurrenceId)
-        val zoneId = rule?.resolveZoneId(time.defaultZoneId()) ?: current.captured.zoneId
-        val captured = time.resolveLocal(
-            com.sinura.personaltrainer.domain.CivilDateTime(
-                CivilDate.fromEpochDay(day),
-                current.hour,
-                current.minute,
-            ),
-            zoneId,
-        )
-        val moved = ScheduleOccurrence(
-            id = OccurrenceGenerator.occurrenceId(current.ruleId, day),
-            ruleId = current.ruleId,
-            status = OccurrenceStatus.PLANNED,
-            captured = captured,
-            hour = current.hour,
-            minute = current.minute,
-            createdAtMs = nowMs,
-            updatedAtMs = nowMs,
-        )
-        dao.upsertOccurrence(moved.toEntity())
-        scheduleIfPending(moved, rule, nowMs)
+        pending.flush(scheduler)
     }
 
     /**
@@ -501,31 +505,37 @@ class PlannerRepository(
         todayEpochDay: Long,
         nowMs: Long = time.nowMillis(),
     ): MoveToToday.Outcome? {
-        val current = getOccurrence(occurrenceId) ?: return null
-        val rule = getRule(current.ruleId)
-        val onToday = dao.getOccurrencesBetween(todayEpochDay, todayEpochDay).map { it.toDomain() }
-        val outcome = MoveToToday.decide(
-            current = current,
-            todayEpochDay = todayEpochDay,
-            existingOnToday = onToday,
-            rule = rule,
-            nowMs = nowMs,
-            time = time,
-            deviceZoneId = time.defaultZoneId(),
-        )
-        if (outcome is MoveToToday.Outcome.Relocate) {
-            dao.upsertOccurrence(outcome.vacated.toEntity())
-            cancelReminders(current.id)
-            dao.upsertOccurrence(outcome.created.toEntity())
-            scheduleIfPending(outcome.created, rule, nowMs)
+        val pending = ReminderSideEffects()
+        val outcome = database.withTransaction {
+            val current = getOccurrence(occurrenceId) ?: return@withTransaction null
+            val rule = getRule(current.ruleId)
+            val onToday = dao.getOccurrencesBetween(todayEpochDay, todayEpochDay).map { it.toDomain() }
+            val decided = MoveToToday.decide(
+                current = current,
+                todayEpochDay = todayEpochDay,
+                existingOnToday = onToday,
+                rule = rule,
+                nowMs = nowMs,
+                time = time,
+                deviceZoneId = time.defaultZoneId(),
+            )
+            if (decided is MoveToToday.Outcome.Relocate) {
+                dao.upsertOccurrence(decided.vacated.toEntity())
+                cancelRemindersLocked(current.id, pending)
+                dao.upsertOccurrence(decided.created.toEntity())
+                scheduleIfPendingLocked(decided.created, rule, nowMs, pending)
+            }
+            decided
         }
+        pending.flush(scheduler)
         return outcome
     }
 
-    private suspend fun scheduleIfPending(
+    private suspend fun scheduleIfPendingLocked(
         occurrence: ScheduleOccurrence,
         rule: ScheduleRule?,
         nowMs: Long,
+        pending: ReminderSideEffects,
     ) {
         val delivery = ReminderDelivery(
             id = "rem-${occurrence.id}",
@@ -540,7 +550,7 @@ class PlannerRepository(
         )
         if (delivery.scheduledAtMs >= nowMs) {
             dao.upsertDelivery(delivery.toEntity())
-            scheduler.schedule(delivery)
+            pending.schedule(delivery)
         }
     }
 
@@ -598,6 +608,15 @@ class PlannerRepository(
     }
 
     private suspend fun cancelReminders(occurrenceId: String) {
+        val pending = ReminderSideEffects()
+        cancelRemindersLocked(occurrenceId, pending)
+        pending.flush(scheduler)
+    }
+
+    private suspend fun cancelRemindersLocked(
+        occurrenceId: String,
+        pending: ReminderSideEffects,
+    ) {
         val existing = dao.getDeliveriesForOccurrence(occurrenceId)
         val now = time.nowMillis()
         for (row in existing) {
@@ -606,9 +625,33 @@ class PlannerRepository(
                     row.copy(status = ReminderDeliveryStatus.CANCELLED.name, updatedAtMs = now),
                 )
             }
-            scheduler.cancel(row.id)
+            pending.cancel(row.id)
         }
-        scheduler.cancelForOccurrence(occurrenceId)
+        pending.cancelForOccurrence(occurrenceId)
+    }
+}
+
+private class ReminderSideEffects {
+    private val cancelIds = linkedSetOf<String>()
+    private val cancelOccurrenceIds = linkedSetOf<String>()
+    private val schedules = mutableListOf<ReminderDelivery>()
+
+    fun cancel(deliveryId: String) {
+        cancelIds += deliveryId
+    }
+
+    fun cancelForOccurrence(occurrenceId: String) {
+        cancelOccurrenceIds += occurrenceId
+    }
+
+    fun schedule(delivery: ReminderDelivery) {
+        schedules += delivery
+    }
+
+    fun flush(scheduler: ReminderScheduler) {
+        for (id in cancelIds) scheduler.cancel(id)
+        for (occurrenceId in cancelOccurrenceIds) scheduler.cancelForOccurrence(occurrenceId)
+        for (delivery in schedules) scheduler.schedule(delivery)
     }
 }
 
