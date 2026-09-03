@@ -166,6 +166,10 @@ fun DailyAgendaCard(
                         onOpen = { pendingOccurrenceId = item.occurrence.id },
                     )
                 }
+                if (canEditDay && !sessionLive && picker == DayPicker.NONE) {
+                    HairlineDivider()
+                    AddUnderTodayRow(onClick = { picking = DayPicker.KIND.name })
+                }
             }
         }
         if (canEditDay && !sessionLive) {
@@ -196,23 +200,9 @@ fun DailyAgendaCard(
                         onAddAux(packId, once)
                     },
                 )
-            } else {
+            } else if (items.isEmpty()) {
                 GroupedList {
-                    InstrumentRow(
-                        title = PlanDayCopy.ADD,
-                        subtitle = PlanDayCopy.ADD_SUBTITLE,
-                        modifier = Modifier
-                            .testTag(HomeTags.ADD)
-                            .semantics { contentDescription = PlanDayCopy.ADD },
-                        leading = {
-                            Icon(
-                                Icons.Outlined.Add,
-                                contentDescription = null,
-                                tint = TextSecondary,
-                            )
-                        },
-                        onClick = { picking = DayPicker.KIND.name },
-                    )
+                    AddUnderTodayRow(onClick = { picking = DayPicker.KIND.name })
                 }
             }
         }
@@ -269,6 +259,25 @@ fun DailyAgendaCard(
             }
         }
     }
+}
+
+@Composable
+private fun AddUnderTodayRow(onClick: () -> Unit) {
+    InstrumentRow(
+        title = PlanDayCopy.ADD,
+        subtitle = PlanDayCopy.ADD_SUBTITLE,
+        modifier = Modifier
+            .testTag(HomeTags.ADD)
+            .semantics { contentDescription = PlanDayCopy.ADD },
+        leading = {
+            Icon(
+                Icons.Outlined.Add,
+                contentDescription = null,
+                tint = TextSecondary,
+            )
+        },
+        onClick = onClick,
+    )
 }
 
 @Composable
