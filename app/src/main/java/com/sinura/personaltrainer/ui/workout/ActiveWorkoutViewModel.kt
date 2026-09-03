@@ -999,6 +999,16 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         draft.value = draft.value.copy(weightKg = suggested)
     }
 
+    /** Fills the wells from one working set of the last session. Does not log. */
+    fun applyLastTimeSet(weightKg: Double, reps: Int) {
+        if (!weightKg.isFinite()) return
+        draft.value = draft.value.copy(
+            weightKg = weightKg.coerceAtLeast(0.0),
+            reps = reps.coerceAtLeast(1),
+        )
+        persistDraft()
+    }
+
     /**
      * Copies the in-set next load into the draft only. Does not [logSet].
      * After a log, today's hold stays until the lifter taps Use.
