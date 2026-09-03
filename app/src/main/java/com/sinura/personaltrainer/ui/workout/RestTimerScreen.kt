@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.RestFinishFlash
 import com.sinura.personaltrainer.domain.RestFloorContext
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.ui.components.CustomRestDialog
@@ -157,12 +158,16 @@ private fun RestFloorBody(
     modifier: Modifier = Modifier,
 ) {
     var justFinished by remember { mutableStateOf(false) }
-    var wasRunning by remember { mutableStateOf(rest.running) }
+    var flashedTimerId by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(rest.running, rest.remainingSeconds) {
-        if (wasRunning && !rest.running && rest.remainingSeconds <= 0) justFinished = true
+    LaunchedEffect(rest.completedTimerId) {
+        if (RestFinishFlash.shouldFlash(rest.completedTimerId, flashedTimerId)) {
+            flashedTimerId = rest.completedTimerId
+            justFinished = true
+        }
+    }
+    LaunchedEffect(rest.running) {
         if (rest.running) justFinished = false
-        wasRunning = rest.running
     }
     LaunchedEffect(justFinished) {
         if (justFinished) {

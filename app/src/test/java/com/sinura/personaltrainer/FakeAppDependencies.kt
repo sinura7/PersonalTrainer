@@ -290,6 +290,8 @@ private class InMemoryRestTimerGateway(
     override val runningSessionId: Flow<String?> = snapshot
         .map { state -> state.sessionId.takeIf { state.running } }
         .distinctUntilChanged()
+    private val _lastCompletedTimerId = MutableStateFlow<String?>(null)
+    override val lastCompletedTimerId: StateFlow<String?> = _lastCompletedTimerId
     override val lastAlarmSchedule: StateFlow<AlarmScheduleResult> = _lastAlarmSchedule
     override val exactAlarmAttempt: StateFlow<ExactAlarmAttempt> = _exactAlarmAttempt
 
@@ -297,7 +299,13 @@ private class InMemoryRestTimerGateway(
         _exactAlarmAttempt.value = attempt
     }
 
+    override fun markCompleted(timerId: String) {
+        if (timerId.isBlank()) return
+        _lastCompletedTimerId.value = timerId
+    }
+
     override fun start(totalSeconds: Int, sessionId: String?) {
+        _lastCompletedTimerId.value = null
         store.start(totalSeconds, sessionId, elapsedRealtimeMs)
     }
 
@@ -306,6 +314,7 @@ private class InMemoryRestTimerGateway(
     }
 
     override fun stop(fromService: Boolean) {
+        _lastCompletedTimerId.value = null
         store.clear()
     }
 

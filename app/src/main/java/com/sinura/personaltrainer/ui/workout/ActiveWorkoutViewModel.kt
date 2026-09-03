@@ -145,6 +145,7 @@ data class RestTimerUiState(
     val remainingSeconds: Int = 0,
     val totalSeconds: Int = 90,
     val running: Boolean = false,
+    val completedTimerId: String? = null,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -342,11 +343,13 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         restTimer.remainingSeconds,
         restTimer.snapshot,
         restTotal,
-    ) { remaining, snapshot, planned ->
+        restTimer.lastCompletedTimerId,
+    ) { remaining, snapshot, planned, completedId ->
         RestTimerUiState(
             remainingSeconds = remaining,
             totalSeconds = if (snapshot.running) snapshot.totalSeconds else planned,
             running = snapshot.running,
+            completedTimerId = completedId,
         )
     }.stateIn(
         scope = viewModelScope,

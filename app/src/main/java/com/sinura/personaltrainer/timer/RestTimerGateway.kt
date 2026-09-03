@@ -20,10 +20,14 @@ interface RestTimerGateway {
     val runningSessionId: Flow<String?>
     val lastAlarmSchedule: StateFlow<AlarmScheduleResult>
     val exactAlarmAttempt: StateFlow<ExactAlarmAttempt>
+    val lastCompletedTimerId: StateFlow<String?>
 
     fun start(totalSeconds: Int, sessionId: String?)
     fun adjust(deltaSeconds: Int)
     fun stop(fromService: Boolean = false)
+
+    /** Completion, not skip. Keys the gold flash. */
+    fun markCompleted(timerId: String) {}
 
     /**
      * Stops only if the live timer still is [timerId]. Completion claims a
@@ -33,6 +37,17 @@ interface RestTimerGateway {
      */
     fun stopIfCurrent(timerId: String, fromService: Boolean = false): Boolean {
         stop(fromService)
+        return true
+    }
+
+    /**
+     * Successful completion: publish [timerId] then halt. Skip goes through
+     * [stop] and must not leave a completion id, or the lock glance shows
+     * "Back to the bar".
+     */
+    fun completeIfCurrent(timerId: String, fromService: Boolean = false): Boolean {
+        if (!stopIfCurrent(timerId, fromService)) return false
+        markCompleted(timerId)
         return true
     }
 

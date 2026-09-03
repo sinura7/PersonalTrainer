@@ -27,15 +27,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.PersonalTrainerApp
+import com.sinura.personaltrainer.domain.RestFinishFlash
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.RestControl
@@ -49,6 +47,7 @@ import com.sinura.personaltrainer.ui.theme.RestCyan
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.Warn
 import com.sinura.personaltrainer.ui.theme.systemReduceMotion
+import kotlinx.coroutines.flow.MutableStateFlow
 
 object RestLockTags {
     const val ROOT = "rest-lock"
@@ -68,26 +67,26 @@ object RestLockTags {
  * lock-screen window.
  */
 class RestLockActivity : ComponentActivity() {
+    private val finishedExtra = MutableStateFlow(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         showOverLockScreen()
         val controller = (application as? PersonalTrainerApp)?.container?.restTimerController
-        val finishedLaunch = intent.getBooleanExtra(RestTimerNotifications.EXTRA_FINISHED, false)
         val sessionId = intent.getStringExtra(RestTimerService.EXTRA_SESSION_ID)
         if (controller == null) {
             finish()
             return
         }
-        if (!controller.snapshot.value.running && !finishedLaunch) {
-            finish()
-            return
-        }
+        applyIncomingIntent(intent, controller)
+        if (isFinishing) return
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
         val reduceMotion = systemReduceMotion(this)
         setContent {
+            val finishedLaunch by finishedExtra.collectAsStateWithLifecycle()
             PersonalTrainerTheme(reduceMotion = reduceMotion) {
                 RestLockScreen(
                     controller = controller,
@@ -101,6 +100,28 @@ class RestLockActivity : ComponentActivity() {
                     onBackToBar = { dismissKeyguardAndOpenSession(sessionId) },
                 )
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val controller = (application as? PersonalTrainerApp)?.container?.restTimerController
+            ?: return finish()
+        applyIncomingIntent(intent, controller)
+    }
+
+    private fun applyIncomingIntent(intent: Intent, controller: RestTimerController) {
+        val finishedLaunch = intent.getBooleanExtra(RestTimerNotifications.EXTRA_FINISHED, false)
+        finishedExtra.value = finishedLaunch
+        if (
+            RestFinishFlash.lockShouldDismiss(
+                running = controller.snapshot.value.running,
+                finishedLaunch = finishedLaunch,
+                completedTimerId = controller.lastCompletedTimerId.value,
+            )
+        ) {
+            finish()
         }
     }
 
@@ -158,13 +179,23 @@ private fun RestLockScreen(
 ) {
     val snapshot by controller.snapshot.collectAsStateWithLifecycle()
     val remaining by controller.remainingSeconds.collectAsStateWithLifecycle(0)
-    var justFinished by remember { mutableStateOf(finishedLaunch) }
-    var wasRunning by remember { mutableStateOf(snapshot.running) }
+    val completedTimerId by controller.lastCompletedTimerId.collectAsStateWithLifecycle()
+    val justFinished = RestFinishFlash.lockShowsFinished(
+        running = snapshot.running,
+        finishedLaunch = finishedLaunch,
+        completedTimerId = completedTimerId,
+    )
 
-    LaunchedEffect(snapshot.running) {
-        if (wasRunning && !snapshot.running) justFinished = true
-        if (snapshot.running) justFinished = false
-        wasRunning = snapshot.running
+    LaunchedEffect(snapshot.running, finishedLaunch, completedTimerId) {
+        if (
+            RestFinishFlash.lockShouldDismiss(
+                running = snapshot.running,
+                finishedLaunch = finishedLaunch,
+                completedTimerId = completedTimerId,
+            )
+        ) {
+            onClose()
+        }
     }
 
     val safeRemaining = remaining.coerceAtLeast(0)

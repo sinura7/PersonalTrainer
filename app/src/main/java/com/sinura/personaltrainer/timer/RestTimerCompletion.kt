@@ -57,7 +57,7 @@ object RestTimerCompletion {
         // timer, and announcing done over it would wipe the extension the user
         // just bought — that newer timer's own alarm owns its completion.
         val stopped = app?.container?.restTimerController
-            ?.stopIfCurrent(incomingTimerId, fromService = true)
+            ?.completeIfCurrent(incomingTimerId, fromService = true)
             ?: true
         if (!stopped) return false
         try {

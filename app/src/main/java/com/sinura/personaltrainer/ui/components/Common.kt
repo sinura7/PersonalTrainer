@@ -83,6 +83,7 @@ import androidx.compose.runtime.withFrameNanos
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.PlateMath
+import com.sinura.personaltrainer.domain.RestFinishFlash
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.WeightConverter
@@ -718,15 +719,20 @@ fun RestDock(
     onStart: () -> Unit,
     onOpenRest: () -> Unit,
     modifier: Modifier = Modifier,
+    completedTimerId: String? = null,
 ) {
     var justFinished by remember { mutableStateOf(false) }
-    var wasRunning by remember { mutableStateOf(running) }
+    var flashedTimerId by remember { mutableStateOf<String?>(null) }
     val view = LocalView.current
 
-    LaunchedEffect(running, remainingSeconds) {
-        if (wasRunning && !running && remainingSeconds <= 0) justFinished = true
+    LaunchedEffect(completedTimerId) {
+        if (RestFinishFlash.shouldFlash(completedTimerId, flashedTimerId)) {
+            flashedTimerId = completedTimerId
+            justFinished = true
+        }
+    }
+    LaunchedEffect(running) {
         if (running) justFinished = false
-        wasRunning = running
     }
     LaunchedEffect(justFinished) {
         if (justFinished) {

@@ -42,14 +42,11 @@ class RestTimerService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Whatever brought us here, the platform expects startForeground() promptly after a
-        // startForegroundService(). Claiming it up front closes the crash lane where an
-        // action routes straight to stopSelf() without ever going foreground.
-        ensureForegroundClaimed()
-
         if (intent == null) {
-            // Sticky restart after a process kill: nothing is in memory, so recover from disk.
+            // Sticky restart: recover from disk before claiming foreground so an
+            // idle snapshot cannot post Rest 0:00, then linger.
             val restored = controller.rehydrate()
+            ensureForegroundClaimed()
             if (!restored) {
                 stopNow()
                 return START_NOT_STICKY
@@ -57,6 +54,11 @@ class RestTimerService : Service() {
             syncForeground()
             return START_STICKY
         }
+
+        // startForegroundService() still needs a prompt startForeground() on an
+        // explicit action, including STOP, so the process cannot be killed for
+        // skipping the claim.
+        ensureForegroundClaimed()
 
         when (intent.action) {
             ACTION_STOP, ACTION_SKIP -> {

@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, J4 (seams, TimePort, scheduler
+**Status:** in progress — Phase A, B3, B4, J4 (seams, TimePort, scheduler
 polish), and the J3 ledger slice are on `trunk`. Policy tests into
-`tools/` remain owed. B4, B1, J2, J3 remainder, J5, and J1 remain.
+`tools/` remain owed. B1, J2, J3 remainder, J5, and J1 remain.
 Phase C has not started.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
@@ -75,7 +75,7 @@ the gym floor, are fifteen of them.
 | B1 | The rest service stops when the rest does | 2 | — | Timer | |
 | B2 | The cue plays where you can hear it | 1 | 3 | Timer | |
 | B3 | A late rest still announces itself | 1 | — | Timer | done |
-| B4 | Timer surfaces stop lying | 1 | — | Timer | |
+| B4 | Timer surfaces stop lying | 1 | — | Timer | done |
 | C1 | Nothing is born overdue | 1 | — | Week | |
 | C2 | Rebuild keeps what you added; rules retire | 1 | 5 | Week | |
 | C3 | Tonight is startable, and today knows the time | 1 | 2 | Week | |
@@ -419,7 +419,7 @@ branch; +2 vs the 1650 count J4 left.
 **Owns.** `timer/RestTimerStatePersistence.kt`,
 `timer/RestTimerController.kt`, `timer/RestTimerAlarmReceiver.kt`.
 
-## B4 — Timer surfaces stop lying
+## B4 — Timer surfaces stop lying · done on `trunk`
 
 **Symptom.** Four small ones. The gold "Back to the bar" flash appears only
 sometimes. The lock-screen glance shows "Back to the bar" after you *skipped*
@@ -427,28 +427,35 @@ a rest or finished the workout. A phantom "Rest 0:00" card can appear after
 a process restart. And returning to the app can flash a stale second before
 the real clock arrives.
 
-**Cause.** The finish flash is a race between the shared poll emitting zero
-and the store being cleared (`Common.kt:726-730`,
-`RestTimerScreen.kt:162-166`). `RestLockActivity` is `singleInstance` but
-does not override `onNewIntent`, and derives "finished" from running going
-false (`:70-105, 164-168`). `ensureForegroundClaimed` runs before the null
-and STOP branches, so a sticky restart claims foreground with an idle
-snapshot (`RestTimerService.kt:48, 107-112`). The shared rest poll keeps its
+**Cause.** ~~The finish flash is a race between the shared poll emitting
+zero and the store being cleared (`Common.kt:726-730`,
+`RestTimerScreen.kt:162-166`). `RestLockActivity` is `singleInstance`
+but does not override `onNewIntent`, and derives "finished" from
+running going false (`:70-105, 164-168`).~~ **Struck 2026-09-03 (this
+packet).** Flash and lock finished-state key on
+`lastCompletedTimerId`, not `wasRunning && remaining <= 0`.
+`ensureForegroundClaimed` ran before the null and STOP branches, so a
+sticky restart claimed foreground with an idle snapshot
+(`RestTimerService.kt:48, 107-112`). The shared rest poll kept its
 replay cache after its subscribers leave
 (`RestTimerController.kt:66-70`).
 
-**Change.** Publish a `lastCompletedTimerId` from `completeOnce` and key the
-gold flash on it. Override `onNewIntent` in `RestLockActivity`, and finish
-when the timer stops without completing. Rehydrate before claiming
-foreground on a null intent. Set `replayExpirationMillis = 0`. Use
-`FLAG_NO_CREATE` when cancelling the alarm, and log the two swallowed
-foreground-service failures instead of discarding them.
+**Change.** Shipped: `completeOnce` → `completeIfCurrent` (publish the
+id, then halt). `RestDock` / `RestTimerScreen` / `RestLockActivity` key
+the gold flash on that id. `onNewIntent` plus dismiss when the timer
+stops without completing. Rehydrate before claiming foreground on a
+null intent. `replayExpirationMillis = 0`. `FLAG_NO_CREATE` on alarm
+cancel. Swallowed `startForegroundService` / `startService` failures
+logged via `AppLog.w`.
 
-**Proof.** A completion-signal test for the flash; a lock-activity test that
-a skip does not render the finished state.
+**Proof.** `RestFinishFlashTest` (skip does not render finished) and
+`RestTimerControllerTest.completeIfCurrentPublishesTheIdBeforeTheStoreClears`.
+Green on this branch.
 
 **Owns.** `timer/RestLockActivity.kt`, `timer/RestTimerService.kt`,
-`timer/RestTimerController.kt`, `timer/RestTimerAlarmScheduler.kt`.
+`timer/RestTimerController.kt`, `timer/RestTimerAlarmScheduler.kt`,
+`timer/RestTimerCompletion.kt`, `timer/RestTimerGateway.kt`,
+`ui/components/Common.kt` (RestDock), `ui/workout/RestTimerScreen.kt`.
 
 ---
 
@@ -1404,6 +1411,18 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — B4: lastCompletedTimerId on B1-owned
+RestTimerCompletion.** The gold flash cannot key off a completion id
+unless `completeOnce` publishes it after a successful claim.
+`timer/RestTimerCompletion.kt` is B1's. This packet adds
+`completeIfCurrent` / `markCompleted` rather than deriving finished
+from `running == false`. Skip goes through `stop()`, which clears the
+id; completion publishes then halt so the lock glance cannot see a
+skip-shaped frame. **Owns** now includes `RestTimerCompletion.kt`,
+`RestTimerGateway.kt`, `ui/components/Common.kt` RestDock, and
+`ui/workout/RestTimerScreen.kt`. Cause/Change lines that said the
+flash is `wasRunning && remaining <= 0` are the pre-fix race.
 
 **2026-09-03 — J4 scheduler polish includes History and Exercise
 Detail.** The packet named Home, Plan, Settings, Summary, and
