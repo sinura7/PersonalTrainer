@@ -6,9 +6,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -334,6 +335,7 @@ private fun PlaceStep(
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun DaysPerWeekStep(selected: Int, onSelect: (Int) -> Unit, onNext: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap)) {
         QuestionTitle(
@@ -353,33 +355,17 @@ private fun DaysPerWeekStep(selected: Int, onSelect: (Int) -> Unit, onNext: () -
                 modifier = Modifier.padding(bottom = Metrics.space2),
             )
         }
-        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
-            ) {
-                (SchedulePreferences.MIN_DAYS..4).forEach { days ->
-                    InstrumentChip(
-                        label = days.toString(),
-                        selected = days == selected,
-                        onClick = { onSelect(days) },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
-            ) {
-                (5..SchedulePreferences.MAX_DAYS).forEach { days ->
-                    InstrumentChip(
-                        label = days.toString(),
-                        selected = days == selected,
-                        onClick = { onSelect(days) },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                Spacer(modifier = Modifier.weight(1f))
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+        ) {
+            (SchedulePreferences.MIN_DAYS..SchedulePreferences.MAX_DAYS).forEach { days ->
+                InstrumentChip(
+                    label = days.toString(),
+                    selected = days == selected,
+                    onClick = { onSelect(days) },
+                )
             }
         }
         PrimaryGymButton(text = "Continue", onClick = onNext)
@@ -387,6 +373,7 @@ private fun DaysPerWeekStep(selected: Int, onSelect: (Int) -> Unit, onNext: () -
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun WhichDaysStep(
     answers: OnboardingAnswers,
     onToggle: (Weekday) -> Unit,
@@ -401,16 +388,16 @@ private fun WhichDaysStep(
                 else -> "That's your week. Tap one again to change it."
             },
         )
-        Row(
+        FlowRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
         ) {
             Weekday.entries.forEach { day ->
                 InstrumentChip(
                     label = day.shortLabel().take(2),
                     selected = day in answers.preferredDays,
                     onClick = { onToggle(day) },
-                    modifier = Modifier.weight(1f),
                 )
             }
         }

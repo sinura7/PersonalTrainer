@@ -36,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -45,6 +46,7 @@ import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.RestCyan
@@ -163,17 +165,19 @@ fun LiveSessionBar(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (state.restRunning) {
-                Text(
-                    RestTimer.formatClock(state.restRemainingSeconds),
-                    style = InstrumentType.numeralSm,
-                    color = RestCyan,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            if (LiveBarCopy.showsSets(state.kind)) {
-                MetricCluster(value = state.workingSets.toString(), label = LiveBarCopy.SETS)
+            if (!LogLoopScale.hideLiveBarCluster(LocalDensity.current.fontScale)) {
+                if (state.restRunning) {
+                    Text(
+                        RestTimer.formatClock(state.restRemainingSeconds),
+                        style = InstrumentType.numeralSm,
+                        color = RestCyan,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (LiveBarCopy.showsSets(state.kind)) {
+                    MetricCluster(value = state.workingSets.toString(), label = LiveBarCopy.SETS)
+                }
             }
             Box {
                 IconButton(onClick = { menuOpen = true }) {

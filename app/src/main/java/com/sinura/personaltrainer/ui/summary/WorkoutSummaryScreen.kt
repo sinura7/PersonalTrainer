@@ -32,8 +32,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -60,6 +61,7 @@ import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.components.StatTile
 import com.sinura.personaltrainer.ui.theme.GoldContainer
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.Pit
@@ -131,20 +133,39 @@ fun WorkoutSummaryScreen(
                     item(key = "hero") { SummaryHero(summary = summary, unit = unit) }
 
                     item(key = "tiles") {
-                        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.cardGap)) {
-                            StatTile(
-                                label = "Working sets",
-                                value = summary.workingSets.toString(),
-                                modifier = Modifier.weight(1f),
-                                valueColor = TextPrimary,
-                            )
-                            StatTile(
-                                label = "Duration",
-                                value = summary.durationMinutes.toString(),
-                                modifier = Modifier.weight(1f),
-                                unit = "min",
-                                valueColor = TextPrimary,
-                            )
+                        val stack = LogLoopScale.stackTiles(LocalDensity.current.fontScale)
+                        if (stack) {
+                            Column(verticalArrangement = Arrangement.spacedBy(Metrics.cardGap)) {
+                                StatTile(
+                                    label = "Working sets",
+                                    value = summary.workingSets.toString(),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    valueColor = TextPrimary,
+                                )
+                                StatTile(
+                                    label = "Duration",
+                                    value = summary.durationMinutes.toString(),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    unit = "min",
+                                    valueColor = TextPrimary,
+                                )
+                            }
+                        } else {
+                            Row(horizontalArrangement = Arrangement.spacedBy(Metrics.cardGap)) {
+                                StatTile(
+                                    label = "Working sets",
+                                    value = summary.workingSets.toString(),
+                                    modifier = Modifier.weight(1f),
+                                    valueColor = TextPrimary,
+                                )
+                                StatTile(
+                                    label = "Duration",
+                                    value = summary.durationMinutes.toString(),
+                                    modifier = Modifier.weight(1f),
+                                    unit = "min",
+                                    valueColor = TextPrimary,
+                                )
+                            }
                         }
                     }
 

@@ -489,27 +489,53 @@ internal fun HomeStatRow(
         lastSession?.homeWork(unit)
     }
     val daysSince = lastSession?.daysSince(todayEpoch)?.toString()
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Metrics.cardGap),
-    ) {
-        StatTile(
-            label = "Last session",
-            value = column?.value ?: NO_VALUE,
-            unit = column?.label,
-            valueColor = if (column != null) TextPrimary else TextTertiary,
-            modifier = Modifier
-                .weight(1f)
-                .testTag(HomeTags.LAST_SESSION),
-        )
-        StatTile(
-            label = "Days since",
-            value = daysSince ?: NO_VALUE,
-            valueColor = if (daysSince != null) TextPrimary else TextTertiary,
-            modifier = Modifier
-                .weight(1f)
-                .testTag(HomeTags.DAYS_SINCE),
-        )
+    val stack = LogLoopScale.stackTiles(LocalDensity.current.fontScale)
+    if (stack) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(Metrics.cardGap),
+        ) {
+            StatTile(
+                label = "Last session",
+                value = column?.value ?: NO_VALUE,
+                unit = column?.label,
+                valueColor = if (column != null) TextPrimary else TextTertiary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(HomeTags.LAST_SESSION),
+            )
+            StatTile(
+                label = "Days since",
+                value = daysSince ?: NO_VALUE,
+                valueColor = if (daysSince != null) TextPrimary else TextTertiary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(HomeTags.DAYS_SINCE),
+            )
+        }
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Metrics.cardGap),
+        ) {
+            StatTile(
+                label = "Last session",
+                value = column?.value ?: NO_VALUE,
+                unit = column?.label,
+                valueColor = if (column != null) TextPrimary else TextTertiary,
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag(HomeTags.LAST_SESSION),
+            )
+            StatTile(
+                label = "Days since",
+                value = daysSince ?: NO_VALUE,
+                valueColor = if (daysSince != null) TextPrimary else TextTertiary,
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag(HomeTags.DAYS_SINCE),
+            )
+        }
     }
 }
 

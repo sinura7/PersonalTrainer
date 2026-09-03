@@ -3,6 +3,8 @@ package com.sinura.personaltrainer.ui.progress
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -226,6 +228,7 @@ fun ProgressScreen(
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 internal fun BodyWindowPicker(
     window: HeatWindow,
     onSelectWindow: (HeatWindow) -> Unit,
@@ -257,7 +260,10 @@ internal fun BodyWindowPicker(
                 modifier = Modifier.testTag(BodyTags.START_SHEET),
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
             HeatWindow.entries.forEach { entry ->
                 InstrumentChip(
                     label = entry.shortLabel,

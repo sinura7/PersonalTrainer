@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -42,6 +43,7 @@ import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.StatTile
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.TextPrimary
@@ -242,29 +244,58 @@ private fun ActivityMetricTiles(
     val showVolume = volumeKg > 0.0
     val showMinutes = cardioMinutes > 0 || (!showSets && durationMinutes > 0)
     if (!showSets && !showVolume && !showMinutes) return
-    Row(horizontalArrangement = Arrangement.spacedBy(Metrics.cardGap)) {
-        if (showSets) {
-            StatTile(
-                label = "sets",
-                value = strengthSetCount.toString(),
-                modifier = Modifier.weight(1f),
-            )
+    val stack = LogLoopScale.stackTiles(LocalDensity.current.fontScale)
+    if (stack) {
+        Column(verticalArrangement = Arrangement.spacedBy(Metrics.cardGap)) {
+            if (showSets) {
+                StatTile(
+                    label = "sets",
+                    value = strengthSetCount.toString(),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            if (showVolume) {
+                StatTile(
+                    label = "volume",
+                    value = ActivityDetailCopy.volumeLabel(volumeKg, unit),
+                    unit = unit.suffix,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            if (showMinutes) {
+                StatTile(
+                    label = "duration",
+                    value = (if (cardioMinutes > 0) cardioMinutes else durationMinutes).toString(),
+                    unit = "min",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
-        if (showVolume) {
-            StatTile(
-                label = "volume",
-                value = ActivityDetailCopy.volumeLabel(volumeKg, unit),
-                unit = unit.suffix,
-                modifier = Modifier.weight(1f),
-            )
-        }
-        if (showMinutes) {
-            StatTile(
-                label = "duration",
-                value = (if (cardioMinutes > 0) cardioMinutes else durationMinutes).toString(),
-                unit = "min",
-                modifier = Modifier.weight(1f),
-            )
+    } else {
+        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.cardGap)) {
+            if (showSets) {
+                StatTile(
+                    label = "sets",
+                    value = strengthSetCount.toString(),
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            if (showVolume) {
+                StatTile(
+                    label = "volume",
+                    value = ActivityDetailCopy.volumeLabel(volumeKg, unit),
+                    unit = unit.suffix,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            if (showMinutes) {
+                StatTile(
+                    label = "duration",
+                    value = (if (cardioMinutes > 0) cardioMinutes else durationMinutes).toString(),
+                    unit = "min",
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
     }
 }
