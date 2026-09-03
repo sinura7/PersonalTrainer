@@ -118,7 +118,7 @@ object WeightConverter {
     fun parseDisplayToKg(input: String, unit: WeightUnit, originalKg: Double?): Double? {
         val trimmed = input.trim()
         if (trimmed.isEmpty()) return null
-        val parsed = trimmed.toDoubleOrNull() ?: return originalKg
+        val parsed = NumericEntry.parseDecimal(trimmed) ?: return originalKg
         if (originalKg != null) {
             val originalDisplay = formatDisplayNumber(toDisplayValue(originalKg, unit))
             val typedDisplay = formatDisplayNumber(toDisplayValue(toKg(parsed, unit), unit))

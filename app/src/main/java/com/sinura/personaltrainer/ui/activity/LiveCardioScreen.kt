@@ -33,6 +33,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.CardioCopy
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.LiveSessionRules
+import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
@@ -42,6 +43,7 @@ import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.LeaveCardioDialog
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
+import com.sinura.personaltrainer.ui.components.imeAction
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -169,10 +171,14 @@ fun LiveCardioScreen(
             }
             OutlinedTextField(
                 value = state.distanceKm,
-                onValueChange = viewModel::setDistanceKm,
+                onValueChange = { viewModel.setDistanceKm(NumericEntry.filterDecimal(it)) },
                 label = { Text(CardioCopy.DISTANCE_LABEL) },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                textStyle = InstrumentType.numeralMd,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Decimal,
+                    imeAction = NumericEntry.LIVE_CARDIO_DISTANCE.imeAction(),
+                ),
                 modifier = Modifier.fillMaxWidth(),
             )
         }
