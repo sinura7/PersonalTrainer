@@ -115,6 +115,7 @@ import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.VoltDim
 import com.sinura.personaltrainer.ui.theme.Warn
 import com.sinura.personaltrainer.ui.theme.instrumentTween
+import com.sinura.personaltrainer.ui.theme.instrumentLinear
 import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.util.runCatchingCancellable
@@ -746,7 +747,7 @@ fun RestDock(
     }
     LaunchedEffect(justFinished) {
         if (justFinished) {
-            delay(FINISHED_DWELL_MS)
+            delay(Motion.FINISHED_DWELL_MS)
             justFinished = false
         }
     }
@@ -762,7 +763,7 @@ fun RestDock(
             initialValue = 1f,
             targetValue = 1.015f,
             animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 500, easing = LinearEasing),
+                animation = tween(durationMillis = Motion.PULSE_MS, easing = LinearEasing),
                 repeatMode = RepeatMode.Reverse,
             ),
             label = "rest-bar-pulse",
@@ -915,7 +916,7 @@ fun RestLinearTrack(
     val target = RestTimer.sweepFraction(remainingSeconds, totalSeconds)
     val progress by animateFloatAsState(
         targetValue = target,
-        animationSpec = tween(durationMillis = 1_000, easing = LinearEasing),
+        animationSpec = instrumentLinear(Motion.TICK_MS),
         label = "rest-track",
     )
     val sweepColor by animateColorAsState(
@@ -961,7 +962,7 @@ fun RestSweepRing(
     val target = RestTimer.sweepFraction(remainingSeconds, totalSeconds)
     val progress by animateFloatAsState(
         targetValue = target,
-        animationSpec = tween(durationMillis = 1_000, easing = LinearEasing),
+        animationSpec = instrumentLinear(Motion.TICK_MS),
         label = "rest-ring",
     )
     val sweepColor by animateColorAsState(
@@ -971,16 +972,19 @@ fun RestSweepRing(
     )
     val reduceMotion = LocalReducedMotion.current
     val urgent = running && remainingSeconds in 1..10
-    val pulse = rememberInfiniteTransition(label = "rest-ring-pulse")
-    val pulseScale by pulse.animateFloat(
-        initialValue = 1f,
-        targetValue = if (urgent && !reduceMotion) 1.015f else 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 500, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "rest-ring-scale",
-    )
+    val pulseScale: Float by if (urgent && !reduceMotion) {
+        rememberInfiniteTransition(label = "rest-ring-pulse").animateFloat(
+            initialValue = 1f,
+            targetValue = 1.015f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = Motion.PULSE_MS, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "rest-ring-scale",
+        )
+    } else {
+        remember { mutableFloatStateOf(1f) }
+    }
     val spoken = if (running) "Rest $clock remaining" else "Next rest $clock"
     Box(
         modifier = modifier
@@ -1370,7 +1374,6 @@ private const val HOLD_BEFORE_REPEAT_MS = 400L
 private const val REPEAT_MS = 150L
 private const val FAST_REPEAT_MS = 60L
 private const val REPEATS_BEFORE_FAST = 8
-private const val FINISHED_DWELL_MS = 3_500L
 private const val URGENT_SECONDS = 10
 private val REST_TRACK_HEIGHT = 4.dp
 private val REST_RING_SIZE = 280.dp

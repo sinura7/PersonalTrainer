@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F6, G1–G5, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F6, G1–G6, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase G continues at G6. K1 and K2 stay held.  
+`tools/` remain owed. Phase H starts at H1. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -97,7 +97,7 @@ the gym floor, are fifteen of them.
 | G3 | Shared headers and docks | 2 | — | Design II | done |
 | G4 | Skin the four foreign controls | 2 | — | Design II | done |
 | G5 | Body's first viewport; small targets; destructive confirms | 1 | — | Design II | done |
-| G6 | Reduced motion, and the palette question | 1 | — | Design II | |
+| G6 | Reduced motion, and the palette question | 1 | — | Design II | done |
 | H1 | History shows that you got stronger | 2 | — | Design III | |
 | H2 | Units and clocks finish what Display started | 2 | — | Design III | |
 | H3 | Row and card vocabulary; landscape; a regression net | 3 | — | Design III | |
@@ -1218,6 +1218,16 @@ identical for everyone, and the top heat stop reads as the danger red.
 Either accept all three with a mandatory non-colour channel at every site,
 or shift the warning toward orange.
 
+**Struck 2026-09-03 (this packet).** Remaining sites go through
+`instrumentTween` / `instrumentLinear` / `recordEnter` /
+`instrumentAnimateItem`. Dwell, pulse, and tick constants live on
+`Motion`. `SLOW`, `Emphasized`, and `press()` deleted; `settle()`
+places lists; `celebrate()` stays for records. Palette collisions
+stay (ADR-023): non-colour channel is mandatory; Warn does not move.
+Proof is JVM (`remainingSitesHonourReducedMotion`,
+`unusedMotionMembersAreGoneAndDwellsLiveOnMotion`,
+`paletteKeepsTokensAndRequiresANonColourChannel`).
+
 **Owns.** `ui/summary/WorkoutSummaryScreen.kt` *(after F4)*,
 `ui/components/GymStatus.kt` *(after G1)*, `ui/theme/Motion.kt`,
 `ui/theme/Color.kt` *(after F3)*, eight list sites.
@@ -1508,6 +1518,16 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — G6: reduced motion finishes; palette stays.** Proof is
+JVM (`remainingSitesHonourReducedMotion`,
+`unusedMotionMembersAreGoneAndDwellsLiveOnMotion`,
+`paletteKeepsTokensAndRequiresANonColourChannel`). Rest sweep lives in
+`Common.kt` (F14 named it; not in Owns). Rest-floor dwell now reads
+`Motion.FINISHED_DWELL_MS` so the gold flash is one constant. Five
+unused members at the audit were SLOW / Emphasized / press / settle /
+celebrate: celebrate was already used; settle now places lists; the
+other three are gone. Warn does not shift — ADR-023. Count +3.
 
 **2026-09-03 — G5: Body's first viewport.** Proof is JVM
 (`firstMuscleRowIsInsideTheFirstViewportAt360x640`,

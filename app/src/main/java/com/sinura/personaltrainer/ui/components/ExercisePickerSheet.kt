@@ -58,6 +58,7 @@ import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.instrumentAnimateItem
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.Radius
@@ -267,7 +268,7 @@ fun ExercisePickerSheet(
                     }
                 } else {
                     itemsIndexed(results, key = { _, exercise -> exercise.id }) { index, exercise ->
-                        Column(modifier = Modifier.animateItem()) {
+                        Column(modifier = instrumentAnimateItem()) {
                             PickerLiftRow(
                                 exercise = exercise,
                                 selected = exercise.id in selectedIds,

@@ -67,6 +67,7 @@ import com.sinura.personaltrainer.ui.components.ThumbSize
 import com.sinura.personaltrainer.ui.theme.GoldContainer
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.instrumentAnimateItem
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.PrGold
@@ -286,8 +287,7 @@ fun ExerciseDetailScreen(
                         key = { _, summary -> summary.sessionId },
                     ) { index, summary ->
                         Column(
-                            modifier = Modifier
-                                .animateItem()
+                            modifier = instrumentAnimateItem()
                                 .clip(groupedRowShape(index, history.sessions.size))
                                 .background(Surface1),
                         ) {

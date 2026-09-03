@@ -44,6 +44,7 @@ import com.sinura.personaltrainer.ui.components.ScreenHeader
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.PrGold
 import com.sinura.personaltrainer.ui.theme.RestCyan
@@ -65,7 +66,6 @@ object RestFloorTags {
     const val NEXT = "rest-floor-next"
 }
 
-private const val FINISHED_DWELL_MS = 3_500L
 private const val URGENT_SECONDS = 10
 
 @Composable
@@ -159,7 +159,7 @@ private fun RestFloorBody(
     }
     LaunchedEffect(justFinished) {
         if (justFinished) {
-            delay(FINISHED_DWELL_MS)
+            delay(Motion.FINISHED_DWELL_MS)
             justFinished = false
         }
     }

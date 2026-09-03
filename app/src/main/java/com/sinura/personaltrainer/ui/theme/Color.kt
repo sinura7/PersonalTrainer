@@ -90,11 +90,15 @@ val VoltDim = Color(0x24C2FF44)
 /** An opaque volt-tinted container, for surfaces that sit over unknown backgrounds. */
 val VoltContainer = Color(0xFF212B13)
 
-/** Records, and only records. Emotionally distinct from the accent so a PR reads as an event. */
+/** Records, and only records. Emotionally distinct from the accent so a PR reads as an event.
+ * Volt and PrGold collapse for a deutan reader; Warn sits next to PrGold for everyone
+ * (ADR-023). The trophy, the gold container, and the words "personal record" are the
+ * non-colour channel. Hex values do not move in a polish packet. */
 val PrGold = Color(0xFFFFC53D)
 val GoldContainer = Color(0xFF2E2410)
 
-/** Rest running out, missed targets, a stale backup. */
+/** Rest running out, missed targets, a stale backup.
+ * Next to PrGold in hue. Copy, a clock, or a kicker must travel with it (ADR-023). */
 val Warn = Color(0xFFFFB020)
 
 /** Destructive actions only. */
@@ -121,6 +125,7 @@ val RestCyanDim = Color(0x2433D6E8)
 val HeatEmpty = Color(0xFF262C31)
 val Heat1 = Color(0xFF4A2480)
 val Heat2 = Color(0xFF9D2F86)
+/** Mid-ramp. Neighbours Danger in hue; the legend band name and luminance carry the signal (ADR-023). */
 val Heat3 = Color(0xFFE25A50)
 val Heat4 = Color(0xFFFCA05F)
 

@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 24 August 2026
 - **Related:** [DIRECTION_B_INSTRUMENT.md](../ui-redesign/DIRECTION_B_INSTRUMENT.md),
-  FND-045
+  FND-045, [ADR-023](ADR-023-palette-and-reduced-motion.md)
 
 ## Context
 
@@ -24,6 +24,9 @@ were considered and rejected.
 5. Motion, spacing, shape, and haptics stay on the existing token layer.
    Reduced motion collapses token durations to zero (`LocalReducedMotion` /
    system animator scale). It does not invent a second theme.
+   Palette collisions (Volt/PrGold for deutan readers, Warn≈PrGold,
+   Heat3≈Danger) stay; every site carries a non-colour channel
+   ([ADR-023](ADR-023-palette-and-reduced-motion.md)).
 6. Stock Material controls may be skinned only when golden or runtime
    evidence shows a visual or behavioral mismatch (FND-044). Taste alone is
    not enough.
