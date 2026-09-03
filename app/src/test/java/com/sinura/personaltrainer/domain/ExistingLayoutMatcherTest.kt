@@ -135,6 +135,33 @@ class ExistingLayoutMatcherTest {
         assertEquals(listOf("r-upper"), ids)
     }
 
+    @Test
+    fun matchDropsDaysAlreadyBehindToday() {
+        val upper = existing("r-upper", "Upper")
+        val lower = existing("r-lower", "Lower Body", "Quads")
+        val blueprint = PlanBlueprint(
+            splitStyle = SplitStyle.UPPER_LOWER,
+            routines = listOf(
+                planned("upper", "Upper", SessionFocusKind.UPPER),
+                planned("lower", "Lower Body", SessionFocusKind.LOWER),
+            ),
+            days = listOf(
+                BlueprintDay(Weekday.MONDAY, null),
+                BlueprintDay(Weekday.TUESDAY, "upper"),
+                BlueprintDay(Weekday.WEDNESDAY, null),
+                BlueprintDay(Weekday.THURSDAY, "lower"),
+                BlueprintDay(Weekday.FRIDAY, null),
+                BlueprintDay(Weekday.SATURDAY, null),
+                BlueprintDay(Weekday.SUNDAY, "upper"),
+            ),
+        )
+        val thursday = weekStart.plusDays(3).toEpochDay()
+        val proposals = ExistingLayoutMatcher.match(
+            blueprint, listOf(upper, lower), weekStart.toEpochDay(), todayEpochDay = thursday,
+        )
+        assertEquals(setOf(Weekday.THURSDAY, Weekday.SUNDAY), proposals.map { it.dayOfWeek }.toSet())
+    }
+
     private fun planned(key: String, name: String, kind: SessionFocusKind) =
         BlueprintRoutine(key = key, name = name, focusKind = kind, lifts = emptyList())
 

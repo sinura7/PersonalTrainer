@@ -64,11 +64,10 @@ class PlannerRepository(
      * One-shot: empty rule table plus existing pins becomes evening-strength rules.
      * Later pins sync through [syncSlotsToRules].
      */
-    suspend fun importSlotsIfNeeded() {
+    suspend fun importSlotsIfNeeded(nowMs: Long = time.nowMillis()) {
         if (dao.ruleCount() > 0) return
         val slots = database.scheduleDao().getAll().mapNotNull { it.toDomain() }
-        val now = time.nowMillis()
-        val imported = SlotRuleImport.rulesFromSlots(slots, now)
+        val imported = SlotRuleImport.rulesFromSlots(slots, nowMs)
         if (imported.isNotEmpty()) dao.upsertRules(imported.map { it.toEntity() })
     }
 
@@ -245,6 +244,8 @@ class PlannerRepository(
                 time = time,
                 deviceZoneId = deviceZoneId,
                 nowMs = nowMs,
+                todayEpochDay = time.civilDate(nowMs, deviceZoneId).epochDay,
+                nowMinutes = time.wallMinutesOfDay(nowMs, deviceZoneId),
             )
             dao.upsertOccurrences(week.map { it.toEntity() })
             scheduleRemindersLocked(week, rules, nowMs)

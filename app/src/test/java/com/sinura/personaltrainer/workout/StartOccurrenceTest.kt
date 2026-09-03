@@ -50,7 +50,7 @@ class StartOccurrenceTest {
         val weekday = Weekday.fromEpochDay(today)
         val weekStart = CivilDate.fromEpochDay(today).previousOrSame(Weekday.MONDAY)
         deps.scheduleRepository.pin(fixture.routine.id, null, weekday)
-        deps.plannerRepository.importSlotsIfNeeded()
+        deps.plannerRepository.importSlotsIfNeeded(1_700_000_000_000L)
         deps.plannerRepository.ensureWeek(weekStart)
         val occurrence = deps.plannerRepository.occurrencesBetween(today, today).single()
 
@@ -72,6 +72,7 @@ class StartOccurrenceTest {
             minute = 0,
             modality = ScheduleModality.CARDIO,
             templateId = ScheduleKind.cardio(CardioType.RIDE),
+            nowMs = 1_700_000_000_000L,
         )
         deps.plannerRepository.ensureWeek(weekStart)
         val occurrence = deps.plannerRepository.occurrencesBetween(today, today).single()
@@ -95,6 +96,7 @@ class StartOccurrenceTest {
             hour = 18,
             minute = 0,
             modality = ScheduleModality.MIXED,
+            nowMs = 1_700_000_000_000L,
         )
         deps.plannerRepository.ensureWeek(weekStart)
         val occurrence = deps.plannerRepository.occurrencesBetween(today, today).single()
@@ -117,7 +119,7 @@ class StartOccurrenceTest {
         val weekday = Weekday.fromEpochDay(today)
         val weekStart = CivilDate.fromEpochDay(today).previousOrSame(Weekday.MONDAY)
         deps.scheduleRepository.pin(routine.id, null, weekday)
-        deps.plannerRepository.importSlotsIfNeeded()
+        deps.plannerRepository.importSlotsIfNeeded(1_700_000_000_000L)
         deps.plannerRepository.ensureWeek(weekStart)
         val occurrence = deps.plannerRepository.occurrencesBetween(today, today).single()
 

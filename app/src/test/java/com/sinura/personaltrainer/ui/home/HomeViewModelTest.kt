@@ -118,12 +118,14 @@ class HomeViewModelTest {
             hour = 7,
             minute = 0,
             modality = com.sinura.personaltrainer.domain.ScheduleModality.CARDIO,
+            nowMs = 1_700_000_000_000L,
         )
         deps.plannerRepository.addTimedRule(
             weekday = today,
             hour = 18,
             minute = 0,
             modality = com.sinura.personaltrainer.domain.ScheduleModality.STRENGTH,
+            nowMs = 1_700_000_000_000L,
         )
         deps.plannerRepository.ensureWeek(weekStart)
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
@@ -185,7 +187,7 @@ class HomeViewModelTest {
         val squat = insertTestExercise(deps, "ex-home-squat", "Squat")
         deps.routineRepository.addExercise(routine.id, squat, 3, 5, 100.0, 90)
         deps.scheduleRepository.pin(routine.id, null, weekday)
-        deps.plannerRepository.importSlotsIfNeeded()
+        deps.plannerRepository.importSlotsIfNeeded(1_700_000_000_000L)
         deps.plannerRepository.ensureWeek(weekStart)
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.first { !it.isLoading }
@@ -211,7 +213,7 @@ class HomeViewModelTest {
         val squat = insertTestExercise(deps, "ex-home-leftover-squat", "Squat")
         deps.routineRepository.addExercise(routine.id, squat, 3, 5, 100.0, 90)
         deps.scheduleRepository.pin(routine.id, null, yesterdayWeekday)
-        deps.plannerRepository.importSlotsIfNeeded()
+        deps.plannerRepository.importSlotsIfNeeded(1_700_000_000_000L)
         deps.plannerRepository.ensureWeek(yesterdayWeekStart)
         if (todayWeekStart.epochDay != yesterdayWeekStart.epochDay) {
             deps.plannerRepository.ensureWeek(todayWeekStart)
@@ -242,7 +244,7 @@ class HomeViewModelTest {
         val squat = insertTestExercise(deps, "ex-home-free", "Squat")
         deps.routineRepository.addExercise(routine.id, squat, 3, 5, 100.0, 90)
         deps.scheduleRepository.pin(routine.id, null, weekday)
-        deps.plannerRepository.importSlotsIfNeeded()
+        deps.plannerRepository.importSlotsIfNeeded(1_700_000_000_000L)
         deps.plannerRepository.ensureWeek(weekStart)
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.first { !it.isLoading }
@@ -271,7 +273,7 @@ class HomeViewModelTest {
         val squat = insertTestExercise(deps, "ex-home-skip-squat", "Squat")
         deps.routineRepository.addExercise(routine.id, squat, 3, 5, 100.0, 90)
         deps.scheduleRepository.pin(routine.id, null, yesterdayWeekday)
-        deps.plannerRepository.importSlotsIfNeeded()
+        deps.plannerRepository.importSlotsIfNeeded(1_700_000_000_000L)
         deps.plannerRepository.ensureWeek(yesterdayWeekStart)
         if (todayWeekStart.epochDay != yesterdayWeekStart.epochDay) {
             deps.plannerRepository.ensureWeek(todayWeekStart)
@@ -304,7 +306,7 @@ class HomeViewModelTest {
         val squat = insertTestExercise(deps, "ex-home-skip-today", "Squat")
         deps.routineRepository.addExercise(routine.id, squat, 3, 5, 100.0, 90)
         deps.scheduleRepository.pin(routine.id, null, weekday)
-        deps.plannerRepository.importSlotsIfNeeded()
+        deps.plannerRepository.importSlotsIfNeeded(1_700_000_000_000L)
         deps.plannerRepository.ensureWeek(weekStart)
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.first { !it.isLoading }

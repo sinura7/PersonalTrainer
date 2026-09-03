@@ -18,10 +18,12 @@ import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeeklySchedulePlan
 import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
 import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.testutil.FrozenTime
 import com.sinura.personaltrainer.util.toJavaDayOfWeek
 import com.sinura.personaltrainer.util.toWeekday
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.temporal.TemporalAdjusters
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -75,6 +77,7 @@ class PlanViewModelTest {
             ApplicationProvider.getApplicationContext(),
             insights,
             scheduler = dispatcher,
+            time = mondayMorningTime(),
         )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
@@ -104,6 +107,7 @@ class PlanViewModelTest {
             ApplicationProvider.getApplicationContext(),
             insights,
             scheduler = dispatcher,
+            time = mondayMorningTime(),
         )
         val upper = deps.routineRepository.create(name = "Upper")
         val lower = deps.routineRepository.create(name = "Lower Body")
@@ -130,10 +134,14 @@ class PlanViewModelTest {
     @Test
     fun replayPinsExistingRoutineIdsAndDoesNotCreate() = runBlocking {
         val insights = MutableStateFlow(TrainingInsights())
+        val frozenMs = ZonedDateTime.of(2026, 8, 17, 12, 0, 0, 0, ZoneId.of("UTC"))
+            .toInstant()
+            .toEpochMilli()
         deps = FakeAppDependencies(
             ApplicationProvider.getApplicationContext(),
             insights,
             scheduler = dispatcher,
+            time = FrozenTime(frozenMs, "UTC"),
         )
         deps.dbMaintenance.seedCatalog()
         val upper = deps.routineRepository.create(name = "Upper")
@@ -177,6 +185,7 @@ class PlanViewModelTest {
             ApplicationProvider.getApplicationContext(),
             insights,
             scheduler = dispatcher,
+            time = mondayMorningTime(),
         )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.first { !it.isLoading }
@@ -213,6 +222,7 @@ class PlanViewModelTest {
             ApplicationProvider.getApplicationContext(),
             insights,
             scheduler = dispatcher,
+            time = mondayMorningTime(),
         )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.first { !it.isLoading }
@@ -247,6 +257,7 @@ class PlanViewModelTest {
             ApplicationProvider.getApplicationContext(),
             insights,
             scheduler = dispatcher,
+            time = mondayMorningTime(),
         )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.first { !it.isLoading }
@@ -276,6 +287,39 @@ class PlanViewModelTest {
     }
 
     @Test
+    fun addCardioAtNinePmDoesNotLandAtSevenOrEighteen() = runBlocking {
+        val zone = ZoneId.of("UTC")
+        val frozenMs = ZonedDateTime.of(2026, 9, 3, 21, 0, 0, 0, zone)
+            .toInstant()
+            .toEpochMilli()
+        val thursday = LocalDate.of(2026, 9, 3)
+        val monday = LocalDate.of(2026, 8, 31)
+        val insights = MutableStateFlow(
+            TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
+        )
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            insights,
+            scheduler = dispatcher,
+            time = FrozenTime(frozenMs, zone.id),
+        )
+        viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.pinFocus(thursday.toEpochDay(), SessionFocusKind.PUSH)
+        withTimeout(5_000) {
+            viewModel!!.uiState.first { it.rules.isNotEmpty() }
+        }
+        viewModel!!.addCardio(thursday.toEpochDay(), com.sinura.personaltrainer.domain.CardioType.WALK)
+        val cardio = withTimeout(5_000) {
+            deps.plannerRepository.observeRules().first { rows ->
+                rows.any { it.modality == com.sinura.personaltrainer.domain.ScheduleModality.CARDIO }
+            }.single { it.modality == com.sinura.personaltrainer.domain.ScheduleModality.CARDIO }
+        }
+        assertTrue(cardio.hour !in setOf(7, 18))
+        assertEquals(22, cardio.hour)
+    }
+
+    @Test
     fun addAuxiliaryMintsAStretchRoutine() = runBlocking {
         val today = LocalDate.now(ZoneId.systemDefault())
         val monday = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
@@ -286,6 +330,7 @@ class PlanViewModelTest {
             ApplicationProvider.getApplicationContext(),
             insights,
             scheduler = dispatcher,
+            time = mondayMorningTime(),
         )
         deps.dbMaintenance.seedCatalog()
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
@@ -322,6 +367,7 @@ class PlanViewModelTest {
             ApplicationProvider.getApplicationContext(),
             insights,
             scheduler = dispatcher,
+            time = mondayMorningTime(),
         )
         deps.dbMaintenance.seedCatalog()
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
@@ -357,6 +403,7 @@ class PlanViewModelTest {
             ApplicationProvider.getApplicationContext(),
             insights,
             scheduler = dispatcher,
+            time = mondayMorningTime(),
         )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.first { !it.isLoading }
@@ -395,6 +442,7 @@ class PlanViewModelTest {
             ApplicationProvider.getApplicationContext(),
             insights,
             scheduler = dispatcher,
+            time = mondayMorningTime(),
         )
         val extra = deps.routineRepository.create("Monday extra")
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
@@ -439,6 +487,7 @@ class PlanViewModelTest {
             ApplicationProvider.getApplicationContext(),
             insights,
             scheduler = dispatcher,
+            time = mondayMorningTime(),
         )
         val push = deps.routineRepository.create("Push")
         val pull = deps.routineRepository.create("Pull")
@@ -478,6 +527,7 @@ class PlanViewModelTest {
             ApplicationProvider.getApplicationContext(),
             insights,
             scheduler = dispatcher,
+            time = mondayMorningTime(),
         )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.first { !it.isLoading }
@@ -507,6 +557,7 @@ class PlanViewModelTest {
             ApplicationProvider.getApplicationContext(),
             insights,
             scheduler = dispatcher,
+            time = mondayMorningTime(),
         )
         val extra = deps.routineRepository.create("Monday extra")
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
@@ -545,6 +596,7 @@ class PlanViewModelTest {
             ApplicationProvider.getApplicationContext(),
             insights,
             scheduler = dispatcher,
+            time = mondayMorningTime(),
         )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.first { !it.isLoading }
@@ -579,6 +631,7 @@ class PlanViewModelTest {
             ApplicationProvider.getApplicationContext(),
             insights,
             scheduler = dispatcher,
+            time = mondayMorningTime(),
         )
         val push = deps.routineRepository.create("Push")
         val pull = deps.routineRepository.create("Pull")
@@ -602,10 +655,14 @@ class PlanViewModelTest {
     @Test
     fun pendingAnswerReplayReplaysWithoutCreating() = runBlocking {
         val insights = MutableStateFlow(TrainingInsights())
+        val frozenMs = ZonedDateTime.of(2026, 8, 17, 12, 0, 0, 0, ZoneId.of("UTC"))
+            .toInstant()
+            .toEpochMilli()
         deps = FakeAppDependencies(
             ApplicationProvider.getApplicationContext(),
             insights,
             scheduler = dispatcher,
+            time = FrozenTime(frozenMs, "UTC"),
         )
         deps.dbMaintenance.seedCatalog()
         val upper = deps.routineRepository.create(name = "Upper")
@@ -629,6 +686,15 @@ class PlanViewModelTest {
         assertTrue(proposals.isNotEmpty())
         assertTrue(proposals.all { it.routineId in setOf(upper.id, lower.id) })
         assertFalse(deps.pendingAnswerReplay.value)
+    }
+
+    private fun mondayMorningTime(): FrozenTime {
+        val zone = ZoneId.systemDefault()
+        val monday = LocalDate.now(zone).with(
+            TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY),
+        )
+        val frozenMs = monday.atTime(6, 0).atZone(zone).toInstant().toEpochMilli()
+        return FrozenTime(frozenMs, zone.id)
     }
 
     private fun plannerHasARemainingTrainingDay(): Boolean {

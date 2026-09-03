@@ -1,6 +1,6 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
 `tools/` remain owed. Phase C is next. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
@@ -75,7 +75,7 @@ the gym floor, are fifteen of them.
 | B2 | The cue plays where you can hear it | 1 | 3 | Timer | done |
 | B3 | A late rest still announces itself | 1 | — | Timer | done |
 | B4 | Timer surfaces stop lying | 1 | — | Timer | done |
-| C1 | Nothing is born overdue | 1 | — | Week | |
+| C1 | Nothing is born overdue | 1 | — | Week | done |
 | C2 | Rebuild keeps what you added; rules retire | 1 | 5 | Week | |
 | C3 | Tonight is startable, and today knows the time | 1 | 2 | Week | |
 | C4 | Planner and session writes are atomic | 1 | — | Week | |
@@ -467,37 +467,36 @@ Four packets. The planner is the newest large subsystem and carries the
 highest density of P1s; three of the four rows below are in code the last
 two audit rounds wrote.
 
-## C1 — Nothing is born overdue
+## C1 — Nothing is born overdue · done on `trunk`
 
 **Symptom.** Finish the setup wizard on a Thursday evening with Monday,
 Wednesday and Friday chosen. Home opens saying "2 planned sessions were not
 done", with red cells on Monday and Wednesday, "3 planned · 0 done", and two
 leftovers in Still open that were never scheduled — and the one scheduling
-decision you get per week is already spent. Add a cardio block at 9am and it
+decision you get per week is already spent. Add a cardio block at 9pm and it
 lands at 07:00, overdue at birth.
 
-**Cause.** `OccurrenceGenerator.generateWeek` (`:36-73`) has no notion of
+**Cause.** ~~`OccurrenceGenerator.generateWeek` (`:36-73`) has no notion of
 now: every enabled rule is placed on `weekStart.nextOrSame(rule.weekday)`.
 `ensureWeek` (`PlannerRepository.kt:232-253`) passes neither today nor the
 time; onboarding and the custom-week wizard call `publishPinnedWeek`
 immediately after setup. `DayBlocks.addCardio` defaults to 07:00 and
 `nextLaterHour` ignores the clock. Only ADAPT guards this, and its own
 comment (`MissedWorkPolicy.kt:94-98`) names the rule the generator does not
-follow.
+follow.~~ **Struck 2026-09-03 (this packet).** `generateWeek` skips a new
+rule that sits behind now. Same-day adds clamp to `currentHour + 1`.
+`PlanViewModel.addCardio` goes through `DayBlocks`. Replay drops days
+already behind today.
 
-**Change.**
-1. Give `generateWeek` `todayEpochDay` and `nowMinutes`; skip a
-   `(rule, date)` pair that sits behind now **when the rule was created
-   after that day began**. Rules that predate the day must still mint it, or
-   week rollover stops recording history.
-2. Clamp same-day hours to `max(default, current hour + 1)` in
-   `DayBlocks`, `AuxiliaryBlocks` and `PlanViewModel.addCardio`.
-3. Give `ExistingLayoutMatcher.match` a `todayEpochDay` and drop days behind
-   it, as `WeeklySchedulePlanner.plan` already does.
+**Change.** Shipped: skip `(rule, date)` when `behindNow && newToThatDay`.
+`SlotRuleImport.clampSameDayHour`. `ExistingLayoutMatcher.match` takes
+`todayEpochDay`.
 
-**Proof.** A generator test: a rule created this evening mints nothing for
-earlier days of the same week, while a rule created last month still does.
-A `DayBlocks` test that a 21:00 add does not land at 18:00. Both red today.
+**Proof.** `thursdayEveningNewRuleSkipsEarlierDaysAndLastMonthRuleDoesNot`,
+`clampSameDayHourAtNinePmIsTwentyTwo`,
+`addCardioAtNinePmDoesNotPersistHourSevenOrEighteen`,
+`addCardioAtNinePmDoesNotLandAtSevenOrEighteen`,
+`matchDropsDaysAlreadyBehindToday`.
 
 **Owns.** `domain/OccurrenceGenerator.kt`, `domain/ExistingLayoutMatcher.kt`,
 `data/repository/PlannerRepository.kt`, `data/repository/DayBlocks.kt`,
@@ -1447,6 +1446,14 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — C1: generateWeek did not already skip.** The
+remaining-train floor said `todayEpochDay` / `nowMinutes` were on
+`trunk`. After B2 (`4cbe6e4`) they were not. This packet adds the
+skip, routes Plan `addCardio` through `DayBlocks`, clamps a same-day
+pin hour so a 21:00 Home add still mints, and gives
+`importSlotsIfNeeded` a `nowMs` so established-plan tests can stamp
+`createdAt` in the past. Count +5.
 
 **2026-09-03 — B2: Alarm cue; silent ringer is not a mute.** Decision
 3 is Alarm. `RestSound.choose` dropped `ringerSilent` — the Settings
