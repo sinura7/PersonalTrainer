@@ -37,6 +37,37 @@ class SdkTargetTest {
         )
     }
 
+    @Test
+    fun ledgerMustNotCarryAKotlin22Stdlib() {
+        val ledger = listOf(
+            File("gradle/verification-metadata.xml"),
+            File("../gradle/verification-metadata.xml"),
+        ).first { it.isFile }
+        val names = setOf(
+            "kotlin-stdlib",
+            "kotlin-stdlib-jdk7",
+            "kotlin-stdlib-jdk8",
+            "kotlin-stdlib-common",
+        )
+        val component = Regex(
+            """<component group="org\.jetbrains\.kotlin" name="([^"]+)" version="([^"]+)"""",
+        )
+        val tooNew = component.findAll(ledger.readText()).mapNotNull { match ->
+            val name = match.groupValues[1]
+            val version = match.groupValues[2]
+            if (name !in names) return@mapNotNull null
+            val parts = Regex("""\d+""").findAll(version).map { it.value.toInt() }.toList()
+            val major = parts.getOrElse(0) { 0 }
+            val minor = parts.getOrElse(1) { 0 }
+            if (major > 2 || (major == 2 && minor >= 2)) "$name $version" else null
+        }.toList()
+        assertTrue(
+            "Kotlin 2.2+ stdlib in the ledger stops compiler 2.0.21; " +
+                "2.1.x is the one-version-ahead ceiling. Found: $tooNew. Packet K2.",
+            tooNew.isEmpty(),
+        )
+    }
+
     private fun source(relative: String): File {
         val candidates = listOf(File(relative), File("app/$relative"))
         return candidates.first { it.isFile }
