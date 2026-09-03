@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.DayBlockOrder
+import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.MissedWorkChoice
 import com.sinura.personaltrainer.domain.MissedWorkPolicy
 import com.sinura.personaltrainer.domain.MoveToToday
@@ -19,6 +20,7 @@ import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.BodyweightCheckIn
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.ProgressionHint
+import com.sinura.personaltrainer.domain.ReminderCopy
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
@@ -210,6 +212,46 @@ class HomeViewModel @JvmOverloads constructor(
         _navigateToEditor.value = null
     }
 
+    private val _reviewOccurrenceId = MutableStateFlow<String?>(null)
+    val reviewOccurrenceId: StateFlow<String?> = _reviewOccurrenceId.asStateFlow()
+    private val _focusEpochDay = MutableStateFlow<Long?>(null)
+    val focusEpochDay: StateFlow<Long?> = _focusEpochDay.asStateFlow()
+
+    fun onReviewOccurrenceHandled() {
+        _reviewOccurrenceId.value = null
+    }
+
+    fun onFocusEpochDayHandled() {
+        _focusEpochDay.value = null
+    }
+
+    /**
+     * Body tap on a reminder: select the day and open the ADR-018
+     * confirm. Starts nothing.
+     */
+    fun reviewOccurrence(occurrenceId: String) {
+        viewModelScope.launch {
+            val occurrence = container.plannerRepository.getOccurrence(occurrenceId)
+            if (occurrence == null) {
+                actionError.value = ReminderCopy.GONE
+                return@launch
+            }
+            val today = todayEpochDay()
+            val item = AgendaItem(occurrence, rule = null, routineName = null)
+            if (!DailyAgenda.canOpenStart(item, today)) {
+                actionError.value = ReminderCopy.GONE
+                return@launch
+            }
+            actionError.value = null
+            _focusEpochDay.value = if (MoveToToday.isLeftover(occurrence, today)) {
+                today
+            } else {
+                occurrence.localEpochDay
+            }
+            _reviewOccurrenceId.value = occurrenceId
+        }
+    }
+
     fun startSuggestedDay(day: SuggestedTrainingDay) {
         viewModelScope.launch {
             start(day, PendingOccurrence.plannedOccurrenceId(container, day))
@@ -273,7 +315,11 @@ class HomeViewModel @JvmOverloads constructor(
 
     fun startOccurrence(occurrenceId: String) {
         viewModelScope.launch {
-            val occurrence = container.plannerRepository.getOccurrence(occurrenceId) ?: return@launch
+            val occurrence = container.plannerRepository.getOccurrence(occurrenceId)
+            if (occurrence == null) {
+                actionError.value = ReminderCopy.GONE
+                return@launch
+            }
             val today = todayEpochDay()
             val startId = if (MoveToToday.isLeftover(occurrence, today)) {
                 when (val moved = container.plannerRepository.moveOccurrenceToDay(occurrenceId, today)) {
@@ -283,7 +329,10 @@ class HomeViewModel @JvmOverloads constructor(
                         actionError.value = moved.message
                         return@launch
                     }
-                    null -> return@launch
+                    null -> {
+                        actionError.value = ReminderCopy.GONE
+                        return@launch
+                    }
                 }
             } else {
                 occurrenceId
@@ -314,7 +363,7 @@ class HomeViewModel @JvmOverloads constructor(
                         occurrenceId = outcome.occurrenceId,
                     )
                 is StartOccurrenceOutcome.Failed -> actionError.value = outcome.message
-                StartOccurrenceOutcome.Missing -> Unit
+                StartOccurrenceOutcome.Missing -> actionError.value = ReminderCopy.GONE
             }
         }
     }

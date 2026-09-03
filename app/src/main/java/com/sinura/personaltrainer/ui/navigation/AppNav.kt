@@ -207,6 +207,15 @@ internal object StartOptionsNav {
 }
 
 /**
+ * Reminder taps always land on Home first. Start then starts; a body
+ * tap only reviews. Settings (or any other tab) must not swallow the id.
+ */
+internal object ReminderHandoff {
+    fun homeTab(openStartId: String?, openReviewId: String?): String? =
+        if (openStartId != null || openReviewId != null) Route.Home.path else null
+}
+
+/**
  * One fade-through for every destination change.
  *
  * The host declared no transitions at all, so a lateral tab switch and a hierarchical
@@ -246,6 +255,8 @@ fun PersonalTrainerNav(
     onOpenSessionConsumed: () -> Unit = {},
     openOccurrenceId: String? = null,
     onOpenOccurrenceConsumed: () -> Unit = {},
+    reviewOccurrenceId: String? = null,
+    onReviewOccurrenceConsumed: () -> Unit = {},
     settingsViewModel: SettingsViewModel = viewModel(),
     gateViewModel: OnboardingGateViewModel = viewModel(),
 ) {
@@ -347,6 +358,12 @@ fun PersonalTrainerNav(
         }
     }
 
+    LaunchedEffect(openOccurrenceId, reviewOccurrenceId) {
+        val tab = ReminderHandoff.homeTab(openOccurrenceId, reviewOccurrenceId)
+            ?: return@LaunchedEffect
+        goToTab(tab)
+    }
+
     val todayEpochDay = rememberTodayEpochDay(container.time)
     var showStartSheet by rememberSaveable { mutableStateOf(false) }
     CompositionLocalProvider(
@@ -432,6 +449,8 @@ fun PersonalTrainerNav(
                     HomeScreen(
                         pendingOccurrenceStartId = openOccurrenceId,
                         onPendingOccurrenceConsumed = onOpenOccurrenceConsumed,
+                        pendingOccurrenceReviewId = reviewOccurrenceId,
+                        onPendingOccurrenceReviewConsumed = onReviewOccurrenceConsumed,
                         onResumeWorkout = { sessionId ->
                             navController.navigate(Route.ActiveWorkout.create(sessionId)) {
                                 launchSingleTop = true

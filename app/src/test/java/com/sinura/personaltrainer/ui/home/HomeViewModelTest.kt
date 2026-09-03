@@ -235,6 +235,65 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun reminderStartStartsTheOccurrence() = runBlocking {
+        val occurrence = seedTodayStrength()
+        viewModel!!.startOccurrence(occurrence.id)
+        val sessionId = checkNotNull(viewModel!!.navigateToSession.first { it != null })
+        assertNull(viewModel!!.reviewOccurrenceId.value)
+        assertEquals(sessionId, deps.workoutRepository.getInProgress()?.id)
+    }
+
+    @Test
+    fun reminderReviewOpensConfirmAndStartsNothing() = runBlocking {
+        val occurrence = seedTodayStrength()
+        viewModel!!.reviewOccurrence(occurrence.id)
+        assertEquals(occurrence.id, viewModel!!.reviewOccurrenceId.first { it != null })
+        assertEquals(occurrence.localEpochDay, viewModel!!.focusEpochDay.value)
+        assertNull(viewModel!!.navigateToSession.value)
+        assertNull(deps.workoutRepository.getInProgress())
+        assertNull(viewModel!!.uiState.value.error)
+    }
+
+    @Test
+    fun missingReminderStartSurfacesAMessage() = runBlocking {
+        deps = graph()
+        viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.startOccurrence("gone")
+        val state = viewModel!!.uiState.first { it.error != null }
+        assertEquals(com.sinura.personaltrainer.domain.ReminderCopy.GONE, state.error)
+        assertNull(viewModel!!.navigateToSession.value)
+    }
+
+    @Test
+    fun missingReminderReviewSurfacesAMessage() = runBlocking {
+        deps = graph()
+        viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.reviewOccurrence("gone")
+        val state = viewModel!!.uiState.first { it.error != null }
+        assertEquals(com.sinura.personaltrainer.domain.ReminderCopy.GONE, state.error)
+        assertNull(viewModel!!.reviewOccurrenceId.value)
+        assertNull(viewModel!!.navigateToSession.value)
+    }
+
+    private suspend fun seedTodayStrength(): com.sinura.personaltrainer.domain.ScheduleOccurrence {
+        deps = graph()
+        val today = todayEpochDay()
+        val weekday = Weekday.fromEpochDay(today)
+        val weekStart = CivilDate.fromEpochDay(today).previousOrSame(Weekday.MONDAY)
+        val routine = deps.routineRepository.create("Push")
+        val squat = insertTestExercise(deps, "ex-home-reminder", "Squat")
+        deps.routineRepository.addExercise(routine.id, squat, 3, 5, 100.0, 90)
+        deps.scheduleRepository.pin(routine.id, null, weekday)
+        deps.plannerRepository.importSlotsIfNeeded(1_700_000_000_000L)
+        deps.plannerRepository.ensureWeek(weekStart)
+        viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+        return deps.plannerRepository.occurrencesBetween(today, today).single()
+    }
+
+    @Test
     fun freeWorkoutOpensAnEmptySessionWithoutMarkingThePlan() = runBlocking {
         deps = graph()
         val today = todayEpochDay()
