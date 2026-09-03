@@ -39,7 +39,6 @@ import com.sinura.personaltrainer.domain.homeWork
 import com.sinura.personaltrainer.domain.leftoverLiftNames
 import com.sinura.personaltrainer.domain.nextSessionReason
 import com.sinura.personaltrainer.domain.toWeightLabel
-import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
@@ -59,6 +58,7 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -170,7 +170,7 @@ fun HomeScreen(
         return
     }
 
-    val today = todayEpochDay()
+    val today = LocalTodayEpochDay.current
     val weekStart = state.weekStartEpochDay.takeIf { it != 0L }
         ?: today
     var selectedEpochDay by rememberSaveable { mutableLongStateOf(today) }

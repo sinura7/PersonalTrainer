@@ -24,9 +24,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.HomeToday
 import com.sinura.personaltrainer.domain.MoveToToday
-import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.PlanDayCopy
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.ScheduleKind
@@ -66,7 +66,7 @@ fun DailyAgendaCard(
     routines: List<Routine> = emptyList(),
     kicker: String = "Today",
     stillOpen: List<AgendaItem> = emptyList(),
-    today: Long = com.sinura.personaltrainer.domain.todayEpochDay(),
+    today: Long = com.sinura.personaltrainer.ui.units.LocalTodayEpochDay.current,
     epochDay: Long = today,
     quietStart: Boolean = false,
     canEditDay: Boolean = false,
@@ -82,7 +82,7 @@ fun DailyAgendaCard(
     var picking by rememberSaveable(epochDay) { mutableStateOf(DayPicker.NONE.name) }
     val picker = runCatching { DayPicker.valueOf(picking) }.getOrNull() ?: DayPicker.NONE
     val pendingItem = catalog.firstOrNull { item ->
-        item.occurrence.id == pendingOccurrenceId && canOpenStart(item, today)
+        item.occurrence.id == pendingOccurrenceId && DailyAgenda.canOpenStart(item, today)
     }?.takeUnless { sessionLive }
 
     LaunchedEffect(pendingOccurrenceId, items, stillOpen, sessionLive, today) {
@@ -91,7 +91,7 @@ fun DailyAgendaCard(
             pendingOccurrenceId = null
             return@LaunchedEffect
         }
-        val still = catalog.any { it.occurrence.id == id && canOpenStart(it, today) }
+        val still = catalog.any { it.occurrence.id == id && DailyAgenda.canOpenStart(it, today) }
         if (!still) pendingOccurrenceId = null
     }
 
@@ -283,7 +283,7 @@ private fun AgendaRow(
         names,
         item.rule?.modality ?: ScheduleModality.STRENGTH,
     )
-    val canStart = canOpenStart(item, todayEpochDay) && !sessionLive
+    val canStart = DailyAgenda.canOpenStart(item, todayEpochDay) && !sessionLive
     val leftover = MoveToToday.isLeftover(item.occurrence, todayEpochDay)
     Column {
         InstrumentRow(
@@ -334,11 +334,4 @@ private fun AgendaRow(
             )
         }
     }
-}
-
-private fun canOpenStart(item: AgendaItem, todayEpochDay: Long): Boolean {
-    val status = item.occurrence.status
-    if (status == OccurrenceStatus.PLANNED) return true
-    return status == OccurrenceStatus.MISSED &&
-        MoveToToday.isLeftover(item.occurrence, todayEpochDay)
 }

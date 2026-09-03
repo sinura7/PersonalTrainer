@@ -32,6 +32,23 @@ object DailyAgenda {
         items.filter { it.occurrence.status == OccurrenceStatus.PLANNED }
 
     /**
+     * Planned rows start. A MISSED row dated today also starts — Keep
+     * used to stamp tonight MISSED one minute past the hour, and
+     * `MoveToToday.decide` already treats that row as already-there.
+     * Earlier-day leftovers stay startable so Still open can relocate.
+     */
+    fun canOpenStart(item: AgendaItem, todayEpochDay: Long): Boolean {
+        val occurrence = item.occurrence
+        return when (occurrence.status) {
+            OccurrenceStatus.PLANNED -> true
+            OccurrenceStatus.MISSED ->
+                occurrence.localEpochDay == todayEpochDay ||
+                    MoveToToday.isLeftover(occurrence, todayEpochDay)
+            else -> false
+        }
+    }
+
+    /**
      * Still undone from earlier days: planned or missed. Home lists these
      * on today so a leftover does not require paging back.
      *

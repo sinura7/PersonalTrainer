@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DailyAgendaTest {
@@ -59,6 +60,43 @@ class DailyAgendaTest {
         val done = planned.copy(id = "d", status = OccurrenceStatus.DONE)
         val items = DailyAgenda.forDay(day, listOf(planned, done), listOf(rule("r", ScheduleModality.CARDIO)))
         assertEquals(listOf("p"), DailyAgenda.startable(items).map { it.occurrence.id })
+    }
+
+    @Test
+    fun todayMissedIsStartable() {
+        val day = 20_000L
+        val missed = occ("m", "r", day, 19).copy(status = OccurrenceStatus.MISSED)
+        val leftover = occ("y", "r-y", day - 1, 18).copy(status = OccurrenceStatus.MISSED)
+        val done = occ("d", "r-d", day, 7).copy(status = OccurrenceStatus.DONE)
+        val future = occ("f", "r-f", day + 1, 18).copy(status = OccurrenceStatus.MISSED)
+        val items = DailyAgenda.forDay(
+            day,
+            listOf(missed, done),
+            listOf(rule("r", ScheduleModality.STRENGTH), rule("r-d", ScheduleModality.STRENGTH)),
+        )
+        assertTrue(DailyAgenda.canOpenStart(items.first { it.occurrence.id == "m" }, day))
+        assertTrue(
+            DailyAgenda.canOpenStart(
+                DailyAgenda.forDay(
+                    day - 1,
+                    listOf(leftover),
+                    listOf(rule("r-y", ScheduleModality.STRENGTH)),
+                ).single(),
+                day,
+            ),
+        )
+        assertTrue(!DailyAgenda.canOpenStart(items.first { it.occurrence.id == "d" }, day))
+        assertTrue(
+            !DailyAgenda.canOpenStart(
+                DailyAgenda.forDay(
+                    day + 1,
+                    listOf(future),
+                    listOf(rule("r-f", ScheduleModality.STRENGTH)),
+                ).single(),
+                day,
+            ),
+        )
+        assertTrue(DailyAgenda.startable(items).isEmpty())
     }
 
     @Test

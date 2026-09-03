@@ -264,10 +264,11 @@ class MissedWorkPolicyTest {
     }
 
     @Test
-    fun todayBeforeScheduledTimeIsNotOverdue() {
-        val evening = occ("o1", "r1", today.epochDay, OccurrenceStatus.PLANNED, hour = 18)
-        assertTrue(MissedWorkPolicy.overdue(listOf(evening), today.epochDay, 12 * 60).isEmpty())
-        assertEquals(1, MissedWorkPolicy.overdue(listOf(evening), today.epochDay, 19 * 60).size)
+    fun eveningSessionIsNotOverdueUntilTomorrow() {
+        val evening = occ("o1", "r1", today.epochDay, OccurrenceStatus.PLANNED, hour = 19)
+        // 19:01 same civil day — still tonight.
+        assertTrue(MissedWorkPolicy.overdue(listOf(evening), today.epochDay).isEmpty())
+        assertEquals(1, MissedWorkPolicy.overdue(listOf(evening), today.plusDays(1).epochDay).size)
     }
 
     private fun rule(id: String, weekday: Weekday = Weekday.MONDAY) = ScheduleRule(

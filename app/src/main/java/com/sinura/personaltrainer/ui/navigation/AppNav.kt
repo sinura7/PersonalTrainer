@@ -91,6 +91,8 @@ import com.sinura.personaltrainer.ui.theme.instrumentTween
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.units.LocalClockFormat
+import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
+import com.sinura.personaltrainer.ui.units.rememberTodayEpochDay
 import com.sinura.personaltrainer.ui.activity.ActivityComposerScreen
 import com.sinura.personaltrainer.ui.activity.ActivityDetailScreen
 import com.sinura.personaltrainer.ui.activity.LiveCardioScreen
@@ -325,9 +327,11 @@ fun PersonalTrainerNav(
         }
     }
 
+    val todayEpochDay = rememberTodayEpochDay(container.time)
     CompositionLocalProvider(
         LocalWeightUnit provides weightUnit,
         LocalClockFormat provides clockFormat,
+        LocalTodayEpochDay provides todayEpochDay,
     ) {
         Scaffold(
             bottomBar = {
