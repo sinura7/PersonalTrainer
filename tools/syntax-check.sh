@@ -11,8 +11,8 @@ ROOT="${1:-app/src/main/java}"
 # environments that cannot reach Google's Maven and so can never run a Gradle build —
 # see tools/run-domain-tests.sh, which uses the same directory.
 CP=$(find "${GRADLE_USER_HOME:-$HOME/.gradle}/caches/modules-2" "${PT_JARS:-build/test-jars}" \( \
-  -name "kotlin-compiler-embeddable-*.jar" \
-  -o -name "kotlin-stdlib-2*.jar" \
+  -name "kotlin-compiler-embeddable-2.0.21.jar" \
+  -o -name "kotlin-stdlib-2.0.21.jar" \
   -o -name "kotlinx-coroutines-core-jvm-*.jar" \
   -o -name "trove4j-*.jar" \
   -o -name "annotations-*.jar" \) 2>/dev/null | tr '\n' ':')

@@ -37,6 +37,16 @@ DRIVE_AUTH = os.path.join(
     ROOT,
     "app/src/main/java/com/sinura/personaltrainer/data/backup/DriveAuthClient.kt",
 )
+LEDGER = os.path.join(ROOT, "gradle/verification-metadata.xml")
+KOTLIN_STDLIB_NAMES = {
+    "kotlin-stdlib",
+    "kotlin-stdlib-jdk7",
+    "kotlin-stdlib-jdk8",
+    "kotlin-stdlib-common",
+}
+LEDGER_COMPONENT = re.compile(
+    r'<component group="org\.jetbrains\.kotlin" name="([^"]+)" version="([^"]+)"',
+)
 
 REQUIRED = {
     "compileSdk": 36,
@@ -69,6 +79,22 @@ findings: list[str] = []
 def parse_semver(raw: str) -> tuple[int, ...]:
     parts = re.findall(r"\d+", raw)
     return tuple(int(part) for part in parts[:3]) + (0,) * max(0, 3 - len(parts))
+
+
+def kotlin_stdlib_ceiling_findings(ledger_text: str) -> list[str]:
+    """K2 tripwire: a 2.2 stdlib in the ledger stops the 2.0.21 compiler."""
+    found: list[str] = []
+    for name, version in LEDGER_COMPONENT.findall(ledger_text):
+        if name not in KOTLIN_STDLIB_NAMES:
+            continue
+        major_minor = parse_semver(version)[:2]
+        if major_minor >= (2, 2):
+            found.append(
+                "gradle/verification-metadata.xml  "
+                f"{name} {version} is Kotlin 2.2+; the signed compiler is "
+                "2.0.21 (one-version-ahead allows 2.1.x). That bump is packet K2.",
+            )
+    return found
 
 
 def main() -> int:
@@ -267,6 +293,13 @@ def main() -> int:
         body = open(generation, encoding="utf-8").read()
         if "const val FROZEN = true" not in body:
             findings.append("FoundationGeneration.kt  FROZEN must stay true after P5.7")
+
+    if not os.path.isfile(LEDGER):
+        findings.append("gradle/verification-metadata.xml  missing checksum ledger")
+    else:
+        findings.extend(
+            kotlin_stdlib_ceiling_findings(open(LEDGER, encoding="utf-8").read()),
+        )
 
     print(f"{len(findings)} sdk-target finding(s)")
     for item in findings:

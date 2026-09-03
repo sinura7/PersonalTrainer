@@ -1375,6 +1375,10 @@ checker that fails if a 2.2 standard library ever enters the ledger, and add
 ignore rules so Dependabot stops proposing the versions the toolchain
 reviews already refused.
 
+**Partly done.** Dependabot ignore rules landed with `#121`. The SDK
+checker tripwire landed 3 September 2026 (see *Floor findings*). The
+compiler train itself is untouched.
+
 ---
 
 # Definition of done for the program
@@ -1398,6 +1402,20 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — K2 tripwire ahead of the compiler train.** K2 is held.
+Its "until signed" work was a ledger tripwire plus Dependabot ignores.
+Ignores are on `trunk` (`#121`). `tools/check-sdk-target.py` and
+`SdkTargetTest` now fail if `kotlin-stdlib`, `kotlin-stdlib-jdk7`,
+`kotlin-stdlib-jdk8`, or `kotlin-stdlib-common` at 2.2+ enters
+`gradle/verification-metadata.xml`. 2.1.x stays legal. Preflight's
+`kotlin-stdlib-2*.jar` glob used `sort | tail -1`, so a 2.2.0 jar in
+the Gradle cache became the domain-lane stdlib even though it is not
+in the ledger. This packet pins preflight and `syntax-check.sh` to
+`kotlin-stdlib-2.0.21.jar` (not `2.0.21*.jar`, which prefers the
+`-all` artifact and lacks `Intrinsics`). J5 still owns the rest of
+jar selection. The train itself (Kotlin, KSP, AGP, Compose, Room) is
+not opened.
 
 **2026-09-03 — J4 Change: `runTest` is struck.** The first-half Change
 line named `runTest` plus a standard test dispatcher. The suite that
