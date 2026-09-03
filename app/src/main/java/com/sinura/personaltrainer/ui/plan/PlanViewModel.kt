@@ -182,13 +182,12 @@ class PlanViewModel @JvmOverloads constructor(
         if (current == null) return@combine PlanUiState()
         val zone = time.defaultZoneId()
         val today = todayEpochDay()
-        val nowMinutes = currentMinutesOfDay()
         val weekStart = current.weekPlan?.weekStartEpochDay
             ?: CivilDate.fromEpochDay(today).previousOrSame(settings.preferences.weekStart).epochDay
         val weekOcc = planner.occurrences.filter {
             it.localEpochDay in weekStart..(weekStart + 6)
         }
-        val overdue = MissedWorkPolicy.overdue(weekOcc, today, nowMinutes)
+        val overdue = MissedWorkPolicy.overdue(weekOcc, today)
         val decision = planner.decisions.firstOrNull { it.weekStartEpochDay == weekStart }
         PlanUiState(
             isLoading = false,

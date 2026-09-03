@@ -48,7 +48,7 @@ import com.sinura.personaltrainer.domain.WeekBoard
 import com.sinura.personaltrainer.domain.WeekTwoCopy
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
-import com.sinura.personaltrainer.domain.todayEpochDay
+import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GroupedList
@@ -267,7 +267,7 @@ fun PlanScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val navigateToEditor by viewModel.navigateToEditor.collectAsStateWithLifecycle()
     val dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM)
-    val today = remember { todayEpochDay() }
+    val today = LocalTodayEpochDay.current
 
     var pendingDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedEpochDay by rememberSaveable { mutableLongStateOf(today) }

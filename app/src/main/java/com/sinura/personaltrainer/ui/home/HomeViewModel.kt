@@ -111,15 +111,13 @@ class HomeViewModel @JvmOverloads constructor(
         val decisions = extras.first.second.third
         val cadence = extras.second
         val today = todayEpochDay()
-        val now = time.captureNow()
-        val nowMinutes = time.wallMinutesOfDay(now.instantMillis, now.zoneId)
         val weekStart = insights.weekPlan?.weekStartEpochDay
             ?: CivilDate.fromEpochDay(today).previousOrSame(
                 insights.weekPlan?.preferences?.weekStart
                     ?: cadence.preferences.weekStart,
             ).epochDay
         val weekOcc = occurrences.filter { it.localEpochDay in weekStart..(weekStart + 6) }
-        val overdue = MissedWorkPolicy.overdue(weekOcc, today, nowMinutes)
+        val overdue = MissedWorkPolicy.overdue(weekOcc, today)
         val decision = decisions.firstOrNull { it.weekStartEpochDay == weekStart }
         HomeUiState(
             isLoading = false,

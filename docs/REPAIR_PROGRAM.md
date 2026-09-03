@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1, C2, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1, C2, C3, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase C is next. K1 and K2 stay held.  
+`tools/` remain owed. Phase C next is C4. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -77,7 +77,7 @@ the gym floor, are fifteen of them.
 | B4 | Timer surfaces stop lying | 1 | — | Timer | done |
 | C1 | Nothing is born overdue | 1 | — | Week | done |
 | C2 | Rebuild keeps what you added; rules retire | 1 | 5 | Week | done |
-| C3 | Tonight is startable, and today knows the time | 1 | 2 | Week | |
+| C3 | Tonight is startable, and today knows the time | 1 | 2 | Week | done |
 | C4 | Planner and session writes are atomic | 1 | — | Week | |
 | D1 | The start sheet gets a home (or a grave) | 1 | 1 | Paths | |
 | D2 | Reminder Start works from anywhere | 1 | — | Paths | |
@@ -537,7 +537,7 @@ use `retireOrDeleteRuleLocked`.
 `data/repository/PlannerRepository.kt`,
 `data/repository/RoutineRepository.kt`.
 
-## C3 — Tonight is startable, and today knows the time · needs decision 2
+## C3 — Tonight is startable, and today knows the time · done on `trunk`
 
 **Symptom.** Session set for 18:00. At 18:01 Home says one session was not
 done. Tap "Keep the dates" — the row loses its Start. You are in the gym and
@@ -546,25 +546,20 @@ Move instead pushes tonight's session to tomorrow. Separately, leave the app
 open overnight and Plan still marks yesterday as today; its Add session
 button opens yesterday and refuses to add.
 
-**Cause.** `MissedWorkPolicy.kt:19-20` counts a today row overdue one minute
+**Cause.** ~~`MissedWorkPolicy.kt:19-20` counts a today row overdue one minute
 past its hour, and Keep marks it MISSED (`:50-54`), while
 `DailyAgendaCard.canOpenStart` (`:339-344`) only starts a MISSED row that is
 a leftover from an earlier day. The stale date is `remember { }` around the
 clock: `PlanScreen.kt:270`, `HistoryScreen.kt:99`, and Home's unmemoised
-read with no resume trigger (`HomeScreen.kt:173`).
+read with no resume trigger (`HomeScreen.kt:173`).~~
+**Struck 2026-09-03 (this packet).** Decision 2: overdue is
+`localEpochDay < today`. Today-MISSED stays startable.
+`TodayTicker` re-reads on resume and at local midnight.
 
-**Change.**
-1. Per decision 2, overdue becomes day-based: only rows before today count,
-   so the prompt is a morning event.
-2. Let `canOpenStart` accept a MISSED row dated today — `MoveToToday.decide`
-   already resolves it to "already there".
-3. Add one `TodayTicker` that re-reads on `ON_RESUME` and at the next local
-   midnight, provide it through a composition local, and replace every
-   `todayEpochDay()` / `LocalDate.now()` read in composition with it.
+**Change.** Shipped: decision 2. Keep-dates is a morning event.
 
-**Proof.** A policy test that a 19:00 row is not overdue at 19:01 but is
-tomorrow morning; an agenda test that a today-MISSED row is startable; a
-ticker test across a midnight boundary with a frozen clock.
+**Proof.** `eveningSessionIsNotOverdueUntilTomorrow`,
+`todayMissedIsStartable`, `tickerCrossesMidnightOnFrozenTime`.
 
 **Owns.** `domain/MissedWorkPolicy.kt` *(after C2)*,
 `ui/home/DailyAgendaCard.kt`, new `ui/units/TodayTicker.kt`,
@@ -1441,6 +1436,15 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — C3: missed is the civil day; ticker at nav.** Decision
+2. `overdue()` dropped the minutes parameter; `apply()` still
+passes `nowMinutesOfDay` into `generateWeek` skip. Startability
+moved to `DailyAgenda.canOpenStart` so the agenda proof is JVM.
+`AppNav` hosts the composition local next to weight/clock.
+`PlanDayScreen` also read `todayEpochDay()` in composition — same
+overnight freeze as Plan. History's Cause line `:99` was already
+the snackbar; calendar today now uses the ticker. Count +2.
 
 **2026-09-03 — C2: retire instead of CASCADE-delete.** Decision 5.
 `RoutineRepository` gained optional `database`/`planner` so editor

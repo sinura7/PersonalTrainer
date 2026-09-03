@@ -12,13 +12,11 @@ object MissedWorkPolicy {
     fun overdue(
         occurrences: List<ScheduleOccurrence>,
         todayEpochDay: Long,
-        nowMinutesOfDay: Int,
     ): List<ScheduleOccurrence> = occurrences.filter { item ->
+        // Missed means the civil day is over. Tonight's 19:00 row is
+        // still tonight at 19:01; Keep-dates is a morning event.
         item.status == OccurrenceStatus.PLANNED &&
-            (
-                item.localEpochDay < todayEpochDay ||
-                    (item.localEpochDay == todayEpochDay && item.minutesOfDay < nowMinutesOfDay)
-                )
+            item.localEpochDay < todayEpochDay
     }
 
     fun promptNeeded(
@@ -44,7 +42,7 @@ object MissedWorkPolicy {
         deviceZoneId: String,
         rules: List<ScheduleRule> = emptyList(),
     ): ApplyResult {
-        val due = overdue(occurrences, todayEpochDay, nowMinutesOfDay)
+        val due = overdue(occurrences, todayEpochDay)
         val dueIds = due.map { it.id }.toSet()
         return when (choice) {
             MissedWorkChoice.KEEP_DATES -> ApplyResult(

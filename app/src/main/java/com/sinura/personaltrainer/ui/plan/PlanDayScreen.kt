@@ -39,7 +39,7 @@ import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.sessionLiftNames
-import com.sinura.personaltrainer.domain.todayEpochDay
+import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
@@ -69,7 +69,7 @@ fun PlanDayScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val navigateToEditor by viewModel.navigateToEditor.collectAsStateWithLifecycle()
-    val today = todayEpochDay()
+    val today = LocalTodayEpochDay.current
     val isPast = epochDay < today
     val weekday = Weekday.fromEpochDay(epochDay)
     val day = state.week?.days?.firstOrNull { it.epochDay == epochDay }
