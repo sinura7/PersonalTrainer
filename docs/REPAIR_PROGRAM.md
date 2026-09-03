@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, J4 (seams, TimePort, scheduler
-polish), and the J3 ledger slice are on `trunk`. Policy tests into
-`tools/` remain owed. B1, J2, J3 remainder, J5, and J1 remain.
+**Status:** in progress — Phase A, B3, B4, B1, J4 (seams, TimePort,
+scheduler polish), and the J3 ledger slice are on `trunk`. Policy
+tests into `tools/` remain owed. J2, J3 remainder, J5, and J1 remain.
 Phase C has not started.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
@@ -72,7 +72,7 @@ the gym floor, are fifteen of them.
 | A4 | Restore reports what actually happened | 1 | — | Truth | done |
 | A5 | The coach reads all of your history | 1 | — | Truth | done |
 | A6 | Records and deload read assisted lifts correctly | 1 | — | Truth | done |
-| B1 | The rest service stops when the rest does | 2 | — | Timer | |
+| B1 | The rest service stops when the rest does | 2 | — | Timer | done |
 | B2 | The cue plays where you can hear it | 1 | 3 | Timer | |
 | B3 | A late rest still announces itself | 1 | — | Timer | done |
 | B4 | Timer surfaces stop lying | 1 | — | Timer | done |
@@ -328,40 +328,40 @@ is asleep in your pocket, and it is the one with the most ways to fail
 silently. Every packet here carries a phone gate; none of them is finished
 on a green test alone.
 
-## B1 — The rest service stops when the rest does · 2 evenings
+## B1 — The rest service stops when the rest does · done on `trunk`
 
 **Symptom.** Screen off, rest ends. The alarm fires, the cue plays — and the
 ongoing "Rest" card never leaves the shade. It counts backwards, "−0:42",
 with live +15s and Skip buttons, for roughly as long as the rest was.
 Tapping it opens the lock-screen page, which immediately closes.
 
-**Cause.** On the alarm path `RestTimerCompletion.kt:58-67` stops the store
-with `stopIfCurrent(id, fromService = true)`, and `RestTimerController.stop`
-(`:100-111`) deliberately skips `ACTION_STOP` when the call came from the
-service. The follow-up `NotificationManager.cancel(RUNNING_ID)` cannot
-remove a foreground-service notification — its own comment says the service
-teardown does that. The teardown is
+**Cause.** ~~On the alarm path `RestTimerCompletion.kt:58-67` stops the
+store with `stopIfCurrent(id, fromService = true)`, and
+`RestTimerController.stop` (`:100-111`) deliberately skips `ACTION_STOP`
+when the call came from the service. The follow-up
+`NotificationManager.cancel(RUNNING_ID)` cannot remove a
+foreground-service notification. The teardown is
 `handler.postDelayed(completeRunnable, delayMs)`
-(`RestTimerService.kt:103-104`), an uptime-clock timer that does not advance
-while the CPU is suspended, so it fires only after the phone has been awake
-as long as it slept.
+(`RestTimerService.kt:103-104`), an uptime-clock timer that does not
+advance while the CPU is suspended.~~ **Struck 2026-09-03 (this
+packet).** `completeOnce` now goes through `completeIfCurrent`. The
+service collects `snapshot` and `stopNow()` when it is no longer
+running. `cancel(RUNNING_ID)` is gone from `completeOnce`.
 
-**Change.**
-1. In `RestTimerService.onCreate`, collect `controller.snapshot` and call
-   `stopNow()` the moment it reports not running. The service then follows
-   its source of truth instead of racing a handler.
-2. Drop the ineffective `cancel(RUNNING_ID)` from `completeOnce`.
-3. Keep the last `startId` and use `stopSelf(startId)`, and in `onComplete`
-   only tear down when nothing is running — today a "+15s" tapped as the
-   clock hits zero leaves the extension running with no card and no
-   controls (`RestTimerService.kt:159-188`).
+**Change.** Shipped: `onCreate` collects `controller.snapshot` and
+calls `stopNow()` after a rest has been seen running. Drop
+`cancel(RUNNING_ID)` from `completeOnce`. Keep last `startId` and
+`stopSelf(startId)`. `handleDeadline` only tears down when nothing is
+running — a "+15s" that minted a newer id leaves the card up.
 
-**Proof.** A Robolectric service test: completion through the alarm path
-stops the service and removes the notification; a +15 s extension claimed
-mid-completion leaves the service alive with a running card.
+**Proof.** `RestTimerServiceTest.alarmPathCompletionStopsTheServiceAndRemovesTheRunningCard`
+and `addFifteenClaimedMidCompletionLeavesTheServiceAlive`. Green on
+this branch.
 
 **Phone gate.** 60-second rest, screen off, `adb shell dumpsys deviceidle
 force-idle`. The cue fires on time *and* the shade is clean afterwards.
+Owner, after this merge: Obtainium Temper Debug live test 19
+(`debugLiveCode` 19, tag `debug-live-2026-09-03`).
 
 **Owns.** `timer/RestTimerService.kt`, `timer/RestTimerCompletion.kt`,
 `timer/RestTimerController.kt`.
@@ -1411,6 +1411,15 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — B1: snapshot collector plus handleDeadline, not a
+handler-only teardown.** Alarm-path completion never started the
+service with a new `startId`, so `stopSelf(startId)` alone cannot be
+the shade-clean path. `onCreate` collects `snapshot` and calls
+`stopNow()` after a rest has been seen running. `handleDeadline`
+takes the captured snapshot so a +15s mint of a newer id can be
+proved without racing the main looper. `debugLiveCode` 18 → 19 so
+Obtainium offers the service fix. Count +2.
 
 **2026-09-03 — B4: lastCompletedTimerId on B1-owned
 RestTimerCompletion.** The gold flash cannot key off a completion id
