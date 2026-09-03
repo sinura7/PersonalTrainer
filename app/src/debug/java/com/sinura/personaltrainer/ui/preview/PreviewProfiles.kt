@@ -15,6 +15,13 @@ annotation class TemperWidthPreviews
 
 /** Stress profiles required by every later UI packet. */
 @Preview(
+    name = "Phone 360 · font 1.6",
+    group = "Accessibility",
+    widthDp = 360,
+    heightDp = 1000,
+    fontScale = 1.6f,
+)
+@Preview(
     name = "Phone 360 · font 2.0",
     group = "Accessibility",
     widthDp = 360,

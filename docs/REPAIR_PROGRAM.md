@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F3, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F4, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase F continues at F4. K1 and K2 stay held.  
+`tools/` remain owed. Phase F continues at F5. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -89,7 +89,7 @@ the gym floor, are fifteen of them.
 | F1 | The logging loop keeps the wells on screen | 1 | — | Design I | done |
 | F2 | One green button per screen | 1 | 4 | Design I | done |
 | F3 | Text you can read in a gym | 1 | — | Design I | done |
-| F4 | Big text does not break the screen | 2 | — | Design I | |
+| F4 | Big text does not break the screen | 2 | — | Design I | done |
 | F5 | One word per thing | 1 | — | Design I | |
 | F6 | Today is not buried by the missed-work card | 1 | — | Design I | |
 | G1 | A screen reader can use Temper | 3 | — | Design II | |
@@ -987,6 +987,10 @@ and the bar title are fully displayed.
 `ui/home/HomeScreen.kt` *(after E4)*, `ui/summary/WorkoutSummaryScreen.kt`,
 `ui/activity/ActivityDetailScreen.kt`, `ui/onboarding/OnboardingScreen.kt`.
 
+**On trunk.** `tileNumeral` keeps the painted 36 sp once wells stack.
+Home / Summary / Activity tiles stack at 1.6. Live-bar rest and sets
+hide at that scale. Body and onboarding chips use FlowRow. Count +2.
+
 ## F5 — One word per thing
 
 **Symptom.** The Library route says "exercise" six times where the rest of
@@ -1475,6 +1479,15 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — F4: tiles stack; numerals keep painted size.** Proof is
+JVM (`tileNumeralShrinksOnceWellsStack`,
+`liveBarClusterHidesWhenTilesStack`), not an instrumented font-2.0
+page pass — `compose-ui-test-junit4` is still off
+`testImplementation`. `tileNumeral` divides 36/40 sp by scale rather
+than stepping to `numeralMd`, because `numeralMd` would still double
+at 2.0. `PreviewProfiles` gains a 360×1000 font-1.6 preview (debug,
+not in Owns). Count +2.
 
 **2026-09-03 — F3: TextTertiary is readable; TextDisabled is the old grey.**
 Proof is JVM (`everyLoadBearingTextOnSurfaceClearsAa`). 93 call sites
