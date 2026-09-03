@@ -13,7 +13,6 @@ import com.sinura.personaltrainer.domain.HomeToday
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.TodaySheetStart
 import com.sinura.personaltrainer.domain.WeekBoard
-import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.workout.StartCardioOutcome
 import com.sinura.personaltrainer.workout.StartDayOutcome
 import com.sinura.personaltrainer.workout.StartOccurrenceOutcome
