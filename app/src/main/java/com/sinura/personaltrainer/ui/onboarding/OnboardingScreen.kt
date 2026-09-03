@@ -17,10 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -63,6 +59,7 @@ import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
+import com.sinura.personaltrainer.ui.components.ScreenHeader
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -181,20 +178,16 @@ fun OnboardingScreen(
 
 @Composable
 private fun OnboardingHeader(state: OnboardingUiState, onBack: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onBack) {
-            Icon(
-                Icons.AutoMirrored.Outlined.ArrowBack,
-                contentDescription = "Back",
-                tint = TextSecondary,
-            )
-        }
-        // A count, not a bar. Seven is a number small enough to say out loud, and "2 of 7"
-        // tells the lifter how much is left far more precisely than a partly-filled line.
-        if (state.step.isQuestion) {
-            Kicker("Question ${state.questionNumber} of ${state.questionCount}")
-        }
-    }
+    ScreenHeader(
+        title = if (state.step.isQuestion) {
+            "Question ${state.questionNumber} of ${state.questionCount}"
+        } else {
+            ""
+        },
+        onBack = onBack,
+        kickerTitle = state.step.isQuestion,
+        paintBackground = false,
+    )
 }
 
 /** One tappable answer. Selecting it also advances — a single choice needs no second tap. */

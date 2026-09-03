@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -55,6 +54,7 @@ import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.OutlinedMarks
+import com.sinura.personaltrainer.ui.components.PinnedDock
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
@@ -395,25 +395,22 @@ private fun RecordMark(record: Boolean) {
  *  Owns the system-nav inset: this route has no tab bar. */
 @Composable
 internal fun SummaryActions(onDone: () -> Unit, onOpenSession: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Pit)
-            .navigationBarsPadding()
-            .padding(horizontal = Metrics.gutter, vertical = Metrics.space3),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-    ) {
-        PrimaryGymButton(
-            text = "Done",
-            onClick = onDone,
-            modifier = Modifier.testTag(SummaryTags.DONE),
-        )
-        SecondaryGymButton(
-            text = "See full session",
-            onClick = onOpenSession,
-            modifier = Modifier.testTag(SummaryTags.OPEN_SESSION),
-        )
-    }
+    PinnedDock(
+        volt = {
+            PrimaryGymButton(
+                text = "Done",
+                onClick = onDone,
+                modifier = Modifier.testTag(SummaryTags.DONE),
+            )
+        },
+        secondary = {
+            SecondaryGymButton(
+                text = "See full session",
+                onClick = onOpenSession,
+                modifier = Modifier.testTag(SummaryTags.OPEN_SESSION),
+            )
+        },
+    )
 }
 
 object SummaryTags {

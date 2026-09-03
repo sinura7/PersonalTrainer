@@ -16,12 +16,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -63,6 +59,7 @@ import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.LabelledTrend
 import com.sinura.personaltrainer.ui.components.MetricCluster
+import com.sinura.personaltrainer.ui.components.ScreenHeader
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.components.StatTile
@@ -408,44 +405,21 @@ internal fun ExerciseDetailHeader(
     exercise: Exercise?,
     onBack: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Pit)
-            .padding(start = Metrics.space2, end = Metrics.space4, bottom = Metrics.space2),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier.testTag(ExerciseDetailTags.BACK),
-        ) {
-            Icon(
-                Icons.AutoMirrored.Outlined.ArrowBack,
-                contentDescription = "Back",
-                tint = TextSecondary,
-            )
-        }
-        // Absent rather than a blank square while loading: a placeholder that appears and then
-        // becomes something else is a layout shift on the first thing the eye lands on.
-        if (exercise != null) {
-            ExerciseThumb(
-                exercise = exercise,
-                modifier = Modifier.padding(end = Metrics.space3),
-                size = ThumbSize.header,
-            )
-        }
-        Text(
-            name,
-            modifier = Modifier.weight(1f),
-            style = InstrumentType.title,
-            color = TextPrimary,
-            // Two lines because this title is user data: "Incline Dumbbell Press" does not fit
-            // one line at display size, and truncating a lift's own name on its own screen is
-            // worse than a taller header.
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
+    ScreenHeader(
+        title = name,
+        onBack = onBack,
+        backTag = ExerciseDetailTags.BACK,
+        titleMaxLines = 2,
+        leading = {
+            if (exercise != null) {
+                ExerciseThumb(
+                    exercise = exercise,
+                    modifier = Modifier.padding(end = Metrics.space3),
+                    size = ThumbSize.header,
+                )
+            }
+        },
+    )
 }
 
 /**

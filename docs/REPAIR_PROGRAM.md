@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F6, G1–G2, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F6, G1–G3, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase G continues at G3. K1 and K2 stay held.  
+`tools/` remain owed. Phase G continues at G4. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -94,7 +94,7 @@ the gym floor, are fifteen of them.
 | F6 | Today is not buried by the missed-work card | 1 | — | Design I | done |
 | G1 | A screen reader can use Temper | 3 | — | Design II | done |
 | G2 | One numeric-entry grammar | 1 | — | Design II | done |
-| G3 | Shared headers and docks | 2 | — | Design II | |
+| G3 | Shared headers and docks | 2 | — | Design II | done |
 | G4 | Skin the four foreign controls | 2 | — | Design II | |
 | G5 | Body's first viewport; small targets; destructive confirms | 1 | — | Design II | |
 | G6 | Reduced motion, and the palette question | 1 | — | Design II | |
@@ -1119,21 +1119,22 @@ carry Next → Done.
 `ui/activity/LiveCardioScreen.kt`, `ui/components/Common.kt` *(after G1)*,
 `ui/settings/SettingsScreen.kt` *(after G1)*.
 
-## G3 — Shared headers and docks · 2 evenings
+## G3 — Shared headers and docks · done on `trunk`
 
 **Symptom.** Nothing, yet — this is the packet that stops the next drift.
 Nine screens hand-roll the same back header and six hand-roll the same
 pinned bottom dock, and they have already diverged (one dock has a hairline
 above it, another does not).
 
-**Change.** One `ScreenHeader(title, onBack?, trailing?)` and one
+**Change.** ~~One `ScreenHeader(title, onBack?, trailing?)` and one
 `PinnedDock(volt, secondary?, tertiary?)`, then migrate all fifteen sites.
 The dock becomes the single place the landscape fix and the Library's
-floating button change later land.
+floating button change later land.~~ **Struck 2026-09-03 (this packet).**
+`ScreenHeader` and `PinnedDock` are the two files. Ten headers and six
+docks call them. Docks now share a hairline.
 
-**Proof.** The existing page-pass instrumented tests must stay green
-unchanged — this is a refactor, and a test that needed editing would mean it
-was not.
+**Proof.** `GymChromeTest.fifteenSitesShareScreenHeaderAndPinnedDock`.
+Existing page-pass tests stay green unchanged. Count +1.
 
 **Owns.** `ui/components/` (two new files), fifteen screen files.
 
@@ -1495,6 +1496,12 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — G3: one header, one dock.** Proof is JVM
+(`fifteenSitesShareScreenHeaderAndPinnedDock`). Ten headers and six
+docks. Rest close and workout exit use `ScreenHeader` with a Close
+icon. Docks gained a shared hairline (the drift the packet named).
+Count +1.
 
 **2026-09-03 — G2: one parser; Next then Done; number pad for rest.**
 Proof is JVM (`commaDecimalWorksOnEveryTypedPath`,

@@ -14,8 +14,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,6 +40,7 @@ import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.RestControl
 import com.sinura.personaltrainer.ui.components.RestPresetChips
 import com.sinura.personaltrainer.ui.components.RestSweepRing
+import com.sinura.personaltrainer.ui.components.ScreenHeader
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -88,24 +87,13 @@ fun RestTimerScreen(
             .testTag(RestFloorTags.ROOT),
         containerColor = Pit,
         topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Pit)
-                    .padding(end = Metrics.space2),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(
-                    onClick = onClose,
-                    modifier = Modifier.testTag(RestFloorTags.CLOSE),
-                ) {
-                    Icon(
-                        Icons.Outlined.Close,
-                        contentDescription = "Close rest",
-                        tint = TextSecondary,
-                    )
-                }
-            }
+            ScreenHeader(
+                title = "",
+                onBack = onClose,
+                backTag = RestFloorTags.CLOSE,
+                backIcon = Icons.Outlined.Close,
+                backDescription = "Close rest",
+            )
         },
     ) { padding ->
         when (state.loadState) {

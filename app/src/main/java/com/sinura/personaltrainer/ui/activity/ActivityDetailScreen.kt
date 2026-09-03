@@ -8,14 +8,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,7 +34,9 @@ import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.components.PinnedDock
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.components.ScreenHeader
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.StatTile
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -137,31 +134,13 @@ private fun ActivityDetailHeader(
     title: String,
     onBack: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(end = Metrics.space2, bottom = Metrics.space2),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier.testTag(ActivityDetailTags.BACK),
-        ) {
-            Icon(
-                Icons.AutoMirrored.Outlined.ArrowBack,
-                contentDescription = ActivityDetailCopy.BACK,
-                tint = TextSecondary,
-            )
-        }
-        Text(
-            title,
-            modifier = Modifier.weight(1f),
-            style = InstrumentType.title,
-            color = TextPrimary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
+    ScreenHeader(
+        title = title,
+        onBack = onBack,
+        backTag = ActivityDetailTags.BACK,
+        backDescription = ActivityDetailCopy.BACK,
+        paintBackground = false,
+    )
 }
 
 @Composable
@@ -306,20 +285,15 @@ private fun ActivityMetricTiles(
  */
 @Composable
 internal fun ActivityDoneBar(onDone: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Pit)
-            .navigationBarsPadding()
-            .padding(horizontal = Metrics.gutter, vertical = Metrics.space3),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-    ) {
-        PrimaryGymButton(
-            text = ActivityDetailCopy.DONE,
-            onClick = onDone,
-            modifier = Modifier.testTag(ActivityDetailTags.DONE),
-        )
-    }
+    PinnedDock(
+        volt = {
+            PrimaryGymButton(
+                text = ActivityDetailCopy.DONE,
+                onClick = onDone,
+                modifier = Modifier.testTag(ActivityDetailTags.DONE),
+            )
+        },
+    )
 }
 
 @Composable
