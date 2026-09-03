@@ -36,19 +36,23 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from kotlin_source import kotlin_files, strip_comments_and_strings  # noqa: E402
+from checker_baseline import load as load_baselines, report as report_baseline  # noqa: E402
+from kotlin_source import kotlin_files_in, strip_comments_and_strings  # noqa: E402
 
-MAIN_ROOT = sys.argv[1] if len(sys.argv) > 1 else "app/src/main/java"
+ROOTS = sys.argv[1:] or ["app/src/main/java", "app/src/debug/java"]
 
-STATE_CLASS_RE = re.compile(r"data class (\w*UiState)\s*\(", re.S)
+# Owner is the StateFlow type name, not the *UiState suffix. RestTimerScreenState
+# is a screen state that the old suffix-only regex skipped.
+STATE_CLASS_RE = re.compile(r"data class (\w+)\s*\(", re.S)
 PROP_RE = re.compile(r"\bva[lr]\s+(\w+)\s*(?::|=)")
 # Members reached with `state.foo(...)` are just as real as `state.foo`, and a state class
 # earns a body function whenever a derivation depends on more than one of its own fields.
 METHOD_RE = re.compile(r"\bfun\s+(?:<[^>]*>\s*)?(\w+)\s*\(")
 VM_CLASS_RE = re.compile(r"\bclass\s+(\w+ViewModel)\b")
-VM_STATE_RE = re.compile(r"\bval\s+uiState\s*:\s*StateFlow<\s*(\w+)\s*>")
+VM_STATE_RE = re.compile(r"\bval\s+uiState\s*:\s*StateFlow<\s*(\w+)\s*\??\s*>")
 MENTION_VM_RE = re.compile(r"\b(\w+ViewModel)\b")
 READ_RE = re.compile(r"\bstate\.(\w+)")
+STATE_PARAM_RE = re.compile(r"\bstate\s*:\s*(\w+)")
 
 # Members every data class has without declaring them.
 DATA_CLASS_MEMBERS = {"copy", "equals", "hashCode", "toString"}
@@ -104,41 +108,62 @@ def view_model_states(files):
     return index
 
 
+def owner_for(path, body, view_models, index):
+    mentioned = [name for name in MENTION_VM_RE.findall(body) if name in view_models]
+    owners = {view_models[name] for name in mentioned} & index.keys()
+    if len(owners) == 1:
+        return owners.pop(), None
+    param_types = {name for name in STATE_PARAM_RE.findall(body) if name in index}
+    if len(param_types) == 1:
+        return param_types.pop(), None
+    if not mentioned and not param_types:
+        return None, f"{path}: skipped — no typed uiState ViewModel or state: parameter"
+    return None, (
+        f"{path}: skipped — typed state receiver is not unique "
+        f"(view models {sorted(set(mentioned))}, "
+        f"state: types {sorted(param_types)})"
+    )
+
+
 def main():
-    if not os.path.isdir(MAIN_ROOT):
-        print(f"No Kotlin sources under {MAIN_ROOT}", file=sys.stderr)
+    files = kotlin_files_in(ROOTS)
+    if not files:
+        print(f"No Kotlin sources under {', '.join(ROOTS)}", file=sys.stderr)
         return 0
-    files = kotlin_files(MAIN_ROOT)
     index = state_classes(files)
     view_models = view_model_states(files)
 
-    findings, skipped, checked = [], 0, 0
+    findings, skipped_lines, checked = [], [], 0
     for path in sorted(files):
         body = strip_comments_and_strings(open(path, encoding="utf-8").read())
         reads = set(READ_RE.findall(body))
         if not reads:
             continue
-        owners = {view_models[name] for name in MENTION_VM_RE.findall(body) if name in view_models}
-        owners &= index.keys()
-        if len(owners) != 1:
-            # Ambiguous receiver: two view models in one file, or a `state` that belongs to
-            # something else. Guessing here would produce noise, not findings.
-            skipped += 1
+        owner, reason = owner_for(path, body, view_models, index)
+        if reason is not None:
+            skipped_lines.append(reason)
             continue
-        owner = owners.pop()
         checked += 1
         for name in sorted(reads - index[owner] - DATA_CLASS_MEMBERS):
             findings.append((path, owner, name))
 
     for path, owner, name in findings:
         print(f"{path}: 'state.{name}' is not a property of {owner}")
+    for line in skipped_lines:
+        print(line)
 
     print(f"\n{len(findings)} unresolved state member(s); "
           f"{checked} file(s) checked against {len(index)} state class(es), "
-          f"{skipped} skipped as ambiguous")
+          f"{len(skipped_lines)} skipped")
+    baselines = load_baselines()
+    growth = report_baseline("skips", "state_members", len(skipped_lines), baselines)
     # 1, not len(findings): POSIX truncates exit status to 8 bits, so exactly
     # 256 findings would exit 0 and pass preflight.
-    return 1 if findings else 0
+    if findings or growth:
+        if growth:
+            print(growth)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

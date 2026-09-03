@@ -1,0 +1,26 @@
+# Ceilings for checker skips and advisory token families.
+# Growth past a number fails the gate. A drop still passes; ratchet this file.
+
+[skips]
+# RestTimerController.kt: `state.` is the store snapshot, not a screen UiState.
+state_members = 1
+required_args_mixed = 169
+required_args_lambda = 47
+when_exhaustive = 47
+
+[tokens]
+alpha_copy = 6
+named_color = 2
+rounded_percent = 2
+circle = 7
+raw_dp = 18
+sp_style = 0
+motion = 21
+haptic = 0
+m3_scheme = 0
+stock_icons = 19
+shadow = 0
+defaults_elevation = 1
+stock_component = 4
+xml_hex = 12
+xml_monospace = 2

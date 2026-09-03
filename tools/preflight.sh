@@ -20,6 +20,20 @@ step() { printf '\n== %s\n' "$*"; }
 
 # --- jar bootstrap (needed by syntax-check.sh and run-domain-tests.sh) --------
 JARS="${PT_JARS:-build/test-jars}"
+CATALOG=gradle/libs.versions.toml
+
+catalog_ver() {
+    key="$1"
+    sed -n "/^\\[versions\\]/,/^\\[/{ s/^${key} = \"\\(.*\\)\"/\\1/p; }" "$CATALOG" | head -1
+}
+
+KOTLIN="$(catalog_ver kotlin)"
+COROUTINES="$(catalog_ver coroutines)"
+JUNIT="$(catalog_ver junit)"
+GSON="$(catalog_ver gson)"
+KOTLIN="${KOTLIN:-2.0.21}"
+export PT_KOTLIN="$KOTLIN"
+export PT_COROUTINES="$COROUTINES"
 
 bootstrap_jars() {
     dest="$1"
@@ -36,13 +50,10 @@ bootstrap_jars() {
     fi
     [ -n "$roots" ] || return 1
     mkdir -p "$dest"
-    # Each line is "filename-glob [optional path fragment]". The path fragment
-    # keeps Robolectric's annotations-4.14.1.jar and junit-4.14.1.jar from
-    # winning the sort: those packages do not contain
-    # org.jetbrains.annotations.NotNull, and the domain-test lane then dies
-    # with NoClassDefFoundError on the first Kotlin file that uses it.
-    # Kotlin jars must be 2.x: a 1.9 compiler from an old Gradle distribution
-    # cannot be trusted to compile this project's Kotlin 2.0 sources.
+    # Catalogue versions for Kotlin / coroutines / junit / gson. Hamcrest, Trove
+    # and annotations are not in the version catalogue; those still use a glob
+    # plus a contents check so `sort | tail -1` cannot pick a 2.2 stdlib or
+    # Robolectric's annotations jar.
     find_jar() {
         pat="$1"
         must="${2:-}"
@@ -62,41 +73,52 @@ bootstrap_jars() {
         fi
         ln -sf "$jar" "$dest/"
     }
-    find_jar 'kotlin-compiler-embeddable-2.0.21.jar' || return 1
-    find_jar 'kotlin-stdlib-2.0.21.jar' || return 1
-    find_jar 'kotlinx-coroutines-core-jvm-*.jar' || return 1
-    find_jar 'junit-4*.jar' 'junit/junit/' || return 1
+    find_jar "kotlin-compiler-embeddable-${KOTLIN}.jar" || return 1
+    find_jar "kotlin-stdlib-${KOTLIN}.jar" || return 1
+    find_jar "kotlinx-coroutines-core-jvm-${COROUTINES}.jar" || return 1
+    find_jar "junit-${JUNIT}.jar" 'junit/junit/' || return 1
     find_jar 'hamcrest-core-*.jar' || return 1
     find_jar 'trove4j-*.jar' || return 1
     find_jar 'annotations-*.jar' 'org.jetbrains/annotations/' || return 1
     # Optional: absence disables the backup lane but must not fail the bootstrap,
     # so this runs as its own loop rather than being added to the list above.
-    for pat in 'gson-2*.jar'; do
+    if [ -n "$GSON" ]; then
         jar=""
         for r in $roots; do
-            jar="$(find "$r" -name "$pat" 2>/dev/null | sort | tail -1)"
+            jar="$(find "$r" -name "gson-${GSON}.jar" 2>/dev/null | sort | tail -1)"
             [ -n "$jar" ] && break
         done
         if [ -n "$jar" ]; then
             ln -sf "$jar" "$dest/"
         else
-            echo "preflight: no $pat found — backup tests will be skipped" >&2
+            echo "preflight: no gson-${GSON}.jar found — backup tests will be skipped" >&2
         fi
-    done
-    echo "preflight: assembled test jars in $dest"
+    fi
+    echo "preflight: assembled test jars in $dest (kotlin=$KOTLIN coroutines=$COROUTINES junit=$JUNIT)"
+}
+
+jar_has_class() {
+    jar="$1"
+    class="$2"
+    [ -e "$jar" ] || return 1
+    unzip -l "$jar" 2>/dev/null | grep -q "$class"
 }
 
 jars_usable() {
     [ -n "$(find "$JARS" -name '*.jar' 2>/dev/null | head -1)" ] || return 1
-    # A previous bootstrap could have linked Robolectric's annotations jar, whose package
-    # has no NotNull, and the domain lane then dies with NoClassDefFoundError on the first
-    # file that uses it.
-    #
-    # Judge that by what the jar CONTAINS, not by where it came from. The path test this
-    # replaces only recognised a Gradle module cache layout, so a directory assembled by
-    # hand — curl from Maven Central, an offline mirror, a copy from another machine — was
-    # deleted by the `rm -rf` below however correct its contents were, taking the only
-    # test lane on such a machine with it.
+    # Judge by what the jar CONTAINS, not by where it came from. A directory
+    # assembled by hand — curl from Maven Central, an offline mirror — must
+    # still pass if the classes are the ones the domain lane needs.
+    jar_has_class "$JARS/kotlin-stdlib-${KOTLIN}.jar" 'kotlin/jvm/internal/Intrinsics.class' || return 1
+    jar_has_class "$JARS/kotlin-compiler-embeddable-${KOTLIN}.jar" \
+        'org/jetbrains/kotlin/cli/jvm/K2JVMCompiler.class' || return 1
+    if [ -n "$COROUTINES" ]; then
+        jar_has_class "$JARS/kotlinx-coroutines-core-jvm-${COROUTINES}.jar" \
+            'kotlinx/coroutines/Dispatchers.class' || return 1
+    fi
+    if [ -n "$JUNIT" ]; then
+        jar_has_class "$JARS/junit-${JUNIT}.jar" 'org/junit/Test.class' || return 1
+    fi
     for f in "$JARS"/annotations-*.jar; do
         [ -e "$f" ] || return 1
         if unzip -l "$f" 2>/dev/null | grep -q 'org/jetbrains/annotations/NotNull\.class'; then
@@ -116,9 +138,9 @@ export PT_JARS="$JARS"   # syntax-check.sh and run-domain-tests.sh both read thi
 # --- static checks judged by exit code ----------------------------------------
 for c in "check-internal-imports.py app/src/main/java" \
          "check-missing-imports.py" \
-         "check-design-tokens.py app/src/main/java" \
+         "check-design-tokens.py" \
          "check-screen-wiring.py app/src/main/java" \
-         "check-state-members.py app/src/main/java" \
+         "check-state-members.py" \
          "check-annotation-targets.py" \
          "check-required-args.py" \
          "check-import-hygiene.py" \
