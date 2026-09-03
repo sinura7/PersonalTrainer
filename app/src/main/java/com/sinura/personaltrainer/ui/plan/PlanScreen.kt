@@ -326,7 +326,7 @@ fun PlanScreen(
             verticalArrangement = Arrangement.spacedBy(Metrics.space4),
         ) {
             state.error?.let { message ->
-                item(key = "error") { GymErrorBanner(message) }
+                item(key = "error") { GymErrorBanner(message, onDismiss = viewModel::dismissError) }
             }
 
             state.block?.let { block ->

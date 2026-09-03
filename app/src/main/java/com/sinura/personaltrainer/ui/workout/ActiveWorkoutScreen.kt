@@ -470,6 +470,7 @@ fun ActiveWorkoutScreen(
                     is ExercisePickerEvent.Toggled -> Unit
                     ExercisePickerEvent.Confirmed -> Unit
                     ExercisePickerEvent.Dismissed -> viewModel.setPickerVisible(false)
+                    ExercisePickerEvent.ErrorDismissed -> viewModel.dismissError()
                 }
             },
         )

@@ -173,6 +173,10 @@ class StartOptionsViewModel @JvmOverloads constructor(
         _navigateToComposer.value = null
     }
 
+    fun dismissError() {
+        error.value = null
+    }
+
     fun openComposer(mode: String) {
         _navigateToComposer.value = mode
     }

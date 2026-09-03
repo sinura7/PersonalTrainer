@@ -210,6 +210,10 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
         error.value = null
     }
 
+    fun dismissError() {
+        error.value = null
+    }
+
     fun openEdit(exercise: Exercise) {
         if (!exercise.isCustom) {
             error.value = "Built-in exercises can’t be edited."

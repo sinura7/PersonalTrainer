@@ -276,6 +276,7 @@ fun SettingsScreen(
                 },
                 onRestoreSafety = viewModel::requestSafetyRestore,
                 onDeleteSafety = { id -> pendingSafetyDeleteId = id },
+                onDismissError = viewModel::dismissError,
             )
             PlanSetupSection(onRerun = onOpenGuidedSetup)
             if (BuildConfig.DEBUG) {
@@ -773,6 +774,7 @@ private fun BackupRestoreSection(
     onExportSafety: (String) -> Unit,
     onRestoreSafety: (String) -> Unit,
     onDeleteSafety: (String) -> Unit,
+    onDismissError: () -> Unit,
 ) {
     var dismissedStatus by rememberSaveable { mutableStateOf<String?>(null) }
     // Cleared the moment an action starts, so the memo only ever suppresses a message left
@@ -827,7 +829,7 @@ private fun BackupRestoreSection(
         if (status != null) {
             GymStatusBanner(status, onDismissed = { dismissedStatus = status })
         }
-        state.error?.let { GymErrorBanner(it) }
+        state.error?.let { GymErrorBanner(it, onDismiss = onDismissError) }
 
         if (state.sessionLive) {
             Text(

@@ -152,6 +152,10 @@ class ActivityComposerViewModel @JvmOverloads constructor(
         error.value = null
     }
 
+    fun dismissError() {
+        error.value = null
+    }
+
     fun setEpochDay(value: Long) {
         val today = clock.captureNow().localEpochDay
         epochDay.value = value.coerceAtMost(today)

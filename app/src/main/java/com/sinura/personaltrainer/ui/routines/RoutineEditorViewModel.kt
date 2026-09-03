@@ -77,19 +77,22 @@ data class RoutineEditorUiState(
 @OptIn(ExperimentalCoroutinesApi::class)
 class RoutineEditorViewModel @JvmOverloads constructor(
     application: Application,
-    savedStateHandle: SavedStateHandle,
+    private val savedStateHandle: SavedStateHandle,
     container: AppDependencies = application.appContainer(),
 ) : AppViewModel(application, container) {
     private val incomingId: String? = RoutineEditorPolicy.incomingId(
         savedStateHandle.get<String>("routineId"),
     )
-    private var createdThisSession: Boolean = incomingId == null
+    private var createdThisSession: Boolean =
+        savedStateHandle.get<Boolean>(KEY_CREATED) ?: (incomingId == null)
 
-    private val routineId = MutableStateFlow(incomingId)
+    private val routineId = MutableStateFlow(
+        savedStateHandle.get<String>(KEY_ID) ?: incomingId,
+    )
     private val load = MutableStateFlow(RoutineEditorLoad(opensExisting = incomingId != null))
     private val missing: Boolean get() = load.value.phase == EditorPhase.MISSING
-    private val name = MutableStateFlow("")
-    private val notes = MutableStateFlow("")
+    private val name = MutableStateFlow(savedStateHandle.get<String>(KEY_NAME).orEmpty())
+    private val notes = MutableStateFlow(savedStateHandle.get<String>(KEY_NOTES).orEmpty())
     private val searchQuery = MutableStateFlow("")
     private val showPicker = MutableStateFlow(false)
     private val error = MutableStateFlow<String?>(null)
@@ -138,11 +141,12 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             // getById and the collector below both touch Room; an uncaught failure
             // here would kill the collector and leave the editor frozen with no clue why.
             runCatchingCancellable {
-                val id = incomingId
+                val id = incomingId ?: routineId.value
                 val existing = id?.let { container.routineRepository.getById(it) }
                 if (existing != null) {
-                    name.value = existing.name
-                    notes.value = existing.notes
+                    if (!savedStateHandle.contains(KEY_NAME)) name.value = existing.name
+                    if (!savedStateHandle.contains(KEY_NOTES)) notes.value = existing.notes
+                    persistDraft()
                 }
                 applyLoad { it.onInitialRead(found = existing != null) }
                 routineFlow.collect { routine ->
@@ -179,6 +183,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         if (after.phase == EditorPhase.MISSING && before.phase != EditorPhase.MISSING) {
             error.value = "This routine is no longer available."
             routineId.value = null
+            persistDraft()
         }
     }
 
@@ -267,10 +272,16 @@ class RoutineEditorViewModel @JvmOverloads constructor(
 
     fun onNameChange(value: String) {
         name.value = value
+        persistDraft()
     }
 
     fun onNotesChange(value: String) {
         notes.value = value
+        persistDraft()
+    }
+
+    fun dismissError() {
+        error.value = null
     }
 
     /**
@@ -702,6 +713,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             )
             createdThisSession = true
             routineId.value = created.id
+            persistDraft()
             created.id
         } catch (thrown: Exception) {
             AppLog.w(TAG, "ensureRoutineId failed", thrown)
@@ -727,6 +739,14 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             // Keep navigating back; an empty stub can be deleted later.
         }
         routineId.value = null
+        persistDraft()
+    }
+
+    private fun persistDraft() {
+        savedStateHandle[KEY_ID] = routineId.value
+        savedStateHandle[KEY_NAME] = name.value
+        savedStateHandle[KEY_NOTES] = notes.value
+        savedStateHandle[KEY_CREATED] = createdThisSession
     }
 
     /** Nulls are empty boxes; [RoutineEditorPolicy.targetsToPersist] decides what they mean. */
@@ -758,4 +778,11 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         val phase: EditorPhase,
         val addingLifts: Boolean,
     )
+
+    private companion object {
+        const val KEY_ID = "editor.routineId"
+        const val KEY_NAME = "editor.name"
+        const val KEY_NOTES = "editor.notes"
+        const val KEY_CREATED = "editor.createdThisSession"
+    }
 }

@@ -116,9 +116,9 @@ fun HomeScreen(
     }
     val blocked by viewModel.blockedByInProgress.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
-    val inProgress = state.inProgress
+    val sessionLive = state.sessionLive
     var starterDismissed by rememberSaveable { mutableStateOf(false) }
-    val showStarter = !state.setupComplete && !starterDismissed && inProgress == null
+    val showStarter = !state.setupComplete && !starterDismissed && !sessionLive
     var weighingIn by rememberSaveable { mutableStateOf(false) }
 
     // Starting a planned day while another session is live is a question, not something the
@@ -317,7 +317,7 @@ fun HomeScreen(
                 when (HomeToday.surface(selectedAgenda, leftoverBelongs, stillOpen)) {
                     HomeToday.Surface.AGENDA ->                     DailyAgendaCard(
                         items = selectedAgenda,
-                        sessionLive = inProgress != null,
+                        sessionLive = sessionLive,
                         onStartOccurrence = viewModel::startOccurrence,
                         onStartFree = { viewModel.startFreeWorkout() },
                         routines = state.routines,
@@ -366,7 +366,7 @@ fun HomeScreen(
                         day = leftoverDay,
                         nextDay = nextDay,
                         loggedToday = loggedSelected,
-                        sessionLive = inProgress != null,
+                        sessionLive = sessionLive,
                         hasRoutines = state.routines.isNotEmpty(),
                         lifts = leftoverLiftNames(featured, state.routines),
                         reason = nextSessionReason(featured, state.recommendations),

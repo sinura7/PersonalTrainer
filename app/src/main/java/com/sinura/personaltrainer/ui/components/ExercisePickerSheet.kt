@@ -289,6 +289,7 @@ fun ExercisePickerSheet(
                     GymErrorBanner(
                         message = state.error,
                         modifier = Modifier.padding(horizontal = Metrics.gutter),
+                        onDismiss = { onEvent(ExercisePickerEvent.ErrorDismissed) },
                     )
                 }
                 PrimaryGymButton(
