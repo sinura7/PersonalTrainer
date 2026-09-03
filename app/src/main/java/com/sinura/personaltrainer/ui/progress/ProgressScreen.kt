@@ -50,6 +50,7 @@ import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
+import com.sinura.personaltrainer.ui.workout.StartSheetOpener
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
@@ -64,6 +65,7 @@ fun ProgressScreen(
     onOpenLibrary: (CanonicalMuscle?) -> Unit,
     onOpenExercise: (String) -> Unit,
     onOpenRoutines: () -> Unit,
+    onOpenStartSheet: () -> Unit = {},
     viewModel: ProgressViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -81,7 +83,11 @@ fun ProgressScreen(
         // The window governs every number below it, so it belongs to the chrome rather than to
         // the content: it used to be repeated inside all three branches and scrolled away with
         // the map it labels.
-        BodyWindowPicker(window = state.window, onSelectWindow = viewModel::setWindow)
+        BodyWindowPicker(
+            window = state.window,
+            onSelectWindow = viewModel::setWindow,
+            onOpenStartSheet = onOpenStartSheet,
+        )
 
         when {
             state.isLoading -> {
@@ -103,9 +109,6 @@ fun ProgressScreen(
 
             else -> {
                 val snap = snapshot ?: emptySnapshot(state.window)
-                val readoutRecs = state.recommendations.filter { rec ->
-                    RecommendationIntents.from(rec) !is RecommendationIntent.StartWorkout
-                }
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
@@ -169,14 +172,14 @@ fun ProgressScreen(
                             }
                         }
                     }
-                    if (readoutRecs.isNotEmpty()) {
+                    if (state.recommendations.isNotEmpty()) {
                         item(key = "recommended-header") {
                             GymSectionHeader(
                                 "Recommended",
                                 modifier = Modifier.padding(top = Metrics.space5),
                             )
                         }
-                        items(readoutRecs, key = { it.id }) { rec ->
+                        items(state.recommendations, key = { it.id }) { rec ->
                             RecommendationCard(
                                 recommendation = rec,
                                 onClick = {
@@ -185,7 +188,7 @@ fun ProgressScreen(
                                             onOpenLibrary(intent.muscle)
                                         is RecommendationIntent.OpenExercise ->
                                             onOpenExercise(intent.exerciseId)
-                                        RecommendationIntent.StartWorkout -> Unit
+                                        RecommendationIntent.StartWorkout -> onOpenStartSheet()
                                         RecommendationIntent.OpenRoutines -> onOpenRoutines()
                                         RecommendationIntent.OpenBodyMap ->
                                             selectedName = rec.actionMuscle?.name
@@ -226,6 +229,7 @@ fun ProgressScreen(
 internal fun BodyWindowPicker(
     window: HeatWindow,
     onSelectWindow: (HeatWindow) -> Unit,
+    onOpenStartSheet: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier
@@ -238,7 +242,21 @@ internal fun BodyWindowPicker(
             ),
         verticalArrangement = Arrangement.spacedBy(Metrics.space3),
     ) {
-        Text("Body", style = InstrumentType.display, color = TextPrimary)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                "Body",
+                modifier = Modifier.weight(1f),
+                style = InstrumentType.display,
+                color = TextPrimary,
+            )
+            StartSheetOpener(
+                onOpen = onOpenStartSheet,
+                modifier = Modifier.testTag(BodyTags.START_SHEET),
+            )
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
             HeatWindow.entries.forEach { entry ->
                 InstrumentChip(

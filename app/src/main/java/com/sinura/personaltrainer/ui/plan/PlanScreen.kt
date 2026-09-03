@@ -44,6 +44,7 @@ import com.sinura.personaltrainer.domain.MissedWorkCopy
 import com.sinura.personaltrainer.domain.PlanDayCopy
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.StartOptionsCopy
 import com.sinura.personaltrainer.domain.WeekBoard
 import com.sinura.personaltrainer.domain.WeekTwoCopy
 import com.sinura.personaltrainer.domain.Weekday
@@ -64,6 +65,7 @@ import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.WeekStrip
+import com.sinura.personaltrainer.ui.workout.StartSheetOpener
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
@@ -262,6 +264,7 @@ fun PlanScreen(
     onOpenRoutine: (String) -> Unit,
     onOpenLibrary: () -> Unit,
     onOpenDay: (Long, Boolean) -> Unit,
+    onOpenStartSheet: () -> Unit = {},
     viewModel: PlanViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -284,7 +287,7 @@ fun PlanScreen(
             .fillMaxSize()
             .background(Pit),
     ) {
-        PlanHeader(onOpenLibrary = onOpenLibrary)
+        PlanHeader(onOpenLibrary = onOpenLibrary, onOpenStartSheet = onOpenStartSheet)
 
         if (state.isLoading) {
             ScreenLoading()
@@ -459,7 +462,7 @@ fun PlanScreen(
                 item(key = "routines-empty") {
                     EmptyState(
                         title = "Build your first plan",
-                        body = "Add session puts a workout, cardio, or stretch on the selected day. Start lives on Home.",
+                        body = StartOptionsCopy.PLAN_EMPTY_BODY,
                         actionLabel = "Create a routine",
                         onAction = onCreateRoutine,
                     )
@@ -527,6 +530,7 @@ fun PlanScreen(
 @Composable
 internal fun PlanHeader(
     onOpenLibrary: () -> Unit,
+    onOpenStartSheet: () -> Unit = {},
 ) {
     val stacked = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
     Column(
@@ -548,12 +552,18 @@ internal fun PlanHeader(
                 color = TextPrimary,
             )
             if (!stacked) {
-                PlanHeaderActions(onOpenLibrary = onOpenLibrary)
+                PlanHeaderActions(
+                    onOpenLibrary = onOpenLibrary,
+                    onOpenStartSheet = onOpenStartSheet,
+                )
             }
         }
         if (stacked) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                PlanHeaderActions(onOpenLibrary = onOpenLibrary)
+                PlanHeaderActions(
+                    onOpenLibrary = onOpenLibrary,
+                    onOpenStartSheet = onOpenStartSheet,
+                )
             }
         }
     }
@@ -562,7 +572,12 @@ internal fun PlanHeader(
 @Composable
 private fun PlanHeaderActions(
     onOpenLibrary: () -> Unit,
+    onOpenStartSheet: () -> Unit,
 ) {
+    StartSheetOpener(
+        onOpen = onOpenStartSheet,
+        modifier = Modifier.testTag(PlanTags.START_SHEET),
+    )
     TextButton(
         onClick = onOpenLibrary,
         modifier = Modifier
@@ -812,6 +827,7 @@ private fun RecoveryCommand(
 
 object PlanTags {
     const val LIBRARY = "plan-library"
+    const val START_SHEET = "plan-start-sheet"
     const val REPLAY = "plan-replay"
     const val SUGGEST = "plan-suggest"
     const val USE_WEEK = "plan-use-week"

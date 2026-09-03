@@ -42,7 +42,7 @@ object AccessibilityMatrix {
             title = "Body",
             states = requiredStates,
             voltAction = "None. Body is a readout; Start lives on Home.",
-            talkBackNotes = "Map is an illustration. Muscle rows are the 48 dp target.",
+            talkBackNotes = "Map is an illustration. Muscle rows are the 48 dp target. Log or start cardio opens the start sheet.",
             automatedEvidence = true,
         ),
         PagePass(
@@ -50,7 +50,7 @@ object AccessibilityMatrix {
             title = "Plan",
             states = requiredStates,
             voltAction = "Add session — recovery stays quiet unless confirming a proposed week",
-            talkBackNotes = "Library and Add session are named. Start is Home, not Plan. Routines start collapsed. Lighter is a quiet chip. Settings is a tab, not a header gear. Reminders live on Settings.",
+            talkBackNotes = "Library, Add session, and Log or start cardio are named. Planned Start is Home. The sheet is not a second Volt. Routines start collapsed. Lighter is a quiet chip. Settings is a tab, not a header gear. Reminders live on Settings.",
             automatedEvidence = true,
         ),
         PagePass(
@@ -66,7 +66,7 @@ object AccessibilityMatrix {
             title = "History",
             states = requiredStates,
             voltAction = "None. History is a readout; Start lives on Home.",
-            talkBackNotes = "Session rows speak title, date, sets, work, and minutes.",
+            talkBackNotes = "Session rows speak title, date, sets, work, and minutes. Log or start cardio opens the start sheet.",
             automatedEvidence = true,
         ),
         PagePass(

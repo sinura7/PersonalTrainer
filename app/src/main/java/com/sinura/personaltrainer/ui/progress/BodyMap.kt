@@ -278,6 +278,7 @@ object BodyTags {
     const val VIEW_FRONT = "body-view-front"
     const val VIEW_BACK = "body-view-back"
     const val EMPTY = "body-empty-window"
+    const val START_SHEET = "body-start-sheet"
 
     fun muscle(muscle: CanonicalMuscle): String = "body-muscle-${muscle.name}"
 

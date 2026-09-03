@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -20,11 +21,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.StartOptionsCopy
+import com.sinura.personaltrainer.domain.estimatedSessionMinutes
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.navigation.LiveBarCopy
 import com.sinura.personaltrainer.ui.navigation.LiveBarKind
@@ -251,7 +257,7 @@ private fun RoutineRow(routine: Routine, onStart: () -> Unit) {
         val plannedSets = remember(routine) {
             routine.exercises.sumOf { it.targetSets.coerceAtLeast(1) }
         }
-        val minutes = remember(routine) { estimatedMinutes(routine) }
+        val minutes = remember(routine) { estimatedSessionMinutes(routine) }
 
         InstrumentRow(
             title = routine.name,
@@ -324,19 +330,28 @@ private fun FreeWorkoutAction(onStart: () -> Unit, modifier: Modifier = Modifier
 }
 
 /**
- * Rest is most of a strength session, so planned sets times planned rest is close enough to
- * be useful. [SET_WORK_SECONDS] covers the set itself and the walk to the rack; without it a
- * 5×5 reads as about half the time it really takes.
+ * Quiet header control on Body, History, and Plan. Not a Volt — Home
+ * owns Start. The sheet this opens still starts today's plan when one
+ * exists.
  */
-private fun estimatedMinutes(routine: Routine): Int {
-    val seconds = routine.exercises.sumOf { item ->
-        item.targetSets.coerceAtLeast(1) * (item.restSeconds.coerceAtLeast(0) + SET_WORK_SECONDS)
+@Composable
+fun StartSheetOpener(
+    onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    TextButton(
+        onClick = onOpen,
+        modifier = modifier
+            .heightIn(min = Metrics.touchMin)
+            .semantics { contentDescription = StartOptionsCopy.OPEN_SPOKEN },
+        contentPadding = PaddingValues(horizontal = Metrics.space2, vertical = 0.dp),
+    ) {
+        Text(
+            StartOptionsCopy.OPEN,
+            style = InstrumentType.bodyStrong,
+            color = TextSecondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
-    return ((seconds + SECONDS_PER_MINUTE / 2) / SECONDS_PER_MINUTE).coerceAtLeast(1)
 }
-
-
-// A rough working minute per set: the rest interval the routine asks for, plus the time the
-// set itself takes. An estimate the user can sanity-check, not a promise.
-private const val SET_WORK_SECONDS = 40
-private const val SECONDS_PER_MINUTE = 60

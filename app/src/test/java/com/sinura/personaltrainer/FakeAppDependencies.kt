@@ -166,7 +166,7 @@ class FakeAppDependencies(
         ConfirmActivity(activityRepository, IdFactory.Uuid, time)
     override val startLiveActivity: StartLiveActivity =
         StartLiveActivity(activityRepository, IdFactory.Uuid, time)
-    override val discardActivity: DiscardActivity = DiscardActivity(activityRepository)
+    override var discardActivity: DiscardActivity = DiscardActivity(activityRepository)
     override val finishActivity: FinishActivity = FinishActivity(activityRepository, time)
     override val cardioTimerPersistence: CardioTimerPersistence = InMemoryCardioTimerPersistence()
     override val startLiveCardio: StartLiveCardio = StartLiveCardio(

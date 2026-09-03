@@ -123,6 +123,13 @@ class ActivityComposerViewModelTest {
         assertEquals(today, viewModel!!.uiState.value.epochDay)
     }
 
+    @Test
+    fun pastModeOpensTheStrengthComposer() = runBlocking {
+        viewModel = composer("past")
+        val state = viewModel!!.uiState.first { it.todayEpochDay != 0L }
+        assertEquals(ComposerMode.STRENGTH, state.mode)
+    }
+
     private fun composer(mode: String) = ActivityComposerViewModel(
         ApplicationProvider.getApplicationContext<Application>(),
         SavedStateHandle(mapOf("mode" to mode)),

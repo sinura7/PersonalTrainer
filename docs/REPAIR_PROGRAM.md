@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase D is next. K1 and K2 stay held.  
+`tools/` remain owed. Phase D continues at D2. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -79,7 +79,7 @@ the gym floor, are fifteen of them.
 | C2 | Rebuild keeps what you added; rules retire | 1 | 5 | Week | done |
 | C3 | Tonight is startable, and today knows the time | 1 | 2 | Week | done |
 | C4 | Planner and session writes are atomic | 1 | — | Week | done |
-| D1 | The start sheet gets a home (or a grave) | 1 | 1 | Paths | |
+| D1 | The start sheet gets a home (or a grave) | 1 | 1 | Paths | done |
 | D2 | Reminder Start works from anywhere | 1 | — | Paths | |
 | D3 | Live cardio is visible; errors dismiss; drafts survive | 2 | — | Paths | |
 | E1 | Stop recomputing everything | 1 | — | Speed | |
@@ -601,35 +601,36 @@ after commit on the two move paths.
 Three packets. Nothing here is broken code; these are journeys the product
 promises and cannot currently perform.
 
-## D1 — The start sheet gets a home (or a grave) · needs decision 1
+## D1 — The start sheet gets a home (or a grave) · done on `trunk`
 
 **Symptom.** There is no way to log a workout you did yesterday, and no way
 to start a run that was not planned.
 
-**Cause.** `StartOptionsSheet` has zero call sites in the app. The route to
+**Cause.** ~~`StartOptionsSheet` has zero call sites in the app. The route to
 the composer is reached only from Home with `"mixed"` for a planned mixed
 occurrence (`HomeViewModel.kt:313`), and live cardio only from a planned
 cardio row. The sheet, its 391-line view model and its tests are maintained
 for a surface nobody can open — while ADR-006 T2, ADR-021 §2 and
-UX_PAGE_PASS §4 all describe it as shipping.
+UX_PAGE_PASS §4 all describe it as shipping.~~
+**Struck 2026-09-03 (this packet).** Decision 1 restore: one sheet at
+`AppNav`, opened from Body, History, and Plan. Never Home.
 
-**Change (restore path).** Host the sheet on Body, History and Plan as
-UX_PAGE_PASS §4 states — never on Home, which owns the day's board. Guard
-the cardio-discard branch (`StartOptionsViewModel.kt:290-294`), which is the
-unprotected suspend call whose twin on the live bar was fixed in August.
-Delete the sheet's private `estimatedMinutes` in favour of the identical
+**Change (restore path).** Shipped: host on Body, History and Plan.
+Cardio-discard is guarded like the live bar. Sheet duration uses
 `HomeToday.estimatedSessionMinutes`.
 
-**Change (delete path).** Remove the sheet, its view model and its tests;
-add "Log a past activity" and "Start cardio" to Home's Add picker; amend
-ADR-006, ADR-021 and UX_PAGE_PASS in the same commit.
+**Change (delete path).** Not taken.
 
-**Proof.** Either way, an instrumented test that reaches the composer in
-`past` mode and live cardio from a cold start with nothing planned.
+**Proof.** `pastModeOpensTheStrengthComposer`,
+`pastModeIsTheStrengthComposerRoute`,
+`startCardioFromEmptyWeekOpensLiveCardio`,
+`discardLiveCardioClearsTimerAndRemovesRow`,
+`discardLiveCardioFailureLeavesTimerAndRow`.
 
 **Owns.** `ui/workout/StartOptionsSheet.kt`,
-`ui/workout/StartOptionsViewModel.kt`, `ui/navigation/AppNav.kt`,
-plus whichever hosts are chosen.
+`ui/workout/StartOptionsViewModel.kt`,
+`ui/navigation/AppNav.kt`, `ui/progress/ProgressScreen.kt`,
+`ui/history/HistoryScreen.kt`, `ui/plan/PlanScreen.kt`.
 
 ## D2 — Reminder Start works from anywhere
 
@@ -1434,6 +1435,16 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — D1: one sheet at AppNav, quiet openers.** Decision 1
+restore. Proof is JVM (`StartOptionsNav` + composer `past` +
+empty-week `startCardio`), not `connectedAndroidTest`.
+`estimatedSessionMinutes` stays `internal` — same module, no
+visibility bump. `PlanDayScreen` has no free-workout control; Plan
+free is the header opener, not a day-sheet Start. `DiscardActivity`
+is `open` so a throwing double can prove the timer is not cleared
+on failure. `AccessibilityMatrix` talkBackNotes name the opener;
+voltAction stays None (Home still owns Start). Count +6.
 
 **2026-09-03 — C4: moves commit, then WorkManager.** Proof is JVM,
 not `connectedAndroidTest`. `ensureWeek` / `setRuleHour` still
