@@ -11,7 +11,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.runBlocking
@@ -76,11 +75,10 @@ class FakeAppDependencies(
     val safetySnapshotDir: File = File(context.cacheDir, "safety-snapshots-${System.nanoTime()}")
         .also { it.mkdirs() },
     /**
-     * When set, DataStore, Room queries, [ioDispatcher] and [computeDispatcher] all run here.
+     * When set, DataStore, [ioDispatcher] and [computeDispatcher] all run here.
      *
      * Left null by default, which keeps those hops on real threads the test scheduler cannot
-     * see: a view model coroutine that suspends on a preferences read or a Room Flow parked
-     * on Room's query executor never resumes until something pumps the scheduler again, so a
+     * see: a view model coroutine that suspends on a preferences read parks until something pumps the scheduler again, so a
      * test that waits on the resulting write never sees it. The poll loops this packet is
      * removing were doing that pumping as a side effect of waiting, which is why deleting one
      * without passing a test dispatcher here hangs.
@@ -88,29 +86,32 @@ class FakeAppDependencies(
      * Pass the test's own dispatcher to put those hops on the scheduler, and
      * `advanceUntilIdle()` then drives the whole read-compute-write chain to completion.
      *
-     * Room's *transaction* executor is never this dispatcher. Twenty-five `withTransaction`
-     * sites with suspending DAO calls inside deadlock if that pool is the test scheduler,
-     * and deadlock presents as a hang. Setting Room's query executor without a separate
-     * transaction executor would assign both to the same pool, so the transaction pool is
-     * a real single thread.
+     * Room stays on real threads. `UnconfinedTestDispatcher.dispatch` throws unless the
+     * caller is `yield`, so it cannot be an `Executor`; a `StandardTestDispatcher`
+     * executor queues work that `runBlocking` never pumps. Tests wait on Room with
+     * `first { }` on the Flow. The transaction executor is a separate single thread —
+     * putting it on the test dispatcher deadlocks `withTransaction`, and setting only
+     * the query executor would assign both to the same pool.
      */
     scheduler: CoroutineDispatcher? = null,
     prefsDispatcher: CoroutineDispatcher = scheduler ?: Dispatchers.IO,
-    queryDispatcher: CoroutineDispatcher = scheduler ?: Dispatchers.IO,
     override val ioDispatcher: CoroutineDispatcher = scheduler ?: Dispatchers.IO,
     override val computeDispatcher: CoroutineDispatcher = scheduler ?: Dispatchers.Default,
 ) : AppDependencies {
     /**
-     * Real threads, not the test scheduler. See the constructor KDoc on why this must stay
+     * Real threads, not the test scheduler. See the constructor KDoc on why Room stays
      * off that dispatcher.
      */
+    private val queryExecutor = Executors.newFixedThreadPool(2) { runnable ->
+        Thread(runnable, "room-query-test").apply { isDaemon = true }
+    }
     private val transactionExecutor = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "room-txn-test").apply { isDaemon = true }
     }
 
     val database: TemperDatabase = Room.inMemoryDatabaseBuilder(context, TemperDatabase::class.java)
         .allowMainThreadQueries()
-        .setQueryExecutor(queryDispatcher.asExecutor())
+        .setQueryExecutor(queryExecutor)
         .setTransactionExecutor(transactionExecutor)
         .build()
 
@@ -242,6 +243,7 @@ class FakeAppDependencies(
         preferencesJob?.cancel()
         runBlocking { preferencesJob?.join() }
         database.close()
+        queryExecutor.shutdown()
         transactionExecutor.shutdown()
     }
 }

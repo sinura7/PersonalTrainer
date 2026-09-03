@@ -1396,8 +1396,12 @@ than drifting: `AppDependencies` now carries `ioDispatcher` and
 `BackupRepository` and the five `flowOn(Dispatchers.Default)` ViewModels
 plus `SettingsViewModel`'s file hops and `WorkoutSummaryViewModel`'s
 summary build use those; `FakeAppDependencies` takes a `scheduler` that
-also drives DataStore and Room's *query* executor. Room's *transaction*
-executor is a real single-thread pool — putting it on the test dispatcher
+also drives DataStore, IO hops, and compute hops. Room's query and
+transaction executors stay real thread pools: `UnconfinedTestDispatcher.dispatch`
+throws unless the caller is `yield`, so it cannot be an `Executor`, and a
+`StandardTestDispatcher` executor queues work that `runBlocking` never
+pumps. Tests wait on Room with `first { }` on the Flow. The transaction
+pool is a separate single thread — putting it on the test dispatcher
 deadlocks `withTransaction`, and setting only the query executor would
 have assigned both to the same pool.
 

@@ -15,13 +15,10 @@ import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineExercise
 import com.sinura.personaltrainer.domain.WeightUnit
 import java.util.concurrent.Executors
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -34,11 +31,12 @@ import org.robolectric.RobolectricTestRunner
  * Batched coach reads and aggregate PR detection must match the old
  * per-lift round-trips: top set, not last set; in-session work-up counts.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class WorkoutRepositoryInsightsQueriesTest {
 
-    private val queryDispatcher = UnconfinedTestDispatcher()
+    private val queryExecutor = Executors.newFixedThreadPool(2) { runnable ->
+        Thread(runnable, "room-query-insights-test").apply { isDaemon = true }
+    }
     private val transactionExecutor = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "room-txn-insights-test").apply { isDaemon = true }
     }
@@ -50,7 +48,7 @@ class WorkoutRepositoryInsightsQueriesTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         database = Room.inMemoryDatabaseBuilder(context, TrainerDatabase::class.java)
             .allowMainThreadQueries()
-            .setQueryExecutor(queryDispatcher.asExecutor())
+            .setQueryExecutor(queryExecutor)
             .setTransactionExecutor(transactionExecutor)
             .build()
         repository = WorkoutRepository(database, database.workoutDao())
@@ -62,6 +60,7 @@ class WorkoutRepositoryInsightsQueriesTest {
     @After
     fun tearDown() {
         database.close()
+        queryExecutor.shutdown()
         transactionExecutor.shutdown()
     }
 

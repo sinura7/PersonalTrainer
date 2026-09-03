@@ -148,9 +148,7 @@ class CustomWeekViewModelTest {
 
         // Not uiState.value. This state is shared through stateIn (:114), and the branch
         // at :91 folds in resultsFlow (:77), which collects exerciseRepository.search and
-        // observeLastLogged. Those Room flows now answer on the test dispatcher (see
-        // FakeAppDependencies.scheduler), so this wait is for the combine emission the
-        // assertions describe, not for a real thread to catch up.
+        // observeLastLogged. Wait for the combine emission the assertions describe.
         val state = vm.uiState.first { it.error == SessionOrderCopy.ADD_LIFT_FAILED }
         assertTrue(state.showPicker)
         assertEquals(listOf("ghost"), state.pendingAddIds)
