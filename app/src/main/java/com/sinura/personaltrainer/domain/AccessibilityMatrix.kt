@@ -73,7 +73,7 @@ object AccessibilityMatrix {
             id = "library",
             title = "Library",
             states = requiredStates,
-            voltAction = "Create exercise",
+            voltAction = "Create lift",
             talkBackNotes = "Back, search, and create are named. Not a tab.",
             automatedEvidence = true,
         ),

@@ -65,7 +65,7 @@ fun ExerciseEditorSheet(
             verticalArrangement = Arrangement.spacedBy(Metrics.space4),
         ) {
             Text(
-                if (draft.id == null) "New exercise" else "Edit exercise",
+                if (draft.id == null) "New lift" else "Edit lift",
                 style = InstrumentType.title,
                 color = TextPrimary,
             )
@@ -126,7 +126,7 @@ fun ExerciseEditorSheet(
             )
             error?.let { Text(it, style = InstrumentType.body, color = Danger) }
             PrimaryGymButton(
-                text = if (draft.id == null) "Create exercise" else "Save changes",
+                text = if (draft.id == null) "Create lift" else "Save changes",
                 onClick = onSave,
             )
         }

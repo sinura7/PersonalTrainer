@@ -59,7 +59,7 @@ private fun LibraryChromePreview() {
             EmptyState(
                 title = "No lifts match",
                 body = "Clear the search or add a custom lift.",
-                actionLabel = "Create exercise",
+                actionLabel = "Create lift",
                 onAction = {},
                 compact = true,
             )

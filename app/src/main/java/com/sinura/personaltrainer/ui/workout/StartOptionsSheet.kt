@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.ActivityDetailCopy
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.StartOptionsCopy
@@ -126,12 +127,13 @@ fun StartOptionsSheet(
             state.error?.let { message -> GymErrorBanner(message, onDismiss = viewModel::dismissError) }
 
             if (inProgress != null || liveActivity != null) {
+                val kind = if (inProgress != null) LiveBarKind.WORKOUT else LiveBarKind.ACTIVITY
                 Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
                     Kicker("Session in progress")
                     // They opened Start on purpose. Sending them to dismiss and find the bar
                     // is a treasure hunt; this button is the answer they came for.
                     PrimaryGymButton(
-                        text = "Go to session",
+                        text = LiveBarCopy.resumeLabel(kind),
                         onClick = {
                             onDismiss()
                             if (inProgress != null) {
@@ -150,7 +152,7 @@ fun StartOptionsSheet(
                         onClick = { confirmDiscard = true },
                         contentPadding = PaddingValues(0.dp),
                     ) {
-                        Text("Discard it", style = InstrumentType.bodyStrong, color = Danger)
+                        Text(LiveBarCopy.discard(kind), style = InstrumentType.bodyStrong, color = Danger)
                     }
                 }
                 return@Column
@@ -289,13 +291,13 @@ private fun LogAndCardioActions(
                 HairlineDivider()
                 InstrumentRow(
                     title = "Mixed session",
-                    subtitle = "Strength and cardio, kept separate.",
+                    subtitle = ActivityDetailCopy.MIXED_CAPTION,
                     onClick = onLogMixed,
                 )
                 HairlineDivider()
                 InstrumentRow(
                     title = "Cardio",
-                    subtitle = "Typed time and distance. No fake lift rows.",
+                    subtitle = "Typed time and distance.",
                     onClick = onLogCardio,
                 )
             }

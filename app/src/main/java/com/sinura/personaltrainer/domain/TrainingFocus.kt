@@ -8,7 +8,7 @@ package com.sinura.personaltrainer.domain
  */
 enum class TrainingFocus(val displayName: String, val blurb: String) {
     STRENGTH("Strength", "Lifts, sets, and a week you can start."),
-    CARDIO("Cardio", "Runs, rides, and other timed work. No invented lifts."),
+    CARDIO("Cardio", "Runs, rides, and other timed work."),
     BOTH("Both", "Lifting days and cardio, kept as their own work."),
     ;
 

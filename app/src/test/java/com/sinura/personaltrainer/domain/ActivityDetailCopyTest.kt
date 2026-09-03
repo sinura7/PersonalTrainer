@@ -20,7 +20,7 @@ class ActivityDetailCopyTest {
         val lift = strengthSession()
         assertEquals("Cardio complete", ActivityDetailCopy.kicker(true, run))
         assertEquals("Workout complete", ActivityDetailCopy.kicker(true, lift))
-        assertEquals("Cardio. No invented lift rows.", ActivityDetailCopy.kicker(false, run))
+        assertEquals("Run, ride, or walk.", ActivityDetailCopy.kicker(false, run))
         assertEquals("Strength.", ActivityDetailCopy.kicker(false, lift))
     }
 

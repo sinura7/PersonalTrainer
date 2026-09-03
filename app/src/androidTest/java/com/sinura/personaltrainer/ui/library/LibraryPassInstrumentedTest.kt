@@ -59,7 +59,7 @@ class LibraryPassInstrumentedTest {
                 onClick = {},
                 modifier = Modifier.testTag(LibraryTags.FAB),
             ) {
-                Icon(Icons.Outlined.Add, contentDescription = "Create exercise")
+                Icon(Icons.Outlined.Add, contentDescription = "Create lift")
             }
         }
         compose.onNodeWithTag(LibraryTags.BACK).assertIsDisplayed()
@@ -67,7 +67,7 @@ class LibraryPassInstrumentedTest {
         compose.onNodeWithTag(LibraryTags.SEARCH).assertIsDisplayed()
         compose.onNodeWithContentDescription(LibraryTags.SEARCH_SPOKEN).assertIsDisplayed()
         compose.onNodeWithTag(LibraryTags.FAB).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Create exercise").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Create lift").assertIsDisplayed()
     }
 
     private fun setConstrainedContent(fontScale: Float, content: @Composable () -> Unit) {

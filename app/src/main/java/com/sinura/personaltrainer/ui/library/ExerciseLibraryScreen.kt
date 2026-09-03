@@ -136,7 +136,7 @@ fun ExerciseLibraryScreen(
                         hoveredElevation = 0.dp,
                     ),
                 ) {
-                    Icon(Icons.Outlined.Add, contentDescription = "Create exercise")
+                    Icon(Icons.Outlined.Add, contentDescription = "Create lift")
                 }
             }
         },
@@ -237,7 +237,7 @@ fun ExerciseLibraryScreen(
                                 "Add a custom lift to start the catalog."
                             },
                             modifier = Modifier.padding(horizontal = Metrics.gutter),
-                            actionLabel = "Create exercise",
+                            actionLabel = "Create lift",
                             onAction = viewModel::openCreate,
                         )
                     } else {
@@ -537,9 +537,9 @@ private fun LiftOverflowSheet(
             )
             Column {
                 HairlineDivider(startIndent = 0.dp)
-                SheetActionRow(label = "Edit exercise", color = TextPrimary, onClick = onEdit)
+                SheetActionRow(label = "Edit lift", color = TextPrimary, onClick = onEdit)
                 HairlineDivider()
-                SheetActionRow(label = "Delete exercise", color = Danger, onClick = onDelete)
+                SheetActionRow(label = "Delete lift", color = Danger, onClick = onDelete)
             }
         }
     }
@@ -627,5 +627,5 @@ object LibraryTags {
     const val BACK = "library-back"
     const val SEARCH = "library-search"
     const val FAB = "library-create"
-    const val SEARCH_SPOKEN = "Search exercises by name or muscle"
+    const val SEARCH_SPOKEN = "Search lifts by name or muscle"
 }
