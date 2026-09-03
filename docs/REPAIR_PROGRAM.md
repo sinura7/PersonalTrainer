@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
 **Status:** in progress — Phase A, B3, B4, B1, J4 (seams, TimePort,
-scheduler polish), and J3 are on `trunk`. Policy tests into `tools/`
-remain owed. J2, J5, and J1 remain. Phase C has not started.  
+scheduler polish), J3, and J2 are on `trunk`. Policy tests into `tools/`
+remain owed. J5 and J1 remain. Phase C has not started.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -102,7 +102,7 @@ the gym floor, are fifteen of them.
 | H2 | Units and clocks finish what Display started | 2 | — | Design III | |
 | H3 | Row and card vocabulary; landscape; a regression net | 3 | — | Design III | |
 | J1 | The release build is real | 1 | 6 | House | |
-| J2 | The release ratchet and CI pinning | 1 | — | House | |
+| J2 | The release ratchet and CI pinning | 1 | — | House | done |
 | J3 | App size | 1 | — | House | done |
 | J4 | Tests stop sleeping | 2 | — | House | partial |
 | J5 | The checkers report what they skip | 1 | — | House | |
@@ -1255,26 +1255,33 @@ the result into the P12 evidence file.
 **Owns.** `PersonalTrainerApp.kt`, `app/proguard-rules.pro`,
 `.github/workflows/release.yml`, `ui/settings/SettingsScreen.kt` *(after H2)*.
 
-## J2 — The release ratchet and CI pinning
+## J2 — The release ratchet and CI pinning · done on `trunk`
 
 **Symptom.** The safety check meant to stop you shipping a release the phone
 will ignore cannot pass as documented, and will stop catching anything after
 the first real release.
 
-**Cause.** `release.yml:84-99` requires the version code to be strictly
+**Cause.** ~~`release.yml:84-99` requires the version code to be strictly
 above a floor file and, in the same breath, tells you to set that file to
 the new code in the same commit — those cannot both hold. The local checker
 uses a different comparison, so a green preflight does not predict a green
 tag. Separately, all six GitHub Actions are pinned to moving major tags,
-including in the job that materialises the signing key.
+including in the job that materialises the signing key.~~ **Struck
+2026-09-03 (this packet).**
 
-**Change.** Derive the floor from the previous `v*` tag's version code in
-git and delete the floor file as a source of truth; make the local checker
-agree. Pin every action to a commit hash. Add the static gate and lint to
-the drop and release workflows, which currently run unit tests only.
+**Change.** Shipped: one rule in `tools/version_ratchet.py`. Everyday
+preflight is `current >= floor`. A tag release is `--tag-release`: the
+first `v*` may equal 1; later `v*` must be strictly above the previous
+`v*` tag's `appVersionCode` (`--exclude-tag` so a tag push does not
+compare against itself). There is no `v*` tag yet — the file floor
+stays 1 until the first gym-floor tag; after that, git is source of
+truth. `debug-live-*` tags do not move the floor. Actions are pinned
+to commit SHAs. Drop and release workflows run the static gate and
+`lintDebug`. Cursor JVM remains the merge gate.
 
 **Owns.** `.github/workflows/**`, `tools/check-version-code.py`,
-`tools/released-version-code.txt`, `SETUP.md`.
+`tools/version_ratchet.py`, `tools/released-version-code.txt`,
+`tools/check-play-rehearsal.py`, `SETUP.md`.
 
 ## J3 — App size · done on `trunk`
 
@@ -1414,6 +1421,19 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — J2: no v* tag, so the file floor stays 1.** The Change
+line said derive the floor from the previous `v*` tag and delete the
+file as source of truth. There is no `v*` tag on this remote — only
+`debug-live-*`. Until the first gym-floor tag, the floor is 1
+(`tools/released-version-code.txt` is that fallback). After a `v*`
+tag, git wins. First `v*` may equal 1; later `v*` must be strictly
+above the previous tag's `appVersionCode`. `release.yml` calls
+`tools/check-version-code.py --tag-release` instead of the `-le` /
+"set the floor in the same commit" pair. Shared module is
+`tools/version_ratchet.py` so play-rehearsal cannot drift. Owns now
+includes that module, `check-play-rehearsal.py`, and a fixture proof
+at `tools/test_version_ratchet.py`. Count unchanged.
 
 **2026-09-03 — J3: android-all-instrumented 15-robolectric-13954326-i7.**
 Robolectric 4.16 `DefaultSdkProvider` maps API 35 to revision

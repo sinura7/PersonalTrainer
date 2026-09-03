@@ -1,31 +1,42 @@
 #!/usr/bin/env python3
-"""P12.3: versionCode in app/build.gradle.kts must never go backwards."""
+"""Gym-floor versionCode ratchet. See version_ratchet.py for the rule."""
 from __future__ import annotations
 
-import re
+import argparse
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-GRADLE = ROOT / "app" / "build.gradle.kts"
-FLOOR = ROOT / "tools" / "released-version-code.txt"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from version_ratchet import evaluate  # noqa: E402
 
-CODE = re.compile(r"^val appVersionCode = (\d+)\s*$", re.M)
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> int:
-    gradle = GRADLE.read_text(encoding="utf-8")
-    match = CODE.search(gradle)
-    if match is None:
-        print("check-version-code: appVersionCode not found in app/build.gradle.kts")
-        return 1
-    current = int(match.group(1))
-    floor = int(FLOOR.read_text(encoding="utf-8").strip())
-    if current < floor:
-        print(f"check-version-code: versionCode {current} is below released floor {floor}")
-        return 1
-    print(f"check-version-code: versionCode {current} >= released {floor}")
-    return 0
+    parser = argparse.ArgumentParser(description="Gym-floor versionCode ratchet")
+    parser.add_argument(
+        "--tag-release",
+        action="store_true",
+        help="First v* may equal 1; later v* must be strictly above the previous v*",
+    )
+    parser.add_argument(
+        "--exclude-tag",
+        default=None,
+        help="Ignore this v* tag when computing the previous release (the tag being pushed)",
+    )
+    parser.add_argument(
+        "--root",
+        default=str(ROOT),
+        help="Repository root (tests pass a fixture)",
+    )
+    args = parser.parse_args()
+    result = evaluate(
+        Path(args.root),
+        tag_release=args.tag_release,
+        exclude_tag=args.exclude_tag,
+    )
+    print(result.message)
+    return 0 if result.ok else 1
 
 
 if __name__ == "__main__":

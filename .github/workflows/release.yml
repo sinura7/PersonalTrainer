@@ -46,22 +46,27 @@ jobs:
 
     steps:
       - name: Check out
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v4
+        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1 # v4.4.4
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
+
+      - name: Static checks (tools/preflight.sh)
+        run: PT_STATIC_ONLY=1 sh tools/preflight.sh
 
       # The version is hand-maintained in app/build.gradle.kts (SETUP.md §1). Tagging
       # without bumping it publishes a green, correctly-signed release whose versionCode
@@ -81,27 +86,18 @@ jobs:
             echo "Bump appVersionCode and appVersionName in app/build.gradle.kts, or retag." >&2
             exit 1
           fi
-          # The name check alone cannot catch a forgotten CODE bump — the exact
-          # invisible failure this step's comment promises to catch. The floor
-          # file is ratcheted to the shipped code in the same release commit
-          # (tools/released-version-code.txt), so a tag must carry a code
-          # STRICTLY above the last release's.
-          build_code="$(sed -n 's/^val appVersionCode = \([0-9]*\)$/\1/p' app/build.gradle.kts)"
-          floor="$(tr -d '[:space:]' < tools/released-version-code.txt)"
-          if [ -z "$build_code" ]; then
-            echo "Could not read appVersionCode from app/build.gradle.kts" >&2
-            exit 1
-          fi
-          if [ "$build_code" -le "$floor" ]; then
-            echo "appVersionCode=$build_code is not above the released floor $floor." >&2
-            echo "Bump appVersionCode AND set tools/released-version-code.txt to the new code in the release commit." >&2
-            exit 1
-          fi
+          # One rule with tools/check-version-code.py: first v* may equal 1;
+          # later v* must be strictly above the previous v* tag's appVersionCode.
+          # Exclude this tag so a tag push does not compare against itself.
+          # There is no v* tag yet; until the first one, the file floor stays 1.
+          python3 tools/check-version-code.py --tag-release --exclude-tag "$GITHUB_REF_NAME"
           echo "version=$build_version" >> "$GITHUB_ENV"
 
-      # A tag must never ship code whose tests fail.
       - name: Unit tests
         run: ./gradlew testDebugUnitTest --stacktrace
+
+      - name: Lint
+        run: ./gradlew lintDebug --stacktrace
 
       # Reconstructs exactly what SETUP.md describes doing locally: a keystore file plus
       # keystore.properties, which app/build.gradle.kts already reads.
@@ -172,7 +168,7 @@ jobs:
       # Always keep the build, even on workflow_dispatch where no Release is published —
       # otherwise a manual run spends 15 minutes and throws the APK away.
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-apk
           path: ${{ steps.apk.outputs.path }}
