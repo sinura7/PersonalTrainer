@@ -14,6 +14,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from checker_baseline import load as load_baselines, report as report_baseline  # noqa: E402
 from kotlin_source import kotlin_files, strip_comments_and_strings  # noqa: E402
 from collections import defaultdict
 
@@ -149,3 +150,7 @@ for path, line, type_name, missing in sorted(problems):
     print(f"{path}:{line}  when over {type_name} is missing: {missing}")
 print(f"\n{len(problems)} non-exhaustive when block(s); "
       f"{len(cases)} types indexed, {skipped} block(s) skipped as ambiguous")
+_growth = report_baseline("skips", "when_exhaustive", skipped, load_baselines())
+if _growth:
+    print(_growth)
+    sys.exit(1)

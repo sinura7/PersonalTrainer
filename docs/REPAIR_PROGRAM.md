@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
 **Status:** in progress — Phase A, B3, B4, B1, J4 (seams, TimePort,
-scheduler polish), J3, and J2 are on `trunk`. Policy tests into `tools/`
-remain owed. J5 and J1 remain. Phase C has not started.  
+scheduler polish), J3, J2, and J5 are on `trunk`. Policy tests into
+`tools/` remain owed. J1 remains. Phase C has not started.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -105,7 +105,7 @@ the gym floor, are fifteen of them.
 | J2 | The release ratchet and CI pinning | 1 | — | House | done |
 | J3 | App size | 1 | — | House | done |
 | J4 | Tests stop sleeping | 2 | — | House | partial |
-| J5 | The checkers report what they skip | 1 | — | House | |
+| J5 | The checkers report what they skip | 1 | — | House | done |
 | K1 | *(held)* One signed v5: session time zone and the index census | 2 | — | Schema | held |
 | K2 | *(held)* The compiler train: Kotlin, AGP, Compose, Room | 4+ | — | Toolchain | held |
 
@@ -1335,11 +1335,11 @@ source-reading policy tests into the checkers remains owed.
 Policy tests into `tools/` remain owed (count-changing; hold until
 after J5).
 
-## J5 — The checkers report what they skip
+## J5 — The checkers report what they skip · done on `trunk`
 
 **Symptom.** A green gate that is quieter than it looks.
 
-**Cause.** `check-state-members.py` silently skips nine of twenty-seven
+**Cause.** ~~`check-state-members.py` silently skips nine of twenty-seven
 screens, including everything on Settings, because it requires an explicitly
 typed state declaration. `check-required-args.py` skips mixed-argument calls
 without saying so. `check-design-tokens.py` covers four of about twelve token
@@ -1347,15 +1347,21 @@ families — it cannot see a dp literal, an alpha literal, a named colour, a
 per-corner shape or a raw animation duration. `syntax-check.sh` prints "no
 syntax errors" when the compiler fails to start at all, and preflight's jar
 bootstrap picks whichever compiler jars sort last, then deletes a hand-built
-jar directory whose annotations jar came from the wrong path.
+jar directory whose annotations jar came from the wrong path.~~ **Struck
+2026-09-03 (this packet).**
 
-**Change.** Print skipped counts and fail when they grow past a committed
-baseline; add the missing token regexes (listed in the audit); scan the debug
-source set and the XML resources too; capture the real exit status in the
-syntax check; select jars by the versions in the version catalogue and test
-jar *contents* rather than paths.
+**Change.** Shipped: `tools/checker-baselines.toml` ceilings. Skip counts
+print and fail when they grow. Audit token regexes are advisory families
+against that file (blocking hex/radius/font/elevation stay fail-closed).
+Debug Kotlin and XML `res/` are scanned. `syntax-check.sh` captures the
+compiler status and never prints `NO SYNTAX ERRORS` on a failed start.
+Preflight selects Kotlin/coroutines/junit/gson jars by
+`gradle/libs.versions.toml` and checks jar contents (`Intrinsics`,
+`K2JVMCompiler`, `org.junit.Test`, `NotNull`). Inherited
+`AppViewModel` members are in scope for `check-missing-imports.py`.
 
-**Owns.** `tools/**`.
+**Owns.** `tools/**` (did not reopen `check-version-code.py` or the 2.2
+stdlib tripwire).
 
 ---
 
@@ -1421,6 +1427,18 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — J5: skips named, not guessed; tokens advisory until
+cleaned.** Settings has no `uiState`; RestTimerScreenState is not
+`*UiState`; `StateFlow<T?>` did not match. This packet indexes every
+data class, allows a nullable StateFlow, and hops `state: Type` so
+Settings/LiveSessionBar/the timer snapshots are checked. One skip
+remains: `RestTimerController.kt` (`state.` is the store). New token
+families from the 1 September audit are counted against
+`checker-baselines.toml` — they do not fail the gate at today's
+volume. Hex exemption is Color.kt plus Theme.kt (scheme binding),
+not all of `ui/theme/`. XML hex/monospace is advisory. Preflight is
+green including inherited `todayEpochDay()`. Count unchanged.
 
 **2026-09-03 — J2: no v* tag, so the file floor stays 1.** The Change
 line said derive the floor from the previous `v*` tag and delete the

@@ -63,6 +63,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from checker_baseline import load as load_baselines, report as report_baseline  # noqa: E402
 from kotlin_source import kotlin_files, strip_comments_and_strings  # noqa: E402
 
 ROOTS = sys.argv[1:] or ["app/src/main/java", "app/src/test/java"]
@@ -254,6 +255,8 @@ def short_positional(path, body, match, name, overloads, supplied):
 
 def scan(files, index):
     findings = []
+    skipped_mixed = 0
+    skipped_lambda = 0
     for path in sorted(files):
         raw = open(path, encoding="utf-8").read()
         body = strip_comments_and_strings(raw)
@@ -299,7 +302,13 @@ def scan(files, index):
             # Only the two pure shapes are decidable. A mix would need positional matching,
             # which needs overload resolution, which is where the false positives live.
             if not all_named:
-                if any_named or has_lambda or is_declaration(body, match.start()):
+                if is_declaration(body, match.start()):
+                    continue
+                if any_named:
+                    skipped_mixed += 1
+                    continue
+                if has_lambda:
+                    skipped_lambda += 1
                     continue
                 findings.extend(
                     short_positional(path, body, match, name, overloads, positional_count),
@@ -323,7 +332,7 @@ def scan(files, index):
                 best = min(missing_per_overload, key=len)
                 line = body[:match.start()].count("\n") + 1
                 findings.append((path, line, name, best))
-    return findings
+    return findings, skipped_mixed, skipped_lambda
 
 
 def main():
@@ -336,14 +345,26 @@ def main():
         return 0
 
     index = declarations(files)
-    findings = scan(files, index)
+    findings, skipped_mixed, skipped_lambda = scan(files, index)
     for path, line, name, missing in findings:
         plural = "s" if len(missing) > 1 else ""
         print(f"{path}:{line}  {name}(...) is missing required argument{plural}: {missing}")
     print(f"\n{len(findings)} missing required argument(s) across {len(files)} files")
+    print(f"{skipped_mixed} mixed-argument call(s) skipped")
+    print(f"{skipped_lambda} positional call(s) with a trailing lambda skipped")
+    baselines = load_baselines()
+    growth = [
+        report_baseline("skips", "required_args_mixed", skipped_mixed, baselines),
+        report_baseline("skips", "required_args_lambda", skipped_lambda, baselines),
+    ]
     # 1, not len(findings): POSIX truncates exit status to 8 bits, so exactly
     # 256 findings would exit 0 and pass preflight.
-    return 1 if findings else 0
+    if findings or any(growth):
+        for item in growth:
+            if item:
+                print(item)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

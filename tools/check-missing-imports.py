@@ -118,6 +118,12 @@ USE_RE = re.compile(r"(?<![.\w@$])([A-Za-z_]\w*)")
 # dictionary learns the name and then flags the first file that only ever calls the stdlib one.
 ALWAYS_IN_SCOPE = {"catch", "items", "size", "map"}
 
+# Subclasses of AppViewModel inherit these without an import. The top-level
+# domain.todayEpochDay is a different symbol; a ViewModel that calls the
+# inherited method must not be reported as missing that import.
+APP_VIEW_MODEL_MEMBERS = {"todayEpochDay", "civilToday", "container", "time"}
+APP_VIEW_MODEL_SUPER = re.compile(r":\s*AppViewModel\b")
+
 # A project constant: SCREAMING_SNAKE with at least one underscore.
 CONSTANT_RE = re.compile(r"^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+$")
 
@@ -257,6 +263,8 @@ def scan(files, index, external, private):
         body = strip_comments_and_strings(raw)
         body = DECL_LINE_RE.sub("", body)
         local = bound_names(body) | enum_entry_names(body)
+        if APP_VIEW_MODEL_SUPER.search(body):
+            local |= APP_VIEW_MODEL_MEMBERS
         check_constants = not has_foreign_supertype(body, index)
         body = NAMED_ARG_RE.sub(" ", body)
 

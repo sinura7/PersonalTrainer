@@ -99,3 +99,23 @@ def kotlin_files(root: str) -> list:
             if name.endswith(".kt"):
                 found.append(os.path.join(dirpath, name))
     return found
+
+
+def kotlin_files_in(roots: list[str]) -> list:
+    found = []
+    for root in roots:
+        if os.path.isdir(root):
+            found.extend(kotlin_files(root))
+    return found
+
+
+def xml_files_in(roots: list[str]) -> list:
+    found = []
+    for root in roots:
+        if not os.path.isdir(root):
+            continue
+        for dirpath, _, names in os.walk(root):
+            for name in sorted(names):
+                if name.endswith(".xml"):
+                    found.append(os.path.join(dirpath, name))
+    return found
