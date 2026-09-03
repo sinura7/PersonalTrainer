@@ -152,7 +152,8 @@ for c in "check-internal-imports.py app/src/main/java" \
          "check-domain-seams.py" \
          "check-commercial-boundary.py" \
          "check-version-code.py" \
-         "check-play-rehearsal.py"; do
+         "check-play-rehearsal.py" \
+         "check-still-pack.py"; do
     step "$c"
     # shellcheck disable=SC2086
     python3 tools/$c || fail "$c"

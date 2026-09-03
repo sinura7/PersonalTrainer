@@ -75,6 +75,9 @@ internal object TemperStillCache {
             inPreferredConfig = Bitmap.Config.ARGB_8888
             inMutable = true
             inScaled = false
+            // Raised 1024 pair; do not sample-2 here — that would undo the
+            // raise and make the Body panel softer than the 768 floor.
+            inSampleSize = 1
         }
         val decoded = BitmapFactory.decodeResource(resources, id, options) ?: return null
         val argb = Bitmap.Config.ARGB_8888

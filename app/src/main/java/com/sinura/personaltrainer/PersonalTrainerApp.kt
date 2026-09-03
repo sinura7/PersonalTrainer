@@ -91,9 +91,9 @@ class PersonalTrainerApp : Application() {
         // no timer runs this session.
         RestTimerNotifications.ensureChannels(this)
         ReminderNotifications.ensureChannel(this)
-        // Two 768x768 webp decodes plus a per-pixel pass each — 50-150 ms of
-        // main-thread work only the Body tab needs. The drawing code already
-        // handles the cache being empty until this lands.
+        // Two 1024 unlit stills plus a per-pixel pit punch — Body-only work
+        // that used to be two 768 decodes. The drawing code already handles
+        // the cache being empty until this lands.
         applicationScope.launch { TemperStillCache.bind(resources) }
         // A rest can outlive its process. Recover it before any screen asks for timer state.
         container.restTimerController.rehydrate()

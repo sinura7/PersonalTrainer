@@ -10,16 +10,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -145,6 +148,13 @@ fun ExerciseThumb(
     val view = thumbViewFor(primary)
     val pose = poseFor(exercise.movementKey)
     val art = keyedArtwork(exercise.imageKey) ?: artworkFor(pose = pose, view = view)
+    val resources = LocalContext.current.resources
+    val still by produceState<ImageBitmap?>(
+        initialValue = ThumbCache.peek(art, ThumbCache.THUMB_SAMPLE),
+        key1 = art,
+    ) {
+        value = ThumbCache.load(resources, art, ThumbCache.THUMB_SAMPLE)
+    }
     val shape = RoundedCornerShape(Radius.xs)
     Box(
         modifier = modifier
@@ -155,14 +165,16 @@ fun ExerciseThumb(
             .clearAndSetSemantics { },
         contentAlignment = Alignment.Center,
     ) {
-        Image(
-            painter = painterResource(art),
-            contentDescription = null,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(Metrics.space1),
-            contentScale = ContentScale.Fit,
-        )
+        still?.let { bitmap ->
+            Image(
+                bitmap = bitmap,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(Metrics.space1),
+                contentScale = ContentScale.Fit,
+            )
+        }
         EquipmentBadge(
             glyph = glyphFor(exercise.equipment),
             size = size * BADGE_SHARE,
