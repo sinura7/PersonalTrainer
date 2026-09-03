@@ -38,6 +38,7 @@ import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.Weekday
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.io.IOException
@@ -74,8 +75,15 @@ class PreferencesRepository(
             }
         }
 
-    val weightUnit: Flow<WeightUnit> = safePreferences
-        .map { prefs -> WeightUnit.fromStorage(prefs[WEIGHT_UNIT]) }
+    /**
+     * A mapped preference that stays quiet when the stored value did not
+     * change. DataStore re-emits the whole [Preferences] object on any write;
+     * without this, every reader of an unrelated key reruns.
+     */
+    private fun <T> pref(read: (Preferences) -> T): Flow<T> =
+        safePreferences.map(read).distinctUntilChanged()
+
+    val weightUnit: Flow<WeightUnit> = pref { prefs -> WeightUnit.fromStorage(prefs[WEIGHT_UNIT]) }
 
     suspend fun setWeightUnit(unit: WeightUnit) {
         dataStore.edit { prefs ->
@@ -83,8 +91,7 @@ class PreferencesRepository(
         }
     }
 
-    val clockFormat: Flow<ClockFormat> = safePreferences
-        .map { prefs -> ClockFormat.fromStorage(prefs[CLOCK_FORMAT]) }
+    val clockFormat: Flow<ClockFormat> = pref { prefs -> ClockFormat.fromStorage(prefs[CLOCK_FORMAT]) }
 
     suspend fun setClockFormat(format: ClockFormat) {
         dataStore.edit { prefs -> prefs[CLOCK_FORMAT] = format.storageKey }
@@ -93,8 +100,8 @@ class PreferencesRepository(
     /**
      * Null is Auto: first training day of the week.
      */
-    val bodyweightCheckInWeekday: Flow<Weekday?> = safePreferences
-        .map { prefs -> Weekday.fromStorage(prefs[BODYWEIGHT_CHECK_IN_WEEKDAY]) }
+    val bodyweightCheckInWeekday: Flow<Weekday?> =
+        pref { prefs -> Weekday.fromStorage(prefs[BODYWEIGHT_CHECK_IN_WEEKDAY]) }
 
     suspend fun setBodyweightCheckInWeekday(day: Weekday?) {
         dataStore.edit { prefs ->
@@ -116,15 +123,14 @@ class PreferencesRepository(
      * already answered, or — once the "already answered" flag travelled — silently kept the
      * app's defaults with no path back to the questions. They travel.
      */
-    val coachPreferences: Flow<CoachPreferences> = safePreferences
-        .map { prefs ->
-            CoachPreferences(
-                goal = TrainingGoal.fromStorage(prefs[TRAINING_GOAL]),
-                // Empty means gym-floor (no Hyper Pro), never "owns nothing" — see CoachPreferences.
-                availableEquipment = prefs[AVAILABLE_EQUIPMENT].orEmpty(),
-                emphasis = TrainingEmphasis.fromStorage(prefs[TRAINING_EMPHASIS]),
-            )
-        }
+    val coachPreferences: Flow<CoachPreferences> = pref { prefs ->
+        CoachPreferences(
+            goal = TrainingGoal.fromStorage(prefs[TRAINING_GOAL]),
+            // Empty means gym-floor (no Hyper Pro), never "owns nothing" — see CoachPreferences.
+            availableEquipment = prefs[AVAILABLE_EQUIPMENT].orEmpty(),
+            emphasis = TrainingEmphasis.fromStorage(prefs[TRAINING_EMPHASIS]),
+        )
+    }
 
     suspend fun setTrainingGoal(goal: TrainingGoal) {
         dataStore.edit { prefs -> prefs[TRAINING_GOAL] = goal.name }
@@ -138,15 +144,13 @@ class PreferencesRepository(
         dataStore.edit { prefs -> prefs[AVAILABLE_EQUIPMENT] = equipment }
     }
 
-    val trainingAge: Flow<TrainingAge> = safePreferences
-        .map { prefs -> TrainingAge.fromStorage(prefs[TRAINING_AGE]) }
+    val trainingAge: Flow<TrainingAge> = pref { prefs -> TrainingAge.fromStorage(prefs[TRAINING_AGE]) }
 
     suspend fun setTrainingAge(age: TrainingAge) {
         dataStore.edit { prefs -> prefs[TRAINING_AGE] = age.name }
     }
 
-    val preferredDays: Flow<Set<Weekday>> = safePreferences
-        .map { prefs -> preferredDaysFrom(prefs[PREFERRED_DAYS]) }
+    val preferredDays: Flow<Set<Weekday>> = pref { prefs -> preferredDaysFrom(prefs[PREFERRED_DAYS]) }
 
     suspend fun setPreferredDays(days: Set<Weekday>) {
         dataStore.edit { prefs -> prefs[PREFERRED_DAYS] = days.map { it.name }.toSet() }
@@ -157,8 +161,8 @@ class PreferencesRepository(
      * a file that predates the field. Readers call [OnboardingAnswers.inferPlace] in that
      * case rather than pretending everyone trains in a full gym.
      */
-    val trainingPlace: Flow<TrainingPlace?> = safePreferences
-        .map { prefs -> prefs[TRAINING_PLACE]?.let { TrainingPlace.fromStorage(it) } }
+    val trainingPlace: Flow<TrainingPlace?> =
+        pref { prefs -> prefs[TRAINING_PLACE]?.let { TrainingPlace.fromStorage(it) } }
 
     suspend fun setTrainingPlace(place: TrainingPlace) {
         setTrainingPlaces(setOf(place))
@@ -181,8 +185,7 @@ class PreferencesRepository(
      * A past value is inert: readers compare it to this week's start. Clearing is writing
      * null, not deleting a row that no longer matches.
      */
-    val lighterWeekStartEpochDay: Flow<Long?> = safePreferences
-        .map { prefs -> prefs[LIGHTER_WEEK_START] }
+    val lighterWeekStartEpochDay: Flow<Long?> = pref { prefs -> prefs[LIGHTER_WEEK_START] }
 
     suspend fun setLighterWeekStartEpochDay(epochDay: Long?) {
         dataStore.edit { prefs ->
@@ -233,8 +236,7 @@ class PreferencesRepository(
         )
     }
 
-    val trainingFocus: Flow<TrainingFocus> = safePreferences
-        .map { prefs -> TrainingFocus.fromStorage(prefs[TRAINING_FOCUS]) }
+    val trainingFocus: Flow<TrainingFocus> = pref { prefs -> TrainingFocus.fromStorage(prefs[TRAINING_FOCUS]) }
 
     suspend fun setTrainingFocus(focus: TrainingFocus) {
         dataStore.edit { prefs -> prefs[TRAINING_FOCUS] = focus.name }
@@ -246,21 +248,19 @@ class PreferencesRepository(
      * Nothing persisted this before, so the map reset to a default every time the process
      * died — a preference the user re-expressed on every cold start and the app never learned.
      */
-    val heatWindow: Flow<HeatWindow> = safePreferences
-        .map { prefs -> HeatWindow.fromStorage(prefs[HEAT_WINDOW]) }
+    val heatWindow: Flow<HeatWindow> = pref { prefs -> HeatWindow.fromStorage(prefs[HEAT_WINDOW]) }
 
     suspend fun setHeatWindow(window: HeatWindow) {
         dataStore.edit { prefs -> prefs[HEAT_WINDOW] = window.name }
     }
 
-    val schedulePreferences: Flow<SchedulePreferences> = safePreferences
-        .map { prefs ->
-            SchedulePreferences(
-                trainingDaysPerWeek = prefs[TRAINING_DAYS] ?: SchedulePreferences.DEFAULT_DAYS,
-                splitStyle = SplitStyle.fromStorage(prefs[SPLIT_STYLE]),
-                weekStart = SchedulePreferences.weekStartFromStorage(prefs[WEEK_START]),
-            ).sanitized()
-        }
+    val schedulePreferences: Flow<SchedulePreferences> = pref { prefs ->
+        SchedulePreferences(
+            trainingDaysPerWeek = prefs[TRAINING_DAYS] ?: SchedulePreferences.DEFAULT_DAYS,
+            splitStyle = SplitStyle.fromStorage(prefs[SPLIT_STYLE]),
+            weekStart = SchedulePreferences.weekStartFromStorage(prefs[WEEK_START]),
+        ).sanitized()
+    }
 
     suspend fun setTrainingDaysPerWeek(days: Int) {
         dataStore.edit { prefs ->
@@ -287,37 +287,34 @@ class PreferencesRepository(
         }
     }
 
-    val restTimerPreferences: Flow<RestTimerPreferences> = safePreferences
-        .map { prefs ->
-            RestTimerPreferences(
-                soundEnabled = prefs[REST_SOUND] ?: true,
-                vibrationEnabled = prefs[REST_VIBRATE] ?: true,
-                defaultRestSeconds = prefs[REST_DEFAULT] ?: RestTimerPreferences.DEFAULT_SECONDS,
-                lastPresetSeconds = prefs[REST_LAST_PRESET],
-            ).sanitized()
-        }
+    val restTimerPreferences: Flow<RestTimerPreferences> = pref { prefs ->
+        RestTimerPreferences(
+            soundEnabled = prefs[REST_SOUND] ?: true,
+            vibrationEnabled = prefs[REST_VIBRATE] ?: true,
+            defaultRestSeconds = prefs[REST_DEFAULT] ?: RestTimerPreferences.DEFAULT_SECONDS,
+            lastPresetSeconds = prefs[REST_LAST_PRESET],
+        ).sanitized()
+    }
 
     /**
      * Exact-alarm special-access is requested only after rest is used or
      * configured. Onboarding must never write this. Restore leaves it alone.
      */
-    val restAlarmEligible: Flow<Boolean> = safePreferences
-        .map { prefs -> prefs[REST_ALARM_ELIGIBLE] ?: false }
+    val restAlarmEligible: Flow<Boolean> = pref { prefs -> prefs[REST_ALARM_ELIGIBLE] ?: false }
 
     suspend fun markRestAlarmEligible() {
         dataStore.edit { prefs -> prefs[REST_ALARM_ELIGIBLE] = true }
     }
 
-    val reminderPreferences: Flow<ReminderPreferences> = safePreferences
-        .map { prefs ->
-            ReminderPreferences(
-                optOut = prefs[REMINDER_OPT_OUT] ?: false,
-                quietStartHour = prefs[REMINDER_QUIET_START]
-                    ?: ReminderPreferences.DEFAULT_QUIET_START_HOUR,
-                quietEndHour = prefs[REMINDER_QUIET_END]
-                    ?: ReminderPreferences.DEFAULT_QUIET_END_HOUR,
-            ).sanitized()
-        }
+    val reminderPreferences: Flow<ReminderPreferences> = pref { prefs ->
+        ReminderPreferences(
+            optOut = prefs[REMINDER_OPT_OUT] ?: false,
+            quietStartHour = prefs[REMINDER_QUIET_START]
+                ?: ReminderPreferences.DEFAULT_QUIET_START_HOUR,
+            quietEndHour = prefs[REMINDER_QUIET_END]
+                ?: ReminderPreferences.DEFAULT_QUIET_END_HOUR,
+        ).sanitized()
+    }
 
     suspend fun setReminderOptOut(optOut: Boolean) {
         dataStore.edit { prefs -> prefs[REMINDER_OPT_OUT] = optOut }
@@ -334,8 +331,8 @@ class PreferencesRepository(
      * Strength (and mixed) occurrence started through the live logger.
      * Device-local: not part of backup. Cleared on finish or discard.
      */
-    val pendingOccurrenceId: Flow<String?> = safePreferences
-        .map { prefs -> prefs[PENDING_OCCURRENCE_ID]?.takeIf { it.isNotBlank() } }
+    val pendingOccurrenceId: Flow<String?> =
+        pref { prefs -> prefs[PENDING_OCCURRENCE_ID]?.takeIf { it.isNotBlank() } }
 
     suspend fun setPendingOccurrenceId(id: String?) {
         dataStore.edit { prefs ->
@@ -397,14 +394,11 @@ class PreferencesRepository(
         }
     }
 
-    val driveAccountEmail: Flow<String?> = safePreferences
-        .map { prefs -> prefs[DRIVE_ACCOUNT] }
+    val driveAccountEmail: Flow<String?> = pref { prefs -> prefs[DRIVE_ACCOUNT] }
 
-    val lastBackupAt: Flow<Long?> = safePreferences
-        .map { prefs -> prefs[LAST_BACKUP_AT] }
+    val lastBackupAt: Flow<Long?> = pref { prefs -> prefs[LAST_BACKUP_AT] }
 
-    val lastBackupName: Flow<String?> = safePreferences
-        .map { prefs -> prefs[LAST_BACKUP_NAME] }
+    val lastBackupName: Flow<String?> = pref { prefs -> prefs[LAST_BACKUP_NAME] }
 
     suspend fun setDriveAccountEmail(email: String?) {
         dataStore.edit { prefs ->
@@ -602,8 +596,8 @@ class PreferencesRepository(
      * hidden if it was dismissed before. That is the right default (the owner already answered
      * the question) and it is recorded here so it is not a surprise.
      */
-    val dismissedCollisionIds: Flow<Set<String>> = safePreferences
-        .map { prefs -> prefs[DISMISSED_COLLISIONS].orEmpty() }
+    val dismissedCollisionIds: Flow<Set<String>> =
+        pref { prefs -> prefs[DISMISSED_COLLISIONS].orEmpty() }
 
     suspend fun dismissCollision(exerciseId: String) {
         dataStore.edit { prefs ->
@@ -637,6 +631,7 @@ class PreferencesRepository(
                 is DataHealth.Unavailable -> health
             }
         }
+        .distinctUntilChanged()
 
     val onboardingComplete: Flow<Boolean> = onboardingCompleteHealth.presentValues()
 
@@ -651,8 +646,7 @@ class PreferencesRepository(
      * stand-in", which is what [com.sinura.personaltrainer.domain.MuscleLoadCalculator]
      * already did for every bodyweight set before this existed.
      */
-    val bodyweightKg: Flow<Double?> = safePreferences
-        .map { prefs -> prefs[BODYWEIGHT_KG]?.takeIf { it > 0.0 } }
+    val bodyweightKg: Flow<Double?> = pref { prefs -> prefs[BODYWEIGHT_KG]?.takeIf { it > 0.0 } }
 
     /**
      * Every weigh-in, oldest first.
@@ -661,8 +655,10 @@ class PreferencesRepository(
      * how it got there, and [recordBodyweight] writes both in one edit so they cannot disagree.
      */
     val bodyweightLog: Flow<List<BodyweightEntry>> =
-        bodyweightDao?.observeAll()?.map { rows -> rows.map { it.toDomain() } }
-            ?: safePreferences.map { prefs -> BodyweightLog.decode(prefs[BODYWEIGHT_LOG]) }
+        bodyweightDao?.observeAll()
+            ?.map { rows -> rows.map { it.toDomain() } }
+            ?.distinctUntilChanged()
+            ?: pref { prefs -> BodyweightLog.decode(prefs[BODYWEIGHT_LOG]) }
 
     /**
      * Record what the lifter weighs today, keeping the history.
@@ -725,9 +721,9 @@ class PreferencesRepository(
      * saw them — would invent a milestone they never set.
      */
     val trainingBlock: Flow<TrainingBlock?> =
-        trainingBlockDao?.observeCurrent()?.map { it?.toDomain() }
-            ?: safePreferences.map { prefs ->
-                val start = prefs[BLOCK_START] ?: return@map null
+        trainingBlockDao?.observeCurrent()?.map { it?.toDomain() }?.distinctUntilChanged()
+            ?: pref { prefs ->
+                val start = prefs[BLOCK_START] ?: return@pref null
                 TrainingBlock(
                     startEpochDay = start,
                     weeks = prefs[BLOCK_WEEKS] ?: TrainingBlock.DEFAULT_WEEKS,
@@ -738,8 +734,10 @@ class PreferencesRepository(
      * The blocks already finished, oldest first. Boundaries only — see [BlockArchive].
      */
     val pastBlocks: Flow<List<TrainingBlock>> =
-        trainingBlockDao?.observePast()?.map { rows -> rows.map { it.toDomain() } }
-            ?: safePreferences.map { prefs -> BlockArchive.decode(prefs[PAST_BLOCKS]) }
+        trainingBlockDao?.observePast()
+            ?.map { rows -> rows.map { it.toDomain() } }
+            ?.distinctUntilChanged()
+            ?: pref { prefs -> BlockArchive.decode(prefs[PAST_BLOCKS]) }
 
     /**
      * Make [next] the current block, keeping the one it replaces if it was finished.
@@ -800,9 +798,9 @@ class PreferencesRepository(
         }
     }
 
-    val lastRestoreAt: Flow<Long?> = safePreferences.map { prefs -> prefs[LAST_RESTORE_AT] }
+    val lastRestoreAt: Flow<Long?> = pref { prefs -> prefs[LAST_RESTORE_AT] }
 
-    val lastRestoreName: Flow<String?> = safePreferences.map { prefs -> prefs[LAST_RESTORE_NAME] }
+    val lastRestoreName: Flow<String?> = pref { prefs -> prefs[LAST_RESTORE_NAME] }
 
     /**
      * Tracked separately from [setLastBackup]. Restoring used to overwrite the last-backup
@@ -830,8 +828,7 @@ class PreferencesRepository(
         }
     }
 
-    val foundationGeneration: Flow<String?> =
-        safePreferences.map { prefs -> prefs[FOUNDATION_GENERATION] }
+    val foundationGeneration: Flow<String?> = pref { prefs -> prefs[FOUNDATION_GENERATION] }
 
     /**
      * ADR-010 cutover: keep only weight unit and rest sound / vibration /

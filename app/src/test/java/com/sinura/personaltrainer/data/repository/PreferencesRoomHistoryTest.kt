@@ -4,8 +4,12 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.domain.BodyweightEntry
+import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.TrainingBlock
+import com.sinura.personaltrainer.domain.WeightUnit
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -27,6 +31,18 @@ class PreferencesRoomHistoryTest {
     @After
     fun tearDown() {
         deps.close()
+    }
+
+    @Test
+    fun writingHeatWindowDoesNotReEmitWeightUnit() = runBlocking {
+        val emissions = mutableListOf<WeightUnit>()
+        val job = launch { deps.preferencesRepository.weightUnit.collect { emissions.add(it) } }
+        while (emissions.isEmpty()) delay(10)
+        val before = emissions.size
+        deps.preferencesRepository.setHeatWindow(HeatWindow.CURRENT_MONTH)
+        repeat(20) { delay(10) }
+        assertEquals(before, emissions.size)
+        job.cancel()
     }
 
     @Test
