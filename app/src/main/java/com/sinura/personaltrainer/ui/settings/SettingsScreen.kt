@@ -107,6 +107,7 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
+import com.sinura.personaltrainer.ui.theme.TextDisabled
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.Warn
@@ -428,7 +429,7 @@ private fun DangerAction(label: String, enabled: Boolean) {
     Text(
         label,
         style = InstrumentType.bodyStrong,
-        color = if (enabled) Danger else TextTertiary,
+        color = if (enabled) Danger else TextDisabled,
         maxLines = 1,
     )
 }
@@ -885,7 +886,7 @@ private fun BackupRestoreSection(
             Text(
                 "Export without a password",
                 style = InstrumentType.caption,
-                color = if (state.isBusy) TextTertiary else TextSecondary,
+                color = if (state.isBusy) TextDisabled else TextSecondary,
             )
         }
         val restoreBlocked = state.isBusy || state.sessionLive
@@ -993,7 +994,7 @@ private fun SafetyCopyRow(
                     Icon(
                         Icons.Outlined.MoreVert,
                         contentDescription = "Safety copy options",
-                        tint = if (enabled) TextSecondary else TextTertiary,
+                        tint = if (enabled) TextSecondary else TextDisabled,
                     )
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
@@ -1012,7 +1013,7 @@ private fun SafetyCopyRow(
                             Text(
                                 "Restore…",
                                 style = InstrumentType.bodyStrong,
-                                color = if (restoreBlocked) TextTertiary else Danger,
+                                color = if (restoreBlocked) TextDisabled else Danger,
                             )
                         },
                         onClick = {

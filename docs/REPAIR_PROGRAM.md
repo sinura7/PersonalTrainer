@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F2, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F3, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase F continues at F3. K1 and K2 stay held.  
+`tools/` remain owed. Phase F continues at F4. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -88,7 +88,7 @@ the gym floor, are fifteen of them.
 | E4 | Query and recompute hygiene | 2 | — | Speed | done |
 | F1 | The logging loop keeps the wells on screen | 1 | — | Design I | done |
 | F2 | One green button per screen | 1 | 4 | Design I | done |
-| F3 | Text you can read in a gym | 1 | — | Design I | |
+| F3 | Text you can read in a gym | 1 | — | Design I | done |
 | F4 | Big text does not break the screen | 2 | — | Design I | |
 | F5 | One word per thing | 1 | — | Design I | |
 | F6 | Today is not buried by the missed-work card | 1 | — | Design I | |
@@ -956,6 +956,10 @@ not a one-off fix.
 **Owns.** `ui/theme/Color.kt`, `ui/components/GymSurfaces.kt`,
 `ui/components/Common.kt`, `ui/settings/SettingsScreen.kt`, ~15 caption sites.
 
+**On trunk.** TextTertiary is #7F8B93. TextDisabled holds the old grey.
+MetricCluster labels ride the retune. Disabled primary and Set use
+TextDisabled ink. Count +1.
+
 ## F4 — Big text does not break the screen · 2 evenings
 
 **Symptom.** At the largest system font, hero numbers are chopped to "1,2…",
@@ -1471,6 +1475,14 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — F3: TextTertiary is readable; TextDisabled is the old grey.**
+Proof is JVM (`everyLoadBearingTextOnSurfaceClearsAa`). 93 call sites
+inherit the retune; Owns only switched disabled ink in Common / Settings.
+Heat legend, chart axes, and picker Selected are not in Owns — they
+follow the token. SurfacePressed is 4.16:1 with #7F8B93 so the AA
+guard is Pit / Surface1–3, the surfaces copy actually sits on.
+Count +1.
 
 **2026-09-03 — F2: one filled Volt; Export is Settings' Volt.** Decision 4.
 Proof is JVM (`leftoverNoPlanNeverShowsTwoFilledButtons`,
