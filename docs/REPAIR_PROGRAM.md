@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1, E2, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase E continues at E2. K1 and K2 stay held.  
+`tools/` remain owed. Phase E continues at E3. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -83,7 +83,7 @@ the gym floor, are fifteen of them.
 | D2 | Reminder Start works from anywhere | 1 | — | Paths | done |
 | D3 | Live cardio is visible; errors dismiss; drafts survive | 2 | — | Paths | done |
 | E1 | Stop recomputing everything | 1 | — | Speed | done |
-| E2 | Thumbnails stop decoding at full size | 2 | — | Speed | |
+| E2 | Thumbnails stop decoding at full size | 2 | — | Speed | done |
 | E3 | The shell stops recomposing every second | 1 | — | Speed | |
 | E4 | Query and recompute hygiene | 2 | — | Speed | |
 | F1 | The logging loop keeps the wells on screen | 1 | — | Design I | |
@@ -779,6 +779,11 @@ composable requests a sampled decode. The scroll itself is a phone check.
 `ui/components/ExerciseThumb.kt`, `ui/components/TemperMark.kt`,
 `ui/components/PoseArtwork.kt`, `res/drawable-nodpi/**`, `tools/`.
 
+**On trunk.** `ex_*` and pose fallbacks are 256px. Thumbs decode
+through `ThumbCache` on IO with the equipment badge as the
+placeholder. Body unlit pair is 1024; heat stays 768 for the mark
+at sample 2. `tools/check-still-pack.py` holds the pack.
+
 ## E3 — The shell stops recomposing every second
 
 **Symptom.** Nothing visible — this is battery and heat while a session is
@@ -1446,6 +1451,18 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — E2: 256px thumbs; Body unlit raised to 1024.** No
+higher-res Body original on disk — the 1024 pair is a lanczos
+upscale of the 768 unlit stills so the panel stops enlarging a
+768 source. Sample 2 on that pair would undo the raise; Body
+cache stays `inSampleSize = 1`. Heat stays 768; `TemperMark`
+samples 2 through `ThumbCache`. Pose fallbacks drop to 256 with
+the catalog (they are thumbs, not the Body panel). 768 `ex_*`
+are not kept: nothing draws them large (40/56 dp). Proof is JVM
+(`loadRecordsTheRequestedSampleAndReusesTheBitmap`) plus
+`check-still-pack.py`, not a Library scroll. `PersonalTrainerApp`
+bind comment updated. Count +2.
 
 **2026-09-03 — E1: recency gated; pref() on the 26 maps.** Proof is
 JVM (`loggingASetOnAnInProgressSessionDoesNotRecomputeInsights`,

@@ -51,16 +51,16 @@ class StillHeatTest {
 
     @Test
     fun theShippedStandingCropKeepsThePerson() {
-        // The 768 stills' figure lives at x 210–560. Center-crop to 0.52
-        // must not clip the arms.
-        val (srcOffset, srcSize) = stillSrc(width = 768, height = 768, dstAspect = FIGURE_ASPECT)
-        assertTrue("crop starts too far right: ${srcOffset.x}", srcOffset.x <= 210)
+        // The 1024 unlit stills' figure lives at x 280–747 (768's 210–560
+        // scaled). Center-crop to 0.52 must not clip the arms.
+        val (srcOffset, srcSize) = stillSrc(width = 1024, height = 1024, dstAspect = FIGURE_ASPECT)
+        assertTrue("crop starts too far right: ${srcOffset.x}", srcOffset.x <= 280)
         assertTrue(
             "crop ends too far left: ${srcOffset.x + srcSize.width}",
-            srcOffset.x + srcSize.width >= 560,
+            srcOffset.x + srcSize.width >= 747,
         )
         assertEquals(0, srcOffset.y)
-        assertEquals(768, srcSize.height)
+        assertEquals(1024, srcSize.height)
     }
 
     @Test
