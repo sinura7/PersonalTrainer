@@ -286,9 +286,19 @@ class StartOptionsViewModel @JvmOverloads constructor(
                     is DiscardOutcome.Failed -> error.value = result.message
                 }
                 liveActivity != null -> {
-                    container.discardActivity(liveActivity.id)
-                    container.cardioTimerPersistence.clear()
-                    error.value = null
+                    // Guarded like the live bar: an unhandled throw here took
+                    // the process down, and clearing the timer on failure
+                    // wiped the baseline of a session that still exists.
+                    try {
+                        container.discardActivity(liveActivity.id)
+                        container.cardioTimerPersistence.clear()
+                        error.value = null
+                    } catch (thrown: kotlinx.coroutines.CancellationException) {
+                        throw thrown
+                    } catch (thrown: Exception) {
+                        AppLog.w(TAG, "Discarding live cardio from the sheet failed", thrown)
+                        error.value = "Could not discard this session. Try again."
+                    }
                 }
             }
         }

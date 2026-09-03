@@ -65,6 +65,7 @@ import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SessionLogRow
+import com.sinura.personaltrainer.ui.workout.StartSheetOpener
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
@@ -89,6 +90,7 @@ fun HistoryScreen(
     onOpenExercise: (String) -> Unit,
     onOpenActiveSession: (String) -> Unit,
     onOpenActivity: (String) -> Unit = {},
+    onOpenStartSheet: () -> Unit = {},
     viewModel: HistoryViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -118,14 +120,23 @@ fun HistoryScreen(
                 .fillMaxSize()
                 .background(Pit),
         ) {
-            Text(
-                "History",
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = Metrics.gutter, vertical = Metrics.space3),
-                style = InstrumentType.display,
-                color = TextPrimary,
-            )
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "History",
+                    modifier = Modifier.weight(1f),
+                    style = InstrumentType.display,
+                    color = TextPrimary,
+                )
+                StartSheetOpener(
+                    onOpen = onOpenStartSheet,
+                    modifier = Modifier.testTag(HistoryTags.START_SHEET),
+                )
+            }
             HorizonPicker(
                 horizon = state.horizon,
                 totals = state.horizonTotals,
@@ -644,6 +655,7 @@ object HistoryTags {
     const val ALL = "history-horizon-all"
     const val READOUT = "history-horizon-readout"
     const val EMPTY = "history-empty-log"
+    const val START_SHEET = "history-start-sheet"
 
     fun horizon(horizon: AnalyticsHorizon): String = when (horizon) {
         AnalyticsHorizon.DAY -> DAY

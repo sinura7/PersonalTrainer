@@ -36,7 +36,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -98,6 +101,7 @@ import com.sinura.personaltrainer.ui.activity.ActivityDetailScreen
 import com.sinura.personaltrainer.ui.activity.LiveCardioScreen
 import com.sinura.personaltrainer.ui.workout.ActiveWorkoutScreen
 import com.sinura.personaltrainer.ui.workout.RestTimerScreen
+import com.sinura.personaltrainer.ui.workout.StartOptionsSheet
 
 sealed class Route(val path: String) {
     data object Home : Route("home")
@@ -185,6 +189,22 @@ internal val shippingTabs = listOf(
     Tab(Route.History, "History", TemperIcons.History),
     Tab(Route.Settings, "Settings", TemperIcons.Settings),
 )
+
+/**
+ * Where the start sheet's actions land. Body, History, and Plan share
+ * one mapping so a host never invents a mode string. `past` is not
+ * cardio or mixed, so the composer reads it as STRENGTH — "Log a past
+ * workout".
+ */
+internal object StartOptionsNav {
+    const val PAST = "past"
+    const val CARDIO = "cardio"
+    const val MIXED = "mixed"
+
+    fun composer(mode: String): String = Route.ActivityComposer.create(mode)
+    fun liveCardio(sessionId: String): String = Route.LiveCardio.create(sessionId)
+    fun workout(sessionId: String): String = Route.ActiveWorkout.create(sessionId)
+}
 
 /**
  * One fade-through for every destination change.
@@ -328,6 +348,7 @@ fun PersonalTrainerNav(
     }
 
     val todayEpochDay = rememberTodayEpochDay(container.time)
+    var showStartSheet by rememberSaveable { mutableStateOf(false) }
     CompositionLocalProvider(
         LocalWeightUnit provides weightUnit,
         LocalClockFormat provides clockFormat,
@@ -439,6 +460,7 @@ fun PersonalTrainerNav(
                         onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
                         onOpenLibrary = { muscle -> navController.navigate(Route.Library.create(muscle)) },
                         onOpenRoutines = { goToTab(Route.Routines.path) },
+                        onOpenStartSheet = { showStartSheet = true },
                     )
                 }
                 composable(
@@ -512,6 +534,7 @@ fun PersonalTrainerNav(
                         onOpenDay = { epochDay, add ->
                             navController.navigate(Route.PlanDay.create(epochDay, add))
                         },
+                        onOpenStartSheet = { showStartSheet = true },
                     )
                 }
                 composable(Route.History.path) {
@@ -524,6 +547,7 @@ fun PersonalTrainerNav(
                             }
                         },
                         onOpenActivity = { navController.navigate(Route.ActivityDetail.create(it)) },
+                        onOpenStartSheet = { showStartSheet = true },
                     )
                 }
                 composable(
@@ -653,6 +677,30 @@ fun PersonalTrainerNav(
                     )
                 }
             }
+        }
+        if (showStartSheet) {
+            StartOptionsSheet(
+                onDismiss = { showStartSheet = false },
+                onWorkoutStarted = { sessionId ->
+                    navController.navigate(StartOptionsNav.workout(sessionId)) {
+                        launchSingleTop = true
+                    }
+                },
+                onLogPast = {
+                    navController.navigate(StartOptionsNav.composer(StartOptionsNav.PAST))
+                },
+                onLogCardio = {
+                    navController.navigate(StartOptionsNav.composer(StartOptionsNav.CARDIO))
+                },
+                onLogMixed = {
+                    navController.navigate(StartOptionsNav.composer(StartOptionsNav.MIXED))
+                },
+                onOpenLiveActivity = { sessionId ->
+                    navController.navigate(StartOptionsNav.liveCardio(sessionId)) {
+                        launchSingleTop = true
+                    }
+                },
+            )
         }
     }
 }

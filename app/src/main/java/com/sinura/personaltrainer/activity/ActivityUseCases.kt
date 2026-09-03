@@ -44,10 +44,10 @@ class StartLiveActivity(
     }
 }
 
-class DiscardActivity(
+open class DiscardActivity(
     private val repository: ActivityRepository,
 ) {
-    suspend operator fun invoke(sessionId: String) {
+    open suspend operator fun invoke(sessionId: String) {
         repository.discard(sessionId)
     }
 }

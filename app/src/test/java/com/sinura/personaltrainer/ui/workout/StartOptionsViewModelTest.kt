@@ -273,6 +273,67 @@ class StartOptionsViewModelTest {
         assertNull(vm.uiState.first { it.inProgress == null }.error)
     }
 
+    @Test
+    fun startCardioFromEmptyWeekOpensLiveCardio() = runBlocking {
+        deps = graph()
+        val vm = createViewModel()
+        vm.uiState.first { !it.isLoading }
+        assertNull(vm.uiState.value.todayStart)
+        assertTrue(deps.plannerRepository.observeOccurrences().first().isEmpty())
+
+        vm.startCardio()
+
+        val id = checkNotNull(vm.navigateToCardio.first { it != null })
+        val live = checkNotNull(deps.activityRepository.getLive())
+        assertEquals(id, live.id)
+        assertEquals("Cardio", live.title)
+        assertEquals(id, deps.cardioTimerPersistence.load()?.sessionId)
+    }
+
+    @Test
+    fun discardLiveCardioClearsTimerAndRemovesRow() = runBlocking {
+        deps = graph()
+        val vm = createViewModel()
+        vm.uiState.first { !it.isLoading }
+        vm.startCardio()
+        val id = checkNotNull(vm.navigateToCardio.first { it != null })
+        vm.uiState.first { it.liveActivity?.id == id }
+        assertEquals(id, deps.cardioTimerPersistence.load()?.sessionId)
+
+        vm.discardInProgress()
+
+        vm.uiState.first { it.liveActivity == null }
+        dispatcher.scheduler.advanceUntilIdle()
+        assertNull(deps.activityRepository.getLive())
+        assertNull(deps.cardioTimerPersistence.load())
+        assertNull(vm.uiState.value.error)
+    }
+
+    @Test
+    fun discardLiveCardioFailureLeavesTimerAndRow() = runBlocking {
+        deps = graph()
+        val vm = createViewModel()
+        vm.uiState.first { !it.isLoading }
+        vm.startCardio()
+        val id = checkNotNull(vm.navigateToCardio.first { it != null })
+        vm.uiState.first { it.liveActivity?.id == id }
+        checkNotNull(deps.cardioTimerPersistence.load())
+        deps.discardActivity = object : com.sinura.personaltrainer.activity.DiscardActivity(
+            deps.activityRepository,
+        ) {
+            override suspend fun invoke(sessionId: String) {
+                error("forced discard failure")
+            }
+        }
+
+        vm.discardInProgress()
+
+        val state = vm.uiState.first { it.error != null }
+        assertEquals("Could not discard this session. Try again.", state.error)
+        assertEquals(id, deps.activityRepository.getLive()?.id)
+        assertEquals(id, deps.cardioTimerPersistence.load()?.sessionId)
+    }
+
     private fun createViewModel(): StartOptionsViewModel =
         StartOptionsViewModel(
             ApplicationProvider.getApplicationContext<Application>(),
