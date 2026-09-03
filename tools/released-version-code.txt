@@ -1,1 +1,4 @@
+# Fallback gym-floor floor until the first `v*` tag exists.
+# After a `v*` tag, git is source of truth; this file is unused.
+# Do not write debugLiveCode here.
 1

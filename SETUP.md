@@ -16,6 +16,13 @@ val appVersionName = "1.0.0"
 - `versionName` is the human version (`1.0.0`, `1.1.0`).
 - `versionCode` is the integer Android and Obtainium use to decide that an APK is newer. Increase it by 1 every release.
 
+The gym-floor ratchet is `tools/check-version-code.py`. Until the first
+`v*` tag exists, the floor is 1 (`tools/released-version-code.txt` is
+only that fallback). After a `v*` tag, git is source of truth: the
+first `v*` may equal 1; every later `v*` must carry an `appVersionCode`
+strictly above the previous `v*` tag. Do not write `debugLiveCode` into
+the floor file. `debug-live-*` tags are not gym-floor releases.
+
 Settings → About shows `Version <versionName> (<versionCode>)`.
 
 ## 2. Create a release keystore (once)
@@ -204,6 +211,10 @@ Do not point the gym-floor Obtainium entry at a `*-debug.apk`.
 Obtainium watches GitHub Releases for a signed `PersonalTrainer-<version>.apk`.
 That file is the gym-floor update path. Cut it by bumping `appVersionCode`
 and `appVersionName`, then pushing tag `vX.Y.Z` (must match `appVersionName`).
+The first `v*` may keep `appVersionCode` at 1. Every later `v*` must bump
+the code above the previous `v*` tag — the release workflow calls
+`tools/check-version-code.py --tag-release` for that, and does not ask you
+to edit `tools/released-version-code.txt` in the same commit.
 The [release workflow](.github/workflows/release.yml) publishes the APK when
 the four `KEYSTORE_*` repository secrets are set. Without those secrets the
 tag still builds, but the APK is unsigned and will not update an existing

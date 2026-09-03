@@ -210,8 +210,9 @@ If you add a file to `data/backup/` that has no Android imports, add it to the l
 
 Three workflows exist and are maintained: `ci.yml` (the 17-checker
 static gate, unit tests, blocking lint, a debug APK artifact),
-`release.yml` (tag `v*`, with a strict `appVersionCode` ratchet against
-`tools/released-version-code.txt`), and `debug-live.yml` (tag
+`release.yml` (tag `v*`, with `tools/check-version-code.py --tag-release`
+against the previous `v*` tag — first `v*` may equal 1; there is no `v*`
+tag yet so the file floor stays 1), and `debug-live.yml` (tag
 `debug-live-*` **or** a push to a `debug-live/<suffix>` branch — the
 branch spelling exists because some sessions cannot push tags — which
 builds the debug APK and publishes the `debug-live-<suffix>`

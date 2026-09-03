@@ -10,12 +10,14 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from version_ratchet import evaluate  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "app" / "src" / "main" / "AndroidManifest.xml"
 GRADLE = ROOT / "app" / "build.gradle.kts"
 ENVELOPE_TEST = ROOT / "app" / "src" / "test" / "java" / "com" / "sinura" / "personaltrainer" / "data" / "backup" / "BackupEnvelopeTest.kt"
 MATRIX = ROOT / "app" / "src" / "main" / "java" / "com" / "sinura" / "personaltrainer" / "domain" / "AccessibilityMatrix.kt"
-FLOOR = ROOT / "tools" / "released-version-code.txt"
 DOCS = (
     ROOT / "docs" / "PRIVACY.md",
     ROOT / "docs" / "DATA_SAFETY.md",
@@ -51,8 +53,9 @@ def main() -> int:
         findings.append("AccessibilityMatrix.kt: physicalTalkBack must default false")
     if "pages.all { it.physicalTalkBack && it.automatedEvidence }" not in matrix:
         findings.append("AccessibilityMatrix.kt: publicCandidateReady must require physical TalkBack")
-    if not FLOOR.is_file():
-        findings.append("tools/released-version-code.txt is missing")
+    ratchet = evaluate(ROOT)
+    if not ratchet.ok:
+        findings.append(ratchet.message)
     for doc in DOCS:
         if not doc.is_file():
             findings.append(f"{doc.relative_to(ROOT)} is missing")
