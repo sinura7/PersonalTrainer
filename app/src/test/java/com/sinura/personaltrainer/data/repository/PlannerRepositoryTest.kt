@@ -407,4 +407,21 @@ class PlannerRepositoryTest {
         val generated = deps.plannerRepository.ensureWeek(nextWeek, "UTC", 1_700_000_000_000L)
         assertTrue(generated.none { it.localEpochDay == nextWeek.epochDay && it.ruleId == rule.id })
     }
+
+    @Test
+    fun resumeWithNoScheduleChangeWritesNoOccurrences() = runBlocking {
+        val routine = deps.routineRepository.create(name = "Push")
+        deps.scheduleRepository.pin(routine.id, null, Weekday.MONDAY)
+        deps.plannerRepository.importSlotsIfNeeded()
+        val first = deps.plannerRepository.ensureWeek(weekStart, "UTC", 1_700_000_000_000L)
+        assertTrue(first.isNotEmpty())
+        val before = deps.database.plannerDao()
+            .getOccurrencesBetween(weekStart.epochDay, weekStart.epochDay + 6)
+
+        deps.plannerRepository.ensureWeek(weekStart, "UTC", 1_700_000_000_000L)
+
+        val after = deps.database.plannerDao()
+            .getOccurrencesBetween(weekStart.epochDay, weekStart.epochDay + 6)
+        assertEquals(before, after)
+    }
 }

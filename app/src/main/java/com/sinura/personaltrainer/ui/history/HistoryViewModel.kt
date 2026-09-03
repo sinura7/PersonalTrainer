@@ -13,6 +13,7 @@ import com.sinura.personaltrainer.domain.BlockReviewBuilder
 import com.sinura.personaltrainer.domain.BodyweightEntry
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.CivilYearMonth
+import com.sinura.personaltrainer.domain.DailyProjection
 import com.sinura.personaltrainer.domain.DailyProjectionBuilder
 import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.HistoryMonthGroup
@@ -39,6 +40,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -92,6 +94,11 @@ class HistoryViewModel @JvmOverloads constructor(
         container.preferencesRepository.weightUnit,
         container.preferencesRepository.bodyweightLog,
     ) { blocks, unit, log -> PastBlockInputs(blocks, unit, log) }
+        .distinctUntilChanged { a, b ->
+            a.blocks == b.blocks &&
+                a.unit == b.unit &&
+                a.lastWeighIn == b.lastWeighIn
+        }
         .flatMapLatest { inputs ->
             flow {
                 val zone = time.defaultZoneId()
@@ -127,7 +134,7 @@ class HistoryViewModel @JvmOverloads constructor(
             }
         }
 
-    val uiState: StateFlow<HistoryUiState> = historyRetry.flatMapLatest {
+    private val catalog = historyRetry.flatMapLatest {
         combine(
             combine(
                 container.workoutRepository.observeSessionSummariesHealth(),
@@ -147,45 +154,61 @@ class HistoryViewModel @JvmOverloads constructor(
                 container.preferencesRepository.schedulePreferences,
                 pastBlockReviews,
             ) { preferences, reviews -> preferences to reviews },
-            visibleMonth,
-            horizon,
-        ) { reads, settings, month, selectedHorizon ->
+        ) { reads, settings ->
             val list = historyListFromHealth(reads.health)
             if (list.unavailable) {
-                return@combine HistoryUiState(isLoading = false, unavailable = true)
+                return@combine HistoryCatalog(unavailable = true)
             }
-            val activitySummaries = reads.activitySummaries
-            val allSummaries = list.summaries + activitySummaries
+            val allSummaries = list.summaries + reads.activitySummaries
             val preferences = settings.first
-            val projections = DailyProjectionBuilder.project(allSummaries)
-            val today = civilToday()
-            HistoryUiState(
-                isLoading = false,
+            HistoryCatalog(
+                unavailable = false,
                 stale = list.stale,
                 summaries = allSummaries,
                 monthGroups = groupHistoryByMonth(allSummaries.map { it.toHistoryEntry() }),
                 records = prSummary(
                     reads.windowed + reads.windowedActivities.mapNotNull { it.toInsightSession() },
                 ),
-                calendar = TrainingCalendarBuilder.buildSummaries(
-                    month = month.toCivilYearMonth(),
-                    summaries = allSummaries,
-                    weekStart = preferences.weekStart,
-                ),
                 weekStart = preferences.weekStart,
                 pastBlocks = settings.second,
-                horizon = selectedHorizon,
-                horizonTotals = HorizonMath.totals(
-                    horizon = selectedHorizon,
-                    projections = projections,
-                    today = today,
-                    weekStart = preferences.weekStart,
-                ),
-                today = today,
+                projections = DailyProjectionBuilder.project(allSummaries),
+                today = civilToday(),
             )
         }
     }
         .flowOn(container.computeDispatcher)
+
+    val uiState: StateFlow<HistoryUiState> = combine(
+        catalog,
+        visibleMonth,
+        horizon,
+    ) { cat, month, selectedHorizon ->
+        if (cat.unavailable) {
+            return@combine HistoryUiState(isLoading = false, unavailable = true)
+        }
+        HistoryUiState(
+            isLoading = false,
+            stale = cat.stale,
+            summaries = cat.summaries,
+            monthGroups = cat.monthGroups,
+            records = cat.records,
+            calendar = TrainingCalendarBuilder.buildSummaries(
+                month = month.toCivilYearMonth(),
+                summaries = cat.summaries,
+                weekStart = cat.weekStart,
+            ),
+            weekStart = cat.weekStart,
+            pastBlocks = cat.pastBlocks,
+            horizon = selectedHorizon,
+            horizonTotals = HorizonMath.totals(
+                horizon = selectedHorizon,
+                projections = cat.projections,
+                today = cat.today,
+                weekStart = cat.weekStart,
+            ),
+            today = cat.today,
+        )
+    }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -260,6 +283,21 @@ class HistoryViewModel @JvmOverloads constructor(
         val blocks: List<TrainingBlock>,
         val unit: WeightUnit,
         val bodyweightLog: List<BodyweightEntry>,
+    ) {
+        val lastWeighIn: Pair<Long, Double>?
+            get() = bodyweightLog.maxByOrNull { it.epochDay }?.let { it.epochDay to it.kg }
+    }
+
+    private data class HistoryCatalog(
+        val unavailable: Boolean = false,
+        val stale: Boolean = false,
+        val summaries: List<SessionSummary> = emptyList(),
+        val monthGroups: List<HistoryMonthGroup> = emptyList(),
+        val records: List<PrSummaryRow> = emptyList(),
+        val weekStart: Weekday = Weekday.MONDAY,
+        val pastBlocks: List<FinishedBlock> = emptyList(),
+        val projections: List<DailyProjection> = emptyList(),
+        val today: CivilDate = CivilDate.of(1970, 1, 1),
     )
 
     private fun yearMonthOf(date: CivilDate): YearMonth = YearMonth.of(date.year, date.month)

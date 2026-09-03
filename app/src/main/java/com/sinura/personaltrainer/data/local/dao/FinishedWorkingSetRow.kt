@@ -6,8 +6,11 @@ package com.sinura.personaltrainer.data.local.dao
  * round-trip per lift.
  */
 data class FinishedWorkingSetRow(
+    val setId: String,
     val exerciseId: String,
     val sessionId: String,
+    val sessionName: String?,
+    val sessionDate: Long,
     val weightKg: Double,
     val reps: Int,
     val completedAt: Long,

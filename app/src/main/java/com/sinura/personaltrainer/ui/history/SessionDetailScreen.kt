@@ -119,7 +119,9 @@ fun SessionDetailScreen(
     BackHandler(onBack = leave)
     val session = state.session
     val unit = LocalWeightUnit.current
-    val dateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+    val dateFormat = remember {
+        DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+    }
     val snackbarHostState = remember { SnackbarHostState() }
 
     var menuOpen by rememberSaveable { mutableStateOf(false) }

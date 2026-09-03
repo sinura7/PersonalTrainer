@@ -39,6 +39,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.MissedWorkCopy
 import com.sinura.personaltrainer.domain.PlanDayCopy
@@ -269,7 +270,9 @@ fun PlanScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val navigateToEditor by viewModel.navigateToEditor.collectAsStateWithLifecycle()
-    val dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM)
+    val dateFormat = remember {
+        DateFormat.getDateInstance(DateFormat.MEDIUM)
+    }
     val today = LocalTodayEpochDay.current
 
     var pendingDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -304,9 +307,15 @@ fun PlanScreen(
             }
         }
         val names = remember(state.routines) { state.routines.associate { it.id to it.name } }
-        val cells = WeekBoard.forWeek(weekStart, state.occurrences, state.rules, names)
-        val proposalsByDay = state.proposals.associateBy { it.epochDay }
-        val selectedAgenda = viewModel.agendaFor(selectedEpochDay)
+        val cells = remember(weekStart, state.occurrences, state.rules, names) {
+            WeekBoard.forWeek(weekStart, state.occurrences, state.rules, names)
+        }
+        val proposalsByDay = remember(state.proposals) {
+            state.proposals.associateBy { it.epochDay }
+        }
+        val selectedAgenda = remember(selectedEpochDay, state.occurrences, state.rules, names) {
+            DailyAgenda.forDay(selectedEpochDay, state.occurrences, state.rules, names)
+        }
         val hasProposals = state.proposals.isNotEmpty()
         val addSessionVolt = !hasProposals && !state.missedWorkPrompt
         val selectedTitle = if (selectedEpochDay == today) {

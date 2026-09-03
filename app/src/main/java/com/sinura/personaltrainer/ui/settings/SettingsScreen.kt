@@ -14,16 +14,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.MoreVert
@@ -130,7 +130,9 @@ fun SettingsScreen(
     val backup by viewModel.backupState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = context.findActivity()
-    val dateTimeFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+    val dateTimeFormat = remember {
+        DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+    }
 
     LaunchedEffect(Unit) {
         viewModel.refreshAlarmCapability()
@@ -193,108 +195,129 @@ fun SettingsScreen(
 
     Column(modifier = Modifier.fillMaxSize()) {
         SettingsHeader()
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(
-                    start = Metrics.gutter,
-                    end = Metrics.gutter,
-                    top = Metrics.space2,
-                    bottom = Metrics.space8,
-                ),
+                .fillMaxWidth(),
+            contentPadding = PaddingValues(
+                start = Metrics.gutter,
+                end = Metrics.gutter,
+                top = Metrics.space2,
+                bottom = Metrics.space8,
+            ),
             verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
         ) {
-            DisplayPrefsSection(
-                selectedUnit = selectedUnit,
-                clockFormat = clockFormat,
-                onSelectUnit = viewModel::setWeightUnit,
-                onSelectClock = viewModel::setClockFormat,
-            )
-            SchedulePrefsSection(
-                preferences = schedulePrefs,
-                onDays = viewModel::setTrainingDays,
-                onSplit = viewModel::setSplitStyle,
-                onWeekStart = viewModel::setWeekStart,
-            )
-            ReminderPrefsSection(
-                preferences = reminderPrefs,
-                clockFormat = clockFormat,
-                notificationsEnabled = rememberNotificationsEnabled(),
-                onOptOut = viewModel::setReminderOptOut,
-                onQuietHours = viewModel::setReminderQuietHours,
-                onOpenNotificationSettings = {
-                    openAppNotificationSettings(context)
-                },
-            )
-            CoachingSection(
-                preferences = coachPrefs,
-                onGoal = viewModel::setTrainingGoal,
-                onEmphasis = viewModel::setTrainingEmphasis,
-                onToggleEquipment = viewModel::toggleEquipment,
-            )
-            BodyweightPrefsSection(
-                bodyweightKg = bodyweightKg,
-                unit = selectedUnit,
-                weekStart = schedulePrefs.weekStart,
-                daysPerWeek = schedulePrefs.trainingDaysPerWeek,
-                preferredDays = preferredDays,
-                checkInOverride = checkInWeekday,
-                onRecordBodyweight = viewModel::recordBodyweight,
-                onClearBodyweight = viewModel::clearBodyweight,
-                onCheckInDay = viewModel::setBodyweightCheckInWeekday,
-            )
-            RestTimerPrefsSection(
-                preferences = restPrefs,
-                offerExactAlarmAccess = offerExactAlarmAccess,
-                onAllowPreciseRestAlerts = {
-                    viewModel.exactAlarmSettingsIntent()?.let { context.startActivity(it) }
-                },
-                onSound = viewModel::setRestSoundEnabled,
-                onVibrate = viewModel::setRestVibrationEnabled,
-                onDefaultRest = viewModel::setDefaultRestSeconds,
-                onCustomDefault = viewModel::setDefaultRestCustom,
-            )
-            BackupRestoreSection(
-                state = backup,
-                dateTimeFormat = dateTimeFormat,
-                onSignIn = { viewModel.signIn(activity) },
-                onSignOut = { viewModel.signOut(activity) },
-                onCreateBackup = { viewModel.beginDriveBackup() },
-                onRefresh = { viewModel.refreshBackups(activity) },
-                onRestore = { file -> viewModel.requestRestore(activity, file) },
-                onExportFile = { viewModel.beginFileExport() },
-                onExportPlaintext = { viewModel.beginPlaintextExport() },
-                onImportFile = {
-                    // Some file managers hand back JSON as octet-stream or text/plain.
-                    importLauncher.launch(arrayOf(BackupJson.MIME_TYPE, "text/plain", "*/*"))
-                },
-                onExportSafety = { id ->
-                    pendingSafetyExportId = id
-                    viewModel.beginSafetyExport()
-                },
-                onRestoreSafety = viewModel::requestSafetyRestore,
-                onDeleteSafety = { id -> pendingSafetyDeleteId = id },
-                onDismissError = viewModel::dismissError,
-            )
-            PlanSetupSection(onRerun = onOpenGuidedSetup)
-            if (BuildConfig.DEBUG) {
-                FoundationGenerationSection()
+            item(key = "display") {
+                DisplayPrefsSection(
+                    selectedUnit = selectedUnit,
+                    clockFormat = clockFormat,
+                    onSelectUnit = viewModel::setWeightUnit,
+                    onSelectClock = viewModel::setClockFormat,
+                )
             }
-            DiagnosticsSection(
-                onShare = {
-                    val send = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_SUBJECT, "Temper diagnostics")
-                        putExtra(Intent.EXTRA_TEXT, DiagnosticMetadata.bundle(context))
-                    }
-                    runCatching {
-                        context.startActivity(Intent.createChooser(send, "Share diagnostics"))
-                    }
-                },
-            )
-            AboutSection()
+            item(key = "schedule") {
+                SchedulePrefsSection(
+                    preferences = schedulePrefs,
+                    onDays = viewModel::setTrainingDays,
+                    onSplit = viewModel::setSplitStyle,
+                    onWeekStart = viewModel::setWeekStart,
+                )
+            }
+            item(key = "reminders") {
+                ReminderPrefsSection(
+                    preferences = reminderPrefs,
+                    clockFormat = clockFormat,
+                    notificationsEnabled = rememberNotificationsEnabled(),
+                    onOptOut = viewModel::setReminderOptOut,
+                    onQuietHours = viewModel::setReminderQuietHours,
+                    onOpenNotificationSettings = {
+                        openAppNotificationSettings(context)
+                    },
+                )
+            }
+            item(key = "coaching") {
+                CoachingSection(
+                    preferences = coachPrefs,
+                    onGoal = viewModel::setTrainingGoal,
+                    onEmphasis = viewModel::setTrainingEmphasis,
+                    onToggleEquipment = viewModel::toggleEquipment,
+                )
+            }
+            item(key = "bodyweight") {
+                BodyweightPrefsSection(
+                    bodyweightKg = bodyweightKg,
+                    unit = selectedUnit,
+                    weekStart = schedulePrefs.weekStart,
+                    daysPerWeek = schedulePrefs.trainingDaysPerWeek,
+                    preferredDays = preferredDays,
+                    checkInOverride = checkInWeekday,
+                    onRecordBodyweight = viewModel::recordBodyweight,
+                    onClearBodyweight = viewModel::clearBodyweight,
+                    onCheckInDay = viewModel::setBodyweightCheckInWeekday,
+                )
+            }
+            item(key = "rest") {
+                RestTimerPrefsSection(
+                    preferences = restPrefs,
+                    offerExactAlarmAccess = offerExactAlarmAccess,
+                    onAllowPreciseRestAlerts = {
+                        viewModel.exactAlarmSettingsIntent()?.let { context.startActivity(it) }
+                    },
+                    onSound = viewModel::setRestSoundEnabled,
+                    onVibrate = viewModel::setRestVibrationEnabled,
+                    onDefaultRest = viewModel::setDefaultRestSeconds,
+                    onCustomDefault = viewModel::setDefaultRestCustom,
+                )
+            }
+            item(key = "backup") {
+                BackupRestoreSection(
+                    state = backup,
+                    dateTimeFormat = dateTimeFormat,
+                    onSignIn = { viewModel.signIn(activity) },
+                    onSignOut = { viewModel.signOut(activity) },
+                    onCreateBackup = { viewModel.beginDriveBackup() },
+                    onRefresh = { viewModel.refreshBackups(activity) },
+                    onRestore = { file -> viewModel.requestRestore(activity, file) },
+                    onExportFile = { viewModel.beginFileExport() },
+                    onExportPlaintext = { viewModel.beginPlaintextExport() },
+                    onImportFile = {
+                        // Some file managers hand back JSON as octet-stream or text/plain.
+                        importLauncher.launch(arrayOf(BackupJson.MIME_TYPE, "text/plain", "*/*"))
+                    },
+                    onExportSafety = { id ->
+                        pendingSafetyExportId = id
+                        viewModel.beginSafetyExport()
+                    },
+                    onRestoreSafety = viewModel::requestSafetyRestore,
+                    onDeleteSafety = { id -> pendingSafetyDeleteId = id },
+                    onDismissError = viewModel::dismissError,
+                )
+            }
+            item(key = "plan-setup") {
+                PlanSetupSection(onRerun = onOpenGuidedSetup)
+            }
+            if (BuildConfig.DEBUG) {
+                item(key = "foundation") {
+                    FoundationGenerationSection()
+                }
+            }
+            item(key = "diagnostics") {
+                DiagnosticsSection(
+                    onShare = {
+                        val send = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_SUBJECT, "Temper diagnostics")
+                            putExtra(Intent.EXTRA_TEXT, DiagnosticMetadata.bundle(context))
+                        }
+                        runCatching {
+                            context.startActivity(Intent.createChooser(send, "Share diagnostics"))
+                        }
+                    },
+                )
+            }
+            item(key = "about") {
+                AboutSection()
+            }
         }
     }
 

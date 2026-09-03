@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E3, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase E continues at E4. K1 and K2 stay held.  
+`tools/` remain owed. Phase F starts at F1. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -85,7 +85,7 @@ the gym floor, are fifteen of them.
 | E1 | Stop recomputing everything | 1 | — | Speed | done |
 | E2 | Thumbnails stop decoding at full size | 2 | — | Speed | done |
 | E3 | The shell stops recomposing every second | 1 | — | Speed | done |
-| E4 | Query and recompute hygiene | 2 | — | Speed | |
+| E4 | Query and recompute hygiene | 2 | — | Speed | done |
 | F1 | The logging loop keeps the wells on screen | 1 | — | Design I | |
 | F2 | One green button per screen | 1 | 4 | Design I | |
 | F3 | Text you can read in a gym | 1 | — | Design I | |
@@ -854,6 +854,11 @@ occurrence writes; a query-count test on the summary screen.
 `data/repository/WorkoutRepository.kt` *(after E1)*,
 `ui/settings/SettingsScreen.kt`, `ui/home/HomeScreen.kt` *(after C3)*.
 
+**On trunk.** `ensureWeek` upserts only generated rows and skips the
+reminder pass when the week is already there. Plan day has its own
+thin VM. History month/horizon derive from a catalog. Summary
+`historyBefore` is one batched query. Count +2.
+
 ---
 
 # Phase F — Design, first pass
@@ -1457,6 +1462,18 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — E4: upsert only generated; PlanDayViewModel.** Proof is
+JVM (`resumeWithNoScheduleChangeWritesNoOccurrences`,
+`historyBeforeIssuesOneSetLogQueryForThreeLifts`), not a resume
+jank check. `PlanDayViewModel` is new rather than scoping to the
+Plan tab entry (that would have edited `AppNav`, not in Owns).
+`FinishedWorkingSetRow` gained set id / session name / date so
+`lastFinishedWork` can feed last performance without a second
+session-row read. `WorkoutDao` SELECT grew those columns.
+`PersonalTrainerApp` comment matches the skip. DateFormat
+`remember` also landed on Plan / History / Session detail (not in
+Owns). Count +2.
 
 **2026-09-03 — E3: LiveSessionBarHost; persist then arm on IO.** Proof
 is JVM (`hasLiveSessionDoesNotReEmitWhenElapsedTicks`,
