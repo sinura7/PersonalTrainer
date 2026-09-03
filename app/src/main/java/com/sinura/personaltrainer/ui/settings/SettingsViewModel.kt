@@ -39,7 +39,6 @@ import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.domain.Weekday
 import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -639,7 +638,7 @@ class SettingsViewModel @JvmOverloads constructor(
                 } else {
                     json
                 }
-                withContext(Dispatchers.IO) {
+                withContext(container.ioDispatcher) {
                     val resolver = getApplication<Application>().contentResolver
                     resolver.openOutputStream(uri, "wt")?.use { stream ->
                         stream.write(payload.toByteArray(Charsets.UTF_8))
@@ -697,7 +696,7 @@ class SettingsViewModel @JvmOverloads constructor(
                 } else {
                     container.backupRepository.exportJson()
                 }
-                withContext(Dispatchers.IO) {
+                withContext(container.ioDispatcher) {
                     val resolver = getApplication<Application>().contentResolver
                     resolver.openOutputStream(uri, "wt")?.use { stream ->
                         stream.write(payload.toByteArray(Charsets.UTF_8))
@@ -724,7 +723,7 @@ class SettingsViewModel @JvmOverloads constructor(
     /** Importing replaces everything, so it gets the same explicit confirm as a Drive restore. */
     fun requestFileRestore(uri: Uri) {
         runBackupAction("Checking backup…") {
-            val json = withContext(Dispatchers.IO) {
+            val json = withContext(container.ioDispatcher) {
                 val resolver = getApplication<Application>().contentResolver
                 resolver.openInputStream(uri)?.use { stream ->
                     // Bounded read: a multi-hundred-MB pick must fail with copy,

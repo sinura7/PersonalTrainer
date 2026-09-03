@@ -10,7 +10,6 @@ import com.sinura.personaltrainer.domain.WorkoutSummary
 import com.sinura.personaltrainer.domain.WorkoutSummaryBuilder
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,7 +52,7 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
                 }
                 val exerciseIds = session.sets.filterNot { it.isWarmup }.map { it.exerciseId }
                 val prior = container.workoutRepository.historyBefore(sessionId, exerciseIds)
-                val summary = withContext(Dispatchers.Default) {
+                val summary = withContext(container.computeDispatcher) {
                     WorkoutSummaryBuilder.build(session, prior)
                 }
                 _uiState.value = WorkoutSummaryUiState(isLoading = false, summary = summary)

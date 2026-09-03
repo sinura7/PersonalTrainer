@@ -26,6 +26,7 @@ import com.sinura.personaltrainer.workout.StartLiveCardio
 import com.sinura.personaltrainer.workout.StartOccurrence
 import com.sinura.personaltrainer.workout.StartTrainingDay
 import com.sinura.personaltrainer.workout.WorkoutDraftCache
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
@@ -36,6 +37,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
  * whole point of this type: ViewModels stay constructible without the process-wide container.
  */
 interface AppDependencies {
+    /**
+     * File and Drive hops. Production is [kotlinx.coroutines.Dispatchers.IO]. Tests pass the
+     * test dispatcher so [kotlinx.coroutines.withContext] does not park off the scheduler.
+     */
+    val ioDispatcher: CoroutineDispatcher
+
+    /**
+     * CPU hops ([kotlinx.coroutines.flow.flowOn] and planner/summary work). Production is
+     * [kotlinx.coroutines.Dispatchers.Default]. Tests pass the test dispatcher so those
+     * emissions stay on the scheduler.
+     */
+    val computeDispatcher: CoroutineDispatcher
+
     val dbMaintenance: DbMaintenance
     val exerciseRepository: ExerciseRepository
     val routineRepository: RoutineRepository

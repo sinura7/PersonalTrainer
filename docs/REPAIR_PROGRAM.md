@@ -1299,7 +1299,11 @@ instead of `LocalDate.now()`. Move the sixteen "policy" tests that read
 source text from disk into the checkers, where that assertion belongs — the
 JVM suite then measures behaviour only.
 
-**Owns.** `app/src/test/**`, `tools/`.
+**Owns.** `app/src/test/**`, `tools/`, and the dispatcher seams in `app/src/main`
+(`AppDependencies.ioDispatcher` / `computeDispatcher`, `AppContainer`,
+`BackupRepository`, and the ViewModels that `flowOn` or `withContext` off the
+test scheduler). Calendar `TimePort` and moving the sixteen source-reading
+policy tests into the checkers remain owed.
 
 ## J5 — The checkers report what they skip
 
@@ -1383,6 +1387,33 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-02 — J4, second half: the Owns line now includes the production
+dispatcher seams.** The first-half entry below said J4 could not finish
+inside `app/src/test/**` and `tools/`. This packet amends **Owns** rather
+than drifting: `AppDependencies` now carries `ioDispatcher` and
+`computeDispatcher` (production `Dispatchers.IO` / `Dispatchers.Default`);
+`BackupRepository` and the five `flowOn(Dispatchers.Default)` ViewModels
+plus `SettingsViewModel`'s file hops and `WorkoutSummaryViewModel`'s
+summary build use those; `FakeAppDependencies` takes a `scheduler` that
+also drives DataStore, IO hops, and compute hops. Room's query and
+transaction executors stay real thread pools: `UnconfinedTestDispatcher.dispatch`
+throws unless the caller is `yield`, so it cannot be an `Executor`, and a
+`StandardTestDispatcher` executor queues work that `runBlocking` never
+pumps. Tests wait on Room with `first { }` on the Flow. The transaction
+pool is a separate single thread — putting it on the test dispatcher
+deadlocks `withTransaction`, and setting only the query executor would
+have assigned both to the same pool.
+
+The remaining `delay(10)` poll helpers are gone. Three bounded waits stay,
+each naming the boundary that forces them: `TrainingInsightsSourceTest`
+(share grace + `assertSame` pass because the polls never advance virtual
+time), `RestorePrepareTest.startWaitsForTheMaintenanceLock` (a negative —
+start has not completed — with no waiter seam on `DbMaintenance`), and
+`WorkoutRepositoryInsightsQueriesTest.loggingAnInProgressSetDoesNotRescanFinishedSummaries`
+(an absence of a further emission). Calendar `TimePort` on
+`ProgressViewModel` / `HomeViewModel` and moving the sixteen source-reading
+policy tests into `tools/` stay owed. Count stays 1650.
 
 **2026-09-02 — a fourth way to wait on the wrong thing, found by trunk.**
 J4's first half passed twice on the exact tree that merged — a push run

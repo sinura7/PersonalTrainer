@@ -61,7 +61,7 @@ class ProgressViewModelTest {
     fun markLighterWeekWritesThisWeeksStart() = runBlocking {
         deps = FakeAppDependencies(
             ApplicationProvider.getApplicationContext(),
-            prefsDispatcher = dispatcher,
+            scheduler = dispatcher,
         )
         viewModel = ProgressViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
@@ -73,10 +73,10 @@ class ProgressViewModelTest {
         viewModel!!.markLighterWeek()
         // No wait at all. markLighterWeek launches on viewModelScope and immediately suspends
         // on a preferences read, so its continuation is queued on the test scheduler; with
-        // preferences also on that scheduler (see FakeAppDependencies.prefsDispatcher),
-        // advanceUntilIdle drives read, compute and write to completion. The value is simply
-        // there afterwards, so a wrong one fails as an assertion naming both numbers rather
-        // than as an opaque timeout.
+        // DataStore, Room queries, IO and compute also on that scheduler (see
+        // FakeAppDependencies.scheduler), advanceUntilIdle drives read, compute and write
+        // to completion. The value is simply there afterwards, so a wrong one fails as an
+        // assertion naming both numbers rather than as an opaque timeout.
         dispatcher.scheduler.advanceUntilIdle()
         val marked = deps.preferencesRepository.lighterWeekStartEpochDay.first()
         assertEquals(expected, marked)

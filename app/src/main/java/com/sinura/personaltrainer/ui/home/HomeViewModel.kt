@@ -34,7 +34,6 @@ import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.workout.DiscardOutcome
 import com.sinura.personaltrainer.workout.StartDayOutcome
 import com.sinura.personaltrainer.workout.StartOccurrenceOutcome
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -164,7 +163,7 @@ class HomeViewModel @JvmOverloads constructor(
     }
         // Same reason as Plan: this transform walks every finished session to build the logged
         // set on the first frame after a cold start.
-        .flowOn(Dispatchers.Default)
+        .flowOn(container.computeDispatcher)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),

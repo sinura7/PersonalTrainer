@@ -11,13 +11,11 @@ import com.sinura.personaltrainer.workout.WorkoutDraft
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
-import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -45,7 +43,10 @@ class LiveSessionBarViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
     }
 
     @After
@@ -119,7 +120,7 @@ class LiveSessionBarViewModelTest {
 
         vm.finishFromBar()
 
-        val navigation = eventually { vm.finishedNavigation.value }
+        val navigation = checkNotNull(vm.finishedNavigation.first { it != null })
         assertEquals(fixture.session.id, navigation)
         val saved = checkNotNull(deps.workoutRepository.getSession(fixture.session.id))
         assertEquals("keep this", saved.notes)
@@ -191,9 +192,8 @@ class LiveSessionBarViewModelTest {
 
         vm.discardFromBar()
 
-        eventually {
-            if (deps.workoutRepository.getSession(fixture.session.id) == null) true else null
-        }
+        deps.workoutRepository.observeSession(fixture.session.id).first { it == null }
+        dispatcher.scheduler.advanceUntilIdle()
         assertNull(vm.finishedNavigation.value)
         assertNull(deps.workoutDraftCache.get(fixture.session.id))
     }
@@ -204,20 +204,4 @@ class LiveSessionBarViewModelTest {
             container = deps,
             clock = clock,
         ).also { viewModel = it }
-
-    // Five seconds is deliberate. This was raised to 30 s on the theory that a loaded
-    // runner was blowing a tight budget; the next run failed at 30 s in the same helper,
-    // on a test whose predicate could never come true, and took 5m39s to say so. The
-    // budget was never the problem — a wait on the wrong object was. Keep it short so
-    // the next such hang is reported quickly, and fix the barrier, not the number.
-    // J4 replaces this polling with value-based waits.
-    private suspend fun <T : Any> eventually(block: suspend () -> T?): T =
-        withTimeout(5_000) {
-            while (true) {
-                dispatcher.scheduler.runCurrent()
-                block()?.let { return@withTimeout it }
-                delay(10)
-            }
-            error("unreachable")
-        }
 }

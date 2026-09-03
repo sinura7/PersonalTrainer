@@ -34,7 +34,6 @@ import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.util.toCivilYearMonth
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -181,7 +180,7 @@ class HistoryViewModel @JvmOverloads constructor(
             )
         }
     }
-        .flowOn(Dispatchers.Default)
+        .flowOn(container.computeDispatcher)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),

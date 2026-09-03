@@ -14,10 +14,11 @@ import com.sinura.personaltrainer.domain.ProgressionAction
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineExercise
 import com.sinura.personaltrainer.domain.WeightUnit
+import java.util.concurrent.Executors
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -33,6 +34,12 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class WorkoutRepositoryInsightsQueriesTest {
 
+    private val queryExecutor = Executors.newFixedThreadPool(2) { runnable ->
+        Thread(runnable, "room-query-insights-test").apply { isDaemon = true }
+    }
+    private val transactionExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "room-txn-insights-test").apply { isDaemon = true }
+    }
     private lateinit var database: TrainerDatabase
     private lateinit var repository: WorkoutRepository
 
@@ -41,6 +48,8 @@ class WorkoutRepositoryInsightsQueriesTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         database = Room.inMemoryDatabaseBuilder(context, TrainerDatabase::class.java)
             .allowMainThreadQueries()
+            .setQueryExecutor(queryExecutor)
+            .setTransactionExecutor(transactionExecutor)
             .build()
         repository = WorkoutRepository(database, database.workoutDao())
         runBlocking {
@@ -51,6 +60,8 @@ class WorkoutRepositoryInsightsQueriesTest {
     @After
     fun tearDown() {
         database.close()
+        queryExecutor.shutdown()
+        transactionExecutor.shutdown()
     }
 
     @Test
@@ -117,7 +128,7 @@ class WorkoutRepositoryInsightsQueriesTest {
         val job = launch {
             repository.observeSessionSummaries().collect { emissions.add(it.size) }
         }
-        awaitUntil { emissions.isNotEmpty() && emissions.last() == 1 }
+        repository.observeSessionSummaries().first { it.size == 1 }
         val before = emissions.size
 
         insertLiveSession("live")
@@ -148,20 +159,13 @@ class WorkoutRepositoryInsightsQueriesTest {
             finishedAt = START + 1,
             sets = listOf(Triple(SQUAT, 100.0, 5)),
         )
-        val volumes = mutableListOf<Double>()
-        val job = launch {
-            repository.observeSessionSummaries().collect { summaries ->
-                summaries.singleOrNull()?.let { volumes += it.volumeKg }
-            }
-        }
-        awaitUntil { volumes.isNotEmpty() }
-        assertEquals(500.0, volumes.last(), 0.001)
+        val initial = repository.observeSessionSummaries().first { it.singleOrNull()?.volumeKg == 500.0 }
+        assertEquals(500.0, initial.single().volumeKg, 0.001)
 
         repository.updateSet("done-$SQUAT-0", weightKg = 110.0, reps = 5, rpe = null, isWarmup = false)
 
-        awaitUntil { volumes.last() != 500.0 }
-        assertEquals(550.0, volumes.last(), 0.001)
-        job.cancel()
+        val updated = repository.observeSessionSummaries().first { it.singleOrNull()?.volumeKg == 550.0 }
+        assertEquals(550.0, updated.single().volumeKg, 0.001)
     }
 
     @Test
@@ -175,25 +179,17 @@ class WorkoutRepositoryInsightsQueriesTest {
             finishedAt = START + 1,
             sets = listOf(Triple(SQUAT, 100.0, 6)),
         )
-        val reps = mutableListOf<Int>()
-        val job = launch {
-            repository.observeFinishedSince(0L).collect { sessions ->
-                sessions.singleOrNull()?.sets?.singleOrNull()?.let { reps += it.reps }
-            }
+        val initial = repository.observeFinishedSince(0L).first {
+            it.singleOrNull()?.sets?.singleOrNull()?.reps == 6
         }
-        awaitUntil { reps.isNotEmpty() }
-        assertEquals(6, reps.last())
+        assertEquals(6, initial.single().sets.single().reps)
 
         repository.updateSet("done-$SQUAT-0", weightKg = 120.0, reps = 5, rpe = null, isWarmup = false)
 
-        awaitUntil { reps.last() == 5 }
-        job.cancel()
-    }
-
-    private suspend fun awaitUntil(predicate: () -> Boolean) {
-        withTimeout(5_000) {
-            while (!predicate()) delay(10)
+        val updated = repository.observeFinishedSince(0L).first {
+            it.singleOrNull()?.sets?.singleOrNull()?.reps == 5
         }
+        assertEquals(5, updated.single().sets.single().reps)
     }
 
     private fun routine() = Routine(

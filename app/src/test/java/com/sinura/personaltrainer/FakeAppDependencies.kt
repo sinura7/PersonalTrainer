@@ -56,6 +56,7 @@ import com.sinura.personaltrainer.workout.StartOccurrence
 import com.sinura.personaltrainer.workout.StartTrainingDay
 import com.sinura.personaltrainer.workout.WorkoutDraftCache
 import java.io.File
+import java.util.concurrent.Executors
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -74,21 +75,44 @@ class FakeAppDependencies(
     val safetySnapshotDir: File = File(context.cacheDir, "safety-snapshots-${System.nanoTime()}")
         .also { it.mkdirs() },
     /**
-     * Where DataStore does its work.
+     * When set, DataStore, [ioDispatcher] and [computeDispatcher] all run here.
      *
-     * Left on [Dispatchers.IO] by default, which is a real thread the test scheduler cannot
-     * see: a view model coroutine that suspends on a preferences read parks until something
-     * pumps the scheduler again, so a test that waits on the resulting write never sees it.
-     * The poll loops this packet is removing were doing that pumping as a side effect of
-     * waiting, which is why deleting one without passing a test dispatcher here hangs.
+     * Left null by default, which keeps those hops on real threads the test scheduler cannot
+     * see: a view model coroutine that suspends on a preferences read parks until something pumps the scheduler again, so a
+     * test that waits on the resulting write never sees it. The poll loops this packet is
+     * removing were doing that pumping as a side effect of waiting, which is why deleting one
+     * without passing a test dispatcher here hangs.
      *
-     * Pass the test's own dispatcher to put preferences on the scheduler, and
+     * Pass the test's own dispatcher to put those hops on the scheduler, and
      * `advanceUntilIdle()` then drives the whole read-compute-write chain to completion.
+     *
+     * Room stays on real threads. `UnconfinedTestDispatcher.dispatch` throws unless the
+     * caller is `yield`, so it cannot be an `Executor`; a `StandardTestDispatcher`
+     * executor queues work that `runBlocking` never pumps. Tests wait on Room with
+     * `first { }` on the Flow. The transaction executor is a separate single thread —
+     * putting it on the test dispatcher deadlocks `withTransaction`, and setting only
+     * the query executor would assign both to the same pool.
      */
-    prefsDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    scheduler: CoroutineDispatcher? = null,
+    prefsDispatcher: CoroutineDispatcher = scheduler ?: Dispatchers.IO,
+    override val ioDispatcher: CoroutineDispatcher = scheduler ?: Dispatchers.IO,
+    override val computeDispatcher: CoroutineDispatcher = scheduler ?: Dispatchers.Default,
 ) : AppDependencies {
+    /**
+     * Real threads, not the test scheduler. See the constructor KDoc on why Room stays
+     * off that dispatcher.
+     */
+    private val queryExecutor = Executors.newFixedThreadPool(2) { runnable ->
+        Thread(runnable, "room-query-test").apply { isDaemon = true }
+    }
+    private val transactionExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "room-txn-test").apply { isDaemon = true }
+    }
+
     val database: TemperDatabase = Room.inMemoryDatabaseBuilder(context, TemperDatabase::class.java)
         .allowMainThreadQueries()
+        .setQueryExecutor(queryExecutor)
+        .setTransactionExecutor(transactionExecutor)
         .build()
 
     override val dbMaintenance: DbMaintenance = DbMaintenance(database)
@@ -211,6 +235,7 @@ class FakeAppDependencies(
         driveRestClient = DriveRestClient(),
         networkChecker = NetworkChecker(context),
         restoreJournal = restoreJournal,
+        ioDispatcher = ioDispatcher,
     )
 
     fun close() {
@@ -218,6 +243,8 @@ class FakeAppDependencies(
         preferencesJob?.cancel()
         runBlocking { preferencesJob?.join() }
         database.close()
+        queryExecutor.shutdown()
+        transactionExecutor.shutdown()
     }
 }
 

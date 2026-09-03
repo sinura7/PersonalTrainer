@@ -12,14 +12,12 @@ import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
-import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -49,6 +47,14 @@ class StartOptionsViewModelTest {
         Dispatchers.setMain(dispatcher)
     }
 
+    private fun graph(
+        insights: MutableStateFlow<TrainingInsights> = MutableStateFlow(TrainingInsights()),
+    ): FakeAppDependencies = FakeAppDependencies(
+        ApplicationProvider.getApplicationContext(),
+        insights,
+        scheduler = dispatcher,
+    )
+
     @After
     fun tearDown() {
         runBlocking { viewModel?.clearAndJoinForTest() }
@@ -59,7 +65,7 @@ class StartOptionsViewModelTest {
 
     @Test
     fun loadsRoutinesAndClearsLoading() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = graph()
         val fixture = seedTestWorkout(deps)
         deps.workoutRepository.discardSession(fixture.session.id)
         val vm = createViewModel()
@@ -71,7 +77,7 @@ class StartOptionsViewModelTest {
 
     @Test
     fun emptyWeekHasNoTodayStart() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = graph()
         val vm = createViewModel()
         val state = vm.uiState.first { !it.isLoading }
         assertNull(state.todayStart)
@@ -79,7 +85,7 @@ class StartOptionsViewModelTest {
 
     @Test
     fun startRoutinePersistsSessionAndEmitsOneShotNavigation() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = graph()
         val fixture = seedTestWorkout(deps)
         deps.workoutRepository.discardSession(fixture.session.id)
         val vm = createViewModel()
@@ -87,7 +93,7 @@ class StartOptionsViewModelTest {
 
         vm.startRoutine(fixture.routine.id)
 
-        val id = eventually { vm.navigateToSession.value }
+        val id = checkNotNull(vm.navigateToSession.first { it != null })
         val session = checkNotNull(deps.workoutRepository.getSession(id))
         assertEquals(fixture.routine.id, session.routineId)
         assertEquals(1, session.exercises.size)
@@ -97,7 +103,7 @@ class StartOptionsViewModelTest {
 
     @Test
     fun missingAndEmptyRoutineSurfaceErrorsWithoutStarting() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = graph()
         val vm = createViewModel()
         vm.uiState.first { !it.isLoading }
 
@@ -119,13 +125,13 @@ class StartOptionsViewModelTest {
 
     @Test
     fun startFreeCreatesFreeWorkoutAndNavigates() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = graph()
         val vm = createViewModel()
         vm.uiState.first { !it.isLoading }
 
         vm.startFree()
 
-        val id = eventually { vm.navigateToSession.value }
+        val id = checkNotNull(vm.navigateToSession.first { it != null })
         val session = checkNotNull(deps.workoutRepository.getSession(id))
         assertEquals("Free workout", session.routineName)
         assertTrue(session.exercises.isEmpty())
@@ -134,7 +140,7 @@ class StartOptionsViewModelTest {
     @Test
     fun startSuggestedPreAddsNamedLiftWithDefaults() = runBlocking {
         val insights = MutableStateFlow(TrainingInsights())
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps = graph(insights)
         val exercise = insertTestExercise(deps, "suggested-row", "Suggested row")
         insights.value = TrainingInsights(
             recommendations = listOf(
@@ -154,7 +160,7 @@ class StartOptionsViewModelTest {
 
         vm.startSuggested()
 
-        val id = eventually { vm.navigateToSession.value }
+        val id = checkNotNull(vm.navigateToSession.first { it != null })
         val session = checkNotNull(deps.workoutRepository.getSession(id))
         assertEquals(exercise.id, session.exercises.single().exercise.id)
         assertTrue(session.exercises.single().targetSets > 0)
@@ -162,7 +168,7 @@ class StartOptionsViewModelTest {
 
     @Test
     fun directStartWhileAnotherSessionIsLiveNeverSilentlyNavigates() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = graph()
         val fixture = seedTestWorkout(deps)
         val vm = createViewModel()
         vm.uiState.first { it.inProgress?.id == fixture.session.id }
@@ -177,7 +183,7 @@ class StartOptionsViewModelTest {
 
     @Test
     fun startRoutineWhileLiveSurfacesBlockedWithoutNavigating() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = graph()
         val fixture = seedTestWorkout(deps)
         val vm = createViewModel()
         vm.uiState.first { it.inProgress?.id == fixture.session.id }
@@ -193,7 +199,7 @@ class StartOptionsViewModelTest {
     @Test
     fun startSuggestedWhileLiveSurfacesBlockedWithoutAddingASecondSession() = runBlocking {
         val insights = MutableStateFlow(TrainingInsights())
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps = graph(insights)
         val fixture = seedTestWorkout(deps)
         val exercise = insertTestExercise(deps, "suggested-row", "Suggested row")
         insights.value = TrainingInsights(
@@ -227,7 +233,7 @@ class StartOptionsViewModelTest {
 
     @Test
     fun startSuggestedWithNoLiftIsANoOp() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = graph()
         val vm = createViewModel()
         vm.uiState.first { !it.isLoading }
         assertNull(vm.uiState.value.suggestion)
@@ -241,7 +247,7 @@ class StartOptionsViewModelTest {
 
     @Test
     fun discardInProgressStopsTimerClearsDraftAndRemovesRow() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = graph()
         val fixture = seedTestWorkout(deps)
         deps.workoutDraftCache.put(
             com.sinura.personaltrainer.workout.WorkoutDraft(
@@ -260,13 +266,8 @@ class StartOptionsViewModelTest {
 
         vm.discardInProgress()
 
-        eventually {
-            true.takeIf {
-                deps.workoutRepository.getInProgress() == null &&
-                    deps.workoutDraftCache.get(fixture.session.id) == null &&
-                    !deps.restTimerStore.current().running
-            }
-        }
+        deps.workoutRepository.observeInProgress().first { it == null }
+        dispatcher.scheduler.advanceUntilIdle()
         assertFalse(deps.restTimerStore.current().running)
         assertNull(deps.workoutDraftCache.get(fixture.session.id))
         assertNull(vm.uiState.first { it.inProgress == null }.error)
@@ -277,20 +278,4 @@ class StartOptionsViewModelTest {
             ApplicationProvider.getApplicationContext<Application>(),
             deps,
         ).also { viewModel = it }
-
-    // Five seconds is deliberate. This was raised to 30 s on the theory that a loaded
-    // runner was blowing a tight budget; the next run failed at 30 s in the same helper,
-    // on a test whose predicate could never come true, and took 5m39s to say so. The
-    // budget was never the problem — a wait on the wrong object was. Keep it short so
-    // the next such hang is reported quickly, and fix the barrier, not the number.
-    // J4 replaces this polling with value-based waits.
-    private suspend fun <T : Any> eventually(block: suspend () -> T?): T =
-        withTimeout(5_000) {
-            while (true) {
-                dispatcher.scheduler.runCurrent()
-                block()?.let { return@withTimeout it }
-                delay(10)
-            }
-            error("unreachable")
-        }
 }

@@ -11,7 +11,6 @@ import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -44,7 +43,10 @@ class SessionDetailViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
     }
 
     @After
@@ -116,7 +118,7 @@ class SessionDetailViewModelTest {
 
         vm.deleteSet(original.id)
 
-        val offered = eventually { vm.deletedSet.value }
+        val offered = checkNotNull(vm.deletedSet.first { it != null })
         assertEquals(original.id, offered.setId)
         awaitSession(fixture.id) { it.sets.isEmpty() }
 
@@ -156,7 +158,10 @@ class SessionDetailViewModelTest {
 
         vm.updateSet(original.id, 0.0, 5, rpe = null, isWarmup = false)
 
-        assertEquals(SetLogRules.ZERO_WORKING_WEIGHT, eventually { vm.error.value })
+        assertEquals(
+            SetLogRules.ZERO_WORKING_WEIGHT,
+            vm.error.first { it == SetLogRules.ZERO_WORKING_WEIGHT },
+        )
         vm.onErrorShown()
         assertNull(vm.error.value)
         assertEquals(100.0, deps.workoutRepository.getSession(fixture.id)!!.sets.single().weightKg, 0.0001)
@@ -170,7 +175,7 @@ class SessionDetailViewModelTest {
 
         vm.repeatSession()
 
-        val newId = eventually { vm.navigateToSession.value }
+        val newId = checkNotNull(vm.navigateToSession.first { it != null })
         val repeated = checkNotNull(deps.workoutRepository.getSession(newId))
         assertTrue(repeated.sets.isEmpty())
         assertEquals(1, repeated.exercises.size)
@@ -187,7 +192,7 @@ class SessionDetailViewModelTest {
 
         vm.repeatSession()
 
-        val blocked = eventually { vm.blockedRepeat.value }
+        val blocked = checkNotNull(vm.blockedRepeat.first { it != null })
         assertEquals(live.id, blocked.inProgressSessionId)
         assertNull(vm.navigateToSession.value)
         vm.resumeBlockedSession()
@@ -203,7 +208,10 @@ class SessionDetailViewModelTest {
 
         vm.addSet(TEST_EXERCISE, 0.0, 5, rpe = null, isWarmup = false)
 
-        assertEquals(SetLogRules.ZERO_WORKING_WEIGHT, eventually { vm.error.value })
+        assertEquals(
+            SetLogRules.ZERO_WORKING_WEIGHT,
+            vm.error.first { it == SetLogRules.ZERO_WORKING_WEIGHT },
+        )
         assertEquals(1, deps.workoutRepository.getSession(fixture.id)!!.sets.size)
     }
 
@@ -214,7 +222,10 @@ class SessionDetailViewModelTest {
 
         vm.repeatSession()
 
-        assertEquals("That session is no longer available.", eventually { vm.error.value })
+        assertEquals(
+            "That session is no longer available.",
+            vm.error.first { it == "That session is no longer available." },
+        )
         assertNull(vm.navigateToSession.value)
         assertNull(vm.blockedRepeat.value)
         assertNull(deps.workoutRepository.getInProgress())
@@ -228,7 +239,7 @@ class SessionDetailViewModelTest {
         vm.uiState.first { !it.isLoading }
 
         vm.repeatSession()
-        eventually { vm.blockedRepeat.value }
+        vm.blockedRepeat.first { it != null }
 
         vm.dismissBlockedRepeat()
 
@@ -258,7 +269,7 @@ class SessionDetailViewModelTest {
 
         vm.deleteSession()
 
-        eventually { true.takeIf { vm.deleted.value } }
+        vm.deleted.first { it }
         assertNull(deps.workoutRepository.getSession(fixture.id))
     }
 
@@ -281,25 +292,13 @@ class SessionDetailViewModelTest {
     private suspend fun awaitSession(
         id: String,
         predicate: (WorkoutSession) -> Boolean,
-    ): WorkoutSession = eventually {
-        deps.workoutRepository.getSession(id)?.takeIf(predicate)
+    ): WorkoutSession = withTimeout(5_000) {
+        checkNotNull(
+            deps.workoutRepository.observeSession(id).first { session ->
+                session != null && predicate(session)
+            },
+        )
     }
-
-    // Five seconds is deliberate. This was raised to 30 s on the theory that a loaded
-    // runner was blowing a tight budget; the next run failed at 30 s in the same helper,
-    // on a test whose predicate could never come true, and took 5m39s to say so. The
-    // budget was never the problem — a wait on the wrong object was. Keep it short so
-    // the next such hang is reported quickly, and fix the barrier, not the number.
-    // J4 replaces this polling with value-based waits.
-    private suspend fun <T : Any> eventually(block: suspend () -> T?): T =
-        withTimeout(5_000) {
-            while (true) {
-                dispatcher.scheduler.runCurrent()
-                block()?.let { return@withTimeout it }
-                delay(10)
-            }
-            error("unreachable")
-        }
 
     private companion object {
         const val TEST_EXERCISE = "test-squat"

@@ -11,14 +11,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
-import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -47,7 +45,10 @@ class ExerciseLibraryViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
     }
 
     @After
@@ -101,7 +102,7 @@ class ExerciseLibraryViewModelTest {
         vm.seedMuscleFromRoute(CanonicalMuscle.QUADRICEPS)
         assertEquals(
             CanonicalMuscle.QUADRICEPS,
-            eventually { vm.uiState.value.selectedMuscle },
+            vm.uiState.first { it.selectedMuscle == CanonicalMuscle.QUADRICEPS }.selectedMuscle,
         )
         vm.onMuscleSelected(null)
         vm.uiState.first { it.selectedMuscle == null }
@@ -115,14 +116,17 @@ class ExerciseLibraryViewModelTest {
         vm.uiState.first { !it.isLoading }
         vm.openCreate()
         vm.saveEditor()
-        assertEquals("Give this exercise a name.", eventually { vm.uiState.value.error })
+        assertEquals(
+            "Give this exercise a name.",
+            vm.uiState.first { it.error == "Give this exercise a name." }.error,
+        )
         assertNotNull(vm.uiState.value.editor)
 
         vm.updateEditor(vm.uiState.value.editor!!.copy(name = "My row", muscleGroup = "Back"))
         vm.saveEditor()
-        val created = eventually {
-            deps.exerciseRepository.observeAll().first().firstOrNull { it.isCustom && it.name == "My row" }
-        }
+        val created = deps.exerciseRepository.observeAll().first { list ->
+            list.any { it.isCustom && it.name == "My row" }
+        }.first { it.isCustom && it.name == "My row" }
         assertEquals("Back", created.muscleGroup)
         val saved = vm.uiState.first { it.editor == null && it.message == "Created My row." }
         assertNull(saved.editor)
@@ -136,11 +140,17 @@ class ExerciseLibraryViewModelTest {
         vm.uiState.first { it.exercises.isNotEmpty() }
 
         vm.openEdit(squat)
-        assertEquals("Built-in exercises can’t be edited.", eventually { vm.uiState.value.error })
+        assertEquals(
+            "Built-in exercises can’t be edited.",
+            vm.uiState.first { it.error == "Built-in exercises can’t be edited." }.error,
+        )
         assertNull(vm.uiState.value.editor)
 
         vm.requestDelete(squat)
-        assertEquals("Built-in exercises can’t be deleted.", eventually { vm.uiState.value.error })
+        assertEquals(
+            "Built-in exercises can’t be deleted.",
+            vm.uiState.first { it.error == "Built-in exercises can’t be deleted." }.error,
+        )
         assertNull(vm.uiState.value.pendingDelete)
         assertNull(vm.uiState.value.blockedDelete)
     }
@@ -152,12 +162,15 @@ class ExerciseLibraryViewModelTest {
         vm.uiState.first { it.exercises.any { it.id == custom.id } }
 
         vm.requestDelete(custom)
-        assertEquals(custom.id, eventually { vm.uiState.value.pendingDelete?.id })
+        assertEquals(
+            custom.id,
+            vm.uiState.first { it.pendingDelete?.id == custom.id }.pendingDelete?.id,
+        )
         vm.confirmDelete()
-        eventually { true.takeIf { deps.exerciseRepository.getById(custom.id) == null } }
+        deps.exerciseRepository.observeAll().first { list -> list.none { it.id == custom.id } }
         assertEquals(
             "Deleted My fly.",
-            eventually { vm.uiState.value.message.takeIf { it == "Deleted My fly." } },
+            vm.uiState.first { it.message == "Deleted My fly." }.message,
         )
         assertNull(vm.uiState.value.pendingDelete)
     }
@@ -173,7 +186,7 @@ class ExerciseLibraryViewModelTest {
         vm.uiState.first { it.exercises.any { it.id == custom.exercise.id } }
 
         vm.requestDelete(custom.exercise)
-        val blocked = eventually { vm.uiState.value.blockedDelete }
+        val blocked = checkNotNull(vm.uiState.first { it.blockedDelete != null }.blockedDelete)
         assertEquals(custom.exercise.id, blocked.first.id)
         assertTrue(blocked.second.isReferenced)
         assertNull(vm.uiState.value.pendingDelete)
@@ -191,7 +204,9 @@ class ExerciseLibraryViewModelTest {
         vm.addToRoutine(fixture.routine.id)
         assertEquals(
             "${fixture.exercise.name} is already in ${fixture.routine.name}.",
-            eventually { vm.uiState.value.message },
+            vm.uiState.first {
+                it.message == "${fixture.exercise.name} is already in ${fixture.routine.name}."
+            }.message,
         )
         assertNull(vm.uiState.value.addToRoutine)
         assertEquals(1, deps.routineRepository.getById(fixture.routine.id)?.exercises?.size)
@@ -204,7 +219,10 @@ class ExerciseLibraryViewModelTest {
         vm.uiState.first { it.exercises.isNotEmpty() }
         vm.openAddToRoutine(squat)
         vm.addToRoutine("gone")
-        assertEquals("That routine is no longer available.", eventually { vm.uiState.value.error })
+        assertEquals(
+            "That routine is no longer available.",
+            vm.uiState.first { it.error == "That routine is no longer available." }.error,
+        )
     }
 
     @Test
@@ -215,14 +233,14 @@ class ExerciseLibraryViewModelTest {
         vm.uiState.first { it.routines.any { it.id == routine.id } }
         vm.openAddToRoutine(squat)
         vm.addToRoutine(routine.id)
-        val saved = eventually {
-            deps.routineRepository.getById(routine.id)?.takeIf { it.exercises.size == 1 }
-        }
+        val saved = deps.routineRepository.observeAll().first { list ->
+            list.any { it.id == routine.id && it.exercises.size == 1 }
+        }.first { it.id == routine.id }
         assertEquals(squat.id, saved.exercises.single().exercise.id)
         assertTrue(saved.exercises.single().targetSets >= 1)
         assertEquals(
             "Added ${squat.name} to ${routine.name}.",
-            eventually { vm.uiState.value.message.takeIf { it == "Added ${squat.name} to ${routine.name}." } },
+            vm.uiState.first { it.message == "Added ${squat.name} to ${routine.name}." }.message,
         )
     }
 
@@ -263,21 +281,5 @@ class ExerciseLibraryViewModelTest {
         ).also { vm ->
             viewModel = vm
             keepAlive = CoroutineScope(dispatcher).launch { vm.uiState.collect { } }
-        }
-
-    // Five seconds is deliberate. This was raised to 30 s on the theory that a loaded
-    // runner was blowing a tight budget; the next run failed at 30 s in the same helper,
-    // on a test whose predicate could never come true, and took 5m39s to say so. The
-    // budget was never the problem — a wait on the wrong object was. Keep it short so
-    // the next such hang is reported quickly, and fix the barrier, not the number.
-    // J4 replaces this polling with value-based waits.
-    private suspend fun <T : Any> eventually(block: suspend () -> T?): T =
-        withTimeout(5_000) {
-            while (true) {
-                dispatcher.scheduler.runCurrent()
-                block()?.let { return@withTimeout it }
-                delay(10)
-            }
-            error("unreachable")
         }
 }

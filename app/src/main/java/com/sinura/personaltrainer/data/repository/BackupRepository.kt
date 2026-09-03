@@ -20,6 +20,7 @@ import com.sinura.personaltrainer.data.backup.DriveRestClient
 import com.sinura.personaltrainer.data.backup.DriveSession
 import com.sinura.personaltrainer.data.backup.NetworkChecker
 import com.sinura.personaltrainer.domain.DataHealthCopy
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -33,6 +34,7 @@ class BackupRepository(
     private val restoreJournal: RestoreJournalStore,
     /** Nullable so tests without a planner skip the reminder rebuild. */
     private val plannerRepository: PlannerRepository? = null,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     suspend fun signIn(
         activity: Activity,
@@ -52,7 +54,7 @@ class BackupRepository(
         launchResolution: suspend (IntentSender) -> Boolean,
         password: CharArray? = null,
         iterations: Int = BackupEnvelope.DEFAULT_ITERATIONS,
-    ): DriveBackupFile = withContext(Dispatchers.IO) {
+    ): DriveBackupFile = withContext(ioDispatcher) {
         networkChecker.requireOnline()
         val session = rememberAuthorizedSession(activity, launchResolution)
         val snapshot = localBackupRepository.createSnapshot()
@@ -81,7 +83,7 @@ class BackupRepository(
     suspend fun listBackups(
         activity: Activity,
         launchResolution: suspend (IntentSender) -> Boolean,
-    ): List<DriveBackupFile> = withContext(Dispatchers.IO) {
+    ): List<DriveBackupFile> = withContext(ioDispatcher) {
         networkChecker.requireOnline()
         val session = rememberAuthorizedSession(activity, launchResolution)
         val folderId = driveRestClient.ensureBackupFolder(
@@ -96,7 +98,7 @@ class BackupRepository(
         activity: Activity,
         file: DriveBackupFile,
         launchResolution: suspend (IntentSender) -> Boolean,
-    ): RestoreResult = withContext(Dispatchers.IO) {
+    ): RestoreResult = withContext(ioDispatcher) {
         val plan = prepareDriveRestore(activity, file, launchResolution)
         val result = commitRestore(plan)
         preferencesRepository.setLastRestore(
@@ -110,7 +112,7 @@ class BackupRepository(
         activity: Activity,
         file: DriveBackupFile,
         launchResolution: suspend (IntentSender) -> Boolean,
-    ): String = withContext(Dispatchers.IO) {
+    ): String = withContext(ioDispatcher) {
         networkChecker.requireOnline()
         val session = rememberAuthorizedSession(activity, launchResolution)
         driveRestClient.downloadBackup(session.accessToken, file.id)
@@ -121,24 +123,24 @@ class BackupRepository(
         file: DriveBackupFile,
         launchResolution: suspend (IntentSender) -> Boolean,
         password: CharArray? = null,
-    ): RestorePlan = withContext(Dispatchers.IO) {
+    ): RestorePlan = withContext(ioDispatcher) {
         val raw = downloadDriveBackup(activity, file, launchResolution)
         prepareRestore(raw, sourceName = file.name, password = password)
     }
 
     /** Serialises the current database for a local plaintext export. */
-    suspend fun exportJson(): String = withContext(Dispatchers.IO) {
+    suspend fun exportJson(): String = withContext(ioDispatcher) {
         BackupJson.encode(localBackupRepository.createSnapshot())
     }
 
     suspend fun exportProtected(
         password: CharArray,
         iterations: Int = BackupEnvelope.DEFAULT_ITERATIONS,
-    ): String = withContext(Dispatchers.IO) {
+    ): String = withContext(ioDispatcher) {
         BackupEnvelope.wrap(exportJson(), password, iterations)
     }
 
-    suspend fun authoredInventory(): AuthoredInventory = withContext(Dispatchers.IO) {
+    suspend fun authoredInventory(): AuthoredInventory = withContext(ioDispatcher) {
         localBackupRepository.authoredInventory()
     }
 
@@ -166,7 +168,7 @@ class BackupRepository(
         sourceName: String,
         allowEmptyDestructiveRestore: Boolean = false,
         password: CharArray? = null,
-    ): RestorePlan = withContext(Dispatchers.IO) {
+    ): RestorePlan = withContext(ioDispatcher) {
         refuseIfLive()
         val document = BackupJson.decode(BackupEnvelope.open(json, password))
         val local = localBackupRepository.authoredInventory()
@@ -181,7 +183,7 @@ class BackupRepository(
     }
 
     /** Writes the already-prepared document. Re-checks the live-session refuse. */
-    suspend fun commitRestore(plan: RestorePlan): RestoreResult = withContext(Dispatchers.IO) {
+    suspend fun commitRestore(plan: RestorePlan): RestoreResult = withContext(ioDispatcher) {
         dbMaintenance.withMaintenanceLock {
             recoverInterruptedRestoreLocked()
             refuseIfLive()
@@ -254,7 +256,7 @@ class BackupRepository(
      * Finish a restore that died after Room committed. Safe to call on every
      * process start. Holds the same lock as start and restore.
      */
-    suspend fun recoverInterruptedRestore(): Boolean = withContext(Dispatchers.IO) {
+    suspend fun recoverInterruptedRestore(): Boolean = withContext(ioDispatcher) {
         dbMaintenance.withMaintenanceLock { recoverInterruptedRestoreLocked() }
     }
 
@@ -347,15 +349,15 @@ class BackupRepository(
         }
     }
 
-    suspend fun listSafetySnapshots(): List<SafetySnapshotMeta> = withContext(Dispatchers.IO) {
+    suspend fun listSafetySnapshots(): List<SafetySnapshotMeta> = withContext(ioDispatcher) {
         localBackupRepository.listSafetySnapshots()
     }
 
-    suspend fun readSafetySnapshot(id: String): String = withContext(Dispatchers.IO) {
+    suspend fun readSafetySnapshot(id: String): String = withContext(ioDispatcher) {
         localBackupRepository.readSafetySnapshot(id)
     }
 
-    suspend fun deleteSafetySnapshot(id: String) = withContext(Dispatchers.IO) {
+    suspend fun deleteSafetySnapshot(id: String) = withContext(ioDispatcher) {
         localBackupRepository.deleteSafetySnapshot(id)
     }
 

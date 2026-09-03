@@ -15,7 +15,6 @@ import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
 import com.sinura.personaltrainer.workout.WorkoutDraft
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -52,7 +51,10 @@ class ActiveWorkoutViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         runBlocking { deps.preferencesRepository.setWeightUnit(WeightUnit.KG) }
     }
 
@@ -192,7 +194,7 @@ class ActiveWorkoutViewModelTest {
         assertEquals(100.0, persisted.sets.single().weightKg, 0.0001)
         assertEquals(5, persisted.sets.single().reps)
         assertNull(vm.uiState.value.error)
-        val record = eventually { vm.personalRecord.value }
+        val record = checkNotNull(vm.personalRecord.first { it != null })
         assertEquals("Squat", record.exerciseName)
         assertTrue(record.kinds.isNotEmpty())
 
@@ -361,7 +363,7 @@ class ActiveWorkoutViewModelTest {
         vm.setWeight(100.0)
         vm.logSet()
         awaitSession(fixture.session.id) { it.sets.size == 2 }
-        eventually { deps.restTimerStore.current().takeIf { it.running } }
+        deps.restTimerStore.snapshot.first { it.running }
         assertFalse(vm.extraSetRequested.value)
     }
 
@@ -421,7 +423,7 @@ class ActiveWorkoutViewModelTest {
 
         vm.logSet()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
-        eventually { deps.restTimerStore.current().takeIf { it.running } }
+        deps.restTimerStore.snapshot.first { it.running }
 
         val rest = deps.restTimerStore.current()
         assertEquals(fixture.session.id, rest.sessionId)
@@ -467,7 +469,7 @@ class ActiveWorkoutViewModelTest {
 
         vm.selectRestDuration(105)
         vm.startSelectedRest()
-        eventually { deps.restTimerStore.current().takeIf { it.running } }
+        deps.restTimerStore.snapshot.first { it.running }
         assertEquals(105, deps.restTimerStore.current().totalSeconds)
 
         vm.skipRest()
@@ -482,7 +484,7 @@ class ActiveWorkoutViewModelTest {
 
         assertFalse(deps.preferencesRepository.restAlarmEligible.first())
         vm.startSelectedRest()
-        eventually { deps.restTimerStore.current().takeIf { it.running } }
+        deps.restTimerStore.snapshot.first { it.running }
         withTimeout(5_000) { deps.preferencesRepository.restAlarmEligible.first { it } }
         Unit
     }
@@ -523,10 +525,10 @@ class ActiveWorkoutViewModelTest {
         vm.logSet()
         val logged = awaitSession(fixture.session.id) { it.sets.size == 1 }.sets.single()
         vm.awaitState { state -> state.session?.sets?.any { it.id == logged.id } == true }
-        eventually { deps.restTimerStore.current().takeIf { it.running } }
+        deps.restTimerStore.snapshot.first { it.running }
 
         vm.deleteSet(logged.id)
-        eventually { vm.deletedSet.value }
+        checkNotNull(vm.deletedSet.first { it != null })
         awaitSession(fixture.session.id) { it.sets.isEmpty() }
         assertFalse(deps.restTimerStore.current().running)
 
@@ -674,7 +676,7 @@ class ActiveWorkoutViewModelTest {
 
         vm.finishWorkout()
 
-        val exit = eventually { vm.exitRequested.value }
+        val exit = checkNotNull(vm.exitRequested.first { it != null })
         assertEquals(WorkoutExit.Finished(fixture.session.id), exit)
         assertNotNull(deps.workoutRepository.getSession(fixture.session.id)?.finishedAt)
         assertNull(deps.workoutRepository.getInProgress())
@@ -697,7 +699,7 @@ class ActiveWorkoutViewModelTest {
 
         vm.discardWorkout()
 
-        val exit = eventually { vm.exitRequested.value }
+        val exit = checkNotNull(vm.exitRequested.first { it != null })
         assertEquals(WorkoutExit.Discarded, exit)
         assertNull(deps.workoutRepository.getSession(fixture.session.id))
         assertNull(deps.workoutDraftCache.get(fixture.session.id))
@@ -760,25 +762,13 @@ class ActiveWorkoutViewModelTest {
     private suspend fun awaitSession(
         sessionId: String,
         predicate: (WorkoutSession) -> Boolean,
-    ): WorkoutSession = eventually {
-        deps.workoutRepository.getSession(sessionId)?.takeIf(predicate)
+    ): WorkoutSession = withTimeout(5_000) {
+        checkNotNull(
+            deps.workoutRepository.observeSession(sessionId).first { session ->
+                session != null && predicate(session)
+            },
+        )
     }
-
-    // Five seconds is deliberate. This was raised to 30 s on the theory that a loaded
-    // runner was blowing a tight budget; the next run failed at 30 s in the same helper,
-    // on a test whose predicate could never come true, and took 5m39s to say so. The
-    // budget was never the problem — a wait on the wrong object was. Keep it short so
-    // the next such hang is reported quickly, and fix the barrier, not the number.
-    // J4 replaces this polling with value-based waits.
-    private suspend fun <T : Any> eventually(block: suspend () -> T?): T =
-        withTimeout(5_000) {
-            while (true) {
-                dispatcher.scheduler.runCurrent()
-                block()?.let { return@withTimeout it }
-                delay(10)
-            }
-            error("unreachable")
-        }
 
     private suspend fun seedWorkout(
         targetSets: Int = 3,
