@@ -62,8 +62,8 @@ bootstrap_jars() {
         fi
         ln -sf "$jar" "$dest/"
     }
-    find_jar 'kotlin-compiler-embeddable-2.0.21*.jar' || return 1
-    find_jar 'kotlin-stdlib-2.0.21*.jar' || return 1
+    find_jar 'kotlin-compiler-embeddable-2.0.21.jar' || return 1
+    find_jar 'kotlin-stdlib-2.0.21.jar' || return 1
     find_jar 'kotlinx-coroutines-core-jvm-*.jar' || return 1
     find_jar 'junit-4*.jar' 'junit/junit/' || return 1
     find_jar 'hamcrest-core-*.jar' || return 1
