@@ -415,12 +415,34 @@ interface WorkoutDao {
     /**
      * When each lift was last logged, for the picker's recency order.
      *
-     * An aggregate rather than reading the sessions and folding them in Kotlin: the picker is
-     * opened mid-workout and only needs one number per exercise, while the sessions themselves
-     * are the largest thing in the database. `set_logs` is already indexed on `exerciseId`.
+     * Ungated on purpose: the picker is opened mid-workout and should rank the
+     * lift just logged. Insights uses [finishedLastLogged] instead, gated on
+     * finished work so a live set does not re-run the analytics pass.
+     *
+     * An aggregate rather than reading the sessions and folding them in Kotlin:
+     * the picker only needs one number per exercise, while the sessions
+     * themselves are the largest thing in the database. `set_logs` is already
+     * indexed on `exerciseId`.
      */
     @Query("SELECT exerciseId AS exerciseId, MAX(completedAt) AS lastLoggedAt FROM set_logs GROUP BY exerciseId")
     fun observeLastLogged(): Flow<List<ExerciseRecencyRow>>
+
+    /**
+     * Recency over finished sessions only. A suspend query so callers can gate
+     * it on [observeFinishedWorkGeneration] the way [sessionSummaries] is
+     * gated; a Flow here would still invalidate on every live set because Room
+     * watches `set_logs`.
+     */
+    @Query(
+        """
+        SELECT sl.exerciseId AS exerciseId, MAX(sl.completedAt) AS lastLoggedAt
+        FROM set_logs sl
+        INNER JOIN workout_sessions ws ON ws.id = sl.sessionId
+        WHERE ws.finishedAt IS NOT NULL
+        GROUP BY sl.exerciseId
+        """,
+    )
+    suspend fun finishedLastLogged(): List<ExerciseRecencyRow>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun replaceSessions(items: List<WorkoutSessionEntity>)

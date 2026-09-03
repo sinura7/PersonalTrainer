@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase E starts at E1. K1 and K2 stay held.  
+`tools/` remain owed. Phase E continues at E2. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -82,7 +82,7 @@ the gym floor, are fifteen of them.
 | D1 | The start sheet gets a home (or a grave) | 1 | 1 | Paths | done |
 | D2 | Reminder Start works from anywhere | 1 | — | Paths | done |
 | D3 | Live cardio is visible; errors dismiss; drafts survive | 2 | — | Paths | done |
-| E1 | Stop recomputing everything | 1 | — | Speed | |
+| E1 | Stop recomputing everything | 1 | — | Speed | done |
 | E2 | Thumbnails stop decoding at full size | 2 | — | Speed | |
 | E3 | The shell stops recomposing every second | 1 | — | Speed | |
 | E4 | Query and recompute hygiene | 2 | — | Speed | |
@@ -743,6 +743,11 @@ Both red today.
 `data/repository/WorkoutRepository.kt` *(after C4)*,
 `data/repository/PreferencesRepository.kt`,
 `insights/TrainingInsightsSource.kt`.
+
+**On trunk.** Insights recency is `observeFinishedLastLogged`, gated
+on finished work. Picker keeps the ungated `GROUP BY`. All 26
+DataStore maps go through `pref()`. Equal `Sources` skip compute;
+refresh still nudges.
 
 ## E2 — Thumbnails stop decoding at full size · 2 evenings
 
@@ -1441,6 +1446,19 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — E1: recency gated; pref() on the 26 maps.** Proof is
+JVM (`loggingASetOnAnInProgressSessionDoesNotRecomputeInsights`,
+`bodyWindowChipRetargetsOnceWithoutAFullCompute`), not a phone
+warm-battery check. `observeFinishedLastLogged` is a suspend query
+behind `observeFinishedWorkGeneration`, not a Room Flow — Room
+would still invalidate on every live set. `coreNudge` combines
+*after* `Sources.distinctUntilChanged` so refresh still
+recomputes. Room `bodyweightLog` / `trainingBlock` / `pastBlocks`
+are not DataStore maps; they get `distinctUntilChanged` beside
+`pref()`. `onboardingCompleteHealth` is a 27th mapped flow
+(health wrapper, not `safePreferences`); equality is appended
+rather than routed through `pref()`. Count +4.
 
 **2026-09-03 — D3: live cardio is sessionLive; banners dismiss.**
 Home/Plan combine `observeLive()`. Proof is JVM

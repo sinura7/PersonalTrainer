@@ -65,6 +65,33 @@ class WorkoutRepositoryInsightsQueriesTest {
     }
 
     @Test
+    fun finishedLastLoggedIgnoresTheLiveSessionThatThePickerSees() = runBlocking {
+        insertFinishedSession(
+            id = "done",
+            finishedAt = START + 1,
+            sets = listOf(Triple(SQUAT, 100.0, 5)),
+        )
+        insertLiveSession("live")
+        database.workoutDao().insertSet(
+            SetLogEntity(
+                id = "live-$SQUAT-0",
+                sessionId = "live",
+                exerciseId = SQUAT,
+                setNumber = 1,
+                weightKg = 110.0,
+                reps = 5,
+                rpe = null,
+                isWarmup = false,
+                completedAt = START + 10_000,
+            ),
+        )
+        val picker = repository.observeLastLogged().first()
+        val insights = repository.observeFinishedLastLogged().first()
+        assertEquals(START + 10_000, picker.getValue(SQUAT))
+        assertEquals(START + 1, insights.getValue(SQUAT))
+    }
+
+    @Test
     fun readyForProgressionUsesTheTopSetNotTheBackoff() = runBlocking {
         insertFinishedSession(
             id = "s1",

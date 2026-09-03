@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
@@ -166,7 +167,7 @@ class TrainingInsightsSource(
                 routineRepository.observeAll(),
                 combine(
                     exerciseRepository.observeAll(),
-                    workoutRepository.observeLastLogged(),
+                    workoutRepository.observeFinishedLastLogged(),
                 ) { exercises, lastLogged ->
                     exercises.associateBy { it.id } to lastLogged
                 },
@@ -188,8 +189,7 @@ class TrainingInsightsSource(
                 preferencesRepository.coachPreferences,
                 preferencesRepository.lighterWeekStartEpochDay,
             ) { coachPrefs, marked -> coachPrefs to marked },
-            coreNudge,
-        ) { sources, slots, coachAndMarked, _ ->
+        ) { sources, slots, coachAndMarked ->
             val today = Instant.ofEpochMilli(nowMs()).atZone(zone()).toLocalDate()
             val thisWeek = LighterWeek.weekStartEpochDay(
                 com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(today.toEpochDay()),
@@ -200,28 +200,30 @@ class TrainingInsightsSource(
                 coachPrefs = coachAndMarked.first,
                 lighterWeek = LighterWeek.isCurrent(coachAndMarked.second, thisWeek),
             )
-        }.mapLatest { sources ->
-            val hints = cachedHints(sources)
-            val insights = compute(
-                TrainingInsightsInput(
-                    history = sources.history,
-                    summaries = sources.summaries,
-                    routines = sources.routines,
-                    exerciseCatalog = sources.exercises,
-                    lastLoggedAtByExerciseId = sources.lastLoggedAtByExerciseId,
-                    hints = hints,
-                    preferences = sources.preferences,
-                    unit = sources.unit,
-                    slots = sources.slots,
-                    coachPrefs = sources.coachPrefs,
-                    window = HeatWindow.CURRENT_WEEK,
-                    nowMs = nowMs(),
-                    zoneId = zone().id,
-                    includeWeekPlan = includeWeekPlan,
-                ),
-            )
-            Assembled(sources, insights)
-        }.flowOn(computeDispatcher)
+        }.distinctUntilChanged()
+            .combine(coreNudge) { sources, _ -> sources }
+            .mapLatest { sources ->
+                val hints = cachedHints(sources)
+                val insights = compute(
+                    TrainingInsightsInput(
+                        history = sources.history,
+                        summaries = sources.summaries,
+                        routines = sources.routines,
+                        exerciseCatalog = sources.exercises,
+                        lastLoggedAtByExerciseId = sources.lastLoggedAtByExerciseId,
+                        hints = hints,
+                        preferences = sources.preferences,
+                        unit = sources.unit,
+                        slots = sources.slots,
+                        coachPrefs = sources.coachPrefs,
+                        window = HeatWindow.CURRENT_WEEK,
+                        nowMs = nowMs(),
+                        zoneId = zone().id,
+                        includeWeekPlan = includeWeekPlan,
+                    ),
+                )
+                Assembled(sources, insights)
+            }.flowOn(computeDispatcher)
     }
 
     private suspend fun cachedHints(sources: Sources): List<ProgressionHint>? {

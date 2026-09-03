@@ -128,6 +128,19 @@ class WorkoutRepository(
             rows.associate { it.exerciseId to it.lastLoggedAt }
         }
 
+    /**
+     * Recency for insights: finished sessions only, gated so a live set does
+     * not re-aggregate every lift. The picker keeps [observeLastLogged].
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun observeFinishedLastLogged(): Flow<Map<String, Long>> =
+        workoutDao.observeFinishedWorkGeneration()
+            .distinctUntilChanged()
+            .mapLatest {
+                workoutDao.finishedLastLogged().associate { it.exerciseId to it.lastLoggedAt }
+            }
+            .distinctUntilChanged()
+
     fun observeBestWorkingWeights(): Flow<Map<String, Double>> =
         workoutDao.observeBestWorkingWeights().map { rows ->
             rows.associate { it.exerciseId to it.bestKg }

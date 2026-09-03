@@ -11,6 +11,7 @@ import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.domain.TrainingInsightsCalculator
 import com.sinura.personaltrainer.domain.TrainingInsightsInput
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import java.time.ZoneOffset
 import java.util.concurrent.Executors
@@ -89,6 +90,58 @@ class TrainingInsightsSourceTest {
         val b = second.await()
         assertSame(a, b)
         assertEquals(1, inputs.size)
+    }
+
+    @Test
+    fun loggingASetOnAnInProgressSessionDoesNotRecomputeInsights() = runBlocking {
+        val seeded = seedTestWorkout(deps, finish = false)
+        val src = source()
+        val job = launch { src.observeShared(includeWeekPlan = false).collect { } }
+        awaitComputes(1)
+        deps.workoutRepository.logSet(
+            sessionId = seeded.session.id,
+            exerciseId = seeded.exercise.id,
+            weightKg = 100.0,
+            reps = 5,
+            rpe = null,
+            isWarmup = false,
+        )
+        // Picker recency must see the live set — that is the leak's trigger.
+        withTimeout(5_000) {
+            deps.workoutRepository.observeLastLogged().first {
+                it[seeded.exercise.id] != null
+            }
+        }
+        repeat(10) {
+            dispatcher.scheduler.runCurrent()
+            delay(10)
+        }
+        assertEquals(1, inputs.size)
+        job.cancel()
+    }
+
+    @Test
+    fun bodyWindowChipRetargetsOnceWithoutAFullCompute() = runBlocking {
+        val emissions = mutableListOf<TrainingInsights>()
+        val src = source()
+        val job = launch {
+            src.observe(
+                window = deps.preferencesRepository.heatWindow,
+                includeWeekPlan = false,
+            ).collect { emissions.add(it) }
+        }
+        awaitUntil {
+            inputs.size == 1 &&
+                emissions.any { it.snapshot?.window == HeatWindow.CURRENT_WEEK }
+        }
+        val computes = inputs.size
+        val before = emissions.size
+        deps.preferencesRepository.setHeatWindow(HeatWindow.CURRENT_MONTH)
+        awaitUntil { emissions.any { it.snapshot?.window == HeatWindow.CURRENT_MONTH } }
+        assertEquals(computes, inputs.size)
+        assertEquals(before + 1, emissions.size)
+        assertEquals(1, emissions.count { it.snapshot?.window == HeatWindow.CURRENT_MONTH })
+        job.cancel()
     }
 
     @Test
