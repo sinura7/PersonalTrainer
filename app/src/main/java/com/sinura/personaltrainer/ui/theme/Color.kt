@@ -71,8 +71,11 @@ val SteelDim = Color(0xFF3E4042)
 val TextPrimary = Color(0xFFF2F5F7)
 val TextSecondary = Color(0xFF9BA7AE)
 
-/** About 3.2:1 — decorative and disabled states only, never load-bearing text. */
-val TextTertiary = Color(0xFF5F6B73)
+/** Quiet load-bearing copy — units, kickers, captions. About 5:1 on cards. */
+val TextTertiary = Color(0xFF7F8B93)
+
+/** Disabled controls only. Must not be used for copy a gym has to read. */
+val TextDisabled = Color(0xFF5F6B73)
 
 // ---------------------------------------------------------------------------
 // Accent and semantics

@@ -104,6 +104,7 @@ import com.sinura.personaltrainer.ui.theme.RestCyan
 import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.SurfacePressed
+import com.sinura.personaltrainer.ui.theme.TextDisabled
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
@@ -153,7 +154,7 @@ fun EmptyState(
                     Text(
                         actionLabel,
                         style = InstrumentType.bodyStrong,
-                        color = if (actionEnabled) Volt else TextTertiary,
+                        color = if (actionEnabled) Volt else TextDisabled,
                     )
                 }
             } else {
@@ -684,7 +685,7 @@ fun <T> NumberEntryDialog(
                         onDismiss()
                     }
                 },
-            ) { Text("Set", style = InstrumentType.bodyStrong, color = Volt) }
+            ) { Text("Set", style = InstrumentType.bodyStrong, color = if (parsed != null) Volt else TextDisabled) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
@@ -1241,13 +1242,13 @@ fun PrimaryGymButton(
             containerColor = Volt,
             contentColor = Pit,
             disabledContainerColor = Surface2,
-            disabledContentColor = TextSecondary,
+            disabledContentColor = TextDisabled,
         ),
     ) {
         Text(
             text,
             style = InstrumentType.title,
-            color = if (enabled) Pit else TextSecondary,
+            color = if (enabled) Pit else TextDisabled,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
@@ -1283,7 +1284,7 @@ fun SecondaryGymButton(
             text,
             modifier = Modifier.padding(horizontal = Metrics.space3, vertical = Metrics.space2),
             style = InstrumentType.title,
-            color = if (enabled) contentColor else TextSecondary,
+            color = if (enabled) contentColor else TextDisabled,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,

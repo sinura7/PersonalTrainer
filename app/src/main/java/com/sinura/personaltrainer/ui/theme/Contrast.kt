@@ -8,12 +8,15 @@ import kotlin.math.pow
 /**
  * WCAG contrast for Instrument tokens (P9.2 / FND-024).
  *
- * [TextTertiary] measures about 3.2:1 and is decorative or disabled only.
- * Load-bearing copy uses [TextPrimary] or [TextSecondary].
+ * Load-bearing copy is [TextPrimary], [TextSecondary], and [TextTertiary].
+ * [TextDisabled] is for inert controls only and is allowed to sit below AA.
  */
 object ContrastPolicy {
     const val AA_NORMAL = 4.5
     const val AA_LARGE = 3.0
+
+    val loadBearingText = listOf(TextPrimary, TextSecondary, TextTertiary)
+    val readingSurfaces = listOf(Pit, Surface1, Surface2, Surface3)
 
     fun relativeLuminance(color: Color): Double {
         fun channel(component: Float): Double {
@@ -38,5 +41,5 @@ object ContrastPolicy {
         return ratio(foreground, background) + 1e-6 >= floor
     }
 
-    fun isLoadBearing(color: Color): Boolean = color != TextTertiary
+    fun isLoadBearing(color: Color): Boolean = color != TextDisabled
 }
