@@ -56,7 +56,10 @@ class SettingsViewModelTest {
 
     @Test
     fun inProgressSessionMarksRestoreBlocked() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
         val idle = withTimeout(5_000) { viewModel!!.backupState.first() }
@@ -71,7 +74,10 @@ class SettingsViewModelTest {
 
     @Test
     fun liveCardioMarksRestoreBlocked() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
         val idle = withTimeout(5_000) { viewModel!!.backupState.first() }
@@ -107,7 +113,10 @@ class SettingsViewModelTest {
 
     @Test
     fun backupOlderThanFourteenDaysSurfacesThePrompt() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         val now = System.currentTimeMillis()
         deps.preferencesRepository.setLastBackup(
             "personal-trainer-backup-old.json",
@@ -127,7 +136,10 @@ class SettingsViewModelTest {
 
     @Test
     fun configuringRestMarksExactAlarmPromptEligible() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
         viewModel!!.restTimerPreferences.first()
@@ -145,7 +157,10 @@ class SettingsViewModelTest {
 
     @Test
     fun bestEffortAndEligibleOffersExactAlarmSettings() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         deps.setExactAlarmAttempt(ExactAlarmAttempt.BEST_EFFORT)
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
@@ -165,7 +180,10 @@ class SettingsViewModelTest {
 
     @Test
     fun bestEffortWithoutEligibilityDoesNotOfferExactAlarmSettings() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         deps.setExactAlarmAttempt(ExactAlarmAttempt.BEST_EFFORT)
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
@@ -176,7 +194,10 @@ class SettingsViewModelTest {
 
     @Test
     fun commitRestoreSurfacesSafetyCopyThenDeleteRemovesIt() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         seedTestWorkout(
             deps,
             finish = true,
@@ -207,7 +228,10 @@ class SettingsViewModelTest {
 
     @Test
     fun safetyCopyRestoreGoesThroughPreview() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         seedTestWorkout(
             deps,
             finish = true,
@@ -230,7 +254,10 @@ class SettingsViewModelTest {
 
     @Test
     fun fileExportAsksForAPasswordThenOpensThePicker() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         viewModel = SettingsViewModel(
             ApplicationProvider.getApplicationContext<Application>(),
             deps,
@@ -253,7 +280,10 @@ class SettingsViewModelTest {
 
     @Test
     fun plaintextExportWarnsBeforeOpeningThePicker() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.backupState.first()
         viewModel!!.beginFileExport()
@@ -271,7 +301,10 @@ class SettingsViewModelTest {
 
     @Test
     fun shrinkingTrainingDaysTrimsPreferredDays() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         deps.preferencesRepository.setPreferredDays(
             setOf(
                 com.sinura.personaltrainer.domain.Weekday.MONDAY,

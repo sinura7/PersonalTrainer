@@ -48,21 +48,30 @@ class OnboardingGateViewModelTest {
 
     @Test
     fun unreadPreferencesStayUnknownUntilTheFirstEmission() {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         val vm = createViewModel()
         assertEquals(OnboardingGate.UNKNOWN, vm.gate.value)
     }
 
     @Test
     fun firstInstallResolvesToApp() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         val vm = createViewModel()
         assertEquals(OnboardingGate.APP, vm.gate.first { it != OnboardingGate.UNKNOWN })
     }
 
     @Test
     fun finishedOnboardingResolvesToApp() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         deps.preferencesRepository.setOnboardingComplete(true)
         val vm = createViewModel()
         assertEquals(OnboardingGate.APP, vm.gate.first { it != OnboardingGate.UNKNOWN })
@@ -70,7 +79,10 @@ class OnboardingGateViewModelTest {
 
     @Test
     fun completingSetupKeepsTheAppGate() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         val vm = createViewModel()
         vm.gate.first { it == OnboardingGate.APP }
 

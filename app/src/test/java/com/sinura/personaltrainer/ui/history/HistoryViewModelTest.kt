@@ -52,7 +52,10 @@ class HistoryViewModelTest {
 
     @Test
     fun repeatWhileLiveSurfacesBlockedNotSilentResume() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         val finished = deps.workoutRepository.startFreeWorkout("Push")
         deps.workoutRepository.finishSession(finished.id, notes = "")
         val live = deps.workoutRepository.startFreeWorkout("Legs")

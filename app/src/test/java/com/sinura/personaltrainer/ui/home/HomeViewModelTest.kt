@@ -65,6 +65,14 @@ class HomeViewModelTest {
         Dispatchers.resetMain()
     }
 
+    private fun graph(
+        insights: MutableStateFlow<TrainingInsights> = MutableStateFlow(TrainingInsights()),
+    ): FakeAppDependencies = FakeAppDependencies(
+        ApplicationProvider.getApplicationContext(),
+        insights,
+        scheduler = dispatcher,
+    )
+
     @Test
     fun dropsProgressionReadyWhenHintsExist() = runBlocking {
         val insights = MutableStateFlow(
@@ -73,7 +81,7 @@ class HomeViewModelTest {
                 recommendations = listOf(rec("progression-ready"), rec("coverage-chest")),
             ),
         )
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps = graph(insights)
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
         val state = viewModel!!.uiState.first { !it.isLoading }
@@ -89,7 +97,7 @@ class HomeViewModelTest {
                 recommendations = listOf(rec("progression-ready")),
             ),
         )
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps = graph(insights)
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
         val state = viewModel!!.uiState.first { !it.isLoading }
@@ -98,7 +106,7 @@ class HomeViewModelTest {
 
     @Test
     fun agendaListsIndependentOccurrences() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = graph()
         val weekStart = com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(
             com.sinura.personaltrainer.domain.todayEpochDay(),
         ).previousOrSame(com.sinura.personaltrainer.domain.Weekday.MONDAY)
@@ -158,7 +166,7 @@ class HomeViewModelTest {
                 summaries = listOf(old),
             ),
         )
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps = graph(insights)
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
         val state = viewModel!!.uiState.first { !it.isLoading }
@@ -169,7 +177,7 @@ class HomeViewModelTest {
 
     @Test
     fun plannedStartBindsOccurrenceSoFinishMarksItDone() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = graph()
         val today = todayEpochDay()
         val weekday = Weekday.fromEpochDay(today)
         val weekStart = CivilDate.fromEpochDay(today).previousOrSame(Weekday.MONDAY)
@@ -193,7 +201,7 @@ class HomeViewModelTest {
 
     @Test
     fun leftoverStartMovesTheOccurrenceOntoTodayThenOpensTheSession() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = graph()
         val today = todayEpochDay()
         val yesterday = today - 1
         val yesterdayWeekday = Weekday.fromEpochDay(yesterday)
@@ -226,7 +234,7 @@ class HomeViewModelTest {
 
     @Test
     fun freeWorkoutOpensAnEmptySessionWithoutMarkingThePlan() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = graph()
         val today = todayEpochDay()
         val weekday = Weekday.fromEpochDay(today)
         val weekStart = CivilDate.fromEpochDay(today).previousOrSame(Weekday.MONDAY)
@@ -253,7 +261,7 @@ class HomeViewModelTest {
 
     @Test
     fun skipOccurrenceMarksALeftoverSkippedWithoutChangingTheRule() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = graph()
         val today = todayEpochDay()
         val yesterday = today - 1
         val yesterdayWeekday = Weekday.fromEpochDay(yesterday)
@@ -288,7 +296,7 @@ class HomeViewModelTest {
 
     @Test
     fun skipOccurrenceDoesNotSkipTodaysPlannedSession() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = graph()
         val today = todayEpochDay()
         val weekday = Weekday.fromEpochDay(today)
         val weekStart = CivilDate.fromEpochDay(today).previousOrSame(Weekday.MONDAY)
@@ -309,7 +317,7 @@ class HomeViewModelTest {
 
     @Test
     fun addDaySessionOnceDisablesTheRuleAfterMintingThisWeek() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = graph()
         deps.preferencesRepository.setOnboardingComplete(true)
         val today = todayEpochDay()
         val routine = deps.routineRepository.create("Push")
@@ -333,7 +341,7 @@ class HomeViewModelTest {
 
     @Test
     fun addDaySessionWeeklyKeepsTheRuleEnabled() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = graph()
         deps.preferencesRepository.setOnboardingComplete(true)
         val today = todayEpochDay()
         val routine = deps.routineRepository.create("Push")
@@ -368,7 +376,7 @@ class HomeViewModelTest {
 
     @Test
     fun addNewWorkoutOnceOpensTheEditor() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = graph()
         deps.preferencesRepository.setOnboardingComplete(true)
         val today = todayEpochDay()
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
@@ -385,7 +393,7 @@ class HomeViewModelTest {
 
     @Test
     fun requestAnswerReplayArmsPlanOnce() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = graph()
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         assertFalse(deps.pendingAnswerReplay.value)
         viewModel!!.requestAnswerReplay()
@@ -394,7 +402,7 @@ class HomeViewModelTest {
 
     @Test
     fun firstInstallIsNotSetupComplete() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = graph()
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         val state = viewModel!!.uiState.first { !it.isLoading }
         assertFalse(state.setupComplete)
@@ -402,7 +410,7 @@ class HomeViewModelTest {
 
     @Test
     fun aFinishedSetupHidesTheStarter() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = graph()
         deps.preferencesRepository.setOnboardingComplete(true)
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         val state = viewModel!!.uiState.first { !it.isLoading }

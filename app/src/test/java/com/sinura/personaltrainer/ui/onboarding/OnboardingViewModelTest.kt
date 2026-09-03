@@ -49,7 +49,10 @@ class OnboardingViewModelTest {
 
     @Test
     fun previewStaysNullUntilTheCatalogArrivesThenTracksDays() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         assertNull(viewModel!!.uiState.value.preview)
 
@@ -63,7 +66,10 @@ class OnboardingViewModelTest {
 
     @Test
     fun retryCatalogFillsAPreviewThatWasWaiting() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         assertNull(viewModel!!.uiState.value.preview)
 
@@ -82,7 +88,10 @@ class OnboardingViewModelTest {
 
     @Test
     fun backOnFirstQuestionWithAnExistingProgramRestoresComplete() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         deps.routineRepository.create("Upper")
         deps.preferencesRepository.setOnboardingComplete(false)
         viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
@@ -96,7 +105,10 @@ class OnboardingViewModelTest {
 
     @Test
     fun backOnFirstQuestionWithNoProgramDoesNotMarkComplete() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
         assertFalse(viewModel!!.back())
@@ -107,7 +119,10 @@ class OnboardingViewModelTest {
 
     @Test
     fun togglingWeightUnitDoesNotWriteUntilThePlanIsApplied() = runBlocking {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         deps.dbMaintenance.seedCatalog()
         viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
@@ -128,7 +143,10 @@ class OnboardingViewModelTest {
 
     @Test
     fun skippingBodyweightLeavesTheWeighInUnset() {
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
         viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         assertNull(viewModel!!.uiState.value.answers.bodyweightKg)
         viewModel!!.setBodyweight(80.0)
