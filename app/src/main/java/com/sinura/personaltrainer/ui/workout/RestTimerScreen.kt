@@ -296,12 +296,10 @@ private fun RestFloorIdleControls(
             onSelect = onPreset,
             onCustom = { showCustom = true },
         )
-        RestControl(
-            label = "Start rest",
+        PrimaryGymButton(
+            text = "Start rest",
             onClick = onStart,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag(RestFloorTags.START),
+            modifier = Modifier.testTag(RestFloorTags.START),
         )
     }
     if (showCustom) {

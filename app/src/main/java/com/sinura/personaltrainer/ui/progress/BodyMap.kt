@@ -28,10 +28,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.BodyHeatCopy
 import com.sinura.personaltrainer.domain.SetCopy
@@ -71,26 +73,18 @@ fun BodyMapCard(
     onSelect: (CanonicalMuscle) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val panelHeight = BodyViewport.figureHeightDp(
+        LocalConfiguration.current.screenHeightDp,
+    ).dp
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-            BodyView.entries.forEach { option ->
-                InstrumentChip(
-                    label = option.label,
-                    selected = view == option,
-                    onClick = { onViewChange(option) },
-                    modifier = Modifier.testTag(
-                        if (option == BodyView.FRONT) BodyTags.VIEW_FRONT else BodyTags.VIEW_BACK,
-                    ),
-                )
-            }
-        }
+        HeatLegend()
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(PANEL_HEIGHT)
+                .height(panelHeight)
                 .clip(RoundedCornerShape(Radius.lg))
                 .background(Surface1)
                 .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.lg))
@@ -149,8 +143,24 @@ fun BodyMapCard(
                     }
                 }
             }
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(Metrics.space2),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            ) {
+                BodyView.entries.forEach { option ->
+                    InstrumentChip(
+                        label = option.label,
+                        selected = view == option,
+                        onClick = { onViewChange(option) },
+                        modifier = Modifier.testTag(
+                            if (option == BodyView.FRONT) BodyTags.VIEW_FRONT else BodyTags.VIEW_BACK,
+                        ),
+                    )
+                }
+            }
         }
-        HeatLegend()
     }
 }
 
@@ -163,7 +173,7 @@ fun BodyMapCard(
 fun HeatLegend(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space1),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -185,6 +195,8 @@ fun HeatLegend(modifier: Modifier = Modifier) {
             BodyHeatCopy.LEGEND_CAPTION,
             style = InstrumentType.caption,
             color = TextTertiary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -289,7 +301,6 @@ object BodyTags {
     }
 }
 
-private val PANEL_HEIGHT = 440.dp
 private val LEGEND_DOT = 10.dp
 private val HEAT_SWATCH_WIDTH = 10.dp
 private val HEAT_SWATCH_HEIGHT = 32.dp

@@ -16,6 +16,8 @@ object PlanDayCopy {
     const val EMPTY = "Nothing on this day yet."
     const val EMPTY_BODY = "Add a workout, cardio, or a warm-up / stretch block."
     const val REMOVE = "Remove"
+    const val REMOVE_BODY =
+        "This day loses that block. Past sessions stay in History."
     const val WORKOUT = "Workout"
     const val CARDIO = "Cardio"
     const val AUXILIARY = "Extra"
@@ -45,6 +47,8 @@ object PlanDayCopy {
     fun moveUp(title: String): String = "Move $title up"
 
     fun moveDown(title: String): String = "Move $title down"
+
+    fun removeTitle(title: String): String = "Remove $title?"
 
     fun cardioPickLabel(type: CardioType): String = when (type) {
         CardioType.RUN -> "Run / sprints"

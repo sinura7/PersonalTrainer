@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 3 Sep 2026 — G5: Body figure 45% (300–440), legend above the
+> silhouette, calendar cells 48 dp, Plan-day Remove confirms in
+> danger ink, idle Start rest is Volt.
+>
 > 1 Sep 2026 — Obtainium live test 17 (`debugLiveCode` 17, tag
 > `debug-live-2026-09-01-2`): keyed catalog stills on the phone
 > (Library thumbs are the Brokenout WebPs). Pull Obtainium on
