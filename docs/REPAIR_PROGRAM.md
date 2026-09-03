@@ -1503,6 +1503,15 @@ docks. Rest close and workout exit use `ScreenHeader` with a Close
 icon. Docks gained a shared hairline (the drift the packet named).
 Count +1.
 
+**2026-09-03 — G3 floor: freeze Home add-day at 10:00.** Three
+`HomeViewModelTest` add-day proofs mint a rule at wall `nowMinutes`.
+After 23:00, C1 `skipNewBehindNow` drops today's occurrence
+(`HomeViewModelTest.kt:391` calling `DayBlocks.addStrength` with
+`clampSameDayHour` → hour 23, then `OccurrenceGenerator.kt:95`). Not
+in G3 Owns; the JVM gate would not open after 23:00 without it. The
+class graph now freezes 10:00 local so 18:00 still mints. No count
+change.
+
 **2026-09-03 — G2: one parser; Next then Done; number pad for rest.**
 Proof is JVM (`commaDecimalWorksOnEveryTypedPath`,
 `nextThenDoneIsTheNumericChain`), not a Compose focus-move test —
