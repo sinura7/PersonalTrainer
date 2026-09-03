@@ -28,20 +28,45 @@ import kotlinx.coroutines.launch
  * the phone, and both paths funnel into [RestTimerCompletion] so only one
  * alert ever fires. SystemUI draws the countdown; this service does not
  * re-post every second.
+ *
+ * Teardown follows the store: when the snapshot is no longer running after
+ * it has been, [stopNow] runs. The alarm path completes through
+ * [RestTimerCompletion] with `fromService = true`, which used to skip
+ * [ACTION_STOP] and leave this process posting a negative chronometer.
  */
 class RestTimerService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-    private val completeRunnable = Runnable { onComplete() }
+    private val completeRunnable = Runnable { handleDeadline() }
     private var completing = false
     private var startedForeground = false
     private var lastShownEndsAt = Long.MIN_VALUE
+    private var lastStartId = 0
+    private var sawRunning = false
+    private var stopped = false
     private val controller: RestTimerController
         get() = (application as PersonalTrainerApp).container.restTimerController
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    override fun onCreate() {
+        super.onCreate()
+        scope.launch {
+            controller.snapshot.collect { snap ->
+                if (snap.running) {
+                    sawRunning = true
+                    stopped = false
+                } else if (sawRunning) {
+                    stopNow()
+                }
+            }
+        }
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        lastStartId = startId
+        stopped = false
+
         if (intent == null) {
             // Sticky restart: recover from disk before claiming foreground so an
             // idle snapshot cannot post Rest 0:00, then linger.
@@ -90,7 +115,7 @@ class RestTimerService : Service() {
         val remaining = state.remainingSeconds(SystemClock.elapsedRealtime())
         if (!state.running || remaining <= 0) {
             if (state.running) {
-                onComplete()
+                handleDeadline(state)
             } else {
                 stopNow()
             }
@@ -125,7 +150,7 @@ class RestTimerService : Service() {
         if (!force && state.endsAtElapsedRealtime == lastShownEndsAt) return
         lastShownEndsAt = state.endsAtElapsedRealtime
         if (remaining <= 0) {
-            onComplete()
+            handleDeadline(state)
             return
         }
         try {
@@ -158,13 +183,18 @@ class RestTimerService : Service() {
         }
     }
 
-    private fun onComplete() {
+    /**
+     * Screen-on deadline. The alarm path does not come through here; it
+     * completes the store and the snapshot collector tears us down.
+     *
+     * A +15s that minted a newer id between capture and [completeOnce]
+     * must leave this service alive with a running card.
+     */
+    internal fun handleDeadline(state: RestTimerSnapshot = controller.snapshot.value) {
         if (completing) return
         completing = true
         handler.removeCallbacks(completeRunnable)
-        val state = controller.snapshot.value
         scope.launch {
-            // Idempotent: if the wakeup alarm already announced this rest, this is a no-op.
             RestTimerCompletion.completeOnce(
                 context = applicationContext,
                 incomingTimerId = state.timerId,
@@ -172,11 +202,18 @@ class RestTimerService : Service() {
                 deadlineElapsedRealtime = state.endsAtElapsedRealtime,
                 sessionId = state.sessionId,
             )
-            stopNow()
+            if (controller.snapshot.value.running) {
+                completing = false
+                syncForeground()
+            } else {
+                stopNow()
+            }
         }
     }
 
     private fun stopNow() {
+        if (stopped) return
+        stopped = true
         handler.removeCallbacks(completeRunnable)
         completing = false
         lastShownEndsAt = Long.MIN_VALUE
@@ -186,7 +223,7 @@ class RestTimerService : Service() {
             // Already gone.
         }
         startedForeground = false
-        stopSelf()
+        stopSelf(lastStartId)
     }
 
     companion object {

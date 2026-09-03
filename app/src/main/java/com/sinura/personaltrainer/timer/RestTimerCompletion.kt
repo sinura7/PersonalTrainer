@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.timer
 
-import android.app.NotificationManager
 import android.content.Context
 import android.os.SystemClock
 import com.sinura.personaltrainer.PersonalTrainerApp
@@ -60,12 +59,6 @@ object RestTimerCompletion {
             ?.completeIfCurrent(incomingTimerId, fromService = true)
             ?: true
         if (!stopped) return false
-        try {
-            appContext.getSystemService(NotificationManager::class.java)
-                ?.cancel(RestTimerNotifications.RUNNING_ID)
-        } catch (_: Exception) {
-            // Notification manager unavailable; the service teardown still removes it.
-        }
 
         if (playCue) {
             val prefs = try {
