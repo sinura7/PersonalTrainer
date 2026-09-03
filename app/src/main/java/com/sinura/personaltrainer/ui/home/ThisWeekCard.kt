@@ -18,8 +18,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.domain.FreeStartRank
 import com.sinura.personaltrainer.domain.GetStartedCopy
 import com.sinura.personaltrainer.domain.HomeToday
+import com.sinura.personaltrainer.domain.OneFilledVolt
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
@@ -241,13 +243,15 @@ fun ThisWeekCard(
                     modifier = Modifier.padding(top = Metrics.space1),
                 )
             }
-            if (setupComplete && !sessionLive) {
-                PrimaryGymButton(
-                    text = SessionOrderCopy.FREE_WORKOUT,
-                    onClick = onStartFree,
-                    modifier = Modifier
-                        .testTag(HomeTags.START)
-                        .semantics { contentDescription = SessionOrderCopy.FREE_WORKOUT },
+            if (setupComplete) {
+                LeftoverFreeStart(
+                    rank = OneFilledVolt.leftoverFreeStart(
+                        sessionLive = sessionLive,
+                        setupComplete = true,
+                        hasRecoveryVolt = true,
+                        quietStart = quietStart,
+                    ),
+                    onStartFree = onStartFree,
                 )
             }
         } else if (!sessionLive && trainingToday != null && !loggedToday) {
@@ -313,6 +317,44 @@ fun ThisWeekCard(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun LeftoverFreeStart(
+    rank: FreeStartRank,
+    onStartFree: () -> Unit,
+) {
+    val startModifier = Modifier
+        .testTag(HomeTags.START)
+        .semantics { contentDescription = SessionOrderCopy.FREE_WORKOUT }
+    when (rank) {
+        FreeStartRank.HIDDEN -> Unit
+        FreeStartRank.PRIMARY -> PrimaryGymButton(
+            text = SessionOrderCopy.FREE_WORKOUT,
+            onClick = onStartFree,
+            modifier = startModifier,
+        )
+        FreeStartRank.SECONDARY -> SecondaryGymButton(
+            text = SessionOrderCopy.FREE_WORKOUT,
+            onClick = onStartFree,
+            modifier = startModifier,
+        )
+        FreeStartRank.TEXT -> TextButton(
+            onClick = onStartFree,
+            modifier = startModifier
+                .fillMaxWidth()
+                .heightIn(min = Metrics.touchMin),
+            contentPadding = PaddingValues(0.dp),
+        ) {
+            Text(
+                SessionOrderCopy.FREE_WORKOUT,
+                style = InstrumentType.bodyStrong,
+                color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

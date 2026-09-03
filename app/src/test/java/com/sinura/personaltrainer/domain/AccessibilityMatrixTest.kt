@@ -43,11 +43,11 @@ class AccessibilityMatrixTest {
             AccessibilityMatrix.page("body").voltAction,
         )
         assertEquals(
-            "Settings is a tab. Back is gone. Weight and hours sit at the top. Reminders (opt-out and quiet hours) live here. Export stays reachable. Share diagnostics is quiet.",
+            "Settings is a tab. Back is gone. Weight and hours sit at the top. Reminders (opt-out and quiet hours) live here. Export is the page's Volt. Restore is never the gym act. Share diagnostics is quiet.",
             AccessibilityMatrix.page("settings").talkBackNotes,
         )
         assertEquals(
-            "Export to file — backup is never the page's Volt gym act",
+            "Export to file",
             AccessibilityMatrix.page("settings").voltAction,
         )
         assertEquals("Add session", AccessibilityMatrix.page("plan-day").voltAction)

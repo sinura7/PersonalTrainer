@@ -15,9 +15,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -32,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.CustomWeekDayMark
@@ -58,7 +62,6 @@ import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
-import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.VoltDim
 import com.sinura.personaltrainer.domain.Weekday
@@ -332,23 +335,26 @@ private fun WeekDayStrip(
                     style = InstrumentType.title,
                     color = if (on) Volt else TextPrimary,
                 )
-                Box(
-                    modifier = Modifier
-                        .padding(top = Metrics.space1)
-                        .clip(shape)
-                        .background(
-                            when (mark) {
-                                CustomWeekDayMark.FILLED -> Volt
-                                CustomWeekDayMark.PREFERRED -> VoltDim
-                                CustomWeekDayMark.EMPTY -> Hairline
-                            },
-                        )
-                        .padding(horizontal = Metrics.space2, vertical = Metrics.space1),
-                ) {
-                    Text(
-                        if (mark == CustomWeekDayMark.EMPTY) " " else "•",
-                        style = InstrumentType.caption,
-                        color = if (mark == CustomWeekDayMark.FILLED) Pit else TextTertiary,
+                when (mark) {
+                    CustomWeekDayMark.FILLED -> Icon(
+                        Icons.Outlined.Check,
+                        contentDescription = null,
+                        tint = TextSecondary,
+                        modifier = Modifier
+                            .padding(top = Metrics.space1)
+                            .size(CUSTOM_WEEK_MARK),
+                    )
+                    CustomWeekDayMark.PREFERRED -> Box(
+                        modifier = Modifier
+                            .padding(top = Metrics.space1)
+                            .size(CUSTOM_WEEK_MARK)
+                            .clip(CircleShape)
+                            .background(Hairline),
+                    )
+                    CustomWeekDayMark.EMPTY -> Box(
+                        modifier = Modifier
+                            .padding(top = Metrics.space1)
+                            .size(CUSTOM_WEEK_MARK),
                     )
                 }
             }
@@ -361,3 +367,5 @@ object CustomWeekTags {
     const val ADD_LIFTS = "custom-week-add-lifts"
     const val CONFIRM = "custom-week-confirm"
 }
+
+private val CUSTOM_WEEK_MARK = 12.dp

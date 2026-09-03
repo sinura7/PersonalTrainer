@@ -42,6 +42,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.MissedWorkCopy
+import com.sinura.personaltrainer.domain.OneFilledVolt
 import com.sinura.personaltrainer.domain.PlanDayCopy
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionOrderCopy
@@ -474,6 +475,7 @@ fun PlanScreen(
                         body = StartOptionsCopy.PLAN_EMPTY_BODY,
                         actionLabel = "Create a routine",
                         onAction = onCreateRoutine,
+                        compact = OneFilledVolt.PLAN_EMPTY_COMPACT,
                     )
                 }
             } else {
