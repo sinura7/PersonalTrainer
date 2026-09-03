@@ -6,6 +6,7 @@ import android.os.SystemClock
 import com.sinura.personaltrainer.domain.AlarmScheduleResult
 import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
+import com.sinura.personaltrainer.logging.AppLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -34,6 +35,8 @@ class RestTimerController(
     private val appContext = context.applicationContext
     private val _lastAlarmSchedule = MutableStateFlow(AlarmScheduleResult.FAILED)
     private val _exactAlarmAttempt = MutableStateFlow(alarms.currentAttempt())
+    private val _lastCompletedTimerId = MutableStateFlow<String?>(null)
+    override val lastCompletedTimerId: StateFlow<String?> = _lastCompletedTimerId.asStateFlow()
     override val lastAlarmSchedule: StateFlow<AlarmScheduleResult> = _lastAlarmSchedule.asStateFlow()
     override val exactAlarmAttempt: StateFlow<ExactAlarmAttempt> = _exactAlarmAttempt.asStateFlow()
 
@@ -65,7 +68,10 @@ class RestTimerController(
     }.distinctUntilChanged()
         .shareIn(
             scope = announceScope,
-            started = SharingStarted.WhileSubscribed(5_000),
+            started = SharingStarted.WhileSubscribed(
+                stopTimeoutMillis = 5_000,
+                replayExpirationMillis = 0,
+            ),
             replay = 1,
         )
 
@@ -74,6 +80,7 @@ class RestTimerController(
     }.distinctUntilChanged()
 
     override fun start(totalSeconds: Int, sessionId: String?) {
+        _lastCompletedTimerId.value = null
         store.start(totalSeconds, sessionId, SystemClock.elapsedRealtime())
         scheduleAlarmForCurrent()
         dispatch(RestTimerService.ACTION_SYNC)
@@ -90,14 +97,35 @@ class RestTimerController(
         }
     }
 
+    override fun markCompleted(timerId: String) {
+        if (timerId.isBlank()) return
+        _lastCompletedTimerId.value = timerId
+    }
+
     override fun stopIfCurrent(timerId: String, fromService: Boolean): Boolean {
         val current = store.current()
         if (current.running && current.timerId != timerId) return false
-        stop(fromService)
+        halt(fromService)
+        return true
+    }
+
+    override fun completeIfCurrent(timerId: String, fromService: Boolean): Boolean {
+        val current = store.current()
+        if (current.running && current.timerId != timerId) return false
+        // Publish before clearing running. The lock glance collects those
+        // two flows separately; stop-then-mark looks like a skip for one
+        // frame and dismisses the "Back to the bar" surface.
+        markCompleted(timerId)
+        halt(fromService)
         return true
     }
 
     override fun stop(fromService: Boolean) {
+        _lastCompletedTimerId.value = null
+        halt(fromService)
+    }
+
+    private fun halt(fromService: Boolean) {
         val wasRunning = store.current().running
         store.clear()
         // Always drop the pending wakeup: a cancelled rest must never fire an alert later.
@@ -186,12 +214,17 @@ class RestTimerController(
         val intent = Intent(appContext, RestTimerService::class.java).setAction(action)
         try {
             appContext.startForegroundService(intent)
-        } catch (_: Exception) {
+        } catch (error: Exception) {
+            AppLog.w(TAG, "startForegroundService failed", error)
             try {
                 appContext.startService(intent)
-            } catch (_: Exception) {
-                // Service cannot start (restricted background). In-app state still updates.
+            } catch (fallback: Exception) {
+                AppLog.w(TAG, "startService failed", fallback)
             }
         }
+    }
+
+    private companion object {
+        const val TAG = "PT/RestTimer"
     }
 }

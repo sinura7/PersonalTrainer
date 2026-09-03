@@ -182,3 +182,28 @@ object RestTimer {
         return targetSets > 0 && workingSetsAfterLog > targetSets
     }
 }
+
+/**
+ * Gold "Back to the bar" is keyed on a completion id, not on running going
+ * false. Skip and a cleared store both look like `running == false` and
+ * used to flash finished.
+ */
+object RestFinishFlash {
+    fun shouldFlash(completedTimerId: String?, lastFlashedTimerId: String?): Boolean =
+        !completedTimerId.isNullOrBlank() && completedTimerId != lastFlashedTimerId
+
+    fun lockShowsFinished(
+        running: Boolean,
+        finishedLaunch: Boolean,
+        completedTimerId: String?,
+    ): Boolean {
+        if (running) return false
+        return finishedLaunch || !completedTimerId.isNullOrBlank()
+    }
+
+    fun lockShouldDismiss(
+        running: Boolean,
+        finishedLaunch: Boolean,
+        completedTimerId: String?,
+    ): Boolean = !running && !lockShowsFinished(running, finishedLaunch, completedTimerId)
+}

@@ -21,8 +21,18 @@ import com.sinura.personaltrainer.logging.AppLog
 class RestTimerAlarmScheduler(
     context: Context,
     private val capability: ExactAlarmCapability = AndroidExactAlarmCapability(context),
+    existingAlarm: (() -> PendingIntent?)? = null,
 ) {
     private val appContext = context.applicationContext
+    private val existingAlarm: () -> PendingIntent? = existingAlarm ?: {
+        PendingIntent.getBroadcast(
+            appContext,
+            REQUEST_CODE,
+            Intent(appContext, RestTimerAlarmReceiver::class.java)
+                .setAction(RestTimerAlarmReceiver.ACTION_REST_COMPLETE),
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
 
     fun currentAttempt(): ExactAlarmAttempt =
         ExactAlarmPolicy.attempt(
@@ -70,8 +80,13 @@ class RestTimerAlarmScheduler(
     }
 
     fun cancel() {
-        val operation = alarmIntent(sessionId = null, timerId = "") ?: return
-        capability.cancel(operation)
+        val pending = try {
+            existingAlarm()
+        } catch (error: Exception) {
+            AppLog.w(TAG, "PendingIntent lookup for rest-alarm cancel failed", error)
+            null
+        } ?: return
+        capability.cancel(pending)
     }
 
     private fun armInexact(

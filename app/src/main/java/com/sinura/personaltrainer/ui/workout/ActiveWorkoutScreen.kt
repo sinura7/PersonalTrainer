@@ -346,6 +346,7 @@ fun ActiveWorkoutScreen(
                         remainingSeconds = rest.remainingSeconds,
                         totalSeconds = rest.totalSeconds,
                         running = rest.running,
+                        completedTimerId = rest.completedTimerId,
                         onSkip = viewModel::skipRest,
                         onStart = viewModel::startSelectedRest,
                         onOpenRest = { session.id.let(onOpenRest) },

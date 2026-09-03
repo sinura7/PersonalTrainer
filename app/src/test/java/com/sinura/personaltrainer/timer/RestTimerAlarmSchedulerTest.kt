@@ -131,13 +131,30 @@ class RestTimerAlarmSchedulerTest {
     }
 
     @Test
+    fun cancelWithoutAPriorScheduleDoesNotCreateAnAlarm() {
+        val capability = RecordingExactAlarmCapability(
+            sdkInt = 35,
+            canExact = true,
+            alarmManager = alarmManager,
+        )
+        RestTimerAlarmScheduler(
+            context,
+            capability,
+            existingAlarm = { null },
+        ).cancel()
+        assertEquals(0, capability.cancelCount)
+    }
+
+    @Test
     fun cancelGoesThroughTheCapability() {
         val capability = RecordingExactAlarmCapability(
             sdkInt = 35,
             canExact = true,
             alarmManager = alarmManager,
         )
-        RestTimerAlarmScheduler(context, capability).cancel()
+        val scheduler = RestTimerAlarmScheduler(context, capability)
+        scheduler.schedule(10_000L, "session-1", "timer-1")
+        scheduler.cancel()
         assertEquals(1, capability.cancelCount)
     }
 
