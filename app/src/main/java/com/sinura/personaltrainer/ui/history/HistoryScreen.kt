@@ -65,6 +65,8 @@ import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SessionLogRow
+import com.sinura.personaltrainer.ui.navigation.LiveBarCopy
+import com.sinura.personaltrainer.ui.navigation.LiveBarKind
 import com.sinura.personaltrainer.ui.workout.StartSheetOpener
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -348,7 +350,7 @@ fun HistoryScreen(
         ConfirmActionDialog(
             title = "Session in progress",
             body = "Finish or discard the current session before starting another.",
-            confirmLabel = "Go to session",
+            confirmLabel = LiveBarCopy.resumeLabel(LiveBarKind.WORKOUT),
             onConfirm = viewModel::resumeBlockedSession,
             onDismiss = viewModel::dismissBlockedRepeat,
         )

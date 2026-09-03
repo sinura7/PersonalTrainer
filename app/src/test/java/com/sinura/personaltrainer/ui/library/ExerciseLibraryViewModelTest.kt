@@ -117,8 +117,8 @@ class ExerciseLibraryViewModelTest {
         vm.openCreate()
         vm.saveEditor()
         assertEquals(
-            "Give this exercise a name.",
-            vm.uiState.first { it.error == "Give this exercise a name." }.error,
+            "Give this lift a name.",
+            vm.uiState.first { it.error == "Give this lift a name." }.error,
         )
         assertNotNull(vm.uiState.value.editor)
 
@@ -141,15 +141,15 @@ class ExerciseLibraryViewModelTest {
 
         vm.openEdit(squat)
         assertEquals(
-            "Built-in exercises can’t be edited.",
-            vm.uiState.first { it.error == "Built-in exercises can’t be edited." }.error,
+            "Built-in lifts can’t be edited.",
+            vm.uiState.first { it.error == "Built-in lifts can’t be edited." }.error,
         )
         assertNull(vm.uiState.value.editor)
 
         vm.requestDelete(squat)
         assertEquals(
-            "Built-in exercises can’t be deleted.",
-            vm.uiState.first { it.error == "Built-in exercises can’t be deleted." }.error,
+            "Built-in lifts can’t be deleted.",
+            vm.uiState.first { it.error == "Built-in lifts can’t be deleted." }.error,
         )
         assertNull(vm.uiState.value.pendingDelete)
         assertNull(vm.uiState.value.blockedDelete)

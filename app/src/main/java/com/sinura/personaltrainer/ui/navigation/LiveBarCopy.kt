@@ -10,9 +10,13 @@ object LiveBarCopy {
     const val IN_PROGRESS = "In progress"
     const val SETS = "sets"
 
+    /** One resume verb. Kind stays on the signature so call sites do not grow a second label. */
+    const val RESUME = "Go to session"
+
     fun resumeLabel(kind: LiveBarKind): String = when (kind) {
-        LiveBarKind.WORKOUT -> "Back to the workout"
-        LiveBarKind.ACTIVITY -> "Back to the session"
+        LiveBarKind.WORKOUT,
+        LiveBarKind.ACTIVITY,
+        -> RESUME
     }
 
     fun actionsDescription(kind: LiveBarKind): String = when (kind) {

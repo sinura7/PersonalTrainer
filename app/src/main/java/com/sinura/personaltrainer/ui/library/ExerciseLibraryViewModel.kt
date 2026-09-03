@@ -216,7 +216,7 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
 
     fun openEdit(exercise: Exercise) {
         if (!exercise.isCustom) {
-            error.value = "Built-in exercises can’t be edited."
+            error.value = "Built-in lifts can’t be edited."
             return
         }
         editor.value = ExerciseEditorDraft(
@@ -240,7 +240,7 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
         val draft = editor.value ?: return
         val name = draft.name.trim()
         if (name.isEmpty()) {
-            error.value = "Give this exercise a name."
+            error.value = "Give this lift a name."
             return
         }
         if (MuscleGroups.resolved(draft.muscleGroup) == null) {
@@ -288,7 +288,7 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
 
     fun requestDelete(exercise: Exercise) {
         if (!exercise.isCustom) {
-            error.value = "Built-in exercises can’t be deleted."
+            error.value = "Built-in lifts can’t be deleted."
             return
         }
         viewModelScope.launch {
@@ -302,7 +302,7 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
                 error.value = null
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "requestDelete failed", thrown)
-                error.value = "Could not check where this exercise is used."
+                error.value = "Could not check where this lift is used."
             }
         }
     }
@@ -322,11 +322,11 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
                 }
                 DeleteExerciseResult.NotCustom -> {
                     pendingDelete.value = null
-                    error.value = "Built-in exercises can’t be deleted."
+                    error.value = "Built-in lifts can’t be deleted."
                 }
                 DeleteExerciseResult.Missing -> {
                     pendingDelete.value = null
-                    error.value = "That exercise is already gone."
+                    error.value = "That lift is already gone."
                 }
             }
         }

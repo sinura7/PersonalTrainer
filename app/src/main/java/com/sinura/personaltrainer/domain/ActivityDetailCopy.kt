@@ -16,8 +16,8 @@ object ActivityDetailCopy {
     const val COMPLETE_MIXED = "Session complete"
     const val COMPLETE_STRENGTH = "Workout complete"
     const val STRENGTH_CAPTION = "Strength."
-    const val CARDIO_CAPTION = "Cardio. No invented lift rows."
-    const val MIXED_CAPTION = "Strength and cardio, kept separate."
+    const val CARDIO_CAPTION = "Run, ride, or walk."
+    const val MIXED_CAPTION = "Lifts and a run in the same session."
     const val STRENGTH = "Strength"
     const val CARDIO = "Cardio"
 

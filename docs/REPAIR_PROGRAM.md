@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F4, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F5, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase F continues at F5. K1 and K2 stay held.  
+`tools/` remain owed. Phase F continues at F6. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -90,7 +90,7 @@ the gym floor, are fifteen of them.
 | F2 | One green button per screen | 1 | 4 | Design I | done |
 | F3 | Text you can read in a gym | 1 | — | Design I | done |
 | F4 | Big text does not break the screen | 2 | — | Design I | done |
-| F5 | One word per thing | 1 | — | Design I | |
+| F5 | One word per thing | 1 | — | Design I | done |
 | F6 | Today is not buried by the missed-work card | 1 | — | Design I | |
 | G1 | A screen reader can use Temper | 3 | — | Design II | |
 | G2 | One numeric-entry grammar | 1 | — | Design II | |
@@ -1016,6 +1016,9 @@ contains "exercise", and that the resume label has one source.
 `domain/ActivityDetailCopy.kt`, `ui/workout/StartOptionsSheet.kt`
 *(after D1)*, `domain/AccessibilityMatrix.kt` *(after F2)*.
 
+**On trunk.** Library says lift. Resume is `LiveBarCopy.RESUME`.
+Receipt cardio captions speak to the user. Count +2.
+
 ## F6 — Today is not buried by the missed-work card
 
 **Symptom.** On the morning after a missed day, the card appears and pushes
@@ -1479,6 +1482,17 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — F5: lift, not exercise; one resume verb.** Proof is JVM
+(`resumeLabelHasOneSource`,
+`userFacingCopyOutsideTheCatalogDoesNotSayExercise`).
+`LiveBarCopy` lives in `ui/navigation`, not domain. Resume also
+rewired History / session-detail / `ResumeOrDiscardDialog` (not in
+Owns) so the verb has one source. Discard-and-start on that dialog
+stays a compound label — it starts the blocked session. The second
+invented-lifts caption was `TrainingFocus.CARDIO` (not in Owns).
+Start-sheet mixed/cardio subtitles now share the receipt copy.
+Count +2.
 
 **2026-09-03 — F4: tiles stack; numerals keep painted size.** Proof is
 JVM (`tileNumeralShrinksOnceWellsStack`,

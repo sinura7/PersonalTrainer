@@ -8,7 +8,7 @@ import org.junit.Test
 class LiveBarCopyTest {
     @Test
     fun cardioNeverSpeaksWorkoutOrFakeSets() {
-        assertEquals("Back to the session", LiveBarCopy.resumeLabel(LiveBarKind.ACTIVITY))
+        assertEquals("Go to session", LiveBarCopy.resumeLabel(LiveBarKind.ACTIVITY))
         assertEquals("Finish session", LiveBarCopy.finish(LiveBarKind.ACTIVITY))
         assertEquals("Discard session…", LiveBarCopy.discard(LiveBarKind.ACTIVITY))
         assertEquals("Discard this session?", LiveBarCopy.discardTitle(LiveBarKind.ACTIVITY))
@@ -31,6 +31,6 @@ class LiveBarCopyTest {
             "This deletes the session. This cannot be undone.",
             LiveBarCopy.discardBody(LiveBarKind.WORKOUT, totalSets = 0),
         )
-        assertEquals("Back to the workout", LiveBarCopy.resumeLabel(LiveBarKind.WORKOUT))
+        assertEquals("Go to session", LiveBarCopy.resumeLabel(LiveBarKind.WORKOUT))
     }
 }

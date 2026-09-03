@@ -7,6 +7,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.sinura.personaltrainer.ui.navigation.LiveBarCopy
+import com.sinura.personaltrainer.ui.navigation.LiveBarKind
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -45,7 +47,10 @@ fun ResumeOrDiscardDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
-                PrimaryGymButton(text = "Go to that session", onClick = onResume)
+                PrimaryGymButton(
+                    text = LiveBarCopy.resumeLabel(LiveBarKind.WORKOUT),
+                    onClick = onResume,
+                )
                 DangerGymButton(text = "Discard it and start this", onClick = onDiscardAndStart)
             }
         },
