@@ -29,10 +29,8 @@ class PersonalTrainerApp : Application() {
 
     /**
      * Generates the current week's occurrences if today crossed into a week
-     * that has none yet. Cheap when nothing changed (keyed on existing
-     * (rule, date) rows), so MainActivity calls it on every resume: week
-     * rollover used to happen only at process start, and a phone that kept
-     * the app alive over Sunday night showed Monday an empty board.
+     * that has none yet. A resume with no new (rule, date) rows writes
+     * nothing and skips the reminder pass.
      */
     fun ensureCurrentWeek() {
         applicationScope.launch {

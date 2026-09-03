@@ -196,25 +196,33 @@ fun HomeScreen(
     }
     val plan = state.weekPlan
     val names = remember(state.routines) { state.routines.associate { it.id to it.name } }
-    val selectedAgenda = DailyAgenda.forDay(
-        selectedEpochDay,
-        state.occurrences,
-        state.rules,
-        names,
-    )
+    val selectedAgenda = remember(selectedEpochDay, state.occurrences, state.rules, names) {
+        DailyAgenda.forDay(
+            selectedEpochDay,
+            state.occurrences,
+            state.rules,
+            names,
+        )
+    }
     val leftoverSlot = plan?.dayOn(selectedEpochDay)
-    val leftoverBelongs = WeekBoard.leftoverBelongsOn(
-        selectedEpochDay,
-        leftoverSlot,
-        state.occurrences,
-        state.rules,
-    )
+    val leftoverBelongs = remember(selectedEpochDay, leftoverSlot, state.occurrences, state.rules) {
+        WeekBoard.leftoverBelongsOn(
+            selectedEpochDay,
+            leftoverSlot,
+            state.occurrences,
+            state.rules,
+        )
+    }
     val leftoverDay = leftoverSlot.takeIf { leftoverBelongs }
     val loggedSelected = selectedEpochDay in state.loggedEpochDays
-    val hasPlan = plan?.days?.any { !it.isRest } == true
-    val liftCount = MastheadCopy.headlineLiftCount(selectedAgenda, leftoverDay, state.routines)
-    val nextDay = plan?.nextTrainingOnOrAfter(selectedEpochDay)
-    val featured = featuredSession(today = leftoverDay, next = nextDay)
+    val hasPlan = remember(plan) { plan?.days?.any { !it.isRest } == true }
+    val liftCount = remember(selectedAgenda, leftoverDay, state.routines) {
+        MastheadCopy.headlineLiftCount(selectedAgenda, leftoverDay, state.routines)
+    }
+    val nextDay = remember(plan, selectedEpochDay) { plan?.nextTrainingOnOrAfter(selectedEpochDay) }
+    val featured = remember(leftoverDay, nextDay) {
+        featuredSession(today = leftoverDay, next = nextDay)
+    }
     val mastheadDay = leftoverDay ?: leftoverSlot?.copy(
         isRest = true,
         routineId = null,
@@ -228,16 +236,18 @@ fun HomeScreen(
     } else {
         PlanDayCopy.weekdayTitle(Weekday.fromEpochDay(selectedEpochDay))
     }
-    val stillOpen = if (selectedEpochDay == today) {
-        DailyAgenda.stillOpen(
-            today,
-            weekStart,
-            state.occurrences,
-            state.rules,
-            names,
-        )
-    } else {
-        emptyList()
+    val stillOpen = remember(selectedEpochDay, today, weekStart, state.occurrences, state.rules, names) {
+        if (selectedEpochDay == today) {
+            DailyAgenda.stillOpen(
+                today,
+                weekStart,
+                state.occurrences,
+                state.rules,
+                names,
+            )
+        } else {
+            emptyList()
+        }
     }
 
     LazyColumn(

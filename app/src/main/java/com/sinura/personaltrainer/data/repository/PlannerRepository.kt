@@ -275,8 +275,12 @@ class PlannerRepository(
                 todayEpochDay = time.civilDate(nowMs, deviceZoneId).epochDay,
                 nowMinutes = time.wallMinutesOfDay(nowMs, deviceZoneId),
             )
-            dao.upsertOccurrences(week.map { it.toEntity() })
-            scheduleRemindersLocked(week, rules, nowMs)
+            val existingIds = existing.map { it.id }.toSet()
+            val generated = week.filter { it.id !in existingIds }
+            if (generated.isNotEmpty()) {
+                dao.upsertOccurrences(generated.map { it.toEntity() })
+                scheduleRemindersLocked(week, rules, nowMs)
+            }
             week
         }
     }

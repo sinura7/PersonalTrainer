@@ -302,8 +302,11 @@ interface WorkoutDao {
      */
     @Query(
         """
-        SELECT sl.exerciseId AS exerciseId,
+        SELECT sl.id AS setId,
+               sl.exerciseId AS exerciseId,
                sl.sessionId AS sessionId,
+               ws.routineName AS sessionName,
+               ws.date AS sessionDate,
                sl.weightKg AS weightKg,
                sl.reps AS reps,
                sl.completedAt AS completedAt,

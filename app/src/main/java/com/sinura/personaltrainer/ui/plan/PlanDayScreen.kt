@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -33,10 +34,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.AgendaItem
+import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.PlanDayCopy
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.SlotRuleImport
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.sessionLiftNames
 import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
@@ -65,16 +68,20 @@ fun PlanDayScreen(
     startInAdd: Boolean,
     onBack: () -> Unit,
     onOpenRoutine: (String) -> Unit,
-    viewModel: PlanViewModel = viewModel(),
+    viewModel: PlanDayViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val navigateToEditor by viewModel.navigateToEditor.collectAsStateWithLifecycle()
     val today = LocalTodayEpochDay.current
     val isPast = epochDay < today
     val weekday = Weekday.fromEpochDay(epochDay)
-    val day = state.week?.days?.firstOrNull { it.epochDay == epochDay }
-    val pinned = day?.isRest == false
-    val occurrences = viewModel.agendaFor(epochDay)
+    val names = remember(state.routines) { state.routines.associate { it.id to it.name } }
+    val occurrences = remember(epochDay, state.occurrences, state.rules, names) {
+        DailyAgenda.forDay(epochDay, state.occurrences, state.rules, names)
+    }
+    val pinned = remember(weekday, state.rules) {
+        state.rules.any { it.weekday == weekday && SlotRuleImport.isImportedSlotRule(it.id) }
+    }
     var picking by rememberSaveable(epochDay) {
         mutableStateOf(if (startInAdd && !isPast) DayPicker.KIND else DayPicker.NONE)
     }

@@ -699,16 +699,42 @@ class WorkoutRepository(
             ?.firstOrNull { it.item.exerciseId == exerciseId }
             ?.let { LoadType.fromStorage(it.exercise.loadType) }
 
+    private val loadClassByExercise = mutableMapOf<String, LoadClass>()
+
     /**
      * How a lift is measured, read from the library.
      *
      * Needed by everything that summarises a lift's history: reps for a push-up, kilograms for
      * a bench. A missing row falls back to loaded, the safer wrong answer — see [LoadClass.of].
      */
-    private suspend fun loadClassOf(exerciseId: String): LoadClass =
-        LoadClass.of(
+    private suspend fun loadClassOf(exerciseId: String): LoadClass {
+        loadClassByExercise[exerciseId]?.let { return it }
+        val resolved = LoadClass.of(
             database.exerciseDao().getById(exerciseId)?.loadType?.let(LoadType::fromStorage),
         )
+        loadClassByExercise[exerciseId] = resolved
+        return resolved
+    }
+
+    /**
+     * Last finished sessions that contain this lift, newest first.
+     *
+     * One batched read shared by the hint, the RPE window, and last
+     * performance so a lift switch is not ten small queries.
+     */
+    private suspend fun lastFinishedWork(
+        exerciseId: String,
+        excludeSessionId: String,
+        limit: Int = RpeModifier.RPE_HOLD_SESSIONS,
+    ): List<List<FinishedWorkingSetRow>> {
+        val rows = workoutDao.finishedWorkingSetsForExercises(listOf(exerciseId))
+            .filter { it.sessionId != excludeSessionId }
+        return rows.groupBy { it.sessionId }
+            .entries
+            .sortedByDescending { (_, sets) -> sets.first().sessionFinishedAt }
+            .take(limit)
+            .map { it.value }
+    }
 
     /**
      * Deletes an in-progress session and everything under it.
@@ -737,7 +763,13 @@ class WorkoutRepository(
         unit: WeightUnit,
         lighterWeek: Boolean = false,
     ): ProgressionHint? {
-        val topSet = topSetOfLastSession(exerciseId, excludeSessionId) ?: return null
+        val sessions = lastFinishedWork(exerciseId, excludeSessionId)
+        val lastSessionSets = sessions.firstOrNull() ?: return null
+        val loadClass = LoadClass.of(loadType)
+        val topSet = ProgressionBasis.topWorkingSet(
+            lastSessionSets.map { WorkingSetCandidate(it.weightKg, it.reps, it.completedAt) },
+            loadClass.weightMeaning,
+        ) ?: return null
         val resolvedTarget = targetReps.takeIf { it > 0 }
             ?: workoutDao.lastTargetReps(exerciseId)
             ?: topSet.reps
@@ -756,35 +788,11 @@ class WorkoutRepository(
         )
         // Hitting the target reps at RPE 9 and hitting them at RPE 6 are the same event to the
         // calculator, and only one of them means "ready for more".
-        val afterRpe = RpeModifier.apply(hint, recentTopSetRpes(exerciseId, excludeSessionId))
-        return LighterWeekModifier.apply(afterRpe, lighterWeek)
-    }
-
-    /**
-     * The top set's RPE for each of the last few finished sessions containing this lift,
-     * newest first. Null entries mean "not recorded", which the rule treats as unknown rather
-     * than as easy.
-     */
-    private suspend fun recentTopSetRpes(
-        exerciseId: String,
-        excludeSessionId: String,
-    ): List<Int?> {
-        val sessionIds = workoutDao.lastFinishedSessionIdsWithExercise(
-            exerciseId = exerciseId,
-            excludeSessionId = excludeSessionId,
-            limit = RpeModifier.RPE_HOLD_SESSIONS,
+        val afterRpe = RpeModifier.apply(
+            hint,
+            sessions.map { sets -> rpeOfTopSet(sets, loadClass) },
         )
-        val weightMeaning = loadClassOf(exerciseId).weightMeaning
-        return sessionIds.map { sessionId ->
-            val sets = workoutDao.workingSetsForExerciseInSession(sessionId, exerciseId)
-            val top = ProgressionBasis.topWorkingSet(
-                sets.map { WorkingSetCandidate(it.weightKg, it.reps, it.completedAt) },
-                weightMeaning,
-            ) ?: return@map null
-            sets.firstOrNull {
-                it.weightKg == top.weightKg && it.reps == top.reps && it.completedAt == top.completedAt
-            }?.rpe
-        }
+        return LighterWeekModifier.apply(afterRpe, lighterWeek)
     }
 
     /**
@@ -807,24 +815,22 @@ class WorkoutRepository(
         exerciseId: String,
         excludeSessionId: String = "",
     ): ExerciseSessionSummary? {
-        val sessionId = workoutDao.lastFinishedSessionIdWithExercise(exerciseId, excludeSessionId)
+        val lastSession = lastFinishedWork(exerciseId, excludeSessionId, limit = 1)
+            .firstOrNull()
             ?: return null
-        val row = workoutDao.getSessionRow(sessionId) ?: return null
-        // Reads one session, not the lift's whole history: this runs on every lift switch.
-        val entries = workoutDao.workingSetsForExerciseInSession(sessionId, exerciseId)
-            .map { set ->
-                ExerciseSetEntry(
-                    record = ExerciseSetRecord(
-                        setId = set.id,
-                        sessionId = set.sessionId,
-                        weightKg = set.weightKg,
-                        reps = set.reps,
-                        completedAt = set.completedAt,
-                    ),
-                    sessionName = row.routineName,
-                    sessionPerformedAtMs = row.date,
-                )
-            }
+        val entries = lastSession.map { set ->
+            ExerciseSetEntry(
+                record = ExerciseSetRecord(
+                    setId = set.setId,
+                    sessionId = set.sessionId,
+                    weightKg = set.weightKg,
+                    reps = set.reps,
+                    completedAt = set.completedAt,
+                ),
+                sessionName = set.sessionName,
+                sessionPerformedAtMs = set.sessionDate,
+            )
+        }
         if (entries.isEmpty()) return null
         return ExerciseHistoryBuilder
             .fromEntries(exerciseId, entries, loadClassOf(exerciseId))
@@ -870,14 +876,25 @@ class WorkoutRepository(
      * this runs, so its own sets are in the finished-history query, and a set cannot be part
      * of the history it is judged against.
      */
-    suspend fun historyBefore(sessionId: String, exerciseIds: Collection<String>): Map<String, List<ExerciseSetRecord>> =
-        exerciseIds.distinct().associateWith { exerciseId ->
-            workoutDao.finishedWorkingSets(exerciseId)
-                .asSequence()
-                .filter { it.sessionId != sessionId }
-                .map { it.toEntry().record }
+    suspend fun historyBefore(sessionId: String, exerciseIds: Collection<String>): Map<String, List<ExerciseSetRecord>> {
+        val ids = exerciseIds.distinct()
+        if (ids.isEmpty()) return emptyMap()
+        val rows = workoutDao.finishedWorkingSetsForExercises(ids)
+        return ids.associateWith { exerciseId ->
+            rows.asSequence()
+                .filter { it.exerciseId == exerciseId && it.sessionId != sessionId }
+                .map { row ->
+                    ExerciseSetRecord(
+                        setId = row.setId,
+                        sessionId = row.sessionId,
+                        weightKg = row.weightKg,
+                        reps = row.reps,
+                        completedAt = row.completedAt,
+                    )
+                }
                 .toList()
         }
+    }
 
     /** The outcome of logging one set: what was written, and what it beat. */
     data class LoggedSet(
@@ -963,25 +980,6 @@ class WorkoutRepository(
             }
         }
         return hints
-    }
-
-    /**
-     * Finds the last finished session containing [exerciseId], then applies the pure top-set
-     * rule to its working sets. Two small queries rather than one clever one: the selection
-     * stays in testable Kotlin instead of SQL nobody can unit-test on the JVM.
-     *
-     * @param excludeSessionId a session to skip (the one being logged right now); empty
-     * string excludes nothing.
-     */
-    private suspend fun topSetOfLastSession(
-        exerciseId: String,
-        excludeSessionId: String = "",
-    ): WorkingSetCandidate? {
-        val sessionId = workoutDao.lastFinishedSessionIdWithExercise(exerciseId, excludeSessionId)
-            ?: return null
-        val candidates = workoutDao.workingSetsForExerciseInSession(sessionId, exerciseId)
-            .map { WorkingSetCandidate(it.weightKg, it.reps, it.completedAt) }
-        return ProgressionBasis.topWorkingSet(candidates, loadClassOf(exerciseId).weightMeaning)
     }
 
     private fun rpeOfTopSet(

@@ -99,7 +99,9 @@ fun HistoryScreen(
     val error by viewModel.error.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
     val today = LocalTodayEpochDay.current
-    val dateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+    val dateFormat = remember {
+        DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedDayEpoch by rememberSaveable { mutableStateOf<Long?>(null) }
 
