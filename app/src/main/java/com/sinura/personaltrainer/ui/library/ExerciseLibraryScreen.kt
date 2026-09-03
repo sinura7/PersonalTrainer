@@ -491,10 +491,8 @@ private fun LibraryRow(
 /**
  * Edit and delete, one step back from the row.
  *
- * A sheet rather than a dropdown menu: Material's menu draws on `surfaceContainer`, which
- * in this theme is the window colour, and it separates itself from the screen behind with a
- * shadow — which on near-black is nothing at all. It also buys 56dp rows for two actions
- * that used to be 48dp icons sitting beside the one people actually came for.
+ * A sheet rather than a dropdown: two 56 dp rows sit behind overflow so they
+ * cannot compete with the lift people came to tap.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

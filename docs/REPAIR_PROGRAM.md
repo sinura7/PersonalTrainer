@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F6, G1–G3, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F6, G1–G4, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase G continues at G4. K1 and K2 stay held.  
+`tools/` remain owed. Phase G continues at G5. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -95,7 +95,7 @@ the gym floor, are fifteen of them.
 | G1 | A screen reader can use Temper | 3 | — | Design II | done |
 | G2 | One numeric-entry grammar | 1 | — | Design II | done |
 | G3 | Shared headers and docks | 2 | — | Design II | done |
-| G4 | Skin the four foreign controls | 2 | — | Design II | |
+| G4 | Skin the four foreign controls | 2 | — | Design II | done |
 | G5 | Body's first viewport; small targets; destructive confirms | 1 | — | Design II | |
 | G6 | Reduced motion, and the palette question | 1 | — | Design II | |
 | H1 | History shows that you got stronger | 2 | — | Design III | |
@@ -1138,7 +1138,7 @@ Existing page-pass tests stay green unchanged. Count +1.
 
 **Owns.** `ui/components/` (two new files), fifteen screen files.
 
-## G4 — Skin the four foreign controls · 2 evenings
+## G4 — Skin the four foreign controls · done on `trunk`
 
 **Symptom.** Four places where a stock Material control shows through: three
 filled green switch tracks on Settings, a snackbar drawn on the only light
@@ -1152,16 +1152,18 @@ never uses it — while the actual consumer is `DropdownMenu`. The switch,
 snackbar and field colours are Material defaults resolving through the
 scheme.
 
-**Change.** An `InstrumentSwitch`; snackbars routed through the existing
+**Change.** ~~An `InstrumentSwitch`; snackbars routed through the existing
 status banner; menus on the sheet surface with a hairline; a field border at
-or above 3:1. Correct the stale scheme mapping and its comment.
+or above 3:1. Correct the stale scheme mapping and its comment.~~ **Struck
+2026-09-03 (this packet).** `InstrumentSwitch` track is VoltContainer, not
+Volt. `InstrumentMenu` is Surface3 + hairline, zero elevation.
+`surfaceContainer` is Surface3. `OutlineSolid` is `#6A757C` (≥ 3:1).
+Snackbars are `GymErrorBanner` / `GymStatusBanner(Undo)`. Count +3.
 
-**Proof.** This is the runtime evidence ADR-005 §6 requires before skinning
-anything, and the audit's computed ratios are it — record them in the packet
-and add the token gallery goldens from H3 so a scheme change cannot pass
-unseen again.
+**Proof.** `ForeignControlsTest` records the 3:1 field-border ratios, the
+scheme mapping, and the fifteen sites. Token-gallery goldens wait for H3.
 
-**Owns.** `ui/theme/Theme.kt`, `ui/components/` (new switch),
+**Owns.** `ui/theme/Theme.kt`, `ui/components/` (two new files),
 `ui/settings/SettingsScreen.kt` *(after G2)*, `ui/reminders/**` *(after G1)*,
 three snackbar hosts, five menu sites.
 
@@ -1496,6 +1498,15 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — G4: four foreign silhouettes.** Proof is JVM
+(`outlineSolidClearsNonTextContrastOnReadingSurfaces`,
+`surfaceContainerIsTheSheetNotTheWindow`,
+`threeSwitchesFiveMenusZeroSnackbarHosts`). Errors use
+`GymErrorBanner`; undo uses `GymStatusBanner` with Undo — the snackbar
+hosts are gone. Library overflow stays a sheet (56 dp rows, not a
+menu). `inverseSurface` tracks Surface3 so a slipped snackbar is not
+the one light field. H3 still owes token-gallery goldens. Count +3.
 
 **2026-09-03 — G3: one header, one dock.** Proof is JVM
 (`fifteenSitesShareScreenHeaderAndPinnedDock`). Ten headers and six

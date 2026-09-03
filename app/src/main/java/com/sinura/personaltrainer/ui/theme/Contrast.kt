@@ -14,6 +14,8 @@ import kotlin.math.pow
 object ContrastPolicy {
     const val AA_NORMAL = 4.5
     const val AA_LARGE = 3.0
+    /** WCAG 1.4.11: a control boundary against its adjacent surface. */
+    const val NON_TEXT = 3.0
 
     val loadBearingText = listOf(TextPrimary, TextSecondary, TextTertiary)
     val readingSurfaces = listOf(Pit, Surface1, Surface2, Surface3)
@@ -40,6 +42,9 @@ object ContrastPolicy {
         val floor = if (largeText) AA_LARGE else AA_NORMAL
         return ratio(foreground, background) + 1e-6 >= floor
     }
+
+    fun meetsNonText(foreground: Color, background: Color): Boolean =
+        ratio(foreground, background) + 1e-6 >= NON_TEXT
 
     fun isLoadBearing(color: Color): Boolean = color != TextDisabled
 }

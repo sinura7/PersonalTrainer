@@ -31,12 +31,10 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -93,7 +91,9 @@ import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.GymStatusBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentChip
+import com.sinura.personaltrainer.ui.components.InstrumentMenu
 import com.sinura.personaltrainer.ui.components.InstrumentRow
+import com.sinura.personaltrainer.ui.components.InstrumentSwitch
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.NumberEntryDialog
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
@@ -742,14 +742,14 @@ private fun RestTimerPrefsSection(
                 title = "Sound",
                 checked = preferences.soundEnabled,
                 onCheckedChange = onSound,
-                trailing = { Switch(checked = preferences.soundEnabled, onCheckedChange = null) },
+                trailing = { InstrumentSwitch(checked = preferences.soundEnabled) },
             )
             HairlineDivider()
             InstrumentRow(
                 title = "Vibration",
                 checked = preferences.vibrationEnabled,
                 onCheckedChange = onVibrate,
-                trailing = { Switch(checked = preferences.vibrationEnabled, onCheckedChange = null) },
+                trailing = { InstrumentSwitch(checked = preferences.vibrationEnabled) },
             )
             HairlineDivider()
             Column(
@@ -1005,7 +1005,7 @@ private fun SafetyCopyRow(
                         tint = if (enabled) TextSecondary else TextDisabled,
                     )
                 }
-                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                InstrumentMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(
                         text = {
                             Text("Export", style = InstrumentType.bodyStrong, color = TextPrimary)

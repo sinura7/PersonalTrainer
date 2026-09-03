@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -30,6 +29,7 @@ import com.sinura.personaltrainer.ui.components.GymNoticeBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.InstrumentRow
+import com.sinura.personaltrainer.ui.components.InstrumentSwitch
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -74,10 +74,7 @@ fun ReminderPrefsSection(
                 checked = enabled,
                 onCheckedChange = { on -> onOptOut(!on) },
                 trailing = {
-                    Switch(
-                        checked = enabled,
-                        onCheckedChange = null,
-                    )
+                    InstrumentSwitch(checked = enabled)
                 },
             )
             HairlineDivider()

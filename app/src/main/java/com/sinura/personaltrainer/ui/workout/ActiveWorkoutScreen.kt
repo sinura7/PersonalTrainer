@@ -36,15 +36,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -110,8 +105,11 @@ import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
 import com.sinura.personaltrainer.ui.components.GroupedList
+import com.sinura.personaltrainer.ui.components.GymErrorBanner
+import com.sinura.personaltrainer.ui.components.GymStatusBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentChip
+import com.sinura.personaltrainer.ui.components.InstrumentMenu
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.LeaveWorkoutDialog
@@ -238,31 +236,7 @@ fun ActiveWorkoutScreen(
     // Always composed, unlike the bottom bar. An error raised while no lift is selected —
     // a failed create from the picker in an empty free workout — previously had no reader at
     // all: it was written to state and rendered nowhere.
-    val snackbarHostState = remember { SnackbarHostState() }
     val logBarVisible = session != null && selected != null
-    LaunchedEffect(state.error, logBarVisible) {
-        val message = state.error
-        if (message != null && !logBarVisible) {
-            snackbarHostState.showSnackbar(message)
-        }
-    }
-
-    // Deleting a set is immediate now, so the reversal has to be: the snackbar IS the confirm,
-    // moved to after the act instead of in front of every one of them. It carries the set's own
-    // numbers because "Set deleted" alone cannot tell you which set you just lost.
-    LaunchedEffect(deletedSet) {
-        val removed = deletedSet ?: return@LaunchedEffect
-        val outcome = snackbarHostState.showSnackbar(
-            message = "Set deleted · " + SetCopy.setLine(removed.weightKg, removed.reps, LoadClass.of(selected?.exercise?.loadType), unit),
-            actionLabel = "Undo",
-            duration = SnackbarDuration.Short,
-        )
-        if (outcome == SnackbarResult.ActionPerformed) {
-            viewModel.undoDeleteSet()
-        } else {
-            viewModel.onUndoOfferHandled()
-        }
-    }
 
     // The record's haptics and its acknowledgement live here rather than inside the banner:
     // the banner is a list item, and logging the set that breaks a record also scrolls the
@@ -276,7 +250,34 @@ fun ActiveWorkoutScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            val errorBanner = state.error != null && !logBarVisible
+            if (errorBanner || deletedSet != null) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(Metrics.gutter),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                ) {
+                    if (errorBanner) {
+                        GymErrorBanner(message = state.error!!)
+                    }
+                    deletedSet?.let { removed ->
+                        GymStatusBanner(
+                            message = "Set deleted · " + SetCopy.setLine(
+                                removed.weightKg,
+                                removed.reps,
+                                LoadClass.of(selected?.exercise?.loadType),
+                                unit,
+                            ),
+                            actionLabel = "Undo",
+                            onAction = { viewModel.undoDeleteSet() },
+                            onDismissed = { viewModel.onUndoOfferHandled() },
+                        )
+                    }
+                }
+            }
+        },
         topBar = {
             WorkoutHeader(
                 routineName = session?.routineName ?: "Workout",
@@ -1011,7 +1012,7 @@ private fun CurrentLiftHeader(
                                 tint = TextSecondary,
                             )
                         }
-                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        InstrumentMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                             DropdownMenuItem(
                                 text = {
                                     Text("Swap lift…", style = InstrumentType.bodyStrong, color = TextPrimary)
