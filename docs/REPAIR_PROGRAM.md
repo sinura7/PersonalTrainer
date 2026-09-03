@@ -1,8 +1,9 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, J4 dispatcher seams, J4 TimePort,
-and the J3 ledger slice are on `trunk`. B4, B1, J2, J3 remainder, J5,
-and J1 remain. Phase C has not started.  
+**Status:** in progress — Phase A, B3, J4 (seams, TimePort, scheduler
+polish), and the J3 ledger slice are on `trunk`. Policy tests into
+`tools/` remain owed. B4, B1, J2, J3 remainder, J5, and J1 remain.
+Phase C has not started.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -1315,8 +1316,7 @@ source-reading policy tests into the checkers remains owed.
 `OnboardingViewModel`, `RestTimerViewModel`, `ActiveWorkoutViewModel`,
 `SetMicroRecUi`, `HistoryViewModel` / `HistoryScreen`, `HomeViewModel`.
 Policy tests into `tools/` remain owed (count-changing; hold until
-after J5). `scheduler=` polish on remaining ViewModel tests is the
-next J4 slice.
+after J5).
 
 ## J5 — The checkers report what they skip
 
@@ -1405,6 +1405,13 @@ The program is complete when all of the following hold:
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
 
+**2026-09-03 — J4 scheduler polish includes History and Exercise
+Detail.** The packet named Home, Plan, Settings, Summary, and
+onboarding. `HistoryViewModel` and `ExerciseDetailViewModel` also
+`flowOn(computeDispatcher)`, so their tests take `scheduler =
+dispatcher` too. `TrainingInsightsSourceTest` is untouched. The three
+bounded waits stay. Count unchanged (1654).
+
 **2026-09-03 — J4 TimePort: freeze civil today, not rest.**
 `AppDependencies.time` is `JvmTime` in production and `FrozenTime` in
 tests. `AppViewModel.todayEpochDay()` must pass `nowMs =
@@ -1417,7 +1424,7 @@ stay on `elapsedRealtime`. Proof:
 freezes 1999-12-31 23:59 America/New_York. Count +1. Compose
 `HomeScreen` / `PlanScreen` / `DailyAgendaCard` still call domain
 `todayEpochDay()` at composition (wall clock for labels only).
-Policy tests and `scheduler=` polish remain.
+Policy tests remain.
 
 **2026-09-03 — K2 tripwire ahead of the compiler train.** K2 is held.
 Its "until signed" work was a ledger tripwire plus Dependabot ignores.

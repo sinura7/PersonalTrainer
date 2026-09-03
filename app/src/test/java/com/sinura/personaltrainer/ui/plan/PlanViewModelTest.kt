@@ -71,7 +71,11 @@ class PlanViewModelTest {
         val insights = MutableStateFlow(
             TrainingInsights(snapshot = emptyHeat(), weekPlan = emptyWeek()),
         )
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            insights,
+            scheduler = dispatcher,
+        )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
         viewModel!!.uiState.first { !it.isLoading }
@@ -96,7 +100,11 @@ class PlanViewModelTest {
     @Test
     fun aFullyPinnedWeekYieldsNoProposals() = runBlocking {
         val insights = MutableStateFlow(TrainingInsights(snapshot = emptyHeat()))
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            insights,
+            scheduler = dispatcher,
+        )
         val upper = deps.routineRepository.create(name = "Upper")
         val lower = deps.routineRepository.create(name = "Lower Body")
         listOf(Weekday.MONDAY, Weekday.WEDNESDAY, Weekday.FRIDAY, Weekday.SATURDAY)
@@ -122,7 +130,11 @@ class PlanViewModelTest {
     @Test
     fun replayPinsExistingRoutineIdsAndDoesNotCreate() = runBlocking {
         val insights = MutableStateFlow(TrainingInsights())
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            insights,
+            scheduler = dispatcher,
+        )
         deps.dbMaintenance.seedCatalog()
         val upper = deps.routineRepository.create(name = "Upper")
         val lower = deps.routineRepository.create(name = "Lower Body")
@@ -161,7 +173,11 @@ class PlanViewModelTest {
         val insights = MutableStateFlow(
             TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
         )
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            insights,
+            scheduler = dispatcher,
+        )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.first { !it.isLoading }
         viewModel!!.pinFocus(monday.toEpochDay(), SessionFocusKind.PUSH)
@@ -193,7 +209,11 @@ class PlanViewModelTest {
         val insights = MutableStateFlow(
             TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
         )
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            insights,
+            scheduler = dispatcher,
+        )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.first { !it.isLoading }
         viewModel!!.pinFocus(monday.toEpochDay(), SessionFocusKind.PUSH)
@@ -223,7 +243,11 @@ class PlanViewModelTest {
         val insights = MutableStateFlow(
             TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
         )
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            insights,
+            scheduler = dispatcher,
+        )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.first { !it.isLoading }
         viewModel!!.pinFocus(monday.toEpochDay(), SessionFocusKind.PUSH)
@@ -258,7 +282,11 @@ class PlanViewModelTest {
         val insights = MutableStateFlow(
             TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
         )
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            insights,
+            scheduler = dispatcher,
+        )
         deps.dbMaintenance.seedCatalog()
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.first { !it.isLoading }
@@ -290,7 +318,11 @@ class PlanViewModelTest {
         val insights = MutableStateFlow(
             TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
         )
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            insights,
+            scheduler = dispatcher,
+        )
         deps.dbMaintenance.seedCatalog()
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.first { !it.isLoading }
@@ -321,7 +353,11 @@ class PlanViewModelTest {
         val insights = MutableStateFlow(
             TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
         )
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            insights,
+            scheduler = dispatcher,
+        )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.first { !it.isLoading }
         viewModel!!.pinFocus(monday.toEpochDay(), SessionFocusKind.PUSH)
@@ -355,7 +391,11 @@ class PlanViewModelTest {
         val insights = MutableStateFlow(
             TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
         )
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            insights,
+            scheduler = dispatcher,
+        )
         val extra = deps.routineRepository.create("Monday extra")
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.first { !it.isLoading }
@@ -395,7 +435,11 @@ class PlanViewModelTest {
         val insights = MutableStateFlow(
             TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
         )
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            insights,
+            scheduler = dispatcher,
+        )
         val push = deps.routineRepository.create("Push")
         val pull = deps.routineRepository.create("Pull")
         val extra = deps.routineRepository.create("Monday extra")
@@ -430,7 +474,11 @@ class PlanViewModelTest {
         val insights = MutableStateFlow(
             TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
         )
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            insights,
+            scheduler = dispatcher,
+        )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.first { !it.isLoading }
         viewModel!!.pinFocus(monday.toEpochDay(), SessionFocusKind.PUSH)
@@ -455,7 +503,11 @@ class PlanViewModelTest {
         val insights = MutableStateFlow(
             TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
         )
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            insights,
+            scheduler = dispatcher,
+        )
         val extra = deps.routineRepository.create("Monday extra")
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.first { !it.isLoading }
@@ -489,7 +541,11 @@ class PlanViewModelTest {
         val insights = MutableStateFlow(
             TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
         )
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            insights,
+            scheduler = dispatcher,
+        )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.first { !it.isLoading }
 
@@ -519,7 +575,11 @@ class PlanViewModelTest {
         val insights = MutableStateFlow(
             TrainingInsights(snapshot = emptyHeat(), weekPlan = weekStarting(monday)),
         )
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            insights,
+            scheduler = dispatcher,
+        )
         val push = deps.routineRepository.create("Push")
         val pull = deps.routineRepository.create("Pull")
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
@@ -542,7 +602,11 @@ class PlanViewModelTest {
     @Test
     fun pendingAnswerReplayReplaysWithoutCreating() = runBlocking {
         val insights = MutableStateFlow(TrainingInsights())
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext(), insights)
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            insights,
+            scheduler = dispatcher,
+        )
         deps.dbMaintenance.seedCatalog()
         val upper = deps.routineRepository.create(name = "Upper")
         val lower = deps.routineRepository.create(name = "Lower Body")
