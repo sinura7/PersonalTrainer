@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase F starts at F1. K1 and K2 stay held.  
+`tools/` remain owed. Phase F continues at F2. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -86,7 +86,7 @@ the gym floor, are fifteen of them.
 | E2 | Thumbnails stop decoding at full size | 2 | — | Speed | done |
 | E3 | The shell stops recomposing every second | 1 | — | Speed | done |
 | E4 | Query and recompute hygiene | 2 | — | Speed | done |
-| F1 | The logging loop keeps the wells on screen | 1 | — | Design I | |
+| F1 | The logging loop keeps the wells on screen | 1 | — | Design I | done |
 | F2 | One green button per screen | 1 | 4 | Design I | |
 | F3 | Text you can read in a gym | 1 | — | Design I | |
 | F4 | Big text does not break the screen | 2 | — | Design I | |
@@ -875,23 +875,27 @@ session's sets are not tappable, so matching last week costs about three
 stepper taps per set.
 
 **Cause.** After a log, `setsRequester.bringIntoView()`
-(`ActiveWorkoutScreen.kt:828-837`) scrolls the *logged sets* panel into
+(`ActiveWorkoutScreen.kt:828-837`) scrolled the *logged sets* panel into
 view — and that panel sits below the entry wells, so the wells leave the
-screen. `logSet` (`ActiveWorkoutViewModel.kt:769`) validates then launches
-with no in-flight flag and `PrimaryGymButton` has no debounce.
-`LastTimeStrip` (`:1097-1113`) renders its chips as plain boxes.
+screen. ~~`logSet` (`ActiveWorkoutViewModel.kt:769`) validates then launches
+with no in-flight flag and `PrimaryGymButton` has no debounce.~~ D3 already
+added `logging`; F1 drives the Log button from it. `LastTimeStrip`
+renders its chips as plain boxes.
 
-**Change.** Bring the entry panel into view instead. Add the `logging` flag
-and drive `enabled` on the log button from it (shared with D3). Make each
-last-time chip clickable with `Role.Button` and a tick haptic, setting the
-draft weight and reps from that set.
+**Change.** Bring the entry panel into view instead. Drive `enabled` on the
+log button from `logging` (shared with D3). Make each last-time chip
+clickable with `Role.Button` and a tick haptic, setting the draft weight
+and reps from that set.
 
-**Proof.** A Compose test that the entry panel is displayed after a log; a
-double-tap test asserting one set. Phone gate: log five sets without
-scrolling once.
+**Proof.** JVM: `LogLoopBringIntoView` anchors on `SET_ENTRY`; last-time
+apply fills the wells without logging; D3's double-tap still records one
+set. Phone gate: log five sets without scrolling once.
 
 **Owns.** `ui/workout/ActiveWorkoutScreen.kt`,
 `ui/workout/ActiveWorkoutViewModel.kt` *(after D3)*.
+
+**On trunk.** Entry wells own `bringIntoView`. Log is disabled while
+`logging`. Last-time chips apply that set. Count +3.
 
 ## F2 — One green button per screen · needs decision 4
 
@@ -1462,6 +1466,15 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — F1: wells stay on screen; last-time chips apply.** Proof is
+JVM (`afterLogAnchorIsTheEntryWellsNotTheLoggedSetsPanel`,
+`lastTimeChipFillsWellsFromThatSetAndDoesNotLog`, D3
+`doubleTapLogSetRecordsOneSet`), not `compose-ui-test-junit4` — that jar
+is still not on `testImplementation`. `LogLoopBringIntoView` is the
+anchor contract the requester uses. `logging` was already on the UI
+state from D3; F1 wires `PrimaryGymButton.enabled`. `applyLastTimeSet`
+is new. Count +3.
 
 **2026-09-03 — E4: upsert only generated; PlanDayViewModel.** Proof is
 JVM (`resumeWithNoScheduleChangeWritesNoOccurrences`,

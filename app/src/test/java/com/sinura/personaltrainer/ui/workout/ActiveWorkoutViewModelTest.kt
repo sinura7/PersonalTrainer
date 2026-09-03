@@ -786,6 +786,30 @@ class ActiveWorkoutViewModelTest {
         )
     }
 
+    @Test
+    fun lastTimeChipFillsWellsFromThatSetAndDoesNotLog() = runBlocking {
+        val fixture = seedWorkout(priorWeightKg = 87.5)
+        val vm = createViewModel(fixture.session.id)
+        val last = checkNotNull(
+            vm.awaitState {
+                it.loadState == SessionLoadState.FOUND &&
+                    it.lastPerformance?.sets?.isNotEmpty() == true
+            }.lastPerformance,
+        )
+        val set = last.sets.single()
+        assertEquals(87.5, set.weightKg, 0.0001)
+        assertEquals(5, set.reps)
+        vm.setWeight(100.0)
+        vm.awaitState { it.draft.weightKg == 100.0 }
+        vm.applyLastTimeSet(set.weightKg, 8)
+        val draft = vm.awaitState { it.draft.weightKg == 87.5 && it.draft.reps == 8 }.draft
+        assertEquals(87.5, draft.weightKg, 0.0001)
+        assertEquals(8, draft.reps)
+        assertTrue(
+            checkNotNull(deps.workoutRepository.getSession(fixture.session.id)).sets.isEmpty(),
+        )
+    }
+
     private fun createViewModel(
         sessionId: String,
         handle: SavedStateHandle = handleFor(sessionId),

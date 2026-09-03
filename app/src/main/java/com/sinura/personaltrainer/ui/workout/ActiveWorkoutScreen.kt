@@ -64,6 +64,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -160,7 +161,9 @@ object WorkoutTestTags {
     const val MICRO_REC_WHY = "workout-micro-rec-why"
     const val NEXT = "workout-next"
     const val ADD_SET = "workout-add-set"
+    const val LAST_TIME = "workout-last-time"
     fun liftCard(exerciseId: String) = "workout-lift-card-$exerciseId"
+    fun lastTimeChip(setId: String) = "workout-last-time-$setId"
 }
 
 @Composable
@@ -292,6 +295,7 @@ fun ActiveWorkoutScreen(
             if (logBarVisible) {
                 LogBar(
                     editing = state.editingSetId != null,
+                    logging = state.logging,
                     error = state.error,
                     draftLabel = SetCopy.setLine(state.draft.weightKg, state.draft.reps, LoadClass.of(selected?.exercise?.loadType), unit),
                     microRec = microRec.takeUnless { showNext },
@@ -419,6 +423,7 @@ fun ActiveWorkoutScreen(
                                     onRemove = { confirmRemoveLift = true },
                                     onWeightKgChange = viewModel::setWeight,
                                     onRepsAdjust = viewModel::adjustReps,
+                                    onApplyLastTime = viewModel::applyLastTimeSet,
                                     onWarmup = viewModel::setWarmup,
                                     onRpe = viewModel::setRpe,
                                     onApplySuggested = viewModel::applySuggestedWeight,
@@ -666,6 +671,7 @@ private fun WorkoutHeader(
 @Composable
 private fun LogBar(
     editing: Boolean,
+    logging: Boolean,
     error: String?,
     draftLabel: String,
     microRec: SetMicroRec?,
@@ -714,6 +720,7 @@ private fun LogBar(
                 else -> "Log $draftLabel"
             },
             onClick = if (nextAct) onNext else onLog,
+            enabled = !logging,
             modifier = Modifier.testTag(
                 if (nextAct) WorkoutTestTags.NEXT else WorkoutTestTags.LOG_SET,
             ),
@@ -818,6 +825,7 @@ private fun WorkoutLiftCard(
     onRemove: () -> Unit,
     onWeightKgChange: (Double) -> Unit,
     onRepsAdjust: (Int) -> Unit,
+    onApplyLastTime: (Double, Int) -> Unit,
     onWarmup: (Boolean) -> Unit,
     onRpe: (Int?) -> Unit,
     onApplySuggested: () -> Unit,
@@ -827,14 +835,14 @@ private fun WorkoutLiftCard(
 ) {
     val workingLogged = loggedSets.count { !it.isWarmup }
     val targetSets = lift.targetSets
-    val setsRequester = remember { BringIntoViewRequester() }
+    val entryRequester = remember { BringIntoViewRequester() }
     var previousSetCount by remember(lift.id) { mutableIntStateOf(-1) }
     LaunchedEffect(lift.id, loggedSets.size) {
         val count = loggedSets.size
-        val grew = previousSetCount in 0 until count
+        val grew = LogLoopBringIntoView.shouldBringIntoView(previousSetCount, count)
         previousSetCount = count
         if (grew) {
-            setsRequester.bringIntoView()
+            entryRequester.bringIntoView()
         }
     }
     val shape = RoundedCornerShape(Radius.sm)
@@ -920,6 +928,7 @@ private fun WorkoutLiftCard(
                         summary = last,
                         unit = unit,
                         loadClass = LoadClass.of(lift.exercise.loadType),
+                        onApplySet = onApplyLastTime,
                     )
                 }
                 hint?.let { next ->
@@ -937,7 +946,9 @@ private fun WorkoutLiftCard(
                     unit = unit,
                     loadClass = LoadClass.of(lift.exercise.loadType),
                     plated = lift.exercise.equipment == EquipmentType.BARBELL,
-                    modifier = Modifier.testTag(WorkoutTestTags.SET_ENTRY),
+                    modifier = Modifier
+                        .testTag(LogLoopBringIntoView.ANCHOR_TAG)
+                        .bringIntoViewRequester(entryRequester),
                 )
                 SecondaryLogOptions(
                     warmup = draftWarmup,
@@ -947,7 +958,6 @@ private fun WorkoutLiftCard(
                 )
                 if (loggedSets.isNotEmpty()) {
                     Column(
-                        modifier = Modifier.bringIntoViewRequester(setsRequester),
                         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
                     ) {
                         Kicker("Sets")
@@ -1087,26 +1097,40 @@ private fun LastTimeStrip(
     summary: ExerciseSessionSummary,
     unit: WeightUnit,
     loadClass: LoadClass,
+    onApplySet: (weightKg: Double, reps: Int) -> Unit,
 ) {
+    val view = LocalView.current
     val relative = remember(summary.performedAtMs) {
         DayLabel.relative(summary.performedAtMs, System.currentTimeMillis())
     }
     val absolute = remember(summary.performedAtMs) {
         DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(summary.performedAtMs))
     }
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+    Column(
+        modifier = Modifier.testTag(WorkoutTestTags.LAST_TIME),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
         Kicker("Last time · ${relative ?: absolute}")
         LazyRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
             items(summary.sets, key = { it.setId }) { set ->
+                val line = SetCopy.setLine(set.weightKg, set.reps, loadClass, unit)
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(Radius.xs))
                         .background(Surface1)
                         .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.xs))
+                        .clickable(role = Role.Button, onClick = {
+                            Haptics.tick(view)
+                            onApplySet(set.weightKg, set.reps)
+                        })
+                        .testTag(WorkoutTestTags.lastTimeChip(set.setId))
+                        .semantics {
+                            contentDescription = "Use last time $line"
+                        }
                         .padding(horizontal = Metrics.space3, vertical = Metrics.space2),
                 ) {
                     Text(
-                        SetCopy.setLine(set.weightKg, set.reps, loadClass, unit),
+                        line,
                         style = InstrumentType.numeralSm,
                         color = TextSecondary,
                     )
