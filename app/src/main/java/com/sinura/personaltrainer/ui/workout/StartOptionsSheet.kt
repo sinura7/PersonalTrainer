@@ -123,7 +123,7 @@ fun StartOptionsSheet(
                 ScreenLoading(Modifier.fillMaxWidth().height(96.dp))
                 return@Column
             }
-            state.error?.let { message -> GymErrorBanner(message) }
+            state.error?.let { message -> GymErrorBanner(message, onDismiss = viewModel::dismissError) }
 
             if (inProgress != null || liveActivity != null) {
                 Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {

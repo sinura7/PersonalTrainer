@@ -113,7 +113,7 @@ fun ActivityComposerScreen(
                 )
             }
             state.error?.let { message ->
-                item { GymErrorBanner(message) }
+                item { GymErrorBanner(message, onDismiss = viewModel::dismissError) }
             }
             item {
                 OutlinedTextField(
@@ -332,6 +332,7 @@ private fun StrengthAdder(
                         onCreate(event.name, event.muscleGroup)
                     is ExercisePickerEvent.Toggled,
                     ExercisePickerEvent.Confirmed,
+                    ExercisePickerEvent.ErrorDismissed,
                     -> Unit
                     ExercisePickerEvent.Dismissed -> {
                         pickerQuery = ""

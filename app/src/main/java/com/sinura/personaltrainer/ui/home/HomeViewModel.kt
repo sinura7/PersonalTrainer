@@ -26,6 +26,7 @@ import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.domain.WeeklySchedulePlan
+import com.sinura.personaltrainer.domain.ActivitySession
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.latest
 import com.sinura.personaltrainer.data.repository.AuxiliaryBlocks
@@ -46,6 +47,7 @@ import kotlinx.coroutines.launch
 data class HomeUiState(
     val isLoading: Boolean = true,
     val inProgress: WorkoutSession? = null,
+    val liveActivity: ActivitySession? = null,
     val routines: List<Routine> = emptyList(),
     /**
      * The newest finished session from all-time summaries, not the
@@ -75,7 +77,10 @@ data class HomeUiState(
     val occurrences: List<com.sinura.personaltrainer.domain.ScheduleOccurrence> = emptyList(),
     val rules: List<com.sinura.personaltrainer.domain.ScheduleRule> = emptyList(),
     val weekStartEpochDay: Long = 0L,
-)
+) {
+    /** True for a live workout or live cardio — Home's filled Volt hides for both. */
+    val sessionLive: Boolean get() = inProgress != null || liveActivity != null
+}
 
 class HomeViewModel @JvmOverloads constructor(
     application: Application,
@@ -85,7 +90,10 @@ class HomeViewModel @JvmOverloads constructor(
 
     val uiState: StateFlow<HomeUiState> = combine(
         container.trainingInsights.observeShared(),
-        container.workoutRepository.observeInProgress(),
+        combine(
+            container.workoutRepository.observeInProgress(),
+            container.activityRepository.observeLive(),
+        ) { workout, cardio -> workout to cardio },
         actionError,
         combine(
             combine(
@@ -106,7 +114,10 @@ class HomeViewModel @JvmOverloads constructor(
                 HomeCadence(preferences, preferredDays, log, checkIn, setupComplete)
             },
         ) { planner, cadence -> planner to cadence },
-    ) { insights, inProgress, error, extras ->
+    ) { insights, livePair, error, extras ->
+        val inProgress = livePair.first
+        val liveActivity = livePair.second
+        val sessionLive = inProgress != null || liveActivity != null
         val lighterStart = extras.first.first
         val occurrences = extras.first.second.first
         val rules = extras.first.second.second
@@ -124,6 +135,7 @@ class HomeViewModel @JvmOverloads constructor(
         HomeUiState(
             isLoading = false,
             inProgress = inProgress,
+            liveActivity = liveActivity,
             routines = insights.routines,
             lastSession = insights.summaries.latest(),
             readyToProgress = insights.hints,
@@ -142,7 +154,7 @@ class HomeViewModel @JvmOverloads constructor(
             // Not while a session is live: a lifter mid-workout at 18:20 answering
             // "1 planned session was not done" burns the week's one decision on a
             // session they are in the middle of doing.
-            missedWorkPrompt = inProgress == null && MissedWorkPolicy.promptNeeded(overdue, decision),
+            missedWorkPrompt = !sessionLive && MissedWorkPolicy.promptNeeded(overdue, decision),
             overdueCount = overdue.size,
             setupComplete = cadence.setupComplete,
             bodyweightCheckInDue = BodyweightCheckIn.isDueToday(

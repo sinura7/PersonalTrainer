@@ -116,6 +116,11 @@ data class ActiveWorkoutUiState(
     val error: String? = null,
     val finished: Boolean = false,
     val editingSetId: String? = null,
+    /**
+     * True while a log or edit-save is in flight. The Log button is disabled so a
+     * double tap cannot write two sets.
+     */
+    val logging: Boolean = false,
     /** True while the picker is exchanging a lift rather than adding one. */
     val swapping: Boolean = false,
     /**
@@ -178,6 +183,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private val error = MutableStateFlow<String?>(null)
     private val finished = MutableStateFlow(false)
     private val editingSetId = MutableStateFlow<String?>(null)
+    private val logging = MutableStateFlow(false)
     private val wantAnotherSet = MutableStateFlow(false)
     private var cachedWeightUnit = WeightUnit.KG
 
@@ -251,6 +257,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             )
             notes.value = cached.notes
         }
+        savedDraft.editingSetId()?.let { editingSetId.value = it }
         viewModelScope.launch {
             // The flow is guarded at the repository, but the body below is not — a failure
             // here would otherwise kill the collector and freeze the screen silently.
@@ -507,6 +514,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             suggestion = suggested?.first?.takeUnless { alreadyPresent },
             suggestionReason = suggested?.second?.takeUnless { alreadyPresent },
         )
+    }.combine(logging) { state, busy ->
+        state.copy(logging = busy)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -771,6 +780,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun logSet() {
+        if (logging.value) return
         val exerciseId = selectedExerciseId.value
         if (exerciseId == null) {
             error.value = "Add a lift before logging a set."
@@ -793,6 +803,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             error.value = invalid
             return
         }
+        logging.value = true
         viewModelScope.launch {
             try {
                 val editingId = editingSetId.value
@@ -864,8 +875,14 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 error.value = thrown.message?.takeIf { message ->
                     SetLogRules.isUserMessage(message)
                 } ?: "Could not save that set. Try again."
+            } finally {
+                logging.value = false
             }
         }
+    }
+
+    fun dismissError() {
+        error.value = null
     }
 
     fun editSet(setId: String) {
@@ -885,6 +902,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 
     fun cancelEdit() {
         editingSetId.value = null
+        persistDraft()
     }
 
     /**
@@ -1125,7 +1143,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         draftCache.put(current)
         // Written through to saved state so the numbers dialed in before a rest survive the
         // process being killed while the phone sits in a pocket.
-        savedDraft.write(current)
+        savedDraft.write(current, editingSetId.value)
     }
 
     private data class WorkoutCore(

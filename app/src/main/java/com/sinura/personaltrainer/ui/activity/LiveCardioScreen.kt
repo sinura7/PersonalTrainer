@@ -136,7 +136,7 @@ fun LiveCardioScreen(
             Text(state.session?.title ?: "Cardio", style = InstrumentType.title, color = TextPrimary)
             ElapsedReadout(elapsedSeconds = state.elapsedSeconds)
             Text(CardioCopy.CLOCK_CAPTION, style = InstrumentType.caption, color = TextSecondary)
-            state.error?.let { GymErrorBanner(it) }
+            state.error?.let { GymErrorBanner(it, onDismiss = viewModel::dismissError) }
             Kicker(CardioCopy.TYPE)
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),

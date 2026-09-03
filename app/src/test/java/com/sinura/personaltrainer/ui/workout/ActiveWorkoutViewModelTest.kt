@@ -740,6 +740,52 @@ class ActiveWorkoutViewModelTest {
         assertEquals("survive process", state.notes)
     }
 
+    @Test
+    fun processDeathRestoresEditingSetId() = runBlocking {
+        val fixture = seedWorkout()
+        val handle = handleFor(fixture.session.id)
+        val first = createViewModel(fixture.session.id, handle)
+        first.awaitState {
+            it.loadState == SessionLoadState.FOUND && it.draft.weightKg == 100.0
+        }
+        first.logSet()
+        val persisted = awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        first.awaitState { it.session?.sets?.size == 1 }
+        val setId = persisted.sets.single().id
+        first.editSet(setId)
+        first.awaitState { it.editingSetId == setId }
+        assertEquals(setId, SavedStateWorkoutDraft(handle).editingSetId())
+        first.clearAndJoinForTest()
+        viewModels.remove(first)
+        deps.workoutDraftCache.clearAll()
+
+        val recreated = createViewModel(fixture.session.id, handle)
+        val state = recreated.awaitState {
+            it.loadState == SessionLoadState.FOUND && it.editingSetId == setId
+        }
+        assertEquals(setId, state.editingSetId)
+        assertEquals(100.0, state.draft.weightKg, 0.0001)
+    }
+
+    @Test
+    fun doubleTapLogSetRecordsOneSet() = runBlocking {
+        val fixture = seedWorkout()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState {
+            it.loadState == SessionLoadState.FOUND && it.draft.weightKg == 100.0
+        }
+        vm.logSet()
+        vm.logSet()
+        val persisted = awaitSession(fixture.session.id) { it.sets.isNotEmpty() }
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(1, persisted.sets.size)
+        assertEquals(
+            1,
+            checkNotNull(deps.workoutRepository.getSession(fixture.session.id)).sets.size,
+        )
+    }
+
     private fun createViewModel(
         sessionId: String,
         handle: SavedStateHandle = handleFor(sessionId),

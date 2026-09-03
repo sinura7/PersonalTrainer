@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1, D2, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase D continues at D3. K1 and K2 stay held.  
+`tools/` remain owed. Phase E starts at E1. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -81,7 +81,7 @@ the gym floor, are fifteen of them.
 | C4 | Planner and session writes are atomic | 1 | — | Week | done |
 | D1 | The start sheet gets a home (or a grave) | 1 | 1 | Paths | done |
 | D2 | Reminder Start works from anywhere | 1 | — | Paths | done |
-| D3 | Live cardio is visible; errors dismiss; drafts survive | 2 | — | Paths | |
+| D3 | Live cardio is visible; errors dismiss; drafts survive | 2 | — | Paths | done |
 | E1 | Stop recomputing everything | 1 | — | Speed | |
 | E2 | Thumbnails stop decoding at full size | 2 | — | Speed | |
 | E3 | The shell stops recomposing every second | 1 | — | Speed | |
@@ -696,6 +696,10 @@ for each of the three authoring surfaces; a double-tap test on `logSet`
 *(after C1)*, `ui/routines/RoutineEditorViewModel.kt`,
 `ui/routines/CustomWeekViewModel.kt`, `ui/workout/ActiveWorkoutViewModel.kt`,
 seven screen files.
+
+**On trunk.** Home and Plan `sessionLive` is workout or live cardio.
+`GymErrorBanner` dismisses on every host. Routine editor, custom week, and
+`editingSetId` survive process death. Double-tap `logSet` writes one set.
 
 ---
 
@@ -1437,6 +1441,20 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — D3: live cardio is sessionLive; banners dismiss.**
+Home/Plan combine `observeLive()`. Proof is JVM
+(`liveCardioHidesHomesFilledVolt` + three saved-state tests +
+`doubleTapLogSetRecordsOneSet`), not a composed Volt. The program
+said seven banners; floor also had Onboarding, Library, start
+sheet, and the picker. `ExercisePickerEvent.ErrorDismissed` is
+the picker dismiss. `CustomWeekViewModel` takes SavedStateHandle
+(factory pair). `SavedStateCustomWeekDraft` stores day rows as
+`ArrayList<Bundle>`. `editingSetId` lives on
+`SavedStateWorkoutDraft`. `logging` on the workout UI is the F1
+Log-button half. `SessionDetailViewModel` / `HistoryViewModel`
+in-flight guards are not in Owns. `HomeScreen` reads
+`state.sessionLive`. Count +5.
 
 **2026-09-03 — D2: reminder Start at nav root.** Proof is JVM
 (`ReminderHandoff` + HomeViewModel start/review), not a composed

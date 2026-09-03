@@ -161,6 +161,10 @@ class LiveCardioViewModel @JvmOverloads constructor(
         _finishedId.value = null
     }
 
+    fun dismissError() {
+        error.value = null
+    }
+
     private suspend fun loadAndTick() {
         val live = container.activityRepository.get(sessionId)
         if (live == null || !live.isLive) {

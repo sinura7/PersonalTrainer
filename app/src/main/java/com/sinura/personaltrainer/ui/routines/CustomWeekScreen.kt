@@ -159,7 +159,7 @@ fun CustomWeekScreen(
                 },
             )
             if (!state.showPicker) {
-                state.error?.let { GymErrorBanner(it) }
+                state.error?.let { GymErrorBanner(it, onDismiss = viewModel::dismissError) }
             }
 
             val lifts = state.selectedLifts
@@ -288,6 +288,7 @@ fun CustomWeekScreen(
                     is ExercisePickerEvent.Toggled -> viewModel.togglePendingAdd(event.exercise)
                     ExercisePickerEvent.Confirmed -> viewModel.confirmPendingAdd()
                     ExercisePickerEvent.Dismissed -> viewModel.setPickerVisible(false)
+                    ExercisePickerEvent.ErrorDismissed -> viewModel.dismissError()
                 }
             },
         )

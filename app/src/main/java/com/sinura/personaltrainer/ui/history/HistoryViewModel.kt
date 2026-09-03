@@ -45,6 +45,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.YearMonth
+import java.util.concurrent.atomic.AtomicBoolean
 
 data class HistoryUiState(
     val isLoading: Boolean = true,
@@ -82,6 +83,7 @@ class HistoryViewModel @JvmOverloads constructor(
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
+    private val repeating = AtomicBoolean(false)
 
     private val historyRetry = MutableStateFlow(0)
 
@@ -204,19 +206,24 @@ class HistoryViewModel @JvmOverloads constructor(
     }
 
     fun repeatSession(sessionId: String) {
+        if (!repeating.compareAndSet(false, true)) return
         viewModelScope.launch {
-            runCatchingCancellable { container.workoutRepository.repeatSession(sessionId) }
-                .onSuccess { outcome ->
-                    when (outcome) {
-                        is RepeatOutcome.Started -> _navigateToSession.value = outcome.sessionId
-                        is RepeatOutcome.Blocked -> _blockedRepeat.value = outcome
-                        is RepeatOutcome.Failed -> _error.value = outcome.message
+            try {
+                runCatchingCancellable { container.workoutRepository.repeatSession(sessionId) }
+                    .onSuccess { outcome ->
+                        when (outcome) {
+                            is RepeatOutcome.Started -> _navigateToSession.value = outcome.sessionId
+                            is RepeatOutcome.Blocked -> _blockedRepeat.value = outcome
+                            is RepeatOutcome.Failed -> _error.value = outcome.message
+                        }
                     }
-                }
-                .onFailure { thrown ->
-                    AppLog.w(TAG, "repeatSession failed", thrown)
-                    _error.value = "Could not repeat that workout. Try again."
-                }
+                    .onFailure { thrown ->
+                        AppLog.w(TAG, "repeatSession failed", thrown)
+                        _error.value = "Could not repeat that workout. Try again."
+                    }
+            } finally {
+                repeating.set(false)
+            }
         }
     }
 

@@ -285,6 +285,10 @@ class OnboardingViewModel @JvmOverloads constructor(
         }
     }
 
+    fun dismissError() {
+        error.value = null
+    }
+
     fun setFocus(value: TrainingFocus) = advance { it.copy(focus = value) }
 
     fun setExperience(value: TrainingAge) = advance { it.copy(trainingAge = value) }

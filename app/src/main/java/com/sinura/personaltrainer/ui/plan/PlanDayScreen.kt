@@ -106,7 +106,7 @@ fun PlanDayScreen(
                         .padding(bottom = Metrics.space4),
                     verticalArrangement = Arrangement.spacedBy(Metrics.space4),
                 ) {
-                    state.error?.let { GymErrorBanner(it) }
+                    state.error?.let { GymErrorBanner(it, onDismiss = viewModel::dismissError) }
                     if (isPast) {
                         Text(
                             PlanDayCopy.PAST,

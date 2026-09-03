@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.routines
 
 import android.app.Application
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
@@ -57,10 +58,16 @@ data class CustomWeekUiState(
 @OptIn(ExperimentalCoroutinesApi::class)
 class CustomWeekViewModel @JvmOverloads constructor(
     application: Application,
+    savedStateHandle: SavedStateHandle,
     container: AppDependencies = application.appContainer(),
 ) : AppViewModel(application, container) {
-    private val selectedDay = MutableStateFlow(SchedulePreferences.DEFAULT_WEEK_START)
-    private val days = MutableStateFlow<Map<Weekday, List<CustomWeekLift>>>(emptyMap())
+    private val savedDraft = SavedStateCustomWeekDraft(savedStateHandle)
+    private val selectedDay = MutableStateFlow(
+        savedDraft.selectedDay() ?: SchedulePreferences.DEFAULT_WEEK_START,
+    )
+    private val days = MutableStateFlow(
+        savedDraft.days() ?: emptyMap(),
+    )
     private val weekStart = MutableStateFlow(SchedulePreferences.DEFAULT_WEEK_START)
     private val preferredDays = MutableStateFlow<Set<Weekday>>(emptySet())
     private val searchQuery = MutableStateFlow("")
@@ -72,7 +79,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
     private val extraCatalog = MutableStateFlow<List<Exercise>>(emptyList())
     private var guidedAnswers: OnboardingAnswers? = null
     private var pendingWeightUnit: WeightUnit? = null
-    private var userPickedDay = false
+    private var userPickedDay = savedDraft.userPickedDay()
 
     private val resultsFlow = combine(
         searchQuery.flatMapLatest { query ->
@@ -153,6 +160,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
         if (applying.value) return
         userPickedDay = true
         selectedDay.value = day
+        persistDraft()
     }
 
     fun seedFromGuided(
@@ -165,6 +173,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
         preferredDays.value = preferred
         if (!userPickedDay) {
             selectedDay.value = CustomWeekPolicy.initialSelectedDay(weekStart.value, preferred)
+            persistDraft()
         }
     }
 
@@ -213,6 +222,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
         showPicker.value = false
         searchQuery.value = ""
         error.value = null
+        persistDraft()
     }
 
     fun createAndSelect(name: String, muscleGroup: String) {
@@ -250,12 +260,14 @@ class CustomWeekViewModel @JvmOverloads constructor(
         if (applying.value) return
         val day = selectedDay.value
         days.value = days.value + (day to CustomWeekPolicy.move(days.value[day].orEmpty(), itemId, direction))
+        persistDraft()
     }
 
     fun removeLift(itemId: String) {
         if (applying.value) return
         val day = selectedDay.value
         days.value = days.value + (day to days.value[day].orEmpty().filterNot { it.id == itemId })
+        persistDraft()
     }
 
     fun stageTargets(itemId: String, sets: Int?, reps: Int?, rest: Int?, weightKg: Double?) {
@@ -264,6 +276,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
         days.value = days.value + (
             day to CustomWeekPolicy.updateTargets(days.value[day].orEmpty(), itemId, sets, reps, rest, weightKg)
             )
+        persistDraft()
     }
 
     fun confirm() {
@@ -297,6 +310,18 @@ class CustomWeekViewModel @JvmOverloads constructor(
                 is ApplyPlanResult.Failed -> error.value = result.message
             }
         }
+    }
+
+    fun dismissError() {
+        error.value = null
+    }
+
+    private fun persistDraft() {
+        savedDraft.write(
+            selected = selectedDay.value,
+            days = days.value,
+            userPicked = userPickedDay,
+        )
     }
 
     private data class WeekCore(

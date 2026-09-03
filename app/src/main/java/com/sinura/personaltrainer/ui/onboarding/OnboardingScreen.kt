@@ -106,6 +106,7 @@ fun OnboardingScreen(
                 GymErrorBanner(
                     message,
                     onRetry = if (state.preview == null) viewModel::retryCatalog else null,
+                    onDismiss = viewModel::dismissError,
                 )
             }
 

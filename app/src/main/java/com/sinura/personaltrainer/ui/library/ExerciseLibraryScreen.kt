@@ -224,6 +224,7 @@ fun ExerciseLibraryScreen(
                             modifier = Modifier
                                 .padding(horizontal = Metrics.gutter)
                                 .padding(bottom = Metrics.space3),
+                            onDismiss = viewModel::dismissError,
                         )
                     }
                     if (state.visibleExercises.isEmpty() && state.needsAttention.isEmpty()) {

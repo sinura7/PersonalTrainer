@@ -606,13 +606,47 @@ class RoutineEditorViewModelTest {
         }
     }
 
+    @Test
+    fun processDeathKeepsNameAndDoesNotMintASecondRoutine() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
+        val handle = SavedStateHandle(mapOf("routineId" to "new"))
+        val first = createViewModel("new", savedStateHandle = handle)
+        first.uiState.first { it.catalog.size >= 2 }
+        first.onNameChange("Push")
+        first.setPickerVisible(true)
+        first.togglePendingAdd(squat)
+        first.confirmPendingAdd()
+        val created = awaitRoutine { it.exercises.size == 1 }
+        first.uiState.first { it.routine?.exercises?.size == 1 && !it.addingLifts }
+        first.clearAndJoinForTest()
+        viewModel = null
+
+        val restored = createViewModel("new", savedStateHandle = handle)
+        restored.uiState.first { !it.isLoading && it.name == "Push" }
+        restored.setPickerVisible(true)
+        restored.togglePendingAdd(row)
+        restored.confirmPendingAdd()
+        restored.uiState.first { it.routine?.exercises?.size == 2 && !it.addingLifts }
+
+        val routines = deps.routineRepository.observeAll().first()
+        assertEquals(1, routines.size)
+        assertEquals(created.id, routines.single().id)
+        assertEquals("Push", routines.single().name)
+        assertEquals(
+            listOf(squat.id, row.id),
+            routines.single().exercises.map { it.exercise.id },
+        )
+    }
+
     private fun createViewModel(
         routineId: String,
         container: AppDependencies = deps,
+        savedStateHandle: SavedStateHandle = SavedStateHandle(mapOf("routineId" to routineId)),
     ): RoutineEditorViewModel =
         RoutineEditorViewModel(
             application = ApplicationProvider.getApplicationContext<Application>(),
-            savedStateHandle = SavedStateHandle(mapOf("routineId" to routineId)),
+            savedStateHandle = savedStateHandle,
             container = container,
         ).also { viewModel = it }
 

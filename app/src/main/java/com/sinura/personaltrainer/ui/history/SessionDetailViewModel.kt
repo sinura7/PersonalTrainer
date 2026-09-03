@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicBoolean
 
 private const val TAG = "PT/SessionDetailViewModel"
 
@@ -78,6 +79,7 @@ class SessionDetailViewModel @JvmOverloads constructor(
     val blockedRepeat: StateFlow<RepeatOutcome.Blocked?> = _blockedRepeat.asStateFlow()
 
     private val _deletedSet = MutableStateFlow<WorkoutRepository.DeletedSet?>(null)
+    private val mutating = AtomicBoolean(false)
     val deletedSet: StateFlow<WorkoutRepository.DeletedSet?> = _deletedSet.asStateFlow()
 
     val uiState: StateFlow<SessionDetailUiState> = combine(session, notes) { load, typed ->
@@ -161,17 +163,22 @@ class SessionDetailViewModel @JvmOverloads constructor(
     }
 
     fun addSet(exerciseId: String, weightKg: Double, reps: Int, rpe: Int?, isWarmup: Boolean) {
+        if (!mutating.compareAndSet(false, true)) return
         viewModelScope.launch {
-            runCatchingCancellable {
-                container.workoutRepository.addSetToFinishedSession(
-                    sessionId = sessionId,
-                    exerciseId = exerciseId,
-                    weightKg = weightKg,
-                    reps = reps,
-                    rpe = rpe,
-                    isWarmup = isWarmup,
-                )
-            }.onFailure { report(it, "Could not add that set. Try again.") }
+            try {
+                runCatchingCancellable {
+                    container.workoutRepository.addSetToFinishedSession(
+                        sessionId = sessionId,
+                        exerciseId = exerciseId,
+                        weightKg = weightKg,
+                        reps = reps,
+                        rpe = rpe,
+                        isWarmup = isWarmup,
+                    )
+                }.onFailure { report(it, "Could not add that set. Try again.") }
+            } finally {
+                mutating.set(false)
+            }
         }
     }
 
@@ -197,24 +204,34 @@ class SessionDetailViewModel @JvmOverloads constructor(
     }
 
     fun deleteSession() {
+        if (!mutating.compareAndSet(false, true)) return
         viewModelScope.launch {
-            runCatchingCancellable { container.workoutRepository.deleteFinishedSession(sessionId) }
-                .onSuccess { _deleted.value = true }
-                .onFailure { report(it, "Could not delete that session. Try again.") }
+            try {
+                runCatchingCancellable { container.workoutRepository.deleteFinishedSession(sessionId) }
+                    .onSuccess { _deleted.value = true }
+                    .onFailure { report(it, "Could not delete that session. Try again.") }
+            } finally {
+                mutating.set(false)
+            }
         }
     }
 
     fun repeatSession() {
+        if (!mutating.compareAndSet(false, true)) return
         viewModelScope.launch {
-            runCatchingCancellable { container.workoutRepository.repeatSession(sessionId) }
-                .onSuccess { outcome ->
-                    when (outcome) {
-                        is RepeatOutcome.Started -> _navigateToSession.value = outcome.sessionId
-                        is RepeatOutcome.Blocked -> _blockedRepeat.value = outcome
-                        is RepeatOutcome.Failed -> _error.value = outcome.message
+            try {
+                runCatchingCancellable { container.workoutRepository.repeatSession(sessionId) }
+                    .onSuccess { outcome ->
+                        when (outcome) {
+                            is RepeatOutcome.Started -> _navigateToSession.value = outcome.sessionId
+                            is RepeatOutcome.Blocked -> _blockedRepeat.value = outcome
+                            is RepeatOutcome.Failed -> _error.value = outcome.message
+                        }
                     }
-                }
-                .onFailure { report(it, "Could not repeat that workout. Try again.") }
+                    .onFailure { report(it, "Could not repeat that workout. Try again.") }
+            } finally {
+                mutating.set(false)
+            }
         }
     }
 

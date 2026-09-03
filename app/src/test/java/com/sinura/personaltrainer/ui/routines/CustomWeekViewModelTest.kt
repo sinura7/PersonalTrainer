@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.routines
 
 import android.app.Application
+import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
@@ -331,9 +332,39 @@ class CustomWeekViewModelTest {
         assertTrue(state.pendingAddIds.isEmpty())
     }
 
-    private fun createViewModel(): CustomWeekViewModel =
+    @Test
+    fun processDeathRestoresDaysAndSelectedDay() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val handle = SavedStateHandle()
+        val first = createViewModel(handle)
+        first.uiState.first { it.catalog.any { exercise -> exercise.id == squat.id } }
+        first.selectDay(Weekday.TUESDAY)
+        first.setPickerVisible(true)
+        first.togglePendingAdd(squat)
+        first.confirmPendingAdd()
+        first.uiState.first { it.canConfirm && it.selectedDay == Weekday.TUESDAY }
+
+        keepAlive?.cancel()
+        keepAlive = null
+        first.clearAndJoinForTest()
+        viewModel = null
+
+        val restored = createViewModel(handle)
+        val state = restored.uiState.first {
+            it.selectedDay == Weekday.TUESDAY && it.selectedLifts.isNotEmpty()
+        }
+        assertEquals(Weekday.TUESDAY, state.selectedDay)
+        assertEquals(squat.id, state.selectedLifts.single().exercise.id)
+        assertEquals("Squat", state.selectedLifts.single().exercise.name)
+        assertTrue(state.canConfirm)
+    }
+
+    private fun createViewModel(
+        handle: SavedStateHandle = SavedStateHandle(),
+    ): CustomWeekViewModel =
         CustomWeekViewModel(
             ApplicationProvider.getApplicationContext<Application>(),
+            handle,
             deps,
         ).also { vm ->
             viewModel = vm

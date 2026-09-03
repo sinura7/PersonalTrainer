@@ -31,6 +31,7 @@ import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -476,6 +477,26 @@ class HomeViewModelTest {
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         val state = viewModel!!.uiState.first { !it.isLoading }
         assertTrue(state.setupComplete)
+    }
+
+    @Test
+    fun liveCardioHidesHomesFilledVolt() = runBlocking {
+        deps = graph()
+        deps.preferencesRepository.setOnboardingComplete(true)
+        viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first { !it.isLoading }
+        assertFalse(viewModel!!.uiState.value.sessionLive)
+
+        val outcome = deps.startLiveCardio(
+            type = com.sinura.personaltrainer.domain.CardioType.RUN,
+            now = deps.time.captureNow(),
+        )
+        assertTrue(outcome is com.sinura.personaltrainer.workout.StartCardioOutcome.Open)
+
+        val state = viewModel!!.uiState.first { it.sessionLive }
+        assertNull(state.inProgress)
+        assertNotNull(state.liveActivity)
+        assertTrue(state.sessionLive)
     }
 
     private fun hint() = ProgressionHint(

@@ -45,4 +45,5 @@ sealed class ExercisePickerEvent {
     data class Toggled(val exercise: Exercise) : ExercisePickerEvent()
     data object Confirmed : ExercisePickerEvent()
     data object Dismissed : ExercisePickerEvent()
+    data object ErrorDismissed : ExercisePickerEvent()
 }

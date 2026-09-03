@@ -161,7 +161,7 @@ fun RoutineEditorScreen(
             state.error
                 ?.takeUnless { it.contains("name", ignoreCase = true) }
                 ?.takeUnless { state.showExercisePicker }
-                ?.let { message -> item(key = "error") { GymErrorBanner(message) } }
+                ?.let { message -> item(key = "error") { GymErrorBanner(message, onDismiss = viewModel::dismissError) } }
 
             if (exercises.isEmpty()) {
                 item(key = "empty") {
@@ -261,6 +261,7 @@ fun RoutineEditorScreen(
                     is ExercisePickerEvent.Toggled -> viewModel.togglePendingAdd(event.exercise)
                     ExercisePickerEvent.Confirmed -> viewModel.confirmPendingAdd()
                     ExercisePickerEvent.Dismissed -> viewModel.setPickerVisible(false)
+                    ExercisePickerEvent.ErrorDismissed -> viewModel.dismissError()
                 }
             },
         )

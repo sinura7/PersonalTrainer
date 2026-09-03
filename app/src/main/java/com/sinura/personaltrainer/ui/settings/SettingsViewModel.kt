@@ -514,6 +514,10 @@ class SettingsViewModel @JvmOverloads constructor(
         dialogs.value = dialogs.value.copy(launchExportPicker = false)
     }
 
+    fun dismissError() {
+        error.value = null
+    }
+
     fun createBackup(activity: Activity) {
         val password = heldPassword
         heldPassword = null

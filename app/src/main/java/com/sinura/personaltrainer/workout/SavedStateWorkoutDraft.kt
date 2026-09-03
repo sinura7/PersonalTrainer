@@ -26,7 +26,7 @@ class SavedStateWorkoutDraft(private val handle: SavedStateHandle) {
         )
     }
 
-    fun write(draft: WorkoutDraft) {
+    fun write(draft: WorkoutDraft, editingSetId: String? = null) {
         handle[KEY_SESSION_ID] = draft.sessionId
         handle[KEY_EXERCISE_ID] = draft.exerciseId
         handle[KEY_WEIGHT] = draft.weightKg
@@ -34,10 +34,26 @@ class SavedStateWorkoutDraft(private val handle: SavedStateHandle) {
         handle[KEY_RPE] = draft.rpe
         handle[KEY_WARMUP] = draft.isWarmup
         handle[KEY_NOTES] = draft.notes
+        if (editingSetId == null) {
+            handle.remove<String>(KEY_EDITING_SET_ID)
+        } else {
+            handle[KEY_EDITING_SET_ID] = editingSetId
+        }
     }
 
+    fun editingSetId(): String? = handle.get<String>(KEY_EDITING_SET_ID)
+
     fun clear() {
-        listOf(KEY_SESSION_ID, KEY_EXERCISE_ID, KEY_WEIGHT, KEY_REPS, KEY_RPE, KEY_WARMUP, KEY_NOTES)
+        listOf(
+            KEY_SESSION_ID,
+            KEY_EXERCISE_ID,
+            KEY_WEIGHT,
+            KEY_REPS,
+            KEY_RPE,
+            KEY_WARMUP,
+            KEY_NOTES,
+            KEY_EDITING_SET_ID,
+        )
             .forEach { handle.remove<Any>(it) }
     }
 
@@ -50,5 +66,6 @@ class SavedStateWorkoutDraft(private val handle: SavedStateHandle) {
         const val KEY_RPE = "draft.rpe"
         const val KEY_WARMUP = "draft.isWarmup"
         const val KEY_NOTES = "draft.notes"
+        const val KEY_EDITING_SET_ID = "draft.editingSetId"
     }
 }

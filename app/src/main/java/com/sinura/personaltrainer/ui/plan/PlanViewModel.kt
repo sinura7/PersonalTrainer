@@ -39,6 +39,7 @@ import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.domain.WeekTwoCopy
 import com.sinura.personaltrainer.domain.WeeklySchedulePlan
 import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
+import com.sinura.personaltrainer.domain.ActivitySession
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
@@ -64,6 +65,7 @@ data class PlanUiState(
     val routines: List<Routine> = emptyList(),
     val preferences: SchedulePreferences = SchedulePreferences.DEFAULT,
     val inProgress: WorkoutSession? = null,
+    val liveActivity: ActivitySession? = null,
     val loggedEpochDays: Set<Long> = emptySet(),
     /** A previewed week. Nothing here is stored until it is accepted. */
     val proposals: List<SuggestedTrainingDay> = emptyList(),
@@ -83,7 +85,9 @@ data class PlanUiState(
     val rules: List<com.sinura.personaltrainer.domain.ScheduleRule> = emptyList(),
     val missedWorkPrompt: Boolean = false,
     val overdueCount: Int = 0,
-)
+) {
+    val sessionLive: Boolean get() = inProgress != null || liveActivity != null
+}
 
 /**
  * The Plan tab: the week you decided on, and the routines it is built from.
@@ -142,7 +146,10 @@ class PlanViewModel @JvmOverloads constructor(
 
     val uiState: StateFlow<PlanUiState> = combine(
         insights,
-        container.workoutRepository.observeInProgress(),
+        combine(
+            container.workoutRepository.observeInProgress(),
+            container.activityRepository.observeLive(),
+        ) { workout, cardio -> workout to cardio },
         combine(
             container.preferencesRepository.schedulePreferences,
             container.preferencesRepository.trainingBlock,
@@ -175,7 +182,10 @@ class PlanViewModel @JvmOverloads constructor(
                 PlannerSnapshot(occurrences, rules, decisions)
             },
         ) { previewed, error, planner -> Triple(previewed, error, planner) },
-    ) { current, inProgress, settings, extras ->
+    ) { current, livePair, settings, extras ->
+        val inProgress = livePair.first
+        val liveActivity = livePair.second
+        val sessionLive = inProgress != null || liveActivity != null
         val previewed = extras.first
         val error = extras.second
         val planner = extras.third
@@ -195,6 +205,7 @@ class PlanViewModel @JvmOverloads constructor(
             routines = current.routines,
             preferences = settings.preferences,
             inProgress = inProgress,
+            liveActivity = liveActivity,
             loggedEpochDays = current.summaries.map { it.localEpochDay }.toSet(),
             proposals = previewed,
             block = settings.block,
@@ -223,7 +234,7 @@ class PlanViewModel @JvmOverloads constructor(
             rules = planner.rules,
             // Not while a session is live — same guard as Home: the week's one
             // decision must not be burned mid-workout.
-            missedWorkPrompt = inProgress == null && MissedWorkPolicy.promptNeeded(overdue, decision),
+            missedWorkPrompt = !sessionLive && MissedWorkPolicy.promptNeeded(overdue, decision),
             overdueCount = overdue.size,
         )
     }
@@ -640,9 +651,11 @@ class PlanViewModel @JvmOverloads constructor(
         }
     }
 
-    fun onErrorShown() {
+    fun dismissError() {
         actionError.value = null
     }
+
+    fun onErrorShown() = dismissError()
 
     private fun write(failureMessage: String, block: suspend () -> Unit) {
         viewModelScope.launch {
