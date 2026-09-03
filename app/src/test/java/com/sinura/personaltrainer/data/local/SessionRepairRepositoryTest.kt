@@ -123,6 +123,18 @@ class SessionRepairRepositoryTest {
         assertEquals(1, database.workoutDao().setsForExercise(SESSION, SQUAT).size)
     }
 
+    @Test
+    fun discardingAFinishedSessionIsANoOp() = runBlocking {
+        insertSession(SESSION, startedAt = START, finishedAt = FINISH)
+        insertSet(id = "s1", sessionId = SESSION, exerciseId = SQUAT, setNumber = 1, completedAt = START + 1)
+
+        repository.discardSession(SESSION)
+
+        assertNotNull(database.workoutDao().getSessionRow(SESSION))
+        assertEquals(FINISH, database.workoutDao().getSessionRow(SESSION)?.finishedAt)
+        assertEquals(1, database.workoutDao().setsForExercise(SESSION, SQUAT).size)
+    }
+
     // -----------------------------------------------------------------------
     // Start — never a silent resume
     // -----------------------------------------------------------------------

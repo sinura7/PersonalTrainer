@@ -139,6 +139,12 @@ interface WorkoutDao {
     @Query("DELETE FROM workout_sessions WHERE id = :id")
     suspend fun deleteSession(id: String)
 
+    @Query("DELETE FROM workout_sessions WHERE id = :id AND finishedAt IS NULL")
+    suspend fun deleteInProgressSession(id: String): Int
+
+    @Query("DELETE FROM workout_sessions WHERE id = :id AND finishedAt IS NOT NULL")
+    suspend fun deleteFinishedSessionRow(id: String): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertSessionExercise(item: SessionExerciseEntity)
 

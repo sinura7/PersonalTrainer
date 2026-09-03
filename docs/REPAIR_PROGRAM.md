@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1, C2, C3, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase C next is C4. K1 and K2 stay held.  
+`tools/` remain owed. Phase D is next. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -78,7 +78,7 @@ the gym floor, are fifteen of them.
 | C1 | Nothing is born overdue | 1 | — | Week | done |
 | C2 | Rebuild keeps what you added; rules retire | 1 | 5 | Week | done |
 | C3 | Tonight is startable, and today knows the time | 1 | 2 | Week | done |
-| C4 | Planner and session writes are atomic | 1 | — | Week | |
+| C4 | Planner and session writes are atomic | 1 | — | Week | done |
 | D1 | The start sheet gets a home (or a grave) | 1 | 1 | Paths | |
 | D2 | Reminder Start works from anywhere | 1 | — | Paths | |
 | D3 | Live cardio is visible; errors dismiss; drafts survive | 2 | — | Paths | |
@@ -565,12 +565,12 @@ read with no resume trigger (`HomeScreen.kt:173`).~~
 `ui/home/DailyAgendaCard.kt`, new `ui/units/TodayTicker.kt`,
 `ui/home/HomeScreen.kt`, `ui/plan/PlanScreen.kt`, `ui/history/HistoryScreen.kt`.
 
-## C4 — Planner and session writes are atomic
+## C4 — Planner and session writes are atomic · done on `trunk`
 
 **Symptom.** Rare but total: a session that vanishes from the week, or a
 finished workout deleted by a stale screen.
 
-**Cause.** `moveOccurrenceForward` and `moveOccurrenceToDay`
+**Cause.** ~~`moveOccurrenceForward` and `moveOccurrenceToDay`
 (`PlannerRepository.kt:400-464`) mark the old row moved, call WorkManager,
 then write the replacement — none of it in a transaction, and reachable from
 a notification action. `discardSession` (`WorkoutRepository.kt:705-709`)
@@ -579,17 +579,15 @@ screen's Discard can still remove a finished session;
 `ActivityRepository.discard` already does this check inside its transaction.
 `addExerciseToSession`, `RoutineRepository.addExercise` and `moveExercise`,
 and `ExerciseRepository.createCustom`/`updateCustom` have the same
-check-then-act shape, so a double tap can duplicate.
+check-then-act shape, so a double tap can duplicate.~~
+**Struck 2026-09-03 (this packet).** Move writes commit, then the
+scheduler runs. Discard is `DELETE … AND finishedAt IS NULL`.
 
-**Change.** Wrap each in `withTransaction`; move the WorkManager calls after
-the commit so a rollback cannot leave the scheduler diverged. Replace the
-discard guard with a conditional statement —
-`DELETE FROM workout_sessions WHERE id = :id AND finishedAt IS NULL` — and
-the mirror for delete-finished.
+**Change.** Shipped: `withTransaction` on the named writes; WorkManager
+after commit on the two move paths.
 
-**Proof.** An instrumented test that a scheduler failure mid-move leaves a
-consistent week; a repository test that discarding a finished session is a
-no-op.
+**Proof.** `schedulerFailureMidMoveLeavesAConsistentWeek`,
+`discardingAFinishedSessionIsANoOp`.
 
 **Owns.** `data/repository/PlannerRepository.kt` *(after C2)*,
 `data/repository/WorkoutRepository.kt` *(after A1)*,
@@ -1436,6 +1434,13 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — C4: moves commit, then WorkManager.** Proof is JVM,
+not `connectedAndroidTest`. `ensureWeek` / `setRuleHour` still
+schedule inside their existing transactions — the Cause named the
+two move paths. `ExerciseRepository` gained optional `database` like
+`RoutineRepository`. `deleteFinished` keeps throwing on in-progress
+so discard stays the live-session owner. Count +2.
 
 **2026-09-03 — C3: missed is the civil day; ticker at nav.** Decision
 2. `overdue()` dropped the minutes parameter; `apply()` still
