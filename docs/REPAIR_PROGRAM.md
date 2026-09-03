@@ -1,9 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
 **Status:** in progress — Phase A, B3, B4, B1, J4 (seams, TimePort,
-scheduler polish), and the J3 ledger slice are on `trunk`. Policy
-tests into `tools/` remain owed. J2, J3 remainder, J5, and J1 remain.
-Phase C has not started.  
+scheduler polish), and J3 are on `trunk`. Policy tests into `tools/`
+remain owed. J2, J5, and J1 remain. Phase C has not started.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -104,7 +103,7 @@ the gym floor, are fifteen of them.
 | H3 | Row and card vocabulary; landscape; a regression net | 3 | — | Design III | |
 | J1 | The release build is real | 1 | 6 | House | |
 | J2 | The release ratchet and CI pinning | 1 | — | House | |
-| J3 | App size | 1 | — | House | ledger only |
+| J3 | App size | 1 | — | House | done |
 | J4 | Tests stop sleeping | 2 | — | House | partial |
 | J5 | The checkers report what they skip | 1 | — | House | |
 | K1 | *(held)* One signed v5: session time zone and the index census | 2 | — | Schema | held |
@@ -1277,22 +1276,26 @@ the drop and release workflows, which currently run unit tests only.
 **Owns.** `.github/workflows/**`, `tools/check-version-code.py`,
 `tools/released-version-code.txt`, `SETUP.md`.
 
-## J3 — App size
+## J3 — App size · done on `trunk`
 
-**Change.** English-only resource filtering; the Play-only dependency block
-out of the APK; packaging excludes for the debug-probe and metadata files;
-release lint switched on. With E2's smaller stills this is roughly 2.5 MB off
-a 7–9 MB app. Bring Robolectric's Android jar — the largest artifact the
-test suite executes, currently fetched outside the checksum ledger — under
-the ledger with offline resolution, and declare the coroutines Android
-artifact explicitly instead of inheriting it.
+**Change.** Shipped: `localeFilters("en")`; Play `dependenciesInfo` out of
+the APK; packaging excludes `DebugProbesKt.bin` and
+`kotlin-tooling-metadata.json`; `checkReleaseBuilds = true`. Robolectric
+`android-all-instrumented:15-robolectric-13954326-i7` (API 35, the jar
+`DefaultSdkProvider` asks for) is on the test classpath and in the
+checksum ledger; tests run `robolectric.offline=true` against a
+Gradle-copied dir. `kotlinx-coroutines-android` is declared explicitly.
+Ledger regeneration was only this jar + pom; SHA-1 matched Maven
+Central; no `.module` exists upstream; no `<trust>` rule.
 
 **Owns.** `app/build.gradle.kts`, `gradle/verification-metadata.xml`,
-`app/src/test/resources/robolectric.properties`.
+`app/src/test/resources/robolectric.properties`,
+`gradle/libs.versions.toml`.
 
-**Partly done.** The checksum-ledger gaps that were failing every CI run
-were closed on 2 September 2026, ahead of this packet. (See *Floor
-findings*, 2026-09-02.) Everything else in J3 is untouched.
+**Partly done.** ~~The checksum-ledger gaps that were failing every CI
+run were closed on 2 September 2026, ahead of this packet. (See *Floor
+findings*, 2026-09-02.) Everything else in J3 is untouched.~~ **Struck
+2026-09-03 (this packet).** The remainder is shipped.
 
 ## J4 — Tests stop sleeping · 2 evenings
 
@@ -1411,6 +1414,20 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — J3: android-all-instrumented 15-robolectric-13954326-i7.**
+Robolectric 4.16 `DefaultSdkProvider` maps API 35 to revision
+13954326 with `PREINSTRUMENTED_VERSION` 7. No `.module` exists on
+Maven Central; the ledger records jar + pom only. SHA-1 matched
+Central. Tests copy the jar into `build/robolectric-android-all` and
+run `offline=true` so a second fetch cannot bypass the ledger.
+`kotlinx-coroutines-android` 1.10.2 was already in the ledger as a
+transitive; this packet declares it. The instrumented android-all jar
+is resolved into a dedicated configuration and copied for Robolectric
+offline use — it is not `testImplementation`, because putting the
+framework jar on the compile classpath made Kotlin demand
+`$$robo$getData` on every test `Context` subclass. Owns now includes
+`gradle/libs.versions.toml`. Count unchanged.
 
 **2026-09-03 — B1: snapshot collector plus handleDeadline, not a
 handler-only teardown.** Alarm-path completion never started the
