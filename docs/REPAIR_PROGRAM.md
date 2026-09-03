@@ -1,6 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** proposed — not started  
+**Status:** in progress — Phase A, B3, J4 dispatcher seams, and the J3
+ledger slice are on `trunk`. TimePort, B4, B1, J2, J3 remainder, J5,
+and J1 remain. Phase C has not started.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -61,59 +63,59 @@ repo's test bar, not an optimistic hour. The total is about fifty-five;
 phases A–C, which cover everything that misreports your training or breaks
 the gym floor, are fifteen of them.
 
-| # | Packet | Evenings | Needs | Phase |
-|---|---|---|---|---|
-| A1 | Pound progression lands on real plates | 1 | — | Truth |
-| A2 | An edited set refreshes every screen | 1 | — | Truth |
-| A3 | A finished session cannot be un-finished | 1 | — | Truth |
-| A4 | Restore reports what actually happened | 1 | — | Truth |
-| A5 | The coach reads all of your history | 1 | — | Truth |
-| A6 | Records and deload read assisted lifts correctly | 1 | — | Truth |
-| B1 | The rest service stops when the rest does | 2 | — | Timer |
-| B2 | The cue plays where you can hear it | 1 | 3 | Timer |
-| B3 | A late rest still announces itself | 1 | — | Timer |
-| B4 | Timer surfaces stop lying | 1 | — | Timer |
-| C1 | Nothing is born overdue | 1 | — | Week |
-| C2 | Rebuild keeps what you added; rules retire | 1 | 5 | Week |
-| C3 | Tonight is startable, and today knows the time | 1 | 2 | Week |
-| C4 | Planner and session writes are atomic | 1 | — | Week |
-| D1 | The start sheet gets a home (or a grave) | 1 | 1 | Paths |
-| D2 | Reminder Start works from anywhere | 1 | — | Paths |
-| D3 | Live cardio is visible; errors dismiss; drafts survive | 2 | — | Paths |
-| E1 | Stop recomputing everything | 1 | — | Speed |
-| E2 | Thumbnails stop decoding at full size | 2 | — | Speed |
-| E3 | The shell stops recomposing every second | 1 | — | Speed |
-| E4 | Query and recompute hygiene | 2 | — | Speed |
-| F1 | The logging loop keeps the wells on screen | 1 | — | Design I |
-| F2 | One green button per screen | 1 | 4 | Design I |
-| F3 | Text you can read in a gym | 1 | — | Design I |
-| F4 | Big text does not break the screen | 2 | — | Design I |
-| F5 | One word per thing | 1 | — | Design I |
-| F6 | Today is not buried by the missed-work card | 1 | — | Design I |
-| G1 | A screen reader can use Temper | 3 | — | Design II |
-| G2 | One numeric-entry grammar | 1 | — | Design II |
-| G3 | Shared headers and docks | 2 | — | Design II |
-| G4 | Skin the four foreign controls | 2 | — | Design II |
-| G5 | Body's first viewport; small targets; destructive confirms | 1 | — | Design II |
-| G6 | Reduced motion, and the palette question | 1 | — | Design II |
-| H1 | History shows that you got stronger | 2 | — | Design III |
-| H2 | Units and clocks finish what Display started | 2 | — | Design III |
-| H3 | Row and card vocabulary; landscape; a regression net | 3 | — | Design III |
-| J1 | The release build is real | 1 | 6 | House |
-| J2 | The release ratchet and CI pinning | 1 | — | House |
-| J3 | App size | 1 | — | House |
-| J4 | Tests stop sleeping | 2 | — | House |
-| J5 | The checkers report what they skip | 1 | — | House |
-| K1 | *(held)* One signed v5: session time zone and the index census | 2 | — | Schema |
-| K2 | *(held)* The compiler train: Kotlin, AGP, Compose, Room | 4+ | — | Toolchain |
+| # | Packet | Evenings | Needs | Phase | On trunk |
+|---|---|---|---|---|---|
+| A1 | Pound progression lands on real plates | 1 | — | Truth | done |
+| A2 | An edited set refreshes every screen | 1 | — | Truth | done |
+| A3 | A finished session cannot be un-finished | 1 | — | Truth | done |
+| A4 | Restore reports what actually happened | 1 | — | Truth | done |
+| A5 | The coach reads all of your history | 1 | — | Truth | done |
+| A6 | Records and deload read assisted lifts correctly | 1 | — | Truth | done |
+| B1 | The rest service stops when the rest does | 2 | — | Timer | |
+| B2 | The cue plays where you can hear it | 1 | 3 | Timer | |
+| B3 | A late rest still announces itself | 1 | — | Timer | done |
+| B4 | Timer surfaces stop lying | 1 | — | Timer | |
+| C1 | Nothing is born overdue | 1 | — | Week | |
+| C2 | Rebuild keeps what you added; rules retire | 1 | 5 | Week | |
+| C3 | Tonight is startable, and today knows the time | 1 | 2 | Week | |
+| C4 | Planner and session writes are atomic | 1 | — | Week | |
+| D1 | The start sheet gets a home (or a grave) | 1 | 1 | Paths | |
+| D2 | Reminder Start works from anywhere | 1 | — | Paths | |
+| D3 | Live cardio is visible; errors dismiss; drafts survive | 2 | — | Paths | |
+| E1 | Stop recomputing everything | 1 | — | Speed | |
+| E2 | Thumbnails stop decoding at full size | 2 | — | Speed | |
+| E3 | The shell stops recomposing every second | 1 | — | Speed | |
+| E4 | Query and recompute hygiene | 2 | — | Speed | |
+| F1 | The logging loop keeps the wells on screen | 1 | — | Design I | |
+| F2 | One green button per screen | 1 | 4 | Design I | |
+| F3 | Text you can read in a gym | 1 | — | Design I | |
+| F4 | Big text does not break the screen | 2 | — | Design I | |
+| F5 | One word per thing | 1 | — | Design I | |
+| F6 | Today is not buried by the missed-work card | 1 | — | Design I | |
+| G1 | A screen reader can use Temper | 3 | — | Design II | |
+| G2 | One numeric-entry grammar | 1 | — | Design II | |
+| G3 | Shared headers and docks | 2 | — | Design II | |
+| G4 | Skin the four foreign controls | 2 | — | Design II | |
+| G5 | Body's first viewport; small targets; destructive confirms | 1 | — | Design II | |
+| G6 | Reduced motion, and the palette question | 1 | — | Design II | |
+| H1 | History shows that you got stronger | 2 | — | Design III | |
+| H2 | Units and clocks finish what Display started | 2 | — | Design III | |
+| H3 | Row and card vocabulary; landscape; a regression net | 3 | — | Design III | |
+| J1 | The release build is real | 1 | 6 | House | |
+| J2 | The release ratchet and CI pinning | 1 | — | House | |
+| J3 | App size | 1 | — | House | ledger only |
+| J4 | Tests stop sleeping | 2 | — | House | partial |
+| J5 | The checkers report what they skip | 1 | — | House | |
+| K1 | *(held)* One signed v5: session time zone and the index census | 2 | — | Schema | held |
+| K2 | *(held)* The compiler train: Kotlin, AGP, Compose, Room | 4+ | — | Toolchain | held |
 
 ---
 
 # Phase A — Truth
 
-Six packets. Everything here changes a number Temper reports about your
-training, or lets something else change it behind your back. Nothing in a
-later phase matters if these are wrong.
+Six packets, **all on `trunk`.** Everything here changes a number Temper
+reports about your training, or lets something else change it behind your
+back. Nothing in a later phase matters if these are wrong.
 
 ## A1 — Pound progression lands on real plates
 
@@ -393,7 +395,7 @@ Then with Do Not Disturb on, per the decision.
 
 **Owns.** `timer/RestTimerAlerts.kt`, `timer/RestTimerNotifications.kt`.
 
-## B3 — A late rest still announces itself
+## B3 — A late rest still announces itself · done on `trunk`
 
 **Symptom.** Android killed the app during a long rest. The alarm arrives
 more than a minute late — normal, because Android 14 denies precise alarms
@@ -1291,17 +1293,28 @@ loaded machine: ten test files poll with a real 10-millisecond sleep in a
 loop, three encode timing assumptions in 50, 80 and 200-millisecond sleeps,
 and two read the wall clock, so a week boundary can fail them.
 
-**Change.** `runTest` with a standard test dispatcher and value-based waits
-instead of polling; deferred hand-offs instead of sleeps; the injected clock
-instead of `LocalDate.now()`. Move the sixteen "policy" tests that read
-source text from disk into the checkers, where that assertion belongs — the
-JVM suite then measures behaviour only.
+**Change.** ~~`runTest` with a standard test dispatcher and value-based
+waits instead of polling; deferred hand-offs instead of sleeps; the
+injected clock instead of `LocalDate.now()`.~~ **Struck 2026-09-03.**
+The working shape is Robolectric + `runBlocking` +
+`UnconfinedTestDispatcher` + `first { }` on the object the code writes.
+`FakeAppDependencies.scheduler` drives DataStore, IO, and compute.
+Room query = fixed pool of 2 (`room-query-test`); transaction = single
+thread (`room-txn-test`). Do not retry Room-on-dispatcher without
+converting the suite to `runTest`, which is a different packet. Calendar
+`TimePort` and moving the sixteen source-reading policy tests into the
+checkers remain owed.
 
-**Owns.** `app/src/test/**`, `tools/`, and the dispatcher seams in `app/src/main`
-(`AppDependencies.ioDispatcher` / `computeDispatcher`, `AppContainer`,
-`BackupRepository`, and the ViewModels that `flowOn` or `withContext` off the
-test scheduler). Calendar `TimePort` and moving the sixteen source-reading
-policy tests into the checkers remain owed.
+**Owns.** `app/src/test/**`, `tools/`, and the dispatcher seams in
+`app/src/main` (`AppDependencies.ioDispatcher` / `computeDispatcher`,
+`AppContainer`, `BackupRepository`, and the ViewModels that `flowOn` or
+`withContext` off the test scheduler). Calendar `TimePort` sites still
+on the wall clock: `PlanViewModel`, `ProgressViewModel`,
+`CustomWeekViewModel`, `OnboardingViewModel`, `RestTimerViewModel`,
+`ActiveWorkoutViewModel`, `SetMicroRecUi`, `HistoryScreen`.
+`HomeViewModel` uses `todayEpochDay()`, which already takes `TimePort`
+but defaults to `JvmTime`. Policy tests into `tools/` remain owed
+(count-changing; hold until after J5).
 
 ## J5 — The checkers report what they skip
 
@@ -1385,6 +1398,18 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — J4 Change: `runTest` is struck.** The first-half Change
+line named `runTest` plus a standard test dispatcher. The suite that
+passes is Robolectric + `runBlocking` + `UnconfinedTestDispatcher` +
+`first { }`. Converting to `runTest` would re-open Room-as-Executor
+(Unconfined `dispatch` throws unless the caller is `yield`; Standard
+queues work `runBlocking` never pumps). That conversion is a different
+packet. TimePort sites are broader than Progress/Home: `PlanViewModel`,
+`CustomWeekViewModel`, `OnboardingViewModel`, `RestTimerViewModel`,
+`ActiveWorkoutViewModel`, `SetMicroRecUi`, `HistoryScreen`. Home uses
+`todayEpochDay()` defaulting to `JvmTime`, not `LocalDate.now()`. Count
+after B3 is 1652.
 
 **2026-09-03 — B3: playCue on B1-owned RestTimerCompletion.** B3 cannot
 suppress the cue on a late same-boot rest without a `completeOnce`
