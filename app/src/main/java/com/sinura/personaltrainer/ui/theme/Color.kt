@@ -46,8 +46,8 @@ val Hairline = Color(0x14FFFFFF)
 /** Focus rings, the "today" marker, drag handles. White at 14%. */
 val HairlineStrong = Color(0x24FFFFFF)
 
-/** Opaque equivalents, for borders that must not composite with what is behind them. */
-val OutlineSolid = Color(0xFF39434A)
+/** Opaque field and control borders. Unfocused outline is ≥ 3:1 on reading surfaces. */
+val OutlineSolid = Color(0xFF6A757C)
 val OutlineSolidVariant = Color(0xFF1E2429)
 
 /**

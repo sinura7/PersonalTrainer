@@ -20,8 +20,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -57,6 +55,7 @@ import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
+import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentChip
@@ -104,18 +103,12 @@ fun HistoryScreen(
     val dateFormat = remember {
         DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
     }
-    val snackbarHostState = remember { SnackbarHostState() }
     var selectedDayEpoch by rememberSaveable { mutableStateOf<Long?>(null) }
 
     LaunchedEffect(navigateToSession) {
         val target = navigateToSession ?: return@LaunchedEffect
         onOpenActiveSession(target)
         viewModel.onNavigationHandled()
-    }
-    LaunchedEffect(error) {
-        val message = error ?: return@LaunchedEffect
-        snackbarHostState.showSnackbar(message)
-        viewModel.onErrorShown()
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -314,10 +307,15 @@ fun HistoryScreen(
                 }
             }
         }
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter),
-        )
+        error?.let { message ->
+            GymErrorBanner(
+                message = message,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(Metrics.gutter),
+                onDismiss = { viewModel.onErrorShown() },
+            )
+        }
     }
 
     val dayEpoch = selectedDayEpoch

@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.HairlineDivider
+import com.sinura.personaltrainer.ui.components.InstrumentMenu
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -188,7 +188,7 @@ fun LiveSessionBar(
                         modifier = Modifier.size(20.dp),
                     )
                 }
-                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                InstrumentMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     if (state.canFinish) {
                         DropdownMenuItem(
                             text = { Text(LiveBarCopy.finish(state.kind), style = InstrumentType.body) },

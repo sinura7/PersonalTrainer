@@ -147,13 +147,16 @@ fun GymErrorBanner(
 fun GymStatusBanner(
     message: String,
     modifier: Modifier = Modifier,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
     onDismissed: (() -> Unit)? = null,
 ) {
     var visible by remember(message) { mutableStateOf(true) }
+    var acted by remember(message) { mutableStateOf(false) }
     LaunchedEffect(message) {
         delay(STATUS_DWELL_MS)
         visible = false
-        onDismissed?.invoke()
+        if (!acted) onDismissed?.invoke()
     }
     AnimatedVisibility(
         visible = visible,
@@ -166,6 +169,16 @@ fun GymStatusBanner(
             container = Surface2,
             title = message,
             body = null,
+            actionLabel = actionLabel,
+            onAction = if (onAction != null) {
+                {
+                    acted = true
+                    visible = false
+                    onAction()
+                }
+            } else {
+                null
+            },
         )
     }
 }

@@ -18,14 +18,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -57,7 +52,10 @@ import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
+import com.sinura.personaltrainer.ui.components.GymErrorBanner
+import com.sinura.personaltrainer.ui.components.GymStatusBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
+import com.sinura.personaltrainer.ui.components.InstrumentMenu
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
@@ -124,7 +122,6 @@ fun SessionDetailScreen(
     val dateFormat = remember {
         DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
     }
-    val snackbarHostState = remember { SnackbarHostState() }
 
     var menuOpen by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
@@ -142,24 +139,6 @@ fun SessionDetailScreen(
         val target = navigateToSession ?: return@LaunchedEffect
         onOpenActiveSession(target)
         viewModel.onNavigationHandled()
-    }
-    LaunchedEffect(error) {
-        val message = error ?: return@LaunchedEffect
-        snackbarHostState.showSnackbar(message)
-        viewModel.onErrorShown()
-    }
-    LaunchedEffect(deletedSet) {
-        val removed = deletedSet ?: return@LaunchedEffect
-        val outcome = snackbarHostState.showSnackbar(
-            message = "Set deleted · ${removed.weightKg.toWeightLabel(unit)} × ${removed.reps}",
-            actionLabel = "Undo",
-            duration = SnackbarDuration.Short,
-        )
-        if (outcome == SnackbarResult.ActionPerformed) {
-            viewModel.undoDeleteSet()
-        } else {
-            viewModel.onUndoOfferHandled()
-        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -186,7 +165,7 @@ fun SessionDetailScreen(
                                     tint = TextSecondary,
                                 )
                             }
-                            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            InstrumentMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                                 DropdownMenuItem(
                                     text = {
                                         Text(
@@ -296,10 +275,26 @@ fun SessionDetailScreen(
                 }
             }
         }
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter),
-        )
+        error?.let { message ->
+            GymErrorBanner(
+                message = message,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(Metrics.gutter),
+                onDismiss = { viewModel.onErrorShown() },
+            )
+        }
+        deletedSet?.let { removed ->
+            GymStatusBanner(
+                message = "Set deleted · ${removed.weightKg.toWeightLabel(unit)} × ${removed.reps}",
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(Metrics.gutter),
+                actionLabel = "Undo",
+                onAction = { viewModel.undoDeleteSet() },
+                onDismissed = { viewModel.onUndoOfferHandled() },
+            )
+        }
     }
 
     val editing = editingSetId?.let { id -> session?.sets?.firstOrNull { it.id == id } }

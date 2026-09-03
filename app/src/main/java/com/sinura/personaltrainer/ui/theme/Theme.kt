@@ -20,10 +20,10 @@ import androidx.compose.ui.graphics.Color
  * None of it was visible in code review, because no screen file names these roles.
  *
  * The container ladder below is therefore mapped by **which component consumes each role**
- * rather than by nominal ordering. `surfaceContainer` is the darkest of them because the
- * navigation bar sits on it and the navigation bar belongs on the window colour; cards get
- * [Surface2] through `surfaceContainerHighest`. Anything written later that reaches for a
- * container role lands somewhere deliberate.
+ * rather than by nominal ordering. `surfaceContainer` is the sheet colour because
+ * `DropdownMenu` draws on it; the navigation bar is hand-rolled and never reads this
+ * role. Cards get [Surface2] through `surfaceContainerHighest`. Anything written later
+ * that reaches for a container role lands somewhere deliberate.
  *
  * `surfaceTint` is transparent, which switches off Material's tonal-elevation overlay.
  * Left at its default it takes the primary colour, and the one surface in the old app that
@@ -58,8 +58,10 @@ private val InstrumentColorScheme = darkColorScheme(
     onSurfaceVariant = TextSecondary,
     surfaceTint = Color.Transparent,
 
-    inverseSurface = TextPrimary,
-    inverseOnSurface = Pit,
+    // Was TextPrimary: Material Snackbar is the only consumer, and that made it
+    // the one light surface in the app. Menus and banners sit on Surface3.
+    inverseSurface = Surface3,
+    inverseOnSurface = TextPrimary,
 
     error = Danger,
     onError = Pit,
@@ -74,7 +76,7 @@ private val InstrumentColorScheme = darkColorScheme(
     surfaceDim = Pit,
     surfaceContainerLowest = Pit,
     surfaceContainerLow = Surface3,
-    surfaceContainer = Pit,
+    surfaceContainer = Surface3,
     surfaceContainerHigh = Surface3,
     surfaceContainerHighest = Surface2,
 )
