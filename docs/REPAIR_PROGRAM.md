@@ -399,21 +399,19 @@ Then with Do Not Disturb on, per the decision.
 more than a minute late — normal, because Android 14 denies precise alarms
 by default and inexact ones batch — and the rest completes in total silence.
 
-**Cause.** `RestTimerRehydrator` classifies a same-boot expiry older than
-`LATE_ALERT_GRACE_MS` (60 s) as `None`
-(`RestTimerStatePersistence.kt:126, 173-179`) and the controller clears the
-disk row (`RestTimerController.kt:156-159`). `rehydrate()` runs in
-`Application.onCreate`, before the receiver, which then finds nothing and
-treats the rest as already completed
-(`RestTimerAlarmReceiver.kt:63-72`).
+**Cause.** ~~`RestTimerRehydrator` classified a same-boot expiry older
+than `LATE_ALERT_GRACE_MS` (60 s) as `None` and the controller cleared
+the disk row, so a batched alarm found nothing.~~ **Struck 2026-09-03
+(this packet).** Same-boot expiry is always `Expired`. The disk row
+stays until the claim path.
 
-**Change.** Return `Expired(late = true)` for any same-boot expiry; announce
-with the cue inside the grace and post a silent "Rest done" beyond it. Do
-not clear the disk row during `onCreate` — let the claim path clear it, so
-the receiver still has something to claim.
+**Change.** Shipped: `Expired` for any same-boot expiry; cue inside the
+grace; silent "Rest done" beyond it; claim path clears disk. `playCue`
+on `completeOnce` is a B1-file seam — see *Floor findings*.
 
-**Proof.** A rehydration test for a five-minute-late row: the outcome is
-`Expired`, the notification is posted, the cue is suppressed. Red today.
+**Proof.** `aFiveMinuteLateRestIsStillExpiredWithoutACue` and
+`aFiveMinuteLateClaimPostsRestDoneWithoutPlayingTheCue`. Green on this
+branch; +2 vs the 1650 count J4 left.
 
 **Owns.** `timer/RestTimerStatePersistence.kt`,
 `timer/RestTimerController.kt`, `timer/RestTimerAlarmReceiver.kt`.
@@ -1387,6 +1385,14 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — B3: playCue on B1-owned RestTimerCompletion.** B3 cannot
+suppress the cue on a late same-boot rest without a `completeOnce`
+parameter. `timer/RestTimerCompletion.kt` is B1's. This packet adds
+`playCue` rather than announcing unconditionally. Same-boot expiry is
+always `Expired`, never `None` after `LATE_ALERT_GRACE_MS`; the disk
+row stays until the claim path. Cue inside the grace; silent "Rest
+done" beyond it. Count +2 (1652).
 
 **2026-09-02 — J4, second half: the Owns line now includes the production
 dispatcher seams.** The first-half entry below said J4 could not finish

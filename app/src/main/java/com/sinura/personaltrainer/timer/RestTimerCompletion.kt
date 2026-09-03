@@ -31,6 +31,7 @@ object RestTimerCompletion {
         deadlineElapsedRealtime: Long,
         sessionId: String?,
         nowElapsedRealtime: Long = SystemClock.elapsedRealtime(),
+        playCue: Boolean = true,
     ): Boolean {
         val decision = ledger.decide(
             incomingId = incomingTimerId,
@@ -66,14 +67,15 @@ object RestTimerCompletion {
             // Notification manager unavailable; the service teardown still removes it.
         }
 
-        val prefs = try {
-            app?.container?.preferencesRepository?.restTimerPreferences?.first()
-                ?: RestTimerPreferences.DEFAULT
-        } catch (_: Exception) {
-            RestTimerPreferences.DEFAULT
+        if (playCue) {
+            val prefs = try {
+                app?.container?.preferencesRepository?.restTimerPreferences?.first()
+                    ?: RestTimerPreferences.DEFAULT
+            } catch (_: Exception) {
+                RestTimerPreferences.DEFAULT
+            }
+            RestTimerAlerts.announce(appContext, prefs)
         }
-
-        RestTimerAlerts.announce(appContext, prefs)
         RestTimerNotifications.showDone(appContext, sessionId)
         return true
     }

@@ -98,6 +98,7 @@ class RestTimerRehydratorTest {
         assertTrue(outcome is RestTimerRehydration.Expired)
         val expired = outcome as RestTimerRehydration.Expired
         assertEquals(5_000L, expired.lateByMs)
+        assertEquals(true, expired.playCue)
         // The end instant is carried through as the completion dedupe key, so the alarm
         // receiver's call for the same rest is recognised as already handled.
         assertEquals(95_000L, expired.endsAtElapsedRealtime)
@@ -106,17 +107,38 @@ class RestTimerRehydratorTest {
     }
 
     @Test
-    fun aLongDeadRestIsDroppedSilently() {
+    fun aFiveMinuteLateRestIsStillExpiredWithoutACue() {
         val wall = 1_700_000_000_000L
         val elapsed = 900_000L
         val boot = wall - elapsed
-        val lateBy = RestTimerRehydrator.LATE_ALERT_GRACE_MS + 1_000L
+        val lateBy = 5 * 60_000L
         val outcome = RestTimerRehydrator.rehydrate(
             stored(endsAtElapsed = elapsed - lateBy, bootMarker = boot, endsAtWall = wall - lateBy),
             nowElapsedRealtime = elapsed,
             nowWallClockMillis = wall,
         )
-        assertEquals(RestTimerRehydration.None, outcome)
+        assertTrue(outcome is RestTimerRehydration.Expired)
+        val expired = outcome as RestTimerRehydration.Expired
+        assertEquals(lateBy, expired.lateByMs)
+        assertEquals(false, expired.playCue)
+        assertEquals(elapsed - lateBy, expired.endsAtElapsedRealtime)
+        assertEquals("timer-1", expired.timerId)
+    }
+
+    @Test
+    fun aRestAtTheGraceBoundaryStillPlaysTheCue() {
+        val wall = 1_700_000_000_000L
+        val elapsed = 200_000L
+        val boot = wall - elapsed
+        val lateBy = RestTimerRehydrator.LATE_ALERT_GRACE_MS
+        val outcome = RestTimerRehydrator.rehydrate(
+            stored(endsAtElapsed = elapsed - lateBy, bootMarker = boot, endsAtWall = wall - lateBy),
+            nowElapsedRealtime = elapsed,
+            nowWallClockMillis = wall,
+        )
+        val expired = outcome as RestTimerRehydration.Expired
+        assertEquals(lateBy, expired.lateByMs)
+        assertEquals(true, expired.playCue)
     }
 
     @Test
