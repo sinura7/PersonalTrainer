@@ -31,7 +31,6 @@ import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
-import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.timer.exactAlarmSettingsIntent as buildExactAlarmSettingsIntent

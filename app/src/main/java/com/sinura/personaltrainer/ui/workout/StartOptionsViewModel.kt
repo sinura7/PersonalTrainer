@@ -13,7 +13,7 @@ import com.sinura.personaltrainer.domain.HomeToday
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.TodaySheetStart
 import com.sinura.personaltrainer.domain.WeekBoard
-import com.sinura.personaltrainer.domain.todayEpochDay
+import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.workout.StartCardioOutcome
 import com.sinura.personaltrainer.workout.StartDayOutcome
 import com.sinura.personaltrainer.workout.StartOccurrenceOutcome
@@ -23,7 +23,6 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.OwnedLiftResolver
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.WorkoutSession
-import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.workout.DiscardOutcome
 import kotlinx.coroutines.flow.asStateFlow
@@ -185,7 +184,7 @@ class StartOptionsViewModel @JvmOverloads constructor(
                 when (
                     val outcome = container.startLiveCardio(
                         type = CardioType.RUN,
-                        now = JvmTime.captureNow(),
+                        now = time.captureNow(),
                         title = "Cardio",
                     )
                 ) {

@@ -10,7 +10,6 @@ import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.InsightFailure
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.TrainingRecommendation
-import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -102,7 +101,7 @@ class ProgressViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             val weekStart = container.preferencesRepository.schedulePreferences.first().weekStart
             val start = LighterWeek.weekStartEpochDay(
-                today = com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(LocalDate.now().toEpochDay()),
+                today = civilToday(),
                 weekStart = weekStart,
             )
             container.preferencesRepository.setLighterWeekStartEpochDay(start)

@@ -20,7 +20,7 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.domain.Weekday
-import java.time.LocalDate
+import com.sinura.personaltrainer.util.toLocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -331,7 +331,7 @@ class OnboardingViewModel @JvmOverloads constructor(
                 blueprint = blueprint,
                 catalog = catalog.value,
                 weekStart = weekStart.value,
-                today = LocalDate.now(),
+                today = civilToday().toLocalDate(),
             )
             applying.value = false
             when (result) {
@@ -343,7 +343,7 @@ class OnboardingViewModel @JvmOverloads constructor(
                     runCatchingCancellable {
                         container.plannerRepository.publishPinnedWeek(
                             weekStart.value,
-                            LocalDate.now().toEpochDay(),
+                            todayEpochDay(),
                         )
                     }.onFailure { AppLog.w(TAG, "Publishing the plan to Home failed", it) }
                     error.value = null

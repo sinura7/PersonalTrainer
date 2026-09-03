@@ -59,7 +59,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 
 private const val TAG = "PT/ActiveWorkoutVM"
 
@@ -379,6 +378,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             lighterWeek = extras.second,
             unit = extras.third,
             wantAnotherSet = core.wantAnother,
+            nowMs = time.nowMillis(),
+            todayEpochDay = todayEpochDay(),
         )
     }.stateIn(
         scope = viewModelScope,
@@ -547,7 +548,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         restTotal.value = RestTimer.secondsToStart(planned?.restSeconds, restPrefs)
         val schedule = container.preferencesRepository.schedulePreferences.first()
         val thisWeek = LighterWeek.weekStartEpochDay(
-            com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(LocalDate.now().toEpochDay()),
+            civilToday(),
             schedule.weekStart,
         )
         val lighter = LighterWeek.isCurrent(
@@ -1012,6 +1013,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             lighterWeek = lighterWeek.value,
             unit = cachedWeightUnit,
             wantAnotherSet = wantAnotherSet.value,
+            nowMs = time.nowMillis(),
+            todayEpochDay = todayEpochDay(),
         ) ?: return
         if (!rec.showApply || rec.previewOnly || rec.reasonCode == SetMicroRecCalculator.LIFT_DONE) {
             return

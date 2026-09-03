@@ -21,7 +21,7 @@ import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.domain.Weekday
-import java.time.LocalDate
+import com.sinura.personaltrainer.util.toLocalDate
 import java.util.UUID
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -275,7 +275,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
             val result = container.onboardingApplier.applyCustom(
                 days = snapshot,
                 weekStart = weekStart.value,
-                today = LocalDate.now(),
+                today = civilToday().toLocalDate(),
                 answers = guidedAnswers,
             )
             applying.value = false
@@ -288,7 +288,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
                     runCatchingCancellable {
                         container.plannerRepository.publishPinnedWeek(
                             weekStart.value,
-                            LocalDate.now().toEpochDay(),
+                            todayEpochDay(),
                         )
                     }.onFailure { AppLog.w(TAG, "Publishing the custom week to Home failed", it) }
                     error.value = null

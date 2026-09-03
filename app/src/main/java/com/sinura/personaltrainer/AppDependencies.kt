@@ -26,6 +26,7 @@ import com.sinura.personaltrainer.workout.StartLiveCardio
 import com.sinura.personaltrainer.workout.StartOccurrence
 import com.sinura.personaltrainer.workout.StartTrainingDay
 import com.sinura.personaltrainer.workout.WorkoutDraftCache
+import com.sinura.personaltrainer.domain.TimePort
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -49,6 +50,8 @@ interface AppDependencies {
      * emissions stay on the scheduler.
      */
     val computeDispatcher: CoroutineDispatcher
+
+    val time: TimePort
 
     val dbMaintenance: DbMaintenance
     val exerciseRepository: ExerciseRepository

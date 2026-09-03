@@ -97,6 +97,7 @@ class FakeAppDependencies(
     prefsDispatcher: CoroutineDispatcher = scheduler ?: Dispatchers.IO,
     override val ioDispatcher: CoroutineDispatcher = scheduler ?: Dispatchers.IO,
     override val computeDispatcher: CoroutineDispatcher = scheduler ?: Dispatchers.Default,
+    override val time: com.sinura.personaltrainer.domain.TimePort = JvmTime,
 ) : AppDependencies {
     /**
      * Real threads, not the test scheduler. See the constructor KDoc on why Room stays
@@ -128,7 +129,7 @@ class FakeAppDependencies(
     override val plannerRepository: PlannerRepository = PlannerRepository(
         database = database,
         scheduler = NoOpReminderScheduler(),
-        time = JvmTime,
+        time = time,
     )
     override val pendingOccurrenceId = MutableStateFlow<String?>(null)
     override val workoutRepository: WorkoutRepository =
@@ -157,11 +158,11 @@ class FakeAppDependencies(
         onOccurrenceCompleted = { plannerRepository.cancelRemindersFor(it) },
     )
     override val confirmActivity: ConfirmActivity =
-        ConfirmActivity(activityRepository, IdFactory.Uuid, JvmTime)
+        ConfirmActivity(activityRepository, IdFactory.Uuid, time)
     override val startLiveActivity: StartLiveActivity =
-        StartLiveActivity(activityRepository, IdFactory.Uuid, JvmTime)
+        StartLiveActivity(activityRepository, IdFactory.Uuid, time)
     override val discardActivity: DiscardActivity = DiscardActivity(activityRepository)
-    override val finishActivity: FinishActivity = FinishActivity(activityRepository, JvmTime)
+    override val finishActivity: FinishActivity = FinishActivity(activityRepository, time)
     override val cardioTimerPersistence: CardioTimerPersistence = InMemoryCardioTimerPersistence()
     override val startLiveCardio: StartLiveCardio = StartLiveCardio(
         startLiveActivity = startLiveActivity,

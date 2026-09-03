@@ -12,6 +12,7 @@ import com.sinura.personaltrainer.domain.BlockReview
 import com.sinura.personaltrainer.domain.BlockReviewBuilder
 import com.sinura.personaltrainer.domain.BodyweightEntry
 import com.sinura.personaltrainer.domain.CivilDate
+import com.sinura.personaltrainer.domain.CivilYearMonth
 import com.sinura.personaltrainer.domain.DailyProjectionBuilder
 import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.HistoryMonthGroup
@@ -28,10 +29,8 @@ import com.sinura.personaltrainer.domain.groupHistoryByMonth
 import com.sinura.personaltrainer.domain.prSummary
 import com.sinura.personaltrainer.domain.toHistoryEntry
 import com.sinura.personaltrainer.domain.toInsightSession
-import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.insights.TrainingInsightsSource
 import com.sinura.personaltrainer.logging.AppLog
-import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.util.toCivilYearMonth
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -54,11 +53,12 @@ data class HistoryUiState(
     val summaries: List<SessionSummary> = emptyList(),
     val monthGroups: List<HistoryMonthGroup> = emptyList(),
     val records: List<PrSummaryRow> = emptyList(),
-    val calendar: TrainingMonth = TrainingMonth(month = YearMonth.now().toCivilYearMonth()),
+    val calendar: TrainingMonth = TrainingMonth(month = CivilYearMonth(1970, 1)),
     val weekStart: Weekday = Weekday.MONDAY,
     val pastBlocks: List<FinishedBlock> = emptyList(),
     val horizon: AnalyticsHorizon = AnalyticsHorizon.MONTH,
     val horizonTotals: HorizonTotals? = null,
+    val today: CivilDate = CivilDate.of(1970, 1, 1),
 )
 
 data class FinishedBlock(
@@ -71,7 +71,7 @@ class HistoryViewModel @JvmOverloads constructor(
     application: Application,
     container: AppDependencies = application.appContainer(),
 ) : AppViewModel(application, container) {
-    private val visibleMonth = MutableStateFlow(YearMonth.now())
+    private val visibleMonth = MutableStateFlow(yearMonthOf(civilToday()))
     private val horizon = MutableStateFlow(AnalyticsHorizon.MONTH)
 
     private val _navigateToSession = MutableStateFlow<String?>(null)
@@ -92,15 +92,15 @@ class HistoryViewModel @JvmOverloads constructor(
     ) { blocks, unit, log -> PastBlockInputs(blocks, unit, log) }
         .flatMapLatest { inputs ->
             flow {
-                val zone = JvmTime.defaultZoneId()
+                val zone = time.defaultZoneId()
                 val reviews = inputs.blocks
                     .asReversed()
                     .map { block ->
-                        val startMs = JvmTime.startOfDayMillis(
+                        val startMs = time.startOfDayMillis(
                             CivilDate.fromEpochDay(block.startEpochDay),
                             zone,
                         )
-                        val endMs = JvmTime.startOfDayMillis(
+                        val endMs = time.startOfDayMillis(
                             CivilDate.fromEpochDay(block.endExclusiveEpochDay),
                             zone,
                         ) - 1
@@ -114,6 +114,8 @@ class HistoryViewModel @JvmOverloads constructor(
                                 block = block,
                                 sessions = sessions,
                                 unit = inputs.unit,
+                                time = time,
+                                zoneId = zone,
                                 bodyweightLog = inputs.bodyweightLog,
                             ),
                         )
@@ -130,10 +132,10 @@ class HistoryViewModel @JvmOverloads constructor(
                 container.activityRepository.observeCompletedSummaries(),
                 combine(
                     container.workoutRepository.observeFinishedSince(
-                        System.currentTimeMillis() - TrainingInsightsSource.WINDOW_MS,
+                        time.nowMillis() - TrainingInsightsSource.WINDOW_MS,
                     ),
                     container.activityRepository.observeCompletedGraphsSince(
-                        System.currentTimeMillis() - TrainingInsightsSource.WINDOW_MS,
+                        time.nowMillis() - TrainingInsightsSource.WINDOW_MS,
                     ),
                 ) { workouts, activities -> workouts to activities },
             ) { health, activitySummaries, windowed ->
@@ -154,7 +156,7 @@ class HistoryViewModel @JvmOverloads constructor(
             val allSummaries = list.summaries + activitySummaries
             val preferences = settings.first
             val projections = DailyProjectionBuilder.project(allSummaries)
-            val today = CivilDate.fromEpochDay(todayEpochDay())
+            val today = civilToday()
             HistoryUiState(
                 isLoading = false,
                 stale = list.stale,
@@ -177,6 +179,7 @@ class HistoryViewModel @JvmOverloads constructor(
                     today = today,
                     weekStart = preferences.weekStart,
                 ),
+                today = today,
             )
         }
     }
@@ -193,7 +196,7 @@ class HistoryViewModel @JvmOverloads constructor(
 
     fun showNextMonth() {
         val next = visibleMonth.value.plusMonths(1)
-        if (next <= YearMonth.now()) visibleMonth.value = next
+        if (next <= yearMonthOf(civilToday())) visibleMonth.value = next
     }
 
     fun setHorizon(value: AnalyticsHorizon) {
@@ -251,6 +254,8 @@ class HistoryViewModel @JvmOverloads constructor(
         val unit: WeightUnit,
         val bodyweightLog: List<BodyweightEntry>,
     )
+
+    private fun yearMonthOf(date: CivilDate): YearMonth = YearMonth.of(date.year, date.month)
 }
 
 internal data class HistoryListState(
