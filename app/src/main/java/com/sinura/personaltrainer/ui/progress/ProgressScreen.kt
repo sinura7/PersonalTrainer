@@ -54,6 +54,7 @@ import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.workout.StartSheetOpener
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.instrumentAnimateItem
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.Surface3
@@ -198,7 +199,7 @@ fun ProgressScreen(
                                         null -> Unit
                                     }
                                 },
-                                modifier = Modifier.animateItem(),
+                                modifier = instrumentAnimateItem(),
                             )
                         }
                     }

@@ -68,6 +68,7 @@ import com.sinura.personaltrainer.ui.navigation.LiveBarCopy
 import com.sinura.personaltrainer.ui.navigation.LiveBarKind
 import com.sinura.personaltrainer.ui.workout.StartSheetOpener
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.instrumentAnimateItem
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.Radius
@@ -234,8 +235,7 @@ fun HistoryScreen(
                                 key = { _, entry -> entry.id },
                             ) { index, entry ->
                                 Column(
-                                    modifier = Modifier
-                                        .animateItem()
+                                    modifier = instrumentAnimateItem()
                                         // Shape computed WITHIN the group, so each month reads
                                         // as its own panel with rounded ends.
                                         .clip(groupedRowShape(index, group.entries.size))

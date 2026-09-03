@@ -5,7 +5,6 @@ import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -46,6 +45,8 @@ import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
+import com.sinura.personaltrainer.ui.theme.instrumentTween
+import com.sinura.personaltrainer.ui.theme.recordEnter
 import com.sinura.personaltrainer.ui.theme.PrGold
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Surface2
@@ -154,14 +155,14 @@ fun GymStatusBanner(
     var visible by remember(message) { mutableStateOf(true) }
     var acted by remember(message) { mutableStateOf(false) }
     LaunchedEffect(message) {
-        delay(STATUS_DWELL_MS)
+        delay(Motion.STATUS_DWELL_MS)
         visible = false
         if (!acted) onDismissed?.invoke()
     }
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(tween(Motion.FAST)),
-        exit = fadeOut(tween(Motion.FAST)),
+        enter = fadeIn(instrumentTween(Motion.FAST)),
+        exit = fadeOut(instrumentTween(Motion.FAST)),
         modifier = modifier,
     ) {
         InstrumentBanner(
@@ -222,16 +223,18 @@ fun PersonalRecordBanner(
             animate(
                 initialValue = 1f,
                 targetValue = 0f,
-                animationSpec = tween(durationMillis = 900, delayMillis = 120),
+                animationSpec = tween(
+                    durationMillis = Motion.FLASH_MS,
+                    delayMillis = Motion.FLASH_DELAY_MS,
+                ),
             ) { value, _ -> flash = value }
         }
     }
 
     AnimatedVisibility(
         visible = visible,
-        enter = scaleIn(initialScale = 0.92f, animationSpec = Motion.celebrate()) +
-            fadeIn(tween(Motion.FAST)),
-        exit = fadeOut(tween(Motion.FAST)),
+        enter = recordEnter(),
+        exit = fadeOut(instrumentTween(Motion.FAST)),
         modifier = modifier,
     ) {
         val shape = RoundedCornerShape(Radius.md)
@@ -288,4 +291,3 @@ fun GymNoticeBanner(
     )
 }
 
-private const val STATUS_DWELL_MS = 2_600L

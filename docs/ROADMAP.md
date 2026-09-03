@@ -15,6 +15,9 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 3 Sep 2026 — G6: reduced motion finishes the gate; Volt/PrGold/Warn
+> collisions stay with a mandatory non-colour channel (ADR-023).
+>
 > 3 Sep 2026 — G5: Body figure 45% (300–440), legend above the
 > silhouette, calendar cells 48 dp, Plan-day Remove confirms in
 > danger ink, idle Start rest is Volt.

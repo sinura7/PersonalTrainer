@@ -66,6 +66,7 @@ import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenHeader
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.theme.Danger
+import com.sinura.personaltrainer.ui.theme.instrumentAnimateItem
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
@@ -242,7 +243,7 @@ fun ExerciseLibraryScreen(
                                     )
                                 }
                                 items(state.needsAttention, key = { "attention-${it.id}" }) { custom ->
-                                    Column(modifier = Modifier.animateItem()) {
+                                    Column(modifier = instrumentAnimateItem()) {
                                         CollisionRow(
                                             exercise = custom,
                                             onRename = { viewModel.openEdit(custom) },
@@ -257,7 +258,7 @@ fun ExerciseLibraryScreen(
                                     if (family.plain) {
                                         val only = family.members.single()
                                         item(key = only.id) {
-                                            Column(modifier = Modifier.animateItem()) {
+                                            Column(modifier = instrumentAnimateItem()) {
                                                 LibraryRow(
                                                     exercise = only,
                                                     onOpen = { onOpenExercise(only.id) },
@@ -277,7 +278,7 @@ fun ExerciseLibraryScreen(
                                         }
                                         if (family.movementKey in state.expandedFamilies) {
                                             items(family.members, key = { it.id }) { exercise ->
-                                                Column(modifier = Modifier.animateItem()) {
+                                                Column(modifier = instrumentAnimateItem()) {
                                                     LibraryRow(
                                                         exercise = exercise,
                                                         onOpen = { onOpenExercise(exercise.id) },
@@ -295,7 +296,7 @@ fun ExerciseLibraryScreen(
                                     state.visibleExercises,
                                     key = { _, exercise -> exercise.id },
                                 ) { index, exercise ->
-                                    Column(modifier = Modifier.animateItem()) {
+                                    Column(modifier = instrumentAnimateItem()) {
                                         LibraryRow(
                                             exercise = exercise,
                                             onOpen = { onOpenExercise(exercise.id) },

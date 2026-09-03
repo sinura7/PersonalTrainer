@@ -3,9 +3,6 @@ package com.sinura.personaltrainer.ui.summary
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateIntAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -64,6 +61,9 @@ import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
+import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
+import com.sinura.personaltrainer.ui.theme.instrumentTween
+import com.sinura.personaltrainer.ui.theme.recordEnter
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.PrGold
 import com.sinura.personaltrainer.ui.theme.Radius
@@ -226,7 +226,7 @@ private fun SummaryHero(summary: WorkoutSummary, unit: WeightUnit) {
     }
     val shown by animateIntAsState(
         targetValue = if (counting) target else 0,
-        animationSpec = tween(durationMillis = Motion.DRAW, easing = Motion.Standard),
+        animationSpec = instrumentTween(Motion.DRAW),
         label = "summary-volume",
     )
 
@@ -293,9 +293,14 @@ private fun PersonalRecordPanel(summary: WorkoutSummary, modifier: Modifier = Mo
             .map { it.exerciseName to it.records.joinToString(" · ") { kind -> kind.celebrationLabel } }
     }
     var revealed by rememberSaveable { mutableIntStateOf(0) }
-    LaunchedEffect(lines.size) {
+    val reduced = LocalReducedMotion.current
+    LaunchedEffect(lines.size, reduced) {
+        if (reduced) {
+            revealed = lines.size
+            return@LaunchedEffect
+        }
         while (revealed < lines.size) {
-            delay(RECORD_STAGGER_MS)
+            delay(Motion.RECORD_STAGGER_MS)
             revealed += 1
         }
     }
@@ -327,8 +332,7 @@ private fun PersonalRecordPanel(summary: WorkoutSummary, modifier: Modifier = Mo
         lines.forEachIndexed { index, (name, detail) ->
             AnimatedVisibility(
                 visible = index < revealed,
-                enter = scaleIn(initialScale = 0.92f, animationSpec = Motion.celebrate()) +
-                    fadeIn(tween(Motion.FAST)),
+                enter = recordEnter(),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
                     Text(name, style = InstrumentType.bodyStrong, color = TextPrimary)
@@ -434,5 +438,4 @@ private val PersonalRecordKind.celebrationLabel: String
         PersonalRecordKind.REPS -> "Most reps ever"
     }
 
-private const val RECORD_STAGGER_MS = 140L
 private const val RECORD_BORDER_ALPHA = 0.35f
