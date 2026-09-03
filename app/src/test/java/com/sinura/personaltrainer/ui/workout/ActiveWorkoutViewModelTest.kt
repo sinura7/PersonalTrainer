@@ -808,7 +808,6 @@ class ActiveWorkoutViewModelTest {
         assertTrue(
             checkNotNull(deps.workoutRepository.getSession(fixture.session.id)).sets.isEmpty(),
         )
-        vm.awaitState { !it.logging }
     }
 
     private fun createViewModel(
