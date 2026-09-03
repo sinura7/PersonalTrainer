@@ -19,6 +19,7 @@ import com.sinura.personaltrainer.ui.theme.systemReduceMotion
 class MainActivity : ComponentActivity() {
     private var openSessionId by mutableStateOf<String?>(null)
     private var openOccurrenceId by mutableStateOf<String?>(null)
+    private var reviewOccurrenceId by mutableStateOf<String?>(null)
     private var reduceMotion by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,6 +32,11 @@ class MainActivity : ComponentActivity() {
         openSessionId = if (savedInstanceState == null) consumeSessionId(intent) else null
         openOccurrenceId = if (savedInstanceState == null) {
             ReminderNotifications.consumeOccurrenceId(intent)
+        } else {
+            null
+        }
+        reviewOccurrenceId = if (savedInstanceState == null) {
+            ReminderNotifications.consumeReviewOccurrenceId(intent)
         } else {
             null
         }
@@ -51,6 +57,8 @@ class MainActivity : ComponentActivity() {
                     onOpenSessionConsumed = { openSessionId = null },
                     openOccurrenceId = openOccurrenceId,
                     onOpenOccurrenceConsumed = { openOccurrenceId = null },
+                    reviewOccurrenceId = reviewOccurrenceId,
+                    onReviewOccurrenceConsumed = { reviewOccurrenceId = null },
                 )
             }
         }
@@ -71,6 +79,7 @@ class MainActivity : ComponentActivity() {
         consumeSessionId(intent)?.let { openSessionId = it }
         val occurrenceId = ReminderNotifications.consumeOccurrenceId(intent)
         occurrenceId?.let { openOccurrenceId = it }
+        ReminderNotifications.consumeReviewOccurrenceId(intent)?.let { reviewOccurrenceId = it }
         consumeStartedDelivery(intent, occurrenceId)
     }
 

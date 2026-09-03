@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1, D2, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase D continues at D2. K1 and K2 stay held.  
+`tools/` remain owed. Phase D continues at D3. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -80,7 +80,7 @@ the gym floor, are fifteen of them.
 | C3 | Tonight is startable, and today knows the time | 1 | 2 | Week | done |
 | C4 | Planner and session writes are atomic | 1 | — | Week | done |
 | D1 | The start sheet gets a home (or a grave) | 1 | 1 | Paths | done |
-| D2 | Reminder Start works from anywhere | 1 | — | Paths | |
+| D2 | Reminder Start works from anywhere | 1 | — | Paths | done |
 | D3 | Live cardio is visible; errors dismiss; drafts survive | 2 | — | Paths | |
 | E1 | Stop recomputing everything | 1 | — | Speed | |
 | E2 | Thumbnails stop decoding at full size | 2 | — | Speed | |
@@ -632,7 +632,7 @@ Cardio-discard is guarded like the live bar. Sheet duration uses
 `ui/navigation/AppNav.kt`, `ui/progress/ProgressScreen.kt`,
 `ui/history/HistoryScreen.kt`, `ui/plan/PlanScreen.kt`.
 
-## D2 — Reminder Start works from anywhere
+## D2 — Reminder Start works from anywhere · done on `trunk`
 
 **Symptom.** Tap **Start** on a workout reminder while the app happens to be
 open on Settings: the notification vanishes, Temper records that you started
@@ -640,24 +640,26 @@ open on Settings: the notification vanishes, Temper records that you started
 with no confirm, possibly hours later. Tapping the notification's *body*,
 which should just show you the day, also starts the workout.
 
-**Cause.** `openOccurrenceId` is handed only to the Home destination
+**Cause.** ~~`openOccurrenceId` is handed only to the Home destination
 (`AppNav.kt:408-409`) and consumed by a `LaunchedEffect` inside `HomeScreen`
 (`:105-109`) that calls `startOccurrence` directly, while `MainActivity`
 (`:68-88`) has already cancelled the notification and marked the delivery
 started. The content intent (`ReminderNotifications.kt:119-129`) carries the
-same occurrence extra as the Start action, so both do the same thing.
+same occurrence extra as the Start action, so both do the same thing.~~
+**Struck 2026-09-03 (this packet).** Nav root switches to Home first.
+Content intent uses `EXTRA_REVIEW_OCCURRENCE_ID`. Missing ids surface
+`ReminderCopy.GONE`.
 
-**Change.** Consume the occurrence at the navigation root: switch to the
-Home tab first, then hand it on. Give the content intent a distinct extra
-that selects the day and opens the ADR-018 confirm rather than starting.
-Surface a message when the id no longer resolves, instead of returning
-silently after the notification has already been dismissed.
+**Change.** Shipped: consume at the navigation root; body tap confirms;
+Start starts.
 
-**Proof.** A navigation test that a Start launch received while Settings is
-foreground lands on Home and starts; a test that the body tap opens the
-confirm and starts nothing.
+**Proof.** `startWhileAnotherTabIsForegroundLandsOnHome`,
+`reminderStartStartsTheOccurrence`,
+`reminderReviewOpensConfirmAndStartsNothing`,
+`reviewLaunchCarriesOnlyTheReviewExtra`,
+`missingReminderStartSurfacesAMessage`.
 
-**Owns.** `ui/navigation/AppNav.kt`, `MainActivity.kt`,
+**Owns.** `ui/navigation/AppNav.kt` *(after D1)*, `MainActivity.kt`,
 `reminder/ReminderNotifications.kt`, `ui/home/HomeViewModel.kt`.
 
 ## D3 — Live cardio is visible; errors dismiss; drafts survive · 2 evenings
@@ -1435,6 +1437,13 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — D2: reminder Start at nav root.** Proof is JVM
+(`ReminderHandoff` + HomeViewModel start/review), not a composed
+Settings-foreground instrumented test. `HomeScreen` and
+`DailyAgendaCard` host the confirm id — not in Owns.
+`ReminderCopy.GONE` lives on the existing Settings copy object.
+Count +8.
 
 **2026-09-03 — D1: one sheet at AppNav, quiet openers.** Decision 1
 restore. Proof is JVM (`StartOptionsNav` + composer `past` +

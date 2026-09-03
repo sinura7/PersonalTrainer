@@ -75,6 +75,8 @@ fun HomeScreen(
     onBuildWeek: () -> Unit = {},
     pendingOccurrenceStartId: String? = null,
     onPendingOccurrenceConsumed: () -> Unit = {},
+    pendingOccurrenceReviewId: String? = null,
+    onPendingOccurrenceReviewConsumed: () -> Unit = {},
     viewModel: HomeViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -106,6 +108,11 @@ fun HomeScreen(
         val id = pendingOccurrenceStartId ?: return@LaunchedEffect
         viewModel.startOccurrence(id)
         onPendingOccurrenceConsumed()
+    }
+    LaunchedEffect(pendingOccurrenceReviewId) {
+        val id = pendingOccurrenceReviewId ?: return@LaunchedEffect
+        viewModel.reviewOccurrence(id)
+        onPendingOccurrenceReviewConsumed()
     }
     val blocked by viewModel.blockedByInProgress.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
@@ -174,11 +181,18 @@ fun HomeScreen(
     val weekStart = state.weekStartEpochDay.takeIf { it != 0L }
         ?: today
     var selectedEpochDay by rememberSaveable { mutableLongStateOf(today) }
+    val reviewOccurrenceId by viewModel.reviewOccurrenceId.collectAsStateWithLifecycle()
+    val focusEpochDay by viewModel.focusEpochDay.collectAsStateWithLifecycle()
     LaunchedEffect(weekStart, today) {
         val end = weekStart + 6
         if (selectedEpochDay !in weekStart..end) {
             selectedEpochDay = today.coerceIn(weekStart, end)
         }
+    }
+    LaunchedEffect(focusEpochDay) {
+        val day = focusEpochDay ?: return@LaunchedEffect
+        selectedEpochDay = day
+        viewModel.onFocusEpochDayHandled()
     }
     val plan = state.weekPlan
     val names = remember(state.routines) { state.routines.associate { it.id to it.name } }
@@ -313,6 +327,8 @@ fun HomeScreen(
                         epochDay = selectedEpochDay,
                         quietStart = state.missedWorkPrompt,
                         canEditDay = selectedEpochDay >= today,
+                        confirmOccurrenceId = reviewOccurrenceId,
+                        onConfirmOccurrenceConsumed = viewModel::onReviewOccurrenceHandled,
                         onMoveOccurrence = { occurrenceId, delta ->
                             viewModel.moveDayBlock(selectedAgenda, occurrenceId, delta)
                         },

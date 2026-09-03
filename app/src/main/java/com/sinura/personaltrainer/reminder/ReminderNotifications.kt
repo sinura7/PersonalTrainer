@@ -24,6 +24,7 @@ object ReminderNotifications {
     const val ACTION_MOVE = "com.sinura.personaltrainer.REMINDER_MOVE"
     const val ACTION_SKIP = "com.sinura.personaltrainer.REMINDER_SKIP"
     const val EXTRA_OCCURRENCE_ID = "occurrence_id"
+    const val EXTRA_REVIEW_OCCURRENCE_ID = "review_occurrence_id"
     const val EXTRA_DELIVERY_ID = "delivery_id"
 
     fun ensureChannel(context: Context) {
@@ -83,6 +84,16 @@ object ReminderNotifications {
         return id.takeIf { it.isNotBlank() }
     }
 
+    /**
+     * Body tap: show the day and the ADR-018 confirm. Never starts,
+     * and never marks the delivery STARTED.
+     */
+    fun consumeReviewOccurrenceId(intent: Intent?): String? {
+        val id = intent?.getStringExtra(EXTRA_REVIEW_OCCURRENCE_ID) ?: return null
+        intent.removeExtra(EXTRA_REVIEW_OCCURRENCE_ID)
+        return id.takeIf { it.isNotBlank() }
+    }
+
     /** Reads and strips the delivery id a Start-action launch carries. */
     fun consumeStartedDeliveryId(intent: Intent?): String? {
         val id = intent?.getStringExtra(EXTRA_DELIVERY_ID) ?: return null
@@ -98,33 +109,45 @@ object ReminderNotifications {
      * nothing. MainActivity marks the delivery STARTED when it consumes
      * the extras.
      */
+    internal fun startLaunchIntent(
+        context: Context,
+        occurrenceId: String,
+        deliveryId: String,
+    ): Intent = Intent(context, MainActivity::class.java).apply {
+        action = ACTION_START
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        putExtra(EXTRA_OCCURRENCE_ID, occurrenceId)
+        putExtra(EXTRA_DELIVERY_ID, deliveryId)
+    }
+
+    /**
+     * Content tap. Distinct extra so looking at the day does not start
+     * the session the Start action owns.
+     */
+    internal fun reviewLaunchIntent(context: Context, occurrenceId: String): Intent =
+        Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(EXTRA_REVIEW_OCCURRENCE_ID, occurrenceId)
+        }
+
     private fun startApp(
         context: Context,
         occurrenceId: String,
         deliveryId: String,
     ): PendingIntent {
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra(EXTRA_OCCURRENCE_ID, occurrenceId)
-            putExtra(EXTRA_DELIVERY_ID, deliveryId)
-        }
         return PendingIntent.getActivity(
             context,
             ("start" + occurrenceId).hashCode(),
-            intent,
+            startLaunchIntent(context, occurrenceId, deliveryId),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
     }
 
     private fun openApp(context: Context, occurrenceId: String): PendingIntent {
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra(EXTRA_OCCURRENCE_ID, occurrenceId)
-        }
         return PendingIntent.getActivity(
             context,
             occurrenceId.hashCode(),
-            intent,
+            reviewLaunchIntent(context, occurrenceId),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
     }

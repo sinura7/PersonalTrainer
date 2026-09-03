@@ -2,7 +2,9 @@ package com.sinura.personaltrainer.domain
 
 /**
  * Settings copy for workout reminders. Quiet hours are stored; this is
- * the readout and the permission recovery sentence.
+ * the readout and the permission recovery sentence. [GONE] is the
+ * shade tap whose plan row is already gone — the notification was
+ * dismissed and the gym still needs a sentence.
  */
 object ReminderCopy {
     const val SWITCH_TITLE = "Reminders"
@@ -13,6 +15,7 @@ object ReminderCopy {
     const val PERMISSION_BODY =
         "This phone has not allowed notifications. Reminders stay silent until you turn them on."
     const val PERMISSION_ACTION = "Turn on"
+    const val GONE = "That session is no longer on the plan."
 
     val quietStartHours: List<Int> = listOf(20, 21, 22, 23)
     val quietEndHours: List<Int> = listOf(5, 6, 7, 8)

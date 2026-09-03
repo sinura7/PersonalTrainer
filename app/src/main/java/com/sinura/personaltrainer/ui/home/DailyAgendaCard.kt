@@ -76,6 +76,8 @@ fun DailyAgendaCard(
     onNewWorkout: (Boolean) -> Unit = {},
     onAddCardio: (CardioType, Boolean) -> Unit = { _, _ -> },
     onAddAux: (String, Boolean) -> Unit = { _, _ -> },
+    confirmOccurrenceId: String? = null,
+    onConfirmOccurrenceConsumed: () -> Unit = {},
 ) {
     val catalog = items + stillOpen
     var pendingOccurrenceId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -93,6 +95,17 @@ fun DailyAgendaCard(
         }
         val still = catalog.any { it.occurrence.id == id && DailyAgenda.canOpenStart(it, today) }
         if (!still) pendingOccurrenceId = null
+    }
+    LaunchedEffect(confirmOccurrenceId, items, stillOpen, sessionLive, today) {
+        val id = confirmOccurrenceId ?: return@LaunchedEffect
+        if (sessionLive) {
+            onConfirmOccurrenceConsumed()
+            return@LaunchedEffect
+        }
+        val still = catalog.any { it.occurrence.id == id && DailyAgenda.canOpenStart(it, today) }
+        if (!still) return@LaunchedEffect
+        pendingOccurrenceId = id
+        onConfirmOccurrenceConsumed()
     }
 
     if (pendingItem != null) {
