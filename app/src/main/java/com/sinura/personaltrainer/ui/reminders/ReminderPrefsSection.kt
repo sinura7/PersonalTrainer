@@ -74,7 +74,7 @@ fun ReminderPrefsSection(
                 checked = enabled,
                 onCheckedChange = { on -> onOptOut(!on) },
                 trailing = {
-                    InstrumentSwitch(checked = enabled)
+                    InstrumentSwitch(checked = enabled, onCheckedChange = null)
                 },
             )
             HairlineDivider()
