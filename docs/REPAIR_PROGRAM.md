@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F6, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F6, G1, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase G continues at G1. K1 and K2 stay held.  
+`tools/` remain owed. Phase G continues at G2. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -92,7 +92,7 @@ the gym floor, are fifteen of them.
 | F4 | Big text does not break the screen | 2 | — | Design I | done |
 | F5 | One word per thing | 1 | — | Design I | done |
 | F6 | Today is not buried by the missed-work card | 1 | — | Design I | done |
-| G1 | A screen reader can use Temper | 3 | — | Design II | |
+| G1 | A screen reader can use Temper | 3 | — | Design II | done |
 | G2 | One numeric-entry grammar | 1 | — | Design II | |
 | G3 | Shared headers and docks | 2 | — | Design II | |
 | G4 | Skin the four foreign controls | 2 | — | Design II | |
@@ -1051,7 +1051,7 @@ choices. Home Add is inside Today's list after a hairline. Count +1.
 Six packets. Structure and accessibility. G1 is what stands between Temper
 and the Public Candidate gate.
 
-## G1 — A screen reader can use Temper · 3 evenings
+## G1 — A screen reader can use Temper · done on `trunk`
 
 **Symptom.** With TalkBack on: there are no headings anywhere, so there is
 no way to jump between sections of a long screen; the end of a rest is never
@@ -1065,19 +1065,25 @@ the whole UI tree. `Role` is set at six sites; twenty clickables have none,
 including `InstrumentRow` (`GymSurfaces.kt:329`), which is the app's most
 common tappable.
 
-**Change.** `heading()` on tab titles, the Home masthead, sheet titles and
+**Change.** ~~`heading()` on tab titles, the Home masthead, sheet titles and
 section kickers; `liveRegion = Polite` on the rest kicker at the finished
 transition and on the record banner; `Role.Button` in `InstrumentRow`,
 `SecondaryGymButton`, `RestControl`, `StepperButton` and `ExerciseRow`;
 `selected` with the right role on week cells and onboarding choices;
 `toggleable` on switch rows; and a typed fallback on the bodyweight wheel —
-tapping the numeral opens the number dialog that already exists.
+tapping the numeral opens the number dialog that already exists.~~
+**Struck 2026-09-03 (this packet).** Kickers are headings by default.
+`InstrumentRow` publishes Button / RadioButton / Switch from the same row.
+Rest finished kicker and the record banner are polite live regions.
+Bodyweight numeral opens `NumberEntryDialog`. Physical TalkBack stays
+false; `publicCandidateReady()` stays closed.
 
-**Proof.** Semantics tests for Home and the active workout asserting
-headings exist and rows expose a role; a test that the rest kicker is a live
-region.
+**Proof.** `TalkBackPolicyTest`: rest kicker live only when finished;
+typed bodyweight snaps to the wheel; owned surfaces carry
+`heading()` / `Role` / `LiveRegionMode.Polite` / `toggleable`. Count +2.
 
 **Phone gate.** The physical TalkBack pass the matrix has been waiting for.
+Owner still.
 
 **Owns.** `ui/components/GymSurfaces.kt` *(after F3)*,
 `ui/components/Common.kt` *(after F3)*, `ui/components/GymStatus.kt`,
@@ -1485,6 +1491,18 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — G1: headings, roles, live regions; typed bodyweight.**
+Proof is JVM (`restKickerIsALiveRegionOnlyWhenFinished`,
+`typedBodyweightOpensTheSameRangeAsTheWheel`,
+`headingsRolesAndLiveRegionsLandOnOwnedSurfaces`), not
+`compose-ui-test-junit4`. `Kicker` defaults to `heading()`;
+weekday letters, REST, LIFTS, and metric labels opt out.
+`InstrumentRow` gained selected / checked rather than a new
+component. Home masthead, start-sheet title, and `ExerciseRow`
+are Floor-finds (not in Owns). Tab titles inherit heading from
+`Kicker` inside `AppNav`. `publicCandidateReady()` stays false.
+Count +2.
 
 **2026-09-03 — F6: Keep is the Volt; Other choices hide the rest.**
 Proof is JVM (`keepIsTheVoltAndOtherChoicesStartCollapsed`), not a

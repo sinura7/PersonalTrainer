@@ -4,6 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,7 +41,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -74,10 +78,11 @@ fun Kicker(
     modifier: Modifier = Modifier,
     color: Color = TextSecondary,
     textAlign: TextAlign = TextAlign.Unspecified,
+    asHeading: Boolean = true,
 ) {
     Text(
         text.uppercase(),
-        modifier = modifier,
+        modifier = if (asHeading) modifier.semantics { heading() } else modifier,
         style = InstrumentType.kicker,
         color = color,
         textAlign = textAlign,
@@ -255,7 +260,7 @@ fun MetricCluster(
                 )
             }
         }
-        Kicker(label, color = TextTertiary)
+        Kicker(label, color = TextTertiary, asHeading = false)
     }
 }
 
@@ -321,14 +326,37 @@ fun InstrumentRow(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     onClick: (() -> Unit)? = null,
+    selected: Boolean? = null,
+    checked: Boolean? = null,
+    onCheckedChange: ((Boolean) -> Unit)? = null,
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
+    val interaction = when {
+        checked != null && onCheckedChange != null ->
+            Modifier
+                .toggleable(
+                    value = checked,
+                    role = Role.Switch,
+                    onValueChange = onCheckedChange,
+                )
+                .semantics(mergeDescendants = true) {}
+        selected != null && onClick != null ->
+            Modifier
+                .selectable(
+                    selected = selected,
+                    role = Role.RadioButton,
+                    onClick = onClick,
+                )
+                .semantics(mergeDescendants = true) {}
+        onClick != null -> Modifier.clickable(role = Role.Button, onClick = onClick)
+        else -> Modifier
+    }
     Row(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = Metrics.rowMin)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(interaction)
             .padding(horizontal = Metrics.space4, vertical = Metrics.space3),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Metrics.space3),

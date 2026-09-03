@@ -70,7 +70,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.TextRange
@@ -86,6 +88,7 @@ import com.sinura.personaltrainer.domain.PlateMath
 import com.sinura.personaltrainer.domain.RestFinishFlash
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SetCopy
+import com.sinura.personaltrainer.domain.TalkBackPolicy
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightMeaning
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -585,6 +588,7 @@ fun StepperButton(
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
+                role = Role.Button,
                 onClick = {
                     if (repeatedThisPress) {
                         repeatedThisPress = false
@@ -790,7 +794,7 @@ fun RestDock(
         else -> RestCyan
     }
     val clock = RestTimer.formatClock(if (justFinished) 0 else safeRemaining)
-    val kicker = if (justFinished) "Back to the bar" else "REST"
+    val kicker = TalkBackPolicy.restKicker(justFinished)
 
     Row(
         modifier = modifier
@@ -808,6 +812,9 @@ fun RestDock(
                 .clickable(role = Role.Button, onClick = onOpenRest)
                 .semantics {
                     contentDescription = "$kicker $clock remaining. Open rest timer."
+                    if (TalkBackPolicy.announceRestKicker(justFinished)) {
+                        liveRegion = LiveRegionMode.Polite
+                    }
                 },
             verticalArrangement = Arrangement.spacedBy(Metrics.space1),
         ) {
@@ -816,7 +823,7 @@ fun RestDock(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Kicker(kicker, color = accent)
+                Kicker(kicker, color = accent, asHeading = false)
                 Text(
                     clock,
                     modifier = Modifier.graphicsLayer {
@@ -1036,7 +1043,7 @@ fun RestControl(
             .clip(RoundedCornerShape(Radius.sm))
             .background(Surface2)
             .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.sm))
-            .clickable {
+            .clickable(role = Role.Button) {
                 Haptics.tick(view)
                 onClick()
             },
@@ -1274,7 +1281,7 @@ fun SecondaryGymButton(
             .clip(RoundedCornerShape(Radius.md))
             .background(Surface2)
             .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.md))
-            .clickable(enabled = enabled) {
+            .clickable(enabled = enabled, role = Role.Button) {
                 Haptics.tickLight(view)
                 onClick()
             },

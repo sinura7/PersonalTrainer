@@ -19,6 +19,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -464,6 +466,7 @@ internal fun HomeMasthead(
         Kicker(dateLine)
         Text(
             headline,
+            modifier = Modifier.semantics { heading() },
             style = InstrumentType.display,
             color = TextPrimary,
             maxLines = LogLoopScale.headlineLines(LocalDensity.current.fontScale),

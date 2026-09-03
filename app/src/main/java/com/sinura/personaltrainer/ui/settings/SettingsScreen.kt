@@ -736,12 +736,16 @@ private fun RestTimerPrefsSection(
         GroupedList {
             InstrumentRow(
                 title = "Sound",
-                trailing = { Switch(checked = preferences.soundEnabled, onCheckedChange = onSound) },
+                checked = preferences.soundEnabled,
+                onCheckedChange = onSound,
+                trailing = { Switch(checked = preferences.soundEnabled, onCheckedChange = null) },
             )
             HairlineDivider()
             InstrumentRow(
                 title = "Vibration",
-                trailing = { Switch(checked = preferences.vibrationEnabled, onCheckedChange = onVibrate) },
+                checked = preferences.vibrationEnabled,
+                onCheckedChange = onVibrate,
+                trailing = { Switch(checked = preferences.vibrationEnabled, onCheckedChange = null) },
             )
             HairlineDivider()
             Column(

@@ -34,7 +34,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.domain.TalkBackPolicy
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.DangerContainer
 import com.sinura.personaltrainer.ui.theme.GoldContainer
@@ -221,6 +225,11 @@ fun PersonalRecordBanner(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .semantics {
+                    if (TalkBackPolicy.announceRecordBanner()) {
+                        liveRegion = LiveRegionMode.Polite
+                    }
+                }
                 .drawBehind {
                     if (reduced) return@drawBehind
                     drawCircle(
