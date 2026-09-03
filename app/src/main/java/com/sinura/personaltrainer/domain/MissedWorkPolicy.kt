@@ -89,6 +89,8 @@ object MissedWorkPolicy {
                     time = time,
                     deviceZoneId = deviceZoneId,
                     nowMs = nowMs,
+                    todayEpochDay = todayEpochDay,
+                    nowMinutes = nowMinutesOfDay,
                 )
                 val keptIds = kept.map { it.id }.toSet()
                 // A day already past regenerates nothing: a rule added mid-week

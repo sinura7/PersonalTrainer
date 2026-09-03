@@ -88,6 +88,57 @@ class OccurrenceGeneratorTest {
     }
 
     @Test
+    fun thursdayEveningNewRuleSkipsEarlierDaysAndLastMonthRuleDoesNot() {
+        val thursday = CivilDate(2026, 8, 20)
+        val zone = "UTC"
+        val thursdayEvening = java.time.ZonedDateTime
+            .of(2026, 8, 20, 21, 0, 0, 0, java.time.ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli()
+        val lastMonth = java.time.ZonedDateTime
+            .of(2026, 7, 20, 18, 0, 0, 0, java.time.ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli()
+        val time = com.sinura.personaltrainer.testutil.FrozenTime(thursdayEvening, zone)
+        val today = thursday.epochDay
+        val nowMinutes = 21 * 60
+
+        val fresh = listOf(
+            rule("r-mon", Weekday.MONDAY, hour = 18, createdAtMs = thursdayEvening),
+            rule("r-wed", Weekday.WEDNESDAY, hour = 18, createdAtMs = thursdayEvening),
+            rule("r-fri", Weekday.FRIDAY, hour = 18, createdAtMs = thursdayEvening),
+        )
+        val freshWeek = OccurrenceGenerator.generateWeek(
+            weekStart, fresh, emptyList(), time, zone, thursdayEvening,
+            todayEpochDay = today,
+            nowMinutes = nowMinutes,
+        )
+        assertEquals(
+            listOf(weekStart.plusDays(4).epochDay),
+            freshWeek.map { it.localEpochDay },
+        )
+
+        val aged = listOf(
+            rule("r-mon", Weekday.MONDAY, hour = 18, createdAtMs = lastMonth),
+            rule("r-wed", Weekday.WEDNESDAY, hour = 18, createdAtMs = lastMonth),
+            rule("r-fri", Weekday.FRIDAY, hour = 18, createdAtMs = lastMonth),
+        )
+        val agedWeek = OccurrenceGenerator.generateWeek(
+            weekStart, aged, emptyList(), time, zone, thursdayEvening,
+            todayEpochDay = today,
+            nowMinutes = nowMinutes,
+        )
+        assertEquals(
+            listOf(
+                weekStart.epochDay,
+                weekStart.plusDays(2).epochDay,
+                weekStart.plusDays(4).epochDay,
+            ),
+            agedWeek.map { it.localEpochDay },
+        )
+    }
+
+    @Test
     fun disabledRulesDoNotGenerate() {
         val rules = listOf(rule("r-mon", Weekday.MONDAY, hour = 18, enabled = false))
         val week = OccurrenceGenerator.generateWeek(weekStart, rules, emptyList(), JvmTime, zone, NOW)
@@ -112,6 +163,7 @@ class OccurrenceGeneratorTest {
         hour: Int,
         modality: ScheduleModality = ScheduleModality.STRENGTH,
         enabled: Boolean = true,
+        createdAtMs: Long = NOW,
     ) = ScheduleRule(
         id = id,
         weekday = weekday,
@@ -119,8 +171,8 @@ class OccurrenceGeneratorTest {
         minute = 0,
         modality = modality,
         enabled = enabled,
-        createdAtMs = NOW,
-        updatedAtMs = NOW,
+        createdAtMs = createdAtMs,
+        updatedAtMs = createdAtMs,
     )
 
     private fun occ(

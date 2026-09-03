@@ -389,6 +389,11 @@ class HomeViewModel @JvmOverloads constructor(
     fun addDaySession(epochDay: Long, add: HomeDayAdd, once: Boolean) {
         viewModelScope.launch {
             runCatching {
+                val today = todayEpochDay()
+                val nowMinutes = time.wallMinutesOfDay(
+                    time.nowMillis(),
+                    time.defaultZoneId(),
+                )
                 when (add) {
                     is HomeDayAdd.Workout -> DayBlocks.addStrength(
                         planner = container.plannerRepository,
@@ -397,7 +402,8 @@ class HomeViewModel @JvmOverloads constructor(
                         epochDay = epochDay,
                         routineId = add.routineId,
                         once = once,
-                        todayEpochDay = todayEpochDay(),
+                        todayEpochDay = today,
+                        nowMinutes = nowMinutes,
                     )
                     HomeDayAdd.NewWorkout -> {
                         val routineId = DayBlocks.composeWorkout(
@@ -407,7 +413,8 @@ class HomeViewModel @JvmOverloads constructor(
                             preferences = container.preferencesRepository,
                             epochDay = epochDay,
                             once = once,
-                            todayEpochDay = todayEpochDay(),
+                            todayEpochDay = today,
+                            nowMinutes = nowMinutes,
                         )
                         _navigateToEditor.value = routineId
                     }
@@ -417,7 +424,8 @@ class HomeViewModel @JvmOverloads constructor(
                         epochDay = epochDay,
                         type = add.type,
                         once = once,
-                        todayEpochDay = todayEpochDay(),
+                        todayEpochDay = today,
+                        nowMinutes = nowMinutes,
                     )
                     is HomeDayAdd.Aux -> AuxiliaryBlocks.add(
                         planner = container.plannerRepository,
@@ -427,7 +435,8 @@ class HomeViewModel @JvmOverloads constructor(
                         epochDay = epochDay,
                         packId = add.packId,
                         once = once,
-                        todayEpochDay = todayEpochDay(),
+                        todayEpochDay = today,
+                        nowMinutes = nowMinutes,
                     )
                 }
             }.onSuccess { actionError.value = null }

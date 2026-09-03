@@ -40,6 +40,8 @@ object OccurrenceGenerator {
         time: TimePort,
         deviceZoneId: String,
         nowMs: Long,
+        todayEpochDay: Long = Long.MIN_VALUE,
+        nowMinutes: Int = 0,
     ): List<ScheduleOccurrence> {
         val weekEnd = weekStart.epochDay + 6
         val kept = existing.filter { it.localEpochDay in weekStart.epochDay..weekEnd }
@@ -53,6 +55,7 @@ object OccurrenceGenerator {
             val date = weekStart.nextOrSame(rule.weekday)
             if ((rule.id to date.epochDay) in existingKeys) continue
             val zoneId = rule.resolveZoneId(deviceZoneId)
+            if (skipNewBehindNow(rule, date, time, zoneId, todayEpochDay, nowMinutes)) continue
             val captured = time.resolveLocal(
                 CivilDateTime(date, rule.hour, rule.minute),
                 zoneId,
@@ -74,5 +77,25 @@ object OccurrenceGenerator {
         return (kept + generated).sortedWith(
             compareBy({ it.localEpochDay }, { it.minutesOfDay }, { it.id }),
         )
+    }
+
+    /**
+     * A rule created after [date] began must not mint a row already
+     * behind now. Last month's Monday rule still records Monday when
+     * the week rolls over.
+     */
+    private fun skipNewBehindNow(
+        rule: ScheduleRule,
+        date: CivilDate,
+        time: TimePort,
+        zoneId: String,
+        todayEpochDay: Long,
+        nowMinutes: Int,
+    ): Boolean {
+        val behindNow = date.epochDay < todayEpochDay ||
+            (date.epochDay == todayEpochDay && rule.minutesOfDay < nowMinutes)
+        if (!behindNow) return false
+        val newToThatDay = rule.createdAtMs >= time.startOfDayMillis(date, zoneId)
+        return newToThatDay
     }
 }

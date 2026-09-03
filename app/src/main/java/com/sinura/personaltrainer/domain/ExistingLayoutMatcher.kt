@@ -16,6 +16,7 @@ object ExistingLayoutMatcher {
         blueprint: PlanBlueprint,
         existing: List<Routine>,
         weekStartEpochDay: Long,
+        todayEpochDay: Long = Long.MIN_VALUE,
     ): List<SuggestedTrainingDay> {
         val unused = existing.toMutableList()
         val claimedByKey = LinkedHashMap<String, Routine>()
@@ -25,7 +26,8 @@ object ExistingLayoutMatcher {
             if (day.isRest) continue
             val planned = blueprint.routineFor(day) ?: continue
             val claimed = claim(planned, unused, claimedByKey) ?: continue
-                val date = dateOn(weekStart, day.dayOfWeek)
+            val date = dateOn(weekStart, day.dayOfWeek)
+            if (date.epochDay < todayEpochDay) continue
             proposals += SuggestedTrainingDay(
                 epochDay = date.epochDay,
                 dayOfWeek = day.dayOfWeek,

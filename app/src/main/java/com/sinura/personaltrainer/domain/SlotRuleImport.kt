@@ -49,6 +49,26 @@ object SlotRuleImport {
         return DEFAULT_STRENGTH_HOUR
     }
 
+    /**
+     * Same-day add: never land at or before the current hour. A 21:00
+     * cardio must not persist 07:00; a later session must not persist 18:00.
+     */
+    fun clampSameDayHour(preferredHour: Int, nowMinutes: Int): Int {
+        val preferred = preferredHour.coerceIn(0, 23)
+        val nextHour = (nowMinutes / 60) + 1
+        return maxOf(preferred, nextHour.coerceIn(0, 23))
+    }
+
+    fun hourOnDay(
+        preferredHour: Int,
+        epochDay: Long,
+        todayEpochDay: Long,
+        nowMinutes: Int,
+    ): Int {
+        if (epochDay != todayEpochDay) return preferredHour.coerceIn(0, 23)
+        return clampSameDayHour(preferredHour, nowMinutes)
+    }
+
     fun ruleFromSlot(slot: ScheduleSlot, nowMs: Long): ScheduleRule? {
         val weekday = slot.anchorDay ?: return null
         return ScheduleRule(

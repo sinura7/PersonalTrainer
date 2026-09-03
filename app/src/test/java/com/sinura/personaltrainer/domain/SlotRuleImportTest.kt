@@ -98,4 +98,12 @@ class SlotRuleImportTest {
         assertEquals(22, SlotRuleImport.nextLaterHour(listOf(7, 18, 20)))
         assertEquals(23, SlotRuleImport.nextLaterHour(listOf(18, 20, 22)))
     }
+
+    @Test
+    fun clampSameDayHourAtNinePmIsTwentyTwo() {
+        assertEquals(22, SlotRuleImport.clampSameDayHour(18, 21 * 60))
+        assertEquals(22, SlotRuleImport.clampSameDayHour(7, 21 * 60))
+        assertEquals(7, SlotRuleImport.hourOnDay(7, epochDay = 1L, todayEpochDay = 2L, nowMinutes = 21 * 60))
+        assertEquals(22, SlotRuleImport.hourOnDay(7, epochDay = 2L, todayEpochDay = 2L, nowMinutes = 21 * 60))
+    }
 }

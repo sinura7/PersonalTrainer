@@ -25,6 +25,7 @@ object AuxiliaryBlocks {
         packId: String,
         once: Boolean,
         todayEpochDay: Long = todayEpochDay(),
+        nowMinutes: Int = 0,
     ) {
         val pack = AuxiliaryPacks.byId(packId) ?: return
         val weekday = CivilDate.fromEpochDay(epochDay).dayOfWeek
@@ -37,7 +38,12 @@ object AuxiliaryBlocks {
         }
         if (alreadyOnDay) return
         val hours = rules.filter { it.weekday == weekday }.map { it.hour }
-        val hour = SlotRuleImport.nextLaterHour(hours)
+        val hour = SlotRuleImport.hourOnDay(
+            preferredHour = SlotRuleImport.nextLaterHour(hours),
+            epochDay = epochDay,
+            todayEpochDay = todayEpochDay,
+            nowMinutes = nowMinutes,
+        )
         val dormant = rules.firstOrNull {
             !it.enabled && it.weekday == weekday && it.templateId == tag
         }

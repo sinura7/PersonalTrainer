@@ -25,6 +25,7 @@ object DayBlocks {
         routineId: String,
         once: Boolean,
         todayEpochDay: Long = todayEpochDay(),
+        nowMinutes: Int = 0,
     ) {
         val weekday = CivilDate.fromEpochDay(epochDay).dayOfWeek
         val rules = planner.rules()
@@ -40,7 +41,14 @@ object DayBlocks {
                 preferences = preferences,
                 todayEpochDay = todayEpochDay,
                 weekday = weekday,
-                hour = SlotRuleImport.nextLaterHour(rules.filter { it.weekday == weekday }.map { it.hour }),
+                hour = SlotRuleImport.hourOnDay(
+                    preferredHour = SlotRuleImport.nextLaterHour(
+                        rules.filter { it.weekday == weekday }.map { it.hour },
+                    ),
+                    epochDay = epochDay,
+                    todayEpochDay = todayEpochDay,
+                    nowMinutes = nowMinutes,
+                ),
                 modality = ScheduleModality.STRENGTH,
                 routineId = routineId,
                 once = true,
@@ -54,13 +62,31 @@ object DayBlocks {
                 preferences = preferences,
                 todayEpochDay = todayEpochDay,
                 weekday = weekday,
-                hour = SlotRuleImport.nextLaterHour(rules.filter { it.weekday == weekday }.map { it.hour }),
+                hour = SlotRuleImport.hourOnDay(
+                    preferredHour = SlotRuleImport.nextLaterHour(
+                        rules.filter { it.weekday == weekday }.map { it.hour },
+                    ),
+                    epochDay = epochDay,
+                    todayEpochDay = todayEpochDay,
+                    nowMinutes = nowMinutes,
+                ),
                 modality = ScheduleModality.STRENGTH,
                 routineId = routineId,
                 once = false,
             )
         } else {
             schedule.pin(routineId = routineId, focusKind = null, anchorDay = weekday)
+            planner.syncSlotsToRules()
+            val hour = SlotRuleImport.hourOnDay(
+                preferredHour = SlotRuleImport.DEFAULT_STRENGTH_HOUR,
+                epochDay = epochDay,
+                todayEpochDay = todayEpochDay,
+                nowMinutes = nowMinutes,
+            )
+            val rule = planner.rules().firstOrNull {
+                it.weekday == weekday && it.routineId == routineId
+            }
+            if (rule != null && rule.hour != hour) planner.setRuleHour(rule.id, hour)
             publish(planner, preferences, todayEpochDay)
         }
     }
@@ -72,6 +98,8 @@ object DayBlocks {
         type: CardioType,
         once: Boolean,
         todayEpochDay: Long = todayEpochDay(),
+        nowMinutes: Int = 0,
+        preferredHour: Int = SlotRuleImport.DEFAULT_CARDIO_HOUR,
     ) {
         val weekday = CivilDate.fromEpochDay(epochDay).dayOfWeek
         val rules = planner.rules()
@@ -89,8 +117,14 @@ object DayBlocks {
             !it.enabled && it.weekday == weekday && it.templateId == tag
         }
         val hours = rules.filter { it.weekday == weekday }.map { it.hour }
-        val hour = SlotRuleImport.DEFAULT_CARDIO_HOUR.takeIf { it !in hours }
+        val candidate = preferredHour.takeIf { it !in hours }
             ?: SlotRuleImport.nextLaterHour(hours)
+        val hour = SlotRuleImport.hourOnDay(
+            preferredHour = candidate,
+            epochDay = epochDay,
+            todayEpochDay = todayEpochDay,
+            nowMinutes = nowMinutes,
+        )
         val ruleId = if (dormant != null) {
             planner.setRuleEnabled(dormant.id, true)
             if (dormant.hour != hour) planner.setRuleHour(dormant.id, hour)
@@ -120,6 +154,7 @@ object DayBlocks {
         epochDay: Long,
         once: Boolean,
         todayEpochDay: Long = todayEpochDay(),
+        nowMinutes: Int = 0,
     ): String {
         val weekday = CivilDate.fromEpochDay(epochDay).dayOfWeek
         val hasStrength = hasStrengthOnWeekday(planner, epochDay, weekday)
@@ -141,6 +176,7 @@ object DayBlocks {
             routineId = routineId,
             once = once,
             todayEpochDay = todayEpochDay,
+            nowMinutes = nowMinutes,
         )
         return routineId
     }

@@ -11,7 +11,6 @@ import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.CustomWeekPolicy
 import com.sinura.personaltrainer.domain.DayBlockOrder
-import com.sinura.personaltrainer.domain.ScheduleKind
 import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.ExistingLayoutMatcher
 import com.sinura.personaltrainer.domain.MissedWorkChoice
@@ -21,6 +20,7 @@ import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.ScheduleOccurrence
 import com.sinura.personaltrainer.domain.SlotRuleImport
 import com.sinura.personaltrainer.data.repository.AuxiliaryBlocks
+import com.sinura.personaltrainer.data.repository.DayBlocks
 import com.sinura.personaltrainer.domain.InsightFailure
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.Routine
@@ -432,6 +432,7 @@ class PlanViewModel @JvmOverloads constructor(
                     blueprint = blueprint,
                     existing = current.routines,
                     weekStartEpochDay = week.weekStartEpochDay,
+                    todayEpochDay = todayEpochDay(),
                 )
             }
             if (matched.isEmpty()) {
@@ -449,17 +450,15 @@ class PlanViewModel @JvmOverloads constructor(
 
     fun addCardio(epochDay: Long, type: CardioType, hour: Int = SlotRuleImport.DEFAULT_CARDIO_HOUR) {
         write("Could not add cardio. Try again.") {
-            val weekday = dayOfWeekFor(epochDay)
-            val already = container.plannerRepository.rules().any {
-                it.weekday == weekday && it.modality == ScheduleModality.CARDIO
-            }
-            if (already) return@write
-            container.plannerRepository.addTimedRule(
-                weekday = weekday,
-                hour = hour.coerceIn(0, 23),
-                minute = 0,
-                modality = ScheduleModality.CARDIO,
-                templateId = ScheduleKind.cardio(type),
+            DayBlocks.addCardio(
+                planner = container.plannerRepository,
+                preferences = container.preferencesRepository,
+                epochDay = epochDay,
+                type = type,
+                once = false,
+                todayEpochDay = todayEpochDay(),
+                nowMinutes = currentMinutesOfDay(),
+                preferredHour = hour,
             )
             refreshPlanner()
         }
@@ -476,9 +475,15 @@ class PlanViewModel @JvmOverloads constructor(
             val hours = container.plannerRepository.rules()
                 .filter { it.weekday == weekday }
                 .map { it.hour }
+            val preferred = (hour ?: SlotRuleImport.nextLaterHour(hours)).coerceIn(0, 23)
             container.plannerRepository.addTimedRule(
                 weekday = weekday,
-                hour = (hour ?: SlotRuleImport.nextLaterHour(hours)).coerceIn(0, 23),
+                hour = SlotRuleImport.hourOnDay(
+                    preferredHour = preferred,
+                    epochDay = epochDay,
+                    todayEpochDay = todayEpochDay(),
+                    nowMinutes = currentMinutesOfDay(),
+                ),
                 minute = 0,
                 modality = ScheduleModality.STRENGTH,
                 routineId = routineId,
@@ -499,6 +504,7 @@ class PlanViewModel @JvmOverloads constructor(
                 packId = pack.id,
                 once = once,
                 todayEpochDay = todayEpochDay(),
+                nowMinutes = currentMinutesOfDay(),
             )
             refreshPlanner()
         }
@@ -534,9 +540,15 @@ class PlanViewModel @JvmOverloads constructor(
             val hours = container.plannerRepository.rules()
                 .filter { it.weekday == weekday }
                 .map { it.hour }
+            val preferred = (hour ?: SlotRuleImport.nextLaterHour(hours)).coerceIn(0, 23)
             container.plannerRepository.addTimedRule(
                 weekday = weekday,
-                hour = (hour ?: SlotRuleImport.nextLaterHour(hours)).coerceIn(0, 23),
+                hour = SlotRuleImport.hourOnDay(
+                    preferredHour = preferred,
+                    epochDay = epochDay,
+                    todayEpochDay = todayEpochDay(),
+                    nowMinutes = currentMinutesOfDay(),
+                ),
                 minute = 0,
                 modality = ScheduleModality.STRENGTH,
                 routineId = routineId,
