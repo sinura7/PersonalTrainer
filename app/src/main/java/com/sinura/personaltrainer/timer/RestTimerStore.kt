@@ -9,12 +9,11 @@ import kotlinx.coroutines.flow.asStateFlow
 /**
  * Single source of truth for the running rest timer.
  *
- * Every mutation writes through to [persistence] (when one is wired) so the timer survives
- * process death — the in-memory flow is the fast path, disk is the durable one. The default
- * null persistence keeps this constructible in plain JVM tests.
+ * Memory is the fast path. Disk and alarm arming are the controller's
+ * ordered IO job (publish snapshot, then persist, then arm) so a Log tap
+ * does not `commit()` SharedPreferences on the main thread.
  */
 class RestTimerStore(
-    private val persistence: RestTimerStatePersistence? = null,
     private val ids: IdFactory = IdFactory.Uuid,
 ) {
     private val snapshotState = MutableStateFlow(RestTimerSnapshot())
@@ -37,8 +36,6 @@ class RestTimerStore(
                 sessionId = sessionId,
                 timerId = ids.newId(),
             ),
-            nowElapsedRealtime,
-            nowWallClockMillis,
         )
     }
 
@@ -71,8 +68,6 @@ class RestTimerStore(
                 sessionId = current.sessionId,
                 timerId = ids.newId(),
             ),
-            nowElapsedRealtime,
-            nowWallClockMillis,
         )
     }
 
@@ -93,31 +88,14 @@ class RestTimerStore(
                 sessionId = sessionId,
                 timerId = timerId,
             ),
-            nowElapsedRealtime,
-            nowWallClockMillis,
         )
     }
 
     fun clear() {
         snapshotState.value = RestTimerSnapshot()
-        persistence?.clear()
     }
 
-    private fun publish(
-        next: RestTimerSnapshot,
-        nowElapsedRealtime: Long,
-        nowWallClockMillis: Long,
-    ) {
+    private fun publish(next: RestTimerSnapshot) {
         snapshotState.value = next
-        persistence?.save(
-            RestTimerRehydrator.toPersisted(
-                endsAtElapsedRealtime = next.endsAtElapsedRealtime,
-                totalSeconds = next.totalSeconds,
-                sessionId = next.sessionId,
-                nowElapsedRealtime = nowElapsedRealtime,
-                nowWallClockMillis = nowWallClockMillis,
-                timerId = next.timerId,
-            ),
-        )
     }
 }

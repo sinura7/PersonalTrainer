@@ -7,6 +7,7 @@ import android.provider.Settings
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.domain.AlarmScheduleResult
 import com.sinura.personaltrainer.domain.ExactAlarmAttempt
+import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -170,6 +171,7 @@ class RestTimerAlarmSchedulerTest {
             context = context,
             store = store,
             alarms = RestTimerAlarmScheduler(context, capability),
+            ioDispatcher = Dispatchers.Unconfined,
         )
         try {
             controller.start(90, "session-1")

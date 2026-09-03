@@ -7,9 +7,11 @@ import com.sinura.personaltrainer.domain.AlarmScheduleResult
 import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import com.sinura.personaltrainer.logging.AppLog
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -24,6 +26,9 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.atomic.AtomicInteger
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RestTimerController(
@@ -31,6 +36,7 @@ class RestTimerController(
     private val store: RestTimerStore,
     private val persistence: RestTimerStatePersistence? = null,
     private val alarms: RestTimerAlarmScheduler = RestTimerAlarmScheduler(context.applicationContext),
+    ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : RestTimerGateway {
     private val appContext = context.applicationContext
     private val _lastAlarmSchedule = MutableStateFlow(AlarmScheduleResult.FAILED)
@@ -40,8 +46,13 @@ class RestTimerController(
     override val lastAlarmSchedule: StateFlow<AlarmScheduleResult> = _lastAlarmSchedule.asStateFlow()
     override val exactAlarmAttempt: StateFlow<ExactAlarmAttempt> = _exactAlarmAttempt.asStateFlow()
 
-    /** Application-lifetime; only used to announce a rest that ended while we were dead. */
+    /** Application-lifetime; persist/arm and late-rest announce. */
     private val announceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val ioScope = CoroutineScope(SupervisorJob() + ioDispatcher)
+    /** Serialises persist-then-arm. A later halt bumps [persistSeq]. */
+    private val persistLock = Mutex()
+    private var persistJob: Job? = null
+    private val persistSeq = AtomicInteger(0)
     override val snapshot: StateFlow<RestTimerSnapshot> = store.snapshot
 
     /**
@@ -82,17 +93,16 @@ class RestTimerController(
     override fun start(totalSeconds: Int, sessionId: String?) {
         _lastCompletedTimerId.value = null
         store.start(totalSeconds, sessionId, SystemClock.elapsedRealtime())
-        scheduleAlarmForCurrent()
-        dispatch(RestTimerService.ACTION_SYNC)
+        persistThenArm(syncService = true)
     }
 
     override fun adjust(deltaSeconds: Int) {
         store.adjust(deltaSeconds, SystemClock.elapsedRealtime())
         if (store.current().running) {
-            scheduleAlarmForCurrent()
-            dispatch(RestTimerService.ACTION_SYNC)
+            persistThenArm(syncService = true)
         } else {
             alarms.cancel()
+            persistThenArm(syncService = false)
             dispatch(RestTimerService.ACTION_STOP)
         }
     }
@@ -128,8 +138,10 @@ class RestTimerController(
     private fun halt(fromService: Boolean) {
         val wasRunning = store.current().running
         store.clear()
-        // Always drop the pending wakeup: a cancelled rest must never fire an alert later.
+        // Drop the wakeup immediately so a cancelled rest cannot fire
+        // while the IO job is still clearing the row.
         alarms.cancel()
+        persistThenArm(syncService = false)
         if (!fromService) {
             if (wasRunning) {
                 dispatch(RestTimerService.ACTION_STOP)
@@ -161,8 +173,7 @@ class RestTimerController(
                     nowElapsedRealtime = SystemClock.elapsedRealtime(),
                     timerId = outcome.timerId,
                 )
-                scheduleAlarmForCurrent()
-                dispatch(RestTimerService.ACTION_SYNC)
+                persistThenArm(syncService = true)
                 true
             }
             is RestTimerRehydration.Expired -> {
@@ -182,7 +193,7 @@ class RestTimerController(
                 false
             }
             RestTimerRehydration.None -> {
-                persistence?.clear()
+                persistThenArm(syncService = false)
                 false
             }
         }
@@ -196,6 +207,38 @@ class RestTimerController(
         _exactAlarmAttempt.value = alarms.currentAttempt()
         if (store.current().running) {
             scheduleAlarmForCurrent()
+        }
+    }
+
+    /**
+     * Publish already happened on the caller. Persist the row, then arm.
+     * The receiver treats a missing disk row as already completed, so the
+     * alarm must not be scheduled first. A later [halt] bumps [persistSeq]
+     * so an in-flight start skips the whole persist, not just the alarm.
+     */
+    private fun persistThenArm(syncService: Boolean) {
+        val seq = persistSeq.incrementAndGet()
+        val snap = store.current()
+        persistJob?.cancel()
+        persistJob = ioScope.launch {
+            persistLock.withLock {
+                if (seq != persistSeq.get()) return@withLock
+                if (snap.running) {
+                    persistence?.save(
+                        RestTimerRehydrator.toPersisted(
+                            endsAtElapsedRealtime = snap.endsAtElapsedRealtime,
+                            totalSeconds = snap.totalSeconds,
+                            sessionId = snap.sessionId,
+                            timerId = snap.timerId,
+                        ),
+                    )
+                    if (seq != persistSeq.get()) return@withLock
+                    scheduleAlarmForCurrent()
+                    if (syncService) dispatch(RestTimerService.ACTION_SYNC)
+                } else {
+                    persistence?.clear()
+                }
+            }
         }
     }
 

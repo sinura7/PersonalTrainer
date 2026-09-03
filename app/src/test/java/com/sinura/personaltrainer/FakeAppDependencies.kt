@@ -181,7 +181,7 @@ class FakeAppDependencies(
     )
     override val restTimerStatePersistence: RestTimerStatePersistence =
         SharedPrefsRestTimerStatePersistence(context)
-    override val restTimerStore: RestTimerStore = RestTimerStore(restTimerStatePersistence)
+    override val restTimerStore: RestTimerStore = RestTimerStore()
     private val inMemoryRestTimer = InMemoryRestTimerGateway(restTimerStore)
     override val restTimerController: RestTimerGateway = inMemoryRestTimer
 

@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -142,6 +143,17 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
                 }
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /**
+     * Presence only. The elapsed label ticks inside [LiveSessionBarHost];
+     * this boolean must not change on those ticks or the nav root recomposes.
+     */
+    val hasLiveSession: StateFlow<Boolean> = combine(
+        container.workoutRepository.observeInProgress(),
+        container.activityRepository.observeLive(),
+    ) { workout, activity -> workout != null || activity != null }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     /** Consumed by the host composition, so a finish survives Activity recreation. */
     private val _finishedNavigation = MutableStateFlow<String?>(null)

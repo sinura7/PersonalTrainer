@@ -2,21 +2,11 @@ package com.sinura.personaltrainer.timer
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RestTimerStoreTest {
-    /** Captures what the store wrote, so persistence can be asserted without Android. */
-    private class FakePersistence : RestTimerStatePersistence {
-        var saved: PersistedRestTimer? = null
-        var cleared = 0
-        override fun save(state: PersistedRestTimer) { saved = state }
-        override fun load(): PersistedRestTimer? = saved
-        override fun clear() { saved = null; cleared++ }
-    }
-
     @Test
     fun startAnchorsEndToElapsedRealtime() {
         val store = RestTimerStore()
@@ -78,26 +68,6 @@ class RestTimerStoreTest {
     }
 
     @Test
-    fun everyMutationWritesThroughToPersistence() {
-        val persistence = FakePersistence()
-        val store = RestTimerStore(persistence)
-
-        store.start(90, "s1", nowElapsedRealtime = 1_000L, nowWallClockMillis = 1_700_000_000_000L)
-        val saved = persistence.saved
-        assertNotNull(saved)
-        assertEquals(91_000L, saved!!.endsAtElapsedRealtime)
-        assertEquals(90, saved.totalSeconds)
-        assertEquals("s1", saved.sessionId)
-        // bootMarker = wall - elapsed; endsAtWall = wall + remaining
-        assertEquals(1_700_000_000_000L - 1_000L, saved.bootMarker)
-        assertEquals(1_700_000_000_000L + 90_000L, saved.endsAtWallClockMillis)
-
-        store.clear()
-        assertEquals(1, persistence.cleared)
-        assertNull(persistence.saved)
-    }
-
-    @Test
     fun restoreRebuildsARunningTimerFromDisk() {
         val store = RestTimerStore()
         store.restore(
@@ -132,13 +102,5 @@ class RestTimerStoreTest {
             timerId = first,
         )
         assertEquals(first, store.current().timerId)
-    }
-
-    @Test
-    fun persistenceWritesTheTimerId() {
-        val persistence = FakePersistence()
-        val store = RestTimerStore(persistence = persistence, ids = { "timer-persist" })
-        store.start(90, "s1", nowElapsedRealtime = 1_000L, nowWallClockMillis = 1_700_000_000_000L)
-        assertEquals("timer-persist", persistence.saved?.timerId)
     }
 }
