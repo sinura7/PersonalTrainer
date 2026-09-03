@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -63,6 +62,7 @@ import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.NotesBlock
+import com.sinura.personaltrainer.ui.components.ScreenHeader
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.navigation.LiveBarCopy
 import com.sinura.personaltrainer.ui.navigation.LiveBarKind
@@ -168,76 +168,57 @@ fun SessionDetailScreen(
                 .fillMaxSize()
                 .background(Pit),
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(end = Metrics.space2, bottom = Metrics.space2),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(
-                    onClick = leave,
-                    modifier = Modifier.testTag(SessionDetailTestTags.BACK),
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Outlined.ArrowBack,
-                        contentDescription = "Back",
-                        tint = TextSecondary,
-                    )
-                }
-                Text(
-                    session?.routineName ?: "Session",
-                    modifier = Modifier.weight(1f),
-                    style = InstrumentType.title,
-                    color = TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (session != null) {
-                    // Two whole-session verbs, one of them destructive: an overflow rather than
-                    // two more controls competing with the session's own numbers.
-                    Box {
-                        IconButton(
-                            onClick = { menuOpen = true },
-                            modifier = Modifier.testTag(SessionDetailTestTags.OPTIONS),
-                        ) {
-                            Icon(
-                                Icons.Outlined.MoreVert,
-                                contentDescription = "Session options",
-                                tint = TextSecondary,
-                            )
-                        }
-                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        "Repeat workout",
-                                        style = InstrumentType.bodyStrong,
-                                        color = TextPrimary,
-                                    )
-                                },
-                                onClick = {
-                                    menuOpen = false
-                                    viewModel.repeatSession()
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        "Delete session…",
-                                        style = InstrumentType.bodyStrong,
-                                        color = TextSecondary,
-                                    )
-                                },
-                                onClick = {
-                                    menuOpen = false
-                                    confirmDelete = true
-                                },
-                                modifier = Modifier.testTag(SessionDetailTestTags.DELETE),
-                            )
+            ScreenHeader(
+                title = session?.routineName ?: "Session",
+                onBack = leave,
+                backTag = SessionDetailTestTags.BACK,
+                paintBackground = false,
+                trailing = {
+                    if (session != null) {
+                        Box {
+                            IconButton(
+                                onClick = { menuOpen = true },
+                                modifier = Modifier.testTag(SessionDetailTestTags.OPTIONS),
+                            ) {
+                                Icon(
+                                    Icons.Outlined.MoreVert,
+                                    contentDescription = "Session options",
+                                    tint = TextSecondary,
+                                )
+                            }
+                            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "Repeat workout",
+                                            style = InstrumentType.bodyStrong,
+                                            color = TextPrimary,
+                                        )
+                                    },
+                                    onClick = {
+                                        menuOpen = false
+                                        viewModel.repeatSession()
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "Delete session…",
+                                            style = InstrumentType.bodyStrong,
+                                            color = TextSecondary,
+                                        )
+                                    },
+                                    onClick = {
+                                        menuOpen = false
+                                        confirmDelete = true
+                                    },
+                                    modifier = Modifier.testTag(SessionDetailTestTags.DELETE),
+                                )
+                            }
                         }
                     }
-                }
-            }
+                },
+            )
 
             when {
                 state.isLoading -> {

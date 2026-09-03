@@ -18,7 +18,10 @@ import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.todayEpochDay
+import com.sinura.personaltrainer.testutil.FrozenTime
 import com.sinura.personaltrainer.testutil.insertTestExercise
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -68,11 +71,16 @@ class HomeViewModelTest {
 
     private fun graph(
         insights: MutableStateFlow<TrainingInsights> = MutableStateFlow(TrainingInsights()),
-    ): FakeAppDependencies = FakeAppDependencies(
-        ApplicationProvider.getApplicationContext(),
-        insights,
-        scheduler = dispatcher,
-    )
+    ): FakeAppDependencies {
+        val zone = ZoneId.systemDefault()
+        val morning = ZonedDateTime.now(zone).toLocalDate().atTime(10, 0).atZone(zone)
+        return FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            insights,
+            scheduler = dispatcher,
+            time = FrozenTime(morning.toInstant().toEpochMilli(), zone.id),
+        )
+    }
 
     @Test
     fun dropsProgressionReadyWhenHintsExist() = runBlocking {

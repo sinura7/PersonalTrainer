@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -41,6 +40,7 @@ import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.LeaveCardioDialog
+import com.sinura.personaltrainer.ui.components.PinnedDock
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.components.imeAction
@@ -188,7 +188,7 @@ fun LiveCardioScreen(
 /**
  * Finish is the one Volt — the log-loop analog of Log. Leave running and Discard are
  * real stacked controls, not footnotes. Scaffold's bottomBar draws edge-to-edge and
- * this route hides the tab bar, so this dock owns [navigationBarsPadding].
+ * this route hides the tab bar, so [PinnedDock] owns the system-nav inset.
  */
 @Composable
 internal fun CardioActionDock(
@@ -197,33 +197,32 @@ internal fun CardioActionDock(
     onLeaveRunning: () -> Unit,
     onDiscard: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Pit)
-            .navigationBarsPadding()
-            .padding(horizontal = Metrics.gutter, vertical = Metrics.space3),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-    ) {
-        PrimaryGymButton(
-            text = if (finishing) CardioCopy.FINISHING else CardioCopy.FINISH,
-            onClick = onFinish,
-            modifier = Modifier.testTag(CardioTags.FINISH),
-            enabled = !finishing,
-            height = Metrics.commit,
-        )
-        SecondaryGymButton(
-            text = CardioCopy.LEAVE_RUNNING,
-            onClick = onLeaveRunning,
-            modifier = Modifier.testTag(CardioTags.LEAVE),
-        )
-        SecondaryGymButton(
-            text = CardioCopy.DISCARD,
-            onClick = onDiscard,
-            modifier = Modifier.testTag(CardioTags.DISCARD),
-            contentColor = Danger,
-        )
-    }
+    PinnedDock(
+        volt = {
+            PrimaryGymButton(
+                text = if (finishing) CardioCopy.FINISHING else CardioCopy.FINISH,
+                onClick = onFinish,
+                modifier = Modifier.testTag(CardioTags.FINISH),
+                enabled = !finishing,
+                height = Metrics.commit,
+            )
+        },
+        secondary = {
+            SecondaryGymButton(
+                text = CardioCopy.LEAVE_RUNNING,
+                onClick = onLeaveRunning,
+                modifier = Modifier.testTag(CardioTags.LEAVE),
+            )
+        },
+        tertiary = {
+            SecondaryGymButton(
+                text = CardioCopy.DISCARD,
+                onClick = onDiscard,
+                modifier = Modifier.testTag(CardioTags.DISCARD),
+                contentColor = Danger,
+            )
+        },
+    )
 }
 
 /**

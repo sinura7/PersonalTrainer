@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -33,7 +32,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.CardioCopy
@@ -49,10 +47,10 @@ import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
-import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.components.PinnedDock
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.components.imeAction
@@ -225,28 +223,24 @@ internal fun ComposerSaveDock(
     onSave: () -> Unit,
     onCancel: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Pit)
-            .navigationBarsPadding()
-            .padding(horizontal = Metrics.gutter, vertical = Metrics.space3),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-    ) {
-        HairlineDivider(startIndent = 0.dp)
-        PrimaryGymButton(
-            text = if (saving) ComposerCopy.SAVING else ComposerCopy.SAVE,
-            onClick = onSave,
-            modifier = Modifier.testTag(ComposerTags.SAVE),
-            enabled = !saving,
-        )
-        TextButton(
-            onClick = onCancel,
-            modifier = Modifier.testTag(ComposerTags.CANCEL),
-        ) {
-            Text(ComposerCopy.CANCEL, style = InstrumentType.bodyStrong, color = TextSecondary)
-        }
-    }
+    PinnedDock(
+        volt = {
+            PrimaryGymButton(
+                text = if (saving) ComposerCopy.SAVING else ComposerCopy.SAVE,
+                onClick = onSave,
+                modifier = Modifier.testTag(ComposerTags.SAVE),
+                enabled = !saving,
+            )
+        },
+        secondary = {
+            TextButton(
+                onClick = onCancel,
+                modifier = Modifier.testTag(ComposerTags.CANCEL),
+            ) {
+                Text(ComposerCopy.CANCEL, style = InstrumentType.bodyStrong, color = TextSecondary)
+            }
+        },
+    )
 }
 
 @Composable

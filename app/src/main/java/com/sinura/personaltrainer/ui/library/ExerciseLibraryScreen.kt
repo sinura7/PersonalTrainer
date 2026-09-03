@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.AlertDialog
@@ -64,6 +63,7 @@ import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.OutlinedMarks
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.components.ScreenHeader
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -95,30 +95,12 @@ fun ExerciseLibraryScreen(
             // A back arrow now that Library is pushed rather than a tab. Without one, arriving
             // here from a coach card would be a one-way trip to a screen with no visible exit
             // except the system gesture.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Pit)
-                    .padding(end = Metrics.gutter, bottom = Metrics.space2),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(
-                    onClick = onBack,
-                    modifier = Modifier.testTag(LibraryTags.BACK),
-                ) {
-                    Icon(
-                        Icons.AutoMirrored.Outlined.ArrowBack,
-                        contentDescription = "Back",
-                        tint = TextSecondary,
-                    )
-                }
-                Text(
-                    "Library",
-                    modifier = Modifier.weight(1f),
-                    style = InstrumentType.display,
-                    color = TextPrimary,
-                )
-            }
+            ScreenHeader(
+                title = "Library",
+                onBack = onBack,
+                backTag = LibraryTags.BACK,
+                titleStyle = InstrumentType.display,
+            )
         },
         floatingActionButton = {
             if (state.visibleExercises.isNotEmpty()) {

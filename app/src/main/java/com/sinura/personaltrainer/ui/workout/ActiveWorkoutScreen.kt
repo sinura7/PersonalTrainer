@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.relocation.BringIntoViewRequester
@@ -119,7 +118,9 @@ import com.sinura.personaltrainer.ui.components.LeaveWorkoutDialog
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.NotesBlock
 import com.sinura.personaltrainer.ui.components.PersonalRecordBanner
+import com.sinura.personaltrainer.ui.components.PinnedDock
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.components.ScreenHeader
 import com.sinura.personaltrainer.ui.components.RestDock
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
@@ -589,34 +590,27 @@ private fun WorkoutHeader(
             .padding(start = Metrics.space2, end = Metrics.space4, bottom = Metrics.space3),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onExit) {
-                Icon(Icons.Outlined.Close, contentDescription = "Exit workout", tint = TextSecondary)
-            }
-            Text(
-                routineName,
-                modifier = Modifier.weight(1f),
-                style = InstrumentType.title,
-                color = TextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            TextButton(
-                onClick = onFinish,
-                enabled = canFinish,
-                modifier = Modifier.testTag(WorkoutTestTags.FINISH),
-            ) {
-                Text(
-                    "Finish",
-                    style = InstrumentType.bodyStrong,
-                    // Real, but secondary to logging: the accent belongs on the log button.
-                    color = if (canFinish) TextPrimary else TextTertiary,
-                )
-            }
-        }
+        ScreenHeader(
+            title = routineName,
+            onBack = onExit,
+            backIcon = Icons.Outlined.Close,
+            backDescription = "Exit workout",
+            paintBackground = false,
+            contentPadding = PaddingValues(0.dp),
+            trailing = {
+                TextButton(
+                    onClick = onFinish,
+                    enabled = canFinish,
+                    modifier = Modifier.testTag(WorkoutTestTags.FINISH),
+                ) {
+                    Text(
+                        "Finish",
+                        style = InstrumentType.bodyStrong,
+                        color = if (canFinish) TextPrimary else TextTertiary,
+                    )
+                }
+            },
+        )
         if (!canFinish) {
             Text(
                 "Log a set to finish.",
@@ -683,51 +677,48 @@ private fun LogBar(
     onCancelEdit: () -> Unit,
     onApplyMicroRec: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Pit)
-            .navigationBarsPadding()
-            .padding(horizontal = Metrics.gutter, vertical = Metrics.space3),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-    ) {
-        error?.let {
-            Text(it, style = InstrumentType.body, color = Danger)
-        }
-        if (editing) {
-            TextButton(
-                onClick = onCancelEdit,
-                modifier = Modifier
-                    .align(Alignment.End)
-                    .heightIn(min = Metrics.touchMin),
-            ) {
-                Text("Cancel edit", style = InstrumentType.bodyStrong, color = TextSecondary)
+    PinnedDock(
+        prelude = {
+            error?.let {
+                Text(it, style = InstrumentType.body, color = Danger)
             }
-        }
-        microRec?.let { rec ->
-            MicroRecLine(
-                rec = rec,
-                loadClass = loadClass,
-                unit = unit,
-                onApply = onApplyMicroRec,
+            if (editing) {
+                TextButton(
+                    onClick = onCancelEdit,
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .heightIn(min = Metrics.touchMin),
+                ) {
+                    Text("Cancel edit", style = InstrumentType.bodyStrong, color = TextSecondary)
+                }
+            }
+            microRec?.let { rec ->
+                MicroRecLine(
+                    rec = rec,
+                    loadClass = loadClass,
+                    unit = unit,
+                    onApply = onApplyMicroRec,
+                )
+            }
+        },
+        volt = {
+            val nextAct = showNext && !editing
+            PrimaryGymButton(
+                text = when {
+                    editing -> "Save $draftLabel"
+                    nextAct -> "Next"
+                    else -> "Log $draftLabel"
+                },
+                onClick = if (nextAct) onNext else onLog,
+                enabled = !logging,
+                modifier = Modifier.testTag(
+                    if (nextAct) WorkoutTestTags.NEXT else WorkoutTestTags.LOG_SET,
+                ),
+                height = Metrics.commit,
+                hapticFeedback = nextAct || editing,
             )
-        }
-        val nextAct = showNext && !editing
-        PrimaryGymButton(
-            text = when {
-                editing -> "Save $draftLabel"
-                nextAct -> "Next"
-                else -> "Log $draftLabel"
-            },
-            onClick = if (nextAct) onNext else onLog,
-            enabled = !logging,
-            modifier = Modifier.testTag(
-                if (nextAct) WorkoutTestTags.NEXT else WorkoutTestTags.LOG_SET,
-            ),
-            height = Metrics.commit,
-            hapticFeedback = nextAct || editing,
-        )
-    }
+        },
+    )
 }
 
 @Composable

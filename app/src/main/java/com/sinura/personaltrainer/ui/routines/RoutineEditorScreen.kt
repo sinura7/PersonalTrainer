@@ -7,18 +7,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -52,7 +47,9 @@ import com.sinura.personaltrainer.ui.components.ExerciseRow
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.components.PinnedDock
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.components.ScreenHeader
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.theme.Danger
@@ -304,25 +301,12 @@ fun RoutineEditorScreen(
  */
 @Composable
 internal fun RoutineEditorHeader(onBack: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Pit)
-            .padding(start = Metrics.space2, end = Metrics.space2, bottom = Metrics.space2),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(
-            onClick = onBack,
-            modifier = Modifier.testTag(RoutineEditorTags.BACK),
-        ) {
-            Icon(
-                Icons.AutoMirrored.Outlined.ArrowBack,
-                contentDescription = "Back",
-                tint = TextSecondary,
-            )
-        }
-        Kicker("Routine", modifier = Modifier.weight(1f))
-    }
+    ScreenHeader(
+        title = "Routine",
+        onBack = onBack,
+        backTag = RoutineEditorTags.BACK,
+        kickerTitle = true,
+    )
 }
 
 object RoutineEditorTags {
@@ -336,22 +320,16 @@ private fun RoutineSaveDock(
     enabled: Boolean,
     onSave: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Pit)
-            .navigationBarsPadding()
-            .padding(horizontal = Metrics.gutter, vertical = Metrics.space3),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-    ) {
-        HairlineDivider(startIndent = 0.dp)
-        PrimaryGymButton(
-            text = SessionOrderCopy.SAVE_ROUTINE,
-            onClick = onSave,
-            modifier = Modifier.testTag(RoutineEditorTags.SAVE),
-            enabled = enabled,
-        )
-    }
+    PinnedDock(
+        volt = {
+            PrimaryGymButton(
+                text = SessionOrderCopy.SAVE_ROUTINE,
+                onClick = onSave,
+                modifier = Modifier.testTag(RoutineEditorTags.SAVE),
+                enabled = enabled,
+            )
+        },
+    )
 }
 
 /**
