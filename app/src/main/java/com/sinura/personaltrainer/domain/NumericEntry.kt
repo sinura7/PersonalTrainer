@@ -18,6 +18,24 @@ object NumericEntry {
      */
     const val MAX_REPS = 100
 
+    enum class Ime { NEXT, DONE }
+
+    /** Sets → Reps → Rest → Weight. */
+    val ROUTINE_EDITOR_CHAIN = listOf(Ime.NEXT, Ime.NEXT, Ime.NEXT, Ime.DONE)
+
+    /** Weight → Reps. */
+    val COMPOSER_STRENGTH_CHAIN = listOf(Ime.NEXT, Ime.DONE)
+
+    /** Minutes → Distance. */
+    val COMPOSER_CARDIO_CHAIN = listOf(Ime.NEXT, Ime.DONE)
+
+    /** Password → Confirm. */
+    val PASSWORD_CHAIN = listOf(Ime.NEXT, Ime.DONE)
+
+    val CUSTOM_REST = Ime.DONE
+    val LIVE_CARDIO_DISTANCE = Ime.DONE
+    val UNLOCK_PASSWORD = Ime.DONE
+
     /** Rejects anything a set could not actually be logged at, so the caller can refuse it. */
     fun parseWeightKg(input: String, unit: WeightUnit): Double? {
         val value = parseDecimal(input) ?: return null
@@ -48,9 +66,24 @@ object NumericEntry {
      */
     private val DECIMAL = Regex("""^-?\d+([.,]\d{1,2})?$""")
 
-    private fun parseDecimal(input: String): Double? {
+    fun parseDecimal(input: String): Double? {
         val trimmed = input.trim()
         if (!DECIMAL.matches(trimmed)) return null
         return trimmed.replace(',', '.').toDoubleOrNull()?.takeIf { it.isFinite() }
+    }
+
+    /**
+     * Live-field filter: digits and at most one decimal separator, comma or point.
+     *
+     * Stripping the comma used to turn `102,5` into `1025` in the routine editor.
+     */
+    fun filterDecimal(raw: String): String {
+        val filtered = raw.filter { it.isDigit() || it == '.' || it == ',' }
+        val sepIndex = filtered.indexOfFirst { it == '.' || it == ',' }
+        if (sepIndex < 0) return filtered
+        val sep = filtered[sepIndex]
+        val intPart = filtered.take(sepIndex).filter { it.isDigit() }
+        val frac = filtered.substring(sepIndex + 1).filter { it.isDigit() }
+        return intPart + sep + frac
     }
 }

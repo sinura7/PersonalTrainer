@@ -11,6 +11,7 @@ import com.sinura.personaltrainer.domain.ActivitySession
 import com.sinura.personaltrainer.domain.ActivityWrite
 import com.sinura.personaltrainer.domain.CardioBlock
 import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.ComposerCopy
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.timer.BootSession
 import com.sinura.personaltrainer.timer.CardioElapsed
@@ -111,7 +112,7 @@ class LiveCardioViewModel @JvmOverloads constructor(
                 indoor = indoor.value,
                 elapsedSeconds = elapsedSeconds.value,
                 movingSeconds = elapsedSeconds.value,
-                distanceMeters = distanceKm.value.toDoubleOrNull()?.takeIf { it > 0.0 }?.times(1_000.0),
+                distanceMeters = ComposerCopy.parseDistanceKm(distanceKm.value)?.times(1_000.0),
                 elevationMeters = null,
                 heartRateBpm = null,
                 energyKj = null,

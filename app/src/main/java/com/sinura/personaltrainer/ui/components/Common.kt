@@ -703,6 +703,11 @@ object NumberEntryTags {
     const val FIELD = "number-entry-field"
 }
 
+fun NumericEntry.Ime.imeAction(): ImeAction = when (this) {
+    NumericEntry.Ime.NEXT -> ImeAction.Next
+    NumericEntry.Ime.DONE -> ImeAction.Done
+}
+
 // ---------------------------------------------------------------------------
 // Rest timer
 // ---------------------------------------------------------------------------
@@ -1183,7 +1188,7 @@ fun CustomRestDialog(
                 OutlinedTextField(
                     value = input,
                     onValueChange = {
-                        input = it
+                        input = it.filter { ch -> ch.isDigit() || ch == ':' }
                         invalid = false
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -1192,6 +1197,10 @@ fun CustomRestDialog(
                     singleLine = true,
                     isError = invalid,
                     textStyle = InstrumentType.numeralMd,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = NumericEntry.CUSTOM_REST.imeAction(),
+                    ),
                 )
                 if (invalid) {
                     Text("Use 90 or 1:30.", style = InstrumentType.caption, color = Danger)

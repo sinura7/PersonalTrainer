@@ -57,6 +57,11 @@ class WeightConverterTest {
         val parsed = WeightConverter.parseDisplayToKg("180", WeightUnit.LBS, 80.0)
         assertEquals(81.6, parsed!!, 0.001)
         assertNull(WeightConverter.parseDisplayToKg("", WeightUnit.LBS, 80.0))
+        assertEquals(
+            102.5,
+            WeightConverter.parseDisplayToKg("102,5", WeightUnit.KG, originalKg = null)!!,
+            0.0001,
+        )
     }
 
     @Test

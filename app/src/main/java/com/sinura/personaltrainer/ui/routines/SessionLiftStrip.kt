@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -31,6 +32,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -39,6 +42,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.WeightConverter
@@ -46,6 +50,7 @@ import com.sinura.personaltrainer.ui.components.ExerciseThumb
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.ThumbSize
+import com.sinura.personaltrainer.ui.components.imeAction
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -430,6 +435,11 @@ internal fun CompactTargetFields(
     onSwap: (() -> Unit)?,
 ) {
     val unit = LocalWeightUnit.current
+    val chain = NumericEntry.ROUTINE_EDITOR_CHAIN
+    val setsFocus = remember { FocusRequester() }
+    val repsFocus = remember { FocusRequester() }
+    val restFocus = remember { FocusRequester() }
+    val weightFocus = remember { FocusRequester() }
     var setsText by rememberSaveable(rowKey) { mutableStateOf(sets.toString()) }
     var repsText by rememberSaveable(rowKey) { mutableStateOf(reps.toString()) }
     var restText by rememberSaveable(rowKey) { mutableStateOf(restSeconds.toString()) }
@@ -441,9 +451,7 @@ internal fun CompactTargetFields(
         )
     }
     val stage = {
-        val kg = weightText.toDoubleOrNull()?.let { display ->
-            WeightConverter.toKg(display, unit)
-        }?.takeIf { it > 0.0 }
+        val kg = NumericEntry.parseWeightKg(weightText, unit)?.takeIf { it > 0.0 }
         onStageTargets(setsText.toIntOrNull(), repsText.toIntOrNull(), restText.toIntOrNull(), kg)
     }
     Column(
@@ -451,11 +459,27 @@ internal fun CompactTargetFields(
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-            MiniNumberField("Sets", setsText, Modifier.weight(1f), onCommitTargets) {
+            MiniNumberField(
+                "Sets",
+                setsText,
+                Modifier.weight(1f),
+                onCommitTargets,
+                ime = chain[0],
+                focusRequester = setsFocus,
+                onImeNext = { repsFocus.requestFocus() },
+            ) {
                 setsText = it.filter(Char::isDigit)
                 stage()
             }
-            MiniNumberField("Reps", repsText, Modifier.weight(1f), onCommitTargets) {
+            MiniNumberField(
+                "Reps",
+                repsText,
+                Modifier.weight(1f),
+                onCommitTargets,
+                ime = chain[1],
+                focusRequester = repsFocus,
+                onImeNext = { restFocus.requestFocus() },
+            ) {
                 repsText = it.filter(Char::isDigit)
                 stage()
             }
@@ -466,6 +490,9 @@ internal fun CompactTargetFields(
             modifier = Modifier.fillMaxWidth(),
             onFocusLost = onCommitTargets,
             suffix = "s",
+            ime = chain[2],
+            focusRequester = restFocus,
+            onImeNext = { weightFocus.requestFocus() },
         ) {
             restText = it.filter(Char::isDigit)
             stage()
@@ -479,6 +506,8 @@ internal fun CompactTargetFields(
             onFocusLost = onCommitTargets,
             allowDecimal = true,
             suffix = unit.suffix,
+            ime = chain[3],
+            focusRequester = weightFocus,
         ) {
             weightText = decimalDigits(it)
             stage()
@@ -504,6 +533,9 @@ private fun MiniNumberField(
     onFocusLost: () -> Unit,
     allowDecimal: Boolean = false,
     suffix: String? = null,
+    ime: NumericEntry.Ime = NumericEntry.Ime.NEXT,
+    focusRequester: FocusRequester? = null,
+    onImeNext: (() -> Unit)? = null,
     onValueChange: (String) -> Unit,
 ) {
     var hadFocus by remember { mutableStateOf(false) }
@@ -511,25 +543,27 @@ private fun MiniNumberField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label, style = InstrumentType.caption) },
-        modifier = modifier.onFocusChanged { focus ->
-            if (hadFocus && !focus.isFocused) onFocusLost()
-            hadFocus = focus.isFocused
-        },
+        modifier = modifier
+            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
+            .onFocusChanged { focus ->
+                if (hadFocus && !focus.isFocused) onFocusLost()
+                hadFocus = focus.isFocused
+            },
         singleLine = true,
-        textStyle = InstrumentType.numeralSm,
+        textStyle = InstrumentType.numeralMd,
         suffix = suffix?.let { unit ->
             { Text(unit, style = InstrumentType.unit, color = TextSecondary) }
         },
         keyboardOptions = KeyboardOptions(
             keyboardType = if (allowDecimal) KeyboardType.Decimal else KeyboardType.Number,
+            imeAction = ime.imeAction(),
+        ),
+        keyboardActions = KeyboardActions(
+            onNext = { onImeNext?.invoke() },
+            onDone = { onFocusLost() },
         ),
     )
 }
 
-/** One decimal point. Extra dots used to make the field unparseable and clear the load. */
-internal fun decimalDigits(raw: String): String {
-    val filtered = raw.filter { it.isDigit() || it == '.' }
-    val dot = filtered.indexOf('.')
-    if (dot < 0) return filtered
-    return filtered.take(dot + 1) + filtered.substring(dot + 1).replace(".", "")
-}
+/** One decimal separator, comma or point. Extra dots used to make the field unparseable and clear the load. */
+internal fun decimalDigits(raw: String): String = NumericEntry.filterDecimal(raw)

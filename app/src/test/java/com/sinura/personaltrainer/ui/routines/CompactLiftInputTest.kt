@@ -12,5 +12,7 @@ class CompactLiftInputTest {
         assertEquals("80.55", decimalDigits("80.5.5"))
         assertEquals(".5", decimalDigits(".5"))
         assertEquals("12.5", decimalDigits("12.5kg"))
+        assertEquals("102,5", decimalDigits("102,5"))
+        assertEquals("102,5", decimalDigits("102,5kg"))
     }
 }

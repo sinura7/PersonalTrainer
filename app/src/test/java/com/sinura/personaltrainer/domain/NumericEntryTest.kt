@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NumericEntryTest {
@@ -12,10 +13,63 @@ class NumericEntryTest {
     }
 
     @Test
-    fun acceptsACommaDecimalSeparator() {
-        // On a phone set to most of Europe the numeric keypad's decimal key emits a comma;
-        // rejecting it would make typed entry unusable for half the world.
+    fun commaDecimalWorksOnEveryTypedPath() {
+        assertEquals(102.5, NumericEntry.parseDecimal("102,5")!!, 0.0001)
         assertEquals(102.5, NumericEntry.parseWeightKg("102,5", WeightUnit.KG)!!, 0.0001)
+        assertEquals(
+            102.5,
+            WeightConverter.parseDisplayToKg("102,5", WeightUnit.KG, originalKg = null)!!,
+            0.0001,
+        )
+        assertEquals(102.5, ComposerCopy.parseWeightToKg("102,5", WeightUnit.KG), 0.0001)
+        assertEquals(5.5, ComposerCopy.parseDistanceKm("5,5")!!, 0.0001)
+        assertEquals("102,5", NumericEntry.filterDecimal("102,5kg"))
+        assertEquals("80.55", NumericEntry.filterDecimal("80.5.5"))
+        assertEquals(".5", NumericEntry.filterDecimal(".5"))
+        assertEquals(",5", NumericEntry.filterDecimal(",5"))
+    }
+
+    @Test
+    fun nextThenDoneIsTheNumericChain() {
+        assertEquals(
+            listOf(
+                NumericEntry.Ime.NEXT,
+                NumericEntry.Ime.NEXT,
+                NumericEntry.Ime.NEXT,
+                NumericEntry.Ime.DONE,
+            ),
+            NumericEntry.ROUTINE_EDITOR_CHAIN,
+        )
+        assertEquals(
+            listOf(NumericEntry.Ime.NEXT, NumericEntry.Ime.DONE),
+            NumericEntry.COMPOSER_STRENGTH_CHAIN,
+        )
+        assertEquals(
+            listOf(NumericEntry.Ime.NEXT, NumericEntry.Ime.DONE),
+            NumericEntry.COMPOSER_CARDIO_CHAIN,
+        )
+        assertEquals(
+            listOf(NumericEntry.Ime.NEXT, NumericEntry.Ime.DONE),
+            NumericEntry.PASSWORD_CHAIN,
+        )
+        assertEquals(NumericEntry.Ime.DONE, NumericEntry.CUSTOM_REST)
+        assertEquals(NumericEntry.Ime.DONE, NumericEntry.LIVE_CARDIO_DISTANCE)
+        assertTrue(readUi("routines/SessionLiftStrip.kt").contains("ROUTINE_EDITOR_CHAIN"))
+        assertTrue(readUi("activity/ActivityComposerScreen.kt").contains("COMPOSER_STRENGTH_CHAIN"))
+        assertTrue(readUi("activity/ActivityComposerScreen.kt").contains("COMPOSER_CARDIO_CHAIN"))
+        assertTrue(readUi("activity/LiveCardioScreen.kt").contains("LIVE_CARDIO_DISTANCE"))
+        assertTrue(readUi("components/Common.kt").contains("CUSTOM_REST"))
+        assertTrue(readUi("settings/SettingsScreen.kt").contains("PASSWORD_CHAIN"))
+        assertTrue(readUi("components/Common.kt").contains("KeyboardType.Number"))
+    }
+
+    private fun readUi(relative: String): String {
+        val roots = listOf(
+            java.io.File("app/src/main/java/com/sinura/personaltrainer/ui"),
+            java.io.File("../app/src/main/java/com/sinura/personaltrainer/ui"),
+        )
+        val file = roots.map { java.io.File(it, relative) }.first { it.isFile }
+        return file.readText()
     }
 
     @Test

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -24,9 +25,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -41,6 +45,7 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
 import com.sinura.personaltrainer.domain.ExercisePickerState
+import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
@@ -50,6 +55,7 @@ import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
+import com.sinura.personaltrainer.ui.components.imeAction
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -285,21 +291,37 @@ private fun StrengthAdder(
                 onClick = { pickerOpen = true },
                 modifier = Modifier.testTag(ComposerTags.CHOOSE_LIFT),
             )
+            val strengthChain = NumericEntry.COMPOSER_STRENGTH_CHAIN
+            val weightFocus = remember { FocusRequester() }
+            val repsFocus = remember { FocusRequester() }
             OutlinedTextField(
                 value = weight,
-                onValueChange = { weight = it },
+                onValueChange = { weight = NumericEntry.filterDecimal(it) },
                 label = { Text(ComposerCopy.weightFieldLabel(unit)) },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(),
+                textStyle = InstrumentType.numeralMd,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Decimal,
+                    imeAction = strengthChain[0].imeAction(),
+                ),
+                keyboardActions = KeyboardActions(onNext = { repsFocus.requestFocus() }),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(weightFocus),
             )
             OutlinedTextField(
                 value = reps,
-                onValueChange = { reps = it },
+                onValueChange = { reps = it.filter(Char::isDigit) },
                 label = { Text(ComposerCopy.REPS) },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth(),
+                textStyle = InstrumentType.numeralMd,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = strengthChain[1].imeAction(),
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(repsFocus),
             )
             SecondaryGymButton(
                 text = ComposerCopy.ADD_SET,
@@ -355,6 +377,9 @@ private fun CardioAdder(
     var indoor by rememberSaveable { mutableStateOf(false) }
     var minutes by rememberSaveable { mutableStateOf("30") }
     var distance by rememberSaveable { mutableStateOf("") }
+    val cardioChain = NumericEntry.COMPOSER_CARDIO_CHAIN
+    val minutesFocus = remember { FocusRequester() }
+    val distanceFocus = remember { FocusRequester() }
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
@@ -387,24 +412,37 @@ private fun CardioAdder(
         }
         OutlinedTextField(
             value = minutes,
-            onValueChange = { minutes = it },
+            onValueChange = { minutes = it.filter(Char::isDigit) },
             label = { Text(ComposerCopy.MINUTES) },
             singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
+            textStyle = InstrumentType.numeralMd,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number,
+                imeAction = cardioChain[0].imeAction(),
+            ),
+            keyboardActions = KeyboardActions(onNext = { distanceFocus.requestFocus() }),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(minutesFocus),
         )
         OutlinedTextField(
             value = distance,
-            onValueChange = { distance = it },
+            onValueChange = { distance = NumericEntry.filterDecimal(it) },
             label = { Text(CardioCopy.DISTANCE_LABEL) },
             singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier.fillMaxWidth(),
+            textStyle = InstrumentType.numeralMd,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Decimal,
+                imeAction = cardioChain[1].imeAction(),
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(distanceFocus),
         )
         SecondaryGymButton(
             text = ComposerCopy.ADD_CARDIO,
             onClick = {
-                onAdd(type, minutes.toIntOrNull() ?: 0, distance.toDoubleOrNull(), indoor)
+                onAdd(type, minutes.toIntOrNull() ?: 0, ComposerCopy.parseDistanceKm(distance), indoor)
             },
             modifier = Modifier.testTag(ComposerTags.ADD_CARDIO),
         )

@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F6, G1, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F6, G1–G2, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase G continues at G2. K1 and K2 stay held.  
+`tools/` remain owed. Phase G continues at G3. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -93,7 +93,7 @@ the gym floor, are fifteen of them.
 | F5 | One word per thing | 1 | — | Design I | done |
 | F6 | Today is not buried by the missed-work card | 1 | — | Design I | done |
 | G1 | A screen reader can use Temper | 3 | — | Design II | done |
-| G2 | One numeric-entry grammar | 1 | — | Design II | |
+| G2 | One numeric-entry grammar | 1 | — | Design II | done |
 | G3 | Shared headers and docks | 2 | — | Design II | |
 | G4 | Skin the four foreign controls | 2 | — | Design II | |
 | G5 | Body's first viewport; small targets; destructive confirms | 1 | — | Design II | |
@@ -1090,7 +1090,7 @@ Owner still.
 `ui/onboarding/**`, `ui/components/WeekStrip.kt`,
 `ui/settings/SettingsScreen.kt` *(after F2)*, `ui/reminders/**`.
 
-## G2 — One numeric-entry grammar
+## G2 — One numeric-entry grammar · done on `trunk`
 
 **Symptom.** Typing a decimal weight on a European keyboard gives you 1025
 in the routine editor and 0 in the composer. No field advances to the next
@@ -1102,13 +1102,17 @@ accepts it, `WeightConverter.parseDisplayToKg` rejects it, and
 `SessionLiftStrip.decimalDigits` strips it. `imeAction` is set in exactly two
 places out of seventeen.
 
-**Change.** Route every typed number through `NumericEntry`; add
+**Change.** ~~Route every typed number through `NumericEntry`; add
 Next → Done chains with focus requesters in the routine editor, composer,
 cardio and password dialogs; a number keyboard for custom rest; give the
-numeric fields the numeral type style they currently lack.
+numeric fields the numeral type style they currently lack.~~
+**Struck 2026-09-03 (this packet).** `parseDecimal` / `filterDecimal` are
+the one grammar. `parseDisplayToKg` and the composer/cardio paths consume
+them. Compact fields, composer, cardio, custom rest, and the password pair
+carry Next → Done.
 
-**Proof.** A parser test with a comma decimal for all three paths; a
-Compose test that Next moves focus from sets to reps to rest.
+**Proof.** `NumericEntryTest.commaDecimalWorksOnEveryTypedPath` and
+`nextThenDoneIsTheNumericChain`. Count +1.
 
 **Owns.** `ui/routines/SessionLiftStrip.kt`, `domain/WeightFormat.kt`
 *(after A1)*, `ui/activity/ActivityComposerScreen.kt`,
@@ -1491,6 +1495,14 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — G2: one parser; Next then Done; number pad for rest.**
+Proof is JVM (`commaDecimalWorksOnEveryTypedPath`,
+`nextThenDoneIsTheNumericChain`), not a Compose focus-move test —
+`compose-ui-test-junit4` is still off `testImplementation`. Custom rest
+filters to digits and colon on `KeyboardType.Number`; mm:ss still parses
+if the pad can emit `:`. Finish-cardio parse lives in
+`LiveCardioViewModel` (not in Owns). Count +1.
 
 **2026-09-03 — G1: headings, roles, live regions; typed bodyweight.**
 Proof is JVM (`restKickerIsALiveRegionOnlyWhenFinished`,

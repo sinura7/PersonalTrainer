@@ -42,6 +42,9 @@ object ComposerCopy {
     fun parseWeightToKg(input: String, unit: WeightUnit): Double =
         WeightConverter.parseDisplayToKg(input, unit, originalKg = null) ?: 0.0
 
+    fun parseDistanceKm(input: String): Double? =
+        NumericEntry.parseDecimal(input)?.takeIf { it > 0.0 }
+
     fun strengthLineSubtitle(reps: Int, weightKg: Double, unit: WeightUnit): String =
         "$reps reps · ${weightKg.toWeightLabel(unit)}"
 

@@ -27,6 +27,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -47,6 +48,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -97,6 +100,7 @@ import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.RestPresetChips
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.components.TemperMark
+import com.sinura.personaltrainer.ui.components.imeAction
 import com.sinura.personaltrainer.ui.plan.PreferenceBlock
 import com.sinura.personaltrainer.ui.reminders.ReminderPrefsSection
 import com.sinura.personaltrainer.ui.reminders.openAppNotificationSettings
@@ -1183,6 +1187,9 @@ private fun ProtectBackupDialog(
     var password by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf("") }
     var invalid by remember { mutableStateOf<String?>(null) }
+    val passwordChain = NumericEntry.PASSWORD_CHAIN
+    val passwordFocus = remember { FocusRequester() }
+    val confirmFocus = remember { FocusRequester() }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -1205,11 +1212,17 @@ private fun ProtectBackupDialog(
                         password = it
                         invalid = null
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(passwordFocus),
                     label = { Text("Password") },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = passwordChain[0].imeAction(),
+                    ),
+                    keyboardActions = KeyboardActions(onNext = { confirmFocus.requestFocus() }),
                     textStyle = InstrumentType.body,
                 )
                 OutlinedTextField(
@@ -1218,11 +1231,16 @@ private fun ProtectBackupDialog(
                         confirm = it
                         invalid = null
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(confirmFocus),
                     label = { Text("Confirm password") },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = passwordChain[1].imeAction(),
+                    ),
                     textStyle = InstrumentType.body,
                 )
                 invalid?.let { Text(it, style = InstrumentType.caption, color = Danger) }
@@ -1285,7 +1303,10 @@ private fun UnlockBackupDialog(
                     label = { Text("Password") },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = NumericEntry.UNLOCK_PASSWORD.imeAction(),
+                    ),
                     textStyle = InstrumentType.body,
                 )
             }

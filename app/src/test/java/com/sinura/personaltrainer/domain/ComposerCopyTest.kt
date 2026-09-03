@@ -32,6 +32,8 @@ class ComposerCopyTest {
         assertEquals("5 reps · 80 kg", ComposerCopy.strengthLineSubtitle(5, 80.0, WeightUnit.KG))
         assertEquals("5 reps · 176.5 lbs", ComposerCopy.strengthLineSubtitle(5, 80.0, WeightUnit.LBS))
         assertEquals(80.0, ComposerCopy.parseWeightToKg("80", WeightUnit.KG), 0.0)
+        assertEquals(102.5, ComposerCopy.parseWeightToKg("102,5", WeightUnit.KG), 0.0001)
+        assertEquals(5.5, ComposerCopy.parseDistanceKm("5,5")!!, 0.0001)
         assertEquals(
             WeightConverter.toKg(185.0, WeightUnit.LBS),
             ComposerCopy.parseWeightToKg("185", WeightUnit.LBS),
