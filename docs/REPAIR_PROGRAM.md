@@ -1080,7 +1080,7 @@ false; `publicCandidateReady()` stays closed.
 
 **Proof.** `TalkBackPolicyTest`: rest kicker live only when finished;
 typed bodyweight snaps to the wheel; owned surfaces carry
-`heading()` / `Role` / `LiveRegionMode.Polite` / `toggleable`. Count +2.
+`heading()` / `Role` / `LiveRegionMode.Polite` / `toggleable`. Count +3.
 
 **Phone gate.** The physical TalkBack pass the matrix has been waiting for.
 Owner still.
@@ -1502,7 +1502,7 @@ weekday letters, REST, LIFTS, and metric labels opt out.
 component. Home masthead, start-sheet title, and `ExerciseRow`
 are Floor-finds (not in Owns). Tab titles inherit heading from
 `Kicker` inside `AppNav`. `publicCandidateReady()` stays false.
-Count +2.
+Count +3.
 
 **2026-09-03 — F6: Keep is the Volt; Other choices hide the rest.**
 Proof is JVM (`keepIsTheVoltAndOtherChoicesStartCollapsed`), not a
