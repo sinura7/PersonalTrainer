@@ -76,8 +76,9 @@ class PersonalTrainerApp : Application() {
         super.onCreate()
         // Before anything that can log: the snapshot and container construction below
         // (database open, migrations) are exactly the paths whose messages carry
-        // user-authored titles and internal file paths on a release build.
-        AppLog.redactMessages = !BuildConfig.DEBUG
+        // user-authored titles and internal file paths. Temper Debug is the daily
+        // install, so this is always on — not a release-only switch.
+        AppLog.redactMessages = true
         // FIRST among the heavy steps, before anything can open the database: AppContainer's
         // constructor builds the Room instance and Room migrates on open, so a copy taken any
         // later is a copy of the already-migrated file — and that copy is the only rollback

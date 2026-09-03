@@ -32,15 +32,15 @@ object AppLog {
     var onError: ((tag: String, error: Throwable) -> Unit)? = null
 
     /**
-     * True on release builds (the app class sets it at startup): free-text
-     * messages are dropped before the sink, keeping tag, level, and
-     * throwable. Messages interpolate user-authored text — routine titles,
-     * internal paths — and release logcat is readable by anything with adb
+     * Default on. The app class pins it at startup for both build types:
+     * free-text messages are dropped before the sink, keeping tag, level,
+     * and throwable. Messages interpolate user-authored text — routine
+     * titles, internal paths — and logcat is readable by anything with adb
      * or a bugreport; the custom seam also means R8 never strips these
      * calls the way it can strip direct android.util.Log ones.
      */
     @Volatile
-    var redactMessages: Boolean = false
+    var redactMessages: Boolean = true
 
     const val REDACTED = "(redacted)"
 

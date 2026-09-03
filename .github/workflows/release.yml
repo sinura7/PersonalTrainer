@@ -131,6 +131,18 @@ jobs:
       - name: Build release APK
         run: ./gradlew assembleRelease --stacktrace
 
+      # mapping.txt is the only way to read a minified crash bundle:
+      # DiagnosticRedaction keeps Temper frames by package prefix, and R8
+      # renames the rest. Upload even on workflow_dispatch so a mapping is
+      # not thrown away with the APK.
+      - name: Upload mapping
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mapping
+          path: app/build/outputs/mapping/release/mapping.txt
+          if-no-files-found: warn
+          retention-days: 30
+
       # Three candidates in preference order. Unsigned MUST be last but MUST be reachable:
       # with no keystore, AGP emits only PersonalTrainer-<version>-release-unsigned.apk and
       # the build script's rename skips it, so excluding "unsigned" outright made the whole
@@ -194,9 +206,10 @@ jobs:
           else
             notes="**UNSIGNED** — signing secrets are not configured, so this APK cannot update an existing install. Build locally per SETUP.md, or add the KEYSTORE_* secrets."
           fi
+          mapping="app/build/outputs/mapping/release/mapping.txt"
           # A release may already exist because it was cut by hand (SETUP.md §5.3 documents
           # exactly that). Never clobber a human-uploaded APK: attach alongside, and if the
-          # asset name already exists, leave it and say so.
+          # asset name already exists, leave it and say so. Same rule for mapping.txt.
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "Release $tag already exists — uploading without overwriting."
             gh release upload "$tag" "$APK" || \
@@ -206,4 +219,8 @@ jobs:
               --title "${tag#v}" \
               --notes "$notes" \
               --verify-tag
+          fi
+          if [ -f "$mapping" ]; then
+            gh release upload "$tag" "$mapping" || \
+              echo "mapping.txt already present on $tag; leaving the existing one untouched."
           fi

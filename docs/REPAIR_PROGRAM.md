@@ -1,8 +1,9 @@
 # Repair program — the 1 September audit, packet by packet
 
 **Status:** in progress — Phase A, B3, B4, B1, J4 (seams, TimePort,
-scheduler polish), J3, J2, and J5 are on `trunk`. Policy tests into
-`tools/` remain owed. J1 remains. Phase C has not started.  
+scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
+`tools/` remain owed. B2 waits on owner decision 3. Phase C has not
+started.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -386,6 +387,11 @@ both.
 2. Per decision 3, move tone and vibration to `USAGE_ALARM`
    (`VibrationAttributes.USAGE_ALARM` on API 33+) and align or retire the
    ringer-silent gate accordingly.
+
+**Ready to cut (after decision 3).** The four-arg `create` plus
+`USAGE_ALARM` in `RestTimerAlerts.kt`. Channel `setBypassDnd` in
+`RestTimerNotifications.kt` follows the same call. Do not start this
+packet without the owner decision.
 
 **Proof.** A test asserting the attributes reach `create` rather than a
 post-`prepare` setter. Audio routing itself is a phone check.
@@ -1230,30 +1236,47 @@ distance unit from the weight unit.
 Five packets. None of this is visible on the phone; all of it is what keeps
 the previous phases from silently regressing.
 
-## J1 — The release build is real · needs decision 6
+## J1 — The release build is real · done on `trunk` · phone is decision 6
 
 **Symptom.** Nothing you can see — which is the problem. The signed build's
 code shrinking, its keep rules, its Gson round-trip and its crash bundle have
 never executed anywhere. The build you install daily is the debug one, which
 writes your workout titles and internal file paths into the phone's log.
 
-**Cause.** `appVersionCode` is still 1 and the only signed release predates
+**Cause.** ~~`appVersionCode` is still 1 and the only signed release predates
 the shrinking being switched on (`P12-field-operations.md`). Log redaction
 is tied to the build type (`PersonalTrainerApp.kt:80`), so it is off exactly
 where you use it. And `release.yml` (`:174-213`) never archives the symbol
 map, so a crash report from a shrunken build cannot be read back — the
 diagnostics feature keeps only frames whose class name starts with the
-package, which shrinking renames away.
+package, which shrinking renames away.~~ **Struck 2026-09-03 (this
+packet).** Redaction is on in both build types. Mapping uploads from
+`release.yml`. `-keeppackagenames` keeps the diagnostics prefix.
+`appVersionCode` stays 1 until the first signed `v*`.
 
-**Change.** Redact by default in both build types, with a debug-only toggle
-in the Settings block that already exists. Upload the mapping file as a
-release asset and keep package names so the diagnostics filter still
-matches. Then install one `assembleRelease` build on a phone and walk
-export → protected export → import → restore → share diagnostics, and write
-the result into the P12 evidence file.
+**Change.** ~~Redact by default in both build types, with a debug-only
+toggle in the Settings block that already exists. Upload the mapping
+file as a release asset and keep package names so the diagnostics
+filter still matches. Then install one `assembleRelease` build on a
+phone and walk export → protected export → import → restore → share
+diagnostics, and write the result into the P12 evidence file.~~
+**Struck 2026-09-03 (this packet).** Redact is always on
+(`PersonalTrainerApp.onCreate` and the `AppLog.redactMessages`
+default). The Settings toggle waits for H2. Mapping is an Actions
+artifact and a `v*` release asset (no clobber). `-keeppackagenames
+com.sinura.personaltrainer.**`. `assembleRelease` on Cursor is
+unsigned without secrets — it cannot update gym-floor Temper. Phone
+walk is owner decision 6.
 
-**Owns.** `PersonalTrainerApp.kt`, `app/proguard-rules.pro`,
-`.github/workflows/release.yml`, `ui/settings/SettingsScreen.kt` *(after H2)*.
+**Proof.** `AppLogRedactionTest.debugBuildStillRedactsLogMessages`:
+after `PersonalTrainerApp.onCreate`, `AppLog.w` of a canary title is
+`AppLog.REDACTED` even though `BuildConfig.DEBUG` is true. Red on
+trunk (`CANARY_PUSH_DAY` reached the sink). Count +1.
+
+**Owns.** `PersonalTrainerApp.kt`, `logging/AppLog.kt`,
+`app/proguard-rules.pro`, `.github/workflows/release.yml`,
+`logging/AppLogRedactionTest.kt`. `ui/settings/SettingsScreen.kt`
+stays H2.
 
 ## J2 — The release ratchet and CI pinning · done on `trunk`
 
@@ -1427,6 +1450,22 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — J1: redact is always on; Settings toggle waits
+for H2.** The Change line asked for a debug-only toggle in the
+Settings block that already exists. H2 owns Settings copy and
+that block (`if (BuildConfig.DEBUG)` around Foundation
+generation, not a redact switch). This packet sets
+`AppLog.redactMessages = true` in `PersonalTrainerApp.onCreate`
+(was `!BuildConfig.DEBUG`) and defaults the flag to true in
+`AppLog.kt`. `CoroutineErrorsTest` opts out so it can still
+assert log text. `-keeppackagenames
+com.sinura.personaltrainer.**` so `DiagnosticRedaction.appFrames`
+still matches after R8. `release.yml` archives `mapping.txt`.
+`assembleRelease` on Cursor is unsigned without secrets — it
+cannot update gym-floor Temper. Do not bump `appVersionCode`.
+Phone walk is owner decision 6. Count +1
+(`debugBuildStillRedactsLogMessages`).
 
 **2026-09-03 — J5: skips named, not guessed; tokens advisory until
 cleaned.** Settings has no `uiState`; RestTimerScreenState is not
