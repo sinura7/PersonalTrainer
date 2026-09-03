@@ -75,6 +75,7 @@ import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import com.sinura.personaltrainer.util.toLocalDate
 import com.sinura.personaltrainer.util.toYearMonth
 import java.text.DateFormat
 import java.time.LocalDate
@@ -96,7 +97,6 @@ fun HistoryScreen(
     val error by viewModel.error.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
     val dateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
-    val today = remember { LocalDate.now() }
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedDayEpoch by rememberSaveable { mutableStateOf<Long?>(null) }
 
@@ -173,7 +173,7 @@ fun HistoryScreen(
                             TrainingCalendarCard(
                                 month = state.calendar,
                                 weekStart = state.weekStart,
-                                today = today,
+                                today = state.today.toLocalDate(),
                                 onPreviousMonth = viewModel::showPreviousMonth,
                                 onNextMonth = viewModel::showNextMonth,
                                 // One session opens straight away; two or more open a sheet.

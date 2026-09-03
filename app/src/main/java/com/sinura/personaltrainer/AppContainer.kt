@@ -44,6 +44,7 @@ import com.sinura.personaltrainer.workout.WorkoutDraftCache
 class AppContainer(context: Context) : AppDependencies {
     override val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
     override val computeDispatcher: CoroutineDispatcher = Dispatchers.Default
+    override val time: com.sinura.personaltrainer.domain.TimePort = JvmTime
 
     private val database: TemperDatabase = TemperDatabase.create(context)
 
@@ -76,7 +77,7 @@ class AppContainer(context: Context) : AppDependencies {
     override val plannerRepository: PlannerRepository = PlannerRepository(
         database = database,
         scheduler = WorkManagerReminderScheduler(context),
-        time = JvmTime,
+        time = time,
     )
     override val pendingOccurrenceId = MutableStateFlow<String?>(null)
     override val workoutRepository: WorkoutRepository = WorkoutRepository(
@@ -153,11 +154,11 @@ class AppContainer(context: Context) : AppDependencies {
         routineRepository = routineRepository,
     )
     override val confirmActivity: ConfirmActivity =
-        ConfirmActivity(activityRepository, IdFactory.Uuid, JvmTime)
+        ConfirmActivity(activityRepository, IdFactory.Uuid, time)
     override val startLiveActivity: StartLiveActivity =
-        StartLiveActivity(activityRepository, IdFactory.Uuid, JvmTime)
+        StartLiveActivity(activityRepository, IdFactory.Uuid, time)
     override val discardActivity: DiscardActivity = DiscardActivity(activityRepository)
-    override val finishActivity: FinishActivity = FinishActivity(activityRepository, JvmTime)
+    override val finishActivity: FinishActivity = FinishActivity(activityRepository, time)
     override val cardioTimerPersistence: SharedPrefsCardioTimerPersistence =
         SharedPrefsCardioTimerPersistence(context)
     override val startLiveCardio: StartLiveCardio = StartLiveCardio(

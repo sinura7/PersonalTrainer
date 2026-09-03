@@ -6,8 +6,11 @@ import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.LighterWeek
+import com.sinura.personaltrainer.testutil.FrozenTime
 import com.sinura.personaltrainer.util.toCivilDate
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -17,6 +20,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -77,6 +81,40 @@ class ProgressViewModelTest {
         // FakeAppDependencies.scheduler), advanceUntilIdle drives read, compute and write
         // to completion. The value is simply there afterwards, so a wrong one fails as an
         // assertion naming both numbers rather than as an opaque timeout.
+        dispatcher.scheduler.advanceUntilIdle()
+        val marked = deps.preferencesRepository.lighterWeekStartEpochDay.first()
+        assertEquals(expected, marked)
+    }
+
+    @Test
+    fun markLighterWeekUsesFrozenCivilTodayNotWallClock() = runBlocking {
+        val zone = ZoneId.of("America/New_York")
+        val frozenMs = ZonedDateTime.of(1999, 12, 31, 23, 59, 0, 0, zone)
+            .toInstant()
+            .toEpochMilli()
+        val frozenToday = com.sinura.personaltrainer.domain.CivilDate.of(1999, 12, 31)
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+            time = FrozenTime(frozenMs, zone.id),
+        )
+        viewModel = ProgressViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+
+        val weekStart = deps.preferencesRepository.schedulePreferences.first().weekStart
+        val expected = LighterWeek.weekStartEpochDay(
+            today = frozenToday,
+            weekStart = weekStart,
+        )
+        val wallExpected = LighterWeek.weekStartEpochDay(
+            today = LocalDate.now().toCivilDate(),
+            weekStart = weekStart,
+        )
+        assertNotEquals(
+            "Frozen 1999-12-31 must not be wall today, or this would pass on trunk.",
+            wallExpected,
+            expected,
+        )
+        viewModel!!.markLighterWeek()
         dispatcher.scheduler.advanceUntilIdle()
         val marked = deps.preferencesRepository.lighterWeekStartEpochDay.first()
         assertEquals(expected, marked)

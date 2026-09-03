@@ -20,7 +20,6 @@ import com.sinura.personaltrainer.domain.MissedWorkPolicy
 import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.ScheduleOccurrence
 import com.sinura.personaltrainer.domain.SlotRuleImport
-import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.data.repository.AuxiliaryBlocks
 import com.sinura.personaltrainer.domain.InsightFailure
 import com.sinura.personaltrainer.domain.LighterWeek
@@ -35,7 +34,7 @@ import com.sinura.personaltrainer.domain.BlockReviewBuilder
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.TrainingBlock
-import com.sinura.personaltrainer.domain.todayEpochDay
+import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.domain.WeekTwoCopy
 import com.sinura.personaltrainer.domain.WeeklySchedulePlan
@@ -43,9 +42,6 @@ import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
-import com.sinura.personaltrainer.domain.Weekday
-import java.time.LocalDate
-import java.time.ZoneId
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -122,14 +118,14 @@ class PlanViewModel @JvmOverloads constructor(
                     emit(emptyList())
                     return@flow
                 }
-                val zone = JvmTime.defaultZoneId()
+                val zone = time.defaultZoneId()
                 emit(
                     container.workoutRepository.sessionsBetween(
-                        minDateMs = JvmTime.startOfDayMillis(
+                        minDateMs = time.startOfDayMillis(
                             CivilDate.fromEpochDay(block.startEpochDay),
                             zone,
                         ),
-                        maxDateMs = JvmTime.startOfDayMillis(
+                        maxDateMs = time.startOfDayMillis(
                             CivilDate.fromEpochDay(block.endExclusiveEpochDay),
                             zone,
                         ) - 1,
@@ -184,7 +180,7 @@ class PlanViewModel @JvmOverloads constructor(
         val error = extras.second
         val planner = extras.third
         if (current == null) return@combine PlanUiState()
-        val zone = ZoneId.systemDefault()
+        val zone = time.defaultZoneId()
         val today = todayEpochDay()
         val nowMinutes = currentMinutesOfDay()
         val weekStart = current.weekPlan?.weekStartEpochDay
@@ -210,6 +206,8 @@ class PlanViewModel @JvmOverloads constructor(
                         block = finished,
                         sessions = settings.blockSessions,
                         unit = settings.unit,
+                        time = time,
+                        zoneId = zone,
                         bodyweightLog = settings.bodyweightLog,
                     )
                 },
@@ -500,6 +498,7 @@ class PlanViewModel @JvmOverloads constructor(
                 epochDay = epochDay,
                 packId = pack.id,
                 once = once,
+                todayEpochDay = todayEpochDay(),
             )
             refreshPlanner()
         }
@@ -558,12 +557,12 @@ class PlanViewModel @JvmOverloads constructor(
         write("Could not save that decision. Try again.") {
             val weekStartEpoch = uiState.value.week?.weekStartEpochDay
                 ?: return@write
-            val now = JvmTime.captureNow()
+            val now = time.captureNow()
             container.plannerRepository.applyMissedWork(
                 choice = choice,
                 weekStart = CivilDate.fromEpochDay(weekStartEpoch),
                 todayEpochDay = todayEpochDay(),
-                nowMinutesOfDay = currentMinutesOfDay(now.instantMillis, now.zoneId),
+                nowMinutesOfDay = time.wallMinutesOfDay(now.instantMillis, now.zoneId),
                 deviceZoneId = now.zoneId,
                 nowMs = now.instantMillis,
             )
@@ -648,10 +647,10 @@ class PlanViewModel @JvmOverloads constructor(
     private fun dayOfWeekFor(epochDay: Long): Weekday =
         com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(epochDay).dayOfWeek
 
-    private fun currentMinutesOfDay(
-        nowMs: Long = System.currentTimeMillis(),
-        zoneId: String = ZoneId.systemDefault().id,
-    ): Int = JvmTime.wallMinutesOfDay(nowMs, zoneId)
+    private fun currentMinutesOfDay(): Int {
+        val now = time.captureNow()
+        return time.wallMinutesOfDay(now.instantMillis, now.zoneId)
+    }
 
     /**
      * Begin the next twelve weeks from the top of this week.
@@ -668,9 +667,7 @@ class PlanViewModel @JvmOverloads constructor(
             // one place rather than being asserted at each caller.
             container.preferencesRepository.beginBlock(
                 next = TrainingBlock.startingIn(
-                    today = LocalDate.now().let { d ->
-                        com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(d.toEpochDay())
-                    },
+                    today = civilToday(),
                     weekStart = weekStart,
                 ),
                 todayEpochDay = todayEpochDay(),

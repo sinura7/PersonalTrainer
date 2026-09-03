@@ -1,7 +1,7 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, J4 dispatcher seams, and the J3
-ledger slice are on `trunk`. TimePort, B4, B1, J2, J3 remainder, J5,
+**Status:** in progress — Phase A, B3, J4 dispatcher seams, J4 TimePort,
+and the J3 ledger slice are on `trunk`. B4, B1, J2, J3 remainder, J5,
 and J1 remain. Phase C has not started.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
@@ -1302,19 +1302,21 @@ The working shape is Robolectric + `runBlocking` +
 Room query = fixed pool of 2 (`room-query-test`); transaction = single
 thread (`room-txn-test`). Do not retry Room-on-dispatcher without
 converting the suite to `runTest`, which is a different packet. Calendar
-`TimePort` and moving the sixteen source-reading policy tests into the
-checkers remain owed.
+`TimePort` is on `AppDependencies.time` (production `JvmTime`; tests
+pass `FrozenTime`). Civil today in ViewModels goes through
+`AppViewModel.todayEpochDay()` / `civilToday()`. Moving the sixteen
+source-reading policy tests into the checkers remains owed.
 
 **Owns.** `app/src/test/**`, `tools/`, and the dispatcher seams in
-`app/src/main` (`AppDependencies.ioDispatcher` / `computeDispatcher`,
-`AppContainer`, `BackupRepository`, and the ViewModels that `flowOn` or
-`withContext` off the test scheduler). Calendar `TimePort` sites still
-on the wall clock: `PlanViewModel`, `ProgressViewModel`,
-`CustomWeekViewModel`, `OnboardingViewModel`, `RestTimerViewModel`,
-`ActiveWorkoutViewModel`, `SetMicroRecUi`, `HistoryScreen`.
-`HomeViewModel` uses `todayEpochDay()`, which already takes `TimePort`
-but defaults to `JvmTime`. Policy tests into `tools/` remain owed
-(count-changing; hold until after J5).
+`app/src/main` (`AppDependencies.ioDispatcher` / `computeDispatcher` /
+`time`, `AppContainer`, `BackupRepository`, and the ViewModels that
+`flowOn` or `withContext` off the test scheduler). TimePort sites:
+`PlanViewModel`, `ProgressViewModel`, `CustomWeekViewModel`,
+`OnboardingViewModel`, `RestTimerViewModel`, `ActiveWorkoutViewModel`,
+`SetMicroRecUi`, `HistoryViewModel` / `HistoryScreen`, `HomeViewModel`.
+Policy tests into `tools/` remain owed (count-changing; hold until
+after J5). `scheduler=` polish on remaining ViewModel tests is the
+next J4 slice.
 
 ## J5 — The checkers report what they skip
 
@@ -1402,6 +1404,20 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — J4 TimePort: freeze civil today, not rest.**
+`AppDependencies.time` is `JvmTime` in production and `FrozenTime` in
+tests. `AppViewModel.todayEpochDay()` must pass `nowMs =
+time.nowMillis()`; the domain helper defaults `nowMs` to
+`JvmTime.nowMillis()`, which would ignore a frozen port.
+`FrozenTime` overrides `captureNow` because `TimePort by JvmTime`
+forwards the default method to `JvmTime.nowMillis()`. Rest deadlines
+stay on `elapsedRealtime`. Proof:
+`ProgressViewModelTest.markLighterWeekUsesFrozenCivilTodayNotWallClock`
+freezes 1999-12-31 23:59 America/New_York. Count +1. Compose
+`HomeScreen` / `PlanScreen` / `DailyAgendaCard` still call domain
+`todayEpochDay()` at composition (wall clock for labels only).
+Policy tests and `scheduler=` polish remain.
 
 **2026-09-03 — K2 tripwire ahead of the compiler train.** K2 is held.
 Its "until signed" work was a ledger tripwire plus Dependabot ignores.

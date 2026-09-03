@@ -16,7 +16,6 @@ import com.sinura.personaltrainer.domain.MoveToToday
 import com.sinura.personaltrainer.domain.ScheduleConfidence
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.Weekday
-import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.domain.BodyweightCheckIn
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.ProgressionHint
@@ -27,7 +26,6 @@ import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.domain.WeeklySchedulePlan
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.latest
-import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.data.repository.AuxiliaryBlocks
 import com.sinura.personaltrainer.data.repository.DayBlocks
 import com.sinura.personaltrainer.data.repository.StartSessionOutcome
@@ -113,8 +111,8 @@ class HomeViewModel @JvmOverloads constructor(
         val decisions = extras.first.second.third
         val cadence = extras.second
         val today = todayEpochDay()
-        val now = JvmTime.captureNow()
-        val nowMinutes = JvmTime.wallMinutesOfDay(now.instantMillis, now.zoneId)
+        val now = time.captureNow()
+        val nowMinutes = time.wallMinutesOfDay(now.instantMillis, now.zoneId)
         val weekStart = insights.weekPlan?.weekStartEpochDay
             ?: CivilDate.fromEpochDay(today).previousOrSame(
                 insights.weekPlan?.preferences?.weekStart
@@ -260,8 +258,8 @@ class HomeViewModel @JvmOverloads constructor(
     fun applyMissedWork(choice: MissedWorkChoice) {
         viewModelScope.launch {
             val weekStart = uiState.value.weekPlan?.weekStartEpochDay ?: return@launch
-            val now = JvmTime.captureNow()
-            val nowMinutes = JvmTime.wallMinutesOfDay(now.instantMillis, now.zoneId)
+            val now = time.captureNow()
+            val nowMinutes = time.wallMinutesOfDay(now.instantMillis, now.zoneId)
             runCatching {
                 container.plannerRepository.applyMissedWork(
                     choice = choice,
@@ -399,6 +397,7 @@ class HomeViewModel @JvmOverloads constructor(
                         epochDay = epochDay,
                         routineId = add.routineId,
                         once = once,
+                        todayEpochDay = todayEpochDay(),
                     )
                     HomeDayAdd.NewWorkout -> {
                         val routineId = DayBlocks.composeWorkout(
@@ -408,6 +407,7 @@ class HomeViewModel @JvmOverloads constructor(
                             preferences = container.preferencesRepository,
                             epochDay = epochDay,
                             once = once,
+                            todayEpochDay = todayEpochDay(),
                         )
                         _navigateToEditor.value = routineId
                     }
@@ -417,6 +417,7 @@ class HomeViewModel @JvmOverloads constructor(
                         epochDay = epochDay,
                         type = add.type,
                         once = once,
+                        todayEpochDay = todayEpochDay(),
                     )
                     is HomeDayAdd.Aux -> AuxiliaryBlocks.add(
                         planner = container.plannerRepository,
@@ -426,6 +427,7 @@ class HomeViewModel @JvmOverloads constructor(
                         epochDay = epochDay,
                         packId = add.packId,
                         once = once,
+                        todayEpochDay = todayEpochDay(),
                     )
                 }
             }.onSuccess { actionError.value = null }

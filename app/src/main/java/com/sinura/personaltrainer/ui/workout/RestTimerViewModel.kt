@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
-import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.ProgressionHint
@@ -19,7 +18,6 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
-import java.time.LocalDate
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -138,6 +136,8 @@ class RestTimerViewModel @JvmOverloads constructor(
                     editingSetId = null,
                     lighterWeek = lighter,
                     unit = unit,
+                    nowMs = time.nowMillis(),
+                    todayEpochDay = todayEpochDay(),
                 )
                 val loadClass = exerciseId?.let { current.loadClassOf(it) } ?: LoadClass.LOADED
                 RestFloorCopy.context(
@@ -196,7 +196,7 @@ class RestTimerViewModel @JvmOverloads constructor(
         val planned = current.exercises.firstOrNull { it.exercise.id == exerciseId }
         val schedule = container.preferencesRepository.schedulePreferences.first()
         val thisWeek = LighterWeek.weekStartEpochDay(
-            CivilDate.fromEpochDay(LocalDate.now().toEpochDay()),
+            civilToday(),
             schedule.weekStart,
         )
         val lighter = LighterWeek.isCurrent(

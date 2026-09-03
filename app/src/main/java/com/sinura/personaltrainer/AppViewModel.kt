@@ -3,6 +3,10 @@ package com.sinura.personaltrainer
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 
+import com.sinura.personaltrainer.domain.CivilDate
+import com.sinura.personaltrainer.domain.TimePort
+import com.sinura.personaltrainer.domain.todayEpochDay as domainTodayEpochDay
+
 fun Application.appContainer(): AppContainer = (this as PersonalTrainerApp).container
 
 /**
@@ -16,4 +20,11 @@ fun Application.appContainer(): AppContainer = (this as PersonalTrainerApp).cont
 abstract class AppViewModel(
     application: Application,
     protected val container: AppDependencies,
-) : AndroidViewModel(application)
+) : AndroidViewModel(application) {
+    protected val time: TimePort get() = container.time
+
+    protected fun todayEpochDay(): Long =
+        domainTodayEpochDay(nowMs = time.nowMillis(), time = time)
+
+    protected fun civilToday(): CivilDate = time.civilDate(time.nowMillis())
+}

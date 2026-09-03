@@ -7,7 +7,6 @@ import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.setMicroRecInputs
-import java.time.LocalDate
 
 /** Same `suggest()` inputs on the log and the rest floor. */
 internal fun workoutMicroRec(
@@ -18,9 +17,9 @@ internal fun workoutMicroRec(
     editingSetId: String?,
     lighterWeek: Boolean,
     unit: WeightUnit,
+    nowMs: Long,
+    todayEpochDay: Long,
     wantAnotherSet: Boolean = false,
-    nowMs: Long = System.currentTimeMillis(),
-    todayEpochDay: Long = LocalDate.now().toEpochDay(),
 ): SetMicroRec? {
     if (session == null) return null
     val exerciseId = session.resolveSelectedExerciseId(selectedExerciseId) ?: return null
