@@ -85,7 +85,7 @@ class PlannerRepository(
         for (ruleId in importedIds) {
             val slotId = ruleId.removePrefix("rule-")
             if (slotId !in slotIds && rules.firstOrNull { it.id == ruleId }?.modality == ScheduleModality.STRENGTH) {
-                dao.deleteRule(ruleId)
+                retireOrDeleteRuleLocked(ruleId)
             }
         }
     }
@@ -212,18 +212,46 @@ class PlannerRepository(
     /**
      * Drops a user-added timed rule (morning cardio, later strength).
      * Imported evening pins stay on Unpin. Planned occurrences for the
-     * rule go with it; DONE rows stay as history.
+     * rule go with it. A rule that still has DONE / SKIPPED / MISSED /
+     * MOVED rows is retired (`enabled = false`) so CASCADE cannot wipe
+     * history.
      */
     suspend fun removeTimedRule(ruleId: String) {
         if (!SlotRuleImport.isUserTimedRule(ruleId)) return
         database.withTransaction {
-            val occs = dao.getOccurrencesForRule(ruleId)
-            for (row in occs) {
-                if (row.status == OccurrenceStatus.PLANNED.name) {
-                    cancelReminders(row.id)
-                    dao.deleteOccurrence(row.id)
-                }
+            retireOrDeleteRuleLocked(ruleId)
+        }
+    }
+
+    /**
+     * Stops a deleted routine from minting sessions. Same transaction as
+     * [RoutineRepository.delete].
+     */
+    suspend fun onRoutineDeleted(routineId: String) {
+        database.withTransaction {
+            val matching = dao.getRules().map { it.toDomain() }
+                .filter { it.routineId == routineId }
+            for (rule in matching) {
+                retireOrDeleteRuleLocked(rule.id)
             }
+        }
+    }
+
+    private suspend fun retireOrDeleteRuleLocked(ruleId: String) {
+        val occs = dao.getOccurrencesForRule(ruleId)
+        val hasHistory = occs.any { it.status != OccurrenceStatus.PLANNED.name }
+        for (row in occs) {
+            if (row.status == OccurrenceStatus.PLANNED.name) {
+                cancelReminders(row.id)
+                dao.deleteOccurrence(row.id)
+            }
+        }
+        if (hasHistory) {
+            val current = dao.getRule(ruleId)?.toDomain() ?: return
+            dao.upsertRule(
+                current.copy(enabled = false, updatedAtMs = time.nowMillis()).toEntity(),
+            )
+        } else {
             dao.deleteRule(ruleId)
         }
     }

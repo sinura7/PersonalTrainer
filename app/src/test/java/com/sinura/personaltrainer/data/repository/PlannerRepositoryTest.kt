@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -109,6 +110,49 @@ class PlannerRepositoryTest {
         assertTrue(SlotRuleImport.isImportedSlotRule(deps.plannerRepository.rules().single().id))
         deps.plannerRepository.removeTimedRule(deps.plannerRepository.rules().single().id)
         assertEquals(1, deps.plannerRepository.rules().size)
+    }
+
+    @Test
+    fun removeTimedRuleKeepsADoneRow() = runBlocking {
+        val extra = deps.routineRepository.create(name = "Monday extra")
+        val rule = deps.plannerRepository.addTimedRule(
+            weekday = Weekday.MONDAY,
+            hour = 20,
+            minute = 0,
+            modality = ScheduleModality.STRENGTH,
+            routineId = extra.id,
+            nowMs = 1_700_000_000_000L,
+        )
+        deps.plannerRepository.ensureWeek(weekStart, "UTC", 1_700_000_000_000L)
+        val occ = deps.plannerRepository.occurrencesBetween(weekStart.epochDay, weekStart.epochDay)
+            .single { it.ruleId == rule.id }
+        deps.plannerRepository.markOccurrenceDone(occ.id, "act-1", nowMs = 2L)
+        deps.plannerRepository.removeTimedRule(rule.id)
+        val kept = deps.plannerRepository.getOccurrence(occ.id)!!
+        assertEquals(OccurrenceStatus.DONE, kept.status)
+        val retired = deps.plannerRepository.rules().single { it.id == rule.id }
+        assertFalse(retired.enabled)
+        assertTrue(
+            deps.plannerRepository.occurrencesBetween(weekStart.epochDay, weekStart.epochDay)
+                .none { it.status == OccurrenceStatus.PLANNED && it.ruleId == rule.id },
+        )
+    }
+
+    @Test
+    fun deletingARoutineLeavesNoMintingRule() = runBlocking {
+        val routine = deps.routineRepository.create(name = "Push")
+        deps.scheduleRepository.pin(routine.id, null, Weekday.MONDAY)
+        deps.plannerRepository.importSlotsIfNeeded(1_700_000_000_000L)
+        deps.plannerRepository.ensureWeek(weekStart, "UTC", 1_700_000_000_000L)
+        deps.routineRepository.delete(routine.id)
+        assertTrue(deps.plannerRepository.rules().none { it.routineId == routine.id && it.enabled })
+        val nextWeek = weekStart.plusDays(7)
+        val generated = deps.plannerRepository.ensureWeek(nextWeek, "UTC", 1_700_000_000_000L)
+        assertTrue(
+            generated.none { occ ->
+                deps.plannerRepository.rules().any { it.id == occ.ruleId && it.routineId == routine.id }
+            },
+        )
     }
 
     @Test

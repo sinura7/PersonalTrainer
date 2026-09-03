@@ -1,6 +1,6 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1, C2, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
 `tools/` remain owed. Phase C is next. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
@@ -76,7 +76,7 @@ the gym floor, are fifteen of them.
 | B3 | A late rest still announces itself | 1 | — | Timer | done |
 | B4 | Timer surfaces stop lying | 1 | — | Timer | done |
 | C1 | Nothing is born overdue | 1 | — | Week | done |
-| C2 | Rebuild keeps what you added; rules retire | 1 | 5 | Week | |
+| C2 | Rebuild keeps what you added; rules retire | 1 | 5 | Week | done |
 | C3 | Tonight is startable, and today knows the time | 1 | 2 | Week | |
 | C4 | Planner and session writes are atomic | 1 | — | Week | |
 | D1 | The start sheet gets a home (or a grave) | 1 | 1 | Paths | |
@@ -502,7 +502,7 @@ already behind today.
 `data/repository/PlannerRepository.kt`, `data/repository/DayBlocks.kt`,
 `data/repository/AuxiliaryBlocks.kt`, `ui/plan/PlanViewModel.kt`.
 
-## C2 — Rebuild keeps what you added; rules retire · needs decision 5
+## C2 — Rebuild keeps what you added; rules retire · done on `trunk`
 
 **Symptom.** Two ways to lose work. Choose "Rebuild the rest of the week"
 after a missed day and every one-off you added — a "just today" stretch, a
@@ -511,7 +511,7 @@ stays marked as moved, so the session is gone from the strip, from Still
 open and from the summary. Separately, deleting or unpinning a session also
 erases the record that you *did* it on earlier days.
 
-**Cause.** ADAPT treats every planned row from today onward as regenerable
+**Cause.** ~~ADAPT treats every planned row from today onward as regenerable
 (`MissedWorkPolicy.kt:81-105`) and regenerates only from *enabled* rules on
 *their own* weekday; a one-off belongs to a rule that `DayBlocks` disabled
 after minting (`:108, 178`), and a relocated row sits on a day that is not
@@ -520,23 +520,18 @@ its rule's weekday. Neither regenerates, so both land in `removed` and
 key: `schedule_occurrences.ruleId` cascades
 (`PlannerEntities.kt:29-38`), so `removeTimedRule` (`:213-230`) and the
 unpin path in `syncSlotsToRules` (`:85-91`) take the DONE and SKIPPED rows
-with the rule, contradicting `removeTimedRule`'s own documentation.
+with the rule, contradicting `removeTimedRule`'s own documentation.~~
+**Struck 2026-09-03 (this packet).** Regenerable means canonical id and an
+enabled rule. History retires the rule (`enabled = false`) instead of
+`deleteRule`. `RoutineRepository.delete` calls `onRoutineDeleted` in the
+same transaction. Schema stays; no K1.
 
-**Change.**
-1. In ADAPT, treat a row as regenerable only when its id equals
-   `occurrenceId(ruleId, day)` *and* its rule is enabled; everything else is
-   kept, untouched.
-2. Per decision 5, retire rather than delete: a rule with any non-planned
-   occurrence gets `enabled = false` and loses only its future planned rows.
-   Correct the documentation either way.
-3. While here, `RoutineRepository.delete` gains a
-   `PlannerRepository.onRoutineDeleted(id)` call in the same transaction, so
-   deleting a routine stops leaving rules that mint sessions which then
-   refuse to start with "Swap or unpin it in Plan" and nothing to unpin.
+**Change.** Shipped: decision 5. ADAPT keeps one-offs. Unpin and remove
+use `retireOrDeleteRuleLocked`.
 
-**Proof.** ADAPT with a disabled once-rule and a relocated id keeps both
-rows; `removeTimedRule` keeps a DONE row; deleting a routine leaves no rule
-behind. All three red today.
+**Proof.** `adaptWeekKeepsADisabledOnceRuleRow`,
+`adaptWeekKeepsARelocatedId`, `removeTimedRuleKeepsADoneRow`,
+`deletingARoutineLeavesNoMintingRule`.
 
 **Owns.** `domain/MissedWorkPolicy.kt`,
 `data/repository/PlannerRepository.kt`,
@@ -1446,6 +1441,12 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — C2: retire instead of CASCADE-delete.** Decision 5.
+`RoutineRepository` gained optional `database`/`planner` so editor
+test doubles can stay DAO-only. Schema FK stays CASCADE; history
+survives because we stop calling `deleteRule` while non-PLANNED
+rows remain. Count +4.
 
 **2026-09-03 — C1: generateWeek did not already skip.** The
 remaining-train floor said `todayEpochDay` / `nowMinutes` were on

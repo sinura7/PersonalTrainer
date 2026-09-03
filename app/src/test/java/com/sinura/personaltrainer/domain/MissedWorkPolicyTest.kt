@@ -184,11 +184,63 @@ class MissedWorkPolicyTest {
             zone,
             rules = listOf(keptRule),
         )
-        assertEquals(listOf("o-orphan"), result.removed)
-        assertTrue(result.occurrences.none { it.id == "o-orphan" })
         // Finished history is never adapted away.
         assertEquals(OccurrenceStatus.DONE, result.occurrences.single { it.id == "o-done" }.status)
         assertTrue(result.occurrences.any { it.ruleId == "r-fri" })
+        // A gone rule's leftover PLANNED row is a one-off, not regenerable.
+        assertTrue(result.occurrences.any { it.id == "o-orphan" })
+        assertTrue(result.removed.isEmpty())
+    }
+
+    @Test
+    fun adaptWeekKeepsADisabledOnceRuleRow() {
+        val friday = weekStart.plusDays(4).epochDay
+        val onceRule = rule("r-once", Weekday.FRIDAY).copy(enabled = false)
+        val once = occ(
+            OccurrenceGenerator.occurrenceId("r-once", friday),
+            "r-once",
+            friday,
+            OccurrenceStatus.PLANNED,
+        )
+        val result = MissedWorkPolicy.apply(
+            MissedWorkChoice.ADAPT_WEEK,
+            listOf(once),
+            weekStart,
+            today.epochDay,
+            12 * 60,
+            NOW,
+            JvmTime,
+            zone,
+            rules = listOf(onceRule),
+        )
+        assertEquals(once.id, result.occurrences.single().id)
+        assertTrue(result.removed.isEmpty())
+    }
+
+    @Test
+    fun adaptWeekKeepsARelocatedId() {
+        val friday = weekStart.plusDays(4).epochDay
+        val fridayRule = rule("r-fri", Weekday.FRIDAY)
+        val relocatedId = OccurrenceGenerator.unusedOccurrenceId(
+            "r-fri",
+            friday,
+            setOf(OccurrenceGenerator.occurrenceId("r-fri", friday)),
+            wednesday,
+        )
+        val relocated = occ(relocatedId, "r-fri", friday, OccurrenceStatus.PLANNED)
+        val result = MissedWorkPolicy.apply(
+            MissedWorkChoice.ADAPT_WEEK,
+            listOf(relocated),
+            weekStart,
+            today.epochDay,
+            12 * 60,
+            NOW,
+            JvmTime,
+            zone,
+            rules = listOf(fridayRule),
+        )
+        assertTrue(result.occurrences.any { it.id == relocatedId })
+        assertTrue(result.removed.none { it == relocatedId })
     }
 
     @Test

@@ -71,17 +71,16 @@ object MissedWorkPolicy {
                 val marked = occurrences.map { item ->
                     if (item.id in dueIds) item.copy(status = OccurrenceStatus.MISSED, updatedAtMs = nowMs) else item
                 }
-                // Adapt re-derives the rest of the week from the rules as they
-                // stand NOW: untouched future PLANNED rows are dropped and
-                // regenerated, so an hour change or a removed rule takes effect
-                // mid-week, while DONE / SKIPPED / MISSED / MOVED history stays.
-                // Regenerating around the kept rows alone was a no-op — every
-                // (rule, date) pair already existed — which made Adapt
-                // behaviourally identical to Keep the dates.
-                val remainingPlanned = marked.filter {
-                    it.status == OccurrenceStatus.PLANNED && it.localEpochDay >= todayEpochDay
+                // Adapt re-derives canonical rows of enabled rules. A disabled
+                // once-rule and a relocated id are not regenerable — dropping
+                // every future PLANNED row used to delete those one-offs.
+                val rulesById = rules.associateBy { it.id }
+                val regenerable = marked.filter { item ->
+                    item.status == OccurrenceStatus.PLANNED &&
+                        item.localEpochDay >= todayEpochDay &&
+                        isRegenerable(item, rulesById)
                 }.toSet()
-                val kept = marked.filterNot { it in remainingPlanned }
+                val kept = marked.filterNot { it in regenerable }
                 val regenerated = OccurrenceGenerator.generateWeek(
                     weekStart = weekStart,
                     rules = rules,
@@ -172,5 +171,14 @@ object MissedWorkPolicy {
             cursor = target
         }
         return ApplyResult(occurrences = working, created = created)
+    }
+
+    private fun isRegenerable(
+        item: ScheduleOccurrence,
+        rulesById: Map<String, ScheduleRule>,
+    ): Boolean {
+        val rule = rulesById[item.ruleId] ?: return false
+        if (!rule.enabled) return false
+        return item.id == OccurrenceGenerator.occurrenceId(item.ruleId, item.localEpochDay)
     }
 }

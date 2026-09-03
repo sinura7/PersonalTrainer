@@ -123,14 +123,18 @@ class FakeAppDependencies(
         workoutDao = database.workoutDao(),
         catalogDao = database.catalogDao(),
     )
-    override val routineRepository: RoutineRepository = RoutineRepository(database.routineDao())
-    override val scheduleRepository: ScheduleRepository = ScheduleRepository(database.scheduleDao())
-    override val goalRepository: GoalRepository = GoalRepository(database.goalDao())
     override val plannerRepository: PlannerRepository = PlannerRepository(
         database = database,
         scheduler = NoOpReminderScheduler(),
         time = time,
     )
+    override val routineRepository: RoutineRepository = RoutineRepository(
+        routineDao = database.routineDao(),
+        database = database,
+        planner = plannerRepository,
+    )
+    override val scheduleRepository: ScheduleRepository = ScheduleRepository(database.scheduleDao())
+    override val goalRepository: GoalRepository = GoalRepository(database.goalDao())
     override val pendingOccurrenceId = MutableStateFlow<String?>(null)
     override val workoutRepository: WorkoutRepository =
         WorkoutRepository(

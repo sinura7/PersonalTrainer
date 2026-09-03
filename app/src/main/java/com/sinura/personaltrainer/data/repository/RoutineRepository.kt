@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.data.repository
 
+import androidx.room.withTransaction
+import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.dao.RoutineDao
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.mapper.toDomain
@@ -12,6 +14,8 @@ import kotlinx.coroutines.flow.map
 
 class RoutineRepository(
     private val routineDao: RoutineDao,
+    private val database: TemperDatabase? = null,
+    private val planner: PlannerRepository? = null,
 ) {
     fun observeAll(): Flow<List<Routine>> = routineDao.observeAll().map { list ->
         list.map { it.toDomain() }
@@ -51,7 +55,16 @@ class RoutineRepository(
     }
 
     suspend fun delete(id: String) {
-        routineDao.deleteRoutine(id)
+        val db = database
+        val plannerRepo = planner
+        if (db != null && plannerRepo != null) {
+            db.withTransaction {
+                plannerRepo.onRoutineDeleted(id)
+                routineDao.deleteRoutine(id)
+            }
+        } else {
+            routineDao.deleteRoutine(id)
+        }
     }
 
     suspend fun addExercise(
