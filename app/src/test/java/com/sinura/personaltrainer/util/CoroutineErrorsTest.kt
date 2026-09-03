@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.util
 
 import com.sinura.personaltrainer.logging.AppLog
 import kotlinx.coroutines.CancellationException
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -15,11 +16,21 @@ import org.junit.Test
  */
 class CoroutineErrorsTest {
     private val logged = mutableListOf<String>()
+    private val previousSink = AppLog.sink
+    private val previousRedact = AppLog.redactMessages
 
     @Before
     fun captureLogs() {
         logged.clear()
+        // This suite asserts the unredacted recovery sentence.
+        AppLog.redactMessages = false
         AppLog.sink = { _, tag, message, _ -> logged += "$tag: $message" }
+    }
+
+    @After
+    fun restoreSeam() {
+        AppLog.sink = previousSink
+        AppLog.redactMessages = previousRedact
     }
 
     @Test

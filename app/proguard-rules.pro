@@ -32,6 +32,9 @@
 
 # Diagnostics remain user-triggered; keep the redaction types readable.
 -keep class com.sinura.personaltrainer.diagnostics.** { *; }
+# DiagnosticRedaction.appFrames keeps frames whose className starts with
+# the app package. Shrinking must not flatten that prefix away.
+-keeppackagenames com.sinura.personaltrainer.**
 
 # Compose / ViewModel factories used by reflection.
 -keep class * extends androidx.lifecycle.ViewModel {
