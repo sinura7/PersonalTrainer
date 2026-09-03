@@ -70,15 +70,19 @@ class AppContainer(context: Context) : AppDependencies {
         workoutDao = database.workoutDao(),
         catalogDao = database.catalogDao(),
     )
-    override val routineRepository: RoutineRepository = RoutineRepository(database.routineDao())
-    /** The week the user pinned. Nothing else in the app is allowed to write it. */
-    override val scheduleRepository: ScheduleRepository = ScheduleRepository(database.scheduleDao())
-    override val goalRepository: GoalRepository = GoalRepository(database.goalDao())
     override val plannerRepository: PlannerRepository = PlannerRepository(
         database = database,
         scheduler = WorkManagerReminderScheduler(context),
         time = time,
     )
+    override val routineRepository: RoutineRepository = RoutineRepository(
+        routineDao = database.routineDao(),
+        database = database,
+        planner = plannerRepository,
+    )
+    /** The week the user pinned. Nothing else in the app is allowed to write it. */
+    override val scheduleRepository: ScheduleRepository = ScheduleRepository(database.scheduleDao())
+    override val goalRepository: GoalRepository = GoalRepository(database.goalDao())
     override val pendingOccurrenceId = MutableStateFlow<String?>(null)
     override val workoutRepository: WorkoutRepository = WorkoutRepository(
         database,
