@@ -4,6 +4,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import com.sinura.personaltrainer.domain.MissedWorkCopy
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -17,6 +23,8 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 /**
  * One missed-work prompt (FND-017). Never guilt-repeats. Recurrence stays put;
  * the gym-floor copy never teaches that word. Keep-the-dates is the one Volt.
+ * Move / Adapt / Skip sit behind Other choices so today's Start stays on
+ * the first screen of a short phone.
  */
 @Composable
 fun MissedWorkCard(
@@ -26,6 +34,7 @@ fun MissedWorkCard(
     onKeepDates: () -> Unit,
     onSkipMissed: () -> Unit,
 ) {
+    var otherChoices by rememberSaveable { mutableStateOf(false) }
     GymCard {
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
             Kicker("Missed this week")
@@ -42,19 +51,32 @@ fun MissedWorkCard(
             PrimaryGymButton(
                 text = MissedWorkCopy.KEEP,
                 onClick = onKeepDates,
+                modifier = Modifier.testTag(MissedWorkTags.KEEP),
             )
             SecondaryGymButton(
-                text = MissedWorkCopy.MOVE,
-                onClick = onMoveRemaining,
+                text = MissedWorkCopy.OTHER,
+                onClick = { otherChoices = !otherChoices },
+                modifier = Modifier.testTag(MissedWorkTags.OTHER),
             )
-            SecondaryGymButton(
-                text = MissedWorkCopy.ADAPT,
-                onClick = onAdaptWeek,
-            )
-            SecondaryGymButton(
-                text = MissedWorkCopy.SKIP,
-                onClick = onSkipMissed,
-            )
+            if (otherChoices) {
+                SecondaryGymButton(
+                    text = MissedWorkCopy.MOVE,
+                    onClick = onMoveRemaining,
+                )
+                SecondaryGymButton(
+                    text = MissedWorkCopy.ADAPT,
+                    onClick = onAdaptWeek,
+                )
+                SecondaryGymButton(
+                    text = MissedWorkCopy.SKIP,
+                    onClick = onSkipMissed,
+                )
+            }
         }
     }
+}
+
+object MissedWorkTags {
+    const val KEEP = "missed-work-keep"
+    const val OTHER = "missed-work-other"
 }
