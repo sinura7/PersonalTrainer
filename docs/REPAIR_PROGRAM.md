@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F2, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase F continues at F2. K1 and K2 stay held.  
+`tools/` remain owed. Phase F continues at F3. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -87,7 +87,7 @@ the gym floor, are fifteen of them.
 | E3 | The shell stops recomposing every second | 1 | — | Speed | done |
 | E4 | Query and recompute hygiene | 2 | — | Speed | done |
 | F1 | The logging loop keeps the wells on screen | 1 | — | Design I | done |
-| F2 | One green button per screen | 1 | 4 | Design I | |
+| F2 | One green button per screen | 1 | 4 | Design I | done |
 | F3 | Text you can read in a gym | 1 | — | Design I | |
 | F4 | Big text does not break the screen | 2 | — | Design I | |
 | F5 | One word per thing | 1 | — | Design I | |
@@ -917,12 +917,17 @@ marks in the custom-week strip; per decision 4, Export becomes the Settings
 Volt (or the ADR and the accessibility matrix are amended in the same
 commit).
 
-**Proof.** A test per screen counting filled buttons in each state — the
-kind of assertion the matrix already implies but nothing enforces.
+**Proof.** JVM: leftover no-plan filled count stays ≤ 1 in every state;
+Plan empty is compact; Settings Export is the matrix Volt. Phone: empty
+Plan, leftover Home, Settings Export fill.
 
 **Owns.** `ui/home/ThisWeekCard.kt`, `ui/plan/PlanScreen.kt`,
 `ui/routines/CustomWeekScreen.kt`, `ui/settings/SettingsScreen.kt`,
 `domain/AccessibilityMatrix.kt`.
+
+**On trunk.** Decision 4: Export is the Settings Volt. Leftover Start is
+secondary when a recovery Volt is present. Plan empty is compact.
+Custom-week filled days use a check, not a Volt dot. Count +3.
 
 ## F3 — Text you can read in a gym
 
@@ -1466,6 +1471,13 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — F2: one filled Volt; Export is Settings' Volt.** Decision 4.
+Proof is JVM (`leftoverNoPlanNeverShowsTwoFilledButtons`,
+`planEmptyIsCompactAndSettingsExportIsTheVolt`), not composed fill
+counts — `compose-ui-test-junit4` is still off `testImplementation`.
+`OneFilledVolt` is the leftover rank the card renders. Custom-week
+check marks match `WeekStrip`. Count +3.
 
 **2026-09-03 — F1: wells stay on screen; last-time chips apply.** Proof is
 JVM (`afterLogAnchorIsTheEntryWellsNotTheLoggedSetsPanel`,

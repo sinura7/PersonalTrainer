@@ -70,6 +70,7 @@ import com.sinura.personaltrainer.domain.DayLabel
 import com.sinura.personaltrainer.domain.EquipmentGroups
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.NumericEntry
+import com.sinura.personaltrainer.domain.OneFilledVolt
 import com.sinura.personaltrainer.domain.PlanSetupCopy
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
@@ -92,6 +93,7 @@ import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.NumberEntryDialog
+import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.RestPresetChips
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.components.TemperMark
@@ -776,11 +778,8 @@ private fun RestTimerPrefsSection(
 /**
  * Backup, with the hierarchy the right way round.
  *
- * Exporting a file used to be a 64dp filled hero button while restoring a backup — which
- * replaces every byte of training data on the phone — was a bare text button, visually
- * identical to the link that opened the week's plan. The loud control belongs to the workout
- * flow, so everything safe here is a secondary button, and everything that replaces data is
- * a row whose verb is in [Danger].
+ * Exporting a file is the page Volt (ADR-014 §4). Restore still replaces
+ * every byte on the phone, so it stays a Danger row, not a second fill.
  */
 @Composable
 private fun BackupRestoreSection(
@@ -864,12 +863,21 @@ private fun BackupRestoreSection(
         }
 
         GymSectionHeader("Backup file", compact = true)
-        SecondaryGymButton(
-            text = "Export to file",
-            onClick = onExportFile,
-            enabled = !state.isBusy,
-            modifier = Modifier.testTag(SettingsTags.EXPORT_FILE),
-        )
+        if (OneFilledVolt.SETTINGS_EXPORT_IS_PRIMARY) {
+            PrimaryGymButton(
+                text = "Export to file",
+                onClick = onExportFile,
+                enabled = !state.isBusy,
+                modifier = Modifier.testTag(SettingsTags.EXPORT_FILE),
+            )
+        } else {
+            SecondaryGymButton(
+                text = "Export to file",
+                onClick = onExportFile,
+                enabled = !state.isBusy,
+                modifier = Modifier.testTag(SettingsTags.EXPORT_FILE),
+            )
+        }
         TextButton(
             onClick = onExportPlaintext,
             enabled = !state.isBusy,
