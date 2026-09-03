@@ -1,9 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. B2 waits on owner decision 3. Phase C has not
-started.  
+`tools/` remain owed. Phase C is next. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -73,7 +72,7 @@ the gym floor, are fifteen of them.
 | A5 | The coach reads all of your history | 1 | — | Truth | done |
 | A6 | Records and deload read assisted lifts correctly | 1 | — | Truth | done |
 | B1 | The rest service stops when the rest does | 2 | — | Timer | done |
-| B2 | The cue plays where you can hear it | 1 | 3 | Timer | |
+| B2 | The cue plays where you can hear it | 1 | 3 | Timer | done |
 | B3 | A late rest still announces itself | 1 | — | Timer | done |
 | B4 | Timer surfaces stop lying | 1 | — | Timer | done |
 | C1 | Nothing is born overdue | 1 | — | Week | |
@@ -366,40 +365,38 @@ Owner, after this merge: Obtainium Temper Debug live test 19
 **Owns.** `timer/RestTimerService.kt`, `timer/RestTimerCompletion.kt`,
 `timer/RestTimerController.kt`.
 
-## B2 — The cue plays where you can hear it · needs decision 3
+## B2 — The cue plays where you can hear it · done on `trunk`
 
 **Symptom.** Sound is on in Settings, the rest ends, and nothing plays —
 because your media volume is down or a pair of earbuds is paused. On Do Not
 Disturb, nothing plays and nothing buzzes at all.
 
-**Cause.** `RestTimerAlerts.kt:63-64` calls
+**Cause.** ~~`RestTimerAlerts.kt:63-64` calls
 `MediaPlayer.create(context, R.raw.rest_done)`, which prepares the player,
 and only *then* sets the audio attributes — which the platform documents as
 having no effect after `prepare()`. The cue therefore routes to the media
 stream while `ringerIsSilent` models the notification stream. Separately,
 both the tone and the vibration declare `USAGE_NOTIFICATION`
 (`:17-20, 91-96`) with `setBypassDnd(false)`, and Do Not Disturb suppresses
-both.
+both.~~ **Struck 2026-09-03 (this packet).** Four-arg `create` takes
+`USAGE_ALARM` before prepare. Vibration is alarm (API 33
+`VibrationAttributes`). Silent ringer is not a mute. Done channel is
+`rest_timer_done_v3` with `setBypassDnd(true)`.
 
-**Change.**
-1. Use the four-argument `MediaPlayer.create(context, res, attributes,
-   AUDIO_SESSION_ID_GENERATE)` so the attributes apply before preparation.
-2. Per decision 3, move tone and vibration to `USAGE_ALARM`
-   (`VibrationAttributes.USAGE_ALARM` on API 33+) and align or retire the
-   ringer-silent gate accordingly.
+**Change.** Shipped: decision 3 (Alarm). Attributes reach `create`.
+Settings sound toggle stays the off switch. System fallback prefers
+`TYPE_ALARM`.
 
-**Ready to cut (after decision 3).** The four-arg `create` plus
-`USAGE_ALARM` in `RestTimerAlerts.kt`. Channel `setBypassDnd` in
-`RestTimerNotifications.kt` follows the same call. Do not start this
-packet without the owner decision.
-
-**Proof.** A test asserting the attributes reach `create` rather than a
-post-`prepare` setter. Audio routing itself is a phone check.
+**Proof.** `RestTimerAlertsCreateTest.bundledCuePassesAlarmAttributesIntoCreate`
+and `RestTimerDoneChannelTest.doneChannelBypassesDnd`.
+`silentRingerStillPlaysWhenSoundIsOn` replaces the old mute assertion.
 
 **Phone gate.** Media volume at zero, ringer up, rest completes audibly.
-Then with Do Not Disturb on, per the decision.
+Then with Do Not Disturb on. Owner, after this merge: Obtainium Temper
+Debug live test 20 (`debugLiveCode` 20).
 
 **Owns.** `timer/RestTimerAlerts.kt`, `timer/RestTimerNotifications.kt`.
+`timer/RestSound.kt` is a Floor finding.
 
 ## B3 — A late rest still announces itself · done on `trunk`
 
@@ -1450,6 +1447,13 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — B2: Alarm cue; silent ringer is not a mute.** Decision
+3 is Alarm. `RestSound.choose` dropped `ringerSilent` — the Settings
+sound toggle is the off switch. Create is a `createPlayer` seam so
+the JVM test sees `USAGE_ALARM` at `create`, not a post-prepare
+setter. Done channel bumped to `rest_timer_done_v3` because bypass
+cannot be changed on v2. `debugLiveCode` 20. Count +2.
 
 **2026-09-03 — J1: redact is always on; Settings toggle waits
 for H2.** The Change line asked for a debug-only toggle in the

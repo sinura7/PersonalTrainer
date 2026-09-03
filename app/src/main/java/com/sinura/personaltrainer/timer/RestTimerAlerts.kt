@@ -6,6 +6,7 @@ import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.os.Build
+import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -15,31 +16,37 @@ import com.sinura.personaltrainer.domain.RestTimerPreferences
 object RestTimerAlerts {
     private val COMPLETE_PATTERN = longArrayOf(0, 140, 90, 140, 90, 320)
     private val CUE_ATTRIBUTES = AudioAttributes.Builder()
-        .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+        .setUsage(AudioAttributes.USAGE_ALARM)
         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
         .build()
 
-    fun announce(context: Context, preferences: RestTimerPreferences) {
+    fun announce(
+        context: Context,
+        preferences: RestTimerPreferences,
+        createPlayer: (Context, Int, AudioAttributes) -> MediaPlayer? = ::createWithAttributes,
+    ) {
         if (preferences.soundEnabled) {
-            playSound(context)
+            playSound(context, createPlayer)
         }
         if (preferences.vibrationEnabled) {
             vibrate(context)
         }
     }
 
-    private fun playSound(context: Context) {
+    private fun playSound(
+        context: Context,
+        createPlayer: (Context, Int, AudioAttributes) -> MediaPlayer?,
+    ) {
         try {
             val app = context.applicationContext
             when (
                 RestSound.choose(
                     soundEnabled = true,
-                    ringerSilent = ringerIsSilent(app),
                     bundledAvailable = RestSound.bundledAvailable(app),
                 )
             ) {
                 RestSound.Choice.QUIET -> return
-                RestSound.Choice.BUNDLED -> if (!playBundled(app)) playSystemFallback(app)
+                RestSound.Choice.BUNDLED -> if (!playBundled(app, createPlayer)) playSystemFallback(app)
                 RestSound.Choice.SYSTEM -> playSystemFallback(app)
             }
         } catch (_: Exception) {
@@ -47,21 +54,18 @@ object RestTimerAlerts {
         }
     }
 
-    private fun ringerIsSilent(context: Context): Boolean {
-        val audio = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-        return audio != null && audio.ringerMode == AudioManager.RINGER_MODE_SILENT
-    }
-
     /**
      * Starts the bundled cue and releases the player when it finishes.
      *
-     * [MediaPlayer.create] can return null on a device that cannot decode the
-     * asset; the caller then falls back. Completion and error both release so
-     * a 400 ms clip cannot hold a decoder until the next rest.
+     * Attributes must reach [MediaPlayer.create] before prepare. Setting them
+     * afterwards has no effect, which is how the cue used to ride the media
+     * stream.
      */
-    private fun playBundled(context: Context): Boolean {
-        val player = MediaPlayer.create(context, R.raw.rest_done) ?: return false
-        player.setAudioAttributes(CUE_ATTRIBUTES)
+    private fun playBundled(
+        context: Context,
+        createPlayer: (Context, Int, AudioAttributes) -> MediaPlayer?,
+    ): Boolean {
+        val player = createPlayer(context, R.raw.rest_done, CUE_ATTRIBUTES) ?: return false
         player.setOnCompletionListener { done -> done.release() }
         player.setOnErrorListener { broken, _, _ ->
             broken.release()
@@ -77,8 +81,8 @@ object RestTimerAlerts {
     }
 
     private fun playSystemFallback(context: Context) {
-        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+        val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
             ?: return
         val ringtone = RingtoneManager.getRingtone(context, uri) ?: return
         ringtone.audioAttributes = CUE_ATTRIBUTES
@@ -88,12 +92,22 @@ object RestTimerAlerts {
     private fun vibrate(context: Context) {
         try {
             val vibrator = vibrator(context) ?: return
-            vibrator.vibrate(
-                VibrationEffect.createWaveform(COMPLETE_PATTERN, -1),
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                    .build(),
-            )
+            val effect = VibrationEffect.createWaveform(COMPLETE_PATTERN, -1)
+            if (Build.VERSION.SDK_INT >= 33) {
+                vibrator.vibrate(
+                    effect,
+                    VibrationAttributes.Builder()
+                        .setUsage(VibrationAttributes.USAGE_ALARM)
+                        .build(),
+                )
+            } else {
+                vibrator.vibrate(
+                    effect,
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .build(),
+                )
+            }
         } catch (_: Exception) {
             // Vibration is optional.
         }
@@ -107,4 +121,15 @@ object RestTimerAlerts {
             context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
         }
     }
+
+    private fun createWithAttributes(
+        context: Context,
+        resId: Int,
+        attributes: AudioAttributes,
+    ): MediaPlayer? = MediaPlayer.create(
+        context,
+        resId,
+        attributes,
+        AudioManager.AUDIO_SESSION_ID_GENERATE,
+    )
 }

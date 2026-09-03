@@ -1,7 +1,9 @@
 package com.sinura.personaltrainer.timer
 
 import android.app.Application
+import android.app.NotificationManager
 import android.content.Context
+import android.media.AudioAttributes
 import android.media.AudioManager
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.domain.RestTimerPreferences
@@ -13,8 +15,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Sound-off and silent ringer stay quiet. A missing asset falls back.
- * The packaged cue is the happy path, not a hope.
+ * The Settings sound toggle is the off switch. Silent ringer is not.
+ * A missing asset falls back. The packaged cue is the happy path.
  */
 class RestSoundChoiceTest {
     @Test
@@ -23,19 +25,17 @@ class RestSoundChoiceTest {
             RestSound.Choice.QUIET,
             RestSound.choose(
                 soundEnabled = false,
-                ringerSilent = false,
                 bundledAvailable = true,
             ),
         )
     }
 
     @Test
-    fun silentRingerIsQuietEvenWhenSoundIsOn() {
+    fun silentRingerStillPlaysWhenSoundIsOn() {
         assertEquals(
-            RestSound.Choice.QUIET,
+            RestSound.Choice.BUNDLED,
             RestSound.choose(
                 soundEnabled = true,
-                ringerSilent = true,
                 bundledAvailable = true,
             ),
         )
@@ -47,7 +47,6 @@ class RestSoundChoiceTest {
             RestSound.Choice.BUNDLED,
             RestSound.choose(
                 soundEnabled = true,
-                ringerSilent = false,
                 bundledAvailable = true,
             ),
         )
@@ -59,7 +58,6 @@ class RestSoundChoiceTest {
             RestSound.Choice.SYSTEM,
             RestSound.choose(
                 soundEnabled = true,
-                ringerSilent = false,
                 bundledAvailable = false,
             ),
         )
@@ -102,5 +100,38 @@ class RestSoundAssetTest {
             context,
             RestTimerPreferences(soundEnabled = false, vibrationEnabled = true),
         )
+    }
+}
+
+@RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class)
+class RestTimerAlertsCreateTest {
+    @Test
+    fun bundledCuePassesAlarmAttributesIntoCreate() {
+        val seen = mutableListOf<AudioAttributes>()
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        RestTimerAlerts.announce(
+            context = context,
+            preferences = RestTimerPreferences(soundEnabled = true, vibrationEnabled = false),
+            createPlayer = { _, _, attributes ->
+                seen += attributes
+                null
+            },
+        )
+        assertEquals(1, seen.size)
+        assertEquals(AudioAttributes.USAGE_ALARM, seen.single().usage)
+    }
+}
+
+@RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class)
+class RestTimerDoneChannelTest {
+    @Test
+    fun doneChannelBypassesDnd() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        RestTimerNotifications.ensureChannels(context)
+        val channel = context.getSystemService(NotificationManager::class.java)
+            .getNotificationChannel(RestTimerNotifications.CHANNEL_DONE)
+        assertTrue(channel.canBypassDnd())
     }
 }
