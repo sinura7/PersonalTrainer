@@ -13,6 +13,42 @@ updates:
         patterns: ['org.jetbrains.kotlin*', 'com.google.devtools.ksp*']
     commit-message:
       prefix: deps
+    # Signed P4.2–P4.4 matrices refuse these. Cursor reproduced both group PRs
+    # on JDK 17 / AGP 8.9.2 / compileSdk 36 (2026-09-02):
+    #   #114 androidx — checkDebugAarMetadata: core-ktx 1.19.0, Compose UI 1.12.0
+    #     (BOM 2026.08.00), and navigation-compose 2.10.0 each require
+    #     compileSdk 37 and AGP >= 9.1.0. Room 2.8 is refused by P4.4
+    #     (docs/architecture/persistence-toolchain.md).
+    #   #116 kotlin — KSP 2.3.11 will not apply: "minimum supported AGP version
+    #     is 8.10.0". Coroutines 1.11.0 is the Kotlin 2.2.20 companion
+    #     (docs/architecture/core-toolchain.md). Kotlin 2.4.10 is packet K2,
+    #     not a Dependabot PR (docs/REPAIR_PROGRAM.md).
+    # Patch updates on the signed minors still open. The compiler train is K2.
+    ignore:
+      - dependency-name: "androidx.core:core-ktx"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "androidx.compose:compose-bom"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "androidx.navigation:navigation-compose"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "androidx.room:room-runtime"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "androidx.room:room-ktx"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "androidx.room:room-compiler"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "androidx.room:room-testing"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "org.jetbrains.kotlin.android"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "org.jetbrains.kotlin.plugin.compose"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "com.google.devtools.ksp"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "org.jetbrains.kotlinx:kotlinx-coroutines-core"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "org.jetbrains.kotlinx:kotlinx-coroutines-test"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
 
   - package-ecosystem: github-actions
     directory: /
