@@ -1408,8 +1408,12 @@ Its "until signed" work was a ledger tripwire plus Dependabot ignores.
 Ignores are on `trunk` (`#121`). `tools/check-sdk-target.py` and
 `SdkTargetTest` now fail if `kotlin-stdlib`, `kotlin-stdlib-jdk7`,
 `kotlin-stdlib-jdk8`, or `kotlin-stdlib-common` at 2.2+ enters
-`gradle/verification-metadata.xml`. 2.1.x stays legal. The train
-itself (Kotlin, KSP, AGP, Compose, Room) is not opened.
+`gradle/verification-metadata.xml`. 2.1.x stays legal. Preflight's
+`kotlin-stdlib-2*.jar` glob used `sort | tail -1`, so a 2.2.0 jar in
+the Gradle cache became the domain-lane stdlib even though it is not
+in the ledger. This packet pins preflight and `syntax-check.sh` globs
+to 2.0.21 (the catalogue). J5 still owns the rest of jar selection.
+The train itself (Kotlin, KSP, AGP, Compose, Room) is not opened.
 
 **2026-09-03 — J4 Change: `runTest` is struck.** The first-half Change
 line named `runTest` plus a standard test dispatcher. The suite that

@@ -50,7 +50,7 @@ class SdkTargetTest {
             "kotlin-stdlib-common",
         )
         val component = Regex(
-            """<component group="org\.jetbrains\.kotlin" name="([^"]+)" version="([^"]+)"""",
+            "<component group=\"org\\.jetbrains\\.kotlin\" name=\"([^\"]+)\" version=\"([^\"]+)\"",
         )
         val tooNew = component.findAll(ledger.readText()).mapNotNull { match ->
             val name = match.groupValues[1]
@@ -68,8 +68,8 @@ class SdkTargetTest {
         )
     }
 
-    private fun source(relative: String): File {
-        val candidates = listOf(File(relative), File("app/$relative"))
+    private fun source(path: String): File {
+        val candidates = listOf(File(path), File("app/$path"))
         return candidates.first { it.isFile }
     }
 }
