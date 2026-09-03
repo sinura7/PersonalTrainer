@@ -22,5 +22,7 @@ class PlanDayCopyTest {
         assertEquals("Every Friday", PlanDayCopy.everyWeekday(Weekday.FRIDAY))
         assertEquals("Warm-up", PlanDayCopy.WARM_UP)
         assertTrue(PlanDayCopy.AUX_SUBTITLE.contains("warm-up"))
+        assertEquals("Remove Push?", PlanDayCopy.removeTitle("Push"))
+        assertTrue(PlanDayCopy.REMOVE_BODY.contains("Past sessions stay in History"))
     }
 }

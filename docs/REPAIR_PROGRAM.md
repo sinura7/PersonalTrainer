@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F6, G1–G4, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F6, G1–G5, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase G continues at G5. K1 and K2 stay held.  
+`tools/` remain owed. Phase G continues at G6. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -96,7 +96,7 @@ the gym floor, are fifteen of them.
 | G2 | One numeric-entry grammar | 1 | — | Design II | done |
 | G3 | Shared headers and docks | 2 | — | Design II | done |
 | G4 | Skin the four foreign controls | 2 | — | Design II | done |
-| G5 | Body's first viewport; small targets; destructive confirms | 1 | — | Design II | |
+| G5 | Body's first viewport; small targets; destructive confirms | 1 | — | Design II | done |
 | G6 | Reduced motion, and the palette question | 1 | — | Design II | |
 | H1 | History shows that you got stronger | 2 | — | Design III | |
 | H2 | Units and clocks finish what Display started | 2 | — | Design III | |
@@ -1185,6 +1185,16 @@ should have (today the *finished* state has one and the only act does not).
 **Proof.** A layout test that the first muscle row is within the first
 viewport at 360×640; a touch-target test on the calendar.
 
+**Struck 2026-09-03 (this packet).** `BodyViewport.figureHeightDp` is
+45% clamped 300–440. Legend sits above the figure. Calendar cell is
+`Metrics.touchMin`. Plan-day Remove is Danger ink plus
+`ConfirmActionDialog` (undo would need a restore of unpin vs timed-rule,
+and every other Plan destructive already confirms). Idle "Start rest" is
+`PrimaryGymButton`. Proof is JVM
+(`firstMuscleRowIsInsideTheFirstViewportAt360x640`,
+`calendarCellMeetsTouchMin`, `legendSitsAboveTheFigure`,
+`planRemoveConfirmsWithDangerAndIdleStartIsVolt`).
+
 **Owns.** `ui/progress/BodyMap.kt`, `ui/progress/ProgressScreen.kt`
 *(after F4)*, `ui/history/TrainingCalendarCard.kt`,
 `ui/plan/PlanDayScreen.kt` *(after E4)*, `ui/workout/RestTimerScreen.kt`
@@ -1498,6 +1508,18 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — G5: Body's first viewport.** Proof is JVM
+(`firstMuscleRowIsInsideTheFirstViewportAt360x640`,
+`calendarCellMeetsTouchMin`, `legendSitsAboveTheFigure`,
+`planRemoveConfirmsWithDangerAndIdleStartIsVolt`), not
+`compose-ui-test-junit4`. Front/Back chips overlay the figure panel so
+they do not add a second 48 dp row. Window caption left the picker —
+legend caption is the honesty line; the chips already name the window.
+Muscles kicker kept, extra `space5` padding dropped. 360×640 budget
+subtracts the 64 dp tab bar (F6 used 56; `AppNav` is 64). Plan-day
+Remove confirms rather than undo: unpin vs timed-rule has no restore
+path, and Plan routine delete already confirms. Count +4.
 
 **2026-09-03 — G4: four foreign silhouettes.** Proof is JVM
 (`outlineSolidClearsNonTextContrastOnReadingSurfaces`,

@@ -37,6 +37,7 @@ import com.sinura.personaltrainer.domain.SlotRuleImport
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.sessionLiftNames
 import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
+import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
@@ -45,6 +46,7 @@ import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenHeader
 import com.sinura.personaltrainer.ui.components.ScreenLoading
+import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
@@ -80,6 +82,8 @@ fun PlanDayScreen(
     var picking by rememberSaveable(epochDay) {
         mutableStateOf(if (startInAdd && !isPast) DayPicker.KIND else DayPicker.NONE)
     }
+    var pendingRemoveRuleId by rememberSaveable(epochDay) { mutableStateOf<String?>(null) }
+    var pendingRemoveTitle by rememberSaveable(epochDay) { mutableStateOf("") }
 
     LaunchedEffect(navigateToEditor) {
         val id = navigateToEditor ?: return@LaunchedEffect
@@ -128,8 +132,9 @@ fun PlanDayScreen(
                             routines = state.routines,
                             isPast = isPast,
                             onOpenRoutine = onOpenRoutine,
-                            onRemove = { ruleId ->
-                                viewModel.deleteSession(epochDay, ruleId)
+                            onRemove = { ruleId, title ->
+                                pendingRemoveRuleId = ruleId
+                                pendingRemoveTitle = title
                             },
                             onMove = { occurrenceId, delta ->
                                 viewModel.moveDayBlock(occurrences, occurrenceId, delta)
@@ -187,6 +192,20 @@ fun PlanDayScreen(
             }
         }
     }
+
+    pendingRemoveRuleId?.let { ruleId ->
+        ConfirmActionDialog(
+            title = PlanDayCopy.removeTitle(pendingRemoveTitle),
+            body = PlanDayCopy.REMOVE_BODY,
+            confirmLabel = PlanDayCopy.REMOVE,
+            destructive = true,
+            onConfirm = {
+                viewModel.deleteSession(epochDay, ruleId)
+                pendingRemoveRuleId = null
+            },
+            onDismiss = { pendingRemoveRuleId = null },
+        )
+    }
 }
 
 @Composable
@@ -209,7 +228,7 @@ private fun SessionBlocks(
     routines: List<Routine>,
     isPast: Boolean,
     onOpenRoutine: (String) -> Unit,
-    onRemove: (String) -> Unit,
+    onRemove: (String, String) -> Unit,
     onMove: (String, Int) -> Unit,
 ) {
     GroupedList {
@@ -239,14 +258,14 @@ private fun SessionBlocks(
                     trailing = if (!isPast && ruleId != null) {
                         {
                             TextButton(
-                                onClick = { onRemove(ruleId) },
+                                onClick = { onRemove(ruleId, item.title) },
                                 contentPadding = PaddingValues(0.dp),
                                 modifier = Modifier.heightIn(min = Metrics.touchMin),
                             ) {
                                 Text(
                                     PlanDayCopy.REMOVE,
                                     style = InstrumentType.bodyStrong,
-                                    color = TextSecondary,
+                                    color = Danger,
                                 )
                             }
                         }

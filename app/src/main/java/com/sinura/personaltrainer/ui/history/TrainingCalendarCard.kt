@@ -203,7 +203,7 @@ private fun DayCell(
         modifier = modifier
             // Not a square: the cell's width comes from weight(1f) and its content grew a
             // heat dot, so a width-derived height can squeeze the numeral off centre.
-            .heightIn(min = CELL_MIN)
+            .heightIn(min = TrainingCalendarMetrics.cellMin)
             .clip(shape)
             // A trained day is a panel, not a wash of accent: the fill says "something
             // happened here" and the dot below says how much.
@@ -260,4 +260,6 @@ private const val MIN_TRAINED_HEAT = 0.22f
 private const val HEAT_RANGE = 0.78f
 private val HEAT_DOT = 6.dp
 
-private val CELL_MIN = 40.dp
+internal object TrainingCalendarMetrics {
+    val cellMin = Metrics.touchMin
+}

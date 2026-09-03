@@ -59,7 +59,6 @@ import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.Surface3
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
-import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 
 @Composable
@@ -159,7 +158,7 @@ fun ProgressScreen(
                         }
                     }
                     item(key = "muscles-header") {
-                        GymSectionHeader("Muscles", modifier = Modifier.padding(top = Metrics.space5))
+                        GymSectionHeader("Muscles")
                     }
                     item(key = "muscles") {
                         GroupedList(modifier = Modifier.testTag(BodyTags.MUSCLES)) {
@@ -241,9 +240,9 @@ internal fun BodyWindowPicker(
                 start = Metrics.gutter,
                 end = Metrics.gutter,
                 top = Metrics.space2,
-                bottom = Metrics.space3,
+                bottom = Metrics.space2,
             ),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -273,11 +272,6 @@ internal fun BodyWindowPicker(
                 )
             }
         }
-        Text(
-            BodyHeatCopy.WINDOW_CAPTION,
-            style = InstrumentType.caption,
-            color = TextTertiary,
-        )
     }
 }
 
