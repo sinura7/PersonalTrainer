@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -145,6 +146,28 @@ class LiveSessionBarViewModelTest {
         assertNull(vm.finishedNavigation.value)
         assertNull(deps.workoutRepository.getSession(fixture.session.id)?.finishedAt)
         assertEquals(fixture.session.id, deps.workoutRepository.getInProgress()?.id)
+    }
+
+    @Test
+    fun hasLiveSessionDoesNotReEmitWhenElapsedTicks() = runBlocking {
+        val fixture = seedTestWorkout(deps)
+        val clock = FakeClock(fixture.session.startedAt + 5_000)
+        val vm = createViewModel(clock)
+        val emissions = mutableListOf<Boolean>()
+        val job = launch { vm.hasLiveSession.collect { emissions += it } }
+        vm.hasLiveSession.first { it }
+        assertEquals("0:05", checkNotNull(vm.uiState.first { it != null }).elapsedLabel)
+        val settled = emissions.toList()
+
+        clock.nowMs = fixture.session.startedAt + 90_000
+        dispatcher.scheduler.advanceTimeBy(1_001)
+        dispatcher.scheduler.runCurrent()
+        assertEquals("1:30", checkNotNull(vm.uiState.first { it?.elapsedLabel == "1:30" }).elapsedLabel)
+        dispatcher.scheduler.advanceTimeBy(3_000)
+        dispatcher.scheduler.runCurrent()
+
+        assertEquals(settled, emissions)
+        job.cancel()
     }
 
     @Test

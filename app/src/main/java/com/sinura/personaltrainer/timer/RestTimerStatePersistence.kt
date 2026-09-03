@@ -51,10 +51,10 @@ class SharedPrefsRestTimerStatePersistence(context: Context) : RestTimerStatePer
         // The store layer is clock-pure, so the boot stamp lands here.
         val bootCount = state.bootCount.takeIf { it != BootSession.UNKNOWN }
             ?: BootSession.count(appContext)
-        // commit(), not apply(): the alarm is scheduled on the next line of
-        // RestTimerController.start(), and RestTimerAlarmReceiver treats a missing
-        // disk row as "already completed". An unflushed apply() plus a process
-        // kill is a silent missed rest.
+        // commit(), not apply(): RestTimerController arms after this returns,
+        // and RestTimerAlarmReceiver treats a missing disk row as already
+        // completed. An unflushed apply() plus a process kill is a silent
+        // missed rest. The controller runs this on IO, not the Log frame.
         prefs.edit()
             .putLong(KEY_ENDS_AT_ELAPSED, state.endsAtElapsedRealtime)
             .putInt(KEY_TOTAL_SECONDS, state.totalSeconds)

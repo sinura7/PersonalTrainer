@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1, E2, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E3, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase E continues at E3. K1 and K2 stay held.  
+`tools/` remain owed. Phase E continues at E4. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -84,7 +84,7 @@ the gym floor, are fifteen of them.
 | D3 | Live cardio is visible; errors dismiss; drafts survive | 2 | — | Paths | done |
 | E1 | Stop recomputing everything | 1 | — | Speed | done |
 | E2 | Thumbnails stop decoding at full size | 2 | — | Speed | done |
-| E3 | The shell stops recomposing every second | 1 | — | Speed | |
+| E3 | The shell stops recomposing every second | 1 | — | Speed | done |
 | E4 | Query and recompute hygiene | 2 | — | Speed | |
 | F1 | The logging loop keeps the wells on screen | 1 | — | Design I | |
 | F2 | One green button per screen | 1 | 4 | Design I | |
@@ -814,6 +814,12 @@ ordering test that the alarm is never armed before the row is written.
 `timer/RestTimerController.kt` *(after B4)*,
 `timer/RestTimerStatePersistence.kt` *(after B3)*.
 
+**On trunk.** Nav root collects `hasLiveSession` only.
+`LiveSessionBarHost` owns the ticking state. `goToTab` is
+`remember(navController)`. The store is memory-only; persist then
+arm is one IO job. Halt cancels the alarm on the caller before
+the clear job.
+
 ## E4 — Query and recompute hygiene · 2 evenings
 
 **Symptom.** Cumulative sluggishness: every app resume rewrites the week,
@@ -1451,6 +1457,21 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — E3: LiveSessionBarHost; persist then arm on IO.** Proof
+is JVM (`hasLiveSessionDoesNotReEmitWhenElapsedTicks`,
+`alarmIsNeverArmedBeforeTheRowIsWritten`), not a
+`compose-ui-test-junit4` NavHost recomposition count — that jar is
+not on `testImplementation` (ledger / `android-all-instrumented`).
+The boolean not ticking is why the nav root stops recomposing.
+`RestTimerStore` is memory-only (not in Owns); persistence tests
+moved onto the controller. `LiveSessionBarHost` lives in
+`LiveSessionBar.kt`. Halt cancels the alarm on the calling thread
+so a skipped rest cannot fire while the clear job is queued.
+`FakeAppDependencies` still uses `InMemoryRestTimerGateway` —
+persist-then-arm proofs construct a real `RestTimerController`.
+`persistSeq` is atomic so a later halt skips the whole persist,
+not just the alarm. Count +4.
 
 **2026-09-03 — E2: 256px thumbs; Body unlit raised to 1024.** No
 higher-res Body original on disk — the 1024 pair is a lanczos

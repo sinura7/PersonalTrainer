@@ -1,5 +1,9 @@
 package com.sinura.personaltrainer.ui.navigation
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +32,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,6 +52,7 @@ import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.Warn
+import com.sinura.personaltrainer.ui.theme.Motion
 
 private val RAIL_WIDTH = 3.dp
 private val RAIL_HEIGHT = 24.dp
@@ -212,5 +218,43 @@ fun LiveSessionBar(
             onDismiss = { confirmDiscard = false },
             destructive = true,
         )
+    }
+}
+
+/**
+ * Collects the ticking live-bar state in its own composition. The nav
+ * root only reads [LiveSessionBarViewModel.hasLiveSession], so a 1 Hz
+ * elapsed label cannot rebuild the NavHost.
+ */
+@Composable
+fun LiveSessionBarHost(
+    viewModel: LiveSessionBarViewModel,
+    visible: Boolean,
+    showBottomBar: Boolean,
+    barMs: Int,
+    onResume: (LiveSessionBarUiState) -> Unit,
+) {
+    val liveSession by viewModel.uiState.collectAsStateWithLifecycle()
+    val actionError by viewModel.actionError.collectAsStateWithLifecycle()
+    AnimatedVisibility(
+        visible = visible,
+        enter = slideInVertically(
+            animationSpec = tween(barMs, easing = Motion.Standard),
+        ) { it },
+        exit = slideOutVertically(
+            animationSpec = tween(barMs, easing = Motion.Exit),
+        ) { it },
+    ) {
+        liveSession?.let { live ->
+            LiveSessionBar(
+                state = live,
+                applyNavInsets = !showBottomBar,
+                onResume = { onResume(live) },
+                onFinish = viewModel::finishFromBar,
+                onDiscard = viewModel::discardFromBar,
+                actionError = actionError,
+                onActionErrorShown = viewModel::onActionErrorShown,
+            )
+        }
     }
 }

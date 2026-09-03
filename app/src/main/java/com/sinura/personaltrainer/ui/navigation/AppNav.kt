@@ -299,16 +299,14 @@ fun PersonalTrainerNav(
     // Settings *is* a tab (ADR-014): a dedicated space, not a gear on Home or Plan.
     val tabs = shippingTabs
     val liveBarViewModel: LiveSessionBarViewModel = viewModel()
-    val liveSession by liveBarViewModel.uiState.collectAsStateWithLifecycle()
+    val hasLiveSession by liveBarViewModel.hasLiveSession.collectAsStateWithLifecycle()
     val finishedNavigation by liveBarViewModel.finishedNavigation.collectAsStateWithLifecycle()
     val finishedActivityNavigation by liveBarViewModel.finishedActivityNavigation.collectAsStateWithLifecycle()
-    val liveBarActionError by liveBarViewModel.actionError.collectAsStateWithLifecycle()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
-    // Hidden exactly where the session already owns the screen, or where starting one is the
-    // whole point. Everywhere else — tabs and pushed routes alike — the bar is present, which
-    // is the difference between "the workout is somewhere" and "the workout is right here".
-    val showLiveBar = liveSession != null &&
+    // Presence only. Elapsed ticks inside LiveSessionBarHost so a 1 Hz
+    // label cannot rebuild this NavHost.
+    val showLiveBar = hasLiveSession &&
         currentDestination?.route !in LIVE_BAR_HIDDEN_ROUTES
     val hidesLiveBar = currentDestination?.route in LIVE_BAR_HIDDEN_ROUTES
     LaunchedEffect(hidesLiveBar) {
@@ -348,13 +346,29 @@ fun PersonalTrainerNav(
         onOpenSessionConsumed()
     }
 
-    fun goToTab(path: String) {
-        navController.navigate(path) {
-            popUpTo(navController.graph.findStartDestination().id) {
-                saveState = true
+    val goToTab = remember(navController) {
+        { path: String ->
+            navController.navigate(path) {
+                popUpTo(navController.graph.findStartDestination().id) {
+                    saveState = true
+                }
+                launchSingleTop = true
+                restoreState = true
             }
-            launchSingleTop = true
-            restoreState = true
+        }
+    }
+    val resumeLive = remember(navController) {
+        { live: LiveSessionBarUiState ->
+            if (live.kind == LiveBarKind.ACTIVITY) {
+                navController.navigate(Route.LiveCardio.create(live.sessionId)) {
+                    launchSingleTop = true
+                }
+            } else {
+                navController.navigate(Route.ActiveWorkout.create(live.sessionId)) {
+                    popUpTo(Route.ActiveWorkout.path) { inclusive = false }
+                    launchSingleTop = true
+                }
+            }
         }
     }
 
@@ -374,40 +388,13 @@ fun PersonalTrainerNav(
         Scaffold(
             bottomBar = {
               Column {
-                AnimatedVisibility(
+                LiveSessionBarHost(
+                    viewModel = liveBarViewModel,
                     visible = showLiveBar,
-                    enter = slideInVertically(
-                        animationSpec = tween(barMs, easing = Motion.Standard),
-                    ) { it },
-                    exit = slideOutVertically(
-                        animationSpec = tween(barMs, easing = Motion.Exit),
-                    ) { it },
-                ) {
-                    liveSession?.let { live ->
-                        LiveSessionBar(
-                            state = live,
-                            // When the tab bar is hidden the bar is the bottom-most thing on
-                            // screen and must own the gesture inset itself.
-                            applyNavInsets = !showBottomBar,
-                            onResume = {
-                                if (live.kind == LiveBarKind.ACTIVITY) {
-                                    navController.navigate(Route.LiveCardio.create(live.sessionId)) {
-                                        launchSingleTop = true
-                                    }
-                                } else {
-                                    navController.navigate(Route.ActiveWorkout.create(live.sessionId)) {
-                                        popUpTo(Route.ActiveWorkout.path) { inclusive = false }
-                                        launchSingleTop = true
-                                    }
-                                }
-                            },
-                            onFinish = liveBarViewModel::finishFromBar,
-                            onDiscard = liveBarViewModel::discardFromBar,
-                            actionError = liveBarActionError,
-                            onActionErrorShown = liveBarViewModel::onActionErrorShown,
-                        )
-                    }
-                }
+                    showBottomBar = showBottomBar,
+                    barMs = barMs,
+                    onResume = resumeLive,
+                )
                 // Slides rather than disappears: entering a workout used to delete the bar in
                 // one frame and let the content jolt down into the space it had been holding.
                 AnimatedVisibility(

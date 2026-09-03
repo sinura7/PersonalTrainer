@@ -112,9 +112,14 @@ class AppContainer(context: Context) : AppDependencies {
     // ViewModel exists.
     override val restTimerStatePersistence: RestTimerStatePersistence =
         SharedPrefsRestTimerStatePersistence(context)
-    override val restTimerStore: RestTimerStore = RestTimerStore(restTimerStatePersistence)
+    override val restTimerStore: RestTimerStore = RestTimerStore()
     override val restTimerController: RestTimerController =
-        RestTimerController(context, restTimerStore, restTimerStatePersistence)
+        RestTimerController(
+            context,
+            restTimerStore,
+            restTimerStatePersistence,
+            ioDispatcher = ioDispatcher,
+        )
     override val workoutDraftCache: WorkoutDraftCache = WorkoutDraftCache()
 
     // Every finish and every discard in the app routes through these two, so no surface can
