@@ -71,10 +71,12 @@ fun ReminderPrefsSection(
             InstrumentRow(
                 title = ReminderCopy.SWITCH_TITLE,
                 subtitle = ReminderCopy.SWITCH_SUBTITLE,
+                checked = enabled,
+                onCheckedChange = { on -> onOptOut(!on) },
                 trailing = {
                     Switch(
                         checked = enabled,
-                        onCheckedChange = { on -> onOptOut(!on) },
+                        onCheckedChange = null,
                     )
                 },
             )

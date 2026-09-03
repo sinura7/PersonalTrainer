@@ -1,7 +1,6 @@
 package com.sinura.personaltrainer.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
@@ -22,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,7 +65,8 @@ fun WeekStrip(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .testTag(WeekStripTags.STRIP),
+            .testTag(WeekStripTags.STRIP)
+            .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
     ) {
         cells.forEach { cell ->
@@ -110,7 +113,11 @@ private fun WeekCell(
         modifier = modifier
             .clip(RoundedCornerShape(Radius.sm))
             .background(if (selected && !isToday) SurfacePressed else Color.Transparent)
-            .clickable(onClick = onClick)
+            .selectable(
+                selected = selected,
+                role = Role.Tab,
+                onClick = onClick,
+            )
             .heightIn(min = Metrics.touchMin)
             .padding(vertical = Metrics.space1)
             .testTag(WeekStripTags.cell(cell.epochDay))
@@ -132,6 +139,7 @@ private fun WeekCell(
         Kicker(
             cell.weekday.shortLabel().take(1),
             color = if (isToday) Volt else TextSecondary,
+            asHeading = false,
         )
         Text(
             dayOfMonth.toString(),

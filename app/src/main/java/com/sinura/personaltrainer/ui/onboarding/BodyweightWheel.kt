@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.ui.onboarding
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,15 +20,24 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.sinura.personaltrainer.domain.BodyweightSteps
+import com.sinura.personaltrainer.domain.TalkBackPolicy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.InstrumentChip
+import com.sinura.personaltrainer.ui.components.NumberEntryDialog
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -62,6 +72,8 @@ fun BodyweightWheel(
     val initialPage = remember(unit) { startPage }
     val pagerState = rememberPagerState(initialPage = startPage, pageCount = { values.size })
     val view = LocalView.current
+    var typing by rememberSaveable { mutableStateOf(false) }
+    val shown = values.getOrElse(pagerState.currentPage) { selected }
 
     LaunchedEffect(unit, values, startPage) {
         if (pagerState.currentPage != startPage) {
@@ -91,9 +103,12 @@ fun BodyweightWheel(
             verticalAlignment = Alignment.Bottom,
         ) {
             Text(
-                values.getOrElse(pagerState.currentPage) { selected }.toString(),
+                shown.toString(),
                 style = InstrumentType.numeralHero,
                 color = TextPrimary,
+                modifier = Modifier
+                    .clickable(role = Role.Button, onClick = { typing = true })
+                    .semantics { contentDescription = TalkBackPolicy.BODYWEIGHT_TYPED_SPOKEN },
             )
             Text(
                 unit.suffix,
@@ -112,6 +127,21 @@ fun BodyweightWheel(
             }
         }
         WheelColumn(pagerState = pagerState, values = values)
+    }
+    if (typing) {
+        NumberEntryDialog(
+            title = TalkBackPolicy.BODYWEIGHT_TYPED_TITLE,
+            unitLabel = unit.suffix,
+            initial = shown.toString(),
+            decimal = false,
+            helper = TalkBackPolicy.BODYWEIGHT_TYPED_HELPER,
+            parse = { TalkBackPolicy.parseTypedBodyweightKg(it, unit) },
+            onConfirm = {
+                typing = false
+                onKgChange(it)
+            },
+            onDismiss = { typing = false },
+        )
     }
 }
 

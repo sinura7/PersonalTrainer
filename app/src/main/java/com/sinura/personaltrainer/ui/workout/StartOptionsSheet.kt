@@ -22,6 +22,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -119,7 +120,12 @@ fun StartOptionsSheet(
                 .padding(bottom = Metrics.space7),
             verticalArrangement = Arrangement.spacedBy(Metrics.space4),
         ) {
-            Text("Start a workout", style = InstrumentType.title, color = TextPrimary)
+            Text(
+                "Start a workout",
+                modifier = Modifier.semantics { heading() },
+                style = InstrumentType.title,
+                color = TextPrimary,
+            )
             if (state.isLoading) {
                 ScreenLoading(Modifier.fillMaxWidth().height(96.dp))
                 return@Column

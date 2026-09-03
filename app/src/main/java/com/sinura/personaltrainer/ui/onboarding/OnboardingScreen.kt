@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,6 +34,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -214,11 +219,10 @@ private fun ChoiceStep(title: String, blurb: String, options: List<Choice>) {
                     InstrumentRow(
                         title = option.label,
                         subtitle = option.blurb,
+                        selected = option.selected,
                         onClick = option.onClick,
                     ) {
-                        if (option.selected) {
-                            Text("Selected", style = InstrumentType.caption, color = TextTertiary)
-                        }
+                        RadioButton(selected = option.selected, onClick = null)
                     }
                 }
             }
@@ -252,10 +256,14 @@ private fun ExperienceStep(selected: TrainingAge, onSelect: (TrainingAge) -> Uni
                         if (on) Volt else Hairline,
                         shape,
                     )
-                    .clickable {
-                        Haptics.tick(view)
-                        onSelect(age)
-                    }
+                    .selectable(
+                        selected = on,
+                        role = Role.RadioButton,
+                        onClick = {
+                            Haptics.tick(view)
+                            onSelect(age)
+                        },
+                    )
                     .padding(Metrics.cardPadding),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
@@ -273,7 +281,7 @@ private fun ExperienceStep(selected: TrainingAge, onSelect: (TrainingAge) -> Uni
                         style = InstrumentType.numeralLg,
                         color = if (on) Volt else TextPrimary,
                     )
-                    Kicker("LIFTS")
+                    Kicker("LIFTS", asHeading = false)
                 }
             }
         }
@@ -572,7 +580,12 @@ private fun RoutineCard(routine: BlueprintRoutine) {
 @Composable
 private fun QuestionTitle(title: String, blurb: String) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-        Text(title, style = InstrumentType.title, color = TextPrimary)
+        Text(
+            title,
+            modifier = Modifier.semantics { heading() },
+            style = InstrumentType.title,
+            color = TextPrimary,
+        )
         Text(blurb, style = InstrumentType.body, color = TextSecondary)
     }
 }
