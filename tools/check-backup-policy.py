@@ -33,6 +33,26 @@ REQUIRED_DOMAINS = {"root", "file", "database", "sharedpref", "external"}
 findings: list[str] = []
 
 
+def backup_manifest_findings(
+    allow: str | None,
+    full: str | None,
+    extraction: str | None,
+) -> list[str]:
+    found: list[str] = []
+    if allow != "false":
+        found.append(f'allowBackup must be "false" (found {allow!r})')
+    if full != "@xml/backup_rules":
+        found.append(
+            f"fullBackupContent must reference @xml/backup_rules (found {full!r})",
+        )
+    if extraction != "@xml/data_extraction_rules":
+        found.append(
+            "dataExtractionRules must reference @xml/data_extraction_rules "
+            f"(found {extraction!r})",
+        )
+    return found
+
+
 def add(path: str, message: str) -> None:
     findings.append(f"{os.path.relpath(path, ROOT)}  {message}")
 
@@ -72,17 +92,10 @@ def main() -> int:
         return 1
 
     allow = android_attr(app, "allowBackup")
-    if allow != "false":
-        add(MANIFEST, f'allowBackup must be "false" (found {allow!r})')
     full = android_attr(app, "fullBackupContent")
-    if full != "@xml/backup_rules":
-        add(MANIFEST, f"fullBackupContent must reference @xml/backup_rules (found {full!r})")
     extraction = android_attr(app, "dataExtractionRules")
-    if extraction != "@xml/data_extraction_rules":
-        add(
-            MANIFEST,
-            f"dataExtractionRules must reference @xml/data_extraction_rules (found {extraction!r})",
-        )
+    for message in backup_manifest_findings(allow, full, extraction):
+        add(MANIFEST, message)
 
     for path in (LEGACY, EXTRACTION):
         if not os.path.isfile(path):

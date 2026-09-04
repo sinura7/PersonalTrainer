@@ -18,27 +18,31 @@ BANNED = [
     (re.compile(r"^import\s+androidx\.compose"), "Compose"),
 ]
 
-findings: list[str] = []
+def banned_import_findings(text: str, rel: str = "snippet.kt") -> list[str]:
+    found: list[str] = []
+    for number, line in enumerate(text.splitlines(), 1):
+        for pattern, why in BANNED:
+            if pattern.search(line):
+                found.append(f"{rel}:{number}  banned {why} import: {line.strip()}")
+    return found
 
 
 def main() -> int:
     if not os.path.isdir(DOMAIN):
         print("domain/ is missing")
         return 1
+    found: list[str] = []
     for dirpath, _, filenames in os.walk(DOMAIN):
         for name in filenames:
             if not name.endswith(".kt"):
                 continue
             path = os.path.join(dirpath, name)
             rel = os.path.relpath(path, ROOT)
-            for number, line in enumerate(open(path, encoding="utf-8"), 1):
-                for pattern, why in BANNED:
-                    if pattern.search(line):
-                        findings.append(f"{rel}:{number}  banned {why} import: {line.strip()}")
-    print(f"{len(findings)} domain-seam finding(s)")
-    for item in findings:
+            found.extend(banned_import_findings(open(path, encoding="utf-8").read(), rel))
+    print(f"{len(found)} domain-seam finding(s)")
+    for item in found:
         print(item)
-    return 1 if findings else 0
+    return 1 if found else 0
 
 
 if __name__ == "__main__":
