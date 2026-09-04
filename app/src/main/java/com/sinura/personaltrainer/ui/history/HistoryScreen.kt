@@ -43,7 +43,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.AnalyticsHorizon
 import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.DataHealthCopy
-import com.sinura.personaltrainer.domain.DateCopy
+import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.domain.HistoryCopy
 import com.sinura.personaltrainer.domain.HistoryKind
 import com.sinura.personaltrainer.domain.HorizonProgress

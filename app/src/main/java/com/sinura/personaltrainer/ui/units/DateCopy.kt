@@ -1,5 +1,7 @@
-package com.sinura.personaltrainer.domain
+package com.sinura.personaltrainer.ui.units
 
+import com.sinura.personaltrainer.domain.ClockCopy
+import com.sinura.personaltrainer.domain.ClockFormat
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -15,6 +17,9 @@ import java.util.Locale
  * is visible on every timestamp the owned surfaces print. Patterns are
  * English day-month, not month-first American stamps: the APK ships `en` only
  * (J3), and a US locale was printing American stamps for everyone.
+ *
+ * Lives here, not in `domain/`: the domain seam policy bans `java.time`
+ * and `Locale` on the shared-target seam (ADR-003, ADR-011).
  */
 object DateCopy {
     private val LOCALE: Locale = Locale.ENGLISH

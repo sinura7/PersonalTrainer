@@ -67,7 +67,7 @@ import com.sinura.personaltrainer.domain.BackupPrompt
 import com.sinura.personaltrainer.domain.BodyweightCheckIn
 import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.CoachPreferences
-import com.sinura.personaltrainer.domain.DateCopy
+import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.domain.DayLabel
 import com.sinura.personaltrainer.domain.EquipmentGroups
 import com.sinura.personaltrainer.domain.EquipmentType

@@ -39,7 +39,7 @@ import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CatalogMeta
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.ComposerCopy
-import com.sinura.personaltrainer.domain.DateCopy
+import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.domain.DistanceUnit
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExercisePickerEvent

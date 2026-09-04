@@ -1276,10 +1276,11 @@ nobody.
 hard-coded locale, wired to the clock preference — or, if the preference is
 not worth keeping, relabel the chips "Quiet-hours clock" and say so. Derive a
 distance unit from the weight unit.~~ **Struck 2026-09-03 (this packet).**
-Hours chips stay. `DateCopy` is the stamp grammar (English day-month,
-`ClockCopy` for the time half). History, session detail, composer, and
-Settings backup stamps read `LocalClockFormat` / the Settings Hours
-choice. `DistanceUnit.fromWeight`: pounds → mi, kilograms → km. Composer
+Hours chips stay. `DateCopy` lives in `ui/units` (domain seam
+policy bans `java.time`/`Locale`) and is the stamp grammar
+(English day-month, `ClockCopy` for the time half). History,
+session detail, composer, and Settings backup stamps read
+`LocalClockFormat` / the Settings Hours choice. `DistanceUnit.fromWeight`: pounds → mi, kilograms → km. Composer
 and live cardio parse through `ComposerCopy`; stored metres and composer
 line kilometres do not change. Debug Settings `InstrumentSwitch` writes
 `AppLog.redactMessages` for this process only.
@@ -1542,7 +1543,9 @@ struck and the reason given.*
 toggle lands.** Hours chips stay — they now drive History, session
 detail, composer, and backup stamps, not only quiet-hours labels.
 `DateCopy` is English day-month (`Locale.ENGLISH`), time half
-`ClockCopy`. Plan, workout summary, and exercise-detail still use
+`ClockCopy`. It lives in `ui/units/`, not `domain/`: the seam
+policy bans `java.time` and `Locale` there. Plan, workout
+summary, and exercise-detail still use
 `DateFormat.getDateInstance` — not in Owns. Distance unit is derived
 from weight (`DistanceUnit.fromWeight`); live cardio's
 `distanceKm` field name is kept. Miles round to one decimal; km

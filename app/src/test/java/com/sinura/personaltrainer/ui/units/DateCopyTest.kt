@@ -1,5 +1,6 @@
-package com.sinura.personaltrainer.domain
+package com.sinura.personaltrainer.ui.units
 
+import com.sinura.personaltrainer.domain.ClockFormat
 import java.io.File
 import java.time.Instant
 import java.time.LocalDate
@@ -28,7 +29,7 @@ class DateCopyTest {
 
     @Test
     fun ownedStampsUseDateCopyAndComposerDropsUsLocale() {
-        val dateCopy = readMain("domain/DateCopy.kt")
+        val dateCopy = readMain("ui/units/DateCopy.kt")
         assertTrue(dateCopy.contains("Locale.ENGLISH"))
         assertFalse(dateCopy.contains("Locale.US"))
 
