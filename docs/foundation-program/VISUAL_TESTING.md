@@ -94,13 +94,15 @@ about preview fixtures.
 This foundation closes the substrate portion of FND-043. Page coverage and
 visual acceptance remain P9.6/P9.7.
 
-## Page golden fan-out (MP-11 / DP-0)
+## Page golden fan-out (H3)
 
-`GoldenPageCatalog` names one PNG per `AccessibilityMatrix` page × required
-state: `{pageId}-{state}-api29` (108 names). The committed set today is
-still only `foundation-state-gallery-api29`. Recording those page PNGs is
-an owner emulator gate on `temper-tests-api29` — this VM cannot run
-`connectedDebugAndroidTest`.
+`GoldenPageCatalog` names six gym-floor populated goldens
+(`home`, `body`, `plan`, `history`, `settings`, `active-strength`) plus a
+component gallery and the three `ThemeGallery` previews. The committed
+set today is still only `foundation-state-gallery-api29`. Recording those
+PNGs is an owner emulator gate on `temper-tests-api29` — this VM cannot
+run `connectedDebugAndroidTest`. The 108-name AccessibilityMatrix fan-out
+is no longer the required set.
 
 Mount every later capture through `GoldenCapture` (360 × 800 dp,
 Instrument theme) so the viewport cannot drift per page.

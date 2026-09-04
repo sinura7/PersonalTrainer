@@ -55,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
@@ -101,6 +102,7 @@ import com.sinura.personaltrainer.domain.WorkoutAdvance
 import com.sinura.personaltrainer.domain.WorkoutCopy
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
+import com.sinura.personaltrainer.ui.components.CountBadge
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
@@ -140,7 +142,6 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.VoltDim
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
-import com.sinura.personaltrainer.ui.routines.CartBadge
 import kotlinx.coroutines.delay
 
 private const val TAG = "PT/ActiveWorkoutScreen"
@@ -177,6 +178,8 @@ fun ActiveWorkoutScreen(
     val rest by viewModel.restTimerState.collectAsStateWithLifecycle()
     val microRec by viewModel.microRec.collectAsStateWithLifecycle()
     val extraSetRequested by viewModel.extraSetRequested.collectAsStateWithLifecycle()
+    val config = LocalConfiguration.current
+    val landscape = LandscapeChrome.isLandscape(config.screenWidthDp, config.screenHeightDp)
     val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
     val personalRecord by viewModel.personalRecord.collectAsStateWithLifecycle()
     val deletedSet by viewModel.deletedSet.collectAsStateWithLifecycle()
@@ -286,6 +289,7 @@ fun ActiveWorkoutScreen(
                 work = sessionWork,
                 unit = unit,
                 canFinish = session != null && session.sets.isNotEmpty(),
+                compact = LandscapeChrome.compactHeader(landscape),
                 onExit = { confirmLeave = true },
                 onFinish = {
                     Haptics.commit(view)
@@ -300,7 +304,9 @@ fun ActiveWorkoutScreen(
                     logging = state.logging,
                     error = state.error,
                     draftLabel = SetCopy.setLine(state.draft.weightKg, state.draft.reps, LoadClass.of(selected?.exercise?.loadType), unit),
-                    microRec = microRec.takeUnless { showNext },
+                    microRec = microRec.takeUnless {
+                        showNext || LandscapeChrome.foldMicroRecIntoCard(landscape)
+                    },
                     loadClass = LoadClass.of(selected?.exercise?.loadType),
                     unit = unit,
                     showNext = showNext,
@@ -353,6 +359,7 @@ fun ActiveWorkoutScreen(
                         totalSeconds = rest.totalSeconds,
                         running = rest.running,
                         completedTimerId = rest.completedTimerId,
+                        hideWhenIdle = LandscapeChrome.hideIdleRest(landscape),
                         onSkip = viewModel::skipRest,
                         onStart = viewModel::startSelectedRest,
                         onOpenRest = { session.id.let(onOpenRest) },
@@ -399,39 +406,43 @@ fun ActiveWorkoutScreen(
                                 val isSelected = lift.exercise.id == state.selectedExerciseId
                                 val logged = session.setsFor(lift.exercise.id)
                                 WorkoutLiftCard(
-                                    lift = lift,
-                                    number = index + 1,
-                                    selected = isSelected,
-                                    loggedSets = logged,
-                                    latestSetId = logged.maxByOrNull { it.completedAt }?.id,
-                                    editingSetId = state.editingSetId.takeIf { isSelected },
-                                    lastPerformance = state.lastPerformance.takeIf { isSelected },
-                                    hint = state.hint.takeIf { isSelected },
-                                    draftWeightKg = state.draft.weightKg,
-                                    draftReps = state.draft.reps,
-                                    draftWarmup = state.draft.isWarmup,
-                                    draftRpe = state.draft.rpe,
-                                    microRec = microRec.takeIf { isSelected },
-                                    unit = unit,
-                                    canEdit = logged.isEmpty(),
-                                    showAddSet = isSelected &&
-                                        WorkoutAdvance.liftComplete(
-                                            workingLogged = logged.count { !it.isWarmup },
-                                            targetSets = lift.targetSets,
-                                            wantAnother = false,
-                                        ),
-                                    onSelect = { viewModel.selectExercise(lift.exercise.id) },
-                                    onSwap = viewModel::requestSwap,
-                                    onRemove = { confirmRemoveLift = true },
-                                    onWeightKgChange = viewModel::setWeight,
-                                    onRepsAdjust = viewModel::adjustReps,
-                                    onApplyLastTime = viewModel::applyLastTimeSet,
-                                    onWarmup = viewModel::setWarmup,
-                                    onRpe = viewModel::setRpe,
-                                    onApplySuggested = viewModel::applySuggestedWeight,
-                                    onEditSet = viewModel::editSet,
-                                    onDeleteSet = viewModel::deleteSet,
-                                    onAddSet = viewModel::requestExtraSet,
+                                    state = WorkoutLiftCardState(
+                                        lift = lift,
+                                        number = index + 1,
+                                        selected = isSelected,
+                                        loggedSets = logged,
+                                        latestSetId = logged.maxByOrNull { it.completedAt }?.id,
+                                        editingSetId = state.editingSetId.takeIf { isSelected },
+                                        lastPerformance = state.lastPerformance.takeIf { isSelected },
+                                        hint = state.hint.takeIf { isSelected },
+                                        draftWeightKg = state.draft.weightKg,
+                                        draftReps = state.draft.reps,
+                                        draftWarmup = state.draft.isWarmup,
+                                        draftRpe = state.draft.rpe,
+                                        microRec = microRec.takeIf { isSelected },
+                                        unit = unit,
+                                        canEdit = logged.isEmpty(),
+                                        showAddSet = isSelected &&
+                                            WorkoutAdvance.liftComplete(
+                                                workingLogged = logged.count { !it.isWarmup },
+                                                targetSets = lift.targetSets,
+                                                wantAnother = false,
+                                            ),
+                                    ),
+                                    events = WorkoutLiftCardEvents(
+                                        onSelect = { viewModel.selectExercise(lift.exercise.id) },
+                                        onSwap = viewModel::requestSwap,
+                                        onRemove = { confirmRemoveLift = true },
+                                        onWeightKgChange = viewModel::setWeight,
+                                        onRepsAdjust = viewModel::adjustReps,
+                                        onApplyLastTime = viewModel::applyLastTimeSet,
+                                        onWarmup = viewModel::setWarmup,
+                                        onRpe = viewModel::setRpe,
+                                        onApplySuggested = viewModel::applySuggestedWeight,
+                                        onEditSet = viewModel::editSet,
+                                        onDeleteSet = viewModel::deleteSet,
+                                        onAddSet = viewModel::requestExtraSet,
+                                    ),
                                 )
                             }
                             item(key = "add-lift") {
@@ -570,6 +581,7 @@ private fun WorkoutHeader(
     work: SetWork,
     unit: WeightUnit,
     canFinish: Boolean,
+    compact: Boolean,
     onExit: () -> Unit,
     onFinish: () -> Unit,
 ) {
@@ -612,7 +624,7 @@ private fun WorkoutHeader(
                 }
             },
         )
-        if (!canFinish) {
+        if (!compact && !canFinish) {
             Text(
                 "Log a set to finish.",
                 modifier = Modifier
@@ -623,6 +635,7 @@ private fun WorkoutHeader(
                 textAlign = TextAlign.End,
             )
         }
+        if (!compact) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -648,6 +661,7 @@ private fun WorkoutHeader(
                 horizontalAlignment = Alignment.Start,
                 modifier = Modifier.weight(1f),
             )
+        }
         }
     }
 }
@@ -793,38 +807,74 @@ private fun MicroRecLine(
     }
 }
 
+private data class WorkoutLiftCardState(
+    val lift: SessionExercise,
+    val number: Int,
+    val selected: Boolean,
+    val loggedSets: List<SetLog>,
+    val latestSetId: String?,
+    val editingSetId: String?,
+    val lastPerformance: ExerciseSessionSummary?,
+    val hint: ProgressionHint?,
+    val draftWeightKg: Double,
+    val draftReps: Int,
+    val draftWarmup: Boolean,
+    val draftRpe: Int?,
+    val microRec: SetMicroRec?,
+    val unit: WeightUnit,
+    val canEdit: Boolean,
+    val showAddSet: Boolean,
+)
+
+private data class WorkoutLiftCardEvents(
+    val onSelect: () -> Unit,
+    val onSwap: () -> Unit,
+    val onRemove: () -> Unit,
+    val onWeightKgChange: (Double) -> Unit,
+    val onRepsAdjust: (Int) -> Unit,
+    val onApplyLastTime: (Double, Int) -> Unit,
+    val onWarmup: (Boolean) -> Unit,
+    val onRpe: (Int?) -> Unit,
+    val onApplySuggested: () -> Unit,
+    val onEditSet: (String) -> Unit,
+    val onDeleteSet: (String) -> Unit,
+    val onAddSet: () -> Unit,
+)
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun WorkoutLiftCard(
-    lift: SessionExercise,
-    number: Int,
-    selected: Boolean,
-    loggedSets: List<SetLog>,
-    latestSetId: String?,
-    editingSetId: String?,
-    lastPerformance: ExerciseSessionSummary?,
-    hint: ProgressionHint?,
-    draftWeightKg: Double,
-    draftReps: Int,
-    draftWarmup: Boolean,
-    draftRpe: Int?,
-    microRec: SetMicroRec?,
-    unit: WeightUnit,
-    canEdit: Boolean,
-    showAddSet: Boolean,
-    onSelect: () -> Unit,
-    onSwap: () -> Unit,
-    onRemove: () -> Unit,
-    onWeightKgChange: (Double) -> Unit,
-    onRepsAdjust: (Int) -> Unit,
-    onApplyLastTime: (Double, Int) -> Unit,
-    onWarmup: (Boolean) -> Unit,
-    onRpe: (Int?) -> Unit,
-    onApplySuggested: () -> Unit,
-    onEditSet: (String) -> Unit,
-    onDeleteSet: (String) -> Unit,
-    onAddSet: () -> Unit,
+    state: WorkoutLiftCardState,
+    events: WorkoutLiftCardEvents,
 ) {
+    val lift = state.lift
+    val number = state.number
+    val selected = state.selected
+    val loggedSets = state.loggedSets
+    val latestSetId = state.latestSetId
+    val editingSetId = state.editingSetId
+    val lastPerformance = state.lastPerformance
+    val hint = state.hint
+    val draftWeightKg = state.draftWeightKg
+    val draftReps = state.draftReps
+    val draftWarmup = state.draftWarmup
+    val draftRpe = state.draftRpe
+    val microRec = state.microRec
+    val unit = state.unit
+    val canEdit = state.canEdit
+    val showAddSet = state.showAddSet
+    val onSelect = events.onSelect
+    val onSwap = events.onSwap
+    val onRemove = events.onRemove
+    val onWeightKgChange = events.onWeightKgChange
+    val onRepsAdjust = events.onRepsAdjust
+    val onApplyLastTime = events.onApplyLastTime
+    val onWarmup = events.onWarmup
+    val onRpe = events.onRpe
+    val onApplySuggested = events.onApplySuggested
+    val onEditSet = events.onEditSet
+    val onDeleteSet = events.onDeleteSet
+    val onAddSet = events.onAddSet
     val workingLogged = loggedSets.count { !it.isWarmup }
     val targetSets = lift.targetSets
     val entryRequester = remember { BringIntoViewRequester() }
@@ -863,7 +913,7 @@ private fun WorkoutLiftCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
         ) {
-            CartBadge(number = number, selected = selected)
+            CountBadge(number = number, selected = selected)
             ExerciseThumb(
                 exercise = lift.exercise,
                 size = ThumbSize.header,

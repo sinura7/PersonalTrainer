@@ -18,8 +18,12 @@ import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 /**
  * Shared 360×800 Instrument mount for page goldens. P1.2 used this shape
  * inline in [com.sinura.personaltrainer.ui.preview.FoundationGoldenTest];
- * every later surface×state capture should go through here so the viewport
- * and theme cannot drift per page.
+ * H3 names six gym-floor populated PNGs plus the component gallery and
+ * three ThemeGallery previews in [com.sinura.personaltrainer.domain.GoldenPageCatalog].
+ * Do not add [GoldenImageAssert.assertMatches] callers until the PNG is
+ * committed — a missing asset fails the connected suite. Every later
+ * surface×state capture should go through here so the viewport and theme
+ * cannot drift per page.
  */
 object GoldenCapture {
     val ViewportWidth: Dp = 360.dp

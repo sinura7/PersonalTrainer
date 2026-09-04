@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
@@ -56,12 +57,14 @@ import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 
 /**
@@ -546,4 +549,56 @@ fun sessionRowSpoken(
     val column = SetCopy.workColumn(work, unit)
     return "$title, $dateLabel, $workingSets sets, ${column.value} ${column.label}, " +
         "$durationMinutes min"
+}
+
+/**
+ * One numeral plus an optional unit, so the four baseline-row copies stop
+ * inventing their own size.
+ */
+@Composable
+fun Numeral(
+    value: String,
+    modifier: Modifier = Modifier,
+    style: TextStyle = InstrumentType.numeralMd,
+    color: Color = TextPrimary,
+    unit: String? = null,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
+    ) {
+        Text(value, style = style, color = color, maxLines = 1)
+        if (unit != null) {
+            Text(unit, style = InstrumentType.unit, color = TextSecondary, maxLines = 1)
+        }
+    }
+}
+
+/**
+ * Session-order count on a lift card. Volt fill when selected.
+ */
+@Composable
+fun CountBadge(
+    number: Int,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val badgeShape = RoundedCornerShape(percent = 50)
+    Box(
+        modifier = modifier
+            .heightIn(min = Metrics.space6)
+            .widthIn(min = Metrics.space6)
+            .clip(badgeShape)
+            .background(if (selected) Volt else Surface1)
+            .border(Metrics.hairline, if (selected) Volt else Hairline, badgeShape)
+            .padding(horizontal = Metrics.space1),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            number.toString(),
+            style = InstrumentType.caption,
+            color = if (selected) Pit else TextPrimary,
+        )
+    }
 }

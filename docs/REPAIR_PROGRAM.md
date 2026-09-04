@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F6, G1–G6, H1, H2, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F6, G1–G6, H1–H3, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase H continues at H3. K1 and K2 stay held.  
+`tools/` remain owed. Phase H is done. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -100,7 +100,7 @@ the gym floor, are fifteen of them.
 | G6 | Reduced motion, and the palette question | 1 | — | Design II | done |
 | H1 | History shows that you got stronger | 2 | — | Design III | done |
 | H2 | Units and clocks finish what Display started | 2 | — | Design III | done |
-| H3 | Row and card vocabulary; landscape; a regression net | 3 | — | Design III | |
+| H3 | Row and card vocabulary; landscape; a regression net | 3 | — | Design III | done |
 | J1 | The release build is real | 1 | 6 | House | |
 | J2 | The release ratchet and CI pinning | 1 | — | House | done |
 | J3 | App size | 1 | — | House | done |
@@ -1295,7 +1295,7 @@ line kilometres do not change. Debug Settings `InstrumentSwitch` writes
 `ui/settings/SettingsScreen.kt` *(after G4)*, `ui/activity/**` *(after G2)*,
 `domain/CardioCopy.kt`.
 
-## H3 — Row and card vocabulary; landscape; a regression net · 3 evenings
+## H3 — Row and card vocabulary; landscape; a regression net · done on `trunk`
 
 **Change**, three related things:
 1. **Consolidate the twelve near-duplicates** the audit lists — one lift-card
@@ -1313,6 +1313,21 @@ line kilometres do not change. Debug Settings `InstrumentSwitch` writes
    three theme galleries as goldens, a measure test for tabular numeral
    widths, and six gym-floor page goldens — replacing the current catalogue
    that codifies all 108 page goldens as missing.
+
+**Struck 2026-09-03 (this packet).** Landscape chrome is `LandscapeChrome`:
+compact header, hide idle rest, fold micro-rec into the lift card, ring
+`min(280, height − 120)`. `WorkoutLiftCard` is state + events.
+`DangerGymButton`, `CountBadge`, and `Numeral` are public.
+`GoldenPageCatalog` requires six populated gym-floor pages plus the
+component gallery and three ThemeGallery names. Tabular measure is JVM
+Paint + `tnum`. ConfirmActionDialog already is the dialog grammar (G
+packets). Sheets, Home's 17-param cards, and the rest-family move stay
+Floor findings.
+
+**Proof.** JVM: `landscapeChromeLeavesRoomForTheLogAt640x360`,
+`ownedWorkoutAndRestSurfacesHonourLandscapeChrome`,
+`gymFloorIsSixPopulatedPagesNotTheMatrixFanOut`,
+`onesAndZerosShareParagraphWidthOnEveryNumeralStyle`. Count +4.
 
 **Owns.** `ui/components/**`, `ui/workout/**`, `ui/home/**`,
 `app/src/debug/**`, `androidTest/testutil/**`.
@@ -1538,6 +1553,17 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — H3: landscape log; six goldens; public atoms.**
+Landscape chrome is `LandscapeChrome` (compact header, hide idle
+rest, fold micro-rec, ring `min(280, height − 120)`).
+`WorkoutLiftCard` is state + events. `DangerGymButton`,
+`CountBadge`, `Numeral` are public. `GoldenPageCatalog` requires
+six populated gym-floor pages, not the matrix fan-out. Component
+gallery is debug. Tabular measure is JVM Paint. ConfirmActionDialog
+already stacked (G). Sheets, Home's 17-param cards, SessionLiftStrip
+`CartBadge`, and moving rest out of `Common.kt` stay. No
+`GoldenImageAssert` callers until PNGs exist. Count +4.
 
 **2026-09-03 — H2: one DateCopy; distance follows weight; J1
 toggle lands.** Hours chips stay — they now drive History, session
