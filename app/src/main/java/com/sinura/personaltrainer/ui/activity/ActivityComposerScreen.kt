@@ -39,6 +39,8 @@ import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CatalogMeta
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.ComposerCopy
+import com.sinura.personaltrainer.ui.units.DateCopy
+import com.sinura.personaltrainer.domain.DistanceUnit
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
@@ -61,8 +63,6 @@ import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @Composable
 fun ActivityComposerScreen(
@@ -135,7 +135,9 @@ fun ActivityComposerScreen(
                         Text(ComposerCopy.EARLIER)
                     }
                     Text(
-                        DATE_FORMAT.format(CivilDate.fromEpochDay(state.epochDay).toJavaLocalDate()),
+                        DateCopy.weekdayShort(
+                            CivilDate.fromEpochDay(state.epochDay).toJavaLocalDate(),
+                        ),
                         style = InstrumentType.bodyStrong,
                         color = TextPrimary,
                         modifier = Modifier.padding(top = Metrics.space3),
@@ -184,6 +186,7 @@ fun ActivityComposerScreen(
                             line.minutes,
                             line.distanceKm,
                             line.indoor,
+                            DistanceUnit.fromWeight(unit),
                         ),
                         trailing = {
                             RemoveLineButton(
@@ -367,6 +370,7 @@ private typealias ExerciseOption = Exercise
 private fun CardioAdder(
     onAdd: (CardioType, Int, Double?, Boolean) -> Unit,
 ) {
+    val distanceUnit = DistanceUnit.fromWeight(LocalWeightUnit.current)
     var type by rememberSaveable { mutableStateOf(CardioType.RUN) }
     var indoor by rememberSaveable { mutableStateOf(false) }
     var minutes by rememberSaveable { mutableStateOf("30") }
@@ -422,7 +426,7 @@ private fun CardioAdder(
         OutlinedTextField(
             value = distance,
             onValueChange = { distance = NumericEntry.filterDecimal(it) },
-            label = { Text(CardioCopy.DISTANCE_LABEL) },
+            label = { Text(CardioCopy.distanceLabel(distanceUnit)) },
             singleLine = true,
             textStyle = InstrumentType.numeralMd,
             keyboardOptions = KeyboardOptions(
@@ -436,7 +440,12 @@ private fun CardioAdder(
         SecondaryGymButton(
             text = ComposerCopy.ADD_CARDIO,
             onClick = {
-                onAdd(type, minutes.toIntOrNull() ?: 0, ComposerCopy.parseDistanceKm(distance), indoor)
+                onAdd(
+                    type,
+                    minutes.toIntOrNull() ?: 0,
+                    ComposerCopy.parseDistanceToKm(distance, distanceUnit),
+                    indoor,
+                )
             },
             modifier = Modifier.testTag(ComposerTags.ADD_CARDIO),
         )
@@ -473,9 +482,6 @@ private fun composerTitle(mode: ComposerMode): String = when (mode) {
 
 private fun CivilDate.toJavaLocalDate(): java.time.LocalDate =
     java.time.LocalDate.ofEpochDay(epochDay)
-
-private val DATE_FORMAT: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("EEE d MMM yyyy", Locale.US)
 
 object ComposerTags {
     const val SAVE = "activity-composer-save"

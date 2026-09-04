@@ -62,6 +62,10 @@ class ActivityDetailCopyTest {
         assertEquals("Run", CardioCopy.name(block.type))
         assertNotEquals("RUN", CardioCopy.name(block.type))
         assertEquals("40 min · 6.0 km", ActivityDetailCopy.cardioSubtitle(block))
+        assertEquals(
+            "40 min · 3.7 mi",
+            ActivityDetailCopy.cardioSubtitle(block, DistanceUnit.MI),
+        )
     }
 
     private fun cardioSession() = ActivitySession(

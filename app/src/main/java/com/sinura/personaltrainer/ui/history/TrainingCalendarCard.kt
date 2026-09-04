@@ -29,6 +29,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.AnalyticsHorizon
+import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.domain.HistoryCopy
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.CalendarDay
@@ -54,10 +55,7 @@ import com.sinura.personaltrainer.util.toCivilDate
 import com.sinura.personaltrainer.util.toJavaDayOfWeek
 import com.sinura.personaltrainer.util.toYearMonth
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
-
-private val monthFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM yyyy")
 
 /**
  * The training month at a glance.
@@ -106,7 +104,7 @@ fun TrainingCalendarCard(
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 Text(
                     if (showMonth) {
-                        monthFormatter.format(month.month.toYearMonth())
+                        DateCopy.monthYear(month.month.toYearMonth())
                     } else {
                         HistoryCopy.windowTitle(AnalyticsHorizon.WEEK)
                     },

@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F6, G1–G6, H1, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F6, G1–G6, H1, H2, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase H continues at H2. K1 and K2 stay held.  
+`tools/` remain owed. Phase H continues at H3. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -99,7 +99,7 @@ the gym floor, are fifteen of them.
 | G5 | Body's first viewport; small targets; destructive confirms | 1 | — | Design II | done |
 | G6 | Reduced motion, and the palette question | 1 | — | Design II | done |
 | H1 | History shows that you got stronger | 2 | — | Design III | done |
-| H2 | Units and clocks finish what Display started | 2 | — | Design III | |
+| H2 | Units and clocks finish what Display started | 2 | — | Design III | done |
 | H3 | Row and card vocabulary; landscape; a regression net | 3 | — | Design III | |
 | J1 | The release build is real | 1 | 6 | House | |
 | J2 | The release ratchet and CI pinning | 1 | — | House | done |
@@ -1262,7 +1262,7 @@ session of the same routine. None of this adds a Start, a tab or a route.
 `ui/history/HistoryViewModel.kt` *(after E4)*, `domain/BlockReview.kt`
 *(after A6)*, `ui/home/HomeScreen.kt` *(after F4)*.
 
-## H2 — Units and clocks finish what Display started · 2 evenings
+## H2 — Units and clocks finish what Display started · done on `trunk`
 
 **Symptom.** The Settings "Regular / Military" chips change four quiet-hours
 labels and nothing else. Seven different date formats coexist, and the
@@ -1272,10 +1272,24 @@ for distance in kilometres.
 **Cause.** `LocalClockFormat` is provided at the navigation root and read by
 nobody.
 
-**Change.** One `DateCopy` object replacing the seven formats and the
+**Change.** ~~One `DateCopy` object replacing the seven formats and the
 hard-coded locale, wired to the clock preference — or, if the preference is
 not worth keeping, relabel the chips "Quiet-hours clock" and say so. Derive a
-distance unit from the weight unit.
+distance unit from the weight unit.~~ **Struck 2026-09-03 (this packet).**
+Hours chips stay. `DateCopy` lives in `ui/units` (domain seam
+policy bans `java.time`/`Locale`) and is the stamp grammar
+(English day-month, `ClockCopy` for the time half). History,
+session detail, composer, and Settings backup stamps read
+`LocalClockFormat` / the Settings Hours choice. `DistanceUnit.fromWeight`: pounds → mi, kilograms → km. Composer
+and live cardio parse through `ComposerCopy`; stored metres and composer
+line kilometres do not change. Debug Settings `InstrumentSwitch` writes
+`AppLog.redactMessages` for this process only.
+
+**Proof.** JVM: `hoursChoicePrintsEnglishDayMonthNotUsMonthFirst`,
+`ownedStampsUseDateCopyAndComposerDropsUsLocale`,
+`distanceLabelFollowsTheWeightUnit`,
+`finishParsesMilesWhenPoundsAreTheDisplayUnit`.
+`debugBuildStillRedactsLogMessages` still holds. Count +4.
 
 **Owns.** `ui/units/**`, `ui/history/**` *(after H1)*,
 `ui/settings/SettingsScreen.kt` *(after G4)*, `ui/activity/**` *(after G2)*,
@@ -1336,7 +1350,7 @@ phone and walk export → protected export → import → restore → share
 diagnostics, and write the result into the P12 evidence file.~~
 **Struck 2026-09-03 (this packet).** Redact is always on
 (`PersonalTrainerApp.onCreate` and the `AppLog.redactMessages`
-default). The Settings toggle waits for H2. Mapping is an Actions
+default). The Settings toggle is H2 (`LogRedactSection`, session-only). Mapping is an Actions
 artifact and a `v*` release asset (no clobber). `-keeppackagenames
 com.sinura.personaltrainer.**`. `assembleRelease` on Cursor is
 unsigned without secrets — it cannot update gym-floor Temper. Phone
@@ -1350,7 +1364,7 @@ trunk (`CANARY_PUSH_DAY` reached the sink). Count +1.
 **Owns.** `PersonalTrainerApp.kt`, `logging/AppLog.kt`,
 `app/proguard-rules.pro`, `.github/workflows/release.yml`,
 `logging/AppLogRedactionTest.kt`. `ui/settings/SettingsScreen.kt`
-stays H2.
+is H2 (debug Log switch).
 
 ## J2 — The release ratchet and CI pinning · done on `trunk`
 
@@ -1524,6 +1538,20 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — H2: one DateCopy; distance follows weight; J1
+toggle lands.** Hours chips stay — they now drive History, session
+detail, composer, and backup stamps, not only quiet-hours labels.
+`DateCopy` is English day-month (`Locale.ENGLISH`), time half
+`ClockCopy`. It lives in `ui/units/`, not `domain/`: the seam
+policy bans `java.time` and `Locale` there. Plan, workout
+summary, and exercise-detail still use
+`DateFormat.getDateInstance` — not in Owns. Distance unit is derived
+from weight (`DistanceUnit.fromWeight`); live cardio's
+`distanceKm` field name is kept. Miles round to one decimal; km
+keeps the raw double string so `"5.0 km"` stays. Debug Log
+switch writes `AppLog.redactMessages` in memory; a restart redacts
+again (J1 toggle, deferred from that packet). Count +4.
 
 **2026-09-03 — H1: History names what moved.** Proof is JVM
 (`moversOverAHorizonRangeNameTheLiftThatGotHeavier`,
@@ -1786,7 +1814,8 @@ still matches after R8. `release.yml` archives `mapping.txt`.
 `assembleRelease` on Cursor is unsigned without secrets — it
 cannot update gym-floor Temper. Do not bump `appVersionCode`.
 Phone walk is owner decision 6. Count +1
-(`debugBuildStillRedactsLogMessages`).
+(`debugBuildStillRedactsLogMessages`). **H2 delivered the
+session-only Log switch.**
 
 **2026-09-03 — J5: skips named, not guessed; tokens advisory until
 cleaned.** Settings has no `uiState`; RestTimerScreenState is not

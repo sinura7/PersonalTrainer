@@ -41,7 +41,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.AnalyticsHorizon
+import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.DataHealthCopy
+import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.domain.HistoryCopy
 import com.sinura.personaltrainer.domain.HistoryKind
 import com.sinura.personaltrainer.domain.HorizonProgress
@@ -78,13 +80,11 @@ import com.sinura.personaltrainer.ui.theme.Surface3
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.ui.units.LocalClockFormat
 import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.util.toYearMonth
-import java.text.DateFormat
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Date
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -101,10 +101,8 @@ fun HistoryScreen(
     val blockedRepeat by viewModel.blockedRepeat.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
+    val clock = LocalClockFormat.current
     val today = LocalTodayEpochDay.current
-    val dateFormat = remember {
-        DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
-    }
     var selectedDayEpoch by rememberSaveable { mutableStateOf<Long?>(null) }
     var monthExpanded by rememberSaveable { mutableStateOf(false) }
 
@@ -235,7 +233,7 @@ fun HistoryScreen(
                             // all past the first screenful.
                             stickyHeader(key = "month-${group.month}") {
                                 Kicker(
-                                    MONTH_FORMAT.format(group.month.toYearMonth()),
+                                    DateCopy.monthYear(group.month.toYearMonth()),
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .background(Pit)
@@ -256,7 +254,7 @@ fun HistoryScreen(
                                     if (index > 0) HairlineDivider()
                                     SessionLogRow(
                                         title = entry.title,
-                                        dateLabel = dateFormat.format(Date(entry.sortMillis)),
+                                        dateLabel = DateCopy.dateTime(entry.sortMillis, clock),
                                         workingSets = entry.workingSets,
                                         work = entry.work,
                                         durationMinutes = entry.durationMinutes,
@@ -308,7 +306,7 @@ fun HistoryScreen(
                                         RecordRow(
                                             record = record,
                                             unit = unit,
-                                            dateFormat = dateFormat,
+                                            clock = clock,
                                             onClick = { onOpenExercise(record.exerciseId) },
                                         )
                                     }
@@ -338,9 +336,9 @@ fun HistoryScreen(
         } else {
             DaySessionsSheet(
                 summaries = daySummaries,
-                dateLabel = DAY_FORMAT.format(LocalDate.ofEpochDay(dayEpoch)),
+                dateLabel = DateCopy.weekdayLong(LocalDate.ofEpochDay(dayEpoch)),
                 unit = unit,
-                dateFormat = dateFormat,
+                clock = clock,
                 onOpenSession = { sessionId ->
                     selectedDayEpoch = null
                     onOpenSession(sessionId)
@@ -502,7 +500,7 @@ private fun DaySessionsSheet(
     summaries: List<SessionSummary>,
     dateLabel: String,
     unit: WeightUnit,
-    dateFormat: DateFormat,
+    clock: ClockFormat,
     onOpenSession: (String) -> Unit,
     onOpenActivity: (String) -> Unit,
     onDismiss: () -> Unit,
@@ -539,7 +537,7 @@ private fun DaySessionsSheet(
                         } else {
                             "Workout"
                         },
-                        dateLabel = dateFormat.format(Date(summary.finishedAt ?: summary.date)),
+                        dateLabel = DateCopy.dateTime(summary.finishedAt ?: summary.date, clock),
                         workingSets = summary.workingSets,
                         work = SetWork(volumeKg = summary.volumeKg, bodyweightReps = 0),
                         durationMinutes = summary.durationMinutes,
@@ -573,7 +571,7 @@ private fun FinishedBlockCard(finished: FinishedBlock, unit: WeightUnit) {
     val span = remember(finished.block) {
         val start = LocalDate.ofEpochDay(finished.block.startEpochDay)
         val end = LocalDate.ofEpochDay(finished.block.endExclusiveEpochDay - 1)
-        "${BLOCK_MONTH.format(start)} – ${BLOCK_MONTH.format(end)}"
+        "${DateCopy.monthYearShort(start)} – ${DateCopy.monthYearShort(end)}"
     }
     GymCard {
         Row(
@@ -656,12 +654,12 @@ private fun FinishedBlockCard(finished: FinishedBlock, unit: WeightUnit) {
 private fun RecordRow(
     record: PrSummaryRow,
     unit: WeightUnit,
-    dateFormat: DateFormat,
+    clock: ClockFormat,
     onClick: () -> Unit,
 ) {
     InstrumentRow(
         title = record.exerciseName,
-        subtitle = "${record.kind.label} · ${dateFormat.format(Date(record.achievedAt))}",
+        subtitle = "${record.kind.label} · ${DateCopy.dateTime(record.achievedAt, clock)}",
         onClick = onClick,
     ) {
         MetricCluster(
@@ -673,9 +671,6 @@ private fun RecordRow(
         MetricCluster(value = record.reps.toString(), label = "reps")
     }
 }
-
-private val MONTH_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM yyyy")
-private val DAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE d MMMM")
 
 /**
  * The sessions read as one grouped panel, but stay individual lazy items.
@@ -691,9 +686,6 @@ private fun groupedRowShape(index: Int, count: Int): Shape = when {
     index == count - 1 -> RoundedCornerShape(bottomStart = Radius.sm, bottomEnd = Radius.sm)
     else -> RectangleShape
 }
-
-/** Month and year: a block spans months, and the day it started on is not the point. */
-private val BLOCK_MONTH: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM yyyy")
 
 object HistoryTags {
     const val DAY = "history-horizon-day"

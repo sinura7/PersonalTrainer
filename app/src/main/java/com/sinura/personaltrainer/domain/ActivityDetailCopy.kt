@@ -50,10 +50,13 @@ object ActivityDetailCopy {
         return if (set.isWarmup) "Warm-up · $work" else work
     }
 
-    fun cardioSubtitle(block: CardioBlock): String {
+    fun cardioSubtitle(
+        block: CardioBlock,
+        distance: DistanceUnit = DistanceUnit.KM,
+    ): String {
         val minutes = ((block.elapsedSeconds + 30) / 60).toInt()
         val distanceKm = block.distanceMeters?.let { it / 1_000.0 }
-        return ComposerCopy.cardioLineSubtitle(minutes, distanceKm, block.indoor)
+        return ComposerCopy.cardioLineSubtitle(minutes, distanceKm, block.indoor, distance)
     }
 
     fun volumeLabel(volumeKg: Double, unit: WeightUnit): String =
