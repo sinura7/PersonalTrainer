@@ -731,6 +731,7 @@ fun RestDock(
     onOpenRest: () -> Unit,
     modifier: Modifier = Modifier,
     completedTimerId: String? = null,
+    hideWhenIdle: Boolean = false,
 ) {
     var justFinished by remember { mutableStateOf(false) }
     var flashedTimerId by remember { mutableStateOf<String?>(null) }
@@ -779,6 +780,7 @@ fun RestDock(
     }
 
     if (!running && !justFinished) {
+        if (hideWhenIdle) return
         RestIdleRow(
             totalSeconds = totalSeconds,
             onStart = onStart,
@@ -958,6 +960,7 @@ fun RestSweepRing(
     finished: Boolean,
     modifier: Modifier = Modifier,
     clockTestTag: String? = null,
+    ringSize: Dp = REST_RING_SIZE,
 ) {
     val target = RestTimer.sweepFraction(remainingSeconds, totalSeconds)
     val progress by animateFloatAsState(
@@ -988,7 +991,7 @@ fun RestSweepRing(
     val spoken = if (running) "Rest $clock remaining" else "Next rest $clock"
     Box(
         modifier = modifier
-            .size(REST_RING_SIZE)
+            .size(ringSize)
             .graphicsLayer {
                 scaleX = pulseScale
                 scaleY = pulseScale
@@ -1310,6 +1313,26 @@ fun SecondaryGymButton(
             textAlign = TextAlign.Center,
         )
     }
+}
+
+/**
+ * A full-width destructive action.
+ *
+ * Danger as the outline and the ink rather than as a fill: a solid red button
+ * the width of the dialog reads as the default, and this one never is.
+ */
+@Composable
+fun DangerGymButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SecondaryGymButton(
+        text = text,
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        contentColor = Danger,
+    )
 }
 
 /**

@@ -9,7 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.sinura.personaltrainer.ui.navigation.LiveBarCopy
 import com.sinura.personaltrainer.ui.navigation.LiveBarKind
-import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextSecondary
@@ -54,21 +53,5 @@ fun ResumeOrDiscardDialog(
                 DangerGymButton(text = "Discard it and start this", onClick = onDiscardAndStart)
             }
         },
-    )
-}
-
-/**
- * A full-width destructive action.
- *
- * Danger as the outline and the ink rather than as a fill: a solid red button the width of the
- * dialog reads as the default, and this one never is.
- */
-@Composable
-private fun DangerGymButton(text: String, onClick: () -> Unit) {
-    SecondaryGymButton(
-        text = text,
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        contentColor = Danger,
     )
 }
