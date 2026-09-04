@@ -34,7 +34,11 @@ data class TrainingMonth(
     val trainedDays: Int = 0,
     val work: SetWork = SetWork.NONE,
     val workingSets: Int = 0,
-)
+) {
+    /** The week that contains [epochDay], or null when that day is not on this grid. */
+    fun weekContaining(epochDay: Long): List<CalendarDay>? =
+        weeks.firstOrNull { week -> week.any { it.date.epochDay == epochDay } }
+}
 
 /**
  * The month grid behind the History calendar.

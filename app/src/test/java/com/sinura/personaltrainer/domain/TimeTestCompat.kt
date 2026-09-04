@@ -104,6 +104,21 @@ fun BlockReviewBuilder.build(
     bodyweightLog: List<BodyweightEntry> = emptyList(),
 ): BlockReview = build(block, sessions, unit, JvmTime, zone.id, bodyweightLog)
 
+fun BlockReviewBuilder.overRange(
+    startEpochDay: Long,
+    endExclusiveEpochDay: Long,
+    sessions: List<WorkoutSession>,
+    unit: WeightUnit,
+    zone: ZoneId,
+): HorizonProgress = overRange(
+    startEpochDay,
+    endExclusiveEpochDay,
+    sessions,
+    unit,
+    JvmTime,
+    zone.id,
+)
+
 fun WeekDerivation.derive(
     slots: List<ScheduleSlot>,
     history: List<WorkoutSession>,

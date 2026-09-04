@@ -59,6 +59,41 @@ fun ActivitySession.toSummary(): SessionSummary = SessionSummary(
 fun List<SessionSummary>.latest(): SessionSummary? =
     maxByOrNull { it.finishedAt ?: it.date }
 
+/**
+ * The finished session of the same routine immediately before [of].
+ *
+ * Null when [of] has no routine, or when that routine has not been logged
+ * before. A Pull between two Pushes is skipped: the question is how this
+ * routine moved, not how the last visit to the gym compared.
+ */
+fun List<SessionSummary>.previousSameRoutine(of: SessionSummary): SessionSummary? {
+    val routineId = of.routineId ?: return null
+    return asSequence()
+        .filter { it.routineId == routineId && it.id != of.id }
+        .maxByOrNull { it.finishedAt ?: it.date }
+}
+
+/**
+ * Signed work versus [previous], in the unit Home already prints.
+ *
+ * Volume when either session moved a bar; working sets when both are
+ * unloaded. Null when the two sessions match, so the tile does not
+ * invent a "+0 kg" that looks like progress.
+ */
+fun SessionSummary.signedWorkDelta(previous: SessionSummary, unit: WeightUnit): String? {
+    if (volumeKg > 0.0 || previous.volumeKg > 0.0) {
+        val delta = volumeKg - previous.volumeKg
+        if (kotlin.math.abs(delta) < 0.05) return null
+        val mag = WeightConverter.formatVolumeNumber(kotlin.math.abs(delta), unit)
+        val sign = if (delta > 0.0) "+" else "−"
+        return "$sign$mag ${unit.suffix}"
+    }
+    val setDelta = workingSets - previous.workingSets
+    if (setDelta == 0) return null
+    val sign = if (setDelta > 0) "+" else "−"
+    return "$sign${kotlin.math.abs(setDelta)} sets"
+}
+
 fun SessionSummary.daysSince(todayEpoch: Long): Long =
     (todayEpoch - localEpochDay).coerceAtLeast(0L)
 

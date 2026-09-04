@@ -243,6 +243,18 @@ class TrainingCalendarBuilderTest {
     }
 
     @Test
+    fun weekContainingReturnsTheSevenDaysThatHoldTheDate() {
+        val grid = TrainingCalendarBuilder.build(august, emptyList(), zone, Weekday.MONDAY)
+        val today = LocalDate.of(2026, 8, 24)
+        val week = grid.weekContaining(today.toEpochDay())!!
+        assertEquals(7, week.size)
+        assertEquals(today.toEpochDay(), week.first().date.epochDay)
+        assertEquals(today.plusDays(6).toEpochDay(), week.last().date.epochDay)
+        assertTrue(week.any { it.date.epochDay == today.toEpochDay() })
+        assertEquals(null, grid.weekContaining(LocalDate.of(2026, 10, 1).toEpochDay()))
+    }
+
+    @Test
     fun weekdayHeadingsFollowTheWeekStart() {
         assertEquals(
             listOf(

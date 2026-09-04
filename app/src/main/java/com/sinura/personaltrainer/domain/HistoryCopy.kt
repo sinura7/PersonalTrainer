@@ -16,6 +16,10 @@ object HistoryCopy {
 
     const val EMPTY_LOG = "Finished sessions land here."
 
+    const val CALENDAR_MONTH = "Month"
+
+    const val MOVED_MOST = "Moved most"
+
     fun windowTitle(horizon: AnalyticsHorizon): String = when (horizon) {
         AnalyticsHorizon.DAY -> "Today"
         AnalyticsHorizon.WEEK -> "This week"

@@ -44,6 +44,7 @@ import com.sinura.personaltrainer.domain.AnalyticsHorizon
 import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.HistoryCopy
 import com.sinura.personaltrainer.domain.HistoryKind
+import com.sinura.personaltrainer.domain.HorizonProgress
 import com.sinura.personaltrainer.domain.HorizonTotals
 import com.sinura.personaltrainer.domain.PrSummaryRow
 import com.sinura.personaltrainer.domain.SessionSummary
@@ -105,6 +106,7 @@ fun HistoryScreen(
         DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
     }
     var selectedDayEpoch by rememberSaveable { mutableStateOf<Long?>(null) }
+    var monthExpanded by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(navigateToSession) {
         val target = navigateToSession ?: return@LaunchedEffect
@@ -135,11 +137,6 @@ fun HistoryScreen(
                     modifier = Modifier.testTag(HistoryTags.START_SHEET),
                 )
             }
-            HorizonPicker(
-                horizon = state.horizon,
-                totals = state.horizonTotals,
-                onSelect = viewModel::setHorizon,
-            )
 
             when {
                 state.isLoading -> {
@@ -179,11 +176,26 @@ fun HistoryScreen(
                                 )
                             }
                         }
+                        item(key = "horizon") {
+                            HorizonPicker(
+                                horizon = state.horizon,
+                                totals = state.horizonTotals,
+                                progress = state.horizonProgress,
+                                onSelect = viewModel::setHorizon,
+                                modifier = Modifier.padding(bottom = Metrics.sectionGap),
+                            )
+                        }
                         item(key = "calendar") {
                             TrainingCalendarCard(
                                 month = state.calendar,
                                 weekStart = state.weekStart,
                                 today = LocalDate.ofEpochDay(today),
+                                showMonth = monthExpanded,
+                                onToggleMonth = {
+                                    val next = !monthExpanded
+                                    monthExpanded = next
+                                    if (!next) viewModel.showCurrentMonth()
+                                },
                                 onPreviousMonth = viewModel::showPreviousMonth,
                                 onNextMonth = viewModel::showNextMonth,
                                 // One session opens straight away; two or more open a sheet.
@@ -359,7 +371,8 @@ fun HistoryScreen(
  * Day / Week / Month / Year / All. Totals for the selected window.
  *
  * History is a readout. The chips retotal; they do not hide the calendar
- * or the log. One hero numeral (sessions) plus days / sets / min.
+ * or the log. One hero numeral (sessions) plus days / sets / min / PRs,
+ * and the lift that moved most when the range is long enough to say.
  */
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
@@ -367,12 +380,11 @@ internal fun HorizonPicker(
     horizon: AnalyticsHorizon,
     totals: HorizonTotals?,
     onSelect: (AnalyticsHorizon) -> Unit,
+    progress: HorizonProgress? = null,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Metrics.gutter)
-            .padding(bottom = Metrics.space3),
+        modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Metrics.space3),
     ) {
         FlowRow(
@@ -396,6 +408,7 @@ internal fun HorizonPicker(
         totals?.let { numbers ->
             val title = HistoryCopy.windowTitle(numbers.horizon)
             val spoken = "$title, ${numbers.sessionCount} ${HistoryCopy.sessionsLabel(numbers.sessionCount)}"
+            val moved = progress?.movedMost
             GymCard(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -437,6 +450,39 @@ internal fun HorizonPicker(
                         modifier = Modifier.weight(1f),
                         horizontalAlignment = Alignment.Start,
                     )
+                    MetricCluster(
+                        value = (progress?.recordsBroken ?: 0).toString(),
+                        label = "PRs",
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.Start,
+                    )
+                }
+                if (moved != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag(HistoryTags.MOVED_MOST),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            HistoryCopy.MOVED_MOST,
+                            style = InstrumentType.caption,
+                            color = TextTertiary,
+                        )
+                        Text(
+                            moved.exerciseName,
+                            modifier = Modifier.weight(1f).padding(start = Metrics.space2),
+                            style = InstrumentType.body,
+                            color = TextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            "${moved.fromLabel}  →  ${moved.toLabel}",
+                            style = InstrumentType.numeralSm,
+                            color = TextSecondary,
+                        )
+                    }
                 }
             }
         }
@@ -656,8 +702,10 @@ object HistoryTags {
     const val YEAR = "history-horizon-year"
     const val ALL = "history-horizon-all"
     const val READOUT = "history-horizon-readout"
+    const val MOVED_MOST = "history-moved-most"
     const val EMPTY = "history-empty-log"
     const val START_SHEET = "history-start-sheet"
+    const val CALENDAR_MONTH = "history-calendar-month"
 
     fun horizon(horizon: AnalyticsHorizon): String = when (horizon) {
         AnalyticsHorizon.DAY -> DAY

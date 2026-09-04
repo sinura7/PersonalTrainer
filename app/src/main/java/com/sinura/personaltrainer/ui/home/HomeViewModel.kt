@@ -29,6 +29,7 @@ import com.sinura.personaltrainer.domain.WeeklySchedulePlan
 import com.sinura.personaltrainer.domain.ActivitySession
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.latest
+import com.sinura.personaltrainer.domain.previousSameRoutine
 import com.sinura.personaltrainer.data.repository.AuxiliaryBlocks
 import com.sinura.personaltrainer.data.repository.DayBlocks
 import com.sinura.personaltrainer.data.repository.StartSessionOutcome
@@ -55,6 +56,12 @@ data class HomeUiState(
      * answer "when did I last train".
      */
     val lastSession: SessionSummary? = null,
+    /**
+     * The previous finished session of [lastSession]'s routine, when that
+     * routine has been logged before. Home's last-session tile prints a
+     * signed delta against this; null means the numeral stands alone.
+     */
+    val previousSameRoutine: SessionSummary? = null,
     val readyToProgress: List<ProgressionHint> = emptyList(),
     val recommendations: List<TrainingRecommendation> = emptyList(),
     val weekPlan: WeeklySchedulePlan? = null,
@@ -132,12 +139,14 @@ class HomeViewModel @JvmOverloads constructor(
         val weekOcc = occurrences.filter { it.localEpochDay in weekStart..(weekStart + 6) }
         val overdue = MissedWorkPolicy.overdue(weekOcc, today)
         val decision = decisions.firstOrNull { it.weekStartEpochDay == weekStart }
+        val lastSession = insights.summaries.latest()
         HomeUiState(
             isLoading = false,
             inProgress = inProgress,
             liveActivity = liveActivity,
             routines = insights.routines,
-            lastSession = insights.summaries.latest(),
+            lastSession = lastSession,
+            previousSameRoutine = lastSession?.let { insights.summaries.previousSameRoutine(it) },
             readyToProgress = insights.hints,
             // Home already devotes a section to the ready-to-progress lifts, so the card that
             // only says "some lifts are ready" is noise next to the list naming them.

@@ -24,9 +24,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLocale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.domain.AnalyticsHorizon
 import com.sinura.personaltrainer.domain.HistoryCopy
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.CalendarDay
@@ -35,6 +37,7 @@ import com.sinura.personaltrainer.domain.TrainingMonth
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.HairlineDivider
+import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.theme.HairlineStrong
@@ -75,37 +78,60 @@ fun TrainingCalendarCard(
     onOpenDay: (CalendarDay) -> Unit,
     unit: WeightUnit,
     modifier: Modifier = Modifier,
+    showMonth: Boolean = false,
+    onToggleMonth: () -> Unit = {},
 ) {
     val locale = LocalLocale.current.platformLocale
+    val weeksToShow = if (showMonth) {
+        month.weeks
+    } else {
+        listOfNotNull(
+            month.weekContaining(today.toCivilDate().epochDay) ?: month.weeks.lastOrNull(),
+        )
+    }
     GymCard(modifier = modifier) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onPreviousMonth) {
-                Icon(
-                    Icons.AutoMirrored.Outlined.KeyboardArrowLeft,
-                    contentDescription = "Previous month",
-                    tint = TextSecondary,
-                )
+            if (showMonth) {
+                IconButton(onClick = onPreviousMonth) {
+                    Icon(
+                        Icons.AutoMirrored.Outlined.KeyboardArrowLeft,
+                        contentDescription = "Previous month",
+                        tint = TextSecondary,
+                    )
+                }
             }
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 Text(
-                    monthFormatter.format(month.month.toYearMonth()),
+                    if (showMonth) {
+                        monthFormatter.format(month.month.toYearMonth())
+                    } else {
+                        HistoryCopy.windowTitle(AnalyticsHorizon.WEEK)
+                    },
                     style = InstrumentType.title,
                     color = TextPrimary,
                     maxLines = 1,
                 )
             }
-            // Nothing is ever logged in the future, so there is no forward month to look at.
-            val canGoForward = month.month.toYearMonth() < java.time.YearMonth.from(today)
-            IconButton(onClick = onNextMonth, enabled = canGoForward) {
-                Icon(
-                    Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                    contentDescription = "Next month",
-                    tint = if (canGoForward) TextSecondary else TextTertiary,
-                )
+            if (showMonth) {
+                // Nothing is ever logged in the future, so there is no forward month to look at.
+                val canGoForward = month.month.toYearMonth() < java.time.YearMonth.from(today)
+                IconButton(onClick = onNextMonth, enabled = canGoForward) {
+                    Icon(
+                        Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                        contentDescription = "Next month",
+                        tint = if (canGoForward) TextSecondary else TextTertiary,
+                    )
+                }
             }
+            InstrumentChip(
+                label = HistoryCopy.CALENDAR_MONTH,
+                selected = showMonth,
+                onClick = onToggleMonth,
+                modifier = Modifier.testTag(HistoryTags.CALENDAR_MONTH),
+            )
         }
 
         // The grid owns its own rhythm: one gap value in both axes, or the columns and the
@@ -125,7 +151,7 @@ fun TrainingCalendarCard(
                 }
             }
 
-            month.weeks.forEach { week ->
+            weeksToShow.forEach { week ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
@@ -151,36 +177,38 @@ fun TrainingCalendarCard(
             color = TextTertiary,
         )
 
-        if (month.trainedDays == 0) {
-            Text(
-                "Nothing logged this month.",
-                style = InstrumentType.body,
-                color = TextSecondary,
-            )
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space6),
-            ) {
-                MetricCluster(
-                    value = month.trainedDays.toString(),
-                    label = "days",
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.Start,
+        if (showMonth) {
+            if (month.trainedDays == 0) {
+                Text(
+                    "Nothing logged this month.",
+                    style = InstrumentType.body,
+                    color = TextSecondary,
                 )
-                MetricCluster(
-                    value = month.workingSets.toString(),
-                    label = "sets",
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.Start,
-                )
-                val column = SetCopy.workColumn(month.work, unit)
-                MetricCluster(
-                    value = column.value,
-                    label = column.label,
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.Start,
-                )
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space6),
+                ) {
+                    MetricCluster(
+                        value = month.trainedDays.toString(),
+                        label = "days",
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.Start,
+                    )
+                    MetricCluster(
+                        value = month.workingSets.toString(),
+                        label = "sets",
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.Start,
+                    )
+                    val column = SetCopy.workColumn(month.work, unit)
+                    MetricCluster(
+                        value = column.value,
+                        label = column.label,
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.Start,
+                    )
+                }
             }
         }
     }

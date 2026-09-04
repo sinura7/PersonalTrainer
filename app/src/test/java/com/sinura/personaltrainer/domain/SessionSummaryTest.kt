@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -231,6 +232,40 @@ class SessionSummaryTest {
         assertFalse(summary(id = "none", volumeKg = 0.0).hasLoggedWork())
     }
 
+    @Test
+    fun lastSessionDeltaIsVersusThePreviousSessionOfTheSameRoutine() {
+        val pushOld = summary(id = "p1", routineId = "push", finishedAt = 1_000L, volumeKg = 8_000.0)
+        val pull = summary(id = "u1", routineId = "pull", finishedAt = 2_000L, volumeKg = 1_000.0)
+        val pushNew = summary(id = "p2", routineId = "push", finishedAt = 3_000L, volumeKg = 9_000.0)
+        val list = listOf(pushOld, pull, pushNew)
+        val last = list.latest()!!
+        assertEquals("p2", last.id)
+        val previous = list.previousSameRoutine(last)
+        assertEquals("p1", previous!!.id)
+        assertEquals("+1000 kg", last.signedWorkDelta(previous, WeightUnit.KG))
+        assertEquals("−1000 kg", pushOld.signedWorkDelta(pushNew, WeightUnit.KG))
+        assertNull(listOf(pushNew).previousSameRoutine(pushNew))
+        val cardio = summary(id = "run", routineId = null, volumeKg = 0.0)
+        assertNull(listOf(cardio).previousSameRoutine(cardio))
+        assertNull(pushNew.signedWorkDelta(pushNew.copy(id = "p3", volumeKg = 9_000.0), WeightUnit.KG))
+        val setsLast = summary(
+            id = "bw2",
+            routineId = "bw",
+            finishedAt = 2L,
+            volumeKg = 0.0,
+            workingSets = 30,
+        )
+        val setsPrev = summary(
+            id = "bw1",
+            routineId = "bw",
+            finishedAt = 1L,
+            volumeKg = 0.0,
+            workingSets = 24,
+        )
+        assertEquals("+6 sets", setsLast.signedWorkDelta(setsPrev, WeightUnit.KG))
+        assertNull(listOf(pushOld, pull).previousSameRoutine(pull))
+    }
+
     private fun summary(
         id: String,
         date: Long = 1_000L,
@@ -239,9 +274,10 @@ class SessionSummaryTest {
         workingSets: Int = 0,
         cardioSeconds: Long = 0L,
         localEpochDay: Long = 10L,
+        routineId: String? = null,
     ) = SessionSummary(
         id = id,
-        routineId = null,
+        routineId = routineId,
         routineName = id,
         date = date,
         finishedAt = finishedAt,
