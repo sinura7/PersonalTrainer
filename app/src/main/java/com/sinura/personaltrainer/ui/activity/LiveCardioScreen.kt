@@ -31,6 +31,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.CardioCopy
 import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.DistanceUnit
 import com.sinura.personaltrainer.domain.LiveSessionRules
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
@@ -50,6 +51,7 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
+import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -60,6 +62,7 @@ fun LiveCardioScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val finishedId by viewModel.finishedId.collectAsStateWithLifecycle()
+    val distanceUnit = DistanceUnit.fromWeight(LocalWeightUnit.current)
     var confirmLeave by rememberSaveable { mutableStateOf(false) }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(finishedId) {
@@ -172,7 +175,7 @@ fun LiveCardioScreen(
             OutlinedTextField(
                 value = state.distanceKm,
                 onValueChange = { viewModel.setDistanceKm(NumericEntry.filterDecimal(it)) },
-                label = { Text(CardioCopy.DISTANCE_LABEL) },
+                label = { Text(CardioCopy.distanceLabel(distanceUnit)) },
                 singleLine = true,
                 textStyle = InstrumentType.numeralMd,
                 keyboardOptions = KeyboardOptions(

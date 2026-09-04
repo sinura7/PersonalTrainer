@@ -43,7 +43,18 @@ object ComposerCopy {
         WeightConverter.parseDisplayToKg(input, unit, originalKg = null) ?: 0.0
 
     fun parseDistanceKm(input: String): Double? =
-        NumericEntry.parseDecimal(input)?.takeIf { it > 0.0 }
+        parseDistanceToKm(input, DistanceUnit.KM)
+
+    fun parseDistanceToKm(input: String, unit: DistanceUnit): Double? {
+        val amount = NumericEntry.parseDecimal(input)?.takeIf { it > 0.0 } ?: return null
+        return when (unit) {
+            DistanceUnit.KM -> amount
+            DistanceUnit.MI -> amount * DistanceUnit.METERS_PER_MILE / 1_000.0
+        }
+    }
+
+    fun parseDistanceToMeters(input: String, unit: DistanceUnit): Double? =
+        parseDistanceToKm(input, unit)?.times(1_000.0)
 
     fun strengthLineSubtitle(reps: Int, weightKg: Double, unit: WeightUnit): String =
         "$reps reps · ${weightKg.toWeightLabel(unit)}"
@@ -52,10 +63,24 @@ object ComposerCopy {
         minutes: Int,
         distanceKm: Double?,
         indoor: Boolean = false,
+        distance: DistanceUnit = DistanceUnit.KM,
     ): String {
-        val distance = distanceKm?.let { " · $it km" }.orEmpty()
+        val distancePart = distanceKm?.let { km ->
+            " · ${formatDistanceKm(km, distance)}"
+        }.orEmpty()
         val place = if (indoor) " · ${CardioCopy.INDOOR}" else ""
-        return "$minutes min$distance$place"
+        return "$minutes min$distancePart$place"
+    }
+
+    fun formatDistanceKm(km: Double, unit: DistanceUnit): String {
+        return when (unit) {
+            DistanceUnit.KM -> "$km ${unit.suffix}"
+            DistanceUnit.MI -> {
+                val miles = km * 1_000.0 / DistanceUnit.METERS_PER_MILE
+                val rounded = kotlin.math.round(miles * 10.0) / 10.0
+                "$rounded ${unit.suffix}"
+            }
+        }
     }
 
     fun canShiftLater(epochDay: Long, todayEpochDay: Long): Boolean = epochDay < todayEpochDay

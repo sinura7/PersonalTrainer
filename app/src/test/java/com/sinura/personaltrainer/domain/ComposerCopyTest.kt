@@ -35,6 +35,29 @@ class ComposerCopyTest {
         assertEquals(102.5, ComposerCopy.parseWeightToKg("102,5", WeightUnit.KG), 0.0001)
         assertEquals(5.5, ComposerCopy.parseDistanceKm("5,5")!!, 0.0001)
         assertEquals(
+            DistanceUnit.KM,
+            DistanceUnit.fromWeight(WeightUnit.KG),
+        )
+        assertEquals(
+            DistanceUnit.MI,
+            DistanceUnit.fromWeight(WeightUnit.LBS),
+        )
+        assertEquals(
+            8.04672,
+            ComposerCopy.parseDistanceToKm("5", DistanceUnit.MI)!!,
+            0.00001,
+        )
+        assertEquals(
+            8_046.72,
+            ComposerCopy.parseDistanceToMeters("5", DistanceUnit.MI)!!,
+            0.01,
+        )
+        assertEquals(
+            5.0,
+            ComposerCopy.parseDistanceToKm("5", DistanceUnit.KM)!!,
+            0.0,
+        )
+        assertEquals(
             WeightConverter.toKg(185.0, WeightUnit.LBS),
             ComposerCopy.parseWeightToKg("185", WeightUnit.LBS),
             0.0,
@@ -57,6 +80,10 @@ class ComposerCopyTest {
         assertEquals("30 min", ComposerCopy.cardioLineSubtitle(30, null))
         assertEquals("30 min · 5.0 km", ComposerCopy.cardioLineSubtitle(30, 5.0))
         assertEquals("30 min · Indoor", ComposerCopy.cardioLineSubtitle(30, null, indoor = true))
+        assertEquals(
+            "30 min · 5.0 mi",
+            ComposerCopy.cardioLineSubtitle(30, 8.04672, distance = DistanceUnit.MI),
+        )
     }
 
     @Test

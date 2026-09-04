@@ -67,6 +67,7 @@ import com.sinura.personaltrainer.domain.BackupPrompt
 import com.sinura.personaltrainer.domain.BodyweightCheckIn
 import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.CoachPreferences
+import com.sinura.personaltrainer.domain.DateCopy
 import com.sinura.personaltrainer.domain.DayLabel
 import com.sinura.personaltrainer.domain.EquipmentGroups
 import com.sinura.personaltrainer.domain.EquipmentType
@@ -115,9 +116,8 @@ import com.sinura.personaltrainer.ui.theme.TextDisabled
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.Warn
-import java.text.DateFormat
 import com.sinura.personaltrainer.domain.Weekday
-import java.util.Date
+import com.sinura.personaltrainer.logging.AppLog
 
 @Composable
 fun SettingsScreen(
@@ -137,9 +137,6 @@ fun SettingsScreen(
     val backup by viewModel.backupState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = context.findActivity()
-    val dateTimeFormat = remember {
-        DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
-    }
 
     LaunchedEffect(Unit) {
         viewModel.refreshAlarmCapability()
@@ -279,7 +276,7 @@ fun SettingsScreen(
             item(key = "backup") {
                 BackupRestoreSection(
                     state = backup,
-                    dateTimeFormat = dateTimeFormat,
+                    clock = clockFormat,
                     onSignIn = { viewModel.signIn(activity) },
                     onSignOut = { viewModel.signOut(activity) },
                     onCreateBackup = { viewModel.beginDriveBackup() },
@@ -304,6 +301,9 @@ fun SettingsScreen(
                 PlanSetupSection(onRerun = onOpenGuidedSetup)
             }
             if (BuildConfig.DEBUG) {
+                item(key = "log") {
+                    LogRedactSection()
+                }
                 item(key = "foundation") {
                     FoundationGenerationSection()
                 }
@@ -374,7 +374,7 @@ fun SettingsScreen(
         ConfirmActionDialog(
             title = "Delete this safety copy?",
             body = "This removes the copy made on " +
-                dateTimeFormat.format(Date(snap.createdAtMillis)) +
+                DateCopy.dateTime(snap.createdAtMillis, clockFormat) +
                 ". Training data on this phone is unchanged.",
             confirmLabel = "Delete copy",
             destructive = true,
@@ -447,7 +447,9 @@ private fun DisplayPrefsSection(
 ) {
     SettingsGroup(
         title = "Display",
-        caption = "Pounds and Regular hours are the default. Stored weights stay kilograms.",
+        caption = "Hours change History, session stamps, and backup times. " +
+            "Distance follows weight: pounds show miles, kilograms show kilometres. " +
+            "Stored weights stay kilograms. Stored distance stays metres.",
         modifier = Modifier.testTag(SettingsTags.DISPLAY),
     ) {
         GymCard {
@@ -793,7 +795,7 @@ private fun RestTimerPrefsSection(
 @Composable
 private fun BackupRestoreSection(
     state: BackupUiState,
-    dateTimeFormat: DateFormat,
+    clock: ClockFormat,
     onSignIn: () -> Unit,
     onSignOut: () -> Unit,
     onCreateBackup: () -> Unit,
@@ -823,7 +825,7 @@ private fun BackupRestoreSection(
                 title = "Last backup",
                 atMillis = state.lastBackupAt,
                 name = state.lastBackupName,
-                dateTimeFormat = dateTimeFormat,
+                clock = clock,
                 stale = state.backupStale,
             )
             // Restores are tracked separately: a restore is not a backup, and saying so here used
@@ -834,7 +836,7 @@ private fun BackupRestoreSection(
                     title = "Last restore",
                     atMillis = state.lastRestoreAt,
                     name = state.lastRestoreName,
-                    dateTimeFormat = dateTimeFormat,
+                    clock = clock,
                 )
             }
         }
@@ -948,7 +950,7 @@ private fun BackupRestoreSection(
                         title = file.name,
                         subtitle = file.modifiedAtMillis
                             .takeIf { it > 0 }
-                            ?.let { dateTimeFormat.format(Date(it)) },
+                            ?.let { DateCopy.dateTime(it, clock) },
                         onClick = if (restoreBlocked) null else ({ onRestore(file) }),
                         trailing = { DangerAction("Restore", enabled = !restoreBlocked) },
                     )
@@ -969,7 +971,7 @@ private fun BackupRestoreSection(
                     if (index > 0) HairlineDivider()
                     SafetyCopyRow(
                         snapshot = snap,
-                        dateTimeFormat = dateTimeFormat,
+                        clock = clock,
                         enabled = !state.isBusy,
                         restoreBlocked = restoreBlocked,
                         onExport = { onExportSafety(snap.id) },
@@ -985,7 +987,7 @@ private fun BackupRestoreSection(
 @Composable
 private fun SafetyCopyRow(
     snapshot: SafetySnapshotMeta,
-    dateTimeFormat: DateFormat,
+    clock: ClockFormat,
     enabled: Boolean,
     restoreBlocked: Boolean,
     onExport: () -> Unit,
@@ -995,7 +997,7 @@ private fun SafetyCopyRow(
     var menuOpen by remember { mutableStateOf(false) }
     InstrumentRow(
         title = snapshot.title,
-        subtitle = snapshot.subtitle(dateTimeFormat.format(Date(snapshot.createdAtMillis))),
+        subtitle = snapshot.subtitle(DateCopy.dateTime(snapshot.createdAtMillis, clock)),
         trailing = {
             Box {
                 IconButton(onClick = { menuOpen = true }, enabled = enabled) {
@@ -1056,12 +1058,12 @@ private fun BackupStampRow(
     title: String,
     atMillis: Long?,
     name: String?,
-    dateTimeFormat: DateFormat,
+    clock: ClockFormat,
     stale: Boolean = atMillis == null,
 ) {
-    val stamp = remember(atMillis) {
+    val stamp = remember(atMillis, clock) {
         atMillis?.let { at ->
-            DayLabel.relative(at, System.currentTimeMillis()) ?: dateTimeFormat.format(Date(at))
+            DayLabel.relative(at, System.currentTimeMillis()) ?: DateCopy.dateTime(at, clock)
         }
     }
     InstrumentRow(
@@ -1098,6 +1100,28 @@ private fun PlanSetupSection(onRerun: () -> Unit) {
                 title = PlanSetupCopy.ROW_TITLE,
                 subtitle = PlanSetupCopy.ROW_SUBTITLE,
                 onClick = onRerun,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LogRedactSection() {
+    var redact by remember { mutableStateOf(AppLog.redactMessages) }
+    SettingsGroup(
+        title = "Log",
+        caption = "On by default. Off only until this process dies. A restart redacts again.",
+    ) {
+        GroupedList {
+            InstrumentRow(
+                title = "Redact messages",
+                modifier = Modifier.testTag(SettingsTags.REDACT_LOGS),
+                checked = redact,
+                onCheckedChange = { on ->
+                    redact = on
+                    AppLog.redactMessages = on
+                },
+                trailing = { InstrumentSwitch(checked = redact, onCheckedChange = null) },
             )
         }
     }
@@ -1345,4 +1369,5 @@ object SettingsTags {
     const val SHARE_DIAGNOSTICS = "settings-share-diagnostics"
     const val DISPLAY = "settings-display"
     const val BODYWEIGHT = "settings-bodyweight"
+    const val REDACT_LOGS = "settings-redact-logs"
 }

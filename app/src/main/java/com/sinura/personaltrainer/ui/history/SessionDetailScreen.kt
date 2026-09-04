@@ -27,7 +27,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -38,6 +37,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.DateCopy
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.WeightMeaning
 import com.sinura.personaltrainer.domain.SetWork
@@ -71,9 +71,8 @@ import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.ui.units.LocalClockFormat
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
-import java.text.DateFormat
-import java.util.Date
 
 object SessionDetailTestTags {
     const val CONTENT = "session-detail-content"
@@ -119,9 +118,7 @@ fun SessionDetailScreen(
     BackHandler(onBack = leave)
     val session = state.session
     val unit = LocalWeightUnit.current
-    val dateFormat = remember {
-        DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
-    }
+    val clock = LocalClockFormat.current
 
     var menuOpen by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
@@ -233,7 +230,7 @@ fun SessionDetailScreen(
                     ) {
                         item {
                             SessionReceipt(
-                                dateLabel = dateFormat.format(Date(session.date)),
+                                dateLabel = DateCopy.dateTime(session.date, clock),
                                 work = session.work(),
                                 workingSets = workingSets,
                                 durationMinutes = session.durationMinutes,

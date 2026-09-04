@@ -65,4 +65,9 @@ class CardioCopyTest {
         assertTrue(CardioCopy.CLOCK_CAPTION.contains("bar"))
     }
 
+    @Test
+    fun distanceLabelFollowsTheWeightUnit() {
+        assertEquals("Distance km (optional)", CardioCopy.distanceLabel(DistanceUnit.KM))
+        assertEquals("Distance mi (optional)", CardioCopy.distanceLabel(DistanceUnit.MI))
+    }
 }

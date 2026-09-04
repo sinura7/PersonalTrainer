@@ -12,6 +12,7 @@ import com.sinura.personaltrainer.domain.ActivityWrite
 import com.sinura.personaltrainer.domain.CardioBlock
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.ComposerCopy
+import com.sinura.personaltrainer.domain.DistanceUnit
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.timer.BootSession
 import com.sinura.personaltrainer.timer.CardioElapsed
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -112,7 +114,10 @@ class LiveCardioViewModel @JvmOverloads constructor(
                 indoor = indoor.value,
                 elapsedSeconds = elapsedSeconds.value,
                 movingSeconds = elapsedSeconds.value,
-                distanceMeters = ComposerCopy.parseDistanceKm(distanceKm.value)?.times(1_000.0),
+                distanceMeters = ComposerCopy.parseDistanceToMeters(
+                    distanceKm.value,
+                    DistanceUnit.fromWeight(container.preferencesRepository.weightUnit.first()),
+                ),
                 elevationMeters = null,
                 heartRateBpm = null,
                 energyKj = null,

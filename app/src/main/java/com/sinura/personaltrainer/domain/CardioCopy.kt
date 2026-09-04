@@ -24,7 +24,11 @@ object CardioCopy {
     const val TYPE = "Type"
     const val INDOOR = "Indoor"
     const val OUTDOOR = "Outdoor"
-    const val DISTANCE_LABEL = "Distance km (optional)"
+    const val DISTANCE = "Distance"
+    const val DISTANCE_OPTIONAL = "(optional)"
+
+    fun distanceLabel(unit: DistanceUnit): String =
+        "$DISTANCE ${unit.suffix} $DISTANCE_OPTIONAL"
 
     const val LEAVE_TITLE = "Leave cardio?"
     const val LEAVE_BODY =

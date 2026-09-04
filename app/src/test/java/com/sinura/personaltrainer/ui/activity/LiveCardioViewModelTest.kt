@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.ActivityWrite
 import com.sinura.personaltrainer.domain.CardioBlock
 import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.util.JvmTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -58,6 +59,7 @@ class LiveCardioViewModelTest {
 
     @Test
     fun finishCompletesTheLiveRowAndClearsTheTimer() = runBlocking {
+        deps.preferencesRepository.setWeightUnit(WeightUnit.KG)
         val now = JvmTime.captureNow()
         val started = deps.startLiveActivity("Easy run", listOf(runBlock()), now)
         val live = (started as ActivityWrite.Accepted).session
@@ -78,6 +80,25 @@ class LiveCardioViewModelTest {
         assertNull(deps.cardioTimerPersistence.load())
         val completed = deps.activityRepository.get(live.id)
         assertEquals(1_500.0, completed?.cardioBlocks?.single()?.distanceMeters)
+    }
+
+    @Test
+    fun finishParsesMilesWhenPoundsAreTheDisplayUnit() = runBlocking {
+        deps.preferencesRepository.setWeightUnit(WeightUnit.LBS)
+        val now = JvmTime.captureNow()
+        val started = deps.startLiveActivity("Easy run", listOf(runBlock()), now)
+        val live = (started as ActivityWrite.Accepted).session
+        val vm = createViewModel(
+            sessionId = live.id,
+            elapsedRealtime = { 60_000L },
+            wallClock = { now.instantMillis + 60_000L },
+        )
+        vm.uiState.first { it.session != null }
+        vm.setDistanceKm("1.5")
+        vm.finish()
+        vm.finishedId.first { it != null }
+        val completed = deps.activityRepository.get(live.id)
+        assertEquals(2_414.016, completed?.cardioBlocks?.single()?.distanceMeters!!, 0.001)
     }
 
     @Test
