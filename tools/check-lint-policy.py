@@ -24,35 +24,44 @@ ALLOWED_DISABLE = {
 findings: list[str] = []
 
 
-def main() -> int:
-    gradle = open(GRADLE, encoding="utf-8").read()
+def lint_source_findings(gradle: str, baseline: str) -> list[str]:
+    found: list[str] = []
     if "warningsAsErrors = true" not in gradle:
-        findings.append("app/build.gradle.kts  warningsAsErrors must stay true")
-    if "baseline = file(\"lint-baseline.xml\")" not in gradle:
-        findings.append("app/build.gradle.kts  lint baseline must stay wired")
+        found.append("app/build.gradle.kts  warningsAsErrors must stay true")
+    if 'baseline = file("lint-baseline.xml")' not in gradle:
+        found.append("app/build.gradle.kts  lint baseline must stay wired")
 
     match = re.search(r"disable\s*\+=\s*setOf\(([^)]*)\)", gradle, re.S)
     if match is None:
-        findings.append("app/build.gradle.kts  missing lint disable set")
+        found.append("app/build.gradle.kts  missing lint disable set")
     else:
         got = set(re.findall(r'"([^"]+)"', match.group(1)))
         extra = got - ALLOWED_DISABLE
         missing = ALLOWED_DISABLE - got
         for item in sorted(extra):
-            findings.append(f"app/build.gradle.kts  unsigned lint disable {item}")
+            found.append(f"app/build.gradle.kts  unsigned lint disable {item}")
         for item in sorted(missing):
-            findings.append(f"app/build.gradle.kts  missing signed waiver {item}")
+            found.append(f"app/build.gradle.kts  missing signed waiver {item}")
 
+    leftover = set(re.findall(r'<issue\s+id="([^"]+)"', baseline))
+    if leftover:
+        found.append(
+            "app/lint-baseline.xml  must be empty after P4.6 "
+            f"(found {', '.join(sorted(leftover))})",
+        )
+    return found
+
+
+def main() -> int:
+    gradle = open(GRADLE, encoding="utf-8").read() if os.path.isfile(GRADLE) else ""
+    if not os.path.isfile(GRADLE):
+        findings.append("app/build.gradle.kts  missing")
+    baseline = ""
     if not os.path.isfile(BASELINE):
         findings.append("app/lint-baseline.xml  missing")
     else:
-        body = open(BASELINE, encoding="utf-8").read()
-        leftover = set(re.findall(r'<issue\s+id="([^"]+)"', body))
-        if leftover:
-            findings.append(
-                "app/lint-baseline.xml  must be empty after P4.6 "
-                f"(found {', '.join(sorted(leftover))})",
-            )
+        baseline = open(BASELINE, encoding="utf-8").read()
+    findings.extend(lint_source_findings(gradle, baseline))
 
     if not os.path.isfile(LINT_XML):
         findings.append("app/lint.xml  missing adaptive-icon ObsoleteSdkInt ignore")

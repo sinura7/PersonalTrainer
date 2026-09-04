@@ -16,6 +16,7 @@ import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 GRADLE = os.path.join(ROOT, "app/build.gradle.kts")
+MANIFEST = os.path.join(ROOT, "app/src/main/AndroidManifest.xml")
 CATALOG = os.path.join(ROOT, "gradle/libs.versions.toml")
 WRAPPER = os.path.join(ROOT, "gradle/wrapper/gradle-wrapper.properties")
 ROBOLECTRIC = os.path.join(ROOT, "app/src/test/resources/robolectric.properties")
@@ -73,6 +74,39 @@ CATALOG_MIN = {
     "playServicesAuth": ((21, 6, 0), "21.6.0"),
 }
 
+# Exact pins the JVM catalog/policy tests used to own. Floors above still
+# catch a drop; these catch a silent bump (#126 play-services-auth 22).
+CATALOG_EXACT = {
+    "coreKtx": "1.17.0",
+    "lifecycleRuntimeKtx": "2.10.0",
+    "activityCompose": "1.12.4",
+    "coroutines": "1.10.2",
+    "robolectric": "4.16",
+    "androidxTestCore": "1.7.0",
+    "androidxTestRunner": "1.7.0",
+    "androidxTestRules": "1.7.0",
+    "androidxTestExtJunit": "1.3.0",
+    "composeBom": "2026.06.01",
+    "navigationCompose": "2.9.8",
+    "kotlin": "2.0.21",
+    "room": "2.7.2",
+    "datastore": "1.2.1",
+    "playServicesAuth": "21.6.0",
+}
+
+DRIVE_AUTH_BANNED = (
+    "com.google.android.gms.auth.api.signin",
+    "GoogleSignIn",
+    "toGoogleSignInAccount",
+    "getSignInClient",
+)
+DRIVE_AUTH_NEEDLES = (
+    "getAuthorizationClient",
+    "drive.file",
+    "clearToken",
+    "revokeAccess",
+)
+
 findings: list[str] = []
 
 
@@ -94,6 +128,40 @@ def kotlin_stdlib_ceiling_findings(ledger_text: str) -> list[str]:
                 f"{name} {version} is Kotlin 2.2+; the signed compiler is "
                 "2.0.21 (one-version-ahead allows 2.1.x). That bump is packet K2.",
             )
+    return found
+
+
+def catalog_exact_findings(catalog: str) -> list[str]:
+    """Catalog keys must equal the signed P4 matrices, not merely meet a floor."""
+    found: list[str] = []
+    for key, want in CATALOG_EXACT.items():
+        match = re.search(rf'^{key}\s*=\s*"([^"]+)"', catalog, re.M)
+        if match is None:
+            found.append(f"gradle/libs.versions.toml  missing {key}")
+        elif match.group(1) != want:
+            found.append(
+                f"gradle/libs.versions.toml  {key} must stay {want} "
+                f"(found {match.group(1)}; signed P4 matrix)",
+            )
+    return found
+
+
+def predictive_back_findings(manifest: str) -> list[str]:
+    if 'android:enableOnBackInvokedCallback="true"' not in manifest:
+        return [
+            'AndroidManifest.xml  enableOnBackInvokedCallback must be "true"',
+        ]
+    return []
+
+
+def drive_auth_source_findings(body: str) -> list[str]:
+    found: list[str] = []
+    for banned in DRIVE_AUTH_BANNED:
+        if banned in body:
+            found.append(f"DriveAuthClient.kt  still uses {banned}")
+    for needle in DRIVE_AUTH_NEEDLES:
+        if needle not in body:
+            found.append(f"DriveAuthClient.kt  missing {needle}")
     return found
 
 
@@ -138,6 +206,15 @@ def main() -> int:
         findings.append("gradle/libs.versions.toml  still ships kotlinx-serialization-json")
     if "material-icons-extended" in catalog:
         findings.append("gradle/libs.versions.toml  still ships material-icons-extended")
+
+    findings.extend(catalog_exact_findings(catalog))
+
+    if not os.path.isfile(MANIFEST):
+        findings.append("AndroidManifest.xml  missing")
+    else:
+        findings.extend(
+            predictive_back_findings(open(MANIFEST, encoding="utf-8").read()),
+        )
 
     wrapper = open(WRAPPER, encoding="utf-8").read()
     gradle = re.search(r"gradle-(\d+)\.(\d+)\.(\d+)-bin\.zip", wrapper)
@@ -222,18 +299,9 @@ def main() -> int:
     if not os.path.isfile(DRIVE_AUTH):
         findings.append("DriveAuthClient.kt  missing")
     else:
-        body = open(DRIVE_AUTH, encoding="utf-8").read()
-        for banned in (
-            "com.google.android.gms.auth.api.signin",
-            "GoogleSignIn",
-            "toGoogleSignInAccount",
-            "getSignInClient",
-        ):
-            if banned in body:
-                findings.append(f"DriveAuthClient.kt  still uses {banned}")
-        for needle in ("getAuthorizationClient", "drive.file", "clearToken", "revokeAccess"):
-            if needle not in body:
-                findings.append(f"DriveAuthClient.kt  missing {needle}")
+        findings.extend(
+            drive_auth_source_findings(open(DRIVE_AUTH, encoding="utf-8").read()),
+        )
 
     time_port = os.path.join(
         ROOT,

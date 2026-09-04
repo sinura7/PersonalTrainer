@@ -241,6 +241,16 @@ is 1024×1024 so the panel is not upscaling 768. Heat stays 768.
 python3 tools/check-still-pack.py
 ```
 
+## `test_policy_move.py`
+
+J4 remainder. Fixture proofs for the sixteen source-reading policy tests that
+moved out of the JVM suite. Preflight runs it. A helper that swallows
+`allowBackup=true`, a Kotlin 2.2 stdlib, or play-services-auth 22 fails here.
+
+```bash
+python3 tools/test_policy_move.py
+```
+
 ## preflight.sh
 
 `tools/preflight.sh` is the mechanical half of every foundation-program packet's definition of done:

@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
 **Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F6, G1–G6, H1–H3, J4 (seams, TimePort,
-scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase H is done. K1 and K2 stay held.  
+scheduler polish, policy tests into `tools/`), J3, J2, J5, and J1 are on
+`trunk`. Phase H is done. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -104,7 +104,7 @@ the gym floor, are fifteen of them.
 | J1 | The release build is real | 1 | 6 | House | |
 | J2 | The release ratchet and CI pinning | 1 | — | House | done |
 | J3 | App size | 1 | — | House | done |
-| J4 | Tests stop sleeping | 2 | — | House | partial |
+| J4 | Tests stop sleeping | 2 | — | House | done |
 | J5 | The checkers report what they skip | 1 | — | House | done |
 | K1 | *(held)* One signed v5: session time zone and the index census | 2 | — | Schema | held |
 | K2 | *(held)* The compiler train: Kotlin, AGP, Compose, Room | 4+ | — | Toolchain | held |
@@ -1430,7 +1430,7 @@ run were closed on 2 September 2026, ahead of this packet. (See *Floor
 findings*, 2026-09-02.) Everything else in J3 is untouched.~~ **Struck
 2026-09-03 (this packet).** The remainder is shipped.
 
-## J4 — Tests stop sleeping · 2 evenings
+## J4 — Tests stop sleeping · done on `trunk`
 
 **Symptom.** The suite is slower than it needs to be and will flake on a
 loaded machine: ten test files poll with a real 10-millisecond sleep in a
@@ -1448,8 +1448,12 @@ thread (`room-txn-test`). Do not retry Room-on-dispatcher without
 converting the suite to `runTest`, which is a different packet. Calendar
 `TimePort` is on `AppDependencies.time` (production `JvmTime`; tests
 pass `FrozenTime`). Civil today in ViewModels goes through
-`AppViewModel.todayEpochDay()` / `civilToday()`. Moving the sixteen
-source-reading policy tests into the checkers remains owed.
+`AppViewModel.todayEpochDay()` / `civilToday()`. Sixteen source-reading
+policy tests now live in `tools/` checkers. `test_policy_move.py` is
+the fixture proof. Count **1736** (−16 vs H3). Gson toolchain
+round-trips, Drive About parse, and TimePort runtime types stay on
+the JVM. Motion / TalkBack / History / landscape source-reading
+proofs from later packets stay on the JVM.
 
 **Owns.** `app/src/test/**`, `tools/`, and the dispatcher seams in
 `app/src/main` (`AppDependencies.ioDispatcher` / `computeDispatcher` /
@@ -1458,8 +1462,7 @@ source-reading policy tests into the checkers remains owed.
 `PlanViewModel`, `ProgressViewModel`, `CustomWeekViewModel`,
 `OnboardingViewModel`, `RestTimerViewModel`, `ActiveWorkoutViewModel`,
 `SetMicroRecUi`, `HistoryViewModel` / `HistoryScreen`, `HomeViewModel`.
-Policy tests into `tools/` remain owed (count-changing; hold until
-after J5).
+Policy tests into `tools/` shipped this packet.
 
 ## J5 — The checkers report what they skip · done on `trunk`
 
@@ -1553,6 +1556,15 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — J4 remainder: sixteen source-reading tests left the
+JVM.** Checkers already owned nine; this packet filled the rest
+(predictive back, exact catalog pins including play-services-auth
+21.6.0) and deleted the JUnit twins. `test_policy_move.py` is the
+red-first fixture. Python `check-backup-policy.py` already required
+`temper.db`; the JVM `BackupPolicyTest` did not — keep the stricter
+checker. Motion / TalkBack / History / landscape / DateCopy
+source-reading proofs stay (later packets). Count −16.
 
 **2026-09-03 — H3: landscape log; six goldens; public atoms.**
 Landscape chrome is `LandscapeChrome` (compact header, hide idle
