@@ -22,6 +22,8 @@ class HistoryCopyTest {
         assertEquals("session", HistoryCopy.sessionsLabel(1))
         assertEquals("sessions", HistoryCopy.sessionsLabel(0))
         assertEquals(HistoryCopy.EMPTY_LOG, "Finished sessions land here.")
+        assertEquals("Month", HistoryCopy.CALENDAR_MONTH)
+        assertEquals("Moved most", HistoryCopy.MOVED_MOST)
         assertTrue(BodyHeatCopy.LEGEND_CAPTION.contains("muscle load"))
         assertTrue(BodyHeatCopy.LEGEND_CAPTION.contains("not calendar"))
         assertEquals("Today", BodyHeatCopy.windowTitle(HeatWindow.DAY))

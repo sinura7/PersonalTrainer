@@ -18,6 +18,7 @@ import com.sinura.personaltrainer.domain.DailyProjectionBuilder
 import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.HistoryMonthGroup
 import com.sinura.personaltrainer.domain.HorizonMath
+import com.sinura.personaltrainer.domain.HorizonProgress
 import com.sinura.personaltrainer.domain.HorizonTotals
 import com.sinura.personaltrainer.domain.PrSummaryRow
 import com.sinura.personaltrainer.domain.SessionSummary
@@ -61,6 +62,7 @@ data class HistoryUiState(
     val pastBlocks: List<FinishedBlock> = emptyList(),
     val horizon: AnalyticsHorizon = AnalyticsHorizon.MONTH,
     val horizonTotals: HorizonTotals? = null,
+    val horizonProgress: HorizonProgress? = null,
     val today: CivilDate = CivilDate.of(1970, 1, 1),
 )
 
@@ -178,11 +180,63 @@ class HistoryViewModel @JvmOverloads constructor(
     }
         .flowOn(container.computeDispatcher)
 
+    private val horizonProgress = combine(
+        catalog,
+        horizon,
+        container.preferencesRepository.weightUnit,
+    ) { cat, selectedHorizon, unit ->
+        if (cat.unavailable) {
+            null
+        } else {
+            val earliest = cat.summaries.minOfOrNull { it.localEpochDay }
+            val (start, end) = HorizonMath.range(
+                selectedHorizon,
+                cat.today,
+                cat.weekStart,
+                earliest,
+            )
+            HorizonProgressKey(
+                startEpochDay = start,
+                endEpochDay = end,
+                unit = unit,
+                sessionCount = cat.summaries.size,
+                newestId = cat.summaries.maxByOrNull { it.finishedAt ?: it.date }?.id,
+            )
+        }
+    }
+        .distinctUntilChanged()
+        .flatMapLatest { key ->
+            flow {
+                if (key == null) {
+                    emit(null)
+                    return@flow
+                }
+                val zone = time.defaultZoneId()
+                val endMs = time.startOfDayMillis(
+                    CivilDate.fromEpochDay(key.endEpochDay + 1),
+                    zone,
+                ) - 1
+                val sessions = container.workoutRepository.sessionsBetween(0L, endMs)
+                emit(
+                    BlockReviewBuilder.overRange(
+                        startEpochDay = key.startEpochDay,
+                        endExclusiveEpochDay = key.endEpochDay + 1,
+                        sessions = sessions,
+                        unit = key.unit,
+                        time = time,
+                        zoneId = zone,
+                    ),
+                )
+            }
+        }
+        .flowOn(container.computeDispatcher)
+
     val uiState: StateFlow<HistoryUiState> = combine(
         catalog,
         visibleMonth,
         horizon,
-    ) { cat, month, selectedHorizon ->
+        horizonProgress,
+    ) { cat, month, selectedHorizon, progress ->
         if (cat.unavailable) {
             return@combine HistoryUiState(isLoading = false, unavailable = true)
         }
@@ -206,6 +260,7 @@ class HistoryViewModel @JvmOverloads constructor(
                 today = cat.today,
                 weekStart = cat.weekStart,
             ),
+            horizonProgress = progress,
             today = cat.today,
         )
     }
@@ -222,6 +277,10 @@ class HistoryViewModel @JvmOverloads constructor(
     fun showNextMonth() {
         val next = visibleMonth.value.plusMonths(1)
         if (next <= yearMonthOf(civilToday())) visibleMonth.value = next
+    }
+
+    fun showCurrentMonth() {
+        visibleMonth.value = yearMonthOf(civilToday())
     }
 
     fun setHorizon(value: AnalyticsHorizon) {
@@ -271,6 +330,14 @@ class HistoryViewModel @JvmOverloads constructor(
     fun retryHistory() {
         historyRetry.value += 1
     }
+
+    private data class HorizonProgressKey(
+        val startEpochDay: Long,
+        val endEpochDay: Long,
+        val unit: WeightUnit,
+        val sessionCount: Int,
+        val newestId: String?,
+    )
 
     private data class HistoryReads(
         val health: DataHealth<List<SessionSummary>>,

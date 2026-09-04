@@ -183,6 +183,7 @@ class HomeViewModelTest {
         val state = viewModel!!.uiState.first { !it.isLoading }
         assertEquals("ancient-pull", state.lastSession?.id)
         assertEquals(today - 80, state.lastSession?.localEpochDay)
+        assertNull(state.previousSameRoutine)
         assertTrue(state.loggedEpochDays.contains(today - 80))
     }
 

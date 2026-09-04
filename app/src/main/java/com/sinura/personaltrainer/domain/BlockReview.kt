@@ -39,6 +39,20 @@ data class BlockReview(
 }
 
 /**
+ * Horizon readout: how many records this window broke, and which lift moved most.
+ *
+ * Not a second [BlockReview]. Weeks, bodyweight, and session totals already live
+ * on [HorizonTotals]; this is the progress sentence those counts never said.
+ */
+data class HorizonProgress(
+    val recordsBroken: Int,
+    val movers: List<BlockMover>,
+) {
+    /** Best mover, or null when the range is too short or nothing had two comparable points. */
+    val movedMost: BlockMover? get() = movers.firstOrNull()
+}
+
+/**
  * One lift's progress across the block, in whichever unit that lift is measured in.
  *
  * [fromLabel] and [toLabel] are pre-rendered rather than raw numbers because a loaded lift's
@@ -103,7 +117,14 @@ object BlockReviewBuilder {
             work = SetWork.sum(inBlock.map { it.work() }),
             daysTrained = inBlock.map { it.performedEpochDay(time, zoneId) }.distinct().size,
             recordsBroken = countRecords(inBlock = inBlock, beforeBlock = beforeBlock),
-            movers = movers(block, inBlock, unit, time, zoneId),
+            movers = movers(
+                startEpochDay = block.startEpochDay,
+                endExclusiveEpochDay = block.endExclusiveEpochDay,
+                inBlock = inBlock,
+                unit = unit,
+                time = time,
+                zoneId = zoneId,
+            ),
             bodyweight = bodyweightChange(block, bodyweightLog),
         )
     }
@@ -179,6 +200,57 @@ object BlockReviewBuilder {
     )
 
     /**
+     * Records and movers over an inclusive-start, exclusive-end civil range.
+     *
+     * History's horizon readout reuses the block review's measure so "moved most"
+     * means the same thing at four weeks as it does at twelve. Callers may pass
+     * sessions from before [startEpochDay]; those seed record detection and are
+     * ignored for movers.
+     */
+    fun overRange(
+        startEpochDay: Long,
+        endExclusiveEpochDay: Long,
+        sessions: List<WorkoutSession>,
+        unit: WeightUnit,
+        time: TimePort = JvmTime,
+        zoneId: String = time.defaultZoneId(),
+    ): HorizonProgress {
+        val inRange = sessions.filter { session ->
+            val day = session.performedEpochDay(time, zoneId)
+            session.isFinished &&
+                day >= startEpochDay &&
+                day < endExclusiveEpochDay
+        }
+        val before = sessions.filter { session ->
+            session.isFinished && session.performedEpochDay(time, zoneId) < startEpochDay
+        }
+        return HorizonProgress(
+            recordsBroken = countRecords(inBlock = inRange, beforeBlock = before),
+            movers = movers(
+                startEpochDay = startEpochDay,
+                endExclusiveEpochDay = endExclusiveEpochDay,
+                inBlock = inRange,
+                unit = unit,
+                time = time,
+                zoneId = zoneId,
+            ),
+        )
+    }
+
+    /**
+     * Days at each end of a span used to judge a lift.
+     *
+     * Same rule as [comparisonWeeks], expressed in days so a week-long History
+     * horizon can still name a direction: one to fourteen days at each end,
+     * never more than half the span, never overlapping.
+     */
+    fun comparisonDays(spanDays: Long): Long {
+        if (spanDays < 2L) return 0L
+        val weeks = (spanDays / DAYS_IN_WEEK).toInt().coerceAtLeast(1)
+        return minOf(comparisonWeeks(weeks) * DAYS_IN_WEEK, spanDays / 2)
+    }
+
+    /**
      * The lifts that improved most, judged on a window at each end of the block.
      *
      * A lift has to appear in both windows to say anything: a lift trained only in week one is
@@ -188,15 +260,17 @@ object BlockReviewBuilder {
      * a squat going 100 to 120.
      */
     private fun movers(
-        block: TrainingBlock,
+        startEpochDay: Long,
+        endExclusiveEpochDay: Long,
         inBlock: List<WorkoutSession>,
         unit: WeightUnit,
         time: TimePort,
         zoneId: String,
     ): List<BlockMover> {
-        val window = comparisonWeeks(block.weeks) * DAYS_IN_WEEK
-        val openingEnds = block.startEpochDay + window
-        val closingBegins = block.endExclusiveEpochDay - window
+        val window = comparisonDays(endExclusiveEpochDay - startEpochDay)
+        if (window <= 0L) return emptyList()
+        val openingEnds = startEpochDay + window
+        val closingBegins = endExclusiveEpochDay - window
 
         val byExercise = inBlock
             .flatMap { session -> session.sets.filterNot { it.isWarmup }.map { session to it } }

@@ -23,6 +23,9 @@ class BlockReviewTest {
     private fun dayMs(weeksIn: Long): Long =
         start.plusWeeks(weeksIn).atStartOfDay(zone).toInstant().toEpochMilli() + 36_000_000L
 
+    private fun onDay(offsetDays: Long): Long =
+        start.plusDays(offsetDays).atStartOfDay(zone).toInstant().toEpochMilli() + 36_000_000L
+
     private fun workout(
         id: String,
         atMs: Long,
@@ -134,6 +137,55 @@ class BlockReviewTest {
         listOf(4, 6, 8, 12, 16, 24).forEach { weeks ->
             assertTrue("$weeks", BlockReviewBuilder.comparisonWeeks(weeks) * 2 <= weeks)
         }
+        assertEquals(14L, BlockReviewBuilder.comparisonDays(84))
+        assertEquals(3L, BlockReviewBuilder.comparisonDays(7))
+        assertEquals(0L, BlockReviewBuilder.comparisonDays(1))
+    }
+
+    @Test
+    fun moversOverAHorizonRangeNameTheLiftThatGotHeavier() {
+        val early = workout("a", dayMs(0), sets = listOf(100.0 to 5))
+        val late = workout("b", dayMs(11), sets = listOf(120.0 to 5))
+        val progress = BlockReviewBuilder.overRange(
+            block.startEpochDay,
+            block.endExclusiveEpochDay,
+            listOf(early, late),
+            WeightUnit.KG,
+            zone,
+        )
+        assertEquals("Squat", progress.movedMost!!.exerciseName)
+        assertTrue(progress.movedMost!!.gain > 0.15)
+        assertTrue(progress.recordsBroken > 0)
+    }
+
+    @Test
+    fun aWeekHorizonStillNamesTheLiftThatGotHeavier() {
+        val startDay = start.toEpochDay()
+        val early = workout("a", onDay(0), sets = listOf(100.0 to 5))
+        val late = workout("b", onDay(6), sets = listOf(120.0 to 5))
+        val progress = BlockReviewBuilder.overRange(
+            startDay,
+            startDay + 7,
+            listOf(early, late),
+            WeightUnit.KG,
+            zone,
+        )
+        assertEquals("Squat", progress.movedMost!!.exerciseName)
+    }
+
+    @Test
+    fun aOneDayHorizonIsAPositionNotADirection() {
+        val startDay = start.toEpochDay()
+        val first = workout("a", onDay(0), sets = listOf(100.0 to 5))
+        val second = workout("b", onDay(0) + 3_600_000L, sets = listOf(120.0 to 5))
+        val progress = BlockReviewBuilder.overRange(
+            startDay,
+            startDay + 1,
+            listOf(first, second),
+            WeightUnit.KG,
+            zone,
+        )
+        assertTrue(progress.movers.isEmpty())
     }
 
     @Test

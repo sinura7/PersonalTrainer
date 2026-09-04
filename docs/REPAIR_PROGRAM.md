@@ -1,8 +1,8 @@
 # Repair program — the 1 September audit, packet by packet
 
-**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F6, G1–G6, J4 (seams, TimePort,
+**Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F6, G1–G6, H1, J4 (seams, TimePort,
 scheduler polish), J3, J2, J5, and J1 are on `trunk`. Policy tests into
-`tools/` remain owed. Phase H starts at H1. K1 and K2 stay held.  
+`tools/` remain owed. Phase H continues at H2. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -98,7 +98,7 @@ the gym floor, are fifteen of them.
 | G4 | Skin the four foreign controls | 2 | — | Design II | done |
 | G5 | Body's first viewport; small targets; destructive confirms | 1 | — | Design II | done |
 | G6 | Reduced motion, and the palette question | 1 | — | Design II | done |
-| H1 | History shows that you got stronger | 2 | — | Design III | |
+| H1 | History shows that you got stronger | 2 | — | Design III | done |
 | H2 | Units and clocks finish what Display started | 2 | — | Design III | |
 | H3 | Row and card vocabulary; landscape; a regression net | 3 | — | Design III | |
 | J1 | The release build is real | 1 | 6 | House | |
@@ -1239,7 +1239,7 @@ Proof is JVM (`remainingSitesHonourReducedMotion`,
 Three packets. Product surface rather than repair; each is a proper packet
 with a phone gate.
 
-## H1 — History shows that you got stronger · 2 evenings
+## H1 — History shows that you got stronger · done on `trunk`
 
 **Symptom.** Four weeks in, History shows counts and calendar dots. The only
 place the app says "you got stronger" is three taps deep on a single lift,
@@ -1251,6 +1251,12 @@ Month disclosure; add a personal-records count and a "moved most" line to the
 horizon readout by reusing the block review's mover logic over the selected
 range; give Home's "Last session" tile a signed delta against the previous
 session of the same routine. None of this adds a Start, a tab or a route.
+
+**Proof.** JVM: `moversOverAHorizonRangeNameTheLiftThatGotHeavier`,
+`aWeekHorizonStillNamesTheLiftThatGotHeavier`,
+`lastSessionDeltaIsVersusThePreviousSessionOfTheSameRoutine`,
+`horizonPickerLivesInTheListAndCalendarStartsAsAWeek`,
+`weekContainingReturnsTheSevenDaysThatHoldTheDate`.
 
 **Owns.** `ui/history/HistoryScreen.kt` *(after C3)*,
 `ui/history/HistoryViewModel.kt` *(after E4)*, `domain/BlockReview.kt`
@@ -1518,6 +1524,16 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-03 — H1: History names what moved.** Proof is JVM
+(`moversOverAHorizonRangeNameTheLiftThatGotHeavier`,
+`lastSessionDeltaIsVersusThePreviousSessionOfTheSameRoutine`,
+`horizonPickerLivesInTheListAndCalendarStartsAsAWeek`), not
+`compose-ui-test-junit4`. `BlockReviewBuilder.overRange` is the public
+reuse; `comparisonDays` keeps a 7-day horizon from overlapping the
+way `comparisonWeeks(1)` would. SessionSummary signed delta, calendar
+`weekContaining`, HistoryCopy Month/Moved most, and StatTile `caption`
+are Floor-finds (F15 named SessionSummary; GymSurfaces is H3). Count +6.
 
 **2026-09-03 — G6: reduced motion finishes; palette stays.** Proof is
 JVM (`remainingSitesHonourReducedMotion`,

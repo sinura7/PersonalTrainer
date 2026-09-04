@@ -38,6 +38,7 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.daysSince
 import com.sinura.personaltrainer.domain.featuredSession
 import com.sinura.personaltrainer.domain.homeWork
+import com.sinura.personaltrainer.domain.signedWorkDelta
 import com.sinura.personaltrainer.domain.leftoverLiftNames
 import com.sinura.personaltrainer.domain.nextSessionReason
 import com.sinura.personaltrainer.domain.toWeightLabel
@@ -285,6 +286,7 @@ fun HomeScreen(
                 )
                 HomeStatRow(
                     lastSession = state.lastSession,
+                    previousSameRoutine = state.previousSameRoutine,
                     todayEpoch = today,
                     unit = unit,
                 )
@@ -487,9 +489,17 @@ internal fun HomeStatRow(
     lastSession: SessionSummary?,
     todayEpoch: Long,
     unit: WeightUnit,
+    previousSameRoutine: SessionSummary? = null,
 ) {
     val column = remember(lastSession, unit) {
         lastSession?.homeWork(unit)
+    }
+    val delta = remember(lastSession, previousSameRoutine, unit) {
+        if (lastSession != null && previousSameRoutine != null) {
+            lastSession.signedWorkDelta(previousSameRoutine, unit)
+        } else {
+            null
+        }
     }
     val daysSince = lastSession?.daysSince(todayEpoch)?.toString()
     val stack = LogLoopScale.stackTiles(LocalDensity.current.fontScale)
@@ -502,6 +512,7 @@ internal fun HomeStatRow(
                 label = "Last session",
                 value = column?.value ?: NO_VALUE,
                 unit = column?.label,
+                caption = delta,
                 valueColor = if (column != null) TextPrimary else TextTertiary,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -525,6 +536,7 @@ internal fun HomeStatRow(
                 label = "Last session",
                 value = column?.value ?: NO_VALUE,
                 unit = column?.label,
+                caption = delta,
                 valueColor = if (column != null) TextPrimary else TextTertiary,
                 modifier = Modifier
                     .weight(1f)

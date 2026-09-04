@@ -270,6 +270,7 @@ fun StatTile(
     value: String,
     modifier: Modifier = Modifier,
     unit: String? = null,
+    caption: String? = null,
     valueColor: Color = TextPrimary,
     onClick: (() -> Unit)? = null,
 ) {
@@ -280,6 +281,10 @@ fun StatTile(
         if (!unit.isNullOrBlank()) {
             append(' ')
             append(unit)
+        }
+        if (!caption.isNullOrBlank()) {
+            append(", ")
+            append(caption)
         }
     }
     GymCard(
@@ -309,6 +314,15 @@ fun StatTile(
                     maxLines = 1,
                 )
             }
+        }
+        if (caption != null) {
+            Text(
+                caption,
+                style = InstrumentType.caption,
+                color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

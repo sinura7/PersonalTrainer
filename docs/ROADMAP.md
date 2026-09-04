@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 3 Sep 2026 — H1: History horizon names PRs and the lift that moved
+> most; calendar opens on this week; Home last session is a signed
+> delta versus the previous visit of the same routine.
+>
 > 3 Sep 2026 — G6: reduced motion finishes the gate; Volt/PrGold/Warn
 > collisions stay with a mandatory non-colour channel (ADR-023).
 >
