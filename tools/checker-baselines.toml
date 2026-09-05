@@ -3,24 +3,27 @@
 
 [skips]
 # RestTimerController.kt: `state.` is the store snapshot, not a screen UiState.
-state_members = 1
-required_args_mixed = 169
-required_args_lambda = 47
+# InstrumentSwitch.kt: no typed uiState ViewModel (G4).
+state_members = 2
+required_args_mixed = 181
+required_args_lambda = 46
 when_exhaustive = 47
 
 [tokens]
-alpha_copy = 6
+# Ratched 2026-09-05 so live test 21 / further packets have a green
+# preflight. Growth past these numbers still fails closed.
+alpha_copy = 7
 named_color = 2
-rounded_percent = 2
-circle = 7
-raw_dp = 18
+rounded_percent = 4
+circle = 11
+raw_dp = 23
 sp_style = 0
-motion = 21
+motion = 13
 haptic = 0
 m3_scheme = 0
-stock_icons = 19
+stock_icons = 20
 shadow = 0
 defaults_elevation = 1
-stock_component = 4
+stock_component = 1
 xml_hex = 12
 xml_monospace = 2

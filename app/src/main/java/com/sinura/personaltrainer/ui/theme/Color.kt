@@ -10,9 +10,10 @@ import androidx.compose.ui.graphics.lerp
  *
  * **Depth is light, not shadow.** On a near-black field a drop shadow is invisible, so
  * hierarchy is carried by a ladder of surfaces roughly 3% apart in luminance plus a
- * one-pixel hairline. Nothing in this app is allowed to use `shadowElevation` or
- * `tonalElevation` — the second of those also tints with the accent, which is how the
- * old theme smeared lime across the log bar.
+ * one-pixel hairline. Non-zero `shadowElevation` / `tonalElevation` is
+ * forbidden — the second also tints with the accent, which is how the
+ * old theme smeared lime across the log bar. `= 0.dp` is how
+ * `InstrumentMenu` pins Material's default off.
  *
  * **One accent, earned.** [Volt] means live / act / now, and appears once or twice per
  * screen. [PrGold], [Warn], [Danger] and [RestCyan] are verbs, not decoration: a record,

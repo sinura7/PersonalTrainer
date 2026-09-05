@@ -9,6 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import checker_baseline  # noqa: E402
+import re
 
 
 def main() -> int:
@@ -30,10 +31,18 @@ def main() -> int:
         raise SystemExit(f"FAIL a drop must still pass: {drop}")
     if haptic is None:
         raise SystemExit("FAIL haptic 0→1 must error")
+    elevation = re.compile(
+        r"\b(?:tonalElevation|shadowElevation)\s*=\s*(?!0\.dp\b)\S+",
+    )
+    if elevation.search("tonalElevation = 0.dp,") or elevation.search("shadowElevation = 0.dp"):
+        raise SystemExit("FAIL 0.dp elevation is the refuse and must pass")
+    if elevation.search("tonalElevation = 4.dp") is None:
+        raise SystemExit("FAIL non-zero tonalElevation must fail")
     print("ok  equal-to-ceiling passes")
     print(f"ok  growth fails: {grew}")
     print("ok  drop still passes")
     print(f"ok  advisory ceiling 0 fails closed: {haptic}")
+    print("ok  elevation 0.dp is refuse; 4.dp is blocking")
     print("test_checker_skips: all assertions passed")
     return 0
 

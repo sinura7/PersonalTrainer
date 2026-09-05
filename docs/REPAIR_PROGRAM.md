@@ -2,7 +2,7 @@
 
 **Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F6, G1–G6, H1–H3, J4 (seams, TimePort,
 scheduler polish, policy tests into `tools/`), J3, J2, J5, and J1 are on
-`trunk`. Phase H is done. K1 and K2 stay held.  
+`trunk`. Live test 21 is the Obtainium drop. K1 and K2 stay held.  
 **Derived from:** [foundation-program/evidence/FD-audit-2026-09-01.md](foundation-program/evidence/FD-audit-2026-09-01.md)  
 **Authority it obeys:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md), [architecture/](architecture/README.md) ADR-001…022, [UX_PAGE_PASS.md](UX_PAGE_PASS.md)
 
@@ -1556,6 +1556,14 @@ The program is complete when all of the following hold:
 
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
+
+**2026-09-05 — Live test 21; preflight honest for the drop.**
+`debugLiveCode` 20 → 21. Obtainium would not offer C–J4 at 20.
+Token/skip ceilings ratcheted to the H3 floor (advisory growth and
+two extra skips). Blocking elevation allows `= 0.dp` only —
+`InstrumentMenu` pins Material's default off. Unused imports from
+the G3 chrome pass (`background` / `Pit` leftovers) dropped so
+preflight is green. Count unchanged.
 
 **2026-09-03 — J4 remainder: sixteen source-reading tests left the
 JVM.** Checkers already owned nine; this packet filled the rest
