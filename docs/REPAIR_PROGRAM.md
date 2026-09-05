@@ -1557,6 +1557,13 @@ The program is complete when all of the following hold:
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
 
+**2026-09-05 — Lint publisher: eight Compose findings, not a baseline.**
+`lintDebug` is the Obtainium attach step. Window size reads
+`LocalWindowInfo.containerDpSize`. Thumbs read `LocalResources`.
+`HorizonPicker` puts `modifier` first among optionals.
+`instrumentAnimateItem` stays on `LazyItemScope` (`animateItem` is
+not a `Modifier` factory). Count unchanged.
+
 **2026-09-05 — Live test 21; preflight honest for the drop.**
 `debugLiveCode` 20 → 21. Obtainium would not offer C–J4 at 20.
 Token/skip ceilings ratcheted to the H3 floor (advisory growth and

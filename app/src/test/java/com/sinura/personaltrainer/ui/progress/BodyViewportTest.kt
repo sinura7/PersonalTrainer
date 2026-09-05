@@ -35,7 +35,7 @@ class BodyViewportTest {
         assertTrue("HeatLegend() must still be composed", legendAt >= 0)
         assertTrue("figure panel must still be composed", panelAt >= 0)
         assertTrue("legend must sit above the figure panel", legendAt < panelAt)
-        assertTrue(bodyMap.contains("LocalConfiguration.current.screenHeightDp"))
+        assertTrue(bodyMap.contains("LocalWindowInfo.current.containerDpSize"))
         assertTrue(bodyMap.contains("figureHeightDp("))
         assertTrue(!bodyMap.contains("440.dp"))
         assertTrue(!bodyMap.contains("PANEL_HEIGHT"))

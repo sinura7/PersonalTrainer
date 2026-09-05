@@ -28,13 +28,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import com.sinura.personaltrainer.domain.BodyHeatCopy
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
@@ -74,7 +75,7 @@ fun BodyMapCard(
     modifier: Modifier = Modifier,
 ) {
     val panelHeight = BodyViewport.figureHeightDp(
-        LocalConfiguration.current.screenHeightDp,
+        LocalWindowInfo.current.containerDpSize.height.value.roundToInt(),
     ).dp
     Column(
         modifier = modifier.fillMaxWidth(),

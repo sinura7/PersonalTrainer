@@ -64,6 +64,7 @@ fun recordEnter(): EnterTransition =
             fadeIn(tween(Motion.FAST))
     }
 
+@Suppress("ModifierFactoryExtensionFunction") // animateItem is LazyItemScope-only
 @Composable
 fun LazyItemScope.instrumentAnimateItem(): Modifier =
     if (LocalReducedMotion.current) {

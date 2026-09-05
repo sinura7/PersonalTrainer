@@ -378,8 +378,8 @@ internal fun HorizonPicker(
     horizon: AnalyticsHorizon,
     totals: HorizonTotals?,
     onSelect: (AnalyticsHorizon) -> Unit,
-    progress: HorizonProgress? = null,
     modifier: Modifier = Modifier,
+    progress: HorizonProgress? = null,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),

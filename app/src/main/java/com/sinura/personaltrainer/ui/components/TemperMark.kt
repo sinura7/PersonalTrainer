@@ -8,7 +8,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -26,7 +26,7 @@ fun TemperMark(
     modifier: Modifier = Modifier,
     size: Dp = TemperMarkSize,
 ) {
-    val resources = LocalContext.current.resources
+    val resources = LocalResources.current
     val art = R.drawable.temper_front_heat
     val still by produceState<ImageBitmap?>(
         initialValue = ThumbCache.peek(art, ThumbCache.MARK_SAMPLE),
