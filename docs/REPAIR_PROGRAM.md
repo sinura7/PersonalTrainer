@@ -1557,6 +1557,14 @@ The program is complete when all of the following hold:
 *Every deviation from this plan gets a dated line here, with the old line
 struck and the reason given.*
 
+**2026-09-05 — Obtainium attach waiting on a hosted runner.**
+`debugLiveCode` 21 is on `trunk`. `lintDebug` is green here.
+`debug-live.yml` started once (lint red, then fixed) then later
+jobs died in 2s with empty steps — no runner. Do not bump 21
+again. Do not `gh release create`. Sideload the Cursor APK onto
+Temper Debug until a `debug-live-*` pre-release exists. Count
+unchanged.
+
 **2026-09-05 — Lint publisher: eight Compose findings, not a baseline.**
 `lintDebug` is the Obtainium attach step. Window size reads
 `LocalWindowInfo.containerDpSize`. Thumbs read `LocalResources`.
