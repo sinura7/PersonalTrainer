@@ -25,11 +25,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.RestFinishFlash
@@ -199,7 +200,9 @@ private fun RestFloorBody(
                 kicker = kicker,
                 running = rest.running || justFinished,
                 finished = justFinished,
-                ringSize = LandscapeChrome.ringSizeDp(LocalConfiguration.current.screenHeightDp).dp,
+                ringSize = LandscapeChrome.ringSizeDp(
+                    LocalWindowInfo.current.containerDpSize.height.value.roundToInt(),
+                ).dp,
                 modifier = Modifier.testTag(RestFloorTags.RING),
                 clockTestTag = RestFloorTags.CLOCK,
             )

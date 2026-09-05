@@ -22,7 +22,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -148,7 +148,7 @@ fun ExerciseThumb(
     val view = thumbViewFor(primary)
     val pose = poseFor(exercise.movementKey)
     val art = keyedArtwork(exercise.imageKey) ?: artworkFor(pose = pose, view = view)
-    val resources = LocalContext.current.resources
+    val resources = LocalResources.current
     val still by produceState<ImageBitmap?>(
         initialValue = ThumbCache.peek(art, ThumbCache.THUMB_SAMPLE),
         key1 = art,

@@ -55,9 +55,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -66,6 +66,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
@@ -178,8 +179,11 @@ fun ActiveWorkoutScreen(
     val rest by viewModel.restTimerState.collectAsStateWithLifecycle()
     val microRec by viewModel.microRec.collectAsStateWithLifecycle()
     val extraSetRequested by viewModel.extraSetRequested.collectAsStateWithLifecycle()
-    val config = LocalConfiguration.current
-    val landscape = LandscapeChrome.isLandscape(config.screenWidthDp, config.screenHeightDp)
+    val windowDp = LocalWindowInfo.current.containerDpSize
+    val landscape = LandscapeChrome.isLandscape(
+        widthDp = windowDp.width.value.roundToInt(),
+        heightDp = windowDp.height.value.roundToInt(),
+    )
     val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
     val personalRecord by viewModel.personalRecord.collectAsStateWithLifecycle()
     val deletedSet by viewModel.deletedSet.collectAsStateWithLifecycle()

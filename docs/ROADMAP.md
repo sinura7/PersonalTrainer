@@ -16,8 +16,8 @@
 > `Signed:` in this file.
 >
 > 5 Sep 2026 — Obtainium live test 21 (`debugLiveCode` 21, tag
-> `debug-live-2026-09-05`): C–J4 repair train on Temper Debug. Pull
-> Obtainium on Temper Debug. Gym-floor Temper unchanged.
+> `debug-live-2026-09-05`): C–J4 plus lint publisher so the drop
+> attaches. Pull Obtainium on Temper Debug. Gym-floor Temper unchanged.
 >
 > 3 Sep 2026 — H1: History horizon names PRs and the lift that moved
 > most; calendar opens on this week; Home last session is a signed
