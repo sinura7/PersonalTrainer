@@ -71,7 +71,10 @@ class ForeignControlsTest {
         assertEquals(5, menuSites.size)
         assertEquals(3, snackbarHosts.size)
         assertTrue(readOwned("ui/components/InstrumentSwitch.kt").contains("fun InstrumentSwitch("))
-        assertTrue(readOwned("ui/components/InstrumentMenu.kt").contains("fun InstrumentMenu("))
+        val menu = readOwned("ui/components/InstrumentMenu.kt")
+        assertTrue(menu.contains("fun InstrumentMenu("))
+        assertTrue(menu.contains("tonalElevation = 0.dp"))
+        assertTrue(menu.contains("shadowElevation = 0.dp"))
     }
 
     private fun readOwned(relative: String): String {

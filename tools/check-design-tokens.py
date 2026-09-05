@@ -44,8 +44,8 @@ BLOCKING = [
     ),
     (
         "elevation",
-        re.compile(r"\b(?:tonalElevation|shadowElevation)\s*="),
-        "elevation — depth is the surface ladder plus a hairline, never a shadow or a tonal tint",
+        re.compile(r"\b(?:tonalElevation|shadowElevation)\s*=\s*(?!0\.dp\b)\S+"),
+        "elevation — depth is the surface ladder plus a hairline, never a shadow or a tonal tint. 0.dp is the refuse (InstrumentMenu pins Material's default off).",
     ),
 ]
 

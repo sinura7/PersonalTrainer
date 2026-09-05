@@ -406,7 +406,7 @@ fun ActiveWorkoutScreen(
                                 val isSelected = lift.exercise.id == state.selectedExerciseId
                                 val logged = session.setsFor(lift.exercise.id)
                                 WorkoutLiftCard(
-                                    state = WorkoutLiftCardState(
+                                    card = WorkoutLiftCardState(
                                         lift = lift,
                                         number = index + 1,
                                         selected = isSelected,
@@ -844,25 +844,25 @@ private data class WorkoutLiftCardEvents(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun WorkoutLiftCard(
-    state: WorkoutLiftCardState,
+    card: WorkoutLiftCardState,
     events: WorkoutLiftCardEvents,
 ) {
-    val lift = state.lift
-    val number = state.number
-    val selected = state.selected
-    val loggedSets = state.loggedSets
-    val latestSetId = state.latestSetId
-    val editingSetId = state.editingSetId
-    val lastPerformance = state.lastPerformance
-    val hint = state.hint
-    val draftWeightKg = state.draftWeightKg
-    val draftReps = state.draftReps
-    val draftWarmup = state.draftWarmup
-    val draftRpe = state.draftRpe
-    val microRec = state.microRec
-    val unit = state.unit
-    val canEdit = state.canEdit
-    val showAddSet = state.showAddSet
+    val lift = card.lift
+    val number = card.number
+    val selected = card.selected
+    val loggedSets = card.loggedSets
+    val latestSetId = card.latestSetId
+    val editingSetId = card.editingSetId
+    val lastPerformance = card.lastPerformance
+    val hint = card.hint
+    val draftWeightKg = card.draftWeightKg
+    val draftReps = card.draftReps
+    val draftWarmup = card.draftWarmup
+    val draftRpe = card.draftRpe
+    val microRec = card.microRec
+    val unit = card.unit
+    val canEdit = card.canEdit
+    val showAddSet = card.showAddSet
     val onSelect = events.onSelect
     val onSwap = events.onSwap
     val onRemove = events.onRemove
