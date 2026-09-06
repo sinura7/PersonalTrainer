@@ -23,6 +23,9 @@ keystore.properties
 *.jks
 *.keystore
 /release/
+# Temper Debug's distribution signer (debug-live.yml restores it from secrets)
+debug-keystore.properties
+/debug-signing/
 
 # Python bytecode from tools/
 __pycache__/
