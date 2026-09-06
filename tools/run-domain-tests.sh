@@ -146,12 +146,16 @@ TESTS=app/src/test/java/com/sinura/personaltrainer
 EXTRA_MAIN="$SRC/workout/WorkoutDraftCache.kt $SRC/workout/WorkoutDraftRecovery.kt \
             $SRC/timer/RestTimerStore.kt $SRC/timer/RestTimerStatePersistence.kt \
             $SRC/timer/RestAlarmPlan.kt $SRC/timer/CardioTimerPersistence.kt \
-            $SRC/timer/BootSession.kt"
+            $SRC/timer/BootSession.kt \
+            $SRC/diagnostics/DiagnosticRing.kt $SRC/diagnostics/DiagnosticRedaction.kt \
+            $SRC/diagnostics/LastCrashStore.kt"
 # Workout and timer tests are named: StartTrainingDayTest, WorkoutLifecycleUseCasesTest,
 # and RestTimerStatePersistenceTest are Robolectric and cannot compile against these
 # stubs. Keep them out of this lane; Gradle still runs them.
 # FrozenTime is the one testutil helper with no Android imports; OccurrenceGeneratorTest
 # needs it, and leaving it out is how the whole domain lane stopped compiling after J4.
+# diagnostics/ tests are passed whole: DiagnosticMetadata is the one Android file in the
+# main package and is left out above, and the test directory has no Android imports.
 EXTRA_TESTS="$TESTS/util \
              $TESTS/testutil/FrozenTime.kt \
              $TESTS/workout/WorkoutDraftCacheTest.kt \
@@ -159,7 +163,8 @@ EXTRA_TESTS="$TESTS/util \
              $TESTS/timer/RestTimerStoreTest.kt \
              $TESTS/timer/RestTimerRehydratorTest.kt \
              $TESTS/timer/RestAlarmPlanTest.kt \
-             $TESTS/timer/CardioElapsedTest.kt"
+             $TESTS/timer/CardioElapsedTest.kt \
+             $TESTS/diagnostics"
 
 echo "Compiling domain sources..."
 # shellcheck disable=SC2086

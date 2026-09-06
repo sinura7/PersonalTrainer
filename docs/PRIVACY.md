@@ -60,6 +60,11 @@ stack frames. It excludes workout names, weights, notes, bodyweight, emails,
 tokens, database contents, and raw paths. Nothing is uploaded unless you
 share the file yourself.
 
+If the app crashes, that one event — already redacted to the same fields —
+is kept in app-private storage so the next Share diagnostics can include
+it. It is replaced by the next crash and deleted by Settings → Clear
+diagnostics or by uninstalling.
+
 ## Retention, deletion, and export
 
 History stays until you delete a session, restore a backup over it, or

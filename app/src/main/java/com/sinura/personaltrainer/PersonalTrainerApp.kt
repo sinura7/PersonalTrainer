@@ -2,8 +2,10 @@ package com.sinura.personaltrainer
 
 import android.app.Application
 import com.sinura.personaltrainer.data.local.PreMigrationSnapshot
+import com.sinura.personaltrainer.diagnostics.DiagnosticMetadata
 import com.sinura.personaltrainer.diagnostics.DiagnosticRedaction
 import com.sinura.personaltrainer.diagnostics.DiagnosticRing
+import com.sinura.personaltrainer.diagnostics.LastCrashStore
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.reminder.ReminderNotifications
 import com.sinura.personaltrainer.timer.RestTimerNotifications
@@ -14,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicBoolean
 
 class PersonalTrainerApp : Application() {
     // Without the handler, a single SQLite failure inside seeding reached the default
@@ -123,24 +126,45 @@ class PersonalTrainerApp : Application() {
     }
 
     private fun installDiagnosticCapture() {
+        val crashStore = DiagnosticMetadata.crashStore(this)
+        // The ring dies with its process, so the fatal event of the last run — the one the
+        // owner most wants in a bundle — comes back from disk first, before anything in this
+        // process can record over it. Original time, new kind; the file stays until the next
+        // crash replaces it or Settings clears it.
+        runCatching {
+            crashStore.load()?.let { crash ->
+                DiagnosticRing.shared.record(crash.copy(kind = LastCrashStore.PREVIOUS_CRASH_KIND))
+            }
+        }
         AppLog.onError = { tag, error -> recordDiagnostic(tag, error) }
         val previous = Thread.getDefaultUncaughtExceptionHandler()
+        val captured = AtomicBoolean(false)
         Thread.setDefaultUncaughtExceptionHandler { thread, error ->
-            recordDiagnostic("PT/Uncaught", error)
+            // First crash wins and nothing re-enters. A second uncaught exception — another
+            // thread failing during teardown, or a failure inside this block itself — must
+            // neither overwrite the file nor record again; it goes straight to the handler
+            // that was installed before ours, which is always called.
+            if (captured.compareAndSet(false, true)) {
+                runCatching {
+                    val event = redacted(tag = "PT/Uncaught", error = error)
+                    DiagnosticRing.shared.record(event)
+                    crashStore.save(event)
+                }
+            }
             previous?.uncaughtException(thread, error)
         }
     }
 
     private fun recordDiagnostic(tag: String, error: Throwable) {
-        DiagnosticRing.shared.record(
-            DiagnosticRedaction.fromThrowable(
-                error = error,
-                tag = tag,
-                nowMs = System.currentTimeMillis(),
-                id = java.util.UUID.randomUUID().toString(),
-            ),
-        )
+        DiagnosticRing.shared.record(redacted(tag = tag, error = error))
     }
+
+    private fun redacted(tag: String, error: Throwable) = DiagnosticRedaction.fromThrowable(
+        error = error,
+        tag = tag,
+        nowMs = System.currentTimeMillis(),
+        id = java.util.UUID.randomUUID().toString(),
+    )
 
     private companion object {
         const val TAG = "PT/App"

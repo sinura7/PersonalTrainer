@@ -178,7 +178,8 @@ PT_JARS=build/test-jars tools/run-domain-tests.sh
 
 It runs two lanes. **domain** always: `domain/`, `util/`, `logging/`, plus a hand-picked list
 of files elsewhere that carry no Android imports — `WorkoutDraftCache`, `WorkoutDraftRecovery`,
-`RestTimerStore`, `RestTimerStatePersistence` — against `test/…/{domain,util,workout,timer}/`.
+`RestTimerStore`, `RestTimerStatePersistence`, the three pure `diagnostics/` files — against
+`test/…/{domain,util,workout,timer,diagnostics}/`.
 **backup** whenever a Gson jar is present as well: `BackupDocument`/`BackupJson`/
 `BackupValidator` against `test/…/data/backup/`. Both lanes name files individually rather than
 passing directories, because every one of those packages also holds files that *do* need

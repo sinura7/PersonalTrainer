@@ -322,6 +322,7 @@ fun SettingsScreen(
                             context.startActivity(Intent.createChooser(send, "Share diagnostics"))
                         }
                     },
+                    onClear = { DiagnosticMetadata.clear(context) },
                 )
             }
             item(key = "about") {
@@ -1175,18 +1176,23 @@ private fun FoundationGenerationSection() {
 }
 
 @Composable
-private fun DiagnosticsSection(onShare: () -> Unit) {
+private fun DiagnosticsSection(onShare: () -> Unit, onClear: () -> Unit) {
     SettingsGroup(
         title = "Diagnostics",
         caption = "Nothing is sent automatically. A shared bundle names the app, schema, " +
             "and device, plus event IDs, exception classes, and Temper stack frames. It " +
             "never includes workout names, weights, notes, bodyweight, emails, tokens, " +
-            "or backup files.",
+            "or backup files. The last crash is kept on this phone until you clear it.",
     ) {
         SecondaryGymButton(
             text = "Share diagnostics",
             onClick = onShare,
             modifier = Modifier.testTag(SettingsTags.SHARE_DIAGNOSTICS),
+        )
+        SecondaryGymButton(
+            text = "Clear diagnostics",
+            onClick = onClear,
+            modifier = Modifier.testTag(SettingsTags.CLEAR_DIAGNOSTICS),
         )
     }
 }
@@ -1386,6 +1392,7 @@ private val DISPLAY_LABEL_WIDTH = 56.dp
 object SettingsTags {
     const val EXPORT_FILE = "settings-export-file"
     const val SHARE_DIAGNOSTICS = "settings-share-diagnostics"
+    const val CLEAR_DIAGNOSTICS = "settings-clear-diagnostics"
     const val DISPLAY = "settings-display"
     const val BODYWEIGHT = "settings-bodyweight"
     const val REDACT_LOGS = "settings-redact-logs"

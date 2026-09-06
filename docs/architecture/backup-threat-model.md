@@ -68,6 +68,7 @@ encryption.
 | Safety snapshots | `files/safety-snapshots/pre-restore-*.json` | Plaintext JSON of current state; keep newest 3 | N/A (they *are* backups) | No |
 | Restore journal | `files/restore-journal/` | Phase + incoming JSON for a killed restore | No | No |
 | Pre-migration v1 copy | `files/pre-migration/v1/personal_trainer.db` (+ WAL/SHM) | Byte copy taken once before Room v2 | No | No |
+| Last crash | `files/diagnostics/last-crash.txt` | One already-redacted diagnostic event (id, time, kind, exception class, `PT/` tag, Temper frames); no message, no user data | No | No |
 | Workout draft | In-process cache + Activity `SavedStateHandle` | Unlogged set entry | No | OS saved state only |
 | Drive token | `DriveAuthClient` memory | Access token + email | No | No |
 | Logcat | Not persisted by the app | `PT/<Component>` breadcrumbs | No | No |
