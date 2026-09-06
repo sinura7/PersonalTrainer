@@ -17,7 +17,7 @@ test counts are what ran *then*, not what runs now.
 
 | Lane | What it proves | Where it runs | Gate for |
 |---|---|---|---|
-| Static gate: `PT_STATIC_ONLY=1 tools/preflight.sh` | Twenty source checkers, ratchets in `tools/checker-baselines.toml`, syntax check | Any machine with Python 3.10+ and Java 17 (no SDK) | every commit |
+| Static gate: `PT_STATIC_ONLY=1 tools/preflight.sh` | Twenty source checkers, ratchets in `tools/checker-baselines.toml`, syntax check | Any machine with Python 3.11+ (`tomllib`) and Java 17 (no SDK) | every commit |
 | JVM lane: `tools/run-domain-tests.sh <jars>` | `domain/`, `util/`, `logging/`, the named workout/timer/diagnostics files and the backup codec, compiled with `kotlinc` against stubs | same | every commit |
 | Gradle unit: `./gradlew testDebugUnitTest` | The whole JVM suite including Robolectric (Room in memory, ViewModels) | SDK machine, or `ci.yml` on a push | merge into `trunk` |
 | Build + lint: `./gradlew assembleDebug lintDebug` | The APK compiles; no new lint issues past `app/lint-baseline.xml` | same | merge into `trunk` |
@@ -236,8 +236,9 @@ If you add a file to `data/backup/` that has no Android imports, add it to the l
 
 ## Continuous integration
 
-Three workflows exist and are maintained: `ci.yml` (the 17-checker
-static gate, unit tests, blocking lint, a debug APK artifact),
+Three workflows exist and are maintained: `ci.yml` (the static gate —
+twenty checkers today; its comment still says 17 — unit tests, blocking
+lint, a debug APK artifact),
 `release.yml` (tag `v*`, with `tools/check-version-code.py --tag-release`
 against the previous `v*` tag — first `v*` may equal 1; there is no `v*`
 tag yet so the file floor stays 1), and `debug-live.yml` (tag
@@ -256,7 +257,7 @@ A runner **is** assigned and the lanes do run. This paragraph used to
 say the account had none and that every run "dies in seconds before
 checkout — a billing/limits setting only the owner can change". That
 was wrong, and it cost nine sessions: checkout, JDK 17, the Android
-SDK, Gradle 8.11.1 and the 17-checker static gate all complete, and
+SDK, Gradle 8.11.1 and the static gate (17 checkers then) all complete, and
 the run then failed 23-45 s in at `./gradlew testDebugUnitTest` on
 Gradle dependency verification. `gradle/verification-metadata.xml` was
 missing `guava-parent` 33.2.1-jre and 33.4.8-jre,
@@ -327,7 +328,7 @@ Windows wrapper. Both are committed.
 ```
 
 or open Git Bash in the repo folder and run `tools/preflight.sh` directly. They also need
-`python3` (3.10 or newer) on PATH. Every checker reads source as UTF-8 explicitly, so a
+`python3` (3.11 or newer — `tools/checker_baseline.py` reads the ratchets with `tomllib`) on PATH. Every checker reads source as UTF-8 explicitly, so a
 Windows console code page (cp1252) no longer changes their result and `PYTHONUTF8=1` is
 not required. These scripts are the *executor's* pre-push gate; the owner's gate is the
 Gradle commands above plus the on-device checklist, so a missing Git Bash never blocks a
@@ -404,8 +405,9 @@ Obtainium on the phone is the check. They are not the same evening.
   `debug-live-*` pre-release with `PersonalTrainer-*-debug.apk`. The owner
   taps Obtainium. Do not tell them to open Android Studio.
 - **A packet may sit.** Green JVM (`./gradlew testDebugUnitTest` and
-  `assembleDebug`) is enough to open the PR and start the next packet.
-  The phone is what merges it, not what unblocks the next branch.
+  `assembleDebug`) is enough to open the PR, merge it into `trunk` and
+  start the next packet. The phone check gates the gym-floor `v*`
+  release, not the merge (the lanes table at the top of this file).
 - **No two open PRs edit the same Kotlin file.** If the next packet needs a
   file an open PR already owns, it is stacked on that branch. Independent
   packets cut from current `trunk`. A stack merges at the tip only.
