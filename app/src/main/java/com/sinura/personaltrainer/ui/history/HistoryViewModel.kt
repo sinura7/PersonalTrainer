@@ -43,6 +43,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.YearMonth
@@ -185,6 +186,11 @@ class HistoryViewModel @JvmOverloads constructor(
         }
     }
         .flowOn(container.computeDispatcher)
+        // Two collectors (uiState and horizonProgress) used to mean two copies of every
+        // upstream subscription and two assemblies of the same catalog per change. Shared
+        // once within the ViewModel; WhileSubscribed matches uiState so nothing runs while
+        // the screen is off, and replay hands a late collector the current catalog.
+        .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
 
     private val horizonProgress = combine(
         catalog,

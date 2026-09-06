@@ -63,7 +63,7 @@ def param_names(text):
 
 files = kotlin_files(ROOT)
 
-clean = {p: strip_comments_and_strings(open(p).read()) for p in files}
+clean = {p: strip_comments_and_strings(open(p, encoding="utf-8").read()) for p in files}
 decls = collections.defaultdict(list)
 
 # A `private` declaration is visible only inside its own file, so it is recorded with that

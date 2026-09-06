@@ -36,7 +36,7 @@ IMPORT_RE = re.compile(r"\s*import\s+([\w.]+)(?:\s+as\s+(\w+))?\s*$")
 
 found = 0
 for path in kotlin_files(ROOT):
-    src = strip_comments_and_strings(open(path).read())
+    src = strip_comments_and_strings(open(path, encoding="utf-8").read())
     lines = src.split("\n")
     body = "\n".join(line for line in lines if not line.lstrip().startswith("import "))
     for number, line in enumerate(lines, 1):

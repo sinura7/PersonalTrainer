@@ -191,6 +191,22 @@ class ActivityRepository(
     }
 
     /**
+     * Removes one completed activity and its blocks. The strength store has had this since
+     * session repair landed; the activity store did not, which is one row of the
+     * convergence matrix. No screen offers it yet — the instrumented screen passes use it
+     * to take their fixtures back off a real database — and a planner day that pointed at
+     * the row keeps its DONE status, exactly as deleting a finished strength session does.
+     */
+    suspend fun deleteCompleted(sessionId: String) {
+        serialized {
+            database.withTransaction {
+                val row = dao.getSessionRow(sessionId) ?: return@withTransaction
+                if (row.status == "COMPLETED") dao.deleteSession(sessionId)
+            }
+        }
+    }
+
+    /**
      * Completes a live session in place. Used by live cardio: the ACTIVE
      * row keeps its id so process-death recovery can find it, then this
      * writes the final blocks and clears [liveToken].

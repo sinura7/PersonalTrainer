@@ -47,7 +47,7 @@ def paren_end(src, open_paren):
 
 
 files = kotlin_files(ROOT)
-clean = {p: strip_comments_and_strings(open(p).read()) for p in files}
+clean = {p: strip_comments_and_strings(open(p, encoding="utf-8").read()) for p in files}
 
 # type name -> set of case labels
 cases = {}

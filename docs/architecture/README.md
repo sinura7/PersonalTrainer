@@ -67,6 +67,7 @@ No ADR may leave a schema, scheduling, privacy, or entitlement choice as TBD.
 | [time-seams.md](time-seams.md) | P5.1 platform-neutral time, ID, and quantity ports. `java.time` stays out of `domain/`. |
 | [activity-contract.md](activity-contract.md) | P5.2 unified `ActivitySession` contract. Tests before persistence/UI. |
 | [foundation-generation.md](foundation-generation.md) | P5.3–P5.7 `TemperDatabase`, export v3, signed reset, freeze. |
+| [completed-training-convergence.md](completed-training-convergence.md) | 2026-09-06 R18 capability matrix for strength sessions and typed activities, the shared read contract, use cases to extract, parity tests, and the R17 measurement plan. No schema change. |
 
 ## Permanent refusals that remain in force
 

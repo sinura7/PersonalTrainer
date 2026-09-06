@@ -7,6 +7,31 @@ The current program is [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md). Signed
 decisions are [architecture/](architecture/README.md). This file is the
 operational runbook: layout, tests, Windows notes, things that bite you.
 
+## Verification and distribution lanes
+
+One table, current as of the 2026-09-06 handoff
+([HANDOFF-2026-09-06.md](HANDOFF-2026-09-06.md) §1 records the exact
+environment each batch was verified in). Older evidence files under
+`foundation-program/evidence/` are labelled by commit and date; their
+test counts are what ran *then*, not what runs now.
+
+| Lane | What it proves | Where it runs | Gate for |
+|---|---|---|---|
+| Static gate: `PT_STATIC_ONLY=1 tools/preflight.sh` | Twenty source checkers, ratchets in `tools/checker-baselines.toml`, syntax check | Any machine with Python 3.10+ and Java 17 (no SDK) | every commit |
+| JVM lane: `tools/run-domain-tests.sh <jars>` | `domain/`, `util/`, `logging/`, the named workout/timer/diagnostics files and the backup codec, compiled with `kotlinc` against stubs | same | every commit |
+| Gradle unit: `./gradlew testDebugUnitTest` | The whole JVM suite including Robolectric (Room in memory, ViewModels) | SDK machine, or `ci.yml` on a push | merge into `trunk` |
+| Build + lint: `./gradlew assembleDebug lintDebug` | The APK compiles; no new lint issues past `app/lint-baseline.xml` | same | merge into `trunk` |
+| Device journeys: `connectedDebugAndroidTest` on `com.sinura.personaltrainer.debug` | Room migrations, restore, the workout journey, screen passes and goldens | emulator (`temper-tests-api29` profile) | gym-floor `v*` release |
+| Phone: Obtainium **Temper Debug** pre-release | The owner's walk-through on the real phone | the phone | gym-floor `v*` release |
+
+The merge gate is the JVM gate — static gate, Gradle unit, build — as
+[owner-loop](../.cursor/rules/owner-loop.mdc) says; a packet does not
+wait for a phone check. The phone and emulator lanes gate the signed
+gym-floor release, not the merge. Distribution is Obtainium:
+Temper Debug from `debug-live-*` pre-releases signed by the stable
+debug signer ([SETUP.md](../SETUP.md) §6), gym-floor Temper from signed
+`v*` releases.
+
 ## First run
 
 Cursor clones the repo and runs the JVM gate. The owner never has to open
@@ -192,8 +217,10 @@ the script move together. `RestTimerStatePersistence` needs three stubs — `Sys
 throw if anything ever actually calls them. A stub that returned a plausible value instead would
 let the code under test start depending on Android behaviour with nothing noticing.
 
-That expansion took the executed count from 384 to 467. None of the newly reached tests failed,
-which is the good outcome and not the expected one — see the backup lane below.
+That expansion took the executed count from 384 to 467 *at the time* (commit `219b069`'s
+era; the lane on the 2026-09-06 handoff runs 170 classes and 1,175 tests). None of the newly
+reached tests failed, which is the good outcome and not the expected one — see the backup
+lane below.
 
 The backup lane earned its keep the hour it existed. Those four test files had been written
 against backup v1 and never once executed — `./gradlew test` has never run in this
@@ -221,8 +248,9 @@ pre-release Obtainium watches).
 
 They are written and kept correct, but hosted runners are **not the
 merge gate**: the executable gate is `tools/preflight.sh` plus a
-Gradle-capable machine (`./gradlew testDebugUnitTest assembleDebug`)
-and Obtainium on the phone.
+Gradle-capable machine (`./gradlew testDebugUnitTest assembleDebug`).
+Obtainium on the phone gates the gym-floor release, not the merge —
+see the lanes table at the top of this file.
 
 A runner **is** assigned and the lanes do run. This paragraph used to
 say the account had none and that every run "dies in seconds before
@@ -299,7 +327,9 @@ Windows wrapper. Both are committed.
 ```
 
 or open Git Bash in the repo folder and run `tools/preflight.sh` directly. They also need
-`python3` on PATH. These scripts are the *executor's* pre-push gate; the owner's gate is the
+`python3` (3.10 or newer) on PATH. Every checker reads source as UTF-8 explicitly, so a
+Windows console code page (cp1252) no longer changes their result and `PYTHONUTF8=1` is
+not required. These scripts are the *executor's* pre-push gate; the owner's gate is the
 Gradle commands above plus the on-device checklist, so a missing Git Bash never blocks a
 phase — it only means preflight is run by the executor rather than re-run locally.
 

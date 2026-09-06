@@ -96,8 +96,10 @@ backup/restore stamps; rest-timer runtime state.
 
 - Settings → Export to file / Import file.
 - Default export: versioned envelope (`temper-backup-envelope`) wrapping
-  the same `BackupJson` document. KDF is PBKDF2-HMAC-SHA256 (210,000
-  iterations). Cipher is AES-256-GCM with a random salt and nonce.
+  the same `BackupJson` document. KDF is PBKDF2-HMAC-SHA256 at
+  `BackupEnvelope.DEFAULT_ITERATIONS` (600,000 at this commit; the
+  constant in code is authoritative, and a file carries its own count up
+  to `MAX_ITERATIONS`). Cipher is AES-256-GCM with a random salt and nonce.
   Password is typed at export and at import; it is not stored.
 - Advanced export: plaintext JSON after an explicit warning. Anyone who
   can read that file can read bodyweight and the full finished history.

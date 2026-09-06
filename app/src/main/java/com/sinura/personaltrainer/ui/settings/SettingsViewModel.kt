@@ -688,6 +688,10 @@ class SettingsViewModel @JvmOverloads constructor(
                 }
                 val json = container.backupRepository.readSafetySnapshot(id)
                 val payload = withContext(container.computeDispatcher) {
+                    // A safety copy is written by restore without a size check. Refuse a
+                    // copy the document budget would not let back in before spending the
+                    // key derivation on it: the protected file would be refused at import.
+                    BackupScaleBudget.requireExportable(payload = json, protected = false)
                     // 600,000 PBKDF2 iterations plus AES-GCM over the whole history. This
                     // ran on Main — the regular protected export already went through
                     // the repository's IO dispatcher, this path called wrap() directly.
