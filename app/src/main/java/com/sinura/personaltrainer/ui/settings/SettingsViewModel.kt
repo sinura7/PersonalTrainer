@@ -687,19 +687,21 @@ class SettingsViewModel @JvmOverloads constructor(
                     )
                 }
                 val json = container.backupRepository.readSafetySnapshot(id)
-                val payload = if (password != null) {
+                val payload = withContext(container.computeDispatcher) {
                     // 600,000 PBKDF2 iterations plus AES-GCM over the whole history. This
                     // ran on Main — the regular protected export already went through
                     // the repository's IO dispatcher, this path called wrap() directly.
-                    withContext(container.computeDispatcher) {
+                    val built = if (password != null) {
                         BackupEnvelope.wrap(json, password, envelopeIterations)
+                    } else {
+                        json
                     }
-                } else {
-                    json
+                    // A safety copy is written by restore without a size check; the export
+                    // of it is held to the same contract as every other export. The check
+                    // is a byte count over the whole payload, so it stays off Main too.
+                    BackupScaleBudget.requireExportable(payload = built, protected = password != null)
+                    built
                 }
-                // A safety copy is written by restore without a size check; the export of
-                // it is held to the same contract as every other export.
-                BackupScaleBudget.requireExportable(payload = payload, protected = password != null)
                 withContext(container.ioDispatcher) {
                     val resolver = getApplication<Application>().contentResolver
                     resolver.openOutputStream(uri, "wt")?.use { stream ->

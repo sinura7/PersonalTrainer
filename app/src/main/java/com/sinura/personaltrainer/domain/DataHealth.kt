@@ -60,4 +60,14 @@ object DataHealthCopy {
 
     const val RESTORE_UNAVAILABLE =
         "Could not read whether a workout is live. Restore refused."
+
+    /** A single activity's read threw. Not the same thing as a row that is not there. */
+    const val ACTIVITY_TITLE = "Session unavailable"
+    const val ACTIVITY_BODY =
+        "That activity could not be read. Nothing was changed. Retry, or go back."
+
+    /** The live cardio row's read threw. The session is neither finished nor discarded. */
+    const val LIVE_CARDIO_TITLE = "Live cardio unavailable"
+    const val LIVE_CARDIO_BODY =
+        "That live session could not be read. It has not been finished or discarded. Retry."
 }

@@ -84,10 +84,22 @@ class ActivityComposerViewModel @JvmOverloads constructor(
     private val clock: com.sinura.personaltrainer.domain.TimePort = JvmTime,
 ) : AppViewModel(application, container) {
     private val mode = MutableStateFlow(parseMode(savedStateHandle.get<String>("mode")))
-    private val title = MutableStateFlow("")
-    private val epochDay = MutableStateFlow(clock.captureNow().localEpochDay)
-    private val strength = MutableStateFlow<List<ComposerStrengthLine>>(emptyList())
-    private val cardio = MutableStateFlow<List<ComposerCardioLine>>(emptyList())
+
+    /**
+     * The typed draft, mirrored into saved state on every change. Rotation kept this
+     * ViewModel; background process death recreated it with an empty title, today's date and
+     * no lines, while correctly keeping the plan link — so the retyped session was the only
+     * thing about the day that was lost.
+     */
+    private val draft = SavedStateComposerDraft(savedStateHandle)
+    private val title = MutableStateFlow(draft.title())
+    private val epochDay = MutableStateFlow(
+        // A restored day is clamped like a picked one: the clock may have moved on.
+        draft.epochDay()?.coerceAtMost(clock.captureNow().localEpochDay)
+            ?: clock.captureNow().localEpochDay,
+    )
+    private val strength = MutableStateFlow(draft.strength())
+    private val cardio = MutableStateFlow(draft.cardio())
     private val catalog = MutableStateFlow<List<Exercise>>(emptyList())
     private val error = MutableStateFlow<String?>(null)
     private val saving = MutableStateFlow(false)
@@ -150,6 +162,7 @@ class ActivityComposerViewModel @JvmOverloads constructor(
     fun setTitle(value: String) {
         title.value = value
         error.value = null
+        rememberDraft()
     }
 
     fun dismissError() {
@@ -160,6 +173,7 @@ class ActivityComposerViewModel @JvmOverloads constructor(
         val today = clock.captureNow().localEpochDay
         epochDay.value = value.coerceAtMost(today)
         error.value = null
+        rememberDraft()
     }
 
     fun shiftDay(delta: Long) {
@@ -173,10 +187,12 @@ class ActivityComposerViewModel @JvmOverloads constructor(
         }
         strength.value = strength.value + ComposerStrengthLine(exercise, weightKg, reps)
         error.value = null
+        rememberDraft()
     }
 
     fun removeStrength(index: Int) {
         strength.value = strength.value.filterIndexed { i, _ -> i != index }
+        rememberDraft()
     }
 
     fun addCardio(type: CardioType, minutes: Int, distanceKm: Double?, indoor: Boolean) {
@@ -186,10 +202,30 @@ class ActivityComposerViewModel @JvmOverloads constructor(
         }
         cardio.value = cardio.value + ComposerCardioLine(type, minutes, distanceKm, indoor)
         error.value = null
+        rememberDraft()
     }
 
     fun removeCardio(index: Int) {
         cardio.value = cardio.value.filterIndexed { i, _ -> i != index }
+        rememberDraft()
+    }
+
+    /**
+     * The owner chose to leave without saving. The nav entry goes with them, but the
+     * draft is cleared explicitly so nothing about "leave" depends on how the back stack
+     * happens to be torn down.
+     */
+    fun discardDraft() {
+        draft.clear()
+    }
+
+    private fun rememberDraft() {
+        draft.write(
+            title = title.value,
+            epochDay = epochDay.value,
+            strength = strength.value,
+            cardio = cardio.value,
+        )
     }
 
     fun save() {
@@ -201,6 +237,9 @@ class ActivityComposerViewModel @JvmOverloads constructor(
             write.onSuccess { result ->
                 when (result) {
                     is ActivityWrite.Accepted -> {
+                        // Only an accepted write spends the draft, like the plan link: a
+                        // rejected or thrown save keeps everything typed for the retry.
+                        draft.clear()
                         error.value = null
                         _savedId.value = result.session.id
                     }

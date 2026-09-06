@@ -9,6 +9,8 @@ import com.sinura.personaltrainer.domain.ActivityWrite
 import com.sinura.personaltrainer.domain.CardioBlock
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.testutil.ActivityReadGate
+import com.sinura.personaltrainer.testutil.FailingGetGraphDao
 import com.sinura.personaltrainer.util.JvmTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -115,14 +117,70 @@ class LiveCardioViewModelTest {
         assertNull(deps.cardioTimerPersistence.load())
     }
 
+    @Test
+    fun recreationKeepsTheChangedInputs() = runBlocking {
+        val now = JvmTime.captureNow()
+        val started = deps.startLiveActivity("Easy run", listOf(runBlock()), now)
+        val live = (started as ActivityWrite.Accepted).session
+        val handle = SavedStateHandle(mapOf("sessionId" to live.id))
+        val first = createViewModel(handle)
+        first.uiState.first { it.session != null }
+        first.setType(CardioType.WALK)
+        first.setIndoor(true)
+        first.setDistanceKm("2.5")
+        first.clearAndJoinForTest()
+
+        // The row still says RUN outdoors; the owner's later choices must win over it.
+        val state = createViewModel(handle).uiState.first { it.session != null }
+        assertEquals(CardioType.WALK, state.type)
+        assertTrue(state.indoor)
+        assertEquals("2.5", state.distanceKm)
+    }
+
+    @Test
+    fun aFailedReadIsUnavailableNotGoneAndRetries() = runBlocking {
+        val gate = ActivityReadGate(shouldFail = false)
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            activityDaoDecorator = { FailingGetGraphDao(it, gate) },
+        )
+        val now = JvmTime.captureNow()
+        val started = deps.startLiveActivity("Easy run", listOf(runBlock()), now)
+        val live = (started as ActivityWrite.Accepted).session
+        gate.shouldFail = true
+
+        val vm = createViewModel(live.id)
+        val failed = vm.uiState.first { it.failed }
+        assertFalse("a read fault is not a gone session", failed.missing)
+        assertNull(failed.session)
+
+        gate.shouldFail = false
+        vm.retry()
+        val loaded = vm.uiState.first { it.session != null }
+        assertFalse(loaded.failed)
+        assertEquals(live.id, loaded.session?.id)
+        assertEquals(live.id, deps.activityRepository.getLive()?.id)
+    }
+
     private fun createViewModel(
         sessionId: String,
+        elapsedRealtime: () -> Long = { 0L },
+        wallClock: () -> Long = { 0L },
+    ): LiveCardioViewModel = createViewModel(
+        handle = SavedStateHandle(mapOf("sessionId" to sessionId)),
+        elapsedRealtime = elapsedRealtime,
+        wallClock = wallClock,
+    )
+
+    private fun createViewModel(
+        handle: SavedStateHandle,
         elapsedRealtime: () -> Long = { 0L },
         wallClock: () -> Long = { 0L },
     ): LiveCardioViewModel =
         LiveCardioViewModel(
             application = ApplicationProvider.getApplicationContext(),
-            savedStateHandle = SavedStateHandle(mapOf("sessionId" to sessionId)),
+            savedStateHandle = handle,
             container = deps,
             elapsedRealtime = elapsedRealtime,
             wallClock = wallClock,

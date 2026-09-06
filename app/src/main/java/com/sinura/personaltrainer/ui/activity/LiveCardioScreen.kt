@@ -30,6 +30,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.CardioCopy
 import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.DistanceUnit
 import com.sinura.personaltrainer.domain.LiveSessionRules
 import com.sinura.personaltrainer.domain.NumericEntry
@@ -69,7 +70,7 @@ fun LiveCardioScreen(
         onFinished(id)
     }
 
-    BackHandler(enabled = !state.missing) { confirmLeave = true }
+    BackHandler(enabled = !state.missing && !state.failed) { confirmLeave = true }
 
     if (confirmLeave) {
         LeaveCardioDialog(
@@ -102,7 +103,7 @@ fun LiveCardioScreen(
 
     Scaffold(
         bottomBar = {
-            if (!state.missing) {
+            if (!state.missing && !state.failed) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     HairlineDivider(startIndent = 0.dp)
                     CardioActionDock(
@@ -126,6 +127,27 @@ fun LiveCardioScreen(
                     .padding(padding)
                     .padding(Metrics.gutter),
             )
+            return@Scaffold
+        }
+        if (state.failed) {
+            // A read fault, not a gone session: the row is still live, so no dock (nothing
+            // to finish against yet) and no leave dialog — just the retry and the way out.
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(Metrics.gutter),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+            ) {
+                EmptyState(
+                    title = DataHealthCopy.LIVE_CARDIO_TITLE,
+                    body = DataHealthCopy.LIVE_CARDIO_BODY,
+                    actionLabel = DataHealthCopy.RETRY,
+                    onAction = viewModel::retry,
+                    actionTag = CardioTags.RETRY,
+                )
+                SecondaryGymButton(text = "Back", onClick = onExit)
+            }
             return@Scaffold
         }
         Column(
@@ -252,4 +274,5 @@ object CardioTags {
     const val FINISH = "live-cardio-finish"
     const val LEAVE = "live-cardio-leave"
     const val DISCARD = "live-cardio-discard"
+    const val RETRY = "live-cardio-retry"
 }

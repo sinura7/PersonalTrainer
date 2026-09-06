@@ -15,17 +15,21 @@ import com.sinura.personaltrainer.domain.CardioBlock
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.CivilDateTime
+import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.IdPort
+import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.StrengthBlock
 import com.sinura.personaltrainer.domain.StrengthSet
 import com.sinura.personaltrainer.util.JvmTime
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -239,6 +243,108 @@ class ActivityRepositoryTest {
         repo.completeLive((started as ActivityWrite.Accepted).session.id, now, JvmTime)
 
         assertEquals(listOf("occ-1"), cleared)
+    }
+
+    @Test
+    fun aFailingReminderCleanupDoesNotUnsaveTheActivity() = runBlocking {
+        // The commit is durable before the cleanup runs. A throw from WorkManager used to
+        // escape as a save failure, and the composer's retry wrote the day twice.
+        val repo = ActivityRepository(
+            database = database,
+            onOccurrenceCompleted = { error("WorkManager is unavailable") },
+        )
+
+        val write = repo.confirm(
+            draft(
+                ActivityOrigin.BACKDATED,
+                ActivityStatus.COMPLETED,
+                morning,
+                listOf(run()),
+            ).copy(occurrenceId = "occ-1"),
+            now,
+            ids(),
+            JvmTime,
+        )
+
+        assertTrue(write.toString(), write is ActivityWrite.Accepted)
+        assertEquals(1, database.activityDao().sessionCount())
+        assertEquals("occ-1", repo.all().single().occurrenceId)
+    }
+
+    @Test
+    fun aFailingCleanupAfterALiveFinishStillFinishes() = runBlocking {
+        val repo = ActivityRepository(
+            database = database,
+            onOccurrenceCompleted = { error("WorkManager is unavailable") },
+        )
+        val started = repo.confirm(
+            draft(
+                ActivityOrigin.LIVE,
+                ActivityStatus.ACTIVE,
+                morning,
+                listOf(run()),
+            ).copy(occurrenceId = "occ-1"),
+            now,
+            ids(),
+            JvmTime,
+        )
+        val liveId = (started as ActivityWrite.Accepted).session.id
+
+        val finished = repo.completeLive(liveId, now, JvmTime)
+
+        assertTrue(finished.toString(), finished is ActivityWrite.Accepted)
+        assertNull(repo.getLive())
+        assertEquals(ActivityStatus.COMPLETED, repo.get(liveId)?.status)
+    }
+
+    @Test
+    fun cleanupCancellationStillPropagatesAfterTheCommit() = runBlocking {
+        // Cancellation of the caller is not a cleanup failure and must not be swallowed
+        // into an Accepted; the row is committed either way.
+        val repo = ActivityRepository(
+            database = database,
+            onOccurrenceCompleted = { throw CancellationException("caller went away") },
+        )
+        val draft = draft(
+            ActivityOrigin.BACKDATED,
+            ActivityStatus.COMPLETED,
+            morning,
+            listOf(run()),
+        ).copy(occurrenceId = "occ-1")
+
+        assertThrows(CancellationException::class.java) {
+            runBlocking { repo.confirm(draft, now, ids(), JvmTime) }
+        }
+        assertEquals(1, database.activityDao().sessionCount())
+    }
+
+    @Test
+    fun completedStrengthSetsFeedRecordsWithTheBlocksOwnSnapshot() = runBlocking {
+        repository.confirm(
+            draft(ActivityOrigin.BACKDATED, ActivityStatus.COMPLETED, evening, listOf(squat()), "Evening"),
+            now,
+            ids(),
+            JvmTime,
+        )
+        // A live row's sets are not records yet.
+        val liveSquat = squat().let { block ->
+            block.copy(id = "blk-squat-live", sets = block.sets.map { it.copy(id = "set-live") })
+        }
+        repository.confirm(
+            draft(ActivityOrigin.LIVE, ActivityStatus.ACTIVE, now, listOf(liveSquat)),
+            now,
+            ids(),
+            JvmTime,
+        )
+
+        val health = repository.observeRecordSetsHealth().first()
+        val sets = (health as DataHealth.Available).value
+        val only = sets.single()
+        assertEquals("ex-squat", only.exerciseId)
+        assertEquals("Squat", only.exerciseName)
+        assertEquals(LoadClass.LOADED, only.loadClass)
+        assertEquals(100.0, only.set.weightKg, 0.0)
+        assertEquals(morning.instantMillis, only.set.completedAt)
     }
 
     @Test

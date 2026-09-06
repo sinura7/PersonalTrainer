@@ -400,6 +400,33 @@ interface WorkoutDao {
     )
     fun observeBestWorkingWeights(): Flow<List<ExerciseBestWeightRow>>
 
+    /**
+     * Every finished working set of every lift, with the lift's name and load type, for the
+     * lifetime records list. A flat projection on purpose: the alternative was the full
+     * session graph of the whole log, which is what the History screen used to avoid by
+     * reading only 32 days and calling the result "Records". The name and class come from
+     * the library row the session relation reads too, so a deleted lift (which the catalog
+     * refuses while sets reference it) reads as unnamed and loaded rather than dropping out.
+     */
+    @Query(
+        """
+        SELECT sl.id AS setId,
+               sl.sessionId AS sessionId,
+               sl.exerciseId AS exerciseId,
+               e.name AS exerciseName,
+               e.loadType AS loadType,
+               sl.weightKg AS weightKg,
+               sl.reps AS reps,
+               sl.completedAt AS completedAt
+        FROM set_logs sl
+        JOIN workout_sessions ws ON ws.id = sl.sessionId
+        LEFT JOIN exercises e ON e.id = sl.exerciseId
+        WHERE sl.isWarmup = 0
+          AND ws.finishedAt IS NOT NULL
+        """,
+    )
+    suspend fun finishedWorkingSetRecords(): List<RecordSetRow>
+
     @Query("SELECT COUNT(*) FROM set_logs WHERE exerciseId = :exerciseId")
     suspend fun countSetsForExercise(exerciseId: String): Int
 

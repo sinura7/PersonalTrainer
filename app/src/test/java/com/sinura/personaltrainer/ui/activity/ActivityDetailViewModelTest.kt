@@ -15,6 +15,8 @@ import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.StrengthBlock
 import com.sinura.personaltrainer.domain.StrengthSet
+import com.sinura.personaltrainer.testutil.ActivityReadGate
+import com.sinura.personaltrainer.testutil.FailingGetGraphDao
 import com.sinura.personaltrainer.util.JvmTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -104,6 +106,41 @@ class ActivityDetailViewModelTest {
         assertEquals(40, state.cardioMinutes)
         assertEquals(40, state.durationMinutes)
         assertEquals(0.0, state.volumeKg, 0.0001)
+    }
+
+    @Test
+    fun aFailedReadIsUnavailableNotMissingAndRetries() = runBlocking {
+        val gate = ActivityReadGate(shouldFail = false)
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            activityDaoDecorator = { FailingGetGraphDao(it, gate) },
+        )
+        val now = JvmTime.captureNow()
+        val write = deps.confirmActivity(
+            ActivityDraft(
+                status = ActivityStatus.COMPLETED,
+                origin = ActivityOrigin.BACKDATED,
+                title = "Squat day",
+                performedStart = now,
+                performedEnd = now,
+                blocks = listOf(squat(now.instantMillis)),
+            ),
+            now,
+        )
+        val session = (write as ActivityWrite.Accepted).session
+        gate.shouldFail = true
+
+        val vm = createViewModel(session.id)
+        val failed = vm.uiState.first { !it.isLoading }
+        assertTrue(failed.failed)
+        assertFalse("a read fault must not read as a deleted activity", failed.missing)
+
+        gate.shouldFail = false
+        vm.retry()
+        val loaded = vm.uiState.first { !it.isLoading && !it.failed }
+        assertEquals(session.id, loaded.session?.id)
+        assertEquals(1, deps.activityRepository.all().size)
     }
 
     private fun createViewModel(activityId: String): ActivityDetailViewModel =

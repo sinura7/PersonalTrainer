@@ -7,7 +7,9 @@ import com.sinura.personaltrainer.data.local.TrainerDatabase
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
+import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.ProgressionAction
@@ -21,6 +23,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -89,6 +92,86 @@ class WorkoutRepositoryInsightsQueriesTest {
         val insights = repository.observeFinishedLastLogged().first()
         assertEquals(START + 10_000, picker.getValue(SQUAT))
         assertEquals(START + 1, insights.getValue(SQUAT))
+    }
+
+    @Test
+    fun recordSetsCarryTheLiftAndSkipLiveAndWarmUpWork() = runBlocking {
+        insertFinishedSession(
+            id = "done",
+            finishedAt = START + 1,
+            sets = listOf(Triple(SQUAT, 100.0, 5)),
+        )
+        database.workoutDao().insertSet(
+            SetLogEntity(
+                id = "done-warm",
+                sessionId = "done",
+                exerciseId = BENCH,
+                setNumber = 9,
+                weightKg = 40.0,
+                reps = 10,
+                rpe = null,
+                isWarmup = true,
+                completedAt = START + 5,
+            ),
+        )
+        insertLiveSession("live")
+        database.workoutDao().insertSet(
+            SetLogEntity(
+                id = "live-$SQUAT-0",
+                sessionId = "live",
+                exerciseId = SQUAT,
+                setNumber = 1,
+                weightKg = 300.0,
+                reps = 5,
+                rpe = null,
+                isWarmup = false,
+                completedAt = START + 10_000,
+            ),
+        )
+
+        val health = repository.observeRecordSetsHealth().first()
+        val sets = (health as DataHealth.Available).value
+        val only = sets.single()
+        assertEquals("done-$SQUAT-0", only.set.setId)
+        assertEquals("Squat", only.exerciseName)
+        assertEquals(LoadClass.LOADED, only.loadClass)
+        assertEquals(100.0, only.set.weightKg, 0.0)
+    }
+
+    @Test
+    fun revisionMovesOnAFinishedEditNotOnALiveSet() = runBlocking {
+        insertFinishedSession(
+            id = "done",
+            finishedAt = START + 1,
+            sets = listOf(Triple(SQUAT, 100.0, 5)),
+        )
+        val before = repository.observeFinishedWorkRevision().first()
+
+        insertLiveSession("live")
+        database.workoutDao().insertSet(
+            SetLogEntity(
+                id = "live-$SQUAT-0",
+                sessionId = "live",
+                exerciseId = SQUAT,
+                setNumber = 1,
+                weightKg = 110.0,
+                reps = 5,
+                rpe = null,
+                isWarmup = false,
+                completedAt = START + 10_000,
+            ),
+        )
+        assertEquals(before, repository.observeFinishedWorkRevision().first())
+
+        // Neither a count nor a timestamp moves for a corrected weight; the sums do.
+        repository.updateSet(
+            setId = "done-$SQUAT-0",
+            weightKg = 105.0,
+            reps = 5,
+            rpe = null,
+            isWarmup = false,
+        )
+        assertNotEquals(before, repository.observeFinishedWorkRevision().first())
     }
 
     @Test

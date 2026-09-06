@@ -7,7 +7,6 @@ import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.repository.RepeatOutcome
 import com.sinura.personaltrainer.domain.AnalyticsHorizon
-import com.sinura.personaltrainer.domain.ActivitySession
 import com.sinura.personaltrainer.domain.BlockReview
 import com.sinura.personaltrainer.domain.BlockReviewBuilder
 import com.sinura.personaltrainer.domain.BodyweightEntry
@@ -21,6 +20,7 @@ import com.sinura.personaltrainer.domain.HorizonMath
 import com.sinura.personaltrainer.domain.HorizonProgress
 import com.sinura.personaltrainer.domain.HorizonTotals
 import com.sinura.personaltrainer.domain.PrSummaryRow
+import com.sinura.personaltrainer.domain.RecordSet
 import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.TrainingCalendarBuilder
 import com.sinura.personaltrainer.domain.TrainingBlock
@@ -28,10 +28,8 @@ import com.sinura.personaltrainer.domain.TrainingMonth
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.groupHistoryByMonth
-import com.sinura.personaltrainer.domain.prSummary
+import com.sinura.personaltrainer.domain.standingRecords
 import com.sinura.personaltrainer.domain.toHistoryEntry
-import com.sinura.personaltrainer.domain.toInsightSession
-import com.sinura.personaltrainer.insights.TrainingInsightsSource
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.util.toCivilYearMonth
@@ -56,6 +54,12 @@ data class HistoryUiState(
     val stale: Boolean = false,
     val summaries: List<SessionSummary> = emptyList(),
     val monthGroups: List<HistoryMonthGroup> = emptyList(),
+    /**
+     * Lifetime standing bests, one per lift, newest first. Independent of [horizon]: the
+     * chips retotal the period and the readout's PRs count is period-scoped, but a best is
+     * a claim about the whole log. This used to be built from the 32-day insight window, so
+     * a stronger lift older than a month vanished and a weaker recent set wore the label.
+     */
     val records: List<PrSummaryRow> = emptyList(),
     val calendar: TrainingMonth = TrainingMonth(month = CivilYearMonth(1970, 1)),
     val weekStart: Weekday = Weekday.MONDAY,
@@ -91,16 +95,21 @@ class HistoryViewModel @JvmOverloads constructor(
 
     private val historyRetry = MutableStateFlow(0)
 
+    /**
+     * The invalidation contract for every derived read below. Both keys used to guess at
+     * content identity — the horizon readout from list size and newest id, the block reviews
+     * from the last weigh-in — and neither moved when a finished set was edited, deleted or
+     * restored, so the PRs and mover stayed stale until the horizon was switched.
+     */
+    private val revision = container.workoutRepository.observeFinishedWorkRevision()
+
     private val pastBlockReviews = combine(
         container.preferencesRepository.pastBlocks,
         container.preferencesRepository.weightUnit,
         container.preferencesRepository.bodyweightLog,
-    ) { blocks, unit, log -> PastBlockInputs(blocks, unit, log) }
-        .distinctUntilChanged { a, b ->
-            a.blocks == b.blocks &&
-                a.unit == b.unit &&
-                a.lastWeighIn == b.lastWeighIn
-        }
+        revision,
+    ) { blocks, unit, log, finishedWork -> PastBlockInputs(blocks, unit, log, finishedWork) }
+        .distinctUntilChanged()
         .flatMapLatest { inputs ->
             flow {
                 val zone = time.defaultZoneId()
@@ -140,41 +149,38 @@ class HistoryViewModel @JvmOverloads constructor(
         combine(
             combine(
                 container.workoutRepository.observeSessionSummariesHealth(),
-                container.activityRepository.observeCompletedSummaries(),
-                combine(
-                    container.workoutRepository.observeFinishedSince(
-                        time.nowMillis() - TrainingInsightsSource.WINDOW_MS,
-                    ),
-                    container.activityRepository.observeCompletedGraphsSince(
-                        time.nowMillis() - TrainingInsightsSource.WINDOW_MS,
-                    ),
-                ) { workouts, activities -> workouts to activities },
-            ) { health, activitySummaries, windowed ->
-                HistoryReads(health, activitySummaries, windowed.first, windowed.second)
-            },
+                container.activityRepository.observeCompletedSummariesHealth(),
+                revision,
+            ) { health, activities, finishedWork -> HistoryReads(health, activities, finishedWork) },
+            combine(
+                container.workoutRepository.observeRecordSetsHealth(),
+                container.activityRepository.observeRecordSetsHealth(),
+            ) { workouts, activities -> RecordReads(workouts, activities) },
             combine(
                 container.preferencesRepository.schedulePreferences,
                 pastBlockReviews,
             ) { preferences, reviews -> preferences to reviews },
-        ) { reads, settings ->
+        ) { reads, recordReads, settings ->
             val list = historyListFromHealth(reads.health)
             if (list.unavailable) {
                 return@combine HistoryCatalog(unavailable = true)
             }
-            val allSummaries = list.summaries + reads.activitySummaries
+            val activities = sidecarFromHealth(reads.activitySummaries)
+            val workoutRecords = sidecarFromHealth(recordReads.workouts)
+            val activityRecords = sidecarFromHealth(recordReads.activities)
+            val allSummaries = list.summaries + activities.value
             val preferences = settings.first
             HistoryCatalog(
                 unavailable = false,
-                stale = list.stale,
+                stale = list.stale || activities.stale || workoutRecords.stale || activityRecords.stale,
                 summaries = allSummaries,
                 monthGroups = groupHistoryByMonth(allSummaries.map { it.toHistoryEntry() }),
-                records = prSummary(
-                    reads.windowed + reads.windowedActivities.mapNotNull { it.toInsightSession() },
-                ),
+                records = standingRecords(workoutRecords.value + activityRecords.value),
                 weekStart = preferences.weekStart,
                 pastBlocks = settings.second,
                 projections = DailyProjectionBuilder.project(allSummaries),
                 today = civilToday(),
+                revision = reads.revision,
             )
         }
     }
@@ -199,8 +205,7 @@ class HistoryViewModel @JvmOverloads constructor(
                 startEpochDay = start,
                 endEpochDay = end,
                 unit = unit,
-                sessionCount = cat.summaries.size,
-                newestId = cat.summaries.maxByOrNull { it.finishedAt ?: it.date }?.id,
+                revision = cat.revision,
             )
         }
     }
@@ -331,29 +336,39 @@ class HistoryViewModel @JvmOverloads constructor(
         historyRetry.value += 1
     }
 
+    /**
+     * What decides whether the horizon readout is recomputed. The revision replaces the old
+     * session count and newest id: those never moved for an edit, and a longer key that
+     * still ignored content would have been the same bug with more fields.
+     */
     private data class HorizonProgressKey(
         val startEpochDay: Long,
         val endEpochDay: Long,
         val unit: WeightUnit,
-        val sessionCount: Int,
-        val newestId: String?,
+        val revision: String,
     )
 
     private data class HistoryReads(
         val health: DataHealth<List<SessionSummary>>,
-        val activitySummaries: List<SessionSummary>,
-        val windowed: List<com.sinura.personaltrainer.domain.WorkoutSession>,
-        val windowedActivities: List<ActivitySession>,
+        val activitySummaries: DataHealth<List<SessionSummary>>,
+        val revision: String,
     )
 
+    private data class RecordReads(
+        val workouts: DataHealth<List<RecordSet>>,
+        val activities: DataHealth<List<RecordSet>>,
+    )
+
+    /**
+     * Compared whole, not by proxy. The log is small (one row per weigh-in) and any entry in
+     * it can change what a block's opening or closing weight was.
+     */
     private data class PastBlockInputs(
         val blocks: List<TrainingBlock>,
         val unit: WeightUnit,
         val bodyweightLog: List<BodyweightEntry>,
-    ) {
-        val lastWeighIn: Pair<Long, Double>?
-            get() = bodyweightLog.maxByOrNull { it.epochDay }?.let { it.epochDay to it.kg }
-    }
+        val revision: String,
+    )
 
     private data class HistoryCatalog(
         val unavailable: Boolean = false,
@@ -365,6 +380,7 @@ class HistoryViewModel @JvmOverloads constructor(
         val pastBlocks: List<FinishedBlock> = emptyList(),
         val projections: List<DailyProjection> = emptyList(),
         val today: CivilDate = CivilDate.of(1970, 1, 1),
+        val revision: String = "",
     )
 
     private fun yearMonthOf(date: CivilDate): YearMonth = YearMonth.of(date.year, date.month)
@@ -395,5 +411,24 @@ internal fun historyListFromHealth(
         summaries = health.lastValue,
     )
 }
+
+/**
+ * A read that rides alongside the workout list: activity summaries, record sets.
+ *
+ * These never make the screen unavailable on their own — the workout list decides that —
+ * but a failed one must not read as "no activities" or "no records" either. It contributes
+ * what it last had (or nothing) and marks the screen stale, so the caption says the page may
+ * be behind instead of the section quietly vanishing.
+ */
+internal data class HistorySidecar<T>(
+    val value: List<T>,
+    val stale: Boolean,
+)
+
+internal fun <T> sidecarFromHealth(health: DataHealth<List<T>>): HistorySidecar<T> =
+    HistorySidecar(
+        value = health.presentValue().orEmpty(),
+        stale = health !is DataHealth.Available,
+    )
 
 private const val TAG = "PT/HistoryViewModel"

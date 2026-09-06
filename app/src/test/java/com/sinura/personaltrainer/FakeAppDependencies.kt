@@ -25,6 +25,7 @@ import com.sinura.personaltrainer.activity.DiscardActivity
 import com.sinura.personaltrainer.activity.FinishActivity
 import com.sinura.personaltrainer.activity.StartLiveActivity
 import com.sinura.personaltrainer.data.local.TemperDatabase
+import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.repository.ActivityRepository
 import com.sinura.personaltrainer.data.repository.BackupRepository
 import com.sinura.personaltrainer.timer.CardioTimerPersistence
@@ -106,6 +107,17 @@ class FakeAppDependencies(
      * "Room committed, preferences did not" branch without a seam in production code.
      */
     prefsStoreDecorator: (DataStore<Preferences>) -> DataStore<Preferences> = { it },
+    /**
+     * Wraps the activity DAO before the repository sees it. Read-fault tests hand in a
+     * delegate whose one read throws on demand, the same seam the routine editor's
+     * hydration tests use, so a screen can be shown a Room failure without one.
+     */
+    activityDaoDecorator: (ActivityDao) -> ActivityDao = { it },
+    /**
+     * Replaces the reminder cleanup that runs after an activity commits. Null keeps the
+     * production wiring; a throwing one reproduces the cleanup failure R06 is about.
+     */
+    occurrenceCleanup: (suspend (String) -> Unit)? = null,
 ) : AppDependencies {
     /**
      * Real threads, not the test scheduler. See the constructor KDoc on why Room stays
@@ -168,9 +180,13 @@ class FakeAppDependencies(
             trainingBlockDao = database.trainingBlockDao(),
         )
     override val activityRepository: ActivityRepository = ActivityRepository(
-        database,
+        database = database,
+        dao = activityDaoDecorator(database.activityDao()),
         dbMaintenance = dbMaintenance,
-        onOccurrenceCompleted = { plannerRepository.cancelRemindersFor(it) },
+        onOccurrenceCompleted = { occurrenceId ->
+            occurrenceCleanup?.invoke(occurrenceId)
+                ?: plannerRepository.cancelRemindersFor(occurrenceId)
+        },
         restoreBlocksStart = { backupRepository.restoreBlocksStart() },
     )
     override val confirmActivity: ConfirmActivity =

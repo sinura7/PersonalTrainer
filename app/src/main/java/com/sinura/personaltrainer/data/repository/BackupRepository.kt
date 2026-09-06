@@ -25,6 +25,7 @@ import com.sinura.personaltrainer.data.backup.DriveSession
 import com.sinura.personaltrainer.data.backup.NetworkChecker
 import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -565,7 +566,12 @@ class BackupRepository(
         launchResolution: suspend (IntentSender) -> Boolean,
     ): DriveSession {
         val session = driveAuthClient.authorize(activity, launchResolution)
-        val email = runCatching { driveRestClient.fetchAccountEmail(session.accessToken) }
+        // The lookup names the account; it does not authorise anything. A failure keeps the
+        // sign-in and falls back to the label, but is logged so a 401 or a dead network is
+        // distinguishable from success in the diagnostics — and cancellation propagates
+        // instead of being read as "no email".
+        val email = runCatchingCancellable { driveRestClient.fetchAccountEmail(session.accessToken) }
+            .onFailure { thrown -> AppLog.w(TAG, "Drive account lookup failed; using the label", thrown) }
             .getOrNull()
             ?.ifBlank { null }
             ?: session.email
