@@ -1,13 +1,14 @@
 package com.sinura.personaltrainer.data.backup
 
 import com.google.gson.JsonParser
-import java.io.IOException
-import java.net.HttpURLConnection
-import java.net.URL
 import java.net.URLEncoder
 import java.time.Instant
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 
-class DriveRestClient {
+class DriveRestClient(
+    private val http: DriveHttp = HttpUrlConnectionDriveHttp(),
+) {
     suspend fun ensureBackupFolder(accessToken: String, knownFolderId: String?): String {
         if (!knownFolderId.isNullOrBlank() && folderExists(accessToken, knownFolderId)) {
             return knownFolderId
@@ -17,24 +18,42 @@ class DriveRestClient {
         return createFolder(accessToken)
     }
 
-    fun listBackups(accessToken: String, folderId: String): List<DriveBackupFile> {
+    /**
+     * Every backup in the folder, newest first, following Drive's page tokens.
+     *
+     * One `pageSize=50` request used to be the whole answer, so the 51st-newest backup
+     * and everything older could not be restored from Settings, and "Found 50 backups."
+     * counted the page (R13). Drive returns short pages, and empty pages that still carry
+     * a token, so a page is only the last one when it has no `nextPageToken`.
+     *
+     * Bounded on both axes — [MAX_LISTED_BACKUPS] files, [MAX_LIST_PAGES] requests — so a
+     * folder someone has filled cannot turn a refresh into an unbounded walk. Hitting a
+     * bound while a token remains is reported as [DriveBackupListing.truncated] rather
+     * than passed off as the whole folder. A page failure propagates the transport's
+     * [BackupException]; nothing partial is returned.
+     *
+     * Suspends only to observe cancellation: a refresh the user has left must not keep
+     * paging on the IO thread.
+     */
+    suspend fun listBackups(accessToken: String, folderId: String): DriveBackupListing {
         val query = "'$folderId' in parents and trashed = false and name contains '${BackupJson.FILE_PREFIX}'"
-        val url = buildString {
-            append("$DRIVE_FILES?pageSize=50")
-            append("&orderBy=modifiedTime+desc")
-            append("&fields=files(id,name,modifiedTime)")
-            append("&q=").append(urlEncode(query))
-            append("&spaces=drive")
-        }
-        val body = request(accessToken, url, "GET")
-        val files = JsonParser.parseString(body).asJsonObject.getAsJsonArray("files") ?: return emptyList()
-        return files.map { element ->
-            val obj = element.asJsonObject
-            DriveBackupFile(
-                id = obj.get("id").asString,
-                name = obj.get("name").asString,
-                modifiedAtMillis = parseTime(obj.get("modifiedTime")?.asString),
-            )
+        val files = ArrayList<DriveBackupFile>()
+        var pageToken: String? = null
+        var pages = 0
+        while (true) {
+            currentCoroutineContext().ensureActive()
+            val page = parseListPage(request(accessToken, listPageUrl(query, pageToken), "GET"))
+            pages += 1
+            val room = MAX_LISTED_BACKUPS - files.size
+            files.addAll(page.files.take(room))
+            val moreInDrive = page.files.size > room || page.nextPageToken != null
+            if (!moreInDrive) {
+                return DriveBackupListing(files = files, truncated = false)
+            }
+            if (files.size >= MAX_LISTED_BACKUPS || pages >= MAX_LIST_PAGES) {
+                return DriveBackupListing(files = files, truncated = true)
+            }
+            pageToken = page.nextPageToken
         }
     }
 
@@ -111,72 +130,53 @@ class DriveRestClient {
         return JsonParser.parseString(body).asJsonObject.get("id").asString
     }
 
+    private fun listPageUrl(query: String, pageToken: String?): String = buildString {
+        append("$DRIVE_FILES?pageSize=$LIST_PAGE_SIZE")
+        append("&orderBy=modifiedTime+desc")
+        append("&fields=nextPageToken,files(id,name,modifiedTime)")
+        append("&q=").append(urlEncode(query))
+        append("&spaces=drive")
+        if (pageToken != null) {
+            append("&pageToken=").append(urlEncode(pageToken))
+        }
+    }
+
+    private class ListPage(
+        val files: List<DriveBackupFile>,
+        val nextPageToken: String?,
+    )
+
+    private fun parseListPage(body: String): ListPage {
+        val obj = JsonParser.parseString(body).asJsonObject
+        val files = obj.getAsJsonArray("files")?.map { element ->
+            val file = element.asJsonObject
+            DriveBackupFile(
+                id = file.get("id").asString,
+                name = file.get("name").asString,
+                modifiedAtMillis = parseTime(file.get("modifiedTime")?.asString),
+            )
+        }.orEmpty()
+        // A blank token is no token: asking Drive for page "" would loop to the cap.
+        val token = obj.get("nextPageToken")
+            ?.takeUnless { it.isJsonNull }
+            ?.asString
+            ?.ifBlank { null }
+        return ListPage(files = files, nextPageToken = token)
+    }
+
     private fun request(
         accessToken: String,
         url: String,
         method: String,
         contentType: String? = null,
         body: String? = null,
-    ): String {
-        val connection = (URL(url).openConnection() as HttpURLConnection).apply {
-            requestMethod = method
-            connectTimeout = 20_000
-            readTimeout = 30_000
-            setRequestProperty("Authorization", "Bearer $accessToken")
-            if (contentType != null) {
-                setRequestProperty("Content-Type", contentType)
-            }
-            if (body != null) {
-                doOutput = true
-                outputStream.use { stream ->
-                    stream.write(body.toByteArray(Charsets.UTF_8))
-                }
-            }
-        }
-        return try {
-            val code = connection.responseCode
-            // Bounded: the Drive folder is writable by anything holding the account,
-            // and an unbounded readText of a planted multi-hundred-MB file OOM-kills
-            // the app. No genuine backup or API reply approaches the budget.
-            val text = (if (code in 200..299) connection.inputStream else connection.errorStream)
-                ?.use { stream ->
-                    val bytes = stream.readAtMost(BackupScaleBudget.IMPORT_BYTES_MAX + 1)
-                    if (bytes.size > BackupScaleBudget.IMPORT_BYTES_MAX) {
-                        throw BackupException(BackupScaleBudget.TOO_BIG_TO_IMPORT)
-                    }
-                    bytes.toString(Charsets.UTF_8)
-                }
-                .orEmpty()
-            if (code == 401) {
-                throw BackupException("Google sign-in expired. Sign in again.")
-            }
-            if (code == 403) {
-                throw BackupException("Drive access was denied.")
-            }
-            if (code !in 200..299) {
-                throw BackupException(driveErrorMessage(code, text))
-            }
-            text
-        } catch (error: BackupException) {
-            throw error
-        } catch (error: IOException) {
-            throw BackupException("Connect to the internet to use Google Drive.")
-        } finally {
-            connection.disconnect()
-        }
-    }
-
-    private fun driveErrorMessage(code: Int, body: String): String {
-        val message = try {
-            JsonParser.parseString(body).asJsonObject
-                .getAsJsonObject("error")
-                ?.get("message")
-                ?.asString
-        } catch (_: Exception) {
-            null
-        }
-        return message?.ifBlank { null } ?: "Google Drive request failed ($code)."
-    }
+    ): String = http.call(
+        accessToken = accessToken,
+        url = url,
+        method = method,
+        contentType = contentType,
+        body = body,
+    )
 
     private fun parseTime(value: String?): Long {
         if (value.isNullOrBlank()) return 0L
@@ -191,6 +191,14 @@ class DriveRestClient {
         URLEncoder.encode(value, Charsets.UTF_8.name())
 
     companion object {
+        /**
+         * Ceilings on one listing. Past either, Drive is asked nothing more and the
+         * answer says it is cut. 500 backups is years of daily exports; 20 requests
+         * is what a folder of short pages costs before the refresh is judged stuck.
+         */
+        const val MAX_LISTED_BACKUPS = 500
+        const val MAX_LIST_PAGES = 20
+        private const val LIST_PAGE_SIZE = 50
         private const val DRIVE_FILES = "https://www.googleapis.com/drive/v3/files"
         private const val DRIVE_UPLOAD = "https://www.googleapis.com/upload/drive/v3/files"
         private const val DRIVE_ABOUT = "https://www.googleapis.com/drive/v3/about"

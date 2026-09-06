@@ -15,6 +15,7 @@ import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.BackupScaleBudget
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
+import com.sinura.personaltrainer.data.backup.DriveBackupListing
 import com.sinura.personaltrainer.data.backup.RestoreJournal
 import com.sinura.personaltrainer.data.backup.RestoreRecovery
 import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
@@ -558,12 +559,23 @@ class SettingsViewModel @JvmOverloads constructor(
 
     fun refreshBackups(activity: Activity) {
         runBackupAction("Loading backups…") {
-            backups.value = container.backupRepository.listBackups(activity, ::awaitResolution)
-            status.value = if (backups.value.isEmpty()) {
-                "No backups in Drive yet."
-            } else {
-                "Found ${backups.value.size} backup${if (backups.value.size == 1) "" else "s"}."
-            }
+            val listing = container.backupRepository.listBackups(activity, ::awaitResolution)
+            backups.value = listing.files
+            status.value = describeListing(listing)
+        }
+    }
+
+    /**
+     * "Found N" is a claim about the whole folder. A listing that hit its ceiling while
+     * Drive still had a page to give is only the newest N, and says so (R13).
+     */
+    private fun describeListing(listing: DriveBackupListing): String {
+        val count = listing.files.size
+        val noun = if (count == 1) "backup" else "backups"
+        return when {
+            listing.truncated -> "Showing the newest $count $noun. Older ones exist in Drive."
+            count == 0 -> "No backups in Drive yet."
+            else -> "Found $count $noun."
         }
     }
 

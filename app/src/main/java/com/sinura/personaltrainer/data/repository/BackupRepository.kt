@@ -19,6 +19,7 @@ import com.sinura.personaltrainer.data.backup.RestoreWitness
 import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
 import com.sinura.personaltrainer.data.backup.DriveAuthClient
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
+import com.sinura.personaltrainer.data.backup.DriveBackupListing
 import com.sinura.personaltrainer.data.backup.DriveRestClient
 import com.sinura.personaltrainer.data.backup.DriveSession
 import com.sinura.personaltrainer.data.backup.NetworkChecker
@@ -100,7 +101,7 @@ class BackupRepository(
     suspend fun listBackups(
         activity: Activity,
         launchResolution: suspend (IntentSender) -> Boolean,
-    ): List<DriveBackupFile> = withContext(ioDispatcher) {
+    ): DriveBackupListing = withContext(ioDispatcher) {
         networkChecker.requireOnline()
         val session = rememberAuthorizedSession(activity, launchResolution)
         val folderId = driveRestClient.ensureBackupFolder(

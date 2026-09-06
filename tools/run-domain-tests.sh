@@ -13,11 +13,13 @@
 # Two lanes:
 #   domain — always. domain/, util/, logging/ against test/.../domain/.
 #   backup — when a Gson jar is present. BackupDocument/BackupJson/BackupValidator
-#            against test/.../data/backup/. These three files are the only ones in
-#            data/backup/ with no Android imports; the Drive HTTP clients are
-#            excluded by name rather than by directory for exactly that reason.
-#            DriveAboutJson and DriveFolderJson stay in the lane: they are
-#            Gson-only parsers. The lane exists because a silent backup defect
+#            against test/.../data/backup/. Files are named one by one because the
+#            directory also holds DriveAuthClient (Play Services) and NetworkChecker
+#            (Android connectivity), which cannot link here. DriveAboutJson and
+#            DriveFolderJson are Gson-only parsers; DriveHttp and DriveRestClient are
+#            java.net plus Gson, and the client takes its transport as a constructor
+#            argument so its paging runs against a fake without a socket.
+#            The lane exists because a silent backup defect
 #            costs the owner their entire training history, and four test files
 #            sat here never once executed.
 #
@@ -180,7 +182,8 @@ case "$CP" in
     for f in BackupDocument.kt BackupJson.kt BackupValidator.kt AuthoredInventory.kt \
              SafetySnapshot.kt SafetySnapshotStore.kt RestoreJournal.kt RestoreJournalStore.kt \
              RestoreWitness.kt \
-             BackupEnvelope.kt BackupScaleBudget.kt DriveAboutJson.kt DriveFolderJson.kt; do
+             BackupEnvelope.kt BackupScaleBudget.kt DriveAboutJson.kt DriveFolderJson.kt \
+             DriveHttp.kt DriveRestClient.kt; do
       [ -f "$BACKUP/$f" ] || { echo "FAILED: $BACKUP/$f is missing." >&2; exit 1; }
       BACKUP_SRC="$BACKUP_SRC $BACKUP/$f"
     done
