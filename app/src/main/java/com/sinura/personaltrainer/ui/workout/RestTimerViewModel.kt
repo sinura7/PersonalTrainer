@@ -98,13 +98,19 @@ class RestTimerViewModel @JvmOverloads constructor(
     val uiState: StateFlow<RestTimerScreenState> = combine(
         session,
         sessionResolved,
-        combine(restTimer.remainingSeconds, restTimer.snapshot, restTotal, restTimer.lastCompletedTimerId) {
-                remaining, snapshot, planned, completedId ->
+        combine(
+            restTimer.remainingSeconds,
+            restTimer.snapshot,
+            restTotal,
+            restTimer.lastCompletedTimerId,
+            restTimer.persistenceHealthy,
+        ) { remaining, snapshot, planned, completedId, healthy ->
             RestTimerUiState(
                 remainingSeconds = remaining,
                 totalSeconds = if (snapshot.running) snapshot.totalSeconds else planned,
                 running = snapshot.running,
                 completedTimerId = completedId,
+                persistenceHealthy = healthy,
             )
         },
         combine(hint, lighterWeek, container.preferencesRepository.weightUnit) { currentHint, lighter, unit ->

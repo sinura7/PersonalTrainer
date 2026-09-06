@@ -199,6 +199,11 @@ class FakeAppDependencies(
     fun setExactAlarmAttempt(attempt: ExactAlarmAttempt) {
         inMemoryRestTimer.setAttempt(attempt)
     }
+
+    /** What the production controller publishes after a rest row failed to commit. */
+    fun setRestPersistenceHealthy(healthy: Boolean) {
+        inMemoryRestTimer.setPersistenceHealthy(healthy)
+    }
     override val workoutDraftCache: WorkoutDraftCache = WorkoutDraftCache()
     override val finishWorkout: FinishWorkout = FinishWorkout(
         workoutRepository = workoutRepository,
@@ -299,6 +304,7 @@ private class InMemoryRestTimerGateway(
     private var elapsedRealtimeMs: Long = 0L
     private val _lastAlarmSchedule = MutableStateFlow(AlarmScheduleResult.EXACT)
     private val _exactAlarmAttempt = MutableStateFlow(ExactAlarmAttempt.EXACT)
+    private val _persistenceHealthy = MutableStateFlow(true)
 
     override val snapshot: StateFlow<RestTimerSnapshot> = store.snapshot
     override val remainingSeconds: Flow<Int> = snapshot
@@ -311,9 +317,14 @@ private class InMemoryRestTimerGateway(
     override val lastCompletedTimerId: StateFlow<String?> = _lastCompletedTimerId
     override val lastAlarmSchedule: StateFlow<AlarmScheduleResult> = _lastAlarmSchedule
     override val exactAlarmAttempt: StateFlow<ExactAlarmAttempt> = _exactAlarmAttempt
+    override val persistenceHealthy: StateFlow<Boolean> = _persistenceHealthy
 
     fun setAttempt(attempt: ExactAlarmAttempt) {
         _exactAlarmAttempt.value = attempt
+    }
+
+    fun setPersistenceHealthy(healthy: Boolean) {
+        _persistenceHealthy.value = healthy
     }
 
     override fun markCompleted(timerId: String) {
@@ -341,13 +352,15 @@ private class InMemoryRestTimerGateway(
 private class InMemoryCardioTimerPersistence : CardioTimerPersistence {
     private var stored: PersistedCardioTimer? = null
 
-    override fun save(state: PersistedCardioTimer) {
+    override fun save(state: PersistedCardioTimer): Boolean {
         stored = state
+        return true
     }
 
     override fun load(): PersistedCardioTimer? = stored
 
-    override fun clear() {
+    override fun clear(): Boolean {
         stored = null
+        return true
     }
 }

@@ -35,10 +35,16 @@ data class PersistedRestTimer(
     val bootCount: Long = BootSession.UNKNOWN,
 )
 
+/**
+ * [save] and [clear] report whether the row reached disk. The controller arms
+ * the wakeup only on a true [save]: an alarm whose row never landed is one the
+ * receiver reads as already completed, so the rest ends in silence after a
+ * process kill. Dropping the Boolean was how that path stayed invisible.
+ */
 interface RestTimerStatePersistence {
-    fun save(state: PersistedRestTimer)
+    fun save(state: PersistedRestTimer): Boolean
     fun load(): PersistedRestTimer?
-    fun clear()
+    fun clear(): Boolean
 }
 
 class SharedPrefsRestTimerStatePersistence(context: Context) : RestTimerStatePersistence {
@@ -47,7 +53,7 @@ class SharedPrefsRestTimerStatePersistence(context: Context) : RestTimerStatePer
         .getSharedPreferences("rest_timer_state", Context.MODE_PRIVATE)
 
     @Suppress("ApplySharedPref")
-    override fun save(state: PersistedRestTimer) {
+    override fun save(state: PersistedRestTimer): Boolean {
         // The store layer is clock-pure, so the boot stamp lands here.
         val bootCount = state.bootCount.takeIf { it != BootSession.UNKNOWN }
             ?: BootSession.count(appContext)
@@ -55,7 +61,9 @@ class SharedPrefsRestTimerStatePersistence(context: Context) : RestTimerStatePer
         // and RestTimerAlarmReceiver treats a missing disk row as already
         // completed. An unflushed apply() plus a process kill is a silent
         // missed rest. The controller runs this on IO, not the Log frame.
-        prefs.edit()
+        // commit()'s Boolean is the only word on whether the write landed
+        // (full disk, a corrupt prefs file): it goes back to the caller.
+        return prefs.edit()
             .putLong(KEY_ENDS_AT_ELAPSED, state.endsAtElapsedRealtime)
             .putInt(KEY_TOTAL_SECONDS, state.totalSeconds)
             .putString(KEY_SESSION_ID, state.sessionId)
@@ -80,9 +88,7 @@ class SharedPrefsRestTimerStatePersistence(context: Context) : RestTimerStatePer
     }
 
     @Suppress("ApplySharedPref")
-    override fun clear() {
-        prefs.edit().clear().commit()
-    }
+    override fun clear(): Boolean = prefs.edit().clear().commit()
 
     private companion object {
         const val KEY_ENDS_AT_ELAPSED = "ends_at_elapsed"

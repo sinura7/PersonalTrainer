@@ -131,7 +131,7 @@ class LiveCardioViewModel @JvmOverloads constructor(
             result.onSuccess { write ->
                 when (write) {
                     is ActivityWrite.Accepted -> {
-                        container.cardioTimerPersistence.clear()
+                        clearTimerRow()
                         _finishedId.value = write.session.id
                     }
                     is ActivityWrite.Rejected -> error.value = write.reason
@@ -148,7 +148,7 @@ class LiveCardioViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             runCatchingCancellable { container.discardActivity(id) }
                 .onSuccess {
-                    container.cardioTimerPersistence.clear()
+                    clearTimerRow()
                     error.value = null
                     missing.value = true
                     session.value = null
@@ -202,7 +202,7 @@ class LiveCardioViewModel @JvmOverloads constructor(
         if (existing?.sessionId == live.id) return
         val nowElapsed = elapsedRealtime()
         val nowWall = wallClock()
-        container.cardioTimerPersistence.save(
+        val saved = container.cardioTimerPersistence.save(
             PersistedCardioTimer(
                 sessionId = live.id,
                 startedAtElapsedRealtime = nowElapsed,
@@ -210,6 +210,23 @@ class LiveCardioViewModel @JvmOverloads constructor(
                 bootMarker = CardioElapsed.bootMarker(nowWall, nowElapsed),
             ),
         )
+        if (!saved) {
+            // Not a user-facing failure. loadAndTick reads the row back each
+            // second and, finding none, CardioElapsed.seconds counts from the
+            // session's own performedStart — so the clock stays honest; it
+            // only loses the elapsedRealtime path across a wall-clock step.
+            AppLog.w(TAG, "Cardio timer row did not commit; elapsed falls back to session start")
+        }
+    }
+
+    /**
+     * A row that outlives its session is harmless — [loadAndTick] matches
+     * rows by session id — but it is still a write that did not happen.
+     */
+    private fun clearTimerRow() {
+        if (!container.cardioTimerPersistence.clear()) {
+            AppLog.w(TAG, "Cardio timer row did not clear; the next session ignores it by id")
+        }
     }
 
     private companion object {

@@ -4,7 +4,9 @@ import com.sinura.personaltrainer.domain.AlarmScheduleResult
 import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * The workout-facing rest timer contract.
@@ -21,6 +23,16 @@ interface RestTimerGateway {
     val lastAlarmSchedule: StateFlow<AlarmScheduleResult>
     val exactAlarmAttempt: StateFlow<ExactAlarmAttempt>
     val lastCompletedTimerId: StateFlow<String?>
+
+    /**
+     * False once a rest row failed to reach disk (a save or a clear whose
+     * commit came back false, or threw); true again after the next commit
+     * that landed. While false, the wakeup is not armed and the rest only
+     * lives as long as the process does. Fakes have no disk, so the default
+     * is always healthy.
+     */
+    val persistenceHealthy: StateFlow<Boolean>
+        get() = ALWAYS_HEALTHY
 
     fun start(totalSeconds: Int, sessionId: String?)
     fun adjust(deltaSeconds: Int)
@@ -61,4 +73,8 @@ interface RestTimerGateway {
      * or revoke that happened in Settings takes effect without restarting.
      */
     fun refreshAlarmCapability() {}
+
+    companion object {
+        private val ALWAYS_HEALTHY: StateFlow<Boolean> = MutableStateFlow(true).asStateFlow()
+    }
 }

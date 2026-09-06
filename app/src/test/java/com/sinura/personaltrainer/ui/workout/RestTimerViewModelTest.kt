@@ -149,6 +149,22 @@ class RestTimerViewModelTest {
     }
 
     @Test
+    fun anUnsavedRestReachesTheFloorStateAndClearsWhenTheRowLands() = runBlocking {
+        val fixture = seedWorkout(restSeconds = 90)
+        val vm = createViewModel(fixture.session.id)
+        val healthy = vm.awaitState { it.loadState == SessionLoadState.FOUND }
+        assertTrue(healthy.rest.persistenceHealthy)
+
+        deps.setRestPersistenceHealthy(false)
+        val unsaved = vm.awaitState { !it.rest.persistenceHealthy }
+        assertFalse(unsaved.rest.persistenceHealthy)
+
+        deps.setRestPersistenceHealthy(true)
+        val landed = vm.awaitState { it.rest.persistenceHealthy }
+        assertTrue(landed.rest.persistenceHealthy)
+    }
+
+    @Test
     fun selectingDurationOnTheFloorUpdatesTheLogPlannedRest() = runBlocking {
         val fixture = seedWorkout(restSeconds = 90)
         val workout = createWorkoutViewModel(fixture.session.id)

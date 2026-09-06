@@ -66,6 +66,7 @@ object RestFloorTags {
     const val CLOSE = "rest-floor-close"
     const val BACK_TO_BAR = "rest-floor-back"
     const val NEXT = "rest-floor-next"
+    const val UNSAVED = "rest-floor-unsaved"
 }
 
 private const val URGENT_SECONDS = 10
@@ -233,6 +234,17 @@ private fun RestFloorBody(
                 color = TextSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+            )
+        }
+        // Same honesty as the Settings best-effort notice: the row did not
+        // reach disk, so the wakeup is not armed and a process kill ends this
+        // rest in silence. One line, not a banner — the countdown still runs.
+        if (rest.running && !rest.persistenceHealthy) {
+            Text(
+                "Rest may not survive leaving the app.",
+                modifier = Modifier.testTag(RestFloorTags.UNSAVED),
+                style = InstrumentType.caption,
+                color = TextSecondary,
             )
         }
 
