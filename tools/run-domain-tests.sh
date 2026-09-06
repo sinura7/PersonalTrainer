@@ -148,7 +148,10 @@ EXTRA_MAIN="$SRC/workout/WorkoutDraftCache.kt $SRC/workout/WorkoutDraftRecovery.
 # Workout and timer tests are named: StartTrainingDayTest, WorkoutLifecycleUseCasesTest,
 # and RestTimerStatePersistenceTest are Robolectric and cannot compile against these
 # stubs. Keep them out of this lane; Gradle still runs them.
+# FrozenTime is the one testutil helper with no Android imports; OccurrenceGeneratorTest
+# needs it, and leaving it out is how the whole domain lane stopped compiling after J4.
 EXTRA_TESTS="$TESTS/util \
+             $TESTS/testutil/FrozenTime.kt \
              $TESTS/workout/WorkoutDraftCacheTest.kt \
              $TESTS/workout/WorkoutDraftRecoveryTest.kt \
              $TESTS/timer/RestTimerStoreTest.kt \
