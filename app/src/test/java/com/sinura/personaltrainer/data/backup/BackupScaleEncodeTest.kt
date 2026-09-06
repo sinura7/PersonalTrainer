@@ -22,9 +22,12 @@ class BackupScaleEncodeTest {
             "encode ${encodeMs}ms exceeded ${BackupScaleBudget.ENCODE_MS}ms",
             encodeMs <= BackupScaleBudget.ENCODE_MS,
         )
+        // UTF-8 bytes, not String.length: a note in Cyrillic is twice as long on disk as
+        // its character count, and the budget is a file size.
+        val encodedBytes = BackupScaleBudget.utf8Length(json)
         assertTrue(
-            "encoded ${json.length} bytes exceeded ${BackupScaleBudget.ENCODED_BYTES_MAX}",
-            json.length.toLong() <= BackupScaleBudget.ENCODED_BYTES_MAX,
+            "encoded $encodedBytes bytes exceeded ${BackupScaleBudget.ENCODED_BYTES_MAX}",
+            encodedBytes <= BackupScaleBudget.ENCODED_BYTES_MAX,
         )
 
         val decodeStarted = System.nanoTime()
@@ -37,7 +40,7 @@ class BackupScaleEncodeTest {
         assertEquals(BackupScaleBudget.SESSIONS, parsed.sessions.size)
         assertEquals(BackupScaleBudget.SETS, parsed.setLogs.size)
         println(
-            "P3.7 encode: ${encodeMs}ms decode: ${decodeMs}ms bytes: ${json.length}",
+            "P3.7 encode: ${encodeMs}ms decode: ${decodeMs}ms bytes: $encodedBytes",
         )
     }
 

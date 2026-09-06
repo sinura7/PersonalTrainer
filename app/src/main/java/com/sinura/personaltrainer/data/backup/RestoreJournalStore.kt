@@ -37,9 +37,24 @@ class RestoreJournalStore(
     }
 
     fun readIncoming(): String {
+        return readIncomingOrNull() ?: throw BackupException(RestoreJournal.INTERRUPTED)
+    }
+
+    /**
+     * The incoming copy, or null when it is not on disk.
+     *
+     * Recovery reads through this rather than [readIncoming] so a `room` journal whose input
+     * is gone is a state it can name — settings lost, journal closed — instead of an
+     * exception it throws on every launch.
+     */
+    fun readIncomingOrNull(): String? {
         val file = File(dir, RestoreJournal.INCOMING_FILE)
-        if (!file.isFile) throw BackupException(RestoreJournal.INTERRUPTED)
-        return file.readText(Charsets.UTF_8)
+        if (!file.isFile) return null
+        return try {
+            file.readText(Charsets.UTF_8)
+        } catch (_: Exception) {
+            null
+        }
     }
 
     fun stage(record: RestoreJournalRecord, incomingJson: String) {
@@ -59,8 +74,10 @@ class RestoreJournalStore(
      * The order matters and it is the opposite of what [stage] writes in. A crash between the
      * two deletes with the state file gone first leaves the decrypted backup on disk with
      * nothing pointing at it — invisible to [isOpen], never swept, and the owner's whole
-     * history in the clear. Losing the state file first is only ever a lost recovery; losing
-     * the incoming file first is at worst a journal [read] immediately discards.
+     * history in the clear. Losing the incoming file first is safe only because every caller
+     * marks [RestoreJournal.DONE] before coming here: a `done` journal with no input is swept
+     * by the next recovery pass, whereas a `room` journal with no input used to throw on every
+     * launch and refuse every workout start.
      */
     fun clear() {
         File(dir, RestoreJournal.INCOMING_FILE).delete()

@@ -803,6 +803,19 @@ class PreferencesRepository(
     val lastRestoreName: Flow<String?> = pref { prefs -> prefs[LAST_RESTORE_NAME] }
 
     /**
+     * A durable note from restore recovery that Settings shows until it is dismissed: an
+     * interrupted restore that finished without its settings, or one whose outcome could
+     * not be verified. Written by BackupRepository only; a screen may clear it.
+     */
+    val restoreRecoveryNote: Flow<String?> = pref { prefs -> prefs[RESTORE_RECOVERY_NOTE] }
+
+    suspend fun setRestoreRecoveryNote(note: String?) {
+        dataStore.edit { prefs ->
+            if (note == null) prefs.remove(RESTORE_RECOVERY_NOTE) else prefs[RESTORE_RECOVERY_NOTE] = note
+        }
+    }
+
+    /**
      * Tracked separately from [setLastBackup]. Restoring used to overwrite the last-backup
      * stamp, so Settings claimed a backup existed as of the restored file's date — the one
      * signal whose whole job is to nag the user into backing up.
@@ -878,6 +891,7 @@ class PreferencesRepository(
         val LAST_BACKUP_NAME = stringPreferencesKey("last_backup_name")
         val LAST_RESTORE_AT = longPreferencesKey("last_restore_at")
         val LAST_RESTORE_NAME = stringPreferencesKey("last_restore_name")
+        val RESTORE_RECOVERY_NOTE = stringPreferencesKey("restore_recovery_note")
         val TRAINING_AGE = stringPreferencesKey("training_age")
         val PREFERRED_DAYS = stringSetPreferencesKey("preferred_days")
         val TRAINING_PLACE = stringPreferencesKey("training_place")

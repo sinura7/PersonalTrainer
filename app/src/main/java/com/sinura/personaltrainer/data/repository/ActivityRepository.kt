@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.data.repository
 
 import android.database.sqlite.SQLiteConstraintException
 import androidx.room.withTransaction
+import com.sinura.personaltrainer.data.backup.RestoreJournal
 import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.mapper.toDomain
@@ -39,6 +40,13 @@ class ActivityRepository(
      * nothing so a test can construct this repository with a database and no scheduler.
      */
     private val onOccurrenceCompleted: suspend (String) -> Unit = {},
+    /**
+     * Mirrors WorkoutRepository: a confirm that lands while a restore journal is in
+     * `staged` or `wiping` would write into tables about to be replaced. Recovery on the
+     * next launch resolves such a journal before any screen can reach here, so this is
+     * the same belt-and-braces refusal strength starts already had.
+     */
+    private val restoreBlocksStart: () -> Boolean = { false },
 ) {
     private suspend fun <T> serialized(block: suspend () -> T): T =
         dbMaintenance?.withMaintenanceLock(block) ?: block()
@@ -84,6 +92,7 @@ class ActivityRepository(
         ids: IdPort,
         clock: TimePort,
     ): ActivityWrite = serialized {
+        if (restoreBlocksStart()) return@serialized ActivityWrite.Rejected(RestoreJournal.INTERRUPTED)
         var completedOccurrenceId: String? = null
         val result = database.withTransaction {
             if ((draft.origin == ActivityOrigin.LIVE || draft.status == ActivityStatus.ACTIVE) &&

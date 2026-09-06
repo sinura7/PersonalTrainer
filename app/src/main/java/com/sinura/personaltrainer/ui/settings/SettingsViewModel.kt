@@ -15,6 +15,8 @@ import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.BackupScaleBudget
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
+import com.sinura.personaltrainer.data.backup.RestoreJournal
+import com.sinura.personaltrainer.data.backup.RestoreRecovery
 import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
 import com.sinura.personaltrainer.data.backup.readAtMost
 import com.sinura.personaltrainer.data.repository.RestorePlan
@@ -71,6 +73,13 @@ data class BackupUiState(
     val pendingPlaintextWarning: Boolean = false,
     val launchExportPicker: Boolean = false,
     val launchSafetyExportPicker: Boolean = false,
+    /**
+     * A restore whose Room half committed but whose settings are still owed: the journal is
+     * open at `room`/`prefs` and Finish restore retries it. Null when nothing is pending.
+     */
+    val restorePending: String? = null,
+    /** A durable note from restore recovery, shown until the owner dismisses it. */
+    val restoreNote: String? = null,
 )
 
 enum class BackupProtectKind { FILE_EXPORT, DRIVE_BACKUP, SAFETY_EXPORT }
@@ -238,6 +247,7 @@ class SettingsViewModel @JvmOverloads constructor(
     private val error = MutableStateFlow<String?>(null)
     private val backups = MutableStateFlow<List<DriveBackupFile>>(emptyList())
     private val safetySnapshots = MutableStateFlow<List<SafetySnapshotMeta>>(emptyList())
+    private val restorePending = MutableStateFlow<String?>(null)
     private val pendingPlan = MutableStateFlow<RestorePlan?>(null)
     private val dialogs = MutableStateFlow(BackupDialogs())
     private var heldPassword: CharArray? = null
@@ -288,7 +298,10 @@ class SettingsViewModel @JvmOverloads constructor(
                 BackupFlags(busy, label, note, err, plan?.toPreview())
             },
             dialogs,
-        ) { flags, gate -> flags.copy(dialogs = gate) },
+            combine(restorePending, container.preferencesRepository.restoreRecoveryNote) { pending, note ->
+                RecoveryUi(pendingSource = pending, note = note)
+            },
+        ) { flags, gate, recovery -> flags.copy(dialogs = gate, recovery = recovery) },
         backups,
         combine(
             container.workoutRepository.observeInProgress(),
@@ -316,6 +329,8 @@ class SettingsViewModel @JvmOverloads constructor(
             pendingPlaintextWarning = flags.dialogs.plaintextWarning,
             launchExportPicker = flags.dialogs.launchExportPicker,
             launchSafetyExportPicker = flags.dialogs.launchSafetyExportPicker,
+            restorePending = flags.recovery.pendingSource,
+            restoreNote = flags.recovery.note,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -576,6 +591,7 @@ class SettingsViewModel @JvmOverloads constructor(
                 plan.sourceName,
                 System.currentTimeMillis(),
             )
+            restorePending.value = container.backupRepository.pendingRecovery()
             reloadSafetySnapshots()
             status.value = describeRestore(result)
         }
@@ -585,7 +601,30 @@ class SettingsViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             runCatchingCancellable { container.backupRepository.recoverInterruptedRestore() }
                 .onFailure { AppLog.w(TAG, "Finishing an interrupted restore failed", it) }
+            runCatchingCancellable {
+                restorePending.value = container.backupRepository.pendingRecovery()
+            }.onFailure { AppLog.w(TAG, "Reading the restore journal failed", it) }
             refreshSafetySnapshots()
+        }
+    }
+
+    /**
+     * Retries the post-commit half of a restore whose preferences write failed. The Room
+     * half is already in; the journal at `room` keeps the incoming copy for exactly this.
+     */
+    fun finishRestore() {
+        runBackupAction("Finishing restore…") {
+            val recovery = container.backupRepository.recoverInterruptedRestore()
+            restorePending.value = container.backupRepository.pendingRecovery()
+            reloadSafetySnapshots()
+            status.value = describeRecovery(recovery)
+        }
+    }
+
+    fun dismissRestoreNote() {
+        viewModelScope.launch {
+            runCatchingCancellable { container.preferencesRepository.setRestoreRecoveryNote(null) }
+                .onFailure { AppLog.w(TAG, "Clearing the restore note failed", it) }
         }
     }
 
@@ -637,10 +676,18 @@ class SettingsViewModel @JvmOverloads constructor(
                 }
                 val json = container.backupRepository.readSafetySnapshot(id)
                 val payload = if (password != null) {
-                    BackupEnvelope.wrap(json, password, envelopeIterations)
+                    // 600,000 PBKDF2 iterations plus AES-GCM over the whole history. This
+                    // ran on Main — the regular protected export already went through
+                    // the repository's IO dispatcher, this path called wrap() directly.
+                    withContext(container.computeDispatcher) {
+                        BackupEnvelope.wrap(json, password, envelopeIterations)
+                    }
                 } else {
                     json
                 }
+                // A safety copy is written by restore without a size check; the export of
+                // it is held to the same contract as every other export.
+                BackupScaleBudget.requireExportable(payload = payload, protected = password != null)
                 withContext(container.ioDispatcher) {
                     val resolver = getApplication<Application>().contentResolver
                     resolver.openOutputStream(uri, "wt")?.use { stream ->
@@ -805,11 +852,21 @@ class SettingsViewModel @JvmOverloads constructor(
     private fun describeRestore(result: RestoreResult): String {
         val base = "Restored ${result.sourceName} — ${result.summary.describe()}. " +
             "A verified copy of the previous data is under Safety copies on this phone."
-        return if (result.preferencesRestored) {
-            base
-        } else {
-            "$base Your training data is in; settings couldn't be applied, so check units and rest defaults."
+        return when {
+            result.preferencesRestored -> base
+            result.settingsPending -> "$base ${RestoreJournal.SETTINGS_PENDING}"
+            else -> "$base Your training data is in; settings couldn't be applied, so check units and rest defaults."
         }
+    }
+
+    private fun describeRecovery(recovery: RestoreRecovery): String = when (recovery) {
+        RestoreRecovery.None -> "Nothing was left to finish."
+        RestoreRecovery.NothingChanged -> RestoreJournal.NOTHING_CHANGED
+        is RestoreRecovery.Finished ->
+            "Finished restoring ${recovery.sourceName}. Settings are applied."
+        is RestoreRecovery.SettingsPending -> RestoreJournal.SETTINGS_PENDING
+        is RestoreRecovery.SettingsLost -> RestoreJournal.SETTINGS_LOST
+        is RestoreRecovery.Unresolved -> RestoreJournal.UNRESOLVED
     }
 
     private fun displayName(uri: Uri): String =
@@ -893,6 +950,12 @@ class SettingsViewModel @JvmOverloads constructor(
         val error: String?,
         val pendingPreview: RestorePreviewUi?,
         val dialogs: BackupDialogs = BackupDialogs(),
+        val recovery: RecoveryUi = RecoveryUi(),
+    )
+
+    private data class RecoveryUi(
+        val pendingSource: String? = null,
+        val note: String? = null,
     )
 
     private data class BackupDialogs(

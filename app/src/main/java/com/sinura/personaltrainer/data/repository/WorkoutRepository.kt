@@ -74,13 +74,18 @@ class WorkoutRepository(
     private val database: AppRoomDatabase,
     private val workoutDao: WorkoutDao,
     private val dbMaintenance: DbMaintenance? = null,
-    private val restoreInProgress: () -> Boolean = { false },
+    /**
+     * True while a restore journal is in a phase that is about to replace Room. From
+     * `room` on the training data is final and a start is allowed; see
+     * [RestoreJournal.blocksStart].
+     */
+    private val restoreBlocksStart: () -> Boolean = { false },
 ) {
     private suspend fun <T> serialized(block: suspend () -> T): T =
         dbMaintenance?.withMaintenanceLock(block) ?: block()
 
     private fun refuseIfRestoreOpen(): StartSessionOutcome.Unavailable? =
-        if (restoreInProgress()) {
+        if (restoreBlocksStart()) {
             StartSessionOutcome.Unavailable(RestoreJournal.INTERRUPTED)
         } else {
             null
@@ -311,10 +316,10 @@ class WorkoutRepository(
         }
 
         val inserted = serialized {
-            if (restoreInProgress()) null
+            if (restoreBlocksStart()) null
             else insertSessionIfIdle(session, exercises)
         } ?: return RepeatOutcome.Failed(
-            if (restoreInProgress()) RestoreJournal.INTERRUPTED
+            if (restoreBlocksStart()) RestoreJournal.INTERRUPTED
             else "One live activity at a time.",
         )
         if (!inserted.inserted) {

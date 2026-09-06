@@ -2,7 +2,9 @@ package com.sinura.personaltrainer
 
 import android.content.Context
 import android.content.ContextWrapper
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
@@ -98,6 +100,12 @@ class FakeAppDependencies(
     override val ioDispatcher: CoroutineDispatcher = scheduler ?: Dispatchers.IO,
     override val computeDispatcher: CoroutineDispatcher = scheduler ?: Dispatchers.Default,
     override val time: com.sinura.personaltrainer.domain.TimePort = JvmTime,
+    /**
+     * Wraps the preferences store before the repository sees it. Restore-recovery tests
+     * hand in a store whose writes fail on demand, which is the only way to reach the
+     * "Room committed, preferences did not" branch without a seam in production code.
+     */
+    prefsStoreDecorator: (DataStore<Preferences>) -> DataStore<Preferences> = { it },
 ) : AppDependencies {
     /**
      * Real threads, not the test scheduler. See the constructor KDoc on why Room stays
@@ -142,13 +150,15 @@ class FakeAppDependencies(
             database,
             database.workoutDao(),
             dbMaintenance,
-            restoreInProgress = { backupRepository.restoreInProgress() },
+            restoreBlocksStart = { backupRepository.restoreBlocksStart() },
         )
     private val prefsContext = IsolatedAppContext(context.applicationContext)
     private val prefsScope = CoroutineScope(SupervisorJob() + prefsDispatcher)
-    private val prefsStore = PreferenceDataStoreFactory.create(
-        scope = prefsScope,
-        produceFile = { File(prefsContext.filesDir, "datastore/user_settings.preferences_pb") },
+    private val prefsStore = prefsStoreDecorator(
+        PreferenceDataStoreFactory.create(
+            scope = prefsScope,
+            produceFile = { File(prefsContext.filesDir, "datastore/user_settings.preferences_pb") },
+        ),
     )
     override val preferencesRepository: PreferencesRepository =
         PreferencesRepository(
@@ -161,6 +171,7 @@ class FakeAppDependencies(
         database,
         dbMaintenance = dbMaintenance,
         onOccurrenceCompleted = { plannerRepository.cancelRemindersFor(it) },
+        restoreBlocksStart = { backupRepository.restoreBlocksStart() },
     )
     override val confirmActivity: ConfirmActivity =
         ConfirmActivity(activityRepository, IdFactory.Uuid, time)
@@ -221,9 +232,10 @@ class FakeAppDependencies(
         startTrainingDay = startTrainingDay,
         startLiveCardio = startLiveCardio,
     )
-    val restoreJournal = RestoreJournalStore(
-        File(context.cacheDir, "restore-journal-${System.nanoTime()}").also { it.mkdirs() },
-    )
+    /** Exposed so a fault-matrix test can delete one journal file, as a crash would leave it. */
+    val restoreJournalDir: File =
+        File(context.cacheDir, "restore-journal-${System.nanoTime()}").also { it.mkdirs() }
+    val restoreJournal = RestoreJournalStore(restoreJournalDir)
     val localBackupRepository = LocalBackupRepository(
         database = database,
         activityDao = database.activityDao(),
