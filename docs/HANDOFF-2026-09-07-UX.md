@@ -1,6 +1,6 @@
 # Handoff — 7 September 2026, UX P0 batch (Fable)
 
-The verification record for the first batch of the UX handoff package prepared on 6 September 2026 (30 work packages, 97 acceptance checks; master document `Temper-UX-Design-Handoff.md`). It follows [HANDOFF-2026-09-06.md](HANDOFF-2026-09-06.md), which landed the engineering findings R01–R19 that several UX packages depend on. This record does not change any signed decision in [architecture/](architecture/README.md); one documentation addendum to ADR-021 is flagged for the owner in §5.
+The verification record for the first batch of the UX handoff package prepared on 6 September 2026 (30 work packages, 97 acceptance checks; master document `Temper-UX-Design-Handoff.md`). It follows [HANDOFF-2026-09-06.md](HANDOFF-2026-09-06.md), which landed the engineering findings R01–R19 that several UX packages depend on. This record does not change any signed decision in [architecture/](architecture/README.md); one documentation addendum to ADR-021 is flagged for the owner in §5; the pre-merge review and its fixes are §6.
 
 The updated backlog, acceptance matrix and decision register live in [ux-program/](ux-program/UX-Decision-Log.md).
 
@@ -50,7 +50,7 @@ Each record names the premise's status at `156cc40`, the files, the acceptance I
 | Files (main) | `domain/NumericEntry.kt` (filters removed, typed readers and field rules), `domain/ComposerCopy.kt` (`strengthEntry`, `cardioEntry`; fallback parsers removed), `domain/TargetEntry.kt` (new: the routine card's four boxes), `ui/activity/ActivityComposerScreen.kt` (raw text, `isError` + supporting text per box, focus to the first refused box, `Haptics.reject`), `ui/activity/LiveCardioScreen.kt` + `LiveCardioViewModel.kt` (`distanceError`; Finish refuses an unreadable distance and refuses to guess a unit when the preference read fails), `ui/components/Common.kt` (`CustomRestDialog` keeps raw text), `ui/routines/SessionLiftStrip.kt` (boxes read through `TargetEntry`, complaint under each box once the finger leaves it), `ui/routines/RoutineEditorViewModel.kt` (`stageTargets(... invalidReason)`; a rejected box is refused at commit and counted unsaved at exit), `ui/routines/RoutineEditorScreen.kt` |
 | Files (test) | `domain/NumericEntryTest.kt` (+6), `domain/ComposerCopyTest.kt` (+2), `domain/TargetEntryTest.kt` (new, 5), `ui/activity/LiveCardioViewModelTest.kt` (+1, Robolectric), `ui/routines/RoutineEditorViewModelTest.kt` (+1, Robolectric), `ui/units/DateCopyTest.kt` (source-shape assertion re-pointed at `cardioEntry`), `ui/routines/CompactLiftInputTest.kt` (deleted: it asserted the salvage) |
 | Acceptance | UX06-AC01 **executed** (`aDecimalRepCountIsRefusedNotReadAsEightyFive`, `aNegativeWeightIsRefusedNotReadAsPositive`, `addSetRefusesWhatItCannotStoreAsWritten`, `aDecimalRepCountIsAComplaintNotEightyFiveAndNotLeaveAlone`); UX06-AC02 **executed** (`ambiguousTextNeverBecomesADifferentAcceptedValue`, `commaDecimalWorksOnEveryTypedPath`); UX06-AC03 **executed** (`storedWeightsSurviveADisplayRoundTripWithinDisplayPrecision`: every 0.5 kg to 300 kg, shown in kg and lbs and typed back, lands within ±0.05 kg / ±0.25 lb — the precision `toDisplayValue` actually applies — and re-shows as the same text); UX06-AC04 domain rules executed for every caller, the Compose wiring itself is **device check pending** (no Compose test runs here). |
-| Limitations | Paste, hardware keyboard, IME composition and TalkBack's reading of `isError` + supporting text are unverified. `WeightConverter.toKg` still rounds kilograms to a tenth at the storage boundary (pre-existing, inside display precision). `MAX_REPS` is not enforced on routine target reps (pre-existing; a 850-rep target is still storable). |
+| Limitations | Paste, hardware keyboard, IME composition and TalkBack's reading of the error semantics are unverified. `WeightConverter.toKg` still rounds kilograms to a tenth at the storage boundary (pre-existing, inside display precision). Routine target reps and composer reps are whole numbers of at least 1 with **no upper cap**, as storage and the pre-batch code allowed; the 100-rep guard stays where it was, on the live-workout typing dialog. A first cut of this batch had routed both through the capped reader, which would have made an existing 3×120 card uneditable; the final review caught it (§8). Focus moves to the refused box only in the composer; live cardio and the routine card show the complaint under the box without moving focus. |
 
 ### 3.2 UX05 — summary truthfulness
 
@@ -89,6 +89,7 @@ Each record names the premise's status at `156cc40`, the files, the acceptance I
 | After UX05 + UX06 | static gate, JVM lane, `syntax-check.sh app/src/test/java` | static OK at every ratchet; JVM lane 171 classes, 1191 tests, 0 failures; `NO SYNTAX ERRORS` |
 | After UX07/UX23 | same | static OK (`required_args_mixed` 180 = baseline, `when_exhaustive` 47 = baseline, `state_members` 2 = baseline); JVM lane 171 classes, 1191 tests, 0 failures; test tree parses |
 | After UX04 merge and routine-card wiring | same | static OK (`required_args_mixed` 178 — the ratchet was lowered from 180 because two card calls became fully named; `when_exhaustive` 47; `state_members` 2); JVM lane **172 classes, 1201 tests, 0 failures**; `NO SYNTAX ERRORS` over `app/src/test/java` |
+| After the pre-merge review fixes (`8967888`) | same | static OK at every ratchet (`required_args_mixed` 178); JVM lane **172 classes, 1202 tests, 0 failures**; `NO SYNTAX ERRORS` |
 
 Two ratchets were held rather than raised during the batch: the two new `when` blocks over `StrengthEntry`/`CardioEntry` were typed by giving their variants distinct names (`ReadySet`/`RefusedSet`, `ReadyCardio`/`RefusedCardio`), and every new call with named arguments is fully named. One lane failure during the batch was real and fixed: the round-trip test's tolerance assumed a tenth of a pound where `toDisplayValue` rounds pounds to a half.
 
@@ -103,9 +104,29 @@ Android-side sources (Compose screens, ViewModels, Robolectric tests) were re-re
 - **ADR-021 addendum flagged (D16).** The delegated UX04 agent appended a paragraph to ADR-021 item 7 describing Save's new truthfulness. It is consistent with the decision but edits a signed record; the owner should accept it or have it moved to the register.
 - **Nothing in the package's preserved-decision list was touched:** Home's filled action, five tabs, Library pushed, the live bar, logging/rest docks, once-vs-recurring, units, IDs, backup format, signing.
 
-## 6. Delivery state
+## 6. Final review before merge
 
-Everything is **local and committed** on `claude/file-visibility-check-jraqc2` in the session container. Nothing has been pushed, merged, tagged, published or deployed; no production configuration, credential or user data was touched. The branch is five commits on `156cc40`:
+After the batch was pushed, three independent reviewers were run over the whole diff: a compile-level read of the Android-side main sources (which also compiled the pure-Kotlin domain files with the real Kotlin 2.0.21 compiler: 0 errors), a compile-and-runtime read of the Robolectric tests, and an adversarial behavioural critique against `156cc40`. Findings and dispositions:
+
+| Finding | Severity | Disposition |
+|---|---|---|
+| Routine card and composer reps inherited the 100-rep cap from `typedReps`; a stored 3×120 card became uneditable and the record said the opposite | regression | Fixed: both read reps as whole numbers ≥ 1 with no cap (`REPS_WHOLE_RULE`); `TargetEntryTest.aHighRepTargetIsNotRefused`; record corrected |
+| `OnboardingAnswers.encodeDraft` dropped `availableEquipment`, so a setup restored after process death applied with derived kit instead of the owner's explicit Settings kit | should-fix | Fixed: ninth codec field, eight-field drafts still decode; `OnboardingAnswersRestoreTest` extended |
+| New error texts (dock, composer boxes, live cardio, routine card) were plain `Text` with no live region, and `isError` alone announces "Invalid input" rather than the rule | should-fix | Fixed: `FieldComplaint` (polite live region) and `Modifier.fieldError(message)` (error semantics) in `ui/components/Common.kt`, used at every new complaint |
+| Back from a routine editor that never hydrated produced "Some changes are not saved" | should-fix | Fixed: `leave()` with nothing hydrated and nothing staged is `leaveAnyway()` |
+| A rejected target's complaint stayed in the error slot after the box was fixed back to the stored value | note | Fixed: `NothingToWrite` clears a target-rule complaint |
+| Any undismissed composer error showed inside the picker sheet | note | Fixed: create-lift errors are a separate `createError` shown only in the sheet |
+| Bodyweight summary test logged 0 kg working sets on a loaded lift, which `logSet` refuses | test defect | Fixed: the lift is inserted as BODYWEIGHT before the fixture logs |
+| Live cardio refusal test could observe `distanceError` before `finishing` cleared | flaky test | Fixed: the wait requires both |
+| Back is inert for as long as a composer save runs (no timeout) | note | Accepted; the save is one transaction and a timeout would reintroduce the ambiguity |
+| After process death a routine box can show a complaint while nothing is staged, so Save exits | note | Carried as UX07 residue (staged targets are in-memory; the texts are saved state) |
+| "Save keeps the name, notes and targets" understates that targets also write on focus loss | note | Copy left; recorded here |
+
+Static gate and JVM lane were re-run after these fixes (§4, final row).
+
+## 7. Delivery state
+
+Everything is committed on `claude/file-visibility-check-jraqc2` and **pushed to origin with the owner's authorization on 7 September**. Nothing has been merged, tagged, published or deployed; no production configuration, credential or user data was touched. The branch is seven commits on `156cc40`:
 
 | Commit | Subject |
 |---|---|
@@ -113,13 +134,15 @@ Everything is **local and committed** on `claude/file-visibility-check-jraqc2` i
 | `c856c01` | Typed numbers are kept as typed; drafts survive a Cancel mid-save (UX06, UX07, UX23) |
 | `5375672` | Routine editor: Save leaves only when its writes landed (UX04) — implemented in an isolated worktree by a delegated agent from a written brief, reviewed and cherry-picked here |
 | `e5d2956` | Routine card refuses an unreadable box; a read fault on exit no longer strands the editor (UX06, UX04) |
-| (this record) | This file and `docs/ux-program/` |
+| `1947caf` | This record and `docs/ux-program/`, first version |
+| `8967888` | Pre-merge review fixes: no rep cap on targets, kit survives the setup draft, complaints are announced |
+| (this commit) | This record and the register updated with §6 |
 
-The owner's separate authorization is needed to push. On a machine with the Android SDK the full gate is `./gradlew testDebugUnitTest assembleDebug lintDebug`, which executes the Robolectric tests written here; `connectedDebugAndroidTest` on the `temper-tests-api29` profile renders the new states.
+CI run 852 on the push ended in three seconds with no runner assigned (`runner_id: 0`), the same account-level condition recorded in the 6 September handoff; it is not a verdict on this branch. On a machine with the Android SDK the full gate is `./gradlew testDebugUnitTest assembleDebug lintDebug`, which executes the Robolectric tests written here; `connectedDebugAndroidTest` on the `temper-tests-api29` profile renders the new states.
 
-## 7. Next actions, in order
+## 8. Next actions, in order
 
-1. **Owner:** push authorization for this branch; a decision on D16.
+1. **Owner:** a decision on D16; the merge itself, once the Gradle gate below has run somewhere.
 2. **SDK machine or CI with a runner:** `./gradlew testDebugUnitTest` — the 17 Robolectric tests written here are the regression proof for UX04, UX05 and UX07 and have never run.
 3. **Device (Temper Debug):** the eight production captures this batch owes — routine editor Save failure and Back prompt at 360 dp / font 2.0 with the keyboard open; summary "not found", "saved, summary unavailable", "unavailable" and a push-up-only receipt; composer Add set refusal; live cardio Finish refusal; setup reopened after `adb shell am kill`.
 4. **Batch B (main gym journey):** UX01–UX03, UX08, UX12, UX22, UX24/UX25 per the master sequencing. UX12 and UX24 cannot start without device bounds.

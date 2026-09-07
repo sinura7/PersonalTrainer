@@ -1,6 +1,6 @@
 # Temper UX acceptance matrix — updated 7 September 2026
 
-Baseline for this update: `156cc400a0bc7974209e494e4e4cf0525b29bb7d` on `claude/file-visibility-check-jraqc2` (trunk `28f485f` carries R01–R19). Candidate commit: `e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)`.
+Baseline for this update: `156cc400a0bc7974209e494e4e4cf0525b29bb7d` on `claude/file-visibility-check-jraqc2` (trunk `28f485f` carries R01–R19). Candidate commit: `8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)`.
 
 **Status vocabulary.** *Executed (JVM lane)* — a JUnit test ran on this host and passed. *Written, not executed* — a Robolectric or instrumented test exists on the branch but no Android SDK, Gradle, emulator or device was available here. *Implemented, device check pending* — behaviour changed; only a device can close it. *Not executed* — untouched. Nothing below is marked passed from source reading alone.
 
