@@ -476,10 +476,15 @@ class CustomWeekViewModelTest {
         )
 
         // The banner names the sets box. Fixing the OTHER card must not read as "all clear".
+        // Waited on the staged reps, not on the error: the error is already SETS_RULE, so
+        // `first { error == SETS_RULE }` would return the pre-stage value and assert nothing.
+        // stageTargets writes the error before the days, so days arriving means both settled.
         vm.stageTargets(lifts.last().id, sets = 4, reps = 6, rest = 150, weightKg = 80.0)
         assertEquals(
             NumericEntry.SETS_RULE,
-            vm.uiState.first { it.error == NumericEntry.SETS_RULE }.error,
+            vm.uiState.first {
+                it.selectedLifts.lastOrNull()?.targetReps == 6
+            }.error,
         )
 
         vm.stageTargets(lifts.first().id, sets = 3, reps = 6, rest = 150, weightKg = 80.0)
@@ -506,6 +511,39 @@ class CustomWeekViewModelTest {
             SessionOrderCopy.LIFT_NAME_REQUIRED,
             vm.uiState.first { it.selectedLifts.single().targetSets == 4 }.error,
         )
+    }
+
+    @Test
+    fun removingAnUnreadableCardTakesItsComplaintWithIt() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
+        val vm = createViewModel()
+        vm.uiState.first { it.catalog.size >= 2 }
+        vm.togglePendingAdd(squat)
+        vm.togglePendingAdd(row)
+        vm.confirmPendingAdd()
+        val lifts = vm.uiState.first { it.selectedLifts.size == 2 }.selectedLifts
+
+        vm.stageTargets(
+            lifts.first().id,
+            sets = null,
+            reps = 6,
+            rest = 150,
+            weightKg = 80.0,
+            invalidReason = NumericEntry.SETS_RULE,
+        )
+        vm.confirm()
+        vm.uiState.first { it.error == NumericEntry.SETS_RULE }
+
+        // Deleting the card is a way of answering the complaint. Keeping the rule after the
+        // box is gone would block Confirm forever with nothing left to fix.
+        vm.removeLift(lifts.first().id)
+        assertNull(vm.uiState.first { it.selectedLifts.size == 1 }.error)
+
+        vm.confirm()
+        vm.finished.first { it }
+        val routines = deps.routineRepository.observeAll().first()
+        assertEquals(row.id, routines.single().exercises.single().exercise.id)
     }
 
     private fun createViewModel(

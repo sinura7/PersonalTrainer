@@ -462,6 +462,14 @@ internal fun CompactTargetFields(
         val read = TargetEntry.read(setsText, repsText, restText, weightText, unit)
         onStageTargets(read.typedSets, read.typedReps, read.typedRest, read.typedWeightKg, read.firstError)
     }
+    // The box text is saved state; the staged rejection is not. After the process is reclaimed
+    // the card is rebuilt showing "8.5" and its rule, and nothing upstream knows — so Save or
+    // Confirm would walk past a card the owner can plainly see is wrong. Re-register it once
+    // on restore. ONLY when it cannot be read: staging a readable card here would mark an
+    // untouched editor dirty and make Back ask about changes nobody made.
+    LaunchedEffect(rowKey, entry.hasError) {
+        if (entry.hasError) stage()
+    }
     Column(
         modifier = Modifier.padding(start = Metrics.space3, end = Metrics.space3, bottom = Metrics.space3),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),

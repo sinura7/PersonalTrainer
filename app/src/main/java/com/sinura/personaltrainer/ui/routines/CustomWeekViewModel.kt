@@ -274,6 +274,11 @@ class CustomWeekViewModel @JvmOverloads constructor(
 
     fun removeLift(itemId: String) {
         if (applying.value) return
+        // A removed card takes its complaint with it. Leaving the entry behind would block
+        // Confirm on a rule with no box left to fix — a dead end with no way out of it.
+        if (invalidTargets.remove(itemId) != null && error.value in RoutineSaveCopy.TARGET_RULES) {
+            error.value = invalidTargets.values.firstOrNull()
+        }
         val day = selectedDay.value
         days.value = days.value + (day to days.value[day].orEmpty().filterNot { it.id == itemId })
         persistDraft()
