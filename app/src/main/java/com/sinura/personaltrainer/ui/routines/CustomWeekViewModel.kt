@@ -16,6 +16,7 @@ import com.sinura.personaltrainer.domain.LiftCart
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.SchedulePreferences
+import com.sinura.personaltrainer.domain.RoutineSaveCopy
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.logging.AppLog
@@ -75,6 +76,14 @@ class CustomWeekViewModel @JvmOverloads constructor(
     private val pendingAddIds = MutableStateFlow<List<String>>(emptyList())
     private val applying = MutableStateFlow(false)
     private val error = MutableStateFlow<String?>(null)
+
+    /**
+     * Cards whose boxes cannot be read as written, by lift id, holding the rule each broke.
+     * Ids are minted per staged lift, so a lift on two days has two ids and two entries.
+     * In memory only: the box text itself is saved state, so after process recreation the card
+     * shows its complaint again and re-stages it on the first keystroke.
+     */
+    private val invalidTargets = mutableMapOf<String, String>()
     private val catalog = MutableStateFlow<List<Exercise>>(emptyList())
     private val extraCatalog = MutableStateFlow<List<Exercise>>(emptyList())
     private var guidedAnswers: OnboardingAnswers? = null
@@ -270,8 +279,32 @@ class CustomWeekViewModel @JvmOverloads constructor(
         persistDraft()
     }
 
-    fun stageTargets(itemId: String, sets: Int?, reps: Int?, rest: Int?, weightKg: Double?) {
+    /**
+     * The four target boxes of one card, as the owner left them.
+     *
+     * @param invalidReason non-null when a box holds text the week cannot hold — "8.5" reps, a
+     * negative load — carrying the rule it broke. Nothing is staged from such a box, so the
+     * lift keeps what it had; but the reason is remembered, because a card reading 8.5 while
+     * the week holds 5 is the quiet mismatch UX06 exists to stop. [confirm] refuses until it
+     * reads as something the week can hold. The same card, and so the same rules, as the
+     * routine editor.
+     */
+    fun stageTargets(
+        itemId: String,
+        sets: Int?,
+        reps: Int?,
+        rest: Int?,
+        weightKg: Double?,
+        invalidReason: String? = null,
+    ) {
         if (applying.value) return
+        if (invalidReason == null) {
+            invalidTargets.remove(itemId)
+            // The box was fixed; its complaint must not outlive it.
+            if (error.value in RoutineSaveCopy.TARGET_RULES) error.value = null
+        } else {
+            invalidTargets[itemId] = invalidReason
+        }
         val day = selectedDay.value
         days.value = days.value + (
             day to CustomWeekPolicy.updateTargets(days.value[day].orEmpty(), itemId, sets, reps, rest, weightKg)
@@ -281,6 +314,12 @@ class CustomWeekViewModel @JvmOverloads constructor(
 
     fun confirm() {
         if (applying.value || !CustomWeekPolicy.canConfirm(days.value)) return
+        // A card still showing a value the week cannot hold is unfinished work, not a value to
+        // walk past: applying would write the number underneath it instead. Say the rule and stay.
+        invalidTargets.values.firstOrNull()?.let { rule ->
+            error.value = rule
+            return
+        }
         applying.value = true
         showPicker.value = false
         val snapshot = days.value

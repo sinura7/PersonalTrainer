@@ -117,6 +117,45 @@ view model, the view model names the state type. A file mentioning no view model
 skipped rather than guessed at, and the four members every data class gets for free (`copy`,
 `equals`, `hashCode`, `toString`) are never reported.
 
+## `check-lambda-arity.py`
+
+The third question about a call: not *does this name exist* and not *did you pass everything*,
+but *does the lambda you passed take the number of parameters the declaration wants*.
+
+```bash
+python3 tools/check-lambda-arity.py app/src/main/java app/src/test/java \
+    app/src/androidTest/java app/src/debug/java app/src/sharedTest/java
+```
+
+Pass EVERY source root in one invocation. A test root alone cannot see the declaration it
+calls, so running it by itself reports a false clean.
+
+On 7 September 2026 a branch was pushed that did not compile. `SessionLiftStrip.onStageTargets`
+grew from five parameters to six to carry the rule a rejected box broke; one of its three call
+sites was updated. Twenty static checkers, a 1202-test JVM lane and three independent reviewers
+passed it. Neither `check-named-args` nor `check-required-args` could see it — the argument was
+named, the name existed, and every required parameter was supplied. What was wrong was inside
+the value. And a review that reads the diff cannot find a caller that broke *because it did not
+change*: both stale call sites are in files the diff never touched.
+
+`tools/compile-check.sh` catches this properly, with a real compiler, but it fetches about
+186 MB on first run and stays out of the preflight for that reason. This is the offline half.
+It knows nothing about types; counting parameters needs no type system.
+
+Conservative in the same way as its two siblings, and for the same reason — a false RED gets a
+checker switched off. Only **named** arguments are judged, because a trailing lambda would need
+overload resolution to know which parameter it fills. A site is skipped, not guessed at, unless
+both sides are unambiguous: every visible declaration of that call name must declare the
+parameter as a plain function type (`(A, B) -> R`, optionally `suspend`, nullable or
+parenthesised), and the argument must be a literal lambda whose header parses as a parameter
+list. A receiver type (`T.(A) -> R`) is never judged: its lambda takes one fewer parameter than
+the parentheses show. A lambda with no `->` is accepted against arity 0 or 1 — Kotlin gives it
+the implicit `it` — and reported against 2 or more, which is what Kotlin does too.
+
+`tools/test_lambda_arity.py` runs the checker over fifteen fixtures, including the exact defect
+above, the fix for it, and every shape that must stay quiet: a `when` inside the body, a nested
+lambda, a destructured parameter, a function reference, a trailing lambda, a commented-out call.
+
 ## `check-required-args.py`
 
 The inverse of `check-named-args.py`: did the call supply everything the declaration requires?

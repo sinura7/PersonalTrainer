@@ -143,6 +143,7 @@ for c in "check-internal-imports.py app/src/main/java" \
          "check-state-members.py" \
          "check-annotation-targets.py" \
          "check-required-args.py" \
+         "check-lambda-arity.py app/src/main/java app/src/test/java app/src/androidTest/java app/src/debug/java app/src/sharedTest/java" \
          "check-import-hygiene.py" \
          "check-doc-authority.py" \
          "check-backup-policy.py" \
@@ -155,7 +156,8 @@ for c in "check-internal-imports.py app/src/main/java" \
          "check-play-rehearsal.py" \
          "check-still-pack.py" \
          "test_policy_move.py" \
-         "test_checker_skips.py"; do
+         "test_checker_skips.py" \
+         "test_lambda_arity.py"; do
     step "$c"
     # shellcheck disable=SC2086
     python3 tools/$c || fail "$c"

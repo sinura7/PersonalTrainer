@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.TestSetInput
@@ -357,6 +358,88 @@ class CustomWeekViewModelTest {
         assertEquals(squat.id, state.selectedLifts.single().exercise.id)
         assertEquals("Squat", state.selectedLifts.single().exercise.name)
         assertTrue(state.canConfirm)
+    }
+
+    @Test
+    fun aTargetBoxThatCannotBeReadBlocksConfirmWithItsRule() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val vm = createViewModel()
+        vm.uiState.first { it.catalog.any { exercise -> exercise.id == squat.id } }
+        vm.togglePendingAdd(squat)
+        vm.confirmPendingAdd()
+        val lift = vm.uiState.first { it.selectedLifts.size == 1 }.selectedLifts.single()
+
+        // The reps box reads "8.5". Nothing is staged from it, so the lift keeps its stored
+        // reps — which is exactly the mismatch that must not be written past.
+        vm.stageTargets(
+            lift.id,
+            sets = 4,
+            reps = null,
+            rest = 150,
+            weightKg = 80.0,
+            invalidReason = NumericEntry.REPS_WHOLE_RULE,
+        )
+        val staged = vm.uiState.first { it.selectedLifts.singleOrNull()?.targetSets == 4 }
+        assertTrue(staged.canConfirm)
+        assertNull(staged.error)
+
+        vm.confirm()
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(
+            NumericEntry.REPS_WHOLE_RULE,
+            vm.uiState.first { it.error == NumericEntry.REPS_WHOLE_RULE }.error,
+        )
+        assertFalse(vm.finished.value)
+        assertTrue(deps.routineRepository.observeAll().first().isEmpty())
+        assertFalse(deps.preferencesRepository.onboardingComplete.first())
+
+        // Fixing the box clears its complaint and lets the week through.
+        vm.stageTargets(lift.id, sets = 4, reps = 6, rest = 150, weightKg = 80.0)
+        val fixed = vm.uiState.first { it.selectedLifts.singleOrNull()?.targetReps == 6 }
+        assertNull(fixed.error)
+
+        vm.confirm()
+        vm.finished.first { it }
+        val routines = deps.routineRepository.observeAll().first()
+        assertEquals(6, routines.single().exercises.single().targetReps)
+    }
+
+    @Test
+    fun fixingOneCardDoesNotUnblockAnotherStillUnreadable() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
+        val vm = createViewModel()
+        vm.uiState.first { it.catalog.size >= 2 }
+        vm.togglePendingAdd(squat)
+        vm.togglePendingAdd(row)
+        vm.confirmPendingAdd()
+        val lifts = vm.uiState.first { it.selectedLifts.size == 2 }.selectedLifts
+
+        vm.stageTargets(
+            lifts.first().id,
+            sets = null,
+            reps = 6,
+            rest = 150,
+            weightKg = 80.0,
+            invalidReason = NumericEntry.SETS_RULE,
+        )
+        vm.stageTargets(
+            lifts.last().id,
+            sets = 4,
+            reps = 6,
+            rest = 150,
+            weightKg = null,
+            invalidReason = NumericEntry.WEIGHT_NEGATIVE,
+        )
+
+        vm.stageTargets(lifts.first().id, sets = 3, reps = 6, rest = 150, weightKg = 80.0)
+        vm.confirm()
+        assertEquals(
+            NumericEntry.WEIGHT_NEGATIVE,
+            vm.uiState.first { it.error == NumericEntry.WEIGHT_NEGATIVE }.error,
+        )
+        assertFalse(vm.finished.value)
+        assertTrue(deps.routineRepository.observeAll().first().isEmpty())
     }
 
     private fun createViewModel(
