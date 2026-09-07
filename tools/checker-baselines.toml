@@ -5,7 +5,7 @@
 # RestTimerController.kt: `state.` is the store snapshot, not a screen UiState.
 # InstrumentSwitch.kt: no typed uiState ViewModel (G4).
 state_members = 2
-required_args_mixed = 181
+required_args_mixed = 180
 required_args_lambda = 46
 when_exhaustive = 47
 

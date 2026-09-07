@@ -219,12 +219,11 @@ class LiveCardioViewModel @JvmOverloads constructor(
         }
         session.value = live
         // The row's block is the starting point only. Inputs already mirrored into saved
-        // state are the owner's later choices, and win over it after a recreation.
-        if (!savedStateHandle.contains(KEY_TYPE)) {
-            live.cardioBlocks.firstOrNull()?.let { block ->
-                type.value = block.type
-                indoor.value = block.indoor
-            }
+        // state are the owner's later choices, and win over it after a recreation — each
+        // by its own key, since the owner may have changed one and not the other.
+        live.cardioBlocks.firstOrNull()?.let { block ->
+            if (!savedStateHandle.contains(KEY_TYPE)) type.value = block.type
+            if (!savedStateHandle.contains(KEY_INDOOR)) indoor.value = block.indoor
         }
         ensurePersisted(live)
         while (true) {

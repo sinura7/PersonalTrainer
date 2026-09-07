@@ -138,6 +138,24 @@ class LiveCardioViewModelTest {
     }
 
     @Test
+    fun recreationKeepsIndoorWhenOnlyIndoorChanged() = runBlocking {
+        // Each input is restored by its own key: a guard on the type key alone let the
+        // row's outdoor flag overwrite an indoor toggle the owner had made on its own.
+        val now = JvmTime.captureNow()
+        val started = deps.startLiveActivity("Easy run", listOf(runBlock()), now)
+        val live = (started as ActivityWrite.Accepted).session
+        val handle = SavedStateHandle(mapOf("sessionId" to live.id))
+        val first = createViewModel(handle)
+        first.uiState.first { it.session != null }
+        first.setIndoor(true)
+        first.clearAndJoinForTest()
+
+        val state = createViewModel(handle).uiState.first { it.session != null }
+        assertTrue(state.indoor)
+        assertEquals(CardioType.RUN, state.type)
+    }
+
+    @Test
     fun aFailedReadIsUnavailableNotGoneAndRetries() = runBlocking {
         val gate = ActivityReadGate(shouldFail = false)
         deps.close()
