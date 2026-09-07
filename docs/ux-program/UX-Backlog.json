@@ -1,0 +1,3181 @@
+{
+  "project": "Temper / PersonalTrainer",
+  "repository": "https://github.com/sinura7/PersonalTrainer",
+  "preparedOn": "2026-09-06",
+  "reviewCommit": "22161c54f5b56d7b86294dc7f9490bb1a79f14fe",
+  "verifiedTrunkAtReview": "22161c54f5b56d7b86294dc7f9490bb1a79f14fe",
+  "scope": "Visual design and workflow quality; source-only follow-up with no Android runtime validation",
+  "priorities": {
+    "P0": "Correctness/durability/truthful interaction",
+    "P1": "Core usability/accessibility/interpretation",
+    "P2": "Refinement or additional product scope"
+  },
+  "critique": [
+    [
+      "Home hierarchy",
+      "Revise materially",
+      "I treated the next planned workout as the natural filled action. ADR-021 explicitly reserves that action for freestyle and planned rows open confirmation. Preserve this and test clearer differentiation and stat ordering (UX01)."
+    ],
+    [
+      "Set logging redesign",
+      "Narrow to refinement",
+      "Pinned commit area, large controls, undo and keyboard/landscape work already exist. Improve transitions, feedback and data-entry truth rather than rebuilding them (UX03/UX06)."
+    ],
+    [
+      "Explicit Next label",
+      "Retain",
+      "The literal Next label exists. Add destination context without forcing a long exercise name into a single fixed line (UX03/UX24)."
+    ],
+    [
+      "Rest as part of workout",
+      "Preserve and validate",
+      "A RestDock already sits outside scrolling content. Validate the next-set/rest/keyboard interaction and failure states; do not create a duplicate timer surface (UX03)."
+    ],
+    [
+      "Missed-work preview",
+      "Retain with scope",
+      "Current Other choices disclosure is intentional. Preview bulk consequences after the user chooses Move/Adapt/Skip, rather than expanding all choices on Home (UX14)."
+    ],
+    [
+      "Progress navigation",
+      "Refine hypothesis",
+      "History already has totals, calendar, sessions, blocks and records. The main questions are scope and reachability. Do not add a sixth tab or automatically add multiple nested tab bars (UX15/UX16)."
+    ],
+    [
+      "Completion receipt",
+      "Correct my premise",
+      "A substantial receipt with working sets, duration, records, breakdown, Done and full-session actions already exists. The newly verified problem is truthfulness of missing/failure states, plus choice of meaningful headline metric (UX05)."
+    ],
+    [
+      "Consistent activity entry",
+      "Retain with distinctions",
+      "Shared anatomy is useful, but different activity types legitimately support different fields/actions. Use an explicit capability matrix and draft/save contract, not identical screens (UX07/UX29)."
+    ],
+    [
+      "Settings directory",
+      "Downgrade to comparative prototype",
+      "Display-first and prominent Export are accepted decisions. Pushing them into a generic directory may add friction. Compare modest disclosure before replacing the page (UX20)."
+    ],
+    [
+      "Dedicated backup workflow",
+      "Refine, do not duplicate",
+      "Protected export, preview, warnings, safety copies and Drive already exist. Specify stage-specific feedback and recovery only on top of the engineering fixes (UX21)."
+    ],
+    [
+      "Visual hierarchy cleanup",
+      "Evidence required",
+      "The app already has semantic colors, spacing/type tokens and tabular numerals. We cannot assert poor spacing or contrast from a source-only pass. Fix demonstrated component/layout issues (UX24)."
+    ],
+    [
+      "Gym-condition usability",
+      "Retain and make measurable",
+      "The code already has 48/56/72 dp tokens. Real hit widths, keyboard interactions and full-screen accessibility still need testing; the seven-column strip shows why token presence is not proof (UX12/UX25)."
+    ]
+  ],
+  "items": [
+    {
+      "id": "UX01",
+      "title": "Clarify Home's planned versus freestyle actions",
+      "priority": "P1",
+      "type": "Source-backed usability hypothesis",
+      "observation": "Home is a selected-day board. ADR-021 explicitly makes its filled Start a workout button freestyle; planned rows carry Start and open a confirmation. My earlier proposal to make the filled button start today's named plan would reverse this owner decision. HomeStatRow is placed before the agenda; whether that delays discovery needs actual-screen evidence.",
+      "outcome": "Users distinguish starting the listed plan from starting an empty workout and can identify the selected date.",
+      "requirements": [
+        "Preserve planned-row confirmation, the freestyle filled action, the Add row under the selected day's agenda, and the single ambient Live Session Bar.",
+        "Keep a short visible explanation near the freestyle control: proposed copy 'Empty session — add lifts as you go.' A label change to 'Start freestyle workout' is a prototype option requiring reconciliation with ADR-021; do not silently replace its wording.",
+        "Prototype moving the recent-stat row below the agenda while retaining the week strip. Compare normal, missed-work and active-session states before choosing an ordering.",
+        "Show the full selected date in the masthead. When another day is selected, provide a quiet, accessible return-to-today action; make clear a live/free workout starts now rather than backdating.",
+        "Maintain only one dominant filled action in each state, including first visit and missed-work handling. Do not add another resume hero above the existing live bar."
+      ],
+      "acceptance": [
+        "Given both a planned workout and freestyle control, a participant can correctly explain which follows the routine and which starts empty.",
+        "Given another selected day, starting/logging behavior matches explicit copy and existing date rules; no silent backdating.",
+        "At 360 dp and large text, the planned row's start action is discoverable without an unrelated statistics detour; measure rather than assert this has improved."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/home/HomeScreen.kt",
+          "line": 287,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/home/HomeScreen.kt#L287"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/home/DailyAgendaCard.kt",
+          "line": 61,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/home/DailyAgendaCard.kt#L61"
+        },
+        {
+          "path": "docs/architecture/ADR-021-home-start-and-day-add.md",
+          "line": 47,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/docs/architecture/ADR-021-home-start-and-day-add.md#L47"
+        }
+      ],
+      "dependencies": [],
+      "decision": "Preserve ADR-021. Alternative primary-action semantics are a separate product decision.",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F02",
+        "F11"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX02",
+      "title": "Separate starting now from recording completed activity",
+      "priority": "P1",
+      "type": "Source-backed workflow refinement",
+      "observation": "StartOptionsSheet already groups Log and Live cardio and is not hosted on Home. It also includes today's plan, suggested lift, every routine, free workout and manual logging; long routine lists can push recording actions far down.",
+      "outcome": "Users can reach the right capture mode without interpreting a long menu of similar actions.",
+      "requirements": [
+        "Retain the modal sheet and current Body/History/Plan entry points; do not add a full-screen start interstitial or sixth tab.",
+        "Use two clear headings: Start now and Record a completed activity. Keep today's planned option contextual and distinguish it from freestyle.",
+        "Bound the initial routine section with a browse/search disclosure when necessary; do not unconditionally show dozens of routines ahead of manual logging.",
+        "Label cardio choices by behavior: live timer versus enter completed time/distance. Preserve the selected return route and date when a caller supplies context.",
+        "When a session is active, retain the existing go-to-session explanation instead of offering an invalid second start."
+      ],
+      "acceptance": [
+        "With 0, 3 and 50 routines, participants can find past strength, manual cardio, mixed entry and live cardio.",
+        "Selecting a manual entry does not start a timer; dismissing the sheet makes no training-data write.",
+        "Opening the sheet while a session runs produces one clear answer and no duplicate session."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/workout/StartOptionsSheet.kt",
+          "line": 74,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/workout/StartOptionsSheet.kt#L74"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/navigation/AppNav.kt",
+          "line": 199,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/navigation/AppNav.kt#L199"
+        }
+      ],
+      "dependencies": [
+        "UX01"
+      ],
+      "decision": "Refinement within current product direction",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F01",
+        "F06"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX03",
+      "title": "Refine the existing logging dock and action transitions",
+      "priority": "P1",
+      "type": "Existing capability to preserve and refine",
+      "observation": "The workout already has a 72 dp primary action, pinned dock, rest dock, undo offers, edit state and next-exercise transition. 'Next' is the clearest specific copy weakness; a brand-new logging dock would duplicate existing work.",
+      "outcome": "A lifter knows exactly what the next tap commits and can correct a set quickly.",
+      "requirements": [
+        "Keep the current dock's structural ownership, keyboard handling, load-type rules and landscape adaptations.",
+        "Replace ambiguous Next with a concise action tied to the next exercise, using a two-line adaptive label or adjacent context if the name is long. Preserve full accessible wording.",
+        "Distinguish typed draft, suggested target, currently editing saved set, saved receipt and saving state. Do not style a prefilled target as completed data.",
+        "After accepted log, show the exact saved result using SetCopy/load semantics, offer existing Undo, and put focus where the next meaningful entry begins without jumping unexpectedly.",
+        "Rest countdown remains visible while editing next-set inputs; an edit of a prior set should not inadvertently start or reset rest unless that is the defined behavior.",
+        "Make add-another-set and next-exercise both discoverable when planned sets finish. Keep Finish available but visually separate from the repetitive log action."
+      ],
+      "acceptance": [
+        "Rapid repeated activation while a write is pending commits one set.",
+        "Warmup, bodyweight, added-weight and assisted movements show the correct labels and units; no universal '0 kg' assumption.",
+        "Keyboard open at 360 dp and landscape leaves the active field and commit action reachable.",
+        "Undo/edit/next transitions preserve exercise identity and announce accepted results once."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutScreen.kt",
+          "line": 728,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutScreen.kt#L728"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/theme/Metrics.kt",
+          "line": 61,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/theme/Metrics.kt#L61"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/components/PinnedDock.kt",
+          "line": 23,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/components/PinnedDock.kt#L23"
+        }
+      ],
+      "dependencies": [
+        "UX06",
+        "UX23",
+        "R12"
+      ],
+      "decision": "Refinement within current product direction",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F03",
+        "F08",
+        "F11"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX04",
+      "title": "Make routine Save truthful and clarify autosave",
+      "priority": "P0",
+      "type": "Source-supported correctness defect plus interaction ambiguity",
+      "observation": "RoutineEditorViewModel.persistDetailsOnExit catches update failure and continues leaving. saveAndLeave requests exit afterward; staged-target failures also do not form an aggregate success gate. The editor writes some changes immediately while Save and Back flush others. A user can press Save, leave, and later discover the rename/notes/targets did not persist.",
+      "outcome": "Save either succeeds with durable changes or explains exactly what remains unsaved, with a retry and an explicit exit choice.",
+      "requirements": [
+        "Return typed outcomes from all required flushes, including staged targets and details. Do not set exitRequested merely because the coroutine reached its end.",
+        "Retain failed draft content and clear leaving/busy state so Retry works. Propagate cancellation correctly.",
+        "Preserve ADR-021's Save affordance and existing write-through model. Explain it briefly: proposed 'Exercise changes save as you make them. Save finishes your name, notes and targets.' Prefer simplifying the persistence contract if feasible, but do not falsely imply Cancel can undo committed edits.",
+        "On Save failure stay with the draft and an actionable error. On Back with a write failure, offer Retry and Leave without saving the remaining edits; describe that already-saved changes remain.",
+        "Make saving state visible and prevent duplicate exit requests. Consider a common completion result for required writes rather than brittle message-string matching."
+      ],
+      "acceptance": [
+        "Inject details-write failure after editing a name: Save remains on screen, preserves text and offers retry.",
+        "Inject one staged-target failure: no blanket success/exit; retry persists the intended value once.",
+        "Back after successful edits remains consistent with existing autosave; empty new stubs retain their documented cleanup.",
+        "Process recreation during failure retains sufficient draft state; reopening shows the accepted persisted result."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/routines/RoutineEditorViewModel.kt",
+          "line": 434,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/routines/RoutineEditorViewModel.kt#L434"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/routines/RoutineEditorViewModel.kt",
+          "line": 400,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/routines/RoutineEditorViewModel.kt#L400"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/routines/RoutineEditorScreen.kt",
+          "line": 298,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/routines/RoutineEditorScreen.kt#L298"
+        }
+      ],
+      "dependencies": [
+        "UX07",
+        "UX23"
+      ],
+      "decision": "Refinement within current product direction",
+      "status": "Implemented locally; Robolectric regression written, not executed here",
+      "fixtures": [
+        "F04",
+        "F08"
+      ],
+      "evidenceClass": "Source-supported defect — confirmed at HEAD 156cc40 by an adversarial re-read; fixed on this branch",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)"
+    },
+    {
+      "id": "UX05",
+      "title": "Separate saved receipts from missing or unavailable summaries",
+      "priority": "P0",
+      "type": "Source-supported correctness/copy defect",
+      "observation": "WorkoutSummaryViewModel maps both a missing session and a summary-building exception to missing=true. WorkoutSummaryScreen renders 'Workout saved' and 'It is in your history' for missing or no-work cases. A genuinely missing row cannot support that assertion. The app already has a substantial completion receipt and pinned Done/View actions.",
+      "outcome": "A user receives a trustworthy confirmation and useful next step even if analytics fail.",
+      "requirements": [
+        "Represent accepted save receipt, successfully loaded session, no summarizable work, missing session and failed summary calculation separately.",
+        "If an accepted session ID/receipt is known but analytics fail, say 'Workout saved. Summary unavailable.' Offer retry/view history without resubmitting the workout.",
+        "If the row is genuinely absent and no current receipt establishes its presence, say it cannot be found; do not claim it is in History.",
+        "Retain current Done and full-session navigation, record semantics and reduced-motion behavior.",
+        "Audit the headline for bodyweight-only and mixed work: total kilograms must not be the sole hero when that quantity cannot represent the session. Choose a documented suitable summary without equating tonnage to quality."
+      ],
+      "acceptance": [
+        "Missing ID, deleted/restored-over row, computation failure after confirmed save and valid no-work data each render distinct truthful states.",
+        "Retrying summary never creates or re-finishes a workout.",
+        "A bodyweight-only workout does not appear worthless because its load-volume is zero.",
+        "Back and Done exit once and do not return to an already-finished live session."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/summary/WorkoutSummaryScreen.kt",
+          "line": 112,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/summary/WorkoutSummaryScreen.kt#L112"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/summary/WorkoutSummaryViewModel.kt",
+          "line": 49,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/summary/WorkoutSummaryViewModel.kt#L49"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/summary/WorkoutSummaryScreen.kt",
+          "line": 213,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/summary/WorkoutSummaryScreen.kt#L213"
+        }
+      ],
+      "dependencies": [
+        "UX23",
+        "R06"
+      ],
+      "decision": "Refinement within current product direction",
+      "status": "Implemented locally; domain tests executed (JVM lane), Robolectric written, not executed here",
+      "fixtures": [
+        "F03",
+        "F08"
+      ],
+      "evidenceClass": "Source-supported defect — confirmed at HEAD 156cc40; fixed on this branch",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)"
+    },
+    {
+      "id": "UX06",
+      "title": "Stop numeric input from silently changing meaning",
+      "priority": "P0",
+      "type": "Source-supported input defect; host demonstrations only",
+      "observation": "NumericEntry.filterDecimal strips signs and extra separators; integer fields use filter(Char::isDigit). Source-equivalent examples turn -50 into 50, 1.2.3 into 1.23 and 8.5 reps into 85. The parser correctly supports comma decimals and rejects some ambiguity, but filtering can transform the text before parsing sees it.",
+      "outcome": "The number saved is the number the user knowingly entered, or the app clearly rejects it.",
+      "requirements": [
+        "Preserve raw editable text until validation, or reject the whole invalid proposed edit without constructing a different numeric value. Do not salvage digits from arbitrary pasted text.",
+        "Retain support for a single decimal point or comma and meaningful intermediate edit states, such as blank or a trailing decimal separator.",
+        "Use field-specific validation: reps integer, duration constraints, optional distance, and correct load semantics. Keep errors next to the exact field.",
+        "Show the unit persistently; a unit switch must not reinterpret unchanged digits as a different physical quantity.",
+        "On commit, focus/scroll to the first invalid field and announce its error. Do not dismiss the form or silently reuse an old value.",
+        "Test paste, select-all replacement, hardware keyboard, IME composition and accessible entry. Define non-ASCII digits and grouping policy deliberately rather than guessing."
+      ],
+      "acceptance": [
+        "8.5 reps is rejected rather than saved as 85; -50 kg is rejected rather than saved as 50.",
+        "1.2.3 and 8e2 do not become different accepted values; 62,5 and 62.5 behave equivalently under the supported decimal policy.",
+        "Existing valid values survive unit conversion/round trips without drift beyond specified display precision.",
+        "All shared filter callers are covered, including composer, live cardio and routine targets."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/domain/NumericEntry.kt",
+          "line": 80,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/domain/NumericEntry.kt#L80"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/activity/ActivityComposerScreen.kt",
+          "line": 309,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/activity/ActivityComposerScreen.kt#L309"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/activity/LiveCardioScreen.kt",
+          "line": 175,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/activity/LiveCardioScreen.kt#L175"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/routines/SessionLiftStrip.kt",
+          "line": 569,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/routines/SessionLiftStrip.kt#L569"
+        }
+      ],
+      "dependencies": [],
+      "decision": "Refinement within current product direction",
+      "status": "Implemented locally; domain tests executed (JVM lane); routine-editor card wiring included",
+      "fixtures": [
+        "F10"
+      ],
+      "evidenceClass": "Source-supported defect — confirmed at HEAD 156cc40 (composer, live cardio, routine targets, custom rest); NumberEntryDialog callers were already reject-on-parse",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)"
+    },
+    {
+      "id": "UX07",
+      "title": "Define draft preservation and leave-during-save behavior",
+      "priority": "P0",
+      "type": "Known lifecycle gap plus workflow specification",
+      "observation": "Composer ViewModel holds authored activity lists/title/date in memory, even though several individual input controls use rememberSaveable. Onboarding answers are also memory state. These are different layers: preserved text fields do not mean the complete draft survives. Composer Cancel remains interactive while saving.",
+      "outcome": "Switching apps does not destroy assembled work, and leaving during a save cannot produce an ambiguous outcome.",
+      "requirements": [
+        "Define a draft record per activity/editor flow with stable row/exercise IDs, date, units context and pending input where appropriate.",
+        "Use bounded saved state for compact UI values and private durable storage for larger or longer-lived drafts; do not store full history graphs in a Bundle.",
+        "Define explicit clear points: accepted save or deliberate discard, not transient navigation or a failed write.",
+        "Specify save-in-progress exit behavior. Preferred baseline: prevent destructive discard while commit status is unresolved, allow an explained background continuation only if a durable completion receipt is implemented.",
+        "On restored draft, disclose its date and provide Resume or Discard when context may be stale. Reconcile removed exercises without silently replacing them.",
+        "Clarify different guarantees for rotation, system process recreation, task removal, force-stop and device restart; promise only what the chosen persistence supports."
+      ],
+      "acceptance": [
+        "Build a multi-row mixed draft, background, recreate the process and restore: date, rows, order and values survive.",
+        "Cancel/Back during delayed accepted save neither creates a duplicate nor tells the user committed work was discarded.",
+        "Failed save preserves the draft; successful save clears only that draft.",
+        "Onboarding draft restoration does not overwrite the saved current plan or create a new one without acceptance."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/activity/ActivityComposerViewModel.kt",
+          "line": 87,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/activity/ActivityComposerViewModel.kt#L87"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/activity/ActivityComposerScreen.kt",
+          "line": 97,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/activity/ActivityComposerScreen.kt#L97"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/onboarding/OnboardingViewModel.kt",
+          "line": 102,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/onboarding/OnboardingViewModel.kt#L102"
+        }
+      ],
+      "dependencies": [
+        "R09",
+        "R06"
+      ],
+      "decision": "Refinement within current product direction",
+      "status": "Composer and onboarding contracts implemented locally; R09 already covered AC01 at HEAD; Robolectric written, not executed here",
+      "fixtures": [
+        "F04",
+        "F08"
+      ],
+      "evidenceClass": "Partly existing capability (R09 SavedStateComposerDraft at 28f485f) plus a real save-in-progress gap fixed here",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)"
+    },
+    {
+      "id": "UX08",
+      "title": "Make every onboarding step fit and remain editable",
+      "priority": "P1",
+      "type": "Source-backed layout risk; device reproduction required",
+      "observation": "Some setup steps are LazyColumn content, while Place, Days per week, Which days and Bodyweight use non-scrolling Columns inside a fixed page column. Bodyweight also includes a 144 dp wheel. Large text/short windows can consume the space needed for Continue. The existing wheel already supports typed entry and optional skipping.",
+      "outcome": "Setup remains usable at large text, short height and with assistive technology.",
+      "requirements": [
+        "Use one consistent page shell with measured header, scrollable step content and a reachable action area where the step has Continue.",
+        "Preserve single-choice auto-advance unless comparison testing shows a problem; ensure Back returns to the answer and moving forward preserves it.",
+        "Keep bodyweight optional and keep its existing typed alternative; make that alternative visibly discoverable without requiring someone to guess the numeral is tappable.",
+        "Maintain question count for the actual selected focus path. Do not show a fixed count when cardio skips questions.",
+        "Restore draft step and answers through UX07; returning to setup must distinguish a draft from stored preferences.",
+        "Test existing-program preview and show that routines are added alongside existing ones; avoid a misleading replacement story."
+      ],
+      "acceptance": [
+        "Every question and Continue/Skip action is reachable at 360×640 dp, font 2.0, and the smaller supported window configuration.",
+        "Typed bodyweight, wheel, unit switch and Skip produce consistent optional values.",
+        "Screen-reader focus lands on the new question and Back keeps the selected answer.",
+        "Accepting a plan once creates the intended program; reopening setup does not silently apply a draft."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/onboarding/OnboardingScreen.kt",
+          "line": 285,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/onboarding/OnboardingScreen.kt#L285"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/onboarding/OnboardingScreen.kt",
+          "line": 413,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/onboarding/OnboardingScreen.kt#L413"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/onboarding/BodyweightWheel.kt",
+          "line": 75,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/onboarding/BodyweightWheel.kt#L75"
+        }
+      ],
+      "dependencies": [
+        "UX07",
+        "UX25"
+      ],
+      "decision": "Refinement within current product direction",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F07",
+        "F11"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX09",
+      "title": "Carry an exercise through Create routine",
+      "priority": "P1",
+      "type": "Source-backed workflow gap",
+      "observation": "Library's AddToRoutineSheet tells users with no routines to create one first, then add the lift. Its onCreateRoutine callback dismisses the selected exercise and navigates without carrying it. The user must find the same exercise again.",
+      "outcome": "Choosing an exercise and creating a first routine feels like one continuous task.",
+      "requirements": [
+        "Carry the selected exercise ID as an explicit pending add intent into routine creation, rather than retaining a mutable Exercise object in an unrelated screen.",
+        "Show the selected lift in the new routine draft or clearly confirm it will be added on acceptance, with normal defaults visible.",
+        "Define cancellation: no orphan empty routine, no unexpected exercise addition to another routine, and a return to the original library context.",
+        "Preserve query, muscle/equipment filters and scroll position on return.",
+        "Handle exercise deletion or duplicate membership before completion with an actionable state; do not substitute another exercise."
+      ],
+      "acceptance": [
+        "From an empty routine catalogue, choose a lift → Create routine → save: exactly one routine contains that lift, without another search.",
+        "Cancel returns to the original context and leaves no empty stub.",
+        "Rotation/process recreation retains the pending exercise ID according to the draft contract."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/library/ExerciseLibraryScreen.kt",
+          "line": 377,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/library/ExerciseLibraryScreen.kt#L377"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/library/ExerciseLibraryScreen.kt",
+          "line": 572,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/library/ExerciseLibraryScreen.kt#L572"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/navigation/AppNav.kt",
+          "line": 435,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/navigation/AppNav.kt#L435"
+        }
+      ],
+      "dependencies": [
+        "UX04",
+        "UX07"
+      ],
+      "decision": "Refinement within current product direction",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F01",
+        "F06"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX10",
+      "title": "Reduce accidental custom-exercise creation and keep picker errors visible",
+      "priority": "P1",
+      "type": "Source-supported behavior mismatch and modal error risk",
+      "observation": "The picker comment says creation appears when nothing matches, but canCreate tests only absence of an exact name; 'bench' can therefore show Create above valid partial results. Creation is a repository write even before an activity is saved. Picker error rendering is inside the MULTI_ADD branch, and single-select callers may report errors behind the sheet.",
+      "outcome": "Search leads to existing lifts first; creating a new lift is explicit and errors appear where the action occurred.",
+      "requirements": [
+        "Show good partial results before a secondary Create custom lift option, or require an explicit create intent. Do not equate 'not an exact match' with 'no matches'.",
+        "Use a clearly named create step with required muscle/load metadata supported by the current model; preserve duplicate-name checks.",
+        "Explain the persistence boundary: creating a catalogue lift may survive cancelling an activity. Alternatively implement a staged-create design, with explicit scope and tests, rather than promising rollback that does not exist.",
+        "Render busy and error state in all picker modes, including single select and create. Keep the query and chosen muscle when creation fails.",
+        "Keep the existing multi-select ordered cart. Define whether dismissal clears unconfirmed picks and prevent dismissal from concealing an accepted add-in-progress result."
+      ],
+      "acceptance": [
+        "Searching 'bench' with existing matching variants prioritizes choosing them over creating 'bench'.",
+        "Duplicate/disk/create errors are visible within the active sheet in single and multi modes.",
+        "Create then cancel activity follows the disclosed catalogue persistence rule.",
+        "Double confirmation adds the selected IDs once and preserves order."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/components/ExercisePickerSheet.kt",
+          "line": 111,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/components/ExercisePickerSheet.kt#L111"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/components/ExercisePickerSheet.kt",
+          "line": 289,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/components/ExercisePickerSheet.kt#L289"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/activity/ActivityComposerViewModel.kt",
+          "line": 231,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/activity/ActivityComposerViewModel.kt#L231"
+        }
+      ],
+      "dependencies": [
+        "UX07",
+        "UX23"
+      ],
+      "decision": "Refinement within current product direction",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F06",
+        "F08"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX11",
+      "title": "Make edit scope and secondary actions discoverable",
+      "priority": "P1",
+      "type": "Source-backed interaction refinement",
+      "observation": "Routine edits write through; routine deletion is long-press with an accessible action label; swaps are constrained to movement siblings. These deliberate behaviors must not be replaced by a generic editor. Users still need to know whether they are changing today's workout, a reusable routine, or a recurring schedule.",
+      "outcome": "Editing one thing does not unexpectedly alter future training, and users can find management actions without guessing gestures.",
+      "requirements": [
+        "Label edit scope in the appropriate sheet/header: This workout, Routine, or Every Tuesday, using actual affected entities.",
+        "Preserve long-press as a shortcut but consider a quiet accessible overflow as an additional discoverable route to routine management. Keep the existing delete confirmation and history-preservation explanation.",
+        "Retain same-movement swap choices and target preservation. Explain whether the choice affects just this session or the stored routine before acceptance.",
+        "Do not introduce machine-specific photo portfolios, new load histories or schema changes as part of this polish packet.",
+        "Offer undo only when the operation is truly reversible; distinguish remove-from-routine from delete-catalogue-item."
+      ],
+      "acceptance": [
+        "A participant can state the scope before saving a swap or schedule edit.",
+        "Routine management is reachable without relying solely on long press, or documented usability evidence supports retaining the existing affordance.",
+        "Deleting a routine preserves history and accurately explains its impact on scheduled days."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/plan/PlanScreen.kt",
+          "line": 678,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/plan/PlanScreen.kt#L678"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/routines/RoutineEditorScreen.kt",
+          "line": 384,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/routines/RoutineEditorScreen.kt#L384"
+        },
+        {
+          "path": "docs/architecture/ADR-021-home-start-and-day-add.md",
+          "line": 40,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/docs/architecture/ADR-021-home-start-and-day-add.md#L40"
+        }
+      ],
+      "dependencies": [
+        "UX04",
+        "UX13"
+      ],
+      "decision": "Adding a discoverable alternative is a proposal; preserve existing shortcuts and scope.",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F02",
+        "F06"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX12",
+      "title": "Make calendar dates and statuses distinguishable at small widths",
+      "priority": "P1",
+      "type": "Layout arithmetic risk plus semantic refinement",
+      "observation": "WeekStrip divides seven cells equally after 16 dp side gutters and six 4 dp gaps. At 360 dp this is about 43.4 dp per cell, below a 48 dp target width. HeightIn only sets height. Compose touch expansion may alter hit bounds, so actual overlap needs inspection. Day fill also means resolved planned blocks, where skipped and done can both contribute to ALL.",
+      "outcome": "Users tap the intended date and understand today, selection, planned work, completed work and skipped work.",
+      "requirements": [
+        "Measure actual hit bounds and adjacent overlap on supported widths; do not claim height alone establishes target compliance.",
+        "Explore a local edge-to-edge strip variant at narrow widths while preserving overall page gutters elsewhere. At widths where seven 48 dp targets cannot fit, provide an accessible alternative date selection path and document any exception to the current non-scrolling strip rule.",
+        "Keep a full selected-date heading and full spoken date, including month/year where ambiguity exists. Single-letter weekday labels must not be the only identification.",
+        "Distinguish resolved schedule from completed exercise. Retain the model but use a labelled detail such as '1 completed · 1 skipped'; do not call both workouts completed.",
+        "Use text/icon/state semantics alongside color, particularly for future planned days and selected/today differences.",
+        "Check History's month padding days and spoken labels, which currently begin with day-of-month alone."
+      ],
+      "acceptance": [
+        "At 320/360/412 dp, date targets are measurable and usable without overlapping ambiguous activation regions, or an equivalent accessible selector is supplied.",
+        "A week containing done, skipped, missed, future and rest days has unambiguous spoken and visible detail.",
+        "Selecting a neighboring-month date opens the correct civil date; today remains distinguishable from selection."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/components/WeekStrip.kt",
+          "line": 57,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/components/WeekStrip.kt#L57"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/theme/Metrics.kt",
+          "line": 33,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/theme/Metrics.kt#L33"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/history/TrainingCalendarCard.kt",
+          "line": 224,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/history/TrainingCalendarCard.kt#L224"
+        }
+      ],
+      "dependencies": [
+        "UX25"
+      ],
+      "decision": "Changing the seven-day non-scrolling presentation needs an explicit accessibility/layout decision; do not shrink targets to preserve it.",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F02",
+        "F09",
+        "F11"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX13",
+      "title": "Expose recurrence and ordering consequences without restoring clock clutter",
+      "priority": "P1",
+      "type": "Source-backed workflow refinement with existing policy constraint",
+      "observation": "Home asks just-today versus every weekday; Plan adds recurring blocks. ADR-020 orders blocks by permuting stored hours, which also affect reminders and future rule order, while clocks are intentionally hidden. A user may interpret Up/Down as visual-only ordering.",
+      "outcome": "Users know whether an addition repeats and whether rearranging it changes reminder/order behavior.",
+      "requirements": [
+        "Keep the existing Home keep-choice and Plan weekly behavior. State the scope near the final action: 'This Tuesday only' versus 'Every Tuesday'.",
+        "After acceptance, show a concise factual receipt naming date/recurrence. Never change unrelated recurrence rules.",
+        "Audit Up/Down side effects against the repository implementation. Disclose relevant reminder/future-order effects; do not describe it as cosmetic if persisted hours/rules change.",
+        "Do not restore clock pickers or drag-only ordering in this packet. If reminder order must be independent of visible order, document it as a separate model/product decision with schema impact.",
+        "For past-day or blocked edits, show why the action is unavailable instead of a silent no-op."
+      ],
+      "acceptance": [
+        "Add the same type once and recurring in separate scenarios; next week contains only the recurring case.",
+        "Reordering states exactly which future/reminder behavior changes and preserves completed history.",
+        "Home and Plan show the same dated occurrences after changes."
+      ],
+      "evidence": [
+        {
+          "path": "docs/architecture/ADR-020-warmup-extras.md",
+          "line": 61,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/docs/architecture/ADR-020-warmup-extras.md#L61"
+        },
+        {
+          "path": "docs/architecture/ADR-021-home-start-and-day-add.md",
+          "line": 71,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/docs/architecture/ADR-021-home-start-and-day-add.md#L71"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/home/DailyAgendaCard.kt",
+          "line": 73,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/home/DailyAgendaCard.kt#L73"
+        }
+      ],
+      "dependencies": [
+        "UX12"
+      ],
+      "decision": "Refinement within current product direction",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F02",
+        "F09"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX14",
+      "title": "Preview bulk missed-work changes before applying",
+      "priority": "P1",
+      "type": "Source-backed workflow refinement",
+      "observation": "MissedWorkCard already keeps the primary Keep dates choice and hides Move/Adapt/Skip under Other choices. These actions currently call through to applyMissedWork directly. My earlier proposal should preserve this disclosure instead of displaying all options permanently.",
+      "outcome": "Users can see the affected sessions/dates before a bulk change and recover from an accidental decision where safe.",
+      "requirements": [
+        "Keep the compact default and the existing primary-action hierarchy.",
+        "For Move/Adapt/Skip, derive a preview from the same policy used for commit: affected titles, old/new dates, unchanged completed sessions, recurrence implications and conflicts.",
+        "Keep the preview concise with expandable details for long weeks. It is a meaningful review step, not an extra confirmation for every ordinary tap.",
+        "Revalidate against current state on commit; if the plan changed while previewing, show the changed outcome before applying.",
+        "Implement Undo only if an exact, safe inverse exists without overwriting intervening edits; otherwise provide a named manual repair route."
+      ],
+      "acceptance": [
+        "Preview and committed outcome match for missed work crossing week boundaries.",
+        "Completed sessions remain unchanged and are explicitly separated from future schedule adjustments.",
+        "Commit failure preserves the proposal and offers retry; repeated taps do not apply it twice."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/plan/MissedWorkCard.kt",
+          "line": 61,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/plan/MissedWorkCard.kt#L61"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/home/HomeViewModel.kt",
+          "line": 319,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/home/HomeViewModel.kt#L319"
+        }
+      ],
+      "dependencies": [
+        "UX13",
+        "UX23"
+      ],
+      "decision": "Refinement within current product direction",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F02",
+        "F09",
+        "F08"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX15",
+      "title": "Make History's scope and deeper sections reachable",
+      "priority": "P1",
+      "type": "Source-backed information architecture hypothesis with data dependencies",
+      "observation": "History places horizon totals and calendar before month-grouped history; Blocks and Records follow the full session list. Horizon selection does not necessarily imply every section uses that scope. Adding nested tabs without a clear scope rule would increase confusion.",
+      "outcome": "Users can find a recent activity or lifetime record and know which dates each metric covers.",
+      "requirements": [
+        "Keep History on the existing tab. Prototype a compact local jump/control to Sessions, Records and Blocks rather than a new global destination.",
+        "Declare scope for each section. If the horizon controls only totals, label that explicitly; if it filters sessions, implement and test the actual filtering.",
+        "Make lifetime records reachable without scrolling through years of sessions; preserve grouped chronological history.",
+        "Correct R07/R08 before presenting improved statistics as trustworthy. Provide the source exercise/session from each record.",
+        "Retain existing calendar multiple-session selection behavior and preserve scroll/filter state when returning from detail.",
+        "Keep insufficient-data, zero-results-for-filter, no-history and unavailable-data separate."
+      ],
+      "acceptance": [
+        "With years of synthetic history, a participant can reach lifetime records and the newest activity without an unbounded scroll.",
+        "Changing a horizon produces exactly the documented scope across totals/list/records.",
+        "Editing a prior best refreshes visible results and record drill-down identifies the supporting session."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/history/HistoryScreen.kt",
+          "line": 230,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/history/HistoryScreen.kt#L230"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/history/HistoryScreen.kt",
+          "line": 292,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/history/HistoryScreen.kt#L292"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/history/HistoryViewModel.kt",
+          "line": 183,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/history/HistoryViewModel.kt#L183"
+        }
+      ],
+      "dependencies": [
+        "R07",
+        "R08",
+        "R17"
+      ],
+      "decision": "Refinement within current product direction",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F05"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX16",
+      "title": "Make chart axes, comparisons and sparse data honest",
+      "priority": "P1",
+      "type": "Source-backed visualization contract gap",
+      "observation": "TrendChart already separates zero-based additive bars from range-scaled lines and supplies headline values/deltas. LineTrend spaces points uniformly by index, while ExerciseDetail labels the endpoints with session dates. That is valid for a session-index chart, but can imply uniform elapsed time if presented as a time axis.",
+      "outcome": "Users can interpret the size, period and basis of a change without assuming the chart proves more than it does.",
+      "requirements": [
+        "Choose and state the x-axis contract: equally spaced sessions labelled as sessions, or actual timestamps positioned proportionally. Do not change visual spacing without agreeing the meaning.",
+        "Provide chart title, unit, date/session range, current value and comparison basis. Include accessible exact values or a compact data list for detailed inspection.",
+        "Handle 0, 1, 2, flat, irregularly spaced and outlier points deliberately; do not draw a fabricated trend in an empty state.",
+        "Label estimated 1RM as estimated and preserve load-type eligibility; do not imply tonnage is universal strength progress.",
+        "Use a visible scale cue or range explanation for zoomed line charts, and keep bar zero baselines. A small improvement must not look enormous without context.",
+        "Compare like periods and comparable measures; specify current partial week/month versus equal elapsed prior period or clearly label full-period comparison."
+      ],
+      "acceptance": [
+        "Jan 1, Jan 2 and Apr 1 samples do not imply equal elapsed intervals without an explicit session-axis label.",
+        "Screen-reader/data-list users can recover values and dates without relying on the plotted line.",
+        "Bodyweight-rep series use reps, loaded series use the selected physical unit, and empty/flat series are truthful."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/components/TrendChart.kt",
+          "line": 167,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/components/TrendChart.kt#L167"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/components/TrendChart.kt",
+          "line": 238,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/components/TrendChart.kt#L238"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/exercise/ExerciseDetailScreen.kt",
+          "line": 112,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/exercise/ExerciseDetailScreen.kt#L112"
+        }
+      ],
+      "dependencies": [
+        "UX15",
+        "R08"
+      ],
+      "decision": "Refinement within current product direction",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F05",
+        "F10"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX17",
+      "title": "Explain the body map as recorded muscle workload",
+      "priority": "P1",
+      "type": "Source-backed interpretation risk and existing accessibility work",
+      "observation": "Body already provides Day/Week/Month scope, a Load legend, muscle rows, contributors and a text alternative to tiny anatomy hotspots. The legend uses Rest/Low/Moderate/High; users could read Rest as recovery/readiness rather than no logged work in the selected window. The explanatory caption is single-line ellipsized.",
+      "outcome": "Users understand what the map measures and can inspect its evidence without mistaking it for a physiological readiness assessment.",
+      "requirements": [
+        "Keep existing body art, palette and reliable muscle-list route; do not enlarge anatomy hit regions so they overlap neighboring muscles.",
+        "Use visible plain copy such as 'Based on completed sets in this period' and clarify no logged work versus recovered. Preserve the actual calculation meaning rather than inventing medical/recovery claims.",
+        "Allow the explanatory caption to wrap or open a clearly named explanation; essential qualifications must not disappear behind ellipsis.",
+        "Explain contributor attribution: secondary-muscle credit may mean summed muscle counts are not identical to total unique sets. Confirm the calculation before writing exact copy.",
+        "Keep Day/Week/Month tied to the map; separately label last-trained recency if it uses older history.",
+        "Prototype a compact route to relevant recommendations if evidence shows users never reach them below the full muscle list; do not replace the map with a recommendation dashboard."
+      ],
+      "acceptance": [
+        "Participants can explain that an uncolored muscle means no mapped work in the selected period, not a recovery guarantee.",
+        "All muscles remain reachable via full-size text rows with equivalent detail/actions.",
+        "The selected window and contributor data agree; caption remains readable at font 2.0."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/progress/BodyMap.kt",
+          "line": 174,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/progress/BodyMap.kt#L174"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/progress/BodyMap.kt",
+          "line": 33,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/progress/BodyMap.kt#L33"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/domain/BodyHeatCopy.kt",
+          "line": 10,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/domain/BodyHeatCopy.kt#L10"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/progress/ProgressScreen.kt",
+          "line": 281,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/progress/ProgressScreen.kt#L281"
+        }
+      ],
+      "dependencies": [
+        "UX25"
+      ],
+      "decision": "Refinement within current product direction",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F02",
+        "F11"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX18",
+      "title": "Support mixed unit preferences deliberately",
+      "priority": "P2",
+      "type": "Product opportunity; not a regression defect",
+      "observation": "DistanceUnit.fromWeight links kg to km and lbs to miles. People may prefer pounds for lifting and kilometers for running. My earlier generic Units recommendation did not identify this actual behavior or its data contract.",
+      "outcome": "Users choose weight and distance displays independently without altering stored measurements.",
+      "requirements": [
+        "Prototype separate Weight and Distance controls with current coupled behavior as the compatibility default for existing users.",
+        "Keep stored canonical units unchanged and convert only at display/input boundaries.",
+        "If implemented, include the new preference in backup, restore, migration/defaulting and onboarding/settings propagation. Do not add a UI-only toggle that some screens ignore.",
+        "Define what happens when a unit changes with an uncommitted draft: preserve the physical quantity where known or retain the original labelled input until explicitly converted.",
+        "Keep broad localization separate. DateCopy uses English formatters while some other dates use device locale; document the currently supported language/date policy before promising localization."
+      ],
+      "acceptance": [
+        "All four kg/lb × km/mi combinations render consistent input, summary, history and export behavior.",
+        "Changing preference does not change stored distance or weight.",
+        "Old backups lacking distance preference restore to the documented default and drafts do not reinterpret numbers."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/domain/DistanceUnit.kt",
+          "line": 18,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/domain/DistanceUnit.kt#L18"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/units/DateCopy.kt",
+          "line": 25,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/units/DateCopy.kt#L25"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/activity/LiveCardioScreen.kt",
+          "line": 63,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/activity/LiveCardioScreen.kt#L63"
+        }
+      ],
+      "dependencies": [
+        "UX06",
+        "R04"
+      ],
+      "decision": "New preference/product scope; implement after reliability and core interaction work.",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F10",
+        "F12"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX19",
+      "title": "Make bodyweight history correctable and clearing explicit",
+      "priority": "P2",
+      "type": "Product opportunity grounded in current UI paths",
+      "observation": "Structured bodyweight history exists, and Home/Settings record today's value. Reviewed UI paths primarily expose the latest value and check-in; no dedicated historical correction list was found in those paths. Existing block reviews depend on that history.",
+      "outcome": "Users can see which measurements drive trends, fix a mistyped older entry, and understand what Clear removes.",
+      "requirements": [
+        "First verify all current routes to historical bodyweight before adding another. If absent, design a pushed history/correction view from the existing bodyweight section.",
+        "Show date, value and unit, with explicit same-day replacement behavior. Use a selected civil date rather than silently applying corrections to today.",
+        "Specify latest-display clear versus delete-one-measurement versus erase-history as different actions, according to repository semantics.",
+        "Make bodyweight optional and use neutral language; no streak penalty, compulsory target or invented health interpretation.",
+        "Include corrections in backups and invalidate affected block reviews. Do not ship the UI while calculations remain stale."
+      ],
+      "acceptance": [
+        "Correcting an older synthetic measurement changes that date and refreshes the affected review.",
+        "Clear/delete copy identifies the exact affected data; cancelling leaves it unchanged.",
+        "No bodyweight entry is required to record a workout or complete setup."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/settings/SettingsScreen.kt",
+          "line": 625,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/settings/SettingsScreen.kt#L625"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/settings/SettingsViewModel.kt",
+          "line": 195,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/settings/SettingsViewModel.kt#L195"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/history/HistoryViewModel.kt",
+          "line": 94,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/history/HistoryViewModel.kt#L94"
+        }
+      ],
+      "dependencies": [
+        "UX06",
+        "R07"
+      ],
+      "decision": "Additional workflow; validate need and existing repository capability before implementation.",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F05",
+        "F10"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX20",
+      "title": "Reduce Settings scanning without burying recovery",
+      "priority": "P2",
+      "type": "Information architecture hypothesis constrained by ADRs",
+      "observation": "Settings is intentionally the fifth tab, Display is first, and Export is its main filled action. A generic directory redesign that pushes backup several levels deep would undermine a documented recovery task. My earlier proposal was too unconditional.",
+      "outcome": "Frequently needed preferences are scannable and recovery remains easy to find.",
+      "requirements": [
+        "Compare the current page against a modest section-jump/progressive-disclosure variant before a full directory redesign.",
+        "Retain Display at the top and the prominent export entry per current decisions, unless evidence supports a documented change.",
+        "Use compact summaries for expandable coaching/equipment/reminder sections, so the user can inspect current settings before entering them.",
+        "Keep debug-only diagnostics/foundation controls confined to debug behavior; do not mistake their presence in a development build for production clutter.",
+        "Every new subpage needs a descriptive title, correct Back behavior and preservation of current tab state.",
+        "Do not add an empty Appearance section or manual reduce-motion toggle just because a generic settings template has one; expose only supported behavior."
+      ],
+      "acceptance": [
+        "A participant can change units/rest preferences and find export/restore with no worse success than the baseline.",
+        "Reopening Settings restores useful context without hiding an unresolved save error.",
+        "Production and debug build screenshots are evaluated separately."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/settings/SettingsScreen.kt",
+          "line": 303,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/settings/SettingsScreen.kt#L303"
+        },
+        {
+          "path": "docs/architecture/ADR-014-settings-tab.md",
+          "line": 30,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/docs/architecture/ADR-014-settings-tab.md#L30"
+        },
+        {
+          "path": "docs/architecture/ADR-016-settings-home-trim.md",
+          "line": 27,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/docs/architecture/ADR-016-settings-home-trim.md#L27"
+        }
+      ],
+      "dependencies": [
+        "UX21"
+      ],
+      "decision": "Prototype first; do not automatically replace Settings with a directory.",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F07",
+        "F11"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX21",
+      "title": "Specify backup/recovery as a truthful multi-stage task",
+      "priority": "P1",
+      "type": "Known engineering dependencies plus interaction refinement",
+      "observation": "Settings already has protected export, explicit plaintext warning, backup/restore timestamps, safety copies, import preview and consent flow. The main need is coherent progress, partial outcome and recovery messaging—not inventing a backup feature.",
+      "outcome": "Users understand what is being exported/restored, what stage has completed and what they can safely do next.",
+      "requirements": [
+        "Preserve a local-file route without Google sign-in. Explain Drive as optional backup access rather than an app account.",
+        "Show factual status: last successful export/upload, destination and protection when known. Do not infer recoverability from a timestamp or display 'Everything is safe'.",
+        "Use identifiable phases: reading, unlocking, checking, ready to review, restoring and finishing. Use determinate progress only where a real denominator exists.",
+        "Before replacement show backup date/source, data counts, unfinished-session exclusions/refusal and the actual replacement scope. Keep destructive acceptance explicit.",
+        "After partial failure, display what committed, what remains and the available retry. Do not advertise cancellation once an irreversible commit boundary has passed; explain safe leave/background behavior.",
+        "Make the difference between portable protected backups and plaintext local safety copies clear. Do not promise password reset for a password-derived file.",
+        "Integrate paged older Drive backups and expired/denied authorization states without losing the user's selection."
+      ],
+      "acceptance": [
+        "Wrong password, oversized input, unsupported version, offline Drive, live workout, partial preferences failure and completed restore each have a distinct actionable screen.",
+        "Displayed success follows the actual accepted operation; no UI-only fix masks R01–R04.",
+        "Back/rotation/permission return retains the operation's correct stage and never repeats a destructive commit."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/settings/SettingsScreen.kt",
+          "line": 333,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/settings/SettingsScreen.kt#L333"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/settings/SettingsScreen.kt",
+          "line": 796,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/settings/SettingsScreen.kt#L796"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/data/repository/BackupRepository.kt",
+          "line": 186,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/data/repository/BackupRepository.kt#L186"
+        }
+      ],
+      "dependencies": [
+        "R01",
+        "R02",
+        "R03",
+        "R04",
+        "R11",
+        "R13"
+      ],
+      "decision": "Refinement within current product direction",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F12",
+        "F08"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX22",
+      "title": "Preserve context through navigation, notifications and external screens",
+      "priority": "P1",
+      "type": "Cross-route validation gap; existing navigation mechanisms",
+      "observation": "AppNav already saves/restores tab state, uses one live bar, and hands reminder taps through Home. These are strengths. The remaining task is end-to-end behavior when a picker, system permission, Google consent or notification interrupts another screen.",
+      "outcome": "Users return to the task they were doing without duplicate screens, stale actions or lost filters.",
+      "requirements": [
+        "Inventory every entry/exit path: normal tap, system Back, close icon, notification body/action, activity recreation and external permission/consent result.",
+        "Define precedence when a notification arrives over a dirty draft: preserve the draft and avoid a silent destructive navigation.",
+        "Consume deep-link navigation exactly once and re-read the target state. Missing/finished/moved sessions need a meaningful destination rather than a crash or phantom live view.",
+        "Retain tabs, pushed-route hierarchy and the single live bar. Do not add another resume card to solve discoverability locally.",
+        "On return from exercise detail, routine creation or permission Settings, restore query/filter/scroll and refresh the permission status without resetting the whole page."
+      ],
+      "acceptance": [
+        "Repeated delivery/recreation of the same reminder intent does not stack duplicate live screens or start twice.",
+        "Returning from system settings keeps the active session/draft and reflects the real permission result.",
+        "Back from a completed summary cannot reopen the finished workout as live."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/navigation/AppNav.kt",
+          "line": 349,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/navigation/AppNav.kt#L349"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/navigation/AppNav.kt",
+          "line": 213,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/navigation/AppNav.kt#L213"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/navigation/LiveSessionBar.kt",
+          "line": 83,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/navigation/LiveSessionBar.kt#L83"
+        }
+      ],
+      "dependencies": [
+        "UX07",
+        "UX23"
+      ],
+      "decision": "Refinement within current product direction",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F04",
+        "F09"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX23",
+      "title": "Create a shared language for loading, failure, saving and retry",
+      "priority": "P0",
+      "type": "Cross-cutting correctness contract",
+      "observation": "Existing health wrappers and banners distinguish some strength paths well, but activity reads and summary/routine outcomes do not consistently use the same meanings. Composer errors can appear at the top of a long list while the user is at the bottom pressing Save.",
+      "outcome": "Every message tells users what happened, whether their work exists and what action helps.",
+      "requirements": [
+        "Define stable UI outcomes: loading, empty, available, stale-but-readable, unavailable, invalid input, saving, saved, partially saved and operation failed.",
+        "Tie each message to evidence from the operation; never map an exception directly to missing or claim saved solely because navigation reached a summary route.",
+        "Keep field errors inline; show form-save errors near the action and move focus to the relevant field. Avoid relying on a scrolled-away banner.",
+        "Retry must be idempotent and preserve input. A successful retry clears the correct error; unrelated success does not conceal unresolved failure.",
+        "Use short factual titles, one useful explanation and an action. Replace opaque wording such as 'pull may be behind' with 'Recent changes may not be shown' when that is the actual state.",
+        "Use a persistent/recoverable surface for critical failure; transient banners remain for non-critical confirmations."
+      ],
+      "acceptance": [
+        "Injected initial/later load failures, invalid fields and post-commit side-effect failures produce the defined states.",
+        "Users can locate the error and retry at the point of action without losing authored data.",
+        "Missing, empty and unavailable never share a misleading generic success or start-new-workout remedy."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/history/HistoryScreen.kt",
+          "line": 170,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/history/HistoryScreen.kt#L170"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/activity/ActivityComposerScreen.kt",
+          "line": 117,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/activity/ActivityComposerScreen.kt#L117"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/summary/WorkoutSummaryViewModel.kt",
+          "line": 59,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/summary/WorkoutSummaryViewModel.kt#L59"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/routines/RoutineEditorViewModel.kt",
+          "line": 451,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/routines/RoutineEditorViewModel.kt#L451"
+        }
+      ],
+      "dependencies": [
+        "R06",
+        "R10"
+      ],
+      "decision": "Refinement within current product direction",
+      "status": "Core states implemented for summary, composer, finish outcomes and History wording; 33 further audit findings recorded as residue",
+      "fixtures": [
+        "F08",
+        "F11"
+      ],
+      "evidenceClass": "Cross-cutting contract — partially addressed; audit list carried in this backlog",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)",
+      "audit": {
+        "method": "Adversarial read-only sweep of every Screen/ViewModel/copy object at 156cc40 (one agent, structured output); classes: exception-mapped-to-missing, saved-claimed-without-evidence, opaque-wording, missing-vs-empty-vs-unavailable-conflated, error-far-from-action",
+        "addressedInThisBatch": [
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/summary/WorkoutSummaryViewModel.kt",
+            "lineAt156cc40": 63,
+            "problem": "exception-mapped-to-missing",
+            "severity": "P0",
+            "currentText": "_uiState.value = WorkoutSummaryUiState(isLoading = false, missing = true)   // inside .onFailure { thrown -> ... }",
+            "proposedText": "Add `failed: Boolean` to WorkoutSummaryUiState and set it here instead of `missing`. Screen copy for failed: title \"Summary unavailable\" · body \"The workout could not be read to build this summary. Nothing was changed; if the finish went through it is in History.\" · actions \"Retry\" (re-run the read) and \"Done\"."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/summary/WorkoutSummaryScreen.kt",
+            "lineAt156cc40": 114,
+            "problem": "saved-claimed-without-evidence",
+            "severity": "P0",
+            "currentText": "title = \"Workout saved\",\nbody = \"It is in your history. Nothing to summarise from this one.\",   // shown for state.missing || !summary.hasWork",
+            "proposedText": "Split the branch. missing (getSession returned null): title \"Session not found\" · body \"That workout is no longer on this phone.\" · action \"Done\". !summary.hasWork (session present, no working sets): title \"Nothing to summarise\" · body \"No working sets were logged. The session is in History.\" · action \"Done\". Never say \"saved\" from the failed branch."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/history/HistoryScreen.kt",
+            "lineAt156cc40": 170,
+            "problem": "opaque-wording",
+            "severity": "P1",
+            "currentText": "\"Showing your last loaded history — pull may be behind.\"",
+            "proposedText": "Replace the caption with GymNoticeBanner: title \"History may be behind\" · body \"A later read failed, so this is the last list that loaded. New sessions or records may not be in it.\" · action \"Retry\" (viewModel::retryHistory)."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/activity/ActivityComposerScreen.kt",
+            "lineAt156cc40": 118,
+            "problem": "error-far-from-action",
+            "severity": "P1",
+            "currentText": "state.error?.let { message ->\n    item { GymErrorBanner(message, onDismiss = viewModel::dismissError) }\n}   // 2nd item of the LazyColumn; Save lives in ComposerSaveDock (bottomBar, line 95)",
+            "proposedText": "Render `state.error` inside ComposerSaveDock as a PinnedDock prelude (same shape as ActiveWorkoutScreen LogBar lines 699-703): title \"Not saved\" · body \"Could not save that session. Your draft is kept. Try again.\" · Save stays the action. Keep validation errors (\"Reps must be at least 1.\") beside the adder that raised them."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutViewModel.kt",
+            "lineAt156cc40": 1105,
+            "problem": "missing-vs-empty-vs-unavailable-conflated",
+            "severity": "P1",
+            "currentText": "FinishOutcome.SessionMissing, is FinishOutcome.Failed ->\n    error.value = \"Could not finish this workout. Try again.\"",
+            "proposedText": "SessionMissing → \"Workout not found. It is no longer on this phone, so there is nothing to finish.\" (action: Back to home, not retry). Failed → \"Not finished. The finish could not be written; your sets are still logged. Try again.\""
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/navigation/LiveSessionBarViewModel.kt",
+            "lineAt156cc40": 232,
+            "problem": "missing-vs-empty-vs-unavailable-conflated",
+            "severity": "P1",
+            "currentText": "else -> {\n    AppLog.w(TAG, \"Finishing from the bar did not complete: $outcome\")\n    _actionError.value = \"Could not finish this workout. Try again.\"\n}",
+            "proposedText": "Match on FinishOutcome.SessionMissing separately: \"Workout not found. Nothing is live to finish.\"; keep \"Not finished. The finish could not be written; your sets are still logged. Try again.\" for Failed."
+          }
+        ],
+        "residue": [
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/components/Common.kt",
+            "lineAt156cc40": 1391,
+            "problem": "saved-claimed-without-evidence",
+            "severity": "P1",
+            "currentText": "else -> \"Session notes · saved\"",
+            "proposedText": "Drive the suffix from the write, not from `notes.isNotBlank()`. Pass a `persisted: Boolean` (lastPersistedNotes == notes) and label: persisted → \"Session notes · saved\"; typed but not yet written → \"Session notes\"; last write failed (SessionDetailViewModel.kt:144-147 / ActiveWorkoutViewModel.kt:344-347 currently swallow it) → \"Session notes · not saved yet\"."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/exercise/ExerciseDetailScreen.kt",
+            "lineAt156cc40": 146,
+            "problem": "other",
+            "severity": "P1",
+            "currentText": "state.notice?.let { message ->\n    GymStatusBanner(message, ...)   // also carries \"Could not add it to that routine. Try again.\" from ExerciseDetailViewModel.kt:106",
+            "proposedText": "A failure is rendered in the Volt success banner that auto-dismisses. Add a separate `error` field in ExerciseDetailUiState; render it with GymErrorBanner(onRetry = { addToRoutine(lastRoutineId) }, onDismiss). Text: \"Not added to {routine}\" · \"Could not write that lift into the routine. Try again.\" Keep GymStatusBanner for \"Added to {routine}.\" only."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/history/SessionDetailScreen.kt",
+            "lineAt156cc40": 200,
+            "problem": "missing-vs-empty-vs-unavailable-conflated",
+            "severity": "P1",
+            "currentText": "state.isLoading -> { ScreenLoading() }   // SessionDetailViewModel.kt:55 uses observeSession(), whose presentValues() drops DataHealth.Unavailable, so a first-read fault never emits and isLoading stays true",
+            "proposedText": "Consume a health-carrying flow (observeSessionHealth) and add `failed` to SessionDetailUiState, checked before `session == null`. Copy: title \"Session unavailable\" · body \"This workout could not be read. Nothing was changed.\" · actions \"Retry\" and \"Back\". Reuse DataHealthCopy shape (ACTIVITY_TITLE/BODY)."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutScreen.kt",
+            "lineAt156cc40": 331,
+            "problem": "missing-vs-empty-vs-unavailable-conflated",
+            "severity": "P1",
+            "currentText": "state.isLoading -> { ScreenLoading(modifier = Modifier.padding(padding)) }   // ActiveWorkoutViewModel.kt:234-237: sessionResolved only flips on an emission; Unavailable is dropped upstream so a Room fault is an endless spinner",
+            "proposedText": "Track DataHealth.Unavailable as `failed` and branch before `session == null`: title \"Workout unavailable\" · body \"The live workout could not be read. It has not been finished or discarded.\" · actions \"Retry\" and \"Back to home\"."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/workout/RestTimerScreen.kt",
+            "lineAt156cc40": 103,
+            "problem": "missing-vs-empty-vs-unavailable-conflated",
+            "severity": "P1",
+            "currentText": "SessionLoadState.LOADING -> { ScreenLoading(modifier = Modifier.padding(padding)) }   // RestTimerViewModel.kt:61-64 same observeSession()/presentValues() gap",
+            "proposedText": "Add SessionLoadState.FAILED: title \"Workout unavailable\" · body \"The workout could not be read. The rest clock is not affected.\" · actions \"Retry\" and \"Close\"."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/exercise/ExerciseDetailScreen.kt",
+            "lineAt156cc40": 155,
+            "problem": "missing-vs-empty-vs-unavailable-conflated",
+            "severity": "P1",
+            "currentText": "state.isLoading -> ScreenLoading()   // ExerciseDetailViewModel.kt:112 `resolved` only flips on an emission; observeById() drops Unavailable",
+            "proposedText": "Add `failed` to ExerciseDetailUiState and branch before `missing`: title \"Lift unavailable\" · body \"This lift could not be read from the library. Nothing was changed.\" · actions \"Retry\" and \"Back\"."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/activity/LiveCardioScreen.kt",
+            "lineAt156cc40": 424,
+            "problem": "missing-vs-empty-vs-unavailable-conflated",
+            "severity": "P1",
+            "currentText": "title = \"No live cardio\",\nbody = \"That session is gone. Start a new one from Home.\",   // missing is set for `live == null || !live.isLive` (LiveCardioViewModel.kt:216), so a finished session in History is called gone",
+            "proposedText": "Split the two successful-read cases. Finished (row present, !isLive): title \"Session finished\" · body \"This cardio is already in History. Its clock has stopped.\" · action \"Back\". Null row (or after own discard): title \"Session not found\" · body \"That live session is no longer on this phone.\" · action \"Back\"."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/routines/CustomWeekViewModel.kt",
+            "lineAt156cc40": 138,
+            "problem": "missing-vs-empty-vs-unavailable-conflated",
+            "severity": "P1",
+            "currentText": ".catch { thrown ->\n    AppLog.w(TAG, \"Reading the catalog failed\", thrown)\n    emit(emptyList())\n}",
+            "proposedText": "A library read fault becomes an empty catalog (picker then says \"Nothing in the library matches\"). Set error instead of emitting empty: \"Lift library unavailable. The library could not be read, so no lifts can be added yet. Retry.\" with GymErrorBanner(onRetry)."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/settings/SettingsViewModel.kt",
+            "lineAt156cc40": 940,
+            "problem": "opaque-wording",
+            "severity": "P1",
+            "currentText": "error.value = (thrown as? BackupException)?.message\n    ?: thrown.message\n    ?: \"Something went wrong. Try again.\"",
+            "proposedText": "Surface only BackupException text. For any other throwable use the action label: \"{label without ellipsis} did not finish. Nothing on this phone was changed. Try again.\" (e.g. \"Uploading backup did not finish. Nothing on this phone was changed. Try again.\"). Never show raw `thrown.message`."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/components/GymStatus.kt",
+            "lineAt156cc40": 128,
+            "problem": "opaque-wording",
+            "severity": "P2",
+            "currentText": "title = \"Something failed\",",
+            "proposedText": "Make the title a parameter with no generic fallback so callers name the outcome: \"Not saved\", \"Not started\", \"Not finished\", \"Could not read\". Where a caller has only a message, promote the message to the title (as GymStatusBanner already does) and drop the body."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/exercise/ExerciseDetailScreen.kt",
+            "lineAt156cc40": 159,
+            "problem": "saved-claimed-without-evidence",
+            "severity": "P2",
+            "currentText": "title = \"Exercise missing\",\nbody = \"This lift was deleted from the library. Your logged sets are still in history.\",",
+            "proposedText": "\"Deleted\" is inferred from a null row. title \"Lift not in library\" · body \"This lift is no longer in the library. Sets logged under it stay in History under its name.\" · action \"Back\"."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/routines/RoutineEditorScreen.kt",
+            "lineAt156cc40": 115,
+            "problem": "opaque-wording",
+            "severity": "P2",
+            "currentText": "title = \"Routine missing\",\nbody = \"This routine was deleted. Create a new one from the list.\",",
+            "proposedText": "title \"Routine not found\" · body \"This routine is no longer on this phone. Workouts logged from it stay in History.\" · action \"Back to routines\". Also drop the duplicate error \"This routine is no longer available.\" set at RoutineEditorViewModel.kt:184 when MISSING is already rendered."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutScreen.kt",
+            "lineAt156cc40": 341,
+            "problem": "saved-claimed-without-evidence",
+            "severity": "P2",
+            "currentText": "title = \"Workout missing\",\nbody = \"This session was finished, discarded, or replaced by a restore. \" +\n    \"Nothing was lost from your history.\",   // same text at RestTimerScreen.kt:108-110",
+            "proposedText": "\"Nothing was lost\" is not observed here. title \"Workout not live\" · body \"No live workout has this id. If it was finished, it is in History.\" · action \"Back to home\" (RestTimer: \"Back\")."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/progress/ProgressScreen.kt",
+            "lineAt156cc40": 131,
+            "problem": "missing-vs-empty-vs-unavailable-conflated",
+            "severity": "P2",
+            "currentText": "title = \"Some insights are missing\",",
+            "proposedText": "title \"Some insights could not be read\" · body unchanged (\"Couldn’t check which lifts are ready to progress.\" / \"Couldn’t work out this week’s suggestions.\") · action \"Try again\"."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/progress/ProgressViewModel.kt",
+            "lineAt156cc40": 69,
+            "problem": "other",
+            "severity": "P2",
+            "currentText": "error = \"Couldn’t load the body map. Try switching the window.\"\n    .takeIf { insights.failed(InsightFailure.HEAT) },",
+            "proposedText": "This string is never shown: ProgressScreen.kt:99-109 keys on `state.error != null` and prints its own text with a \"Try again\" action, so the VM's instruction (\"switch the window\") contradicts the screen. Make `error` a Boolean `mapFailed`, or move the screen's copy here: title \"Couldn’t load the map\" · body \"Every set you have logged is still in your history — only the map failed to build.\" · action \"Try again\"."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/workout/RestTimerScreen.kt",
+            "lineAt156cc40": 244,
+            "problem": "opaque-wording",
+            "severity": "P2",
+            "currentText": "\"Rest may not survive leaving the app.\",",
+            "proposedText": "\"Rest timer not saved. It stops if the app is closed.\""
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/routines/CustomWeekScreen.kt",
+            "lineAt156cc40": 150,
+            "problem": "error-far-from-action",
+            "severity": "P2",
+            "currentText": "state.error?.let { GymErrorBanner(it, onDismiss = viewModel::dismissError) }   // above the LazyColumn; Confirm / \"Saving…\" button is in the bottom Column at lines 221-238",
+            "proposedText": "Render ApplyPlanResult.Failed above the confirm button in the bottom Column: title \"Week not saved\" · body \"{result.message}\" · action Confirm again. Keep lift-creation errors (CREATE_LIFT_FAILED) inside the picker."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/routines/RoutineEditorScreen.kt",
+            "lineAt156cc40": 156,
+            "problem": "error-far-from-action",
+            "severity": "P2",
+            "currentText": "?.let { message -> item(key = \"error\") { GymErrorBanner(message, onDismiss = viewModel::dismissError) } }   // 2nd LazyColumn item; RoutineSaveDock is pinned (line 88) and saveAndLeave sets NEED_A_LIFT here (RoutineEditorViewModel.kt:409)",
+            "proposedText": "Render save-path errors (NEED_A_LIFT, \"Could not create this routine. Try again.\") as a PinnedDock prelude over Save; leave per-row errors (swap, targets) beside the row. Text unchanged."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/plan/PlanScreen.kt",
+            "lineAt156cc40": 338,
+            "problem": "error-far-from-action",
+            "severity": "P2",
+            "currentText": "state.error?.let { message ->\n    item(key = \"error\") { GymErrorBanner(message, onDismiss = viewModel::dismissError) }\n}   // first LazyColumn item; the failing actions (pin, add session, Use this week) are further down",
+            "proposedText": "Hoist to a Box overlay at Alignment.BottomCenter like HistoryScreen.kt:320-328 so the banner is visible wherever the action was tapped. Also pass onRetry for the read failure \"Couldn’t read this week’s plan…\" (PlanViewModel.kt:230), whose text tells the user to try again but offers no control."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/home/HomeScreen.kt",
+            "lineAt156cc40": 295,
+            "problem": "error-far-from-action",
+            "severity": "P2",
+            "currentText": "state.error?.let { message ->\n    item {\n        GymErrorBanner(message, onDismiss = viewModel::dismissError)\n    }\n}   // mid-list item; skip / add / reorder / start actions sit in other items",
+            "proposedText": "Same overlay treatment as History (BottomCenter Box). Texts (\"Could not skip that session. Try again.\" etc.) are fine."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/activity/LiveCardioScreen.kt",
+            "lineAt156cc40": 467,
+            "problem": "error-far-from-action",
+            "severity": "P2",
+            "currentText": "state.error?.let { GymErrorBanner(it, onDismiss = viewModel::dismissError) }   // inside the scrolling Column; Finish / Discard are in CardioActionDock (bottomBar)",
+            "proposedText": "Move to a CardioActionDock prelude: \"Not finished\" · \"Could not finish that session. The clock is still running. Try again.\" and \"Not discarded\" · \"Could not discard that session. It is still live. Try again.\""
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutScreen.kt",
+            "lineAt156cc40": 270,
+            "problem": "other",
+            "severity": "P2",
+            "currentText": "GymErrorBanner(message = state.error!!)   // no onDismiss / onRetry; shown when no lift is selected",
+            "proposedText": "Pass onDismiss = viewModel::dismissError (and onRetry where the failing action is re-runnable, e.g. add lift) so a one-off failure does not pin a red card until the next success."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/settings/SettingsScreen.kt",
+            "lineAt156cc40": 984,
+            "problem": "missing-vs-empty-vs-unavailable-conflated",
+            "severity": "P2",
+            "currentText": "\"None yet. A verified copy is saved each time you restore.\",   // safetySnapshots is also empty when the listing threw (SettingsViewModel.kt:646 logs only)",
+            "proposedText": "Track the listing failure and show: \"Safety copies could not be read. Retry.\" Keep \"None yet. A verified copy is saved each time you restore.\" for a successful empty list."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/settings/SettingsScreen.kt",
+            "lineAt156cc40": 873,
+            "problem": "other",
+            "severity": "P2",
+            "currentText": "state.restoreNote?.let { note -> GymErrorBanner(message = note, onDismiss = onDismissRestoreNote) }",
+            "proposedText": "RestoreJournal.SETTINGS_PENDING (\"Your training data is in…\") is not a failure but renders under the \"Something failed\" title. Use GymNoticeBanner: title \"Restore needs a check\" · body = note · action \"Finish restore\"; keep GymErrorBanner for NOTHING_CHANGED / UNRESOLVED."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/settings/SettingsViewModel.kt",
+            "lineAt156cc40": 201,
+            "problem": "saved-claimed-without-evidence",
+            "severity": "P2",
+            "currentText": "}.onFailure { AppLog.w(TAG, \"Recording bodyweight failed\", it) }   // Home's weigh-in sheet (HomeScreen.kt:152-155) closes on confirm as if logged",
+            "proposedText": "Surface the failure where the sheet was: \"Weight not logged. Could not write today's weigh-in. Try again.\" (Home actionError / Settings error). Same for clearBodyweight (line 208): \"Weight not cleared. Try again.\""
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/library/ExerciseLibraryViewModel.kt",
+            "lineAt156cc40": 305,
+            "problem": "opaque-wording",
+            "severity": "P2",
+            "currentText": "error.value = \"Could not check where this lift is used.\"",
+            "proposedText": "\"Could not check where this lift is used. Nothing was deleted. Try again.\""
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/library/ExerciseLibraryViewModel.kt",
+            "lineAt156cc40": 387,
+            "problem": "opaque-wording",
+            "severity": "P2",
+            "currentText": "error.value = \"Could not add that lift to the routine.\"",
+            "proposedText": "\"Could not add that lift to the routine. Try again.\" (matches the shared \"Could not <verb> that <noun>. Try again.\" shape)."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/plan/PlanViewModel.kt",
+            "lineAt156cc40": 364,
+            "problem": "opaque-wording",
+            "severity": "P2",
+            "currentText": "actionError.value = \"Couldn’t read your recent training, so there is nothing to suggest from.\"",
+            "proposedText": "\"Could not read your recent training, so nothing can be suggested yet. Nothing was changed. Try again.\" and pass onRetry = ::suggestFills to the banner."
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/onboarding/OnboardingViewModel.kt",
+            "lineAt156cc40": 187,
+            "problem": "missing-vs-empty-vs-unavailable-conflated",
+            "severity": "P2",
+            "currentText": "existingProgram.value = runCatchingCancellable { container.onboardingApplier.hasExistingProgram() }\n    .getOrDefault(false)   // a failed check hides the \"You already have routines…\" caution at OnboardingScreen.kt:496",
+            "proposedText": "Default the unknown case to showing the caution, or render a distinct line: \"Could not check for existing routines. Nothing here deletes them; this week is added alongside whatever is already on the phone.\""
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/domain/DataHealth.kt",
+            "lineAt156cc40": 55,
+            "problem": "opaque-wording",
+            "severity": "P2",
+            "currentText": "const val SETTINGS_BODY =\n    \"Could not read whether setup is finished. Retry. This is not a first install.\"",
+            "proposedText": "\"Settings could not be read. Nothing was changed. Retry.\" (\"This is not a first install\" is developer reasoning, not a sentence for the person holding the phone.)"
+          },
+          {
+            "file": "app/src/main/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutViewModel.kt",
+            "lineAt156cc40": 241,
+            "problem": "opaque-wording",
+            "severity": "P2",
+            "currentText": "error.value = \"This workout is no longer available.\"   // sessionId is blank; same string at line 721, RoutineEditorViewModel.kt:184/545/696, StartOptionsViewModel.kt:213, ExerciseLibraryViewModel.kt:364",
+            "proposedText": "Retire \"no longer available\" (it reads as a network state) in favour of the app's missing vocabulary: \"Workout not found. It is no longer on this phone.\" / \"Routine not found. It is no longer on this phone.\" Reserve \"unavailable\" for DataHealth.Unavailable (a read that threw)."
+          }
+        ],
+        "alreadyGoodPatterns": [
+          "DataHealth sealed class + DataHealthFold (domain/DataHealth.kt:3-41): 'Empty is a successful value. Unavailable is not. Primary screens must not render Unavailable as nothing here yet.' — this is the rule the shared language should be built on.",
+          "DataHealthCopy (domain/DataHealth.kt:43-73): one object for read-fault copy, each entry title + one factual explanation + Retry, and each explicitly states what did NOT happen (\"Nothing was changed.\", \"It has not been finished or discarded.\").",
+          "ActivityDetailViewModel failed vs missing (ui/activity/ActivityDetailViewModel.kt:21-37, 66-86) and ActivityDetailScreen.kt:160-193 checking `failed` BEFORE `missing`, rendering DataHealthCopy.ACTIVITY_TITLE/BODY + Retry + Back, with MISSING_TITLE/MISSING_BODY (\"Session not found / That activity is no longer on this phone.\") reserved for a successful null read.",
+          "LiveCardioViewModel failed vs missing (ui/activity/LiveCardioViewModel.kt:34-50, 209-219) and LiveCardioScreen.kt:435-455 (DataHealthCopy.LIVE_CARDIO_*, Retry, Back, no dock while unreadable); discard failure keeps the session live and says so (LiveCardioViewModel.kt:191-197).",
+          "HistoryScreen unavailable EmptyState (ui/history/HistoryScreen.kt:143-153) with DataHealthCopy.HISTORY_TITLE/BODY/RETRY, and HistoryViewModel.historyListFromHealth / sidecarFromHealth (HistoryViewModel.kt:401-438) keeping Unavailable, Degraded and Available distinct so a failed sidecar never reads as 'no records'.",
+          "RoutineEditor FAILED phase with retryHydration (ui/routines/RoutineEditorViewModel.kt:134-171) rendered via DataHealthCopy.ROUTINE_EDITOR_* (RoutineEditorScreen.kt:99-112), checked before the missing branch.",
+          "OnboardingGate UNKNOWN renders nothing, UNAVAILABLE renders DataHealthCopy.SETTINGS_* with Retry (ui/onboarding/OnboardingGateViewModel.kt:17-60, ui/navigation/AppNav.kt:269-286).",
+          "ProgressViewModel separates fatal `error` from non-fatal `notice` (ui/progress/ProgressViewModel.kt:26-33) and ProgressScreen.kt:99-109 explains the read failure without overclaiming: 'Every set you have logged is still in your history — only the map failed to build.' + Try again.",
+          "Write-failure shape 'Could not <verb> that <noun>. Try again.' via one helper: PlanViewModel.write (ui/plan/PlanViewModel.kt:660-669), PlanDayViewModel.write (PlanDayViewModel.kt:240-249); same shape in HomeViewModel, StartOptionsViewModel, SessionDetailViewModel, ActiveWorkoutViewModel, LiveSessionBarViewModel, SessionOrderCopy.*_FAILED.",
+          "SessionDetailViewModel.report() (ui/history/SessionDetailViewModel.kt:256-259) lets rule messages through (SetLogRules.isUserMessage) and otherwise falls back to fixed copy; ActiveWorkoutViewModel does the same at 711-714, 733-736, 879-881.",
+          "Error adjacent to its action: ActiveWorkoutScreen LogBar prelude renders `error` directly above Log in the PinnedDock (ui/workout/ActiveWorkoutScreen.kt:699-703).",
+          "Undo confirmations tied to the returned value: 'Set deleted · <weight> × <reps>' + Undo (ActiveWorkoutScreen.kt:272-283, SessionDetailScreen.kt:284-294) — the message is built from the DeletedSet the repository handed back.",
+          "Composer honesty: ComposerCopy.LEAVE_BODY 'Nothing is written until you save.' and ActivityComposerViewModel.save() clearing the draft and plan link only on ActivityWrite.Accepted, surfacing ActivityWrite.Rejected.reason verbatim (ui/activity/ActivityComposerViewModel.kt:231-253, 293-315).",
+          "ExerciseLibraryViewModel.confirmDelete distinguishes Deleted / InUse / NotCustom / Missing outcomes (ui/library/ExerciseLibraryViewModel.kt:313-331) rather than folding them into one message.",
+          "Settings backup outcomes state what was and was not included: unfinishedWorkoutNote (ui/settings/SettingsViewModel.kt:862-868), describeRestore tied to result flags (870-878), RestoreJournal.NOTHING_CHANGED vs NOTHING_STARTED (data/backup/RestoreJournal.kt:52-55).",
+          "Blocked-start sentence shared verbatim across History, SessionDetail and StartOptions: 'Session in progress / Finish or discard the current session before starting another.' (HistoryScreen.kt:355-364, SessionDetailScreen.kt:371, StartOptionsSheet.kt:153).",
+          "LiveSessionBar stale state is about the session, not the data, and says so plainly: 'Left open · Nh' in Warn (ui/navigation/LiveSessionBar.kt:148-149).",
+          "RestTimerScreen inline persistence notice (ui/workout/RestTimerScreen.kt:239-248) admits the row did not reach disk instead of pretending — right instinct, wording needs the fix above.",
+          "Banner vocabulary already exists: GymErrorBanner with onRetry/onDismiss, GymStatusBanner for transient confirmations, GymNoticeBanner for phone-side problems (ui/components/GymStatus.kt:118-138, 147-185, 274-291)."
+        ]
+      }
+    },
+    {
+      "id": "UX24",
+      "title": "Apply responsive type and layout rules to actual content",
+      "priority": "P1",
+      "type": "Validation gap and source-backed truncation risks",
+      "observation": "The token system already uses a 4 dp spacing grid, tabular numerals, 48/56/72 dp controls and adaptive helpers. Several names and explanatory captions still use one-line ellipsis; three-column metric rows can be crowded at large fonts. Another design-system rewrite would be wasteful.",
+      "outcome": "Important names, values and instructions remain readable without making every screen visually noisy.",
+      "requirements": [
+        "Keep current token values as the baseline. Modify shared components only after real layout evidence identifies a problem.",
+        "Define content priority: action label, identifying name, value+unit, error, explanation, decorative detail. Preserve the first five before shrinking or hiding them.",
+        "Allow meaningful names to wrap or provide an explicit full-name detail; variants with identical truncated prefixes must remain distinguishable at selection.",
+        "Stack metric rows at constrained width/font, not only based on a device class. Keep each number and unit together.",
+        "Do not shrink large user fonts to force a design to fit. Use scrolling, wrapping and layout changes.",
+        "Test large numbers, long exercise/routine names, empty names under validation, landscape, split window and system insets. Keep debug chrome out of production comparisons."
+      ],
+      "acceptance": [
+        "Two long similarly named variants can be distinguished before selection.",
+        "At font 2.0, primary actions and full values/units are readable and not clipped.",
+        "Shared component changes preserve all callers and do not reduce touch targets."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/theme/Metrics.kt",
+          "line": 22,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/theme/Metrics.kt#L22"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/components/ExercisePickerSheet.kt",
+          "line": 417,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/components/ExercisePickerSheet.kt#L417"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/progress/BodyMap.kt",
+          "line": 196,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/progress/BodyMap.kt#L196"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/theme/LogLoopScale.kt",
+          "line": 1,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/theme/LogLoopScale.kt#L1"
+        }
+      ],
+      "dependencies": [
+        "UX25"
+      ],
+      "decision": "Refinement within current product direction",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F06",
+        "F11"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX25",
+      "title": "Validate complete-screen accessibility, not just component tags",
+      "priority": "P1",
+      "type": "Documented validation gap",
+      "observation": "Existing tests include useful isolated controls and the body map provides a list alternative, but this does not prove full-page keyboard/large-text/TalkBack usability. Some custom BasicTextField instances need explicit accessible naming audit, particularly picker search and routine title.",
+      "outcome": "Users can complete every primary journey with large text, screen reader, keyboard or alternate input.",
+      "requirements": [
+        "Mount actual production screens with realistic view state, navigation, keyboard and populated lists.",
+        "Inspect semantics: stable field name independent of placeholder/value, role, selected state, error, action label and pane/dialog title. Avoid replacing editable semantics with a broad contentDescription.",
+        "Verify focus enters a dialog logically and returns to its launcher; preserve focus identity after reorder/remove.",
+        "Measure touch bounds, contrast at actual alpha/surface combinations and overlapping hit areas. Use labels/icons alongside palette colors rather than retuning the approved palette.",
+        "Keep the reliable muscle-list alternative and typed bodyweight path. Do not make drag or long-press the sole way to perform an essential action.",
+        "Check TalkBack announcements for timer ticks and dynamic receipts; avoid a constant spoken stream or duplicate row announcements."
+      ],
+      "acceptance": [
+        "Physical TalkBack can complete planned start, set log/edit, cardio finish, routine create, history correction and export review.",
+        "Search and routine-name fields announce their purpose when empty and populated.",
+        "Large text/IME does not hide essential actions; measured issues have production-screen regression coverage."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/components/ExercisePickerSheet.kt",
+          "line": 451,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/components/ExercisePickerSheet.kt#L451"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/routines/RoutineEditorScreen.kt",
+          "line": 337,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/routines/RoutineEditorScreen.kt#L337"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/progress/BodyMap.kt",
+          "line": 94,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/progress/BodyMap.kt#L94"
+        },
+        {
+          "path": "docs/architecture/ADR-023-palette-and-reduced-motion.md",
+          "line": 34,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/docs/architecture/ADR-023-palette-and-reduced-motion.md#L34"
+        }
+      ],
+      "dependencies": [
+        "R16",
+        "UX12"
+      ],
+      "decision": "Refinement within current product direction",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F11"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX26",
+      "title": "Tune feedback timing without adding decorative motion",
+      "priority": "P2",
+      "type": "Existing behavior to preserve and validate",
+      "observation": "Reduced motion already follows system settings; records carry non-color cues. LiveSessionBar auto-clears action errors after a fixed six seconds. Important messages may need accessibility-adjusted dwell or a persistent recovery path. More animation is not automatically more polish.",
+      "outcome": "Feedback is noticeable, readable and calm, including when animations are disabled.",
+      "requirements": [
+        "Keep token-based motion and current palette; no new accent colors or bespoke milliseconds scattered across screens.",
+        "Honor system accessibility timeout recommendations for actionable transient messages where appropriate. Distinguish dwell time from animation duration.",
+        "Ensure save confirmation follows accepted persistence, not just a tap. Haptics supplement visible feedback and respect system/user settings.",
+        "Keep critical failed-save/restore errors recoverable instead of disappearing with their only action.",
+        "Limit chart/record replay after rotation or unrelated state updates; reduced motion shows final information immediately without hiding it.",
+        "Measure transitions on a real device for focus/scroll jumps rather than adding effects to a static mockup."
+      ],
+      "acceptance": [
+        "With reduced motion enabled, all data and records appear immediately and remain accessible.",
+        "An extended accessibility timeout is honored for relevant messages or equivalent persistent access exists.",
+        "Save failure remains actionable after any transient banner disappears."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/navigation/LiveSessionBar.kt",
+          "line": 63,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/navigation/LiveSessionBar.kt#L63"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/theme/Motion.kt",
+          "line": 1,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/theme/Motion.kt#L1"
+        },
+        {
+          "path": "docs/architecture/ADR-023-palette-and-reduced-motion.md",
+          "line": 37,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/docs/architecture/ADR-023-palette-and-reduced-motion.md#L37"
+        }
+      ],
+      "dependencies": [
+        "UX23",
+        "UX25"
+      ],
+      "decision": "Refinement within current product direction",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F03",
+        "F08",
+        "F11"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX27",
+      "title": "Make exercise discovery precise and stateful",
+      "priority": "P2",
+      "type": "Existing capability to preserve and refine",
+      "observation": "Library already has separate muscle and equipment filters, movement families, collision handling and shared exercise rows with the picker. Recommendations to 'add search/filtering' would be redundant. The next questions concern filter visibility, long-name disambiguation and return context.",
+      "outcome": "Users find the intended equipment variant quickly and understand why results are empty.",
+      "requirements": [
+        "Keep muscle AND equipment semantics and family grouping. Show active filters and a clear way to reset them without erasing the query unnecessarily.",
+        "Distinguish no results because of filters from no matching exercise and from failed catalogue load.",
+        "Preserve search/filter/expanded-family/scroll state across detail and routine-add round trips, including the new UX09 continuation.",
+        "Evaluate aliases/recently used choices with actual catalogue data before adding a new search engine; keep IDs and duplicate-name rules stable.",
+        "Make custom-versus-built-in collisions understandable without merging histories automatically.",
+        "For long variants, expose equipment and enough full name to distinguish the intended movement before committing."
+      ],
+      "acceptance": [
+        "A participant finds a specified muscle+equipment variant and clears a restrictive filter without losing orientation.",
+        "Returning from detail restores the original results position.",
+        "Load failure does not invite creating a duplicate exercise because the catalogue appeared empty."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/library/ExerciseLibraryScreen.kt",
+          "line": 139,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/library/ExerciseLibraryScreen.kt#L139"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/library/ExerciseLibraryScreen.kt",
+          "line": 393,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/library/ExerciseLibraryScreen.kt#L393"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/library/ExerciseLibraryViewModel.kt",
+          "line": 392,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/library/ExerciseLibraryViewModel.kt#L392"
+        }
+      ],
+      "dependencies": [
+        "UX09",
+        "UX10",
+        "UX24"
+      ],
+      "decision": "Refinement within current product direction",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F06",
+        "F08"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX28",
+      "title": "Improve setup preview and returning-user orientation",
+      "priority": "P2",
+      "type": "Source-backed refinement; existing setup is already optional",
+      "observation": "Home already offers Generate, Build my own and Start workout without a mandatory onboarding gate. Setup shows an actual generated block and states existing routines are added alongside. The improvement is helping users understand and revise that preview, not removing a nonexistent mandatory questionnaire.",
+      "outcome": "Users understand what will be created and can adjust it without restarting the entire setup.",
+      "requirements": [
+        "Preserve all three first-visit paths and dismissibility; do not force bodyweight, Google sign-in or a plan before training.",
+        "Show a compact preview summary of days, focus and equipment, with clearly scoped change links returning to relevant questions and back to preview.",
+        "State what acceptance adds or changes for an existing user, including current block/schedule behavior verified against OnboardingApplier.",
+        "Use neutral copy and visible optionality; avoid overconfident coaching or a promise of a specific outcome.",
+        "Prevent double acceptance and keep a recoverable draft on generation/write failure.",
+        "Do not shorten questions merely to reduce tap counts without checking whether omitted answers affect the generated plan."
+      ],
+      "acceptance": [
+        "A user can inspect the proposed week, change equipment/days and return to an updated preview with other answers preserved.",
+        "An existing user can explain the acceptance impact before tapping Use this plan.",
+        "Dismissed/failed setup does not create a partial unexpected program."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/home/GetStartedSheet.kt",
+          "line": 33,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/home/GetStartedSheet.kt#L33"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/onboarding/OnboardingScreen.kt",
+          "line": 449,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/onboarding/OnboardingScreen.kt#L449"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/onboarding/OnboardingScreen.kt",
+          "line": 490,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/onboarding/OnboardingScreen.kt#L490"
+        }
+      ],
+      "dependencies": [
+        "UX07",
+        "UX08"
+      ],
+      "decision": "Refinement within current product direction",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F07"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX29",
+      "title": "Make activity-type differences explicit in details and receipts",
+      "priority": "P1",
+      "type": "Known capability divergence; product consistency specification",
+      "observation": "Strength and typed activities have separate detail/summary paths. History offers Repeat only for legacy workout entries. Consistency should mean predictable contracts, not identical fields or invented feature parity.",
+      "outcome": "Users know which actions are supported for each activity and see meaningful summaries for that activity type.",
+      "requirements": [
+        "Create a capability matrix for live strength, backdated strength, live cardio, manual cardio, mixed and auxiliary sessions: edit, repeat, delete, records, plan linkage and receipt.",
+        "Retain legitimate type-specific measures; cardio should not inherit strength volume labels and bodyweight work should not become 0 kg.",
+        "Make unavailable actions clear where users would reasonably expect them. Do not expose a button that silently does nothing.",
+        "Define a consistent detail anatomy: identity/date/type, primary measures, contents, supported actions and data-health state.",
+        "Preserve the user's return context and avoid treating historical activity detail as a new completion celebration on every visit.",
+        "Implement new edit/repeat capabilities only after data-model and regression scope are explicit; matching visual buttons alone is insufficient."
+      ],
+      "acceptance": [
+        "Each supported type has an accurate receipt and correct units with clear action capabilities.",
+        "Opening history detail does not replay a misleading new-save confirmation.",
+        "Repeat/edit where supported preserves correct IDs, chronology and plan linkage and cannot silently convert one type to another."
+      ],
+      "evidence": [
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/activity/ActivityDetailScreen.kt",
+          "line": 52,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/activity/ActivityDetailScreen.kt#L52"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/history/HistoryScreen.kt",
+          "line": 268,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/history/HistoryScreen.kt#L268"
+        },
+        {
+          "path": "app/src/main/java/com/sinura/personaltrainer/ui/summary/WorkoutSummaryScreen.kt",
+          "line": 195,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/app/src/main/java/com/sinura/personaltrainer/ui/summary/WorkoutSummaryScreen.kt#L195"
+        }
+      ],
+      "dependencies": [
+        "R18",
+        "R06",
+        "R10",
+        "UX05"
+      ],
+      "decision": "Refinement within current product direction",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F05",
+        "F08",
+        "F10"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    },
+    {
+      "id": "UX30",
+      "title": "Establish an evidence-led design delivery and regression process",
+      "priority": "P1",
+      "type": "Quality/process work package",
+      "observation": "No actual app screenshots or physical usability sessions were produced during this review. A high-fidelity speculative mockup cannot substitute for baseline production captures. Existing ADRs contain an evidence gate for changes to global navigation.",
+      "outcome": "Design work produces a demonstrably easier app rather than a sequence of untested restyles.",
+      "requirements": [
+        "Capture the current production screens and state variants on a pinned build before changing shared components.",
+        "Use this handoff's fixtures/tasks and record baseline completion, wrong turns, correction success and observed failure—not subjective polish alone.",
+        "Prototype only uncertain IA/visual decisions, especially Home ordering and Settings structure. Keep definite correctness fixes independent.",
+        "Implement in focused batches, compare the same fixtures before/after and maintain a decision log for any ADR amendment.",
+        "Record actual device/API/window/font/navigation/keyboard configuration with each capture. Keep golden profile stable; do not approve replacement images just because tests fail.",
+        "Publish a final evidence table of implemented, validated, deferred and blocked items. Preserve local privacy and do not add analytics to measure this personal app."
+      ],
+      "acceptance": [
+        "Each implemented UX item has acceptance evidence, source/commit links and limitations.",
+        "Global-navigation changes follow the repository's current comparative task gate; no extra tab appears from taste alone.",
+        "Required device/accessibility gaps remain visibly open until actually tested."
+      ],
+      "evidence": [
+        {
+          "path": "docs/architecture/ADR-006-information-architecture.md",
+          "line": 55,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/docs/architecture/ADR-006-information-architecture.md#L55"
+        },
+        {
+          "path": "docs/architecture/ADR-005-instrument-identity.md",
+          "line": 30,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/docs/architecture/ADR-005-instrument-identity.md#L30"
+        },
+        {
+          "path": "docs/architecture/ADR-021-home-start-and-day-add.md",
+          "line": 47,
+          "url": "https://github.com/sinura7/PersonalTrainer/blob/22161c54f5b56d7b86294dc7f9490bb1a79f14fe/docs/architecture/ADR-021-home-start-and-day-add.md#L47"
+        }
+      ],
+      "dependencies": [],
+      "decision": "Refinement within current product direction",
+      "status": "Proposed; no implementation or Android runtime validation performed",
+      "fixtures": [
+        "F01",
+        "F02",
+        "F03",
+        "F05",
+        "F11",
+        "F12"
+      ],
+      "evidenceClass": "Unchanged by this batch"
+    }
+  ],
+  "fixtures": [
+    {
+      "id": "F01",
+      "name": "First visit",
+      "data": "No completed training, no routines, no active session, setup incomplete; separately simulate catalogue loading and failure.",
+      "purpose": "Get-started dismissal, optional setup, empty versus unavailable, create-routine continuation."
+    },
+    {
+      "id": "F02",
+      "name": "Populated selected-day board",
+      "data": "A named strength block plus cardio and auxiliary block; done/skipped/missed/future examples and a weekday-named routine on another date.",
+      "purpose": "Home start semantics, date identity, recurrence, planned preview and status interpretation."
+    },
+    {
+      "id": "F03",
+      "name": "Live strength",
+      "data": "At least two exercises and several sets including warmup, bodyweight, assisted and loaded examples; fake delayed/failing writes.",
+      "purpose": "Log/edit/undo/next/rest/finish and duplicate-tap behavior."
+    },
+    {
+      "id": "F04",
+      "name": "Authored drafts",
+      "data": "Backdated mixed activity with multiple rows, manual cardio, live cardio with changed distance, routine targets and setup answers.",
+      "purpose": "Rotation/system process recreation, stale exercise IDs, save/leave timing."
+    },
+    {
+      "id": "F05",
+      "name": "Long history",
+      "data": "At least 250 completed events spanning multiple years, older best outside 32 days, mixed types, sparse Jan/Apr sessions, zero/one/flat/outlier chart cases.",
+      "purpose": "History reachability/scope, record freshness, chart interpretation, parity."
+    },
+    {
+      "id": "F06",
+      "name": "Large exercise/routine catalogue",
+      "data": "50 routines; long similar exercise names, movement siblings, custom/built-in name collision and active muscle+equipment filters.",
+      "purpose": "Search, result ordering, create intent, picker layout and return continuity."
+    },
+    {
+      "id": "F07",
+      "name": "Setup variants",
+      "data": "Strength/cardio/both paths, all relevant question branches, existing program, seven-day selection and optional bodyweight.",
+      "purpose": "Preview impact, question count, large text and plan acceptance."
+    },
+    {
+      "id": "F08",
+      "name": "Deterministic failures",
+      "data": "Inject required-write failure, post-commit secondary failure, missing row, initial and later read failure, delayed acceptance and cancellation.",
+      "purpose": "Truthful UI states, idempotent retry, draft retention, navigation."
+    },
+    {
+      "id": "F09",
+      "name": "Time boundaries",
+      "data": "Midnight, week/month/year boundaries, timezone change, DST cases, prior-week leftover and duplicate/moved occurrence.",
+      "purpose": "Date labels, selected/today distinction, reminder/deep-link behavior."
+    },
+    {
+      "id": "F10",
+      "name": "Units and input",
+      "data": "kg/lb, current distance mapping and proposed independent combinations; comma/point decimals, paste, long/invalid/negative input.",
+      "purpose": "No reinterpretation, semantic validation and canonical-value preservation."
+    },
+    {
+      "id": "F11",
+      "name": "Window/accessibility",
+      "data": "320/360/412/600 dp widths where supported, short height, landscape/split window, 1.0/1.3/1.6/2.0 font, two system navigation modes, IME and TalkBack.",
+      "purpose": "Bounds, overlap, reachability, focus, announcements, reduced motion."
+    },
+    {
+      "id": "F12",
+      "name": "Backup states",
+      "data": "Valid plain/protected files, wrong password, unsupported/oversized input, 51+ Drive items, pending restore phases and offline permission states.",
+      "purpose": "Stage-specific recovery UI; synthetic data only, engineering acceptance tied to R01–R04."
+    }
+  ],
+  "acceptanceChecks": [
+    {
+      "id": "UX01-AC01",
+      "workPackage": "UX01",
+      "priority": "P1",
+      "fixtures": [
+        "F02",
+        "F11"
+      ],
+      "requirement": "Given both a planned workout and freestyle control, a participant can correctly explain which follows the routine and which starts empty.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX01-AC02",
+      "workPackage": "UX01",
+      "priority": "P1",
+      "fixtures": [
+        "F02",
+        "F11"
+      ],
+      "requirement": "Given another selected day, starting/logging behavior matches explicit copy and existing date rules; no silent backdating.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX01-AC03",
+      "workPackage": "UX01",
+      "priority": "P1",
+      "fixtures": [
+        "F02",
+        "F11"
+      ],
+      "requirement": "At 360 dp and large text, the planned row's start action is discoverable without an unrelated statistics detour; measure rather than assert this has improved.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX02-AC01",
+      "workPackage": "UX02",
+      "priority": "P1",
+      "fixtures": [
+        "F01",
+        "F06"
+      ],
+      "requirement": "With 0, 3 and 50 routines, participants can find past strength, manual cardio, mixed entry and live cardio.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX02-AC02",
+      "workPackage": "UX02",
+      "priority": "P1",
+      "fixtures": [
+        "F01",
+        "F06"
+      ],
+      "requirement": "Selecting a manual entry does not start a timer; dismissing the sheet makes no training-data write.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX02-AC03",
+      "workPackage": "UX02",
+      "priority": "P1",
+      "fixtures": [
+        "F01",
+        "F06"
+      ],
+      "requirement": "Opening the sheet while a session runs produces one clear answer and no duplicate session.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX03-AC01",
+      "workPackage": "UX03",
+      "priority": "P1",
+      "fixtures": [
+        "F03",
+        "F08",
+        "F11"
+      ],
+      "requirement": "Rapid repeated activation while a write is pending commits one set.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX03-AC02",
+      "workPackage": "UX03",
+      "priority": "P1",
+      "fixtures": [
+        "F03",
+        "F08",
+        "F11"
+      ],
+      "requirement": "Warmup, bodyweight, added-weight and assisted movements show the correct labels and units; no universal '0 kg' assumption.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX03-AC03",
+      "workPackage": "UX03",
+      "priority": "P1",
+      "fixtures": [
+        "F03",
+        "F08",
+        "F11"
+      ],
+      "requirement": "Keyboard open at 360 dp and landscape leaves the active field and commit action reachable.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX03-AC04",
+      "workPackage": "UX03",
+      "priority": "P1",
+      "fixtures": [
+        "F03",
+        "F08",
+        "F11"
+      ],
+      "requirement": "Undo/edit/next transitions preserve exercise identity and announce accepted results once.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX04-AC01",
+      "workPackage": "UX04",
+      "priority": "P0",
+      "fixtures": [
+        "F04",
+        "F08"
+      ],
+      "requirement": "Inject details-write failure after editing a name: Save remains on screen, preserves text and offers retry.",
+      "status": "Written, not executed (Robolectric: RoutineEditorViewModelTest)",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)",
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+    },
+    {
+      "id": "UX04-AC02",
+      "workPackage": "UX04",
+      "priority": "P0",
+      "fixtures": [
+        "F04",
+        "F08"
+      ],
+      "requirement": "Inject one staged-target failure: no blanket success/exit; retry persists the intended value once.",
+      "status": "Written, not executed (Robolectric: RoutineEditorViewModelTest)",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)",
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+    },
+    {
+      "id": "UX04-AC03",
+      "workPackage": "UX04",
+      "priority": "P0",
+      "fixtures": [
+        "F04",
+        "F08"
+      ],
+      "requirement": "Back after successful edits remains consistent with existing autosave; empty new stubs retain their documented cleanup.",
+      "status": "Written, not executed (Robolectric: RoutineEditorViewModelTest, existing + new)",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)",
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+    },
+    {
+      "id": "UX04-AC04",
+      "workPackage": "UX04",
+      "priority": "P0",
+      "fixtures": [
+        "F04",
+        "F08"
+      ],
+      "requirement": "Process recreation during failure retains sufficient draft state; reopening shows the accepted persisted result.",
+      "status": "Implemented (SavedStateHandle keeps name/notes); Robolectric processDeathKeepsNameAndDoesNotMintASecondRoutine written, not executed; device check pending",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)",
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+    },
+    {
+      "id": "UX05-AC01",
+      "workPackage": "UX05",
+      "priority": "P0",
+      "fixtures": [
+        "F03",
+        "F08"
+      ],
+      "requirement": "Missing ID, deleted/restored-over row, computation failure after confirmed save and valid no-work data each render distinct truthful states.",
+      "status": "Written, not executed (Robolectric: WorkoutSummaryViewModelTest — missing id, missing row, read fault, summary fault, no-work); device render pending",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)",
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+    },
+    {
+      "id": "UX05-AC02",
+      "workPackage": "UX05",
+      "priority": "P0",
+      "fixtures": [
+        "F03",
+        "F08"
+      ],
+      "requirement": "Retrying summary never creates or re-finishes a workout.",
+      "status": "Written, not executed (Robolectric: aSummaryThatWillNotComputeIsSavedButUnavailableNotMissing asserts one row, same finish stamp, no live session)",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)",
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+    },
+    {
+      "id": "UX05-AC03",
+      "workPackage": "UX05",
+      "priority": "P0",
+      "fixtures": [
+        "F03",
+        "F08"
+      ],
+      "requirement": "A bodyweight-only workout does not appear worthless because its load-volume is zero.",
+      "status": "Executed (JVM lane: WorkoutSummaryBuilderTest.aBodyweightOnlySessionHeadlinesItsRepsNotZeroKilograms); Robolectric written; device render pending",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)",
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+    },
+    {
+      "id": "UX05-AC04",
+      "workPackage": "UX05",
+      "priority": "P0",
+      "fixtures": [
+        "F03",
+        "F08"
+      ],
+      "requirement": "Back and Done exit once and do not return to an already-finished live session.",
+      "status": "Not executed — navigation unchanged (popUpTo Home on finish; Back is Done); emulator check pending",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)",
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+    },
+    {
+      "id": "UX06-AC01",
+      "workPackage": "UX06",
+      "priority": "P0",
+      "fixtures": [
+        "F10"
+      ],
+      "requirement": "8.5 reps is rejected rather than saved as 85; -50 kg is rejected rather than saved as 50.",
+      "status": "Executed (JVM lane: NumericEntryTest, ComposerCopyTest, TargetEntryTest); production-screen paste/keyboard pass pending",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)",
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+    },
+    {
+      "id": "UX06-AC02",
+      "workPackage": "UX06",
+      "priority": "P0",
+      "fixtures": [
+        "F10"
+      ],
+      "requirement": "1.2.3 and 8e2 do not become different accepted values; 62,5 and 62.5 behave equivalently under the supported decimal policy.",
+      "status": "Executed (JVM lane: NumericEntryTest.ambiguousTextNeverBecomesADifferentAcceptedValue, blank/62,5 == 62.5)",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)",
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+    },
+    {
+      "id": "UX06-AC03",
+      "workPackage": "UX06",
+      "priority": "P0",
+      "fixtures": [
+        "F10"
+      ],
+      "requirement": "Existing valid values survive unit conversion/round trips without drift beyond specified display precision.",
+      "status": "Executed (JVM lane: storedWeightsSurviveADisplayRoundTripWithinDisplayPrecision — ±0.05 kg / ±0.25 lb)",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)",
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+    },
+    {
+      "id": "UX06-AC04",
+      "workPackage": "UX06",
+      "priority": "P0",
+      "fixtures": [
+        "F10"
+      ],
+      "requirement": "All shared filter callers are covered, including composer, live cardio and routine targets.",
+      "status": "Executed for the domain rules; caller wiring changed in composer, live cardio, custom rest, routine card — Compose-level check pending (no SDK here)",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)",
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+    },
+    {
+      "id": "UX07-AC01",
+      "workPackage": "UX07",
+      "priority": "P0",
+      "fixtures": [
+        "F04",
+        "F08"
+      ],
+      "requirement": "Build a multi-row mixed draft, background, recreate the process and restore: date, rows, order and values survive.",
+      "status": "Already covered at HEAD by R09 (SavedStateComposerDraft); Robolectric processRecreationRestoresTheTypedDraft written, not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)",
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+    },
+    {
+      "id": "UX07-AC02",
+      "workPackage": "UX07",
+      "priority": "P0",
+      "fixtures": [
+        "F04",
+        "F08"
+      ],
+      "requirement": "Cancel/Back during delayed accepted save neither creates a duplicate nor tells the user committed work was discarded.",
+      "status": "Written, not executed (Robolectric: cancelWhileSavingIsRefusedAndTheSaveStillLandsOnce)",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)",
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+    },
+    {
+      "id": "UX07-AC03",
+      "workPackage": "UX07",
+      "priority": "P0",
+      "fixtures": [
+        "F04",
+        "F08"
+      ],
+      "requirement": "Failed save preserves the draft; successful save clears only that draft.",
+      "status": "Written, not executed (Robolectric: anAcceptedSaveClearsTheDraft, save() keeps draft on Rejected/thrown)",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)",
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+    },
+    {
+      "id": "UX07-AC04",
+      "workPackage": "UX07",
+      "priority": "P0",
+      "fixtures": [
+        "F04",
+        "F08"
+      ],
+      "requirement": "Onboarding draft restoration does not overwrite the saved current plan or create a new one without acceptance.",
+      "status": "Written, not executed (Robolectric: processRecreationRestoresTheStepAndAnswersWithoutWritingAPlan)",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)",
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+    },
+    {
+      "id": "UX08-AC01",
+      "workPackage": "UX08",
+      "priority": "P1",
+      "fixtures": [
+        "F07",
+        "F11"
+      ],
+      "requirement": "Every question and Continue/Skip action is reachable at 360×640 dp, font 2.0, and the smaller supported window configuration.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX08-AC02",
+      "workPackage": "UX08",
+      "priority": "P1",
+      "fixtures": [
+        "F07",
+        "F11"
+      ],
+      "requirement": "Typed bodyweight, wheel, unit switch and Skip produce consistent optional values.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX08-AC03",
+      "workPackage": "UX08",
+      "priority": "P1",
+      "fixtures": [
+        "F07",
+        "F11"
+      ],
+      "requirement": "Screen-reader focus lands on the new question and Back keeps the selected answer.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX08-AC04",
+      "workPackage": "UX08",
+      "priority": "P1",
+      "fixtures": [
+        "F07",
+        "F11"
+      ],
+      "requirement": "Accepting a plan once creates the intended program; reopening setup does not silently apply a draft.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX09-AC01",
+      "workPackage": "UX09",
+      "priority": "P1",
+      "fixtures": [
+        "F01",
+        "F06"
+      ],
+      "requirement": "From an empty routine catalogue, choose a lift → Create routine → save: exactly one routine contains that lift, without another search.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX09-AC02",
+      "workPackage": "UX09",
+      "priority": "P1",
+      "fixtures": [
+        "F01",
+        "F06"
+      ],
+      "requirement": "Cancel returns to the original context and leaves no empty stub.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX09-AC03",
+      "workPackage": "UX09",
+      "priority": "P1",
+      "fixtures": [
+        "F01",
+        "F06"
+      ],
+      "requirement": "Rotation/process recreation retains the pending exercise ID according to the draft contract.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX10-AC01",
+      "workPackage": "UX10",
+      "priority": "P1",
+      "fixtures": [
+        "F06",
+        "F08"
+      ],
+      "requirement": "Searching 'bench' with existing matching variants prioritizes choosing them over creating 'bench'.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX10-AC02",
+      "workPackage": "UX10",
+      "priority": "P1",
+      "fixtures": [
+        "F06",
+        "F08"
+      ],
+      "requirement": "Duplicate/disk/create errors are visible within the active sheet in single and multi modes.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX10-AC03",
+      "workPackage": "UX10",
+      "priority": "P1",
+      "fixtures": [
+        "F06",
+        "F08"
+      ],
+      "requirement": "Create then cancel activity follows the disclosed catalogue persistence rule.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX10-AC04",
+      "workPackage": "UX10",
+      "priority": "P1",
+      "fixtures": [
+        "F06",
+        "F08"
+      ],
+      "requirement": "Double confirmation adds the selected IDs once and preserves order.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX11-AC01",
+      "workPackage": "UX11",
+      "priority": "P1",
+      "fixtures": [
+        "F02",
+        "F06"
+      ],
+      "requirement": "A participant can state the scope before saving a swap or schedule edit.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX11-AC02",
+      "workPackage": "UX11",
+      "priority": "P1",
+      "fixtures": [
+        "F02",
+        "F06"
+      ],
+      "requirement": "Routine management is reachable without relying solely on long press, or documented usability evidence supports retaining the existing affordance.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX11-AC03",
+      "workPackage": "UX11",
+      "priority": "P1",
+      "fixtures": [
+        "F02",
+        "F06"
+      ],
+      "requirement": "Deleting a routine preserves history and accurately explains its impact on scheduled days.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX12-AC01",
+      "workPackage": "UX12",
+      "priority": "P1",
+      "fixtures": [
+        "F02",
+        "F09",
+        "F11"
+      ],
+      "requirement": "At 320/360/412 dp, date targets are measurable and usable without overlapping ambiguous activation regions, or an equivalent accessible selector is supplied.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX12-AC02",
+      "workPackage": "UX12",
+      "priority": "P1",
+      "fixtures": [
+        "F02",
+        "F09",
+        "F11"
+      ],
+      "requirement": "A week containing done, skipped, missed, future and rest days has unambiguous spoken and visible detail.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX12-AC03",
+      "workPackage": "UX12",
+      "priority": "P1",
+      "fixtures": [
+        "F02",
+        "F09",
+        "F11"
+      ],
+      "requirement": "Selecting a neighboring-month date opens the correct civil date; today remains distinguishable from selection.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX13-AC01",
+      "workPackage": "UX13",
+      "priority": "P1",
+      "fixtures": [
+        "F02",
+        "F09"
+      ],
+      "requirement": "Add the same type once and recurring in separate scenarios; next week contains only the recurring case.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX13-AC02",
+      "workPackage": "UX13",
+      "priority": "P1",
+      "fixtures": [
+        "F02",
+        "F09"
+      ],
+      "requirement": "Reordering states exactly which future/reminder behavior changes and preserves completed history.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX13-AC03",
+      "workPackage": "UX13",
+      "priority": "P1",
+      "fixtures": [
+        "F02",
+        "F09"
+      ],
+      "requirement": "Home and Plan show the same dated occurrences after changes.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX14-AC01",
+      "workPackage": "UX14",
+      "priority": "P1",
+      "fixtures": [
+        "F02",
+        "F09",
+        "F08"
+      ],
+      "requirement": "Preview and committed outcome match for missed work crossing week boundaries.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX14-AC02",
+      "workPackage": "UX14",
+      "priority": "P1",
+      "fixtures": [
+        "F02",
+        "F09",
+        "F08"
+      ],
+      "requirement": "Completed sessions remain unchanged and are explicitly separated from future schedule adjustments.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX14-AC03",
+      "workPackage": "UX14",
+      "priority": "P1",
+      "fixtures": [
+        "F02",
+        "F09",
+        "F08"
+      ],
+      "requirement": "Commit failure preserves the proposal and offers retry; repeated taps do not apply it twice.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX15-AC01",
+      "workPackage": "UX15",
+      "priority": "P1",
+      "fixtures": [
+        "F05"
+      ],
+      "requirement": "With years of synthetic history, a participant can reach lifetime records and the newest activity without an unbounded scroll.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX15-AC02",
+      "workPackage": "UX15",
+      "priority": "P1",
+      "fixtures": [
+        "F05"
+      ],
+      "requirement": "Changing a horizon produces exactly the documented scope across totals/list/records.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX15-AC03",
+      "workPackage": "UX15",
+      "priority": "P1",
+      "fixtures": [
+        "F05"
+      ],
+      "requirement": "Editing a prior best refreshes visible results and record drill-down identifies the supporting session.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX16-AC01",
+      "workPackage": "UX16",
+      "priority": "P1",
+      "fixtures": [
+        "F05",
+        "F10"
+      ],
+      "requirement": "Jan 1, Jan 2 and Apr 1 samples do not imply equal elapsed intervals without an explicit session-axis label.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX16-AC02",
+      "workPackage": "UX16",
+      "priority": "P1",
+      "fixtures": [
+        "F05",
+        "F10"
+      ],
+      "requirement": "Screen-reader/data-list users can recover values and dates without relying on the plotted line.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX16-AC03",
+      "workPackage": "UX16",
+      "priority": "P1",
+      "fixtures": [
+        "F05",
+        "F10"
+      ],
+      "requirement": "Bodyweight-rep series use reps, loaded series use the selected physical unit, and empty/flat series are truthful.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX17-AC01",
+      "workPackage": "UX17",
+      "priority": "P1",
+      "fixtures": [
+        "F02",
+        "F11"
+      ],
+      "requirement": "Participants can explain that an uncolored muscle means no mapped work in the selected period, not a recovery guarantee.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX17-AC02",
+      "workPackage": "UX17",
+      "priority": "P1",
+      "fixtures": [
+        "F02",
+        "F11"
+      ],
+      "requirement": "All muscles remain reachable via full-size text rows with equivalent detail/actions.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX17-AC03",
+      "workPackage": "UX17",
+      "priority": "P1",
+      "fixtures": [
+        "F02",
+        "F11"
+      ],
+      "requirement": "The selected window and contributor data agree; caption remains readable at font 2.0.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX18-AC01",
+      "workPackage": "UX18",
+      "priority": "P2",
+      "fixtures": [
+        "F10",
+        "F12"
+      ],
+      "requirement": "All four kg/lb × km/mi combinations render consistent input, summary, history and export behavior.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX18-AC02",
+      "workPackage": "UX18",
+      "priority": "P2",
+      "fixtures": [
+        "F10",
+        "F12"
+      ],
+      "requirement": "Changing preference does not change stored distance or weight.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX18-AC03",
+      "workPackage": "UX18",
+      "priority": "P2",
+      "fixtures": [
+        "F10",
+        "F12"
+      ],
+      "requirement": "Old backups lacking distance preference restore to the documented default and drafts do not reinterpret numbers.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX19-AC01",
+      "workPackage": "UX19",
+      "priority": "P2",
+      "fixtures": [
+        "F05",
+        "F10"
+      ],
+      "requirement": "Correcting an older synthetic measurement changes that date and refreshes the affected review.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX19-AC02",
+      "workPackage": "UX19",
+      "priority": "P2",
+      "fixtures": [
+        "F05",
+        "F10"
+      ],
+      "requirement": "Clear/delete copy identifies the exact affected data; cancelling leaves it unchanged.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX19-AC03",
+      "workPackage": "UX19",
+      "priority": "P2",
+      "fixtures": [
+        "F05",
+        "F10"
+      ],
+      "requirement": "No bodyweight entry is required to record a workout or complete setup.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX20-AC01",
+      "workPackage": "UX20",
+      "priority": "P2",
+      "fixtures": [
+        "F07",
+        "F11"
+      ],
+      "requirement": "A participant can change units/rest preferences and find export/restore with no worse success than the baseline.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX20-AC02",
+      "workPackage": "UX20",
+      "priority": "P2",
+      "fixtures": [
+        "F07",
+        "F11"
+      ],
+      "requirement": "Reopening Settings restores useful context without hiding an unresolved save error.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX20-AC03",
+      "workPackage": "UX20",
+      "priority": "P2",
+      "fixtures": [
+        "F07",
+        "F11"
+      ],
+      "requirement": "Production and debug build screenshots are evaluated separately.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX21-AC01",
+      "workPackage": "UX21",
+      "priority": "P1",
+      "fixtures": [
+        "F12",
+        "F08"
+      ],
+      "requirement": "Wrong password, oversized input, unsupported version, offline Drive, live workout, partial preferences failure and completed restore each have a distinct actionable screen.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX21-AC02",
+      "workPackage": "UX21",
+      "priority": "P1",
+      "fixtures": [
+        "F12",
+        "F08"
+      ],
+      "requirement": "Displayed success follows the actual accepted operation; no UI-only fix masks R01–R04.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX21-AC03",
+      "workPackage": "UX21",
+      "priority": "P1",
+      "fixtures": [
+        "F12",
+        "F08"
+      ],
+      "requirement": "Back/rotation/permission return retains the operation's correct stage and never repeats a destructive commit.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX22-AC01",
+      "workPackage": "UX22",
+      "priority": "P1",
+      "fixtures": [
+        "F04",
+        "F09"
+      ],
+      "requirement": "Repeated delivery/recreation of the same reminder intent does not stack duplicate live screens or start twice.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX22-AC02",
+      "workPackage": "UX22",
+      "priority": "P1",
+      "fixtures": [
+        "F04",
+        "F09"
+      ],
+      "requirement": "Returning from system settings keeps the active session/draft and reflects the real permission result.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX22-AC03",
+      "workPackage": "UX22",
+      "priority": "P1",
+      "fixtures": [
+        "F04",
+        "F09"
+      ],
+      "requirement": "Back from a completed summary cannot reopen the finished workout as live.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX23-AC01",
+      "workPackage": "UX23",
+      "priority": "P0",
+      "fixtures": [
+        "F08",
+        "F11"
+      ],
+      "requirement": "Injected initial/later load failures, invalid fields and post-commit side-effect failures produce the defined states.",
+      "status": "Partially: summary read/compute faults, composer save faults, finish outcomes distinguished; injected load faults on other screens remain open (see UX23 residue)",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)",
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+    },
+    {
+      "id": "UX23-AC02",
+      "workPackage": "UX23",
+      "priority": "P0",
+      "fixtures": [
+        "F08",
+        "F11"
+      ],
+      "requirement": "Users can locate the error and retry at the point of action without losing authored data.",
+      "status": "Implemented for the composer (error above Save, field errors inline); device/IME check pending",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)",
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+    },
+    {
+      "id": "UX23-AC03",
+      "workPackage": "UX23",
+      "priority": "P0",
+      "fixtures": [
+        "F08",
+        "F11"
+      ],
+      "requirement": "Missing, empty and unavailable never share a misleading generic success or start-new-workout remedy.",
+      "status": "Implemented for summary, finish and History stale wording; remaining conflations listed in UX23 residue",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "candidateCommit": "e5d2956 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956)",
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+    },
+    {
+      "id": "UX24-AC01",
+      "workPackage": "UX24",
+      "priority": "P1",
+      "fixtures": [
+        "F06",
+        "F11"
+      ],
+      "requirement": "Two long similarly named variants can be distinguished before selection.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX24-AC02",
+      "workPackage": "UX24",
+      "priority": "P1",
+      "fixtures": [
+        "F06",
+        "F11"
+      ],
+      "requirement": "At font 2.0, primary actions and full values/units are readable and not clipped.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX24-AC03",
+      "workPackage": "UX24",
+      "priority": "P1",
+      "fixtures": [
+        "F06",
+        "F11"
+      ],
+      "requirement": "Shared component changes preserve all callers and do not reduce touch targets.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX25-AC01",
+      "workPackage": "UX25",
+      "priority": "P1",
+      "fixtures": [
+        "F11"
+      ],
+      "requirement": "Physical TalkBack can complete planned start, set log/edit, cardio finish, routine create, history correction and export review.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX25-AC02",
+      "workPackage": "UX25",
+      "priority": "P1",
+      "fixtures": [
+        "F11"
+      ],
+      "requirement": "Search and routine-name fields announce their purpose when empty and populated.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX25-AC03",
+      "workPackage": "UX25",
+      "priority": "P1",
+      "fixtures": [
+        "F11"
+      ],
+      "requirement": "Large text/IME does not hide essential actions; measured issues have production-screen regression coverage.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX26-AC01",
+      "workPackage": "UX26",
+      "priority": "P2",
+      "fixtures": [
+        "F03",
+        "F08",
+        "F11"
+      ],
+      "requirement": "With reduced motion enabled, all data and records appear immediately and remain accessible.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX26-AC02",
+      "workPackage": "UX26",
+      "priority": "P2",
+      "fixtures": [
+        "F03",
+        "F08",
+        "F11"
+      ],
+      "requirement": "An extended accessibility timeout is honored for relevant messages or equivalent persistent access exists.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX26-AC03",
+      "workPackage": "UX26",
+      "priority": "P2",
+      "fixtures": [
+        "F03",
+        "F08",
+        "F11"
+      ],
+      "requirement": "Save failure remains actionable after any transient banner disappears.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX27-AC01",
+      "workPackage": "UX27",
+      "priority": "P2",
+      "fixtures": [
+        "F06",
+        "F08"
+      ],
+      "requirement": "A participant finds a specified muscle+equipment variant and clears a restrictive filter without losing orientation.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX27-AC02",
+      "workPackage": "UX27",
+      "priority": "P2",
+      "fixtures": [
+        "F06",
+        "F08"
+      ],
+      "requirement": "Returning from detail restores the original results position.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX27-AC03",
+      "workPackage": "UX27",
+      "priority": "P2",
+      "fixtures": [
+        "F06",
+        "F08"
+      ],
+      "requirement": "Load failure does not invite creating a duplicate exercise because the catalogue appeared empty.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX28-AC01",
+      "workPackage": "UX28",
+      "priority": "P2",
+      "fixtures": [
+        "F07"
+      ],
+      "requirement": "A user can inspect the proposed week, change equipment/days and return to an updated preview with other answers preserved.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX28-AC02",
+      "workPackage": "UX28",
+      "priority": "P2",
+      "fixtures": [
+        "F07"
+      ],
+      "requirement": "An existing user can explain the acceptance impact before tapping Use this plan.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX28-AC03",
+      "workPackage": "UX28",
+      "priority": "P2",
+      "fixtures": [
+        "F07"
+      ],
+      "requirement": "Dismissed/failed setup does not create a partial unexpected program.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX29-AC01",
+      "workPackage": "UX29",
+      "priority": "P1",
+      "fixtures": [
+        "F05",
+        "F08",
+        "F10"
+      ],
+      "requirement": "Each supported type has an accurate receipt and correct units with clear action capabilities.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX29-AC02",
+      "workPackage": "UX29",
+      "priority": "P1",
+      "fixtures": [
+        "F05",
+        "F08",
+        "F10"
+      ],
+      "requirement": "Opening history detail does not replay a misleading new-save confirmation.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX29-AC03",
+      "workPackage": "UX29",
+      "priority": "P1",
+      "fixtures": [
+        "F05",
+        "F08",
+        "F10"
+      ],
+      "requirement": "Repeat/edit where supported preserves correct IDs, chronology and plan linkage and cannot silently convert one type to another.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX30-AC01",
+      "workPackage": "UX30",
+      "priority": "P1",
+      "fixtures": [
+        "F01",
+        "F02",
+        "F03",
+        "F05",
+        "F11",
+        "F12"
+      ],
+      "requirement": "Each implemented UX item has acceptance evidence, source/commit links and limitations.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX30-AC02",
+      "workPackage": "UX30",
+      "priority": "P1",
+      "fixtures": [
+        "F01",
+        "F02",
+        "F03",
+        "F05",
+        "F11",
+        "F12"
+      ],
+      "requirement": "Global-navigation changes follow the repository's current comparative task gate; no extra tab appears from taste alone.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    },
+    {
+      "id": "UX30-AC03",
+      "workPackage": "UX30",
+      "priority": "P1",
+      "fixtures": [
+        "F01",
+        "F02",
+        "F03",
+        "F05",
+        "F11",
+        "F12"
+      ],
+      "requirement": "Required device/accessibility gaps remain visibly open until actually tested.",
+      "status": "Not executed",
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+    }
+  ],
+  "updatedOn": "2026-09-07",
+  "updatedAgainst": "156cc400a0bc7974209e494e4e4cf0525b29bb7d (branch claude/file-visibility-check-jraqc2; trunk 28f485f carries R01–R19)"
+}
