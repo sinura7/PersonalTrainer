@@ -37,10 +37,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.SummaryCopy
+import com.sinura.personaltrainer.domain.SummaryHeadline
 import com.sinura.personaltrainer.domain.WorkoutSummary
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GroupedList
@@ -109,12 +112,35 @@ fun WorkoutSummaryScreen(
         when {
             state.isLoading -> ScreenLoading()
 
-            state.missing || !summary.hasWork -> {
+            // Before the missing branch on purpose: a failed read also has no summary, and it
+            // must not be shown as a deleted session — nor, unless the row was read, as a saved
+            // one. Retry re-reads; it never writes.
+            state.failed -> SummaryUnavailable(
+                savedConfirmed = state.savedConfirmed,
+                onRetry = viewModel::retry,
+                onOpenSession = { onOpenSession(state.sessionId) },
+                onDone = onDone,
+            )
+
+            state.missing -> EmptyState(
+                title = SummaryCopy.MISSING_TITLE,
+                body = SummaryCopy.MISSING_BODY,
+                actionLabel = SummaryCopy.DONE,
+                onAction = onDone,
+                actionTag = SummaryTags.DONE,
+                modifier = Modifier.padding(Metrics.gutter),
+            )
+
+            !summary.hasWork -> {
+                // The row was read and holds only warm-ups. "Saved" is earned here by the
+                // finished row being the evidence, not by this route having been reached; a
+                // row that is somehow not finished gets the same facts without that word.
                 EmptyState(
-                    title = "Workout saved",
-                    body = "It is in your history. Nothing to summarise from this one.",
-                    actionLabel = "Done",
+                    title = if (state.savedConfirmed) SummaryCopy.SAVED_NO_WORK_TITLE else SummaryCopy.NO_WORK_TITLE,
+                    body = if (state.savedConfirmed) SummaryCopy.SAVED_NO_WORK_BODY else SummaryCopy.NO_WORK_BODY,
+                    actionLabel = SummaryCopy.DONE,
                     onAction = onDone,
+                    actionTag = SummaryTags.DONE,
                     modifier = Modifier.padding(Metrics.gutter),
                 )
             }
@@ -134,16 +160,28 @@ fun WorkoutSummaryScreen(
 
                     item(key = "tiles") {
                         val stack = LogLoopScale.stackTiles(LocalDensity.current.fontScale)
+                        // A mixed day leads with kilograms; its bodyweight reps are real work
+                        // too and get a tile rather than vanishing into the hero's rounding.
+                        val repsTile = summary.bodyweightReps
+                            .takeIf { it > 0 && summary.headline is SummaryHeadline.Volume }
                         if (stack) {
                             Column(verticalArrangement = Arrangement.spacedBy(Metrics.cardGap)) {
                                 StatTile(
-                                    label = "Working sets",
+                                    label = SummaryCopy.WORKING_SETS,
                                     value = summary.workingSets.toString(),
                                     modifier = Modifier.fillMaxWidth(),
                                     valueColor = TextPrimary,
                                 )
+                                if (repsTile != null) {
+                                    StatTile(
+                                        label = SummaryCopy.BODYWEIGHT_REPS,
+                                        value = repsTile.toString(),
+                                        modifier = Modifier.fillMaxWidth(),
+                                        valueColor = TextPrimary,
+                                    )
+                                }
                                 StatTile(
-                                    label = "Duration",
+                                    label = SummaryCopy.DURATION,
                                     value = summary.durationMinutes.toString(),
                                     modifier = Modifier.fillMaxWidth(),
                                     unit = "min",
@@ -153,13 +191,21 @@ fun WorkoutSummaryScreen(
                         } else {
                             Row(horizontalArrangement = Arrangement.spacedBy(Metrics.cardGap)) {
                                 StatTile(
-                                    label = "Working sets",
+                                    label = SummaryCopy.WORKING_SETS,
                                     value = summary.workingSets.toString(),
                                     modifier = Modifier.weight(1f),
                                     valueColor = TextPrimary,
                                 )
+                                if (repsTile != null) {
+                                    StatTile(
+                                        label = SummaryCopy.BODYWEIGHT_REPS,
+                                        value = repsTile.toString(),
+                                        modifier = Modifier.weight(1f),
+                                        valueColor = TextPrimary,
+                                    )
+                                }
                                 StatTile(
-                                    label = "Duration",
+                                    label = SummaryCopy.DURATION,
                                     value = summary.durationMinutes.toString(),
                                     modifier = Modifier.weight(1f),
                                     unit = "min",
@@ -214,8 +260,25 @@ private fun SummaryHero(summary: WorkoutSummary, unit: WeightUnit) {
     val dateLabel = remember(summary.performedAtMs) {
         DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(summary.performedAtMs))
     }
-    val target = remember(summary.volumeKg, unit) {
-        WeightConverter.volumeAnimationTarget(summary.volumeKg, unit)
+    // The hero is the measure the session was made of — kilograms, or reps, or sets — so a
+    // set of push-ups is never announced as "0 kg". See WorkoutSummary.headline.
+    val headline = summary.headline
+    val target = remember(headline, unit) {
+        when (headline) {
+            is SummaryHeadline.Volume -> WeightConverter.volumeAnimationTarget(headline.kg, unit)
+            is SummaryHeadline.BodyweightReps -> headline.reps
+            is SummaryHeadline.WorkingSets -> headline.count
+        }
+    }
+    val heroUnit: String? = when (headline) {
+        is SummaryHeadline.Volume -> unit.suffix
+        is SummaryHeadline.BodyweightReps -> null
+        is SummaryHeadline.WorkingSets -> null
+    }
+    val heroLabel = when (headline) {
+        is SummaryHeadline.Volume -> SummaryCopy.TOTAL_VOLUME
+        is SummaryHeadline.BodyweightReps -> SummaryCopy.BODYWEIGHT_REPS
+        is SummaryHeadline.WorkingSets -> SummaryCopy.WORKING_SETS
     }
 
     var played by rememberSaveable { mutableStateOf(false) }
@@ -230,12 +293,16 @@ private fun SummaryHero(summary: WorkoutSummary, unit: WeightUnit) {
         label = "summary-volume",
     )
 
-    val finalLabel = remember(summary.volumeKg, unit) {
-        WeightConverter.formatVolumeLabel(summary.volumeKg, unit)
+    val finalLabel = remember(headline, unit) {
+        when (headline) {
+            is SummaryHeadline.Volume -> WeightConverter.formatVolumeLabel(headline.kg, unit)
+            is SummaryHeadline.BodyweightReps -> "${headline.reps} bodyweight reps"
+            is SummaryHeadline.WorkingSets -> "${headline.count} working sets"
+        }
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-        Kicker("Workout complete")
+        Kicker(SummaryCopy.COMPLETE)
         Text(
             summary.title,
             style = InstrumentType.title,
@@ -250,7 +317,7 @@ private fun SummaryHero(summary: WorkoutSummary, unit: WeightUnit) {
                 // One node for the whole readout, holding the settled value: a screen reader
                 // must never be handed a number that is still counting.
                 .semantics(mergeDescendants = true) {
-                    contentDescription = "Total volume $finalLabel"
+                    contentDescription = "$heroLabel $finalLabel"
                 },
             verticalArrangement = Arrangement.spacedBy(Metrics.space1),
         ) {
@@ -262,17 +329,68 @@ private fun SummaryHero(summary: WorkoutSummary, unit: WeightUnit) {
                     color = TextPrimary,
                     maxLines = 1,
                 )
-                Text(
-                    unit.suffix,
-                    modifier = Modifier
-                        .alignByBaseline()
-                        .padding(start = Metrics.space2),
-                    style = InstrumentType.unit,
-                    color = TextSecondary,
-                )
+                if (heroUnit != null) {
+                    Text(
+                        heroUnit,
+                        modifier = Modifier
+                            .alignByBaseline()
+                            .padding(start = Metrics.space2),
+                        style = InstrumentType.unit,
+                        color = TextSecondary,
+                    )
+                }
             }
-            Kicker("Total volume", color = TextTertiary)
+            Kicker(heroLabel, color = TextTertiary)
         }
+    }
+}
+
+/**
+ * The summary could not be built. Two different sentences, by what the read established:
+ * with the finished row in hand the workout is saved and only the summary is missing; without
+ * it nothing is known, and the screen says so instead of guessing either way. Retry re-reads
+ * and never writes; Done goes Home exactly as it does from the receipt.
+ */
+@Composable
+private fun SummaryUnavailable(
+    savedConfirmed: Boolean,
+    onRetry: () -> Unit,
+    onOpenSession: () -> Unit,
+    onDone: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(Metrics.gutter),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+    ) {
+        EmptyState(
+            title = if (savedConfirmed) {
+                SummaryCopy.SAVED_SUMMARY_UNAVAILABLE_TITLE
+            } else {
+                SummaryCopy.UNAVAILABLE_TITLE
+            },
+            body = if (savedConfirmed) {
+                SummaryCopy.SAVED_SUMMARY_UNAVAILABLE_BODY
+            } else {
+                SummaryCopy.UNAVAILABLE_BODY
+            },
+            actionLabel = DataHealthCopy.RETRY,
+            onAction = onRetry,
+            actionTag = SummaryTags.RETRY,
+        )
+        if (savedConfirmed) {
+            SecondaryGymButton(
+                text = SummaryCopy.OPEN_SESSION,
+                onClick = onOpenSession,
+                modifier = Modifier.testTag(SummaryTags.OPEN_SESSION),
+            )
+        }
+        SecondaryGymButton(
+            text = SummaryCopy.DONE,
+            onClick = onDone,
+            modifier = Modifier.testTag(SummaryTags.DONE),
+        )
     }
 }
 
@@ -402,14 +520,14 @@ internal fun SummaryActions(onDone: () -> Unit, onOpenSession: () -> Unit) {
     PinnedDock(
         volt = {
             PrimaryGymButton(
-                text = "Done",
+                text = SummaryCopy.DONE,
                 onClick = onDone,
                 modifier = Modifier.testTag(SummaryTags.DONE),
             )
         },
         secondary = {
             SecondaryGymButton(
-                text = "See full session",
+                text = SummaryCopy.OPEN_SESSION,
                 onClick = onOpenSession,
                 modifier = Modifier.testTag(SummaryTags.OPEN_SESSION),
             )
@@ -420,6 +538,7 @@ internal fun SummaryActions(onDone: () -> Unit, onOpenSession: () -> Unit) {
 object SummaryTags {
     const val DONE = "summary-done"
     const val OPEN_SESSION = "summary-open-session"
+    const val RETRY = "summary-retry"
 }
 
 /**

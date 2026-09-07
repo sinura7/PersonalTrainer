@@ -22,12 +22,84 @@ data class WorkoutSummary(
     val durationMinutes: Int = 0,
     val workingSets: Int = 0,
     val volumeKg: Double = 0.0,
+    /** Reps of lifts measured in reps — push-ups, pull-ups, dips. Zero for a barbell day. */
+    val bodyweightReps: Int = 0,
     /** Heaviest-worked lift first: the session's own headline, not the order it was logged in. */
     val highlights: List<SessionHighlight> = emptyList(),
     val notes: String = "",
 ) {
     val recordCount: Int get() = highlights.sumOf { it.records.size }
     val hasWork: Boolean get() = workingSets > 0
+    val work: SetWork get() = SetWork(volumeKg = volumeKg, bodyweightReps = bodyweightReps)
+
+    /**
+     * The one number the receipt leads with, in the measure the session was actually made of.
+     *
+     * Total kilograms was the only hero, which told a push-up-only session it had lifted
+     * "0 kg" — the app reporting a workout as worthless because its measure is reps. Kilograms
+     * lead when any were moved (a mixed day is still mostly a barbell day and its reps sit in
+     * a tile beside it); a rep total leads a bodyweight day; a session with neither has its
+     * working-set count, which is the one thing every finished set contributes to. None of
+     * these ranks the session — they name what it was made of.
+     */
+    val headline: SummaryHeadline
+        get() = when {
+            volumeKg > 0.0 -> SummaryHeadline.Volume(volumeKg)
+            bodyweightReps > 0 -> SummaryHeadline.BodyweightReps(bodyweightReps)
+            else -> SummaryHeadline.WorkingSets(workingSets)
+        }
+}
+
+/** What the receipt's hero numeral is. See [WorkoutSummary.headline]. */
+sealed interface SummaryHeadline {
+    data class Volume(val kg: Double) : SummaryHeadline
+
+    data class BodyweightReps(val reps: Int) : SummaryHeadline
+
+    data class WorkingSets(val count: Int) : SummaryHeadline
+}
+
+/**
+ * The words on the summary route, by the evidence behind each.
+ *
+ * Every state here is named after what the read actually established. "Workout saved" is
+ * said only when the finished row was read back from Room — never because the route was
+ * reached, and never for a row that could not be found. A read that threw says the summary
+ * is unavailable and, unless the row was already in hand, that this screen cannot tell
+ * whether the save landed; History is the place that can.
+ */
+object SummaryCopy {
+    const val COMPLETE = "Workout complete"
+    const val DONE = "Done"
+    const val OPEN_SESSION = "See full session"
+
+    /** The finished row was read and holds only warm-ups. */
+    const val SAVED_NO_WORK_TITLE = "Workout saved"
+    const val SAVED_NO_WORK_BODY = "It is in your history. Nothing to summarise from this one."
+
+    /** A row was read that is not finished and has no working sets. Not a History claim. */
+    const val NO_WORK_TITLE = "Nothing to summarise"
+    const val NO_WORK_BODY = "This session has no working sets."
+
+    /** The finished row was read; computing the summary over its history threw. */
+    const val SAVED_SUMMARY_UNAVAILABLE_TITLE = "Workout saved. Summary unavailable."
+    const val SAVED_SUMMARY_UNAVAILABLE_BODY =
+        "The session is in your history, but its records and totals could not be worked out. Retry, or open the session."
+
+    /** The row itself could not be read. Nothing is known either way. */
+    const val UNAVAILABLE_TITLE = "Summary unavailable"
+    const val UNAVAILABLE_BODY =
+        "This workout could not be read, so this screen cannot say whether it was saved. Retry, or check History."
+
+    /** The read succeeded and found no row. */
+    const val MISSING_TITLE = "Session not found"
+    const val MISSING_BODY =
+        "That workout is not on this phone. It may have been discarded, or replaced by a restore."
+
+    const val TOTAL_VOLUME = "Total volume"
+    const val BODYWEIGHT_REPS = "Bodyweight reps"
+    const val WORKING_SETS = "Working sets"
+    const val DURATION = "Duration"
 }
 
 /**
@@ -85,6 +157,7 @@ object WorkoutSummaryBuilder {
             durationMinutes = session.durationMinutes,
             workingSets = working.size,
             volumeKg = highlights.sumOf { it.volumeKg },
+            bodyweightReps = highlights.sumOf { it.bodyweightReps },
             highlights = highlights,
             notes = session.notes,
         )
