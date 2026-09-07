@@ -51,7 +51,8 @@ data class TargetEntry(
             unit: WeightUnit,
         ): TargetEntry = TargetEntry(
             sets = NumericEntry.typedWhole(input = setsText, min = 1, rule = NumericEntry.SETS_RULE),
-            reps = NumericEntry.typedReps(repsText),
+            // No upper cap: storage never had one and existing cards may hold 120-rep targets.
+            reps = NumericEntry.typedWhole(input = repsText, min = 1, rule = NumericEntry.REPS_WHOLE_RULE),
             rest = NumericEntry.typedWhole(input = restText, min = 0, rule = NumericEntry.REST_RULE),
             weightKg = NumericEntry.typedWeightKg(weightText, unit),
         )

@@ -167,6 +167,13 @@ object NumericEntry {
     const val WEIGHT_RULE = "Enter a weight as a number, like 60 or 62.5."
     const val WEIGHT_NEGATIVE = "A weight cannot be negative. Enter 0 or more."
     const val REPS_RULE = "Enter a whole number of reps, 1 to $MAX_REPS."
+
+    /**
+     * Reps where no fumble guard applies: a routine's target and a backdated set. Storage has
+     * never capped these (a 120-rep skipping target is a real prescription), so refusing them
+     * here would make an existing card impossible to edit. Whole and at least 1 is the rule.
+     */
+    const val REPS_WHOLE_RULE = "Enter a whole number of reps, at least 1."
     const val SETS_RULE = "Enter a whole number of sets, at least 1."
     const val REST_RULE = "Enter rest as whole seconds."
     const val MINUTES_RULE = "Enter whole minutes, at least 1."

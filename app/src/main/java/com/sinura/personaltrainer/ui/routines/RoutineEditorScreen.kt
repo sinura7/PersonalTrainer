@@ -42,6 +42,7 @@ import com.sinura.personaltrainer.ui.components.NotesKind
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.ExerciseRow
+import com.sinura.personaltrainer.ui.components.FieldComplaint
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -355,10 +356,8 @@ private fun RoutineSaveDock(
                 color = TextTertiary,
             )
             if (error != null) {
-                Text(
-                    text = error,
-                    style = InstrumentType.caption,
-                    color = Danger,
+                FieldComplaint(
+                    message = error,
                     modifier = Modifier.testTag(RoutineEditorTags.SAVE_ERROR),
                 )
             }

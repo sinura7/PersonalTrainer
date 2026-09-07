@@ -38,8 +38,8 @@ class TargetEntryTest {
     fun aDecimalRepCountIsAComplaintNotEightyFiveAndNotLeaveAlone() {
         val entry = TargetEntry.read("3", "8.5", "60", "", WeightUnit.KG)
         assertTrue(entry.hasError)
-        assertEquals(NumericEntry.REPS_RULE, entry.repsError)
-        assertEquals(NumericEntry.REPS_RULE, entry.firstError)
+        assertEquals(NumericEntry.REPS_WHOLE_RULE, entry.repsError)
+        assertEquals(NumericEntry.REPS_WHOLE_RULE, entry.firstError)
         assertNull(entry.setsError)
         assertNull(entry.restError)
         assertNull(entry.weightError)
@@ -50,10 +50,19 @@ class TargetEntryTest {
     fun everyBoxCanComplainAtOnceInReadingOrder() {
         val entry = TargetEntry.read("0", "x", "1:30", "-50", WeightUnit.LBS)
         assertEquals(NumericEntry.SETS_RULE, entry.setsError)
-        assertEquals(NumericEntry.REPS_RULE, entry.repsError)
+        assertEquals(NumericEntry.REPS_WHOLE_RULE, entry.repsError)
         assertEquals(NumericEntry.REST_RULE, entry.restError)
         assertEquals(NumericEntry.WEIGHT_NEGATIVE, entry.weightError)
         assertEquals(NumericEntry.SETS_RULE, entry.firstError)
+    }
+
+    /** Storage never capped a target's reps; a stored 3×120 card must stay editable. */
+    @Test
+    fun aHighRepTargetIsNotRefused() {
+        val entry = TargetEntry.read("3", "120", "60", "", WeightUnit.KG)
+        assertFalse(entry.hasError)
+        assertEquals(120, entry.typedReps)
+        assertEquals(NumericEntry.REPS_WHOLE_RULE, TargetEntry.read("3", "0", "60", "", WeightUnit.KG).repsError)
     }
 
     @Test

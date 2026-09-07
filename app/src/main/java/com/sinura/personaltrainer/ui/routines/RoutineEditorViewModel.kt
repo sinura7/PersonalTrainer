@@ -366,7 +366,9 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             val result = commitTargetsNow(itemId) ?: return@launchWrite
             when (val outcome = result.outcome) {
                 RoutineWriteOutcome.Stored -> error.value = null
-                RoutineWriteOutcome.NothingToWrite -> Unit
+                // A box fixed back to its stored value lands here; the complaint it earned
+                // must not outlive the fix.
+                RoutineWriteOutcome.NothingToWrite -> clearTargetComplaint()
                 is RoutineWriteOutcome.Rejected -> error.value = outcome.reason
                 RoutineWriteOutcome.Failed -> error.value = RoutineSaveCopy.targetsFailed(result.liftName)
             }
@@ -470,6 +472,13 @@ class RoutineEditorViewModel @JvmOverloads constructor(
      */
     fun leave() {
         if (leaving) return
+        // Nothing hydrated and nothing staged means nothing Save could owe: the read that failed
+        // or the row that is gone must not produce a "Some changes are not saved" prompt over an
+        // editor the owner never got to type into. Leave-anyway is exactly Back minus the flush.
+        if (load.value.phase != EditorPhase.EDITING && stagedTargets.isEmpty()) {
+            leaveAnyway()
+            return
+        }
         beginExit()
         viewModelScope.launch {
             // A read that throws on the way out (the row behind the stub check or the details
@@ -560,6 +569,11 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 .onFailure { AppLog.w(TAG, "Leaving anyway could not check for an empty stub", it) }
             _exitRequested.value = true
         }
+    }
+
+    /** Drops a target-rule complaint from the error slot; leaves any other message alone. */
+    private fun clearTargetComplaint() {
+        if (error.value in RoutineSaveCopy.TARGET_RULES) error.value = null
     }
 
     private fun beginExit() {

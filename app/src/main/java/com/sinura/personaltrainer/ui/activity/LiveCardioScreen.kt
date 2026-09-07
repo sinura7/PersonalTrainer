@@ -36,7 +36,9 @@ import com.sinura.personaltrainer.domain.LiveSessionRules
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
+import com.sinura.personaltrainer.ui.components.FieldComplaint
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
+import com.sinura.personaltrainer.ui.components.fieldError
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -194,7 +196,7 @@ fun LiveCardioScreen(
             }
             // The complaint under the box, as a slot: same shape as NumberEntryDialog's suffix.
             val distanceComplaint: (@Composable () -> Unit)? = state.distanceError?.let { message ->
-                { Text(message, style = InstrumentType.caption, color = Danger) }
+                { FieldComplaint(message) }
             }
             OutlinedTextField(
                 value = state.distanceKm,
@@ -210,7 +212,9 @@ fun LiveCardioScreen(
                     keyboardType = KeyboardType.Decimal,
                     imeAction = NumericEntry.LIVE_CARDIO_DISTANCE.imeAction(),
                 ),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fieldError(state.distanceError),
             )
         }
     }

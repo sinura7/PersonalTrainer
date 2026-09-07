@@ -19,6 +19,16 @@ object RoutineSaveCopy {
     /** A value the routine cannot hold. The card says this; so does Save when it refuses. */
     const val TARGETS_REJECTED = "Sets and reps must be at least 1."
 
+    /** Every complaint a target box can raise, so a fixed box can take its own complaint down. */
+    val TARGET_RULES: Set<String> = setOf(
+        TARGETS_REJECTED,
+        NumericEntry.SETS_RULE,
+        NumericEntry.REPS_WHOLE_RULE,
+        NumericEntry.REST_RULE,
+        NumericEntry.WEIGHT_RULE,
+        NumericEntry.WEIGHT_NEGATIVE,
+    )
+
     const val DETAILS_FAILED =
         "Could not save the name and notes. Your lifts are saved. Try again."
 

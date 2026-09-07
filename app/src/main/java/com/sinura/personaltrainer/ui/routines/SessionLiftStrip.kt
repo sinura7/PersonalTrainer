@@ -48,6 +48,8 @@ import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.TargetEntry
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
+import com.sinura.personaltrainer.ui.components.FieldComplaint
+import com.sinura.personaltrainer.ui.components.fieldError
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.ThumbSize
@@ -558,7 +560,7 @@ private fun MiniNumberField(
     var focused by remember { mutableStateOf(false) }
     val shownError = error?.takeIf { !focused }
     val complaint: (@Composable () -> Unit)? = shownError?.let { message ->
-        { Text(message, style = InstrumentType.caption, color = Danger) }
+        { FieldComplaint(message) }
     }
     OutlinedTextField(
         value = value,
@@ -566,6 +568,7 @@ private fun MiniNumberField(
         label = { Text(label, style = InstrumentType.caption) },
         modifier = modifier
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
+            .fieldError(shownError)
             .onFocusChanged { focus ->
                 if (hadFocus && !focus.isFocused) onFocusLost()
                 hadFocus = focus.isFocused

@@ -80,7 +80,8 @@ class OnboardingFocusTest {
         val original = OnboardingAnswers(focus = TrainingFocus.BOTH)
         val restored = OnboardingAnswers.decodeDraft(OnboardingAnswers.encodeDraft(original))!!
         assertEquals(TrainingFocus.BOTH, restored.focus)
-        val old = OnboardingAnswers.encodeDraft(OnboardingAnswers()).substringBeforeLast("|")
+        // A seven-part draft from before focus (and before kit) existed: drop the last two fields.
+        val old = OnboardingAnswers.encodeDraft(OnboardingAnswers()).split("|").take(7).joinToString("|")
         assertEquals(TrainingFocus.STRENGTH, OnboardingAnswers.decodeDraft(old)!!.focus)
     }
 

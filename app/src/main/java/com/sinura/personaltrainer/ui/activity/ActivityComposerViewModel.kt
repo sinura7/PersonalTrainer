@@ -60,7 +60,10 @@ data class ActivityComposerUiState(
     val strength: List<ComposerStrengthLine> = emptyList(),
     val cardio: List<ComposerCardioLine> = emptyList(),
     val catalog: List<Exercise> = emptyList(),
+    /** Form-level outcomes: a refused or failed save. Rendered above Save. */
     val error: String? = null,
+    /** The picker's Create row failed. Rendered inside the sheet that asked, and only there. */
+    val createError: String? = null,
     val saving: Boolean = false,
 ) {
     val canShiftLater: Boolean
@@ -102,14 +105,15 @@ class ActivityComposerViewModel @JvmOverloads constructor(
     private val cardio = MutableStateFlow(draft.cardio())
     private val catalog = MutableStateFlow<List<Exercise>>(emptyList())
     private val error = MutableStateFlow<String?>(null)
+    private val createError = MutableStateFlow<String?>(null)
     private val saving = MutableStateFlow(false)
 
     val uiState: StateFlow<ActivityComposerUiState> = combine(
         combine(mode, title, epochDay, catalog) { currentMode, name, day, lifts ->
             Quad(currentMode, name, day, lifts)
         },
-        combine(strength, cardio, error, saving) { sets, cardioLines, err, busy ->
-            Flags(sets, cardioLines, err, busy)
+        combine(strength, cardio, error, saving, createError) { sets, cardioLines, err, busy, createProblem ->
+            Flags(sets, cardioLines, err, busy, createProblem)
         },
     ) { quad, flags ->
         ActivityComposerUiState(
@@ -121,6 +125,7 @@ class ActivityComposerViewModel @JvmOverloads constructor(
             cardio = flags.cardio,
             catalog = quad.catalog,
             error = flags.error,
+            createError = flags.createError,
             saving = flags.saving,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ActivityComposerUiState())
@@ -167,6 +172,10 @@ class ActivityComposerViewModel @JvmOverloads constructor(
 
     fun dismissError() {
         error.value = null
+    }
+
+    fun dismissCreateError() {
+        createError.value = null
     }
 
     fun setEpochDay(value: Long) {
@@ -285,22 +294,22 @@ class ActivityComposerViewModel @JvmOverloads constructor(
     fun createExercise(name: String, muscleGroup: String) {
         viewModelScope.launch {
             if (name.isBlank()) {
-                error.value = "Give that lift a name."
+                createError.value = SessionOrderCopy.LIFT_NAME_REQUIRED
                 return@launch
             }
             runCatchingCancellable {
                 when (val result = container.exerciseRepository.createCustom(name, muscleGroup)) {
-                    is SaveExerciseResult.DuplicateName -> error.value = DUPLICATE_NAME_MESSAGE
+                    is SaveExerciseResult.DuplicateName -> createError.value = DUPLICATE_NAME_MESSAGE
                     is SaveExerciseResult.MissingMuscle ->
-                        error.value = MuscleGroups.MISSING_MESSAGE
+                        createError.value = MuscleGroups.MISSING_MESSAGE
                     is SaveExerciseResult.Saved -> {
-                        error.value = null
+                        createError.value = null
                         _createdExercise.value = result.exercise
                     }
                 }
             }.onFailure { thrown ->
                 AppLog.w(TAG, "createExercise failed", thrown)
-                error.value = SessionOrderCopy.CREATE_LIFT_FAILED
+                createError.value = SessionOrderCopy.CREATE_LIFT_FAILED
             }
         }
     }
@@ -409,6 +418,7 @@ class ActivityComposerViewModel @JvmOverloads constructor(
         val cardio: List<ComposerCardioLine>,
         val error: String?,
         val saving: Boolean,
+        val createError: String?,
     )
 
     private companion object {

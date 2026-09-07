@@ -50,7 +50,9 @@ import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.StrengthEntry
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
+import com.sinura.personaltrainer.ui.components.FieldComplaint
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
+import com.sinura.personaltrainer.ui.components.fieldError
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -193,8 +195,8 @@ fun ActivityComposerScreen(
                         onCreate = viewModel::createExercise,
                         created = createdExercise,
                         onCreatedHandled = viewModel::onCreatedExerciseHandled,
-                        pickerError = state.error,
-                        onPickerErrorDismissed = viewModel::dismissError,
+                        pickerError = state.createError,
+                        onPickerErrorDismissed = viewModel::dismissCreateError,
                     )
                 }
             }
@@ -337,7 +339,7 @@ private fun StrengthAdder(
                 label = { Text(ComposerCopy.weightFieldLabel(unit)) },
                 singleLine = true,
                 isError = weightError != null,
-                supportingText = fieldError(weightError),
+                supportingText = complaintSlot(weightError),
                 textStyle = InstrumentType.numeralMd,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Decimal,
@@ -346,7 +348,8 @@ private fun StrengthAdder(
                 keyboardActions = KeyboardActions(onNext = { repsFocus.requestFocus() }),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .focusRequester(weightFocus),
+                    .focusRequester(weightFocus)
+                .fieldError(weightError),
             )
             OutlinedTextField(
                 value = reps,
@@ -357,7 +360,7 @@ private fun StrengthAdder(
                 label = { Text(ComposerCopy.REPS) },
                 singleLine = true,
                 isError = repsError != null,
-                supportingText = fieldError(repsError),
+                supportingText = complaintSlot(repsError),
                 textStyle = InstrumentType.numeralMd,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Number,
@@ -365,7 +368,8 @@ private fun StrengthAdder(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .focusRequester(repsFocus),
+                    .focusRequester(repsFocus)
+                .fieldError(repsError),
             )
             SecondaryGymButton(
                 text = ComposerCopy.ADD_SET,
@@ -487,7 +491,7 @@ private fun CardioAdder(
             label = { Text(ComposerCopy.MINUTES) },
             singleLine = true,
             isError = minutesError != null,
-            supportingText = fieldError(minutesError),
+            supportingText = complaintSlot(minutesError),
             textStyle = InstrumentType.numeralMd,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Number,
@@ -496,7 +500,8 @@ private fun CardioAdder(
             keyboardActions = KeyboardActions(onNext = { distanceFocus.requestFocus() }),
             modifier = Modifier
                 .fillMaxWidth()
-                .focusRequester(minutesFocus),
+                .focusRequester(minutesFocus)
+                .fieldError(minutesError),
         )
         OutlinedTextField(
             value = distance,
@@ -507,7 +512,7 @@ private fun CardioAdder(
             label = { Text(CardioCopy.distanceLabel(distanceUnit)) },
             singleLine = true,
             isError = distanceError != null,
-            supportingText = fieldError(distanceError),
+            supportingText = complaintSlot(distanceError),
             textStyle = InstrumentType.numeralMd,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Decimal,
@@ -515,7 +520,8 @@ private fun CardioAdder(
             ),
             modifier = Modifier
                 .fillMaxWidth()
-                .focusRequester(distanceFocus),
+                .focusRequester(distanceFocus)
+                .fieldError(distanceError),
         )
         SecondaryGymButton(
             text = ComposerCopy.ADD_CARDIO,
@@ -547,8 +553,8 @@ private fun CardioAdder(
  * The complaint under a numeric box, or nothing. A slot rather than an always-present caption,
  * so a clean form has no empty line reserved under every field.
  */
-private fun fieldError(message: String?): (@Composable () -> Unit)? =
-    message?.let { text -> { Text(text, style = InstrumentType.caption, color = Danger) } }
+private fun complaintSlot(message: String?): (@Composable () -> Unit)? =
+    message?.let { text -> { FieldComplaint(text) } }
 
 @Composable
 private fun RemoveLineButton(

@@ -813,14 +813,14 @@ class RoutineEditorViewModelTest {
             targetReps = null,
             targetWeightKg = null,
             restSeconds = 60,
-            invalidReason = NumericEntry.REPS_RULE,
+            invalidReason = NumericEntry.REPS_WHOLE_RULE,
         )
         vm.commitTargets(itemId)
-        vm.uiState.first { it.error == NumericEntry.REPS_RULE }
+        vm.uiState.first { it.error == NumericEntry.REPS_WHOLE_RULE }
         assertEquals(5, checkNotNull(deps.routineRepository.getById(fixture.routine.id)).exercises.single().targetReps)
 
         vm.saveAndLeave()
-        val blocked = vm.uiState.first { it.saveError == NumericEntry.REPS_RULE && !it.saving }
+        val blocked = vm.uiState.first { it.saveError == NumericEntry.REPS_WHOLE_RULE && !it.saving }
         assertFalse(vm.exitRequested.value)
         assertNull(blocked.error)
         assertEquals(5, checkNotNull(deps.routineRepository.getById(fixture.routine.id)).exercises.single().targetReps)

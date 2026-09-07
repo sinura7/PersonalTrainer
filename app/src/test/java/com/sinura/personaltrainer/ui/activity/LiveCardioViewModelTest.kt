@@ -106,7 +106,8 @@ class LiveCardioViewModelTest {
         vm.setDistanceKm("-5")
         vm.finish()
 
-        val refused = withTimeout(5_000) { vm.uiState.first { it.distanceError != null } }
+        // Both writes: distanceError lands a moment before finishing clears, on an IO thread.
+        val refused = withTimeout(5_000) { vm.uiState.first { it.distanceError != null && !it.finishing } }
         assertEquals(NumericEntry.DISTANCE_RULE, refused.distanceError)
         assertEquals("-5", refused.distanceKm)
         assertFalse(refused.finishing)

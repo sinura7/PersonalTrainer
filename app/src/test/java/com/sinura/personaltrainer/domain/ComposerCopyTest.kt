@@ -59,11 +59,15 @@ class ComposerCopyTest {
     fun addSetRefusesWhatItCannotStoreAsWritten() {
         val refused = ComposerCopy.strengthEntry("-50", "8.5", WeightUnit.KG) as StrengthEntry.RefusedSet
         assertEquals(NumericEntry.WEIGHT_NEGATIVE, refused.weightError)
-        assertEquals(NumericEntry.REPS_RULE, refused.repsError)
+        assertEquals(NumericEntry.REPS_WHOLE_RULE, refused.repsError)
 
         val repsOnly = ComposerCopy.strengthEntry("60", "", WeightUnit.KG) as StrengthEntry.RefusedSet
         assertEquals(null, repsOnly.weightError)
-        assertEquals(NumericEntry.REPS_RULE, repsOnly.repsError)
+        assertEquals(NumericEntry.REPS_WHOLE_RULE, repsOnly.repsError)
+
+        // No cap on a backdated set: 150 push-ups is a thing that happened.
+        assertEquals(150, readyStrength("", "150", WeightUnit.KG).reps)
+        assertEquals(NumericEntry.REPS_WHOLE_RULE, (ComposerCopy.strengthEntry("60", "0", WeightUnit.KG) as StrengthEntry.RefusedSet).repsError)
 
         val weightOnly = ComposerCopy.strengthEntry("1.2.3", "8", WeightUnit.KG) as StrengthEntry.RefusedSet
         assertEquals(NumericEntry.WEIGHT_RULE, weightOnly.weightError)

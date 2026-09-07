@@ -50,9 +50,11 @@ object ComposerCopy {
      */
     fun strengthEntry(weightText: String, repsText: String, unit: WeightUnit): StrengthEntry {
         val weight = NumericEntry.typedWeightKg(weightText, unit)
-        val reps = NumericEntry.typedReps(repsText)
+        // Uncapped, as this path always was: the 100-rep guard belongs to the live dialog's
+        // mis-tap case, not to writing up yesterday's 150 push-ups.
+        val reps = NumericEntry.typedWhole(input = repsText, min = 1, rule = NumericEntry.REPS_WHOLE_RULE)
         val weightError = weight.messageOrNull
-        val repsError = reps.messageOrNull ?: if (reps is NumericEntry.Typed.Blank) NumericEntry.REPS_RULE else null
+        val repsError = reps.messageOrNull ?: if (reps is NumericEntry.Typed.Blank) NumericEntry.REPS_WHOLE_RULE else null
         if (weightError != null || repsError != null) {
             return StrengthEntry.RefusedSet(weightError = weightError, repsError = repsError)
         }

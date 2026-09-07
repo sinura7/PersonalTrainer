@@ -208,25 +208,28 @@ class WorkoutSummaryViewModelTest {
     /** UX05-AC03: a bodyweight-only session is not a "0 kg" receipt. */
     @Test
     fun aBodyweightOnlySessionHeadlinesReps() = runBlocking {
+        // The lift must be BODYWEIGHT before the fixture logs its 0 kg sets: logSet refuses a
+        // 0 kg working set on a loaded lift. insertAll ignores conflicts, so the fixture's own
+        // insert of the same id leaves this row as it is.
+        deps.database.exerciseDao().insertAll(
+            listOf(
+                ExerciseEntity(
+                    id = "test-pushup",
+                    name = "Push-up",
+                    muscleGroup = "Chest",
+                    notes = "",
+                    isCustom = false,
+                    loadType = LoadType.BODYWEIGHT.name,
+                    nameKey = "push-up",
+                ),
+            ),
+        )
         val fixture = seedTestWorkout(
             deps,
             exerciseId = "test-pushup",
             exerciseName = "Push-up",
             loggedSets = listOf(TestSetInput(0.0, 20), TestSetInput(0.0, 15)),
             finish = true,
-        )
-        // The fixture seeds a loaded lift; the summary reads the lift's stored class, so
-        // reclassifying the row is what makes this a bodyweight session.
-        deps.database.exerciseDao().update(
-            ExerciseEntity(
-                id = "test-pushup",
-                name = "Push-up",
-                muscleGroup = "Chest",
-                notes = "",
-                isCustom = false,
-                loadType = LoadType.BODYWEIGHT.name,
-                nameKey = "push-up",
-            ),
         )
         val vm = createViewModel(fixture.session.id)
         val state = vm.uiState.first { !it.isLoading }
