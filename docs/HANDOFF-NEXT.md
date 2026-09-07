@@ -6,11 +6,10 @@ engineering handoff.
 
 ## Where the code stands
 
-`trunk` carries pull requests #168 and #169: every item R01 through R19 from
-the 2026-09-06 engineering handoff, verified against the source, implemented,
-and recorded. [`HANDOFF-2026-09-06.md`](HANDOFF-2026-09-06.md) is the full
-account, batch by batch, including what was fixed, what was deferred and why,
-and every command that was run with its result. `debugLiveCode` is 22.
+`trunk` carries pull requests #168, #169, and #170: every item R01
+through R19 from the 2026-09-06 engineering handoff, plus a Claude
+Code Android setup script. [`HANDOFF-2026-09-06.md`](HANDOFF-2026-09-06.md)
+is the full account. `debugLiveCode` is 22.
 
 Nothing about the app's data was changed. Room stays frozen at v4, the backup
 document and envelope formats are untouched, and no identifier is ever
