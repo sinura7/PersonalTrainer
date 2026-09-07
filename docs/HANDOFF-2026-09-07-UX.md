@@ -1,6 +1,6 @@
 # Handoff — 7 September 2026, UX P0 batch (Fable)
 
-The verification record for the first batch of the UX handoff package prepared on 6 September 2026 (30 work packages, 97 acceptance checks; master document `Temper-UX-Design-Handoff.md`). It follows [HANDOFF-2026-09-06.md](HANDOFF-2026-09-06.md), which landed the engineering findings R01–R19 that several UX packages depend on. This record does not change any signed decision in [architecture/](architecture/README.md); one documentation addendum to ADR-021 is flagged for the owner in §5; the pre-merge review and its fixes are §6.
+The verification record for the first batch of the UX handoff package prepared on 6 September 2026 (30 work packages, 97 acceptance checks; master document `Temper-UX-Design-Handoff.md`). It follows [HANDOFF-2026-09-06.md](HANDOFF-2026-09-06.md), which landed the engineering findings R01–R19 that several UX packages depend on. This record does not change any signed decision in [architecture/](architecture/README.md); one documentation addendum to ADR-021 is flagged for the owner in §5; the pre-merge review and its fixes are §6, and the compile break it did not catch is §6.1.
 
 The updated backlog, acceptance matrix and decision register live in [ux-program/](ux-program/UX-Decision-Log.md).
 
@@ -25,7 +25,7 @@ The updated backlog, acceptance matrix and decision register live in [ux-program
 
 ## 2. What changed and what the owner will notice
 
-**Typing a number.** Boxes keep exactly what is typed. Add set, Add cardio, Finish (live cardio), a routine card's box losing focus, and the rest dialog's Set now either store exactly that number or refuse the box with the rule it broke, under the box, with focus moved there — "Enter a whole number of reps, 1 to 100." instead of silently saving 85 for "8.5". Nothing rewrites the text on the way.
+**Typing a number.** Boxes keep exactly what is typed. Add set, Add cardio, Finish (live cardio), a routine card's box losing focus, and the rest dialog's Set now either store exactly that number or refuse the box with the rule it broke, under the box, with focus moved there — "Enter a whole number of reps, 1 to 100." for a logged set, instead of silently saving 85 for "8.5". Nothing rewrites the text on the way. A routine or week target reads reps with no upper bound, because storage never had one and a stored 3×120 must stay editable.
 
 **Saving a routine.** Save and Back pop the editor only when the name, notes and staged targets actually reached Room. A failed write keeps the editor open and says why directly above Save; Save is the retry. Back with something unsaved asks — *Try again* or *Leave without saving these* — and says the lifts you added, moved or removed are already saved. A quiet caption above Save explains the split once. A value the routine cannot hold (0 sets, "8.5" reps) blocks Save and Back the same way, with the box's own rule.
 
@@ -90,6 +90,12 @@ Each record names the premise's status at `156cc40`, the files, the acceptance I
 | After UX07/UX23 | same | static OK (`required_args_mixed` 180 = baseline, `when_exhaustive` 47 = baseline, `state_members` 2 = baseline); JVM lane 171 classes, 1191 tests, 0 failures; test tree parses |
 | After UX04 merge and routine-card wiring | same | static OK (`required_args_mixed` 178 — the ratchet was lowered from 180 because two card calls became fully named; `when_exhaustive` 47; `state_members` 2); JVM lane **172 classes, 1201 tests, 0 failures**; `NO SYNTAX ERRORS` over `app/src/test/java` |
 | After the pre-merge review fixes (`8967888`) | same | static OK at every ratchet (`required_args_mixed` 178); JVM lane **172 classes, 1202 tests, 0 failures**; `NO SYNTAX ERRORS` |
+| The compile lane, first run | `tools/compile-check.sh` on `0cc5013` | base stage OK (293 files); **compose stage FAILED — 1 error**, `CustomWeekScreen.kt:201:46: argument type mismatch: actual type is 'Function5<…>', but 'Function6<…>' was expected` |
+| The new arity checker against `0cc5013` | `check-lambda-arity.py` over all five source roots of a tree archived at `0cc5013` | **2 findings**: `CustomWeekScreen.kt:201` and `IdentityBeforeMetricsInstrumentedTest.kt:124`, both "lambda takes 5, declaration takes 6" |
+| After the custom-week fix (`b6250f4`) | static gate incl. the new checker, JVM lane, `syntax-check.sh app/src/test/java`, `tools/compile-check.sh --self-test` | static OK at every ratchet; **0 arity mismatches across 662 files**; `test_lambda_arity` 15/15; JVM lane **172 classes, 1202 tests, 0 failures**; lane **base OK (293 files), compose OK (378 files)** with its self-test confirming the compiler and the Compose plugin are live (62 errors on mutated copies, 168 on a broken design token) |
+| After the two dead-end fixes (`1801821`) | same, with the lane's unit-test stage | static OK; JVM lane **172 classes, 1202 tests, 0 failures**; lane **base OK (293), compose OK (378), test OK (255 of 261)** — the six held out are timer tests where Robolectric types `getSystemService` as nullable and `compileSdk` 36 does not. **All six new Robolectric custom-week tests compile.** They have still never run |
+| After the four checker widenings (`d7552de`) | static gate | **662 files** in scope, up from 624; `check-named-args` 0 across 662, `check-required-args` 0 across 662 with `required_args_mixed` still 178, `check-missing-imports` 0, `check-internal-imports` 0, `check-lambda-arity` 0. Four negative controls in an instrumented test file each produced exactly one finding |
+| The finished lane (`776f511`) | `tools/compile-check.sh --self-test` on the branch head, then the same lane against a worktree at `0cc5013` | Head: **base OK (293), compose OK (378), test OK (255 of 261)**, negative control 11 desktop-only APIs unreachable, every self-test non-vacuous. `0cc5013`: exit 1, one error, `CustomWeekScreen.kt:201:46` and nothing else. ~3 min warm, ~4 with `--self-test` |
 
 Two ratchets were held rather than raised during the batch: the two new `when` blocks over `StrengthEntry`/`CardioEntry` were typed by giving their variants distinct names (`ReadySet`/`RefusedSet`, `ReadyCardio`/`RefusedCardio`), and every new call with named arguments is fully named. One lane failure during the batch was real and fixed: the round-trip test's tolerance assumed a tenth of a pound where `toDisplayValue` rounds pounds to a half.
 
@@ -124,9 +130,52 @@ After the batch was pushed, three independent reviewers were run over the whole 
 
 Static gate and JVM lane were re-run after these fixes (§4, final row).
 
+### 6.1 The pushed branch did not compile, and none of the above found it
+
+The three reviewers above, the twenty static checkers and the JVM lane all passed on `0cc5013`, and `0cc5013` **does not build**. `./gradlew assembleDebug` was red on the branch as pushed.
+
+Commit `e5d2956` widened `SessionLiftStrip`'s callback to carry the rule a box broke:
+
+```kotlin
+onStageTargets: (String, Int?, Int?, Int?, Double?, String?) -> Unit   // SessionLiftStrip.kt:118
+```
+
+`RoutineEditorScreen.kt` was updated with it. Two other call sites were not: `CustomWeekScreen.kt:201` and `IdentityBeforeMetricsInstrumentedTest.kt:124` each still passed a five-parameter lambda. Kotlin rejects that at type-check.
+
+Nothing in the local gate can see this. The static checkers are line-oriented Python; none of them types a lambda. `run-domain-tests.sh` compiles `domain/` only, and `SessionLiftStrip` is Compose. `syntax-check.sh` parses, it does not resolve. The three reviewers read the diff and read it well — the two missed sites are in files the diff never touches, so nothing drew their eye to them. A review that reads changed files cannot find a caller that broke because it did not change.
+
+**What actually found it.** After the owner asked whether an environment could be built to test in, one was: `tools/compile-check.sh` runs the real Kotlin 2.0.21 compiler over the Android-side sources, substituting real library declarations wherever Maven Central has them — Robolectric's `android-all-instrumented` for `android.*`, JetBrains Compose Multiplatform 1.8.2 for `androidx.compose.*`, the same Compose compiler plugin the app uses — and hand-written declaration-only stubs only where nothing is downloadable (Room, DataStore, WorkManager, lifecycle, GMS, androidx.test). Google's Maven is unreachable from here and every mirror tried was refused; the proxy was not bypassed. The lane's base stage (293 non-Compose files) was clean. Its compose stage failed on the arity, on a pristine checkout with nothing injected.
+
+That result was reproduced deliberately, not just remembered: a worktree checked out at `0cc5013`, with the finished lane copied in, prints
+
+```
+app/src/main/java/com/sinura/personaltrainer/ui/routines/CustomWeekScreen.kt:201:46: error:
+argument type mismatch: actual type is 'kotlin.Function5<…>',
+but 'kotlin.Function6<…>' was expected.
+compile-check: compose FAILED — 1 compile errors (378 files in scope)
+```
+
+and exits 1, while the branch head exits 0. The lane's own `--self-test` confirms the compiler and the Compose plugin are live rather than silently absent: 62 errors on two deliberately mutated copies, 168 on a deliberately broken design token.
+
+**The fix** is not a lambda pad. `CustomWeekPolicy.updateTargets` reads a null argument as "keep what is stored", so passing nulls for an unreadable box would have left the week holding one number while the card showed another — the exact UX06 mismatch this batch exists to end, in the one screen the batch had not reached. `CustomWeekViewModel` now takes the reason, holds it per lift id, and `confirm()` refuses with that rule instead of applying the plan underneath it. Six tests cover it, and reading the fix back found two further dead ends the same shape, both fixed here: removing a card left its complaint behind, blocking Confirm on a rule with no box left to fix; and because the box text is saved state while the staged rejection was not, a card rebuilt after process death showed "8.5" and its rule while nothing upstream knew, so Confirm would have written the stored number underneath it. That second one closes the UX07 residue item §6 carried as a note.
+
+**What this changes about the record.** §7 previously described a pushed branch as sound; it was not. The overclaim was mine and it is the class the owner's brief named — a check that was never executed reported as if it had been. The corrected state is in §7. The lane and its caveats ledger are `tools/compile-check.sh --explain`; it is committed here so the next batch has it, and it is **not** wired into `tools/preflight.sh`, because its first run downloads about 186 MB and the preflight is expected to be offline-quick. Run it before any push that changes a shared signature.
+
+**The offline guard.** The lane is the strong check but it is not free, so the defect class also got a cheap one: `tools/check-lambda-arity.py` counts the parameters of a lambda passed as a named argument and compares them with the declared function type. It is in `preflight.sh` and needs no network. Against a tree archived at `0cc5013` it reports **both** stale call sites, with exact lines; over the branch head it reports 0 across 662 files. `tools/test_lambda_arity.py` holds fifteen fixtures — the defect, its fix, and every shape that must stay quiet — so the guard itself is tested rather than assumed.
+
+**Three source sets nothing was reading.** Chasing the second stale caller turned up the more general fault: `app/src/androidTest`, `app/src/debug` and `app/src/sharedTest` were outside every checker in the repo. No tool had ever opened the file the defect sat in. Two checkers had a quieter version of the same fault — they took a single root, and a root scanned alone is a false clean, because nothing outside it is in the declaration index. `check-named-args.py` was being run on `app/src/test` alone, where nearly every call targets main and was therefore skipped rather than checked; `check-internal-imports.py` reports 146 correct imports as unresolved when pointed at `androidTest` alone, which is why it had never been pointed there. Four checkers now read all five source sets in one invocation: `check-named-args`, `check-required-args`, `check-missing-imports` and `check-internal-imports`. The gate went from 624 files to 662.
+
+Each widening was negative-controlled rather than assumed. In an instrumented test file: an invented named argument, a dropped required argument, an unimported project symbol and an import of a name that does not exist each produce exactly one finding, and none of them did before.
+
+**What a green from the lane does not mean.** It is not `assembleDebug`. It substitutes a nearby Compose build (1.8.2 for the app's 1.11.4/Material3 1.4.0), so a member added or removed between those versions is invisible to it: where 1.8 accepts something 1.11 removed, the lane is green and the merge gate is red. It runs no KSP, so Room's `@Query` SQL and the generated DAOs are unchecked. Robolectric's framework jar is an AOSP build and types `getSystemService` as nullable where `compileSdk` 36 does not, which is why six timer tests compile in a separate pass — they are not dropped, and the lane fails if that exclusion ever goes stale. `app/src/androidTest` (23 files) is compiled by no stage: the second stale caller lived there, `assembleDebug` does not build it either, and it is `check-lambda-arity.py` that guards it rather than a compiler. The desktop-only strip's keep-list is the residual risk — six facades kept because Android Compose has the same API, any of which could still carry a desktop-only overload. Stubs are hand-written to be no more permissive than the real API, which is a promise rather than a proof. `tools/compile-check.sh --explain` prints the full ledger.
+
+What it does catch is the whole ViewModel-to-screen and ViewModel-to-test boundary: a state type or a callback arity that changed on one side and not the other. That is the class of defect that reached the branch, and it is the class nothing else here could see.
+
 ## 7. Delivery state
 
-Everything is committed on `claude/file-visibility-check-jraqc2` and **pushed to origin with the owner's authorization on 7 September**. Nothing has been merged, tagged, published or deployed; no production configuration, credential or user data was touched. The branch is seven commits on `156cc40`:
+Everything is committed on `claude/file-visibility-check-jraqc2` and **pushed to origin with the owner's authorization on 7 September**. Nothing has been merged, tagged, published or deployed; no production configuration, credential or user data was touched.
+
+**The branch was not mergeable as first pushed.** `0cc5013` did not compile (§6.1). It is fixed in the commits below, and the fix is verified by a compiler, not by reading. The branch is seventeen commits on `156cc40`:
 
 | Commit | Subject |
 |---|---|
@@ -136,14 +185,24 @@ Everything is committed on `claude/file-visibility-check-jraqc2` and **pushed to
 | `e5d2956` | Routine card refuses an unreadable box; a read fault on exit no longer strands the editor (UX06, UX04) |
 | `1947caf` | This record and `docs/ux-program/`, first version |
 | `8967888` | Pre-merge review fixes: no rep cap on targets, kit survives the setup draft, complaints are announced |
-| (this commit) | This record and the register updated with §6 |
+| `0cc5013` | This record and the register updated with §6 — **this commit does not compile**, see §6.1 |
+| `b6250f4` | The custom week refuses a box it cannot read, and a checker that counts lambda parameters |
+| `a71225e` | Fixing one custom-week card moves the complaint; it does not clear it |
+| `1801821` | Two dead ends around a refused target box: a removed card, and a restored one |
+| `41ad418` | Three source sets nothing was reading |
+| `9bb971d` | `check-named-args` took one root, and one root is a false clean |
+| `d7552de` | `check-internal-imports` reads every source set now, not just main |
+| `776f511` | A real compiler for the Android side |
+| (this commit) | This record corrected with §6.1, the gate table, the matrix and D19 |
 
 CI run 852 on the push ended in three seconds with no runner assigned (`runner_id: 0`), the same account-level condition recorded in the 6 September handoff; it is not a verdict on this branch. On a machine with the Android SDK the full gate is `./gradlew testDebugUnitTest assembleDebug lintDebug`, which executes the Robolectric tests written here; `connectedDebugAndroidTest` on the `temper-tests-api29` profile renders the new states.
 
 ## 8. Next actions, in order
 
-1. **Owner:** a decision on D16; the merge itself, once the Gradle gate below has run somewhere.
-2. **SDK machine or CI with a runner:** `./gradlew testDebugUnitTest` — the 17 Robolectric tests written here are the regression proof for UX04, UX05 and UX07 and have never run.
+1. **Owner:** a decision on D16; the merge itself, once the Gradle gate below has run somewhere. Merging `0cc5013` would have broken trunk's build; merge the branch head, not that commit.
+2. **SDK machine or CI with a runner:** `./gradlew testDebugUnitTest assembleDebug` — the 19 Robolectric tests written here are the regression proof for UX04, UX05, UX06 and UX07 and have never run, and `assembleDebug` is the only authority on the compile question §6.1 raised.
 3. **Device (Temper Debug):** the eight production captures this batch owes — routine editor Save failure and Back prompt at 360 dp / font 2.0 with the keyboard open; summary "not found", "saved, summary unavailable", "unavailable" and a push-up-only receipt; composer Add set refusal; live cardio Finish refusal; setup reopened after `adb shell am kill`.
 4. **Batch B (main gym journey):** UX01–UX03, UX08, UX12, UX22, UX24/UX25 per the master sequencing. UX12 and UX24 cannot start without device bounds.
 5. **UX23 residue:** the four read-fault-vs-missing screens (SessionDetail, ActiveWorkout, RestTimer, ExerciseDetail) need health-carrying flows, the R10 shape; the rest is copy and banner placement.
+6. **The compile lane:** run `tools/compile-check.sh` before any push that changes a shared signature, and once on an SDK machine alongside `assembleDebug` to measure how far the two verdicts agree — that comparison is the only thing that can calibrate how much a green here is worth. It is deliberately outside `preflight.sh` (§6.1).
+7. **The one uncovered source set:** `app/src/androidTest` (23 files) is compiled by nothing. Adding a stage needs the `androidx.compose.ui.test` matcher surface and `androidx.test.ext.junit`; it was judged not worth a stub thicket that could produce false reds, and `check-lambda-arity.py` guards the defect class that reached the branch. Revisit if a second instrumented-test break gets through.

@@ -331,7 +331,8 @@
         "8.5 reps is rejected rather than saved as 85; -50 kg is rejected rather than saved as 50.",
         "1.2.3 and 8e2 do not become different accepted values; 62,5 and 62.5 behave equivalently under the supported decimal policy.",
         "Existing valid values survive unit conversion/round trips without drift beyond specified display precision.",
-        "All shared filter callers are covered, including composer, live cardio and routine targets."
+        "All shared filter callers are covered, including composer, live cardio and routine targets.",
+        "The custom week's target boxes refuse what the week cannot hold; Confirm names the rule and stays, and fixing one card does not release another still unreadable."
       ],
       "evidence": [
         {
@@ -357,12 +358,12 @@
       ],
       "dependencies": [],
       "decision": "Refinement within current product direction",
-      "status": "Implemented locally; domain tests executed (JVM lane); routine-editor card wiring included",
+      "status": "Implemented locally; domain tests executed (JVM lane); routine-editor and custom-week card wiring included. The custom week was reached last, through the compile break the widened SessionLiftStrip signature caused: its boxes now refuse what the week cannot hold instead of applying the stored number underneath the shown one.",
       "fixtures": [
         "F10"
       ],
       "evidenceClass": "Source-supported defect — confirmed at HEAD 156cc40 (composer, live cardio, routine targets, custom rest); NumberEntryDialog callers were already reject-on-parse",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)"
+      "candidateCommit": "a71225e (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888, b6250f4, a71225e). 0cc5013 did not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1."
     },
     {
       "id": "UX07",
