@@ -468,7 +468,7 @@ internal fun CompactTargetFields(
                 focusRequester = setsFocus,
                 onImeNext = { repsFocus.requestFocus() },
             ) {
-                setsText = it.filter(Char::isDigit)
+                setsText = it
                 stage()
             }
             MiniNumberField(
@@ -480,7 +480,7 @@ internal fun CompactTargetFields(
                 focusRequester = repsFocus,
                 onImeNext = { restFocus.requestFocus() },
             ) {
-                repsText = it.filter(Char::isDigit)
+                repsText = it
                 stage()
             }
         }
@@ -494,7 +494,7 @@ internal fun CompactTargetFields(
             focusRequester = restFocus,
             onImeNext = { weightFocus.requestFocus() },
         ) {
-            restText = it.filter(Char::isDigit)
+            restText = it
             stage()
         }
         MiniNumberField(
@@ -509,7 +509,7 @@ internal fun CompactTargetFields(
             ime = chain[3],
             focusRequester = weightFocus,
         ) {
-            weightText = decimalDigits(it)
+            weightText = it
             stage()
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
@@ -564,6 +564,3 @@ private fun MiniNumberField(
         ),
     )
 }
-
-/** One decimal separator, comma or point. Extra dots used to make the field unparseable and clear the load. */
-internal fun decimalDigits(raw: String): String = NumericEntry.filterDecimal(raw)

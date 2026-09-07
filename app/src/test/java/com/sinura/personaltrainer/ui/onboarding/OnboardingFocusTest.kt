@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.onboarding
 
 import android.app.Application
+import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
@@ -50,7 +51,7 @@ class OnboardingFocusTest {
 
     @Test
     fun guidedPathAsksFocusBeforeExperienceAndWritesNothingUntilApply() = runBlocking {
-        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
         val focused = withTimeout(5_000) { viewModel!!.uiState.first { it.step == OnboardingStep.FOCUS } }
         assertEquals(OnboardingStep.FOCUS, focused.step)
         viewModel!!.setFocus(TrainingFocus.CARDIO)
@@ -67,7 +68,7 @@ class OnboardingFocusTest {
 
     @Test
     fun cardioFocusPreviewDoesNotInventLifts() = runBlocking {
-        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
         viewModel!!.setFocus(TrainingFocus.CARDIO)
         val preview = withTimeout(5_000) { viewModel!!.uiState.first { it.preview != null }.preview!! }
         assertTrue(preview.routines.isEmpty())
@@ -85,7 +86,7 @@ class OnboardingFocusTest {
 
     @Test
     fun cardioPathSkipsLiftOnlyQuestions() = runBlocking {
-        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
         withTimeout(5_000) { viewModel!!.uiState.first { it.step == OnboardingStep.FOCUS } }
         viewModel!!.setFocus(TrainingFocus.CARDIO)
         val days = withTimeout(5_000) {
@@ -105,7 +106,7 @@ class OnboardingFocusTest {
 
     @Test
     fun cardioPreviewDoesNotRaiseACatalogError() = runBlocking {
-        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
         withTimeout(5_000) { viewModel!!.uiState.first { it.step == OnboardingStep.FOCUS } }
         viewModel!!.setFocus(TrainingFocus.CARDIO)
         repeat(4) { viewModel!!.next() }

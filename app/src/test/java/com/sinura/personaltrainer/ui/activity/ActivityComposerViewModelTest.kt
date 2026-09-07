@@ -5,10 +5,13 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.data.local.dao.ActivityDao
+import com.sinura.personaltrainer.data.local.entity.ActivitySessionEntity
 import com.sinura.personaltrainer.domain.ActivityOrigin
 import com.sinura.personaltrainer.domain.ActivityWrite
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.Exercise
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -19,6 +22,7 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -190,6 +194,50 @@ class ActivityComposerViewModelTest {
         assertTrue(state.cardio.isEmpty())
     }
 
+    /**
+     * UX07-AC02: Cancel during a save is refused rather than acted on. The draft survives
+     * until the write answers, the write lands exactly once, and only the accepted save
+     * clears the draft — so nothing on screen can call committed work discarded.
+     */
+    @Test
+    fun cancelWhileSavingIsRefusedAndTheSaveStillLandsOnce() = runBlocking {
+        val gate = CompletableDeferred<Unit>()
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            activityDaoDecorator = { dao -> GatedInsertDao(dao, gate) },
+        )
+        val exercise = seedLift()
+        val handle = SavedStateHandle(mapOf("mode" to "strength"))
+        viewModel = composer(handle)
+        viewModel!!.addStrength(exercise, 100.0, 5)
+        val draft = SavedStateComposerDraft(handle)
+        assertTrue(draft.exists())
+
+        viewModel!!.save()
+        try {
+            val saving = withTimeout(5_000) { viewModel!!.uiState.first { it.saving } }
+            assertTrue(saving.saving)
+
+            // Cancel mid-write: refused. The draft is the only record of what is being written.
+            assertFalse(viewModel!!.canLeave())
+            viewModel!!.discardDraft()
+            assertTrue(draft.exists())
+            assertEquals(1, viewModel!!.uiState.value.strength.size)
+            assertEquals(null, viewModel!!.savedId.value)
+        } finally {
+            gate.complete(Unit)
+        }
+
+        val id = withTimeout(5_000) { viewModel!!.savedId.first { it != null } }!!
+        val settled = withTimeout(5_000) { viewModel!!.uiState.first { !it.saving } }
+        assertEquals(null, settled.error)
+        assertTrue(viewModel!!.canLeave())
+        // The accepted save is what spends the draft, and there is exactly one row.
+        assertFalse(draft.exists())
+        assertEquals(listOf(id), deps.activityRepository.all().map { it.id })
+    }
+
     @Test
     fun aFailingReminderCleanupStillSavesExactlyOnce() = runBlocking {
         // The activity commits before its reminders are cancelled. A throw from that
@@ -219,6 +267,17 @@ class ActivityComposerViewModelTest {
         handle,
         deps,
     )
+
+    /** The activity DAO with its session insert held at a gate, so a save can be caught mid-write. */
+    private class GatedInsertDao(
+        private val delegate: ActivityDao,
+        private val gate: CompletableDeferred<Unit>,
+    ) : ActivityDao by delegate {
+        override suspend fun insertSession(session: ActivitySessionEntity) {
+            gate.await()
+            delegate.insertSession(session)
+        }
+    }
 
     private suspend fun seedLift(): Exercise {
         val saved = deps.exerciseRepository.createCustom("Squat", "Quads")

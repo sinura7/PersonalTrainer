@@ -1,10 +1,14 @@
 package com.sinura.personaltrainer.ui.onboarding
 
 import android.app.Application
+import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.OnboardingAnswers
+import com.sinura.personaltrainer.domain.TrainingAge
+import com.sinura.personaltrainer.domain.TrainingFocus
+import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WeightUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -53,7 +57,7 @@ class OnboardingViewModelTest {
             ApplicationProvider.getApplicationContext(),
             scheduler = dispatcher,
         )
-        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
         assertNull(viewModel!!.uiState.value.preview)
 
         deps.dbMaintenance.seedCatalog()
@@ -70,7 +74,7 @@ class OnboardingViewModelTest {
             ApplicationProvider.getApplicationContext(),
             scheduler = dispatcher,
         )
-        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
         assertNull(viewModel!!.uiState.value.preview)
 
         // Retry is the recovery path: it seeds, then waits for Room. Closing the
@@ -94,7 +98,7 @@ class OnboardingViewModelTest {
         )
         deps.routineRepository.create("Upper")
         deps.preferencesRepository.setOnboardingComplete(false)
-        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
 
         withTimeout(5_000) { viewModel!!.uiState.first { it.existingProgram } }
         assertFalse(viewModel!!.back())
@@ -109,7 +113,7 @@ class OnboardingViewModelTest {
             ApplicationProvider.getApplicationContext(),
             scheduler = dispatcher,
         )
-        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
 
         assertFalse(viewModel!!.back())
         withTimeout(5_000) { viewModel!!.uiState.first { !it.existingProgram } }
@@ -124,7 +128,7 @@ class OnboardingViewModelTest {
             scheduler = dispatcher,
         )
         deps.dbMaintenance.seedCatalog()
-        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
 
         withTimeout(5_000) { viewModel!!.uiState.first { it.preview != null } }
         val storedBefore = deps.preferencesRepository.weightUnit.first()
@@ -141,13 +145,59 @@ class OnboardingViewModelTest {
         Unit
     }
 
+    /**
+     * UX07-AC04: a recreated process reopens setup on the same question with the same answers,
+     * and restoring writes nothing — no routine, no schedule, no completion flag — until the
+     * lifter taps Use this plan.
+     */
+    @Test
+    fun processRecreationRestoresTheStepAndAnswersWithoutWritingAPlan() = runBlocking {
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        val handle = SavedStateHandle()
+        val first = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), handle, deps)
+        first.setFocus(TrainingFocus.STRENGTH)
+        first.setExperience(TrainingAge.RETURNING)
+        first.setDaysPerWeek(4)
+        first.toggleDay(Weekday.MONDAY)
+        first.toggleDay(Weekday.THURSDAY)
+        first.setWeightUnit(WeightUnit.KG)
+        val before = withTimeout(5_000) {
+            first.uiState.first { it.answers.daysPerWeek == 4 && it.answers.preferredDays.size == 2 }
+        }
+        assertEquals(OnboardingStep.DAYS_PER_WEEK, before.step)
+        first.clearAndJoinForTest()
+
+        // The same handle is what the framework hands the recreated ViewModel.
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), handle, deps)
+        val restored = withTimeout(5_000) {
+            viewModel!!.uiState.first { it.answers.daysPerWeek == 4 && it.weightUnit == WeightUnit.KG }
+        }
+        assertEquals(OnboardingStep.DAYS_PER_WEEK, restored.step)
+        assertEquals(TrainingAge.RETURNING, restored.answers.trainingAge)
+        assertEquals(setOf(Weekday.MONDAY, Weekday.THURSDAY), restored.answers.preferredDays)
+        assertEquals(TrainingFocus.STRENGTH, restored.answers.focus)
+
+        // The stored-answers seed runs after recreation too; it must not clobber the draft.
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(4, viewModel!!.uiState.value.answers.daysPerWeek)
+
+        // Nothing was written by either instance.
+        assertFalse(deps.onboardingApplier.hasExistingProgram())
+        assertEquals(0, deps.routineRepository.count())
+        assertFalse(deps.preferencesRepository.onboardingComplete.first())
+        assertEquals(WeightUnit.LBS, deps.preferencesRepository.weightUnit.first())
+    }
+
     @Test
     fun skippingBodyweightLeavesTheWeighInUnset() {
         deps = FakeAppDependencies(
             ApplicationProvider.getApplicationContext(),
             scheduler = dispatcher,
         )
-        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
         assertNull(viewModel!!.uiState.value.answers.bodyweightKg)
         viewModel!!.setBodyweight(80.0)
         viewModel!!.setBodyweight(null)

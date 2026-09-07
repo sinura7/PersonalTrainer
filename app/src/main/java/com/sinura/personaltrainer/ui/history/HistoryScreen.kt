@@ -167,7 +167,7 @@ fun HistoryScreen(
                                 // read, not fresh. Rendering it indistinguishably from
                                 // live data hid the DataHealth signal entirely.
                                 Text(
-                                    "Showing your last loaded history — pull may be behind.",
+                                    HistoryCopy.STALE_LIST,
                                     modifier = Modifier.padding(bottom = Metrics.space2),
                                     style = InstrumentType.caption,
                                     color = TextSecondary,

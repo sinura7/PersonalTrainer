@@ -70,4 +70,15 @@ object DataHealthCopy {
     const val LIVE_CARDIO_TITLE = "Live cardio unavailable"
     const val LIVE_CARDIO_BODY =
         "That live session could not be read. It has not been finished or discarded. Retry."
+
+    /**
+     * Finish found no live row: a successful read with nothing to finish. Not a retry case,
+     * and not the same sentence as a write that failed (UX23).
+     */
+    const val FINISH_NOT_FOUND =
+        "Workout not found. It is no longer on this phone, so there is nothing to finish."
+
+    /** The finish write itself failed or the row could not be read. The logged sets are untouched. */
+    const val FINISH_FAILED =
+        "Could not finish this workout. Your logged sets are still there. Try again."
 }

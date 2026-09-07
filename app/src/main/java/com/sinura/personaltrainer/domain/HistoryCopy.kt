@@ -11,6 +11,13 @@ object HistoryCopy {
     const val HORIZON_CAPTION =
         "Totals for this window. Calendar and the list stay all history."
 
+    /**
+     * A later read failed and the list below is the last one that loaded. Says what is
+     * actually the case — recent changes may be absent — instead of "pull may be behind",
+     * which named a mechanism no one on the gym floor has a word for.
+     */
+    const val STALE_LIST = "Showing the last history that loaded. Recent changes may not be shown."
+
     const val CALENDAR_HEAT =
         "Heat is sets that month, relative to that month's hardest day."
 

@@ -1194,8 +1194,11 @@ fun CustomRestDialog(
                 )
                 OutlinedTextField(
                     value = input,
+                    // As typed. The confirm button runs RestTimer.parseCustom and says "Use 90
+                    // or 1:30." when it cannot read the text; a filter that dropped the dot
+                    // from "1.5" used to hand that parser 15 and set a 15-second rest.
                     onValueChange = {
-                        input = it.filter { ch -> ch.isDigit() || ch == ':' }
+                        input = it
                         invalid = false
                     },
                     modifier = Modifier.fillMaxWidth(),

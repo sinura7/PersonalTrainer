@@ -214,10 +214,25 @@ class ActivityComposerViewModel @JvmOverloads constructor(
      * The owner chose to leave without saving. The nav entry goes with them, but the
      * draft is cleared explicitly so nothing about "leave" depends on how the back stack
      * happens to be torn down.
+     *
+     * Refused while a save is in flight. Until [confirmActivity] answers, the draft is the
+     * only record of what is being written; dropping it on a Cancel that raced the write
+     * would leave a saved session the screen just called discarded, or a lost one the
+     * screen just called saved. The dock disables Cancel for the same reason; this is the
+     * guard behind it.
      */
     fun discardDraft() {
+        if (saving.value) return
         draft.clear()
     }
+
+    /**
+     * Whether leaving is safe right now. Read from this ViewModel's own flag, not from the
+     * rendered state: [save] sets the flag synchronously, while the screen's collected state
+     * catches up a frame later, and a Back in that frame must not pop the entry — and with it
+     * the coroutine the write is riding on.
+     */
+    fun canLeave(): Boolean = !saving.value
 
     private fun rememberDraft() {
         draft.write(

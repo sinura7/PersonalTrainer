@@ -192,11 +192,19 @@ fun LiveCardioScreen(
                     onClick = { viewModel.setIndoor(false) },
                 )
             }
+            // The complaint under the box, as a slot: same shape as NumberEntryDialog's suffix.
+            val distanceComplaint: (@Composable () -> Unit)? = state.distanceError?.let { message ->
+                { Text(message, style = InstrumentType.caption, color = Danger) }
+            }
             OutlinedTextField(
                 value = state.distanceKm,
-                onValueChange = { viewModel.setDistanceKm(NumericEntry.filterDecimal(it)) },
+                // Kept exactly as typed. Finish reads it and refuses, under this box, anything
+                // that is not a distance — rather than a filter quietly turning "-5" into "5".
+                onValueChange = { viewModel.setDistanceKm(it) },
                 label = { Text(CardioCopy.distanceLabel(distanceUnit)) },
                 singleLine = true,
+                isError = state.distanceError != null,
+                supportingText = distanceComplaint,
                 textStyle = InstrumentType.numeralMd,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Decimal,

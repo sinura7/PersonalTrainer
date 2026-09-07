@@ -11,8 +11,8 @@ import com.sinura.personaltrainer.domain.ActivitySession
 import com.sinura.personaltrainer.domain.ActivityWrite
 import com.sinura.personaltrainer.domain.CardioBlock
 import com.sinura.personaltrainer.domain.CardioType
-import com.sinura.personaltrainer.domain.ComposerCopy
 import com.sinura.personaltrainer.domain.DistanceUnit
+import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.timer.BootSession
 import com.sinura.personaltrainer.timer.CardioElapsed
@@ -45,6 +45,8 @@ data class LiveCardioUiState(
     val type: CardioType = CardioType.RUN,
     val indoor: Boolean = false,
     val distanceKm: String = "",
+    /** Finish read [distanceKm] and could not: the rule it broke, shown under the box. */
+    val distanceError: String? = null,
     val error: String? = null,
     val finishing: Boolean = false,
 )
@@ -75,6 +77,7 @@ class LiveCardioViewModel @JvmOverloads constructor(
     )
     private val indoor = MutableStateFlow(savedStateHandle.get<Boolean>(KEY_INDOOR) ?: false)
     private val distanceKm = MutableStateFlow(savedStateHandle.get<String>(KEY_DISTANCE).orEmpty())
+    private val distanceError = MutableStateFlow<String?>(null)
     private val error = MutableStateFlow<String?>(null)
     private val finishing = MutableStateFlow(false)
 
@@ -85,7 +88,9 @@ class LiveCardioViewModel @JvmOverloads constructor(
         combine(type, indoor, distanceKm) { cardioType, isIndoor, distance ->
             Triple(cardioType, isIndoor, distance)
         },
-        combine(error, finishing) { err, busy -> err to busy },
+        combine(error, finishing, distanceError) { err, busy, distanceProblem ->
+            Flags(err, busy, distanceProblem)
+        },
     ) { loaded, cardioTriple, flags ->
         LiveCardioUiState(
             session = loaded.session,
@@ -95,8 +100,9 @@ class LiveCardioViewModel @JvmOverloads constructor(
             type = cardioTriple.first,
             indoor = cardioTriple.second,
             distanceKm = cardioTriple.third,
-            error = flags.first,
-            finishing = flags.second,
+            distanceError = flags.distanceError,
+            error = flags.error,
+            finishing = flags.finishing,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LiveCardioUiState())
 
@@ -121,6 +127,7 @@ class LiveCardioViewModel @JvmOverloads constructor(
 
     fun setDistanceKm(value: String) {
         distanceKm.value = value
+        distanceError.value = null
         savedStateHandle[KEY_DISTANCE] = value
     }
 
@@ -138,6 +145,24 @@ class LiveCardioViewModel @JvmOverloads constructor(
         finishing.value = true
         viewModelScope.launch {
             val now = clock.captureNow()
+            // The distance box is read here, at the commit, as typed. A value that is not a
+            // distance stops the finish with the rule under the box; it is never dropped so
+            // that the run saves with no distance the owner can see went missing.
+            val weightUnit = runCatchingCancellable { container.preferencesRepository.weightUnit.first() }
+                .getOrElse { thrown ->
+                    // Guessing a unit here would read "5" as miles or kilometres on a coin
+                    // toss; refusing keeps the clock running and the typed text in place.
+                    AppLog.w(TAG, "Reading the distance unit failed", thrown)
+                    error.value = "Could not finish that session. Try again."
+                    finishing.value = false
+                    return@launch
+                }
+            val distance = NumericEntry.typedDistanceKm(distanceKm.value, DistanceUnit.fromWeight(weightUnit))
+            if (distance is NumericEntry.Typed.Invalid) {
+                distanceError.value = distance.message
+                finishing.value = false
+                return@launch
+            }
             val block = CardioBlock(
                 id = current.cardioBlocks.firstOrNull()?.id
                     ?: current.blocks.firstOrNull()?.id
@@ -147,10 +172,7 @@ class LiveCardioViewModel @JvmOverloads constructor(
                 indoor = indoor.value,
                 elapsedSeconds = elapsedSeconds.value,
                 movingSeconds = elapsedSeconds.value,
-                distanceMeters = ComposerCopy.parseDistanceToMeters(
-                    distanceKm.value,
-                    DistanceUnit.fromWeight(container.preferencesRepository.weightUnit.first()),
-                ),
+                distanceMeters = distance.valueOrNull?.times(1_000.0),
                 elevationMeters = null,
                 heartRateBpm = null,
                 energyKj = null,
@@ -286,6 +308,12 @@ class LiveCardioViewModel @JvmOverloads constructor(
         savedStateHandle.remove<Boolean>(KEY_INDOOR)
         savedStateHandle.remove<String>(KEY_DISTANCE)
     }
+
+    private data class Flags(
+        val error: String?,
+        val finishing: Boolean,
+        val distanceError: String?,
+    )
 
     private data class Loaded(
         val session: ActivitySession?,

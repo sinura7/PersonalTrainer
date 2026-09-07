@@ -13,6 +13,7 @@ import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
 import com.sinura.personaltrainer.domain.AddDefaults
+import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseOrdering
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
@@ -1102,8 +1103,10 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 FinishOutcome.NothingLogged ->
                     error.value = "Log at least one set before finishing."
 
-                FinishOutcome.SessionMissing, is FinishOutcome.Failed ->
-                    error.value = "Could not finish this workout. Try again."
+                // Two different answers (UX23): a row that is not there cannot be retried into
+                // existence, and a write that failed left every logged set where it was.
+                FinishOutcome.SessionMissing -> error.value = DataHealthCopy.FINISH_NOT_FOUND
+                is FinishOutcome.Failed -> error.value = DataHealthCopy.FINISH_FAILED
             }
         }
     }
