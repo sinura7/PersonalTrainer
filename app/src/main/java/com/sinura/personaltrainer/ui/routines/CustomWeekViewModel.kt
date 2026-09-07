@@ -300,8 +300,13 @@ class CustomWeekViewModel @JvmOverloads constructor(
         if (applying.value) return
         if (invalidReason == null) {
             invalidTargets.remove(itemId)
-            // The box was fixed; its complaint must not outlive it.
-            if (error.value in RoutineSaveCopy.TARGET_RULES) error.value = null
+            // The box was fixed, so its complaint must not outlive it — but fixing one card
+            // does not answer for another, so the banner moves to whatever is still unreadable
+            // rather than clearing outright. Only a target rule is replaced: an add-lift or
+            // create-lift failure is a different message and is not this box's to dismiss.
+            if (error.value in RoutineSaveCopy.TARGET_RULES) {
+                error.value = invalidTargets.values.firstOrNull()
+            }
         } else {
             invalidTargets[itemId] = invalidReason
         }

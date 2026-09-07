@@ -442,6 +442,72 @@ class CustomWeekViewModelTest {
         assertTrue(deps.routineRepository.observeAll().first().isEmpty())
     }
 
+    @Test
+    fun fixingOneCardMovesTheComplaintToTheOneStillUnreadable() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
+        val vm = createViewModel()
+        vm.uiState.first { it.catalog.size >= 2 }
+        vm.togglePendingAdd(squat)
+        vm.togglePendingAdd(row)
+        vm.confirmPendingAdd()
+        val lifts = vm.uiState.first { it.selectedLifts.size == 2 }.selectedLifts
+
+        vm.stageTargets(
+            lifts.first().id,
+            sets = null,
+            reps = 6,
+            rest = 150,
+            weightKg = 80.0,
+            invalidReason = NumericEntry.SETS_RULE,
+        )
+        vm.stageTargets(
+            lifts.last().id,
+            sets = 4,
+            reps = null,
+            rest = 150,
+            weightKg = 80.0,
+            invalidReason = NumericEntry.REPS_WHOLE_RULE,
+        )
+        vm.confirm()
+        assertEquals(
+            NumericEntry.SETS_RULE,
+            vm.uiState.first { it.error == NumericEntry.SETS_RULE }.error,
+        )
+
+        // The banner names the sets box. Fixing the OTHER card must not read as "all clear".
+        vm.stageTargets(lifts.last().id, sets = 4, reps = 6, rest = 150, weightKg = 80.0)
+        assertEquals(
+            NumericEntry.SETS_RULE,
+            vm.uiState.first { it.error == NumericEntry.SETS_RULE }.error,
+        )
+
+        vm.stageTargets(lifts.first().id, sets = 3, reps = 6, rest = 150, weightKg = 80.0)
+        assertNull(vm.uiState.first { it.error == null }.error)
+        vm.confirm()
+        vm.finished.first { it }
+        assertEquals(2, deps.routineRepository.observeAll().first().single().exercises.size)
+    }
+
+    @Test
+    fun fixingATargetBoxDoesNotDismissAnUnrelatedFailure() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val vm = createViewModel()
+        vm.uiState.first { it.catalog.isNotEmpty() }
+        vm.togglePendingAdd(squat)
+        vm.confirmPendingAdd()
+        val lift = vm.uiState.first { it.selectedLifts.size == 1 }.selectedLifts.single()
+
+        vm.createAndSelect("  ", "Back")
+        vm.uiState.first { it.error == SessionOrderCopy.LIFT_NAME_REQUIRED }
+
+        vm.stageTargets(lift.id, sets = 4, reps = 6, rest = 150, weightKg = 80.0)
+        assertEquals(
+            SessionOrderCopy.LIFT_NAME_REQUIRED,
+            vm.uiState.first { it.selectedLifts.single().targetSets == 4 }.error,
+        )
+    }
+
     private fun createViewModel(
         handle: SavedStateHandle = SavedStateHandle(),
     ): CustomWeekViewModel =
