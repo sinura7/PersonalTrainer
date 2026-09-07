@@ -24,7 +24,17 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from kotlin_source import kotlin_files, strip_comments_and_strings  # noqa: E402
 
-ROOT = sys.argv[1] if len(sys.argv) > 1 else "app/src/main/java"
+# Every root given is indexed AND scanned together. A root scanned alone reports every
+# import into another source set as unresolved — app/src/androidTest alone produces 146 such
+# false positives — which is why this was main-only, and why nothing checked the imports of
+# the instrumented tests at all.
+ROOTS = sys.argv[1:] or [
+    "app/src/main/java",
+    "app/src/test/java",
+    "app/src/androidTest/java",
+    "app/src/debug/java",
+    "app/src/sharedTest/java",
+]
 PREFIX = "com.sinura.personaltrainer."
 
 # Objects whose members are the design vocabulary. Restricted to a known list so a local
@@ -80,7 +90,7 @@ def main() -> int:
     type_members: dict[str, set[str]] = {}
     sources: list[tuple[str, str]] = []
 
-    for path in kotlin_files(ROOT):
+    for path in [f for root in ROOTS if os.path.isdir(root) for f in kotlin_files(root)]:
         raw = open(path, encoding="utf-8").read()
         src = strip_comments_and_strings(raw)
         sources.append((path, src))

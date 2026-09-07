@@ -136,7 +136,7 @@ fi
 export PT_JARS="$JARS"   # syntax-check.sh and run-domain-tests.sh both read this
 
 # --- static checks judged by exit code ----------------------------------------
-for c in "check-internal-imports.py app/src/main/java" \
+for c in "check-internal-imports.py" \
          "check-missing-imports.py" \
          "check-design-tokens.py" \
          "check-screen-wiring.py app/src/main/java" \

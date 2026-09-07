@@ -158,8 +158,8 @@ lambda, a destructured parameter, a function reference, a trailing lambda, a com
 
 ### Three source sets nothing was reading
 
-The same day, `check-required-args.py`, `check-missing-imports.py` and `check-named-args.py`
-were widened to read `app/src/androidTest/java`, `app/src/debug/java` and
+The same day, `check-required-args.py`, `check-missing-imports.py`, `check-named-args.py` and
+`check-internal-imports.py` were widened to read `app/src/androidTest/java`, `app/src/debug/java` and
 `app/src/sharedTest/java` as well as main and test. Until then nothing looked at those three at
 all — which is how the second stale caller of the arity defect sat unseen in an instrumented
 test while `assembleDebug` was red.
@@ -169,6 +169,11 @@ a false clean. Its index holds only that root's declarations, so `if name not in
 skipped every call into another source set — which for `app/src/test` was most of them, and the
 preflight had been running it on test alone since it was written. It now takes every root in one
 invocation and reports across all 662 files.
+
+`check-internal-imports.py` had the mirror-image problem: run on `app/src/androidTest` alone it
+reports **146** unresolved names, every one of them a correct import into main. That is why it
+was main-only, and why nothing had ever checked the imports of the instrumented tests. It now
+indexes and scans every root together and reports 0.
 
 `check-missing-imports.py` treats every root after the first as a **satellite**: it sees main
 and itself, and not the other satellites, because androidTest cannot see a unit test's private

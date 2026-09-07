@@ -138,7 +138,7 @@ python3 tools/check-named-args.py app/src/main/java \
     app/src/debug/java app/src/sharedTest/java             # named args vs. declarations
 python3 tools/check-when-exhaustive.py app/src/main/java   # sealed/enum when coverage
 python3 tools/check-unused-imports.py app/src/main/java    # dead imports
-python3 tools/check-internal-imports.py app/src/main/java  # in-project names actually exist
+python3 tools/check-internal-imports.py                    # in-project names actually exist (all five source sets)
 python3 tools/check-missing-imports.py                     # names used but never imported (all five source sets)
 python3 tools/check-design-tokens.py app/src/main/java     # no raw colours/radii/elevation
 python3 tools/check-screen-wiring.py app/src/main/java     # every callback is actually called
