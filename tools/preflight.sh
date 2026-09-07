@@ -171,10 +171,12 @@ summary() {
     printf '%s\n' "$out" | tail -1
     printf '%s\n' "$out" | grep -qF "$want" || { printf '%s\n' "$out"; fail "$label"; }
 }
-summary "check-named-args (main)" "0 mismatch(es)" \
-    python3 tools/check-named-args.py app/src/main/java
-summary "check-named-args (test)" "0 mismatch(es)" \
-    python3 tools/check-named-args.py app/src/test/java
+# One run over every source set, not one per set. A root scanned alone is a false clean:
+# nothing outside it is in the declaration index, so every call into another source set is
+# skipped — which for app/src/test and app/src/androidTest is most of them.
+summary "check-named-args" "0 mismatch(es)" \
+    python3 tools/check-named-args.py app/src/main/java app/src/test/java \
+        app/src/androidTest/java app/src/debug/java app/src/sharedTest/java
 summary "check-when-exhaustive" "0 non-exhaustive" \
     python3 tools/check-when-exhaustive.py app/src/main/java
 summary "check-unused-imports" "0 unused import(s)" \

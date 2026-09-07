@@ -15,8 +15,8 @@ still breaks the build: a call passing a parameter name the function does not ha
 usual result of renaming a parameter and missing a caller.
 
 ```bash
-python3 tools/check-named-args.py app/src/main/java
-python3 tools/check-named-args.py app/src/test/java
+python3 tools/check-named-args.py app/src/main/java app/src/test/java \
+    app/src/androidTest/java app/src/debug/java app/src/sharedTest/java
 ```
 
 Exits quietly with `0 mismatch(es)` when clean. Nothing to install.
@@ -158,10 +158,17 @@ lambda, a destructured parameter, a function reference, a trailing lambda, a com
 
 ### Three source sets nothing was reading
 
-The same day, `check-required-args.py` and `check-missing-imports.py` were widened to read
-`app/src/androidTest/java`, `app/src/debug/java` and `app/src/sharedTest/java` as well as main
-and test. Until then nothing looked at those three at all — which is how the second stale
-caller of the arity defect sat unseen in an instrumented test while `assembleDebug` was red.
+The same day, `check-required-args.py`, `check-missing-imports.py` and `check-named-args.py`
+were widened to read `app/src/androidTest/java`, `app/src/debug/java` and
+`app/src/sharedTest/java` as well as main and test. Until then nothing looked at those three at
+all — which is how the second stale caller of the arity defect sat unseen in an instrumented
+test while `assembleDebug` was red.
+
+`check-named-args.py` had a second, quieter hole: it took ONE root, and a root scanned alone is
+a false clean. Its index holds only that root's declarations, so `if name not in decls: continue`
+skipped every call into another source set — which for `app/src/test` was most of them, and the
+preflight had been running it on test alone since it was written. It now takes every root in one
+invocation and reports across all 662 files.
 
 `check-missing-imports.py` treats every root after the first as a **satellite**: it sees main
 and itself, and not the other satellites, because androidTest cannot see a unit test's private

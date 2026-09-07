@@ -133,7 +133,9 @@ The individual checks in `tools/` cover the gap when you cannot build — they a
 pre-flight, not a substitute for `./gradlew assembleDebug`:
 
 ```bash
-python3 tools/check-named-args.py app/src/main/java        # named args vs. declarations
+python3 tools/check-named-args.py app/src/main/java \
+    app/src/test/java app/src/androidTest/java \
+    app/src/debug/java app/src/sharedTest/java             # named args vs. declarations
 python3 tools/check-when-exhaustive.py app/src/main/java   # sealed/enum when coverage
 python3 tools/check-unused-imports.py app/src/main/java    # dead imports
 python3 tools/check-internal-imports.py app/src/main/java  # in-project names actually exist

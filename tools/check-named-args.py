@@ -10,7 +10,11 @@ import os, re, sys, collections
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from kotlin_source import kotlin_files, strip_comments_and_strings  # noqa: E402
 
-ROOT = sys.argv[1] if len(sys.argv) > 1 else "app/src/main/java"
+# Every root given is indexed AND scanned together. A root on its own is a false clean:
+# nothing outside it is in the declaration index, so `if name not in decls: continue` skips
+# every call into another source set — which for app/src/androidTest is nearly all of them.
+# Private declarations stay confined to their own file, so mixing roots does not blur scopes.
+ROOTS = sys.argv[1:] or ["app/src/main/java"]
 
 
 PARAM_MODS = r"(?:@\w+(?:\([^)]*\))?\s+|vararg\s+|crossinline\s+|noinline\s+|private\s+|internal\s+|public\s+|protected\s+|override\s+|val\s+|var\s+)*"
@@ -61,7 +65,7 @@ def top_level_split(text):
 def param_names(text):
     return [m.group(1) for m in (PARAM_RE.match(p.strip()) for p in top_level_split(text)) if m]
 
-files = kotlin_files(ROOT)
+files = [f for root in ROOTS if os.path.isdir(root) for f in kotlin_files(root)]
 
 clean = {p: strip_comments_and_strings(open(p, encoding="utf-8").read()) for p in files}
 decls = collections.defaultdict(list)
