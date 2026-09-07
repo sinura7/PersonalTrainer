@@ -25,6 +25,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -132,13 +133,13 @@ class ActivityDetailViewModelTest {
         gate.shouldFail = true
 
         val vm = createViewModel(session.id)
-        val failed = vm.uiState.first { !it.isLoading }
+        val failed = withTimeout(5_000) { vm.uiState.first { !it.isLoading } }
         assertTrue(failed.failed)
         assertFalse("a read fault must not read as a deleted activity", failed.missing)
 
         gate.shouldFail = false
         vm.retry()
-        val loaded = vm.uiState.first { !it.isLoading && !it.failed }
+        val loaded = withTimeout(5_000) { vm.uiState.first { !it.isLoading && !it.failed } }
         assertEquals(session.id, loaded.session?.id)
         assertEquals(1, deps.activityRepository.all().size)
     }

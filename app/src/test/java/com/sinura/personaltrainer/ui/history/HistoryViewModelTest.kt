@@ -143,7 +143,7 @@ class HistoryViewModelTest {
 
     @Test
     fun aSidecarReadFailureMarksThePageStaleInsteadOfVanishing() {
-        val unread = sidecarFromHealth(DataHealth.Unavailable("activity records"))
+        val unread = sidecarFromHealth<String>(DataHealth.Unavailable("activity records"))
         assertTrue(unread.stale)
         assertTrue(unread.value.isEmpty())
 
