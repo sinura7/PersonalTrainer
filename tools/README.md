@@ -156,6 +156,21 @@ the implicit `it` — and reported against 2 or more, which is what Kotlin does 
 above, the fix for it, and every shape that must stay quiet: a `when` inside the body, a nested
 lambda, a destructured parameter, a function reference, a trailing lambda, a commented-out call.
 
+### Three source sets nothing was reading
+
+The same day, `check-required-args.py` and `check-missing-imports.py` were widened to read
+`app/src/androidTest/java`, `app/src/debug/java` and `app/src/sharedTest/java` as well as main
+and test. Until then nothing looked at those three at all — which is how the second stale
+caller of the arity defect sat unseen in an instrumented test while `assembleDebug` was red.
+
+`check-missing-imports.py` treats every root after the first as a **satellite**: it sees main
+and itself, and not the other satellites, because androidTest cannot see a unit test's private
+helper any more than main can. Both widenings were negative-controlled rather than assumed —
+dropping a required argument from an androidTest call, and using an unimported project symbol
+in an androidTest file, each produce exactly one finding, and neither did before. Widening
+`check-required-args` also revealed one mixed-argument call in an instrumented test, now fully
+named, so its skip ratchet holds at 178 across 662 files instead of 624.
+
 ## `check-required-args.py`
 
 The inverse of `check-named-args.py`: did the call supply everything the declaration requires?
