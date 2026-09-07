@@ -87,10 +87,12 @@ def main() -> int:
         'baseline = file("lint-baseline.xml")\n'
         'disable += setOf("AndroidGradlePluginVersion", "UseKtx", "GradleDependency")\n'
     )
-    if lint.lint_source_findings(gradle_ok, "<?xml version='1.0'?><issues/>"):
-        raise SystemExit(
-            f"FAIL lint gate should pass: {lint.lint_source_findings(gradle_ok, '<?xml version=\"1.0\"?><issues/>')}",
-        )
+    # Computed outside the f-string: a backslash inside an f-string expression is a
+    # SyntaxError before Python 3.12, and the owner's Windows host and this preflight
+    # both run 3.11. The whole gate died at import, so nothing after it ran either.
+    clean_lint = lint.lint_source_findings(gradle_ok, "<?xml version='1.0'?><issues/>")
+    if clean_lint:
+        raise SystemExit(f"FAIL lint gate should pass: {clean_lint}")
     no_warnings = lint.lint_source_findings("disable += setOf()", "<issues/>")
     if not any("warningsAsErrors" in item for item in no_warnings):
         raise SystemExit(f"FAIL missing warningsAsErrors must fail: {no_warnings}")

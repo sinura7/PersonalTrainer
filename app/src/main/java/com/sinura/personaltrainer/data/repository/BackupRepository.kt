@@ -7,19 +7,26 @@ import com.sinura.personaltrainer.data.backup.BackupDocument
 import com.sinura.personaltrainer.data.backup.BackupEnvelope
 import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.BackupJson
+import com.sinura.personaltrainer.data.backup.BackupScaleBudget
 import com.sinura.personaltrainer.data.backup.BackupSummary
 import com.sinura.personaltrainer.data.backup.BackupValidation
 import com.sinura.personaltrainer.data.backup.BackupValidator
 import com.sinura.personaltrainer.data.backup.RestoreJournal
 import com.sinura.personaltrainer.data.backup.RestoreJournalRecord
 import com.sinura.personaltrainer.data.backup.RestoreJournalStore
+import com.sinura.personaltrainer.data.backup.RestoreRecovery
+import com.sinura.personaltrainer.data.backup.RestoreWitness
 import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
 import com.sinura.personaltrainer.data.backup.DriveAuthClient
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
+import com.sinura.personaltrainer.data.backup.DriveBackupListing
 import com.sinura.personaltrainer.data.backup.DriveRestClient
 import com.sinura.personaltrainer.data.backup.DriveSession
 import com.sinura.personaltrainer.data.backup.NetworkChecker
 import com.sinura.personaltrainer.domain.DataHealthCopy
+import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.runCatchingCancellable
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -36,12 +43,20 @@ class BackupRepository(
     private val plannerRepository: PlannerRepository? = null,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
+    /**
+     * Main-safe. Authorization itself is Task-based and thread-agnostic, but
+     * [rememberAuthorizedSession] then reads Drive About over the network, and Settings
+     * called this straight from viewModelScope — a NetworkOnMainThreadException that the
+     * broad runCatching around that read turned into the "Google Drive" fallback label.
+     * The consent sheet is launched through [launchResolution], which hands the
+     * IntentSender to state the screen collects on Main; nothing here touches a view.
+     */
     suspend fun signIn(
         activity: Activity,
         launchResolution: suspend (IntentSender) -> Boolean,
-    ): DriveSession {
+    ): DriveSession = withContext(ioDispatcher) {
         networkChecker.requireOnline()
-        return rememberAuthorizedSession(activity, launchResolution)
+        rememberAuthorizedSession(activity, launchResolution)
     }
 
     suspend fun signOut(activity: Activity) {
@@ -59,11 +74,15 @@ class BackupRepository(
         val session = rememberAuthorizedSession(activity, launchResolution)
         val snapshot = localBackupRepository.createSnapshot()
         val json = BackupJson.encode(snapshot)
+        BackupScaleBudget.requireExportable(payload = json, protected = false)
         val payload = if (password != null) {
             BackupEnvelope.wrap(json, password, iterations)
         } else {
             json
         }
+        // The bytes Drive will hand back are the bytes checked here. A file this app
+        // uploads must be one its own bounded download accepts.
+        BackupScaleBudget.requireExportable(payload = payload, protected = password != null)
         val fileName = BackupJson.fileName()
         val folderId = driveRestClient.ensureBackupFolder(
             accessToken = session.accessToken,
@@ -83,7 +102,7 @@ class BackupRepository(
     suspend fun listBackups(
         activity: Activity,
         launchResolution: suspend (IntentSender) -> Boolean,
-    ): List<DriveBackupFile> = withContext(ioDispatcher) {
+    ): DriveBackupListing = withContext(ioDispatcher) {
         networkChecker.requireOnline()
         val session = rememberAuthorizedSession(activity, launchResolution)
         val folderId = driveRestClient.ensureBackupFolder(
@@ -128,16 +147,29 @@ class BackupRepository(
         prepareRestore(raw, sourceName = file.name, password = password)
     }
 
-    /** Serialises the current database for a local plaintext export. */
+    /**
+     * Serialises the current database for a local plaintext export.
+     *
+     * Refuses, before anything is written, a document the app's own import would refuse:
+     * the plaintext budget is the one every import enforces after it opens the file.
+     */
     suspend fun exportJson(): String = withContext(ioDispatcher) {
-        BackupJson.encode(localBackupRepository.createSnapshot())
+        val json = BackupJson.encode(localBackupRepository.createSnapshot())
+        BackupScaleBudget.requireExportable(payload = json, protected = false)
+        json
     }
 
+    /**
+     * The document as a protected envelope, checked against the raw-file budget the
+     * bounded import reads use — base64 makes it about a third larger than the document.
+     */
     suspend fun exportProtected(
         password: CharArray,
         iterations: Int = BackupEnvelope.DEFAULT_ITERATIONS,
     ): String = withContext(ioDispatcher) {
-        BackupEnvelope.wrap(exportJson(), password, iterations)
+        val envelope = BackupEnvelope.wrap(exportJson(), password, iterations)
+        BackupScaleBudget.requireExportable(payload = envelope, protected = true)
+        envelope
     }
 
     suspend fun authoredInventory(): AuthoredInventory = withContext(ioDispatcher) {
@@ -151,7 +183,7 @@ class BackupRepository(
     suspend fun hasUnfinishedWorkout(): Boolean =
         try {
             localBackupRepository.inProgressSessionId() != null
-        } catch (thrown: kotlinx.coroutines.CancellationException) {
+        } catch (thrown: CancellationException) {
             throw thrown
         } catch (thrown: Exception) {
             throw BackupException(DataHealthCopy.RESTORE_UNAVAILABLE)
@@ -170,7 +202,9 @@ class BackupRepository(
         password: CharArray? = null,
     ): RestorePlan = withContext(ioDispatcher) {
         refuseIfLive()
-        val document = BackupJson.decode(BackupEnvelope.open(json, password))
+        val plaintext = BackupEnvelope.open(json, password)
+        BackupScaleBudget.requireDocumentFits(plaintext)
+        val document = BackupJson.decode(plaintext)
         val local = localBackupRepository.authoredInventory()
         val summary = validateOrThrow(document, local, allowEmptyDestructiveRestore)
         RestorePlan(
@@ -182,23 +216,36 @@ class BackupRepository(
         )
     }
 
-    /** Writes the already-prepared document. Re-checks the live-session refuse. */
+    /**
+     * Writes the already-prepared document. Re-checks the live-session refuse.
+     *
+     * The phases and what each one owes are written down in
+     * docs/HANDOFF-2026-09-06.md §2. In short: stage → wiping → one Room transaction →
+     * room → preferences and history tables → prefs → catalog reconcile and reminders →
+     * done → delete the two journal files. Room's transaction is the only atomic step;
+     * everything after it is idempotent and is finished by [recoverInterruptedRestore]
+     * on the next launch if this process dies first.
+     */
     suspend fun commitRestore(plan: RestorePlan): RestoreResult = withContext(ioDispatcher) {
         dbMaintenance.withMaintenanceLock {
             recoverInterruptedRestoreLocked()
             refuseIfLive()
-            val snapshot = localBackupRepository.writeVerifiedSafetySnapshot()
+            val current = localBackupRepository.createSnapshot()
+            val snapshot = localBackupRepository.writeVerifiedSafetySnapshot(current)
             val incomingJson = BackupJson.encode(plan.document)
-            restoreJournal.stage(
-                RestoreJournalRecord(
-                    phase = RestoreJournal.STAGED,
-                    sourceName = plan.sourceName,
-                    snapshotId = snapshot.id,
-                    beforeFingerprint = localBackupRepository.roomFingerprint(),
-                    afterFingerprint = RestoreJournal.fingerprint(plan.document),
-                ),
-                incomingJson,
+            val record = RestoreJournalRecord(
+                phase = RestoreJournal.STAGED,
+                sourceName = plan.sourceName,
+                snapshotId = snapshot.id,
+                beforeFingerprint = localBackupRepository.roomFingerprint(),
+                afterFingerprint = RestoreJournal.fingerprint(plan.document),
+                // The deciding evidence for a crash inside the wipe. Both come from the
+                // same projection; the phone's own snapshot is the one that was just
+                // verified as the safety copy.
+                beforeWitness = RestoreWitness.of(current),
+                afterWitness = RestoreWitness.of(plan.document),
             )
+            restoreJournal.stage(record, incomingJson)
             try {
                 // Its own guard, outside the commit path below. A disk failure here throws
                 // before anything on the phone has been touched, and the catch at the bottom
@@ -208,7 +255,7 @@ class BackupRepository(
                 // workout start until the next launch runs recovery.
                 try {
                     restoreJournal.mark(RestoreJournal.WIPING)
-                } catch (thrown: kotlinx.coroutines.CancellationException) {
+                } catch (thrown: CancellationException) {
                     throw thrown
                 } catch (_: Exception) {
                     restoreJournal.clear()
@@ -216,7 +263,7 @@ class BackupRepository(
                 }
                 try {
                     localBackupRepository.replaceRoom(plan.document)
-                } catch (thrown: kotlinx.coroutines.CancellationException) {
+                } catch (thrown: CancellationException) {
                     throw thrown
                 } catch (thrown: Exception) {
                     // The replace is one Room transaction: a throw here means it rolled
@@ -229,20 +276,20 @@ class BackupRepository(
                     )
                 }
                 restoreJournal.mark(RestoreJournal.ROOM)
-                val preferencesRestored = localBackupRepository.applyPreferences(plan.document)
-                if (preferencesRestored) restoreJournal.mark(RestoreJournal.PREFS)
-                dbMaintenance.reconcileCatalogLocked()
-                rebuildRestoredReminders()
-                restoreJournal.clear()
+                val completion = finishFromRoom(
+                    record.copy(phase = RestoreJournal.ROOM),
+                    plan.document,
+                )
                 RestoreResult(
                     sourceName = plan.sourceName,
                     summary = plan.summary,
                     incoming = plan.incoming,
                     local = plan.local,
-                    preferencesRestored = preferencesRestored,
+                    preferencesRestored = completion == Completion.Done,
+                    settingsPending = completion == Completion.SettingsPending,
                     safetySnapshotId = snapshot.id,
                 )
-            } catch (thrown: kotlinx.coroutines.CancellationException) {
+            } catch (thrown: CancellationException) {
                 throw thrown
             } catch (thrown: BackupException) {
                 throw namedCommitFailure(thrown)
@@ -256,56 +303,155 @@ class BackupRepository(
      * Finish a restore that died after Room committed. Safe to call on every
      * process start. Holds the same lock as start and restore.
      */
-    suspend fun recoverInterruptedRestore(): Boolean = withContext(ioDispatcher) {
+    suspend fun recoverInterruptedRestore(): RestoreRecovery = withContext(ioDispatcher) {
         dbMaintenance.withMaintenanceLock { recoverInterruptedRestoreLocked() }
     }
 
+    /** True while any journal is open, whatever phase it is in. */
     fun restoreInProgress(): Boolean = restoreJournal.isOpen()
 
-    private suspend fun recoverInterruptedRestoreLocked(): Boolean {
-        val record = restoreJournal.read() ?: return false
+    /**
+     * True only while a journal is in a phase that is about to replace Room. From `room`
+     * on, the training data is final and a workout may begin; recovery's remaining work
+     * runs under the maintenance lock a start also takes. See [RestoreJournal.blocksStart].
+     */
+    fun restoreBlocksStart(): Boolean = RestoreJournal.blocksStart(restoreJournal.read()?.phase)
+
+    /** The source name of a restore whose post-commit work is still owed, or null. */
+    fun pendingRecovery(): String? =
+        restoreJournal.read()?.takeIf { RestoreJournal.awaitsFinish(it.phase) }?.sourceName
+
+    private suspend fun recoverInterruptedRestoreLocked(): RestoreRecovery {
+        val record = restoreJournal.read() ?: return RestoreRecovery.None
+        if (record.phase == RestoreJournal.DONE) {
+            // Everything required is already on the phone; only the deletes were cut short.
+            restoreJournal.clear()
+            return RestoreRecovery.Finished(record.sourceName)
+        }
         return when (record.phase) {
             RestoreJournal.STAGED -> {
                 restoreJournal.clear()
-                false
+                RestoreRecovery.NothingChanged
             }
-            RestoreJournal.WIPING -> {
-                val current = localBackupRepository.roomFingerprint()
-                when (current) {
-                    record.afterFingerprint -> {
-                        finishFromRoom(record)
-                        true
-                    }
-                    else -> {
-                        restoreJournal.clear()
-                        false
-                    }
-                }
-            }
-            RestoreJournal.ROOM, RestoreJournal.PREFS -> {
-                finishFromRoom(record)
-                true
-            }
+            RestoreJournal.WIPING -> recoverWiping(record)
+            RestoreJournal.ROOM, RestoreJournal.PREFS -> finish(record)
             else -> {
                 restoreJournal.clear()
-                false
+                RestoreRecovery.NothingChanged
             }
         }
     }
 
-    private suspend fun finishFromRoom(record: RestoreJournalRecord) {
-        val document = BackupJson.decode(restoreJournal.readIncoming())
-        // WIPING recovery reaches here only when the fingerprint proved Room
-        // already holds the incoming file — the crash landed between the
-        // transaction commit and mark(ROOM) — so preferences are owed exactly
-        // as they are for ROOM. Gating on ROOM alone skipped them.
-        if (record.phase == RestoreJournal.WIPING || record.phase == RestoreJournal.ROOM) {
-            val prefsOk = localBackupRepository.applyPreferences(document)
-            if (prefsOk) restoreJournal.mark(RestoreJournal.PREFS)
+    private suspend fun recoverWiping(record: RestoreJournalRecord): RestoreRecovery =
+        when (decideWiping(record)) {
+            Wipe.ROLLED_BACK -> {
+                restoreJournal.clear()
+                RestoreRecovery.NothingChanged
+            }
+            Wipe.COMMITTED -> {
+                restoreJournal.mark(RestoreJournal.ROOM)
+                finish(record.copy(phase = RestoreJournal.ROOM))
+            }
+            Wipe.UNRESOLVED -> {
+                // Neither witness matched. Applying the incoming preferences over a
+                // database that might be the original is the exact harm the witness
+                // exists to prevent, so nothing is applied; the journal is closed so
+                // the phone can train; the note tells the owner where the safety copy is.
+                restoreJournal.clear()
+                preferencesRepository.setRestoreRecoveryNote(RestoreJournal.UNRESOLVED)
+                AppLog.w(TAG, "Restore recovery could not prove which database the crash left; nothing applied")
+                RestoreRecovery.Unresolved(record.sourceName, record.snapshotId)
+            }
+        }
+
+    private enum class Wipe { COMMITTED, ROLLED_BACK, UNRESOLVED }
+
+    /**
+     * Which side of the Room transaction the crash landed on.
+     *
+     * With current witnesses on the journal the answer is a content comparison. Identical
+     * before and after witnesses mean the same tables either way, so finishing is right
+     * regardless. A journal from a build without witnesses only carries counts, and is
+     * resolved on the old rule.
+     */
+    private suspend fun decideWiping(record: RestoreJournalRecord): Wipe {
+        val before = record.beforeWitness
+        val after = record.afterWitness
+        if (!RestoreWitness.isCurrent(before) || !RestoreWitness.isCurrent(after)) {
+            return if (localBackupRepository.roomFingerprint() == record.afterFingerprint) {
+                Wipe.COMMITTED
+            } else {
+                Wipe.ROLLED_BACK
+            }
+        }
+        if (before == after) return Wipe.COMMITTED
+        return when (localBackupRepository.roomWitness()) {
+            after -> Wipe.COMMITTED
+            before -> Wipe.ROLLED_BACK
+            else -> Wipe.UNRESOLVED
+        }
+    }
+
+    private suspend fun finish(record: RestoreJournalRecord): RestoreRecovery {
+        val document = if (record.phase == RestoreJournal.ROOM) readIncomingDocument() else null
+        return when (finishFromRoom(record, document)) {
+            Completion.Done -> RestoreRecovery.Finished(record.sourceName)
+            Completion.SettingsPending -> RestoreRecovery.SettingsPending(record.sourceName)
+            Completion.SettingsLost -> RestoreRecovery.SettingsLost(record.sourceName)
+        }
+    }
+
+    private fun readIncomingDocument(): BackupDocument? {
+        val raw = restoreJournal.readIncomingOrNull() ?: return null
+        return try {
+            BackupJson.decode(raw)
+        } catch (thrown: BackupException) {
+            AppLog.w(TAG, "The journal's incoming copy could not be decoded", thrown)
+            null
+        }
+    }
+
+    private enum class Completion { Done, SettingsPending, SettingsLost }
+
+    /**
+     * Everything owed once Room holds the incoming tables. [record] must be at `room` or
+     * `prefs`; the phase says what is still owed.
+     *
+     * Preferences are required: a failure keeps the journal at `room` and the incoming
+     * copy on disk, and the caller reports settings pending. The retry is idempotent —
+     * `setRestoredPreferences` writes every key unconditionally and replaces the history
+     * tables wholesale — so this can run on every launch until it succeeds. Cancellation
+     * is never caught here. The catalog reconcile is idempotent too, and `seedCatalog`
+     * would run it anyway because the wipe set the catalog version to 0. Reminders are
+     * best effort. `done` is marked before the deletes so a crash between them is a
+     * journal the next pass simply sweeps.
+     */
+    private suspend fun finishFromRoom(
+        record: RestoreJournalRecord,
+        document: BackupDocument?,
+    ): Completion {
+        if (record.phase == RestoreJournal.ROOM) {
+            if (document == null) {
+                // Only a journal written by the old cleanup order, or an externally deleted
+                // file, gets here: Room is restored and the settings half can never be.
+                dbMaintenance.reconcileCatalogLocked()
+                rebuildRestoredReminders()
+                restoreJournal.mark(RestoreJournal.DONE)
+                restoreJournal.clear()
+                preferencesRepository.setRestoreRecoveryNote(RestoreJournal.SETTINGS_LOST)
+                AppLog.w(TAG, "Restore finished without its settings: the incoming copy was gone")
+                return Completion.SettingsLost
+            }
+            if (!localBackupRepository.applyPreferences(document)) {
+                return Completion.SettingsPending
+            }
+            restoreJournal.mark(RestoreJournal.PREFS)
         }
         dbMaintenance.reconcileCatalogLocked()
         rebuildRestoredReminders()
+        restoreJournal.mark(RestoreJournal.DONE)
         restoreJournal.clear()
+        return Completion.Done
     }
 
     /**
@@ -317,6 +463,8 @@ class BackupRepository(
     private suspend fun rebuildRestoredReminders() {
         try {
             plannerRepository?.rebuildReminders()
+        } catch (thrown: CancellationException) {
+            throw thrown
         } catch (_: Exception) {
             // The boot/time-change receiver rebuilds again later.
         }
@@ -379,7 +527,7 @@ class BackupRepository(
     private suspend fun refuseIfLive() {
         val liveId = try {
             localBackupRepository.inProgressSessionId()
-        } catch (thrown: kotlinx.coroutines.CancellationException) {
+        } catch (thrown: CancellationException) {
             throw thrown
         } catch (thrown: Exception) {
             throw BackupException(DataHealthCopy.RESTORE_UNAVAILABLE)
@@ -418,7 +566,12 @@ class BackupRepository(
         launchResolution: suspend (IntentSender) -> Boolean,
     ): DriveSession {
         val session = driveAuthClient.authorize(activity, launchResolution)
-        val email = runCatching { driveRestClient.fetchAccountEmail(session.accessToken) }
+        // The lookup names the account; it does not authorise anything. A failure keeps the
+        // sign-in and falls back to the label, but is logged so a 401 or a dead network is
+        // distinguishable from success in the diagnostics — and cancellation propagates
+        // instead of being read as "no email".
+        val email = runCatchingCancellable { driveRestClient.fetchAccountEmail(session.accessToken) }
+            .onFailure { thrown -> AppLog.w(TAG, "Drive account lookup failed; using the label", thrown) }
             .getOrNull()
             ?.ifBlank { null }
             ?: session.email
@@ -426,6 +579,10 @@ class BackupRepository(
         val named = session.copy(email = email)
         preferencesRepository.setDriveAccountEmail(named.email)
         return named
+    }
+
+    private companion object {
+        const val TAG = "PT/BackupRepository"
     }
 }
 
@@ -447,4 +604,10 @@ data class RestoreResult(
     val safetySnapshotId: String?,
     val incoming: AuthoredInventory = AuthoredInventory.EMPTY,
     val local: AuthoredInventory = AuthoredInventory.EMPTY,
+    /**
+     * Room is restored but the preferences write failed; the journal stays open at `room`
+     * with the incoming copy so the next launch, or Finish restore in Settings, retries.
+     * Distinct from [preferencesRestored] being false with a closed journal.
+     */
+    val settingsPending: Boolean = false,
 )

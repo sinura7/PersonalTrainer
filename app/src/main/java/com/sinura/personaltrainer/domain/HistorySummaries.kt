@@ -65,46 +65,11 @@ data class PrSummaryRow(
  * One row per exercise, so a lifter who broke three records in one squat session does not push
  * everything else off the list.
  */
-fun prSummary(sessions: List<WorkoutSession>, limit: Int = 3): List<PrSummaryRow> {
-    val byExercise = sessions
-        .filter { it.isFinished }
-        .flatMap { session -> session.sets.filterNot { it.isWarmup } }
-        .groupBy { it.exerciseId }
-
-    return byExercise.mapNotNull { (exerciseId, sets) ->
-        // The class comes from a session that actually holds the lift, not from the library:
-        // a lift edited or deleted since must not restate months of past records in new units.
-        val loadClass = sessions.firstOrNull { session ->
-            session.exercises.any { it.exercise.id == exerciseId }
-        }?.loadClassOf(exerciseId) ?: LoadClass.LOADED
-        val records = PersonalRecords.bests(
-            sets.map { set ->
-                ExerciseSetRecord(
-                    setId = set.id,
-                    sessionId = set.sessionId,
-                    weightKg = set.weightKg,
-                    reps = set.reps,
-                    completedAt = set.completedAt,
-                )
-            },
-            loadClass,
-        )
-        // REPS first for a bodyweight lift, because it is the only record that lift can hold.
-        // The list used to fall through both barbell kinds and drop the row entirely, so a
-        // calisthenics lifter's recent-PR list was permanently empty however hard they trained.
-        val best = records[PersonalRecordKind.REPS]
-            ?: records[PersonalRecordKind.ESTIMATED_ONE_REP_MAX]
-            ?: records[PersonalRecordKind.WEIGHT]
-            ?: return@mapNotNull null
-        PrSummaryRow(
-            exerciseId = exerciseId,
-            exerciseName = sets.first().exerciseName,
-            kind = best.kind,
-            valueKg = best.weightKg,
-            reps = best.reps,
-            achievedAt = best.achievedAt,
-        )
-    }
-        .sortedWith(compareByDescending<PrSummaryRow> { it.achievedAt }.thenBy { it.exerciseName })
-        .take(limit)
-}
+fun prSummary(sessions: List<WorkoutSession>, limit: Int = 3): List<PrSummaryRow> =
+    // REPS first for a bodyweight lift, because it is the only record that lift can hold.
+    // The list used to fall through both barbell kinds and drop the row entirely, so a
+    // calisthenics lifter's recent-PR list was permanently empty however hard they trained.
+    // The class comes from a session that actually holds the lift, not from the library:
+    // a lift edited or deleted since must not restate months of past records in new units.
+    // Both rules live in [standingRecords]; this is the graph-shaped way in.
+    standingRecords(sessions.flatMap { it.recordSets() }, limit)

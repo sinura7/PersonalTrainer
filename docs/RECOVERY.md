@@ -85,8 +85,10 @@ Almost always the OAuth client no longer matches the APK's signing key. Symptom:
 fails mentioning configuration or `DEVELOPER_ERROR`.
 
 Re-check the SHA-1 registered in Google Cloud Console against the key that signed the
-**installed** APK ([SETUP.md](../SETUP.md) §4). A debug build and a release build have
-different SHA-1s and both must be registered if you use both.
+**installed** APK ([SETUP.md](../SETUP.md) §4). Temper Debug
+(`com.sinura.personaltrainer.debug`, signed by the debug distribution keystore of
+[SETUP.md](../SETUP.md) §6) and gym-floor Temper (`com.sinura.personaltrainer`, the release
+keystore) are different packages with different SHA-1s; each needs its own client.
 
 This is also why local file export exists: **it never depends on Google**. If Drive is
 broken and you need a backup right now, use Export to file.

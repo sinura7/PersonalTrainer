@@ -17,6 +17,13 @@ class LiveCardioChromeTest {
     }
 
     @Test
+    fun retryTagsNameTheReadFaultAction() {
+        assertEquals("live-cardio-retry", CardioTags.RETRY)
+        assertEquals("activity-detail-retry", ActivityDetailTags.RETRY)
+        assertNotEquals(CardioTags.RETRY, ActivityDetailTags.RETRY)
+    }
+
+    @Test
     fun leaveDialogTagsNameStackedButtons() {
         assertEquals("leave-cardio-leave-running", LeaveCardioTags.LEAVE_RUNNING)
         assertEquals("leave-cardio-stay", LeaveCardioTags.STAY)

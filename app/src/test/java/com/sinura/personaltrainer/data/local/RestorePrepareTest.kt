@@ -207,7 +207,10 @@ class RestorePrepareTest {
             com.sinura.personaltrainer.domain.WeightUnit.LBS,
             deps.preferencesRepository.weightUnit.first(),
         )
-        assertTrue(deps.backupRepository.recoverInterruptedRestore())
+        assertTrue(
+            deps.backupRepository.recoverInterruptedRestore()
+                is com.sinura.personaltrainer.data.backup.RestoreRecovery.Finished,
+        )
         assertEquals(
             com.sinura.personaltrainer.domain.WeightUnit.KG,
             deps.preferencesRepository.weightUnit.first(),
@@ -244,10 +247,37 @@ class RestorePrepareTest {
     }
 
     @Test
-    fun startRefusesWhileRestoreJournalIsOpen() = runBlocking {
+    fun startRefusesWhileRestoreIsAboutToWipe() = runBlocking {
+        stageEmptyJournal()
+        // stage() writes STAGED; a start would land on tables about to be replaced.
+        var outcome = deps.workoutRepository.startFreeWorkoutSafely()
+        assertTrue(outcome is com.sinura.personaltrainer.data.repository.StartSessionOutcome.Unavailable)
+        assertEquals(
+            com.sinura.personaltrainer.data.backup.RestoreJournal.INTERRUPTED,
+            (outcome as com.sinura.personaltrainer.data.repository.StartSessionOutcome.Unavailable).message,
+        )
+        deps.restoreJournal.mark(com.sinura.personaltrainer.data.backup.RestoreJournal.WIPING)
+        outcome = deps.workoutRepository.startFreeWorkoutSafely()
+        assertTrue(outcome is com.sinura.personaltrainer.data.repository.StartSessionOutcome.Unavailable)
+    }
+
+    @Test
+    fun startIsAllowedOnceRoomHasCommitted() = runBlocking {
+        // From `room` on the training data is final; what recovery still owes is
+        // preferences and the catalog, both under the lock a start takes. Refusing here
+        // turned a failed preferences write into a phone that could not train.
+        stageEmptyJournal()
+        deps.restoreJournal.mark(com.sinura.personaltrainer.data.backup.RestoreJournal.ROOM)
+        assertTrue(deps.backupRepository.restoreInProgress())
+        assertFalse(deps.backupRepository.restoreBlocksStart())
+        val outcome = deps.workoutRepository.startFreeWorkoutSafely()
+        assertTrue(outcome is com.sinura.personaltrainer.data.repository.StartSessionOutcome.Started)
+    }
+
+    private fun stageEmptyJournal() {
         deps.restoreJournal.stage(
             com.sinura.personaltrainer.data.backup.RestoreJournalRecord(
-                phase = com.sinura.personaltrainer.data.backup.RestoreJournal.ROOM,
+                phase = com.sinura.personaltrainer.data.backup.RestoreJournal.STAGED,
                 sourceName = "phone.json",
                 snapshotId = "pre-restore-1.json",
                 beforeFingerprint = "before",
@@ -265,12 +295,6 @@ class RestorePrepareTest {
                     setLogs = emptyList(),
                 ),
             ),
-        )
-        val outcome = deps.workoutRepository.startFreeWorkoutSafely()
-        assertTrue(outcome is com.sinura.personaltrainer.data.repository.StartSessionOutcome.Unavailable)
-        assertEquals(
-            com.sinura.personaltrainer.data.backup.RestoreJournal.INTERRUPTED,
-            (outcome as com.sinura.personaltrainer.data.repository.StartSessionOutcome.Unavailable).message,
         )
     }
 

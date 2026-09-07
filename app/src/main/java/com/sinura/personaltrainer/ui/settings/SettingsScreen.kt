@@ -295,6 +295,8 @@ fun SettingsScreen(
                     onRestoreSafety = viewModel::requestSafetyRestore,
                     onDeleteSafety = { id -> pendingSafetyDeleteId = id },
                     onDismissError = viewModel::dismissError,
+                    onFinishRestore = viewModel::finishRestore,
+                    onDismissRestoreNote = viewModel::dismissRestoreNote,
                 )
             }
             item(key = "plan-setup") {
@@ -320,6 +322,7 @@ fun SettingsScreen(
                             context.startActivity(Intent.createChooser(send, "Share diagnostics"))
                         }
                     },
+                    onClear = { DiagnosticMetadata.clear(context) },
                 )
             }
             item(key = "about") {
@@ -808,6 +811,8 @@ private fun BackupRestoreSection(
     onRestoreSafety: (String) -> Unit,
     onDeleteSafety: (String) -> Unit,
     onDismissError: () -> Unit,
+    onFinishRestore: () -> Unit,
+    onDismissRestoreNote: () -> Unit,
 ) {
     var dismissedStatus by rememberSaveable { mutableStateOf<String?>(null) }
     // Cleared the moment an action starts, so the memo only ever suppresses a message left
@@ -863,6 +868,21 @@ private fun BackupRestoreSection(
             GymStatusBanner(status, onDismissed = { dismissedStatus = status })
         }
         state.error?.let { GymErrorBanner(it, onDismiss = onDismissError) }
+        // Durable, not a dwell banner: recovery wrote it because the owner has something
+        // to check, and it stays until they say they have.
+        state.restoreNote?.let { note -> GymErrorBanner(message = note, onDismiss = onDismissRestoreNote) }
+        state.restorePending?.let { source ->
+            Text(
+                "Training data from $source is in. Settings still need to be applied.",
+                style = InstrumentType.caption,
+                color = Warn,
+            )
+            SecondaryGymButton(
+                text = "Finish restore",
+                onClick = onFinishRestore,
+                enabled = !state.isBusy,
+            )
+        }
 
         if (state.sessionLive) {
             Text(
@@ -1156,18 +1176,23 @@ private fun FoundationGenerationSection() {
 }
 
 @Composable
-private fun DiagnosticsSection(onShare: () -> Unit) {
+private fun DiagnosticsSection(onShare: () -> Unit, onClear: () -> Unit) {
     SettingsGroup(
         title = "Diagnostics",
         caption = "Nothing is sent automatically. A shared bundle names the app, schema, " +
             "and device, plus event IDs, exception classes, and Temper stack frames. It " +
             "never includes workout names, weights, notes, bodyweight, emails, tokens, " +
-            "or backup files.",
+            "or backup files. The last crash is kept on this phone until you clear it.",
     ) {
         SecondaryGymButton(
             text = "Share diagnostics",
             onClick = onShare,
             modifier = Modifier.testTag(SettingsTags.SHARE_DIAGNOSTICS),
+        )
+        SecondaryGymButton(
+            text = "Clear diagnostics",
+            onClick = onClear,
+            modifier = Modifier.testTag(SettingsTags.CLEAR_DIAGNOSTICS),
         )
     }
 }
@@ -1367,6 +1392,7 @@ private val DISPLAY_LABEL_WIDTH = 56.dp
 object SettingsTags {
     const val EXPORT_FILE = "settings-export-file"
     const val SHARE_DIAGNOSTICS = "settings-share-diagnostics"
+    const val CLEAR_DIAGNOSTICS = "settings-clear-diagnostics"
     const val DISPLAY = "settings-display"
     const val BODYWEIGHT = "settings-bodyweight"
     const val REDACT_LOGS = "settings-redact-logs"

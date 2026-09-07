@@ -7,7 +7,9 @@ import com.sinura.personaltrainer.domain.AlarmScheduleResult
 import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.recoverWith
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -42,13 +44,21 @@ class RestTimerController(
     private val _lastAlarmSchedule = MutableStateFlow(AlarmScheduleResult.FAILED)
     private val _exactAlarmAttempt = MutableStateFlow(alarms.currentAttempt())
     private val _lastCompletedTimerId = MutableStateFlow<String?>(null)
+    private val _persistenceHealthy = MutableStateFlow(true)
     override val lastCompletedTimerId: StateFlow<String?> = _lastCompletedTimerId.asStateFlow()
     override val lastAlarmSchedule: StateFlow<AlarmScheduleResult> = _lastAlarmSchedule.asStateFlow()
     override val exactAlarmAttempt: StateFlow<ExactAlarmAttempt> = _exactAlarmAttempt.asStateFlow()
+    override val persistenceHealthy: StateFlow<Boolean> = _persistenceHealthy.asStateFlow()
 
     /** Application-lifetime; persist/arm and late-rest announce. */
     private val announceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    private val ioScope = CoroutineScope(SupervisorJob() + ioDispatcher)
+    // A SupervisorJob alone hands an escaped throwable to the default uncaught
+    // handler, and this scope runs disk writes on the owner's phone. Nothing
+    // here is worth the process; log it and keep the in-memory countdown.
+    private val ioScope = CoroutineScope(
+        SupervisorJob() + ioDispatcher +
+            CoroutineExceptionHandler { _, error -> AppLog.e(TAG, "Rest timer IO failed", error) },
+    )
     /** Serialises persist-then-arm. A later halt bumps [persistSeq]. */
     private val persistLock = Mutex()
     private var persistJob: Job? = null
@@ -205,16 +215,22 @@ class RestTimerController(
 
     override fun refreshAlarmCapability() {
         _exactAlarmAttempt.value = alarms.currentAttempt()
-        if (store.current().running) {
+        if (!store.current().running) return
+        if (_persistenceHealthy.value) {
             scheduleAlarmForCurrent()
+        } else {
+            // The row never landed, so arming alone would recreate the
+            // alarm-without-a-row case. Give the disk another try first.
+            persistThenArm(syncService = false)
         }
     }
 
     /**
      * Publish already happened on the caller. Persist the row, then arm.
      * The receiver treats a missing disk row as already completed, so the
-     * alarm must not be scheduled first. A later [halt] bumps [persistSeq]
-     * so an in-flight start skips the whole persist, not just the alarm.
+     * alarm must not be scheduled first — and is not scheduled at all when
+     * the row did not commit. A later [halt] bumps [persistSeq] so an
+     * in-flight start skips the whole persist, not just the alarm.
      */
     private fun persistThenArm(syncService: Boolean) {
         val seq = persistSeq.incrementAndGet()
@@ -224,22 +240,62 @@ class RestTimerController(
             persistLock.withLock {
                 if (seq != persistSeq.get()) return@withLock
                 if (snap.running) {
-                    persistence?.save(
-                        RestTimerRehydrator.toPersisted(
-                            endsAtElapsedRealtime = snap.endsAtElapsedRealtime,
-                            totalSeconds = snap.totalSeconds,
-                            sessionId = snap.sessionId,
-                            timerId = snap.timerId,
-                        ),
-                    )
+                    val saved = saveRow(snap)
                     if (seq != persistSeq.get()) return@withLock
-                    scheduleAlarmForCurrent()
+                    if (saved) {
+                        scheduleAlarmForCurrent()
+                    } else {
+                        // An alarm whose row is missing fires into "already
+                        // completed" after a process kill: worse than no
+                        // alarm, because it looks armed. An older alarm from
+                        // a row that did land is left alone; it still ends
+                        // that earlier deadline. The foreground service is
+                        // synced regardless so the countdown runs while the
+                        // process lives.
+                        _lastAlarmSchedule.value = AlarmScheduleResult.FAILED
+                        AppLog.w(TAG, "Rest row did not commit; wakeup not armed")
+                    }
                     if (syncService) dispatch(RestTimerService.ACTION_SYNC)
                 } else {
-                    persistence?.clear()
+                    clearRow()
                 }
             }
         }
+    }
+
+    /** True when the row is on disk, or there is no disk to write. */
+    private fun saveRow(snap: RestTimerSnapshot): Boolean {
+        val target = persistence ?: return true
+        val saved = recoverWith(TAG, "Rest row save", false) {
+            target.save(
+                RestTimerRehydrator.toPersisted(
+                    endsAtElapsedRealtime = snap.endsAtElapsedRealtime,
+                    totalSeconds = snap.totalSeconds,
+                    sessionId = snap.sessionId,
+                    timerId = snap.timerId,
+                ),
+            )
+        }
+        _persistenceHealthy.value = saved
+        return saved
+    }
+
+    /**
+     * One retry, then say so: a row that outlives its rest rehydrates as an
+     * expired rest after the next process death and posts a silent
+     * "Rest done" for a rest the user already skipped.
+     */
+    private fun clearRow() {
+        val target = persistence ?: return
+        var cleared = recoverWith(TAG, "Rest row clear", false) { target.clear() }
+        if (!cleared) {
+            AppLog.w(TAG, "Rest row did not clear; retrying once")
+            cleared = recoverWith(TAG, "Rest row clear retry", false) { target.clear() }
+        }
+        if (!cleared) {
+            AppLog.w(TAG, "Rest row still on disk; a stale rest may rehydrate after process death")
+        }
+        _persistenceHealthy.value = cleared
     }
 
     private fun scheduleAlarmForCurrent() {

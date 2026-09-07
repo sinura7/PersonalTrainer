@@ -12,14 +12,23 @@ import com.sinura.personaltrainer.domain.cardioMinutes
 import com.sinura.personaltrainer.domain.strengthWork
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * [missing] and [failed] are different answers to different questions. Missing is a query
+ * that succeeded and found no row: the activity is not on this phone. Failed is a query that
+ * threw: the activity may well be there and the read is what broke. The screen used to fold
+ * both into "That activity is no longer on this phone", which for a Room fault was untrue and
+ * offered no way to find out.
+ */
 data class ActivityDetailUiState(
     val isLoading: Boolean = true,
     val missing: Boolean = false,
+    val failed: Boolean = false,
     val session: ActivitySession? = null,
     val strengthSetCount: Int = 0,
     val cardioMinutes: Int = 0,
@@ -39,8 +48,22 @@ class ActivityDetailViewModel @JvmOverloads constructor(
     private val _uiState = MutableStateFlow(ActivityDetailUiState())
     val uiState: StateFlow<ActivityDetailUiState> = _uiState.asStateFlow()
 
+    private var loading: Job? = null
+
     init {
-        viewModelScope.launch {
+        load()
+    }
+
+    /** Re-read after a failed load. A no-op unless the last read actually threw. */
+    fun retry() {
+        if (!_uiState.value.failed) return
+        load()
+    }
+
+    private fun load() {
+        loading?.cancel()
+        _uiState.value = ActivityDetailUiState()
+        loading = viewModelScope.launch {
             runCatchingCancellable {
                 val session = container.activityRepository.get(activityId)
                 if (session == null) {
@@ -58,8 +81,8 @@ class ActivityDetailViewModel @JvmOverloads constructor(
                     durationMinutes = ActivityDetailCopy.receiptDurationMinutes(session, cardioMinutes),
                 )
             }.onFailure { thrown ->
-                AppLog.w(TAG, "Loading activity detail failed", thrown)
-                _uiState.value = ActivityDetailUiState(isLoading = false, missing = true)
+                AppLog.e(TAG, "Loading activity detail failed", thrown)
+                _uiState.value = ActivityDetailUiState(isLoading = false, failed = true)
             }
         }
     }

@@ -144,6 +144,95 @@ class RestoreJournalStoreTest {
         }
     }
 
+    // -------------------------------------------------------------------------------------
+    // R03: a `done` journal is one whose input may already be gone.
+    // -------------------------------------------------------------------------------------
+
+    @Test
+    fun doneSurvivesLosingItsIncomingCopy() {
+        // Cleanup deletes incoming.json first. A crash between the two deletes used to leave
+        // a room/prefs journal whose readIncoming() threw on every launch. With DONE marked
+        // before the deletes, the same crash leaves a journal recovery simply sweeps.
+        val store = RestoreJournalStore(root)
+        store.stage(sampleRecord(), BackupJson.encode(authoredSample()))
+        store.mark(RestoreJournal.ROOM)
+        store.mark(RestoreJournal.PREFS)
+        store.mark(RestoreJournal.DONE)
+        assertTrue(File(root, RestoreJournal.INCOMING_FILE).delete())
+
+        assertEquals(RestoreJournal.DONE, store.read()?.phase)
+        assertNull(store.readIncomingOrNull())
+        try {
+            store.readIncoming()
+            org.junit.Assert.fail("a missing input must still throw for callers that need it")
+        } catch (thrown: BackupException) {
+            assertEquals(RestoreJournal.INTERRUPTED, thrown.message)
+        }
+
+        store.clear()
+        assertFalse(store.isOpen())
+    }
+
+    @Test
+    fun witnessesTravelWithTheRecord() {
+        val store = RestoreJournalStore(root)
+        val before = RestoreWitness.of(authoredSample())
+        val after = RestoreWitness.of(authoredSample().copy(exportedAt = "2026-09-06T00:00:00Z"))
+        store.stage(sampleRecord().copy(beforeWitness = before, afterWitness = after), "{}")
+        store.mark(RestoreJournal.WIPING)
+        val read = checkNotNull(store.read())
+        assertEquals(before, read.beforeWitness)
+        assertEquals(after, read.afterWitness)
+        assertTrue(RestoreWitness.isCurrent(read.beforeWitness))
+    }
+
+    @Test
+    fun aJournalWrittenBeforeWitnessesExistedStillReads() {
+        // The previous build's state.json: counts only. Recovery falls back to them.
+        File(root, RestoreJournal.STATE_FILE).writeText(
+            "{\"phase\":\"wiping\",\"sourceName\":\"old.json\",\"snapshotId\":\"pre-restore-1.json\"," +
+                "\"beforeFingerprint\":\"1|3|1|0|0|s1\",\"afterFingerprint\":\"1|3|1|0|0|s1\"}\n",
+        )
+        val read = checkNotNull(RestoreJournalStore(root).read())
+        assertEquals(RestoreJournal.WIPING, read.phase)
+        assertNull(read.beforeWitness)
+        assertNull(read.afterWitness)
+        assertFalse(RestoreWitness.isCurrent(read.afterWitness))
+    }
+
+    @Test
+    fun onlyThePhasesAboutToWipeBlockAStart() {
+        assertTrue(RestoreJournal.blocksStart(RestoreJournal.STAGED))
+        assertTrue(RestoreJournal.blocksStart(RestoreJournal.WIPING))
+        assertFalse(RestoreJournal.blocksStart(RestoreJournal.ROOM))
+        assertFalse(RestoreJournal.blocksStart(RestoreJournal.PREFS))
+        assertFalse(RestoreJournal.blocksStart(RestoreJournal.DONE))
+        assertFalse(RestoreJournal.blocksStart(null))
+
+        assertTrue(RestoreJournal.awaitsFinish(RestoreJournal.WIPING))
+        assertTrue(RestoreJournal.awaitsFinish(RestoreJournal.ROOM))
+        assertTrue(RestoreJournal.awaitsFinish(RestoreJournal.PREFS))
+        assertFalse(RestoreJournal.awaitsFinish(RestoreJournal.STAGED))
+        assertFalse(RestoreJournal.awaitsFinish(RestoreJournal.DONE))
+        assertFalse(RestoreJournal.awaitsFinish(null))
+    }
+
+    @Test
+    fun doneCountsAsPastTheWipeForFailureCopy() {
+        assertEquals(
+            RestoreJournal.RECOVERED_MIXED,
+            RestoreJournal.commitFailureMessage(phase = RestoreJournal.DONE, reported = "anything at all"),
+        )
+    }
+
+    private fun sampleRecord() = RestoreJournalRecord(
+        phase = RestoreJournal.STAGED,
+        sourceName = "phone.json",
+        snapshotId = "pre-restore-1.json",
+        beforeFingerprint = "before",
+        afterFingerprint = RestoreJournal.fingerprint(authoredSample()),
+    )
+
     @Test
     fun fingerprintChangesWhenSessionsChange() {
         val empty = RestoreJournal.fingerprint(AuthoredInventory.EMPTY, firstSessionId = null)

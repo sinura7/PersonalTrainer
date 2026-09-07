@@ -83,6 +83,7 @@ fun ActivityComposerScreen(
         if (state.isDirty) {
             confirmLeave = true
         } else {
+            viewModel.discardDraft()
             onBack()
         }
     }
@@ -207,6 +208,7 @@ fun ActivityComposerScreen(
             dismissLabel = ComposerCopy.KEEP_EDITING,
             onConfirm = {
                 confirmLeave = false
+                viewModel.discardDraft()
                 onBack()
             },
             onDismiss = { confirmLeave = false },

@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.data.backup.BackupExerciseMuscle
 import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.RestoreJournal
+import com.sinura.personaltrainer.data.backup.RestoreWitness
 import com.sinura.personaltrainer.data.backup.SafetySnapshot
 import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
 import com.sinura.personaltrainer.data.backup.SafetySnapshotStore
@@ -62,6 +63,7 @@ import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.logging.AppLog
 import kotlinx.coroutines.flow.first
 import java.io.File
 
@@ -614,11 +616,18 @@ class LocalBackupRepository(
                 ),
             )
             true
-        } catch (_: Exception) {
+        } catch (thrown: kotlinx.coroutines.CancellationException) {
+            // Was swallowed here as "false", so a cancelled restore reported that settings
+            // could not be applied and then went on to close the journal. Cancellation is
+            // the caller's to see; the journal stays where it is and recovery finishes it.
+            throw thrown
+        } catch (thrown: Exception) {
+            AppLog.w(TAG, "Applying restored preferences failed", thrown)
             false
         }
     }
 
+    /** The legacy count witness; kept only to resolve a journal written before [roomWitness]. */
     suspend fun roomFingerprint(): String {
         val authored = authoredInventory()
         val firstId = database.withTransaction {
@@ -628,13 +637,23 @@ class LocalBackupRepository(
     }
 
     /**
+     * What Room holds right now, as the same content digest the journal stores for the
+     * incoming document. Reads through [createSnapshot] so both sides of the comparison
+     * take the identical projection — finished sessions and non-live activities only.
+     */
+    suspend fun roomWitness(): String = RestoreWitness.of(createSnapshot())
+
+    /**
      * Encode the current phone, write it, re-read it, and refuse unless the
      * authored counts match. Restore must call this before [replaceWith].
+     *
+     * @param current the phone's snapshot when the caller already took one — restore does,
+     * because the same document is also its before-witness — else taken here.
      */
-    suspend fun writeVerifiedSafetySnapshot(): SafetySnapshotMeta {
+    suspend fun writeVerifiedSafetySnapshot(current: BackupDocument? = null): SafetySnapshotMeta {
         val store = safetySnapshots ?: throw BackupException(SafetySnapshot.MISSING_DIR)
         val expected = authoredInventory()
-        val json = BackupJson.encode(createSnapshot())
+        val json = BackupJson.encode(current ?: createSnapshot())
         return store.writeVerified(json, expected)
     }
 
@@ -649,6 +668,10 @@ class LocalBackupRepository(
     fun deleteSafetySnapshot(id: String) {
         val store = safetySnapshots ?: throw BackupException(SafetySnapshot.NOT_FOUND)
         store.delete(id)
+    }
+
+    private companion object {
+        const val TAG = "PT/LocalBackup"
     }
 
     private data class TableSnapshot(

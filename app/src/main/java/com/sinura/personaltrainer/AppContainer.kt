@@ -62,6 +62,7 @@ class AppContainer(context: Context) : AppDependencies {
         // A lambda because plannerRepository is built further down this file; it is only ever
         // called long after construction.
         onOccurrenceCompleted = { plannerRepository.cancelRemindersFor(it) },
+        restoreBlocksStart = { backupRepository.restoreBlocksStart() },
     )
 
     override val exerciseRepository: ExerciseRepository = ExerciseRepository(
@@ -89,7 +90,7 @@ class AppContainer(context: Context) : AppDependencies {
         database,
         database.workoutDao(),
         dbMaintenance,
-        restoreInProgress = { backupRepository.restoreInProgress() },
+        restoreBlocksStart = { backupRepository.restoreBlocksStart() },
     )
     override val preferencesRepository: PreferencesRepository = PreferencesRepository(
         context,

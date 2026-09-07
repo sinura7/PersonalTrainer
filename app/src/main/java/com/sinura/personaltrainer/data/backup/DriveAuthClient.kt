@@ -41,7 +41,7 @@ class DriveAuthClient {
         val first = try {
             Identity.getAuthorizationClient(activity).authorize(request).await()
         } catch (error: Exception) {
-            throw mapAuthError(error)
+            throw mapAuthError(error, activity.packageName)
         }
         val resolved = if (first.hasResolution()) {
             val sender = first.pendingIntent?.intentSender
@@ -53,7 +53,7 @@ class DriveAuthClient {
             try {
                 Identity.getAuthorizationClient(activity).authorize(request).await()
             } catch (error: Exception) {
-                throw mapAuthError(error)
+                throw mapAuthError(error, activity.packageName)
             }
         } else {
             first
@@ -86,7 +86,12 @@ class DriveAuthClient {
         session = null
     }
 
-    private fun mapAuthError(error: Exception): BackupException {
+    /**
+     * @param packageName the INSTALLED package. Temper Debug is `com.sinura.personaltrainer.debug`
+     * and needs its own OAuth client; naming the release package here sent the owner to
+     * register the wrong one.
+     */
+    private fun mapAuthError(error: Exception, packageName: String): BackupException {
         if (error is CancellationException) throw error
         val api = error as? ApiException
         return when (api?.statusCode) {
@@ -98,7 +103,8 @@ class DriveAuthClient {
                 BackupException("Connect to the internet to use Google Drive.")
             CommonStatusCodes.DEVELOPER_ERROR ->
                 BackupException(
-                    "Google Drive sign-in isn’t configured for this install. Add an Android OAuth client for com.sinura.personaltrainer in Google Cloud Console.",
+                    "Google Drive sign-in isn’t configured for this install. Add an Android OAuth " +
+                        "client for $packageName, with this install's signing SHA-1, in Google Cloud Console.",
                 )
             else -> BackupException(error.message?.ifBlank { null } ?: "Google sign-in failed.")
         }

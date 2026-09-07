@@ -75,6 +75,33 @@ interface ActivityDao {
     )
     fun observeCompletedSummaries(): Flow<List<ActivitySummaryRow>>
 
+    /**
+     * Every working set of every completed activity's strength blocks, with the block's own
+     * snapshot of the lift's name and load type, for the lifetime records list. Observed
+     * directly: activity tables change on a confirm, not on every live set, so Room's
+     * invalidation is the right gate here where it is not for `set_logs`.
+     */
+    @Query(
+        """
+        SELECT st.id AS setId,
+               s.id AS sessionId,
+               b.exerciseId AS exerciseId,
+               b.exerciseName AS exerciseName,
+               b.loadType AS loadType,
+               st.weightKg AS weightKg,
+               st.reps AS reps,
+               st.completedAtMs AS completedAt
+        FROM activity_strength_sets st
+        JOIN activity_blocks b ON b.id = st.blockId
+        JOIN activity_sessions s ON s.id = b.sessionId
+        WHERE st.isWarmup = 0
+          AND b.kind = 'STRENGTH'
+          AND b.exerciseId IS NOT NULL
+          AND s.status = 'COMPLETED'
+        """,
+    )
+    fun observeCompletedStrengthSetRecords(): Flow<List<RecordSetRow>>
+
     @Transaction
     @Query("SELECT * FROM activity_sessions WHERE performedStartLocalEpochDay = :localEpochDay ORDER BY performedStartInstantMs")
     suspend fun graphsOnLocalDate(localEpochDay: Long): List<ActivitySessionGraph>

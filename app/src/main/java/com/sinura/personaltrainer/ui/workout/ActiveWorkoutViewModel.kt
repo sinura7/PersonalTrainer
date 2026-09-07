@@ -151,6 +151,8 @@ data class RestTimerUiState(
     val totalSeconds: Int = 90,
     val running: Boolean = false,
     val completedTimerId: String? = null,
+    /** False while the rest row is not on disk; the floor says so in one line. */
+    val persistenceHealthy: Boolean = true,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -351,12 +353,14 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         restTimer.snapshot,
         restTotal,
         restTimer.lastCompletedTimerId,
-    ) { remaining, snapshot, planned, completedId ->
+        restTimer.persistenceHealthy,
+    ) { remaining, snapshot, planned, completedId, healthy ->
         RestTimerUiState(
             remainingSeconds = remaining,
             totalSeconds = if (snapshot.running) snapshot.totalSeconds else planned,
             running = snapshot.running,
             completedTimerId = completedId,
+            persistenceHealthy = healthy,
         )
     }.stateIn(
         scope = viewModelScope,

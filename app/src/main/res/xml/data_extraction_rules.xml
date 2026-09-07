@@ -25,6 +25,7 @@
         <exclude domain="file" path="safety-snapshots" />
         <exclude domain="file" path="restore-journal" />
         <exclude domain="file" path="pre-migration" />
+        <exclude domain="file" path="diagnostics" />
         <exclude domain="sharedpref" path="rest_timer_state.xml" />
         <exclude domain="sharedpref" path="schema_marker.xml" />
     </cloud-backup>
@@ -47,6 +48,7 @@
         <exclude domain="file" path="safety-snapshots" />
         <exclude domain="file" path="restore-journal" />
         <exclude domain="file" path="pre-migration" />
+        <exclude domain="file" path="diagnostics" />
         <exclude domain="sharedpref" path="rest_timer_state.xml" />
         <exclude domain="sharedpref" path="schema_marker.xml" />
     </device-transfer>

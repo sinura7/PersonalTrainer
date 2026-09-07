@@ -86,36 +86,36 @@ Backup/restore talks to Drive with the `drive.file` scope. You must create an An
 
 ### Android OAuth client
 
-Create **one Android client per signing key**. Debug installs and release installs have different SHA-1 values.
+Create **one Android client per package and signing key**. Temper Debug and
+gym-floor Temper are different packages signed by different keys, so they are
+two clients.
 
 1. APIs & Services → Credentials → Create credentials → **OAuth client ID**.
 2. Application type: **Android**.
-3. Package name: `com.sinura.personaltrainer`
-4. SHA-1: paste the fingerprint for that install (see below).
+3. Package name: `com.sinura.personaltrainer` for gym-floor Temper, or
+   `com.sinura.personaltrainer.debug` for Temper Debug.
+4. SHA-1: paste the fingerprint of the key that signed **that** install (see below).
 5. Create.
 
-Repeat for the other SHA-1 if you use both a debug-signed Temper Debug
-APK and a signed release APK.
+Repeat for the other package if you use both.
 
 No `google-services.json` is required. The app does not embed a client secret.
 
 ### SHA-1 fingerprints
 
-**Debug** (`assembleDebug` / Temper Debug Obtainium drop):
+**Temper Debug** (the `debug-live-*` pre-release Obtainium installs): the signer
+is the debug distribution keystore from §6, not any machine's
+`~/.android/debug.keystore`. Read the SHA-1 straight off the APK that was
+installed:
 
 ```bash
-./gradlew signingReport
+keytool -printcert -jarfile PersonalTrainer-<version>-debug.apk
 ```
 
-Use the `SHA1` under `Variant: debug`. Or:
-
-```bash
-keytool -list -v \
-  -keystore ~/.android/debug.keystore \
-  -alias androiddebugkey \
-  -storepass android \
-  -keypass android
-```
+A local `assembleDebug` without `debug-keystore.properties` is signed by that
+machine's default debug keystore instead (`./gradlew signingReport`, `SHA1` under
+`Variant: debug`), which is a different identity: register it separately if you
+sideload local builds, and expect such a build not to update an Obtainium drop.
 
 **Release** (after `keystore.properties` exists):
 
@@ -205,6 +205,46 @@ New chrome is judged on **Temper Debug** (`com.sinura.personaltrainer.debug`)
    whose name ends with `-debug.apk`. Pull down to refresh.
 
 Do not point the gym-floor Obtainium entry at a `*-debug.apk`.
+
+### The Temper Debug signer
+
+Android installs an update only over the same signing key, and each hosted
+runner generates its own debug keystore, so two automated drops could never
+update each other. `debug-live.yml` therefore restores **one** debug
+distribution keystore from repository secrets and signs every drop with it.
+Without the secrets it still builds, but the pre-release is marked
+**THROWAWAY SIGNER** and cannot update an existing Temper Debug.
+
+One-time setup:
+
+1. Create the keystore once and back it up exactly like the release one (§2):
+
+   ```bash
+   keytool -genkeypair -v \
+     -keystore debug-signing/temper-debug.keystore \
+     -alias temperdebug \
+     -keyalg RSA \
+     -keysize 2048 \
+     -validity 10000
+   ```
+
+   `debug-signing/` and `debug-keystore.properties` are gitignored
+   (`debug-keystore.properties.example` is the template for local drops).
+2. Repository secrets: `DEBUG_KEYSTORE_BASE64`
+   (`base64 -w0 debug-signing/temper-debug.keystore`), `DEBUG_KEYSTORE_PASSWORD`,
+   `DEBUG_KEY_ALIAS`, `DEBUG_KEY_PASSWORD`. All four or none.
+3. Repository **variable** (not a secret) `DEBUG_CERT_SHA256`: the certificate's
+   SHA-256 digest (`keytool -list -v -keystore debug-signing/temper-debug.keystore
+   -alias temperdebug`, the `SHA256:` line; colons optional). With it set, a drop
+   signed by anything else fails before it is published.
+4. Register the keystore's SHA-1 for `com.sinura.personaltrainer.debug` in Cloud
+   Console (§4).
+
+Moving an installed Temper Debug onto the stable key: if the phone's current
+Temper Debug was signed by a runner-generated key, the first stable drop will
+not install over it. Export a backup from Temper Debug first, uninstall it,
+install the stable drop from Obtainium, then import the backup. Gym-floor Temper
+is untouched by any of this.
 
 ### Gym-floor Temper (signed)
 

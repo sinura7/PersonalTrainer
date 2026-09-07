@@ -4,7 +4,12 @@ import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.data.local.entity.SetLogEntity
+import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
 import com.sinura.personaltrainer.domain.DataHealth
+import com.sinura.personaltrainer.testutil.TestSetInput
+import com.sinura.personaltrainer.testutil.insertTestExercise
+import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -72,6 +77,119 @@ class HistoryViewModelTest {
     }
 
     @Test
+    fun editingAFinishedSetRefreshesTheHorizonReadoutWithoutRelaunch() = runBlocking {
+        // Session count and newest id never moved for an edit, so the PRs in the readout
+        // stayed stale until the horizon was switched. The revision moves on the edit.
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        val fixture = seedTestWorkout(
+            deps = deps,
+            loggedSets = listOf(TestSetInput(weightKg = 100.0, reps = 5)),
+            finish = true,
+        )
+        val later = deps.workoutRepository.startRoutine(fixture.routine)
+        val logged = deps.workoutRepository.logSet(
+            sessionId = later.id,
+            exerciseId = fixture.exercise.id,
+            weightKg = 90.0,
+            reps = 5,
+            rpe = null,
+            isWarmup = false,
+        )
+        deps.workoutRepository.finishSession(sessionId = later.id, notes = "")
+
+        viewModel = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        val before = withTimeout(5_000) {
+            viewModel!!.uiState.first { it.horizonProgress != null && it.summaries.size == 2 }
+        }
+        assertEquals(0, before.horizonProgress!!.recordsBroken)
+
+        deps.workoutRepository.updateSet(
+            setId = logged.setId,
+            weightKg = 110.0,
+            reps = 5,
+            rpe = null,
+            isWarmup = false,
+        )
+
+        val after = withTimeout(5_000) {
+            viewModel!!.uiState.first { (it.horizonProgress?.recordsBroken ?: 0) > 0 }
+        }
+        assertEquals(2, after.summaries.size)
+    }
+
+    @Test
+    fun recordsComeFromTheWholeLogNotTheLastMonth() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        val bench = insertTestExercise(deps = deps, id = "bench", name = "Bench", muscleGroup = "Chest")
+        val now = System.currentTimeMillis()
+        insertFinishedSession(id = "old", at = now - 60 * DAY, exerciseId = bench.id, weightKg = 120.0)
+        insertFinishedSession(id = "recent", at = now - DAY, exerciseId = bench.id, weightKg = 100.0)
+
+        viewModel = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        val state = withTimeout(5_000) { viewModel!!.uiState.first { it.records.isNotEmpty() } }
+
+        val record = state.records.single()
+        assertEquals(bench.id, record.exerciseId)
+        assertEquals("Bench", record.exerciseName)
+        assertEquals(120.0, record.valueKg, 0.0)
+        assertEquals(now - 60 * DAY, record.achievedAt)
+    }
+
+    @Test
+    fun aSidecarReadFailureMarksThePageStaleInsteadOfVanishing() {
+        val unread = sidecarFromHealth<String>(DataHealth.Unavailable("activity records"))
+        assertTrue(unread.stale)
+        assertTrue(unread.value.isEmpty())
+
+        val held = sidecarFromHealth(DataHealth.Degraded(listOf("kept"), "activity records"))
+        assertTrue(held.stale)
+        assertEquals(listOf("kept"), held.value)
+
+        val fine = sidecarFromHealth(DataHealth.Available(listOf("fresh")))
+        assertFalse(fine.stale)
+        assertEquals(listOf("fresh"), fine.value)
+    }
+
+    private suspend fun insertFinishedSession(
+        id: String,
+        at: Long,
+        exerciseId: String,
+        weightKg: Double,
+    ) {
+        deps.database.workoutDao().upsertSession(
+            WorkoutSessionEntity(
+                id = id,
+                routineId = null,
+                routineName = "Push",
+                date = at,
+                notes = "",
+                durationMinutes = 45,
+                startedAt = at,
+                finishedAt = at + 45L * 60L * 1000L,
+            ),
+        )
+        deps.database.workoutDao().insertSet(
+            SetLogEntity(
+                id = "$id-set",
+                sessionId = id,
+                exerciseId = exerciseId,
+                setNumber = 1,
+                weightKg = weightKg,
+                reps = 5,
+                rpe = null,
+                isWarmup = false,
+                completedAt = at,
+            ),
+        )
+    }
+
+    @Test
     fun emptyHistoryIsAvailableNotTheFaultScreen() {
         val empty = historyListFromHealth(DataHealth.Available(emptyList()))
         assertFalse(empty.unavailable)
@@ -104,5 +222,9 @@ class HistoryViewModelTest {
         assertFalse(stale.unavailable)
         assertTrue(stale.stale)
         assertEquals("s1", stale.summaries.single().id)
+    }
+
+    private companion object {
+        const val DAY = 24L * 60L * 60L * 1000L
     }
 }

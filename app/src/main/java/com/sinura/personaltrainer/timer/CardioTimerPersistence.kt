@@ -22,10 +22,16 @@ data class PersistedCardioTimer(
     val bootCount: Long = BootSession.UNKNOWN,
 )
 
+/**
+ * [save] and [clear] report whether the row reached disk, as the rest-timer
+ * persistence does. A false save is not fatal here — [CardioElapsed.seconds]
+ * falls back to the session's wall-clock start when no row is loaded — but the
+ * caller should know the baseline it just wrote is not on disk.
+ */
 interface CardioTimerPersistence {
-    fun save(state: PersistedCardioTimer)
+    fun save(state: PersistedCardioTimer): Boolean
     fun load(): PersistedCardioTimer?
-    fun clear()
+    fun clear(): Boolean
 }
 
 class SharedPrefsCardioTimerPersistence(context: Context) : CardioTimerPersistence {
@@ -34,10 +40,10 @@ class SharedPrefsCardioTimerPersistence(context: Context) : CardioTimerPersisten
         .getSharedPreferences("cardio_timer_state", Context.MODE_PRIVATE)
 
     @Suppress("ApplySharedPref")
-    override fun save(state: PersistedCardioTimer) {
+    override fun save(state: PersistedCardioTimer): Boolean {
         val bootCount = state.bootCount.takeIf { it != BootSession.UNKNOWN }
             ?: BootSession.count(appContext)
-        prefs.edit()
+        return prefs.edit()
             .putString(KEY_SESSION_ID, state.sessionId)
             .putLong(KEY_STARTED_ELAPSED, state.startedAtElapsedRealtime)
             .putLong(KEY_STARTED_WALL, state.startedAtWallClockMillis)
@@ -60,9 +66,7 @@ class SharedPrefsCardioTimerPersistence(context: Context) : CardioTimerPersisten
     }
 
     @Suppress("ApplySharedPref")
-    override fun clear() {
-        prefs.edit().clear().commit()
-    }
+    override fun clear(): Boolean = prefs.edit().clear().commit()
 
     private companion object {
         const val KEY_SESSION_ID = "session_id"

@@ -1,5 +1,8 @@
-package com.sinura.personaltrainer.domain
+package com.sinura.personaltrainer.ui
 
+import com.sinura.personaltrainer.domain.AccessibilityMatrix
+import com.sinura.personaltrainer.domain.ActivityDetailCopy
+import com.sinura.personaltrainer.domain.TrainingFocus
 import com.sinura.personaltrainer.ui.library.LibraryTags
 import com.sinura.personaltrainer.ui.navigation.LiveBarCopy
 import com.sinura.personaltrainer.ui.navigation.LiveBarKind
@@ -10,6 +13,9 @@ import org.junit.Test
 
 /**
  * F5: the gym floor says lift, and returning to a live session has one verb.
+ *
+ * Lives under ui/ because it reads UI copy objects; under domain/ it broke the
+ * no-SDK lane in tools/run-domain-tests.sh, which compiles that directory whole.
  */
 class GymFloorCopyTest {
     @Test

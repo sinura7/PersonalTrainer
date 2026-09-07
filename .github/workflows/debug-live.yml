@@ -8,9 +8,14 @@ name: Debug live drop
 # workflow artifact, not a release asset. Pushing a debug-live tag now builds
 # and attaches the APK itself.
 #
-# Debug is intentionally unsigned-with-release-key: it is the `.debug`
-# application id, signed by the debug keystore the runner generates, exactly
-# like a local assembleDebug. Gym-floor Temper stays on release.yml.
+# Debug is intentionally not signed with the release key: it is the `.debug`
+# application id and gym-floor Temper stays on release.yml. It is NOT signed by
+# a keystore the runner generates either — Android installs an update only over
+# the same signing key, and a fresh runner mints a fresh key every run, so two
+# such drops could never update each other and the Drive OAuth client's SHA-1
+# stopped matching. One stable debug distribution keystore is restored from
+# repository secrets (SETUP.md §6); without the secrets the drop still builds,
+# and the pre-release says the APK cannot update an existing install.
 #
 # Like ci.yml, this is written blind until the account has a runner (see
 # docs/DEVELOPMENT.md on CI billing). It is the same steps ci.yml runs plus a
@@ -59,6 +64,39 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      # Secrets travel through env, never through ${{ }} inside run:, for the
+      # reason release.yml gives. Backslashes are escaped because
+      # java.util.Properties treats them as escapes. All four or none: a
+      # half-configured set would enter the signing path with an empty alias.
+      - name: Restore the debug distribution signer
+        id: signer
+        env:
+          DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+          DEBUG_KEYSTORE_PASSWORD: ${{ secrets.DEBUG_KEYSTORE_PASSWORD }}
+          DEBUG_KEY_ALIAS: ${{ secrets.DEBUG_KEY_ALIAS }}
+          DEBUG_KEY_PASSWORD: ${{ secrets.DEBUG_KEY_PASSWORD }}
+        run: |
+          if [ -z "$DEBUG_KEYSTORE_BASE64" ] || [ -z "$DEBUG_KEYSTORE_PASSWORD" ] || \
+             [ -z "$DEBUG_KEY_ALIAS" ] || [ -z "$DEBUG_KEY_PASSWORD" ]; then
+            echo "stable=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::DEBUG_KEYSTORE_* secrets are not all set. This drop is signed by a key this runner just generated and cannot update an existing Temper Debug install. See SETUP.md §6."
+            exit 0
+          fi
+          mkdir -p debug-signing
+          printf '%s' "$DEBUG_KEYSTORE_BASE64" | base64 --decode > debug-signing/ci-debug.keystore
+          if [ ! -s debug-signing/ci-debug.keystore ]; then
+            echo "DEBUG_KEYSTORE_BASE64 decoded to an empty file — re-copy the secret." >&2
+            exit 1
+          fi
+          esc() { printf '%s' "$1" | sed 's/\\/\\\\/g'; }
+          {
+            printf 'storeFile=debug-signing/ci-debug.keystore\n'
+            printf 'storePassword=%s\n' "$(esc "$DEBUG_KEYSTORE_PASSWORD")"
+            printf 'keyAlias=%s\n' "$(esc "$DEBUG_KEY_ALIAS")"
+            printf 'keyPassword=%s\n' "$(esc "$DEBUG_KEY_PASSWORD")"
+          } > debug-keystore.properties
+          echo "stable=true" >> "$GITHUB_OUTPUT"
+
       - name: Static checks (tools/preflight.sh)
         run: PT_STATIC_ONLY=1 sh tools/preflight.sh
 
@@ -84,6 +122,37 @@ jobs:
           echo "Selected $apk"
           echo "path=$apk" >> "$GITHUB_OUTPUT"
 
+      # Non-secret metadata only: the certificate digest of the APK just built, so
+      # the run log names the identity that signed it. With the DEBUG_CERT_SHA256
+      # repository variable set (SETUP.md §6), a drop signed by anything else fails
+      # here rather than publish an APK the phone will refuse.
+      - name: Verify the signer
+        env:
+          EXPECTED_SHA256: ${{ vars.DEBUG_CERT_SHA256 }}
+          APK: ${{ steps.apk.outputs.path }}
+        run: |
+          apksigner="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)"
+          if [ -z "$apksigner" ]; then
+            echo "apksigner not found under $ANDROID_HOME/build-tools" >&2
+            exit 1
+          fi
+          certs="$("$apksigner" verify --print-certs "$APK")"
+          printf '%s\n' "$certs" | grep -i 'SHA-256 digest' || true
+          actual="$(printf '%s\n' "$certs" | grep -i 'certificate SHA-256 digest' | head -1 | sed 's/.*: *//' | tr -d ': ' | tr 'A-F' 'a-f')"
+          if [ -n "$EXPECTED_SHA256" ]; then
+            expected="$(printf '%s' "$EXPECTED_SHA256" | tr -d ': ' | tr 'A-F' 'a-f')"
+            if [ "$actual" != "$expected" ]; then
+              echo "Signer $actual is not DEBUG_CERT_SHA256 $expected — not publishing." >&2
+              exit 1
+            fi
+            echo "Signer matches DEBUG_CERT_SHA256."
+          fi
+
+      # The passwords also land in the configuration cache with the signing config.
+      - name: Remove signing material
+        if: always()
+        run: rm -rf debug-keystore.properties debug-signing .gradle/configuration-cache
+
       # workflow_dispatch keeps the build as an artifact only.
       - name: Upload APK artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -102,6 +171,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           APK: ${{ steps.apk.outputs.path }}
+          STABLE_SIGNER: ${{ steps.signer.outputs.stable }}
         run: |
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then
             tag="$GITHUB_REF_NAME"
@@ -112,6 +182,11 @@ jobs:
             tag="debug-live-${GITHUB_REF_NAME#debug-live/}"
             verify="--target $GITHUB_SHA"
           fi
+          if [ "$STABLE_SIGNER" = "true" ]; then
+            notes="Temper Debug drop, signed with the stable debug distribution key. Pull Obtainium on Temper Debug (include pre-releases)."
+          else
+            notes="**THROWAWAY SIGNER** — the DEBUG_KEYSTORE_* secrets are not configured, so this APK is signed by a key the runner generated and cannot update an existing Temper Debug install. Set the secrets per SETUP.md §6, or back up, uninstall and reinstall."
+          fi
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "Release $tag already exists — uploading without overwriting."
             gh release upload "$tag" "$APK" || \
@@ -120,6 +195,6 @@ jobs:
             gh release create "$tag" "$APK" \
               --title "Temper Debug — $tag" \
               --prerelease \
-              --notes "Temper Debug drop. Pull Obtainium on Temper Debug (include pre-releases)." \
+              --notes "$notes" \
               $verify
           fi

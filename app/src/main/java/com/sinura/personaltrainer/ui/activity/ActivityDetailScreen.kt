@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -26,6 +27,7 @@ import com.sinura.personaltrainer.domain.ActivityDetailCopy
 import com.sinura.personaltrainer.domain.ActivitySession
 import com.sinura.personaltrainer.domain.CardioBlock
 import com.sinura.personaltrainer.domain.CardioCopy
+import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.DistanceUnit
 import com.sinura.personaltrainer.domain.StrengthBlock
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -64,6 +66,28 @@ fun ActivityDetailScreen(
     ) {
         when {
             state.isLoading -> ScreenLoading()
+            // Before the missing branch on purpose: a failed read also has no session, and
+            // it must not be shown as a deleted one.
+            state.failed -> Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(Metrics.gutter),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+            ) {
+                EmptyState(
+                    title = DataHealthCopy.ACTIVITY_TITLE,
+                    body = DataHealthCopy.ACTIVITY_BODY,
+                    actionLabel = DataHealthCopy.RETRY,
+                    onAction = viewModel::retry,
+                    actionTag = ActivityDetailTags.RETRY,
+                )
+                TextButton(
+                    onClick = onBack,
+                    modifier = Modifier.testTag(ActivityDetailTags.DONE),
+                ) {
+                    Text(ActivityDetailCopy.missingAction(celebration))
+                }
+            }
             state.missing || state.session == null -> EmptyState(
                 title = ActivityDetailCopy.MISSING_TITLE,
                 body = ActivityDetailCopy.MISSING_BODY,
@@ -329,4 +353,5 @@ private fun CardioRows(block: CardioBlock, unit: WeightUnit) {
 object ActivityDetailTags {
     const val DONE = "activity-detail-done"
     const val BACK = "activity-detail-back"
+    const val RETRY = "activity-detail-retry"
 }

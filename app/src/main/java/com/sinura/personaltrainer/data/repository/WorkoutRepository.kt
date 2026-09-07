@@ -13,6 +13,9 @@ import com.sinura.personaltrainer.data.mapper.toSummary
 import com.sinura.personaltrainer.data.local.dao.ExerciseSetRow
 import com.sinura.personaltrainer.data.local.dao.FinishedWorkingSetRow
 import com.sinura.personaltrainer.data.local.entity.ExerciseRecordPriorsRow
+import com.sinura.personaltrainer.data.local.entity.FinishedWorkGeneration
+import com.sinura.personaltrainer.data.mapper.toRecordSet
+import com.sinura.personaltrainer.domain.RecordSet
 import com.sinura.personaltrainer.data.local.entity.SessionSummaryRow
 import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
 import com.sinura.personaltrainer.domain.Exercise
@@ -74,13 +77,18 @@ class WorkoutRepository(
     private val database: AppRoomDatabase,
     private val workoutDao: WorkoutDao,
     private val dbMaintenance: DbMaintenance? = null,
-    private val restoreInProgress: () -> Boolean = { false },
+    /**
+     * True while a restore journal is in a phase that is about to replace Room. From
+     * `room` on the training data is final and a start is allowed; see
+     * [RestoreJournal.blocksStart].
+     */
+    private val restoreBlocksStart: () -> Boolean = { false },
 ) {
     private suspend fun <T> serialized(block: suspend () -> T): T =
         dbMaintenance?.withMaintenanceLock(block) ?: block()
 
     private fun refuseIfRestoreOpen(): StartSessionOutcome.Unavailable? =
-        if (restoreInProgress()) {
+        if (restoreBlocksStart()) {
             StartSessionOutcome.Unavailable(RestoreJournal.INTERRUPTED)
         } else {
             null
@@ -156,6 +164,50 @@ class WorkoutRepository(
 
     suspend fun sessionsBetween(minDateMs: Long, maxDateMs: Long): List<WorkoutSession> =
         workoutDao.getFinishedSessionsBetween(minDateMs, maxDateMs).map { it.toDomain() }
+
+    /**
+     * The finished-work fingerprint as an opaque revision token.
+     *
+     * Moves when a finished session is added or removed, when a finished working set is
+     * logged, deleted or restored, and — through the volume and rep sums — when one is
+     * edited, which changes neither a count nor a timestamp. A screen that keys a recompute
+     * on this recomputes exactly when finished work changed. History used to key its horizon
+     * readout on list size and newest session id, and its past-block reviews on the last
+     * weigh-in, so a corrected weight in last week's session never reached either.
+     *
+     * A string rather than the entity so callers outside the data layer do not learn the
+     * fingerprint's shape; equality is the whole contract.
+     */
+    fun observeFinishedWorkRevision(): Flow<String> =
+        workoutDao.observeFinishedWorkGeneration()
+            .distinctUntilChanged()
+            .map { it.revisionToken() }
+
+    /**
+     * Every finished working set with its lift's name and class, for the lifetime records
+     * list. Gated on the same fingerprint, so a live set does not re-read the whole log; a
+     * renamed lift shows its old name here until finished work next changes, which is the
+     * trade the summaries already make.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun observeRecordSetsHealth(): Flow<DataHealth<List<RecordSet>>> =
+        workoutDao.observeFinishedWorkGeneration()
+            .distinctUntilChanged()
+            .mapLatest {
+                workoutDao.finishedWorkingSetRecords().mapNotNull { it.toRecordSet() }
+            }
+            .observeHealth("standing records")
+
+    private fun FinishedWorkGeneration.revisionToken(): String =
+        listOf(
+            finishedSessionCount,
+            durationSum,
+            lastFinishedAt ?: 0L,
+            finishedWorkingSetCount,
+            lastFinishedSetAt ?: 0L,
+            finishedWorkingVolumeKg,
+            finishedWorkingRepCount,
+        ).joinToString("|")
 
     fun observeSession(id: String): Flow<WorkoutSession?> =
         workoutDao.observeSession(id).map { it?.toDomain() }
@@ -311,10 +363,10 @@ class WorkoutRepository(
         }
 
         val inserted = serialized {
-            if (restoreInProgress()) null
+            if (restoreBlocksStart()) null
             else insertSessionIfIdle(session, exercises)
         } ?: return RepeatOutcome.Failed(
-            if (restoreInProgress()) RestoreJournal.INTERRUPTED
+            if (restoreBlocksStart()) RestoreJournal.INTERRUPTED
             else "One live activity at a time.",
         )
         if (!inserted.inserted) {

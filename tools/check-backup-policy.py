@@ -24,6 +24,7 @@ REQUIRED_PATHS = [
     "safety-snapshots",
     "restore-journal",
     "pre-migration",
+    "diagnostics",
     "rest_timer_state.xml",
     "schema_marker.xml",
 ]

@@ -130,9 +130,93 @@ class ActivityComposerViewModelTest {
         assertEquals(ComposerMode.STRENGTH, state.mode)
     }
 
-    private fun composer(mode: String) = ActivityComposerViewModel(
+    @Test
+    fun processRecreationRestoresTheTypedDraft() = runBlocking {
+        val exercise = seedLift()
+        val handle = SavedStateHandle(mapOf("mode" to "mixed"))
+        val first = composer(handle)
+        first.setTitle("Leg day")
+        first.setEpochDay(20_000L)
+        first.addStrength(exercise, 100.0, 5)
+        first.addCardio(CardioType.RIDE, 20, 4.0, true)
+        first.clearAndJoinForTest()
+
+        // The same handle is what the framework hands the recreated ViewModel.
+        viewModel = composer(handle)
+        val state = viewModel!!.uiState.first { it.todayEpochDay != 0L }
+
+        assertEquals("Leg day", state.title)
+        assertEquals(20_000L, state.epochDay)
+        val line = state.strength.single()
+        assertEquals(exercise.id, line.exercise.id)
+        assertEquals(exercise.name, line.exercise.name)
+        assertEquals(exercise.loadType, line.exercise.loadType)
+        assertEquals(100.0, line.weightKg, 0.0)
+        assertEquals(5, line.reps)
+        val ride = state.cardio.single()
+        assertEquals(CardioType.RIDE, ride.type)
+        assertEquals(20, ride.minutes)
+        assertEquals(4.0, ride.distanceKm!!, 0.0)
+        assertTrue(ride.indoor)
+    }
+
+    @Test
+    fun anAcceptedSaveClearsTheDraft() = runBlocking {
+        val handle = SavedStateHandle(mapOf("mode" to "cardio"))
+        viewModel = composer(handle)
+        viewModel!!.setTitle("Tempo")
+        viewModel!!.addCardio(CardioType.RUN, 30, 5.0, false)
+        viewModel!!.save()
+        withTimeout(5_000) { viewModel!!.savedId.first { it != null } }
+        viewModel!!.clearAndJoinForTest()
+
+        viewModel = composer(handle)
+        val state = viewModel!!.uiState.first { it.todayEpochDay != 0L }
+        assertEquals("", state.title)
+        assertTrue(state.cardio.isEmpty())
+        assertEquals(1, deps.activityRepository.all().size)
+    }
+
+    @Test
+    fun leavingClearsTheDraft() = runBlocking {
+        val handle = SavedStateHandle(mapOf("mode" to "cardio"))
+        viewModel = composer(handle)
+        viewModel!!.addCardio(CardioType.RUN, 30, null, false)
+        viewModel!!.discardDraft()
+        viewModel!!.clearAndJoinForTest()
+
+        viewModel = composer(handle)
+        val state = viewModel!!.uiState.first { it.todayEpochDay != 0L }
+        assertTrue(state.cardio.isEmpty())
+    }
+
+    @Test
+    fun aFailingReminderCleanupStillSavesExactlyOnce() = runBlocking {
+        // The activity commits before its reminders are cancelled. A throw from that
+        // cleanup used to surface as "Could not save", with the plan link still held, so
+        // the retry wrote the day a second time.
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            occurrenceCleanup = { error("WorkManager is unavailable") },
+        )
+        deps.pendingOccurrenceId.value = "occ-1"
+        viewModel = composer("cardio")
+        viewModel!!.addCardio(CardioType.RUN, 30, 5.0, false)
+        viewModel!!.save()
+
+        val id = withTimeout(5_000) { viewModel!!.savedId.first { it != null } }!!
+        val saved = deps.activityRepository.all().single()
+        assertEquals(id, saved.id)
+        assertEquals("occ-1", saved.occurrenceId)
+        assertEquals(null, viewModel!!.uiState.value.error)
+    }
+
+    private fun composer(mode: String) = composer(SavedStateHandle(mapOf("mode" to mode)))
+
+    private fun composer(handle: SavedStateHandle) = ActivityComposerViewModel(
         ApplicationProvider.getApplicationContext<Application>(),
-        SavedStateHandle(mapOf("mode" to mode)),
+        handle,
         deps,
     )
 

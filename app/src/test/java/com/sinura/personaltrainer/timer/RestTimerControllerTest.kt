@@ -4,7 +4,9 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.sinura.personaltrainer.domain.AlarmScheduleResult
 import com.sinura.personaltrainer.domain.RestFinishFlash
+import com.sinura.personaltrainer.logging.AppLog
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
@@ -12,6 +14,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -20,12 +24,26 @@ import org.robolectric.RobolectricTestRunner
  * The gold flash and lock glance key on a completion id, not on running
  * going false. Skip must not look finished. Persist and arm are one
  * ordered IO job: the snapshot is live before disk, and the alarm is
- * never scheduled before the row is durable.
+ * never scheduled before the row is durable — nor at all when the row
+ * did not commit, because the receiver reads a missing row as done.
  */
 @RunWith(RobolectricTestRunner::class)
 class RestTimerControllerTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
     private val alarmManager: AlarmManager = context.getSystemService(AlarmManager::class.java)
+    private val logged = java.util.Collections.synchronizedList(mutableListOf<String>())
+    private val previousSink = AppLog.sink
+
+    @Before
+    fun captureLogs() {
+        logged.clear()
+        AppLog.sink = { priority, tag, _, _ -> logged += "$priority $tag" }
+    }
+
+    @After
+    fun restoreSink() {
+        AppLog.sink = previousSink
+    }
 
     @Test
     fun completeIfCurrentPublishesTheIdBeforeTheStoreClears() {
@@ -182,16 +200,18 @@ class RestTimerControllerTest {
         val events = java.util.Collections.synchronizedList(mutableListOf<String>())
         val persistence = object : RestTimerStatePersistence {
             @Volatile var saved: PersistedRestTimer? = null
-            override fun save(state: PersistedRestTimer) {
+            override fun save(state: PersistedRestTimer): Boolean {
                 inSave.countDown()
                 check(allowSave.await(3, TimeUnit.SECONDS))
                 events += "save"
                 saved = state
+                return true
             }
             override fun load(): PersistedRestTimer? = saved
-            override fun clear() {
+            override fun clear(): Boolean {
                 events += "clear"
                 saved = null
+                return true
             }
         }
         val capability = EventCapability(events, alarmManager)
@@ -248,20 +268,189 @@ class RestTimerControllerTest {
         }
     }
 
+    @Test
+    fun aRowThatDidNotCommitLeavesTheWakeupUnarmed() {
+        val events = mutableListOf<String>()
+        val persistence = EventPersistence(events)
+        val store = RestTimerStore()
+        val controller = RestTimerController(
+            context = context,
+            store = store,
+            persistence = persistence,
+            alarms = RestTimerAlarmScheduler(context, EventCapability(events, alarmManager)),
+            ioDispatcher = Dispatchers.Unconfined,
+        )
+        try {
+            controller.start(90, "session-1")
+            assertEquals(AlarmScheduleResult.EXACT, controller.lastAlarmSchedule.value)
+            assertTrue(controller.persistenceHealthy.value)
+            events.clear()
+
+            persistence.saveResult = false
+            controller.adjust(15)
+            assertTrue(store.current().running)
+            assertEquals(listOf("save"), events.filter { it == "save" || it == "arm" })
+            assertEquals(AlarmScheduleResult.FAILED, controller.lastAlarmSchedule.value)
+            assertFalse(controller.persistenceHealthy.value)
+            assertTrue(logged.any { it == "${AppLog.WARN} PT/RestTimer" })
+        } finally {
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun theNextCommitThatLandsArmsAgainAndClearsTheFlag() {
+        val events = mutableListOf<String>()
+        val persistence = EventPersistence(events)
+        val store = RestTimerStore()
+        val controller = RestTimerController(
+            context = context,
+            store = store,
+            persistence = persistence,
+            alarms = RestTimerAlarmScheduler(context, EventCapability(events, alarmManager)),
+            ioDispatcher = Dispatchers.Unconfined,
+        )
+        try {
+            persistence.saveResult = false
+            controller.start(90, "session-1")
+            assertFalse(controller.persistenceHealthy.value)
+            assertTrue(events.none { it == "arm" })
+
+            persistence.saveResult = true
+            events.clear()
+            controller.adjust(15)
+            assertEquals(listOf("save", "arm"), events.filter { it == "save" || it == "arm" })
+            assertEquals(AlarmScheduleResult.EXACT, controller.lastAlarmSchedule.value)
+            assertTrue(controller.persistenceHealthy.value)
+            assertEquals(store.current().timerId, persistence.saved?.timerId)
+        } finally {
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun refreshingCapabilityWhileUnhealthyRetriesTheRowBeforeArming() {
+        val events = mutableListOf<String>()
+        val persistence = EventPersistence(events)
+        val store = RestTimerStore()
+        val controller = RestTimerController(
+            context = context,
+            store = store,
+            persistence = persistence,
+            alarms = RestTimerAlarmScheduler(context, EventCapability(events, alarmManager)),
+            ioDispatcher = Dispatchers.Unconfined,
+        )
+        try {
+            persistence.saveResult = false
+            controller.start(90, "session-1")
+            assertFalse(controller.persistenceHealthy.value)
+
+            persistence.saveResult = true
+            events.clear()
+            controller.refreshAlarmCapability()
+            assertEquals(listOf("save", "arm"), events.filter { it == "save" || it == "arm" })
+            assertTrue(controller.persistenceHealthy.value)
+        } finally {
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun aClearThatDoesNotCommitIsRetriedOnceAndLogged() {
+        val events = mutableListOf<String>()
+        val persistence = EventPersistence(events)
+        val store = RestTimerStore()
+        val controller = RestTimerController(
+            context = context,
+            store = store,
+            persistence = persistence,
+            alarms = RestTimerAlarmScheduler(context, EventCapability(events, alarmManager)),
+            ioDispatcher = Dispatchers.Unconfined,
+        )
+        try {
+            controller.start(90, "session-1")
+            persistence.clearResult = false
+            events.clear()
+            logged.clear()
+
+            controller.stop()
+            assertFalse(store.current().running)
+            assertEquals(2, events.count { it == "clear" })
+            assertEquals(0, persistence.cleared)
+            assertFalse(controller.persistenceHealthy.value)
+            assertTrue(logged.count { it == "${AppLog.WARN} PT/RestTimer" } >= 2)
+
+            persistence.clearResult = true
+            controller.stop()
+            assertEquals(1, persistence.cleared)
+            assertNull(persistence.saved)
+            assertTrue(controller.persistenceHealthy.value)
+        } finally {
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun aPersistenceThatThrowsIsUnhealthyNotFatal() {
+        val events = mutableListOf<String>()
+        val persistence = EventPersistence(events)
+        val store = RestTimerStore()
+        val controller = RestTimerController(
+            context = context,
+            store = store,
+            persistence = persistence,
+            alarms = RestTimerAlarmScheduler(context, EventCapability(events, alarmManager)),
+            ioDispatcher = Dispatchers.Unconfined,
+        )
+        try {
+            persistence.saveError = IllegalStateException("prefs file unwritable")
+            controller.start(90, "session-1")
+            assertTrue(store.current().running)
+            assertTrue(events.none { it == "arm" })
+            assertEquals(AlarmScheduleResult.FAILED, controller.lastAlarmSchedule.value)
+            assertFalse(controller.persistenceHealthy.value)
+            assertTrue(logged.any { it == "${AppLog.WARN} PT/RestTimer" })
+
+            persistence.saveError = null
+            persistence.clearError = IllegalStateException("prefs file unwritable")
+            controller.stop()
+            assertFalse(store.current().running)
+            assertEquals(2, events.count { it == "clear" })
+            assertFalse(controller.persistenceHealthy.value)
+        } finally {
+            persistence.clearError = null
+            controller.stop()
+        }
+    }
+
+    /**
+     * A false result leaves the row as it was, the way a refused commit()
+     * does; a set error throws before anything is recorded.
+     */
     private class EventPersistence(
         private val events: MutableList<String>,
     ) : RestTimerStatePersistence {
         var saved: PersistedRestTimer? = null
         var cleared = 0
-        override fun save(state: PersistedRestTimer) {
+        var saveResult = true
+        var clearResult = true
+        var saveError: Throwable? = null
+        var clearError: Throwable? = null
+        override fun save(state: PersistedRestTimer): Boolean {
             events += "save"
-            saved = state
+            saveError?.let { throw it }
+            if (saveResult) saved = state
+            return saveResult
         }
         override fun load(): PersistedRestTimer? = saved
-        override fun clear() {
+        override fun clear(): Boolean {
             events += "clear"
-            saved = null
-            cleared++
+            clearError?.let { throw it }
+            if (clearResult) {
+                saved = null
+                cleared++
+            }
+            return clearResult
         }
     }
 

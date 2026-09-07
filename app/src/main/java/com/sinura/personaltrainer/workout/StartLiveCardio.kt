@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.domain.CardioBlock
 import com.sinura.personaltrainer.domain.CardioCopy
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.IdPort
+import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.timer.CardioElapsed
 import com.sinura.personaltrainer.timer.CardioTimerPersistence
 import com.sinura.personaltrainer.timer.PersistedCardioTimer
@@ -52,7 +53,7 @@ class StartLiveCardio(
             is ActivityWrite.Accepted -> {
                 val nowElapsed = android.os.SystemClock.elapsedRealtime()
                 val nowWall = System.currentTimeMillis()
-                cardioTimerPersistence.save(
+                val saved = cardioTimerPersistence.save(
                     PersistedCardioTimer(
                         sessionId = write.session.id,
                         startedAtElapsedRealtime = nowElapsed,
@@ -60,9 +61,18 @@ class StartLiveCardio(
                         bootMarker = CardioElapsed.bootMarker(nowWall, nowElapsed),
                     ),
                 )
+                if (!saved) {
+                    // The live screen re-saves on open; until then its clock
+                    // counts from the session's own start.
+                    AppLog.w(TAG, "Cardio timer row did not commit at start")
+                }
                 StartCardioOutcome.Open(write.session.id)
             }
             is ActivityWrite.Rejected -> StartCardioOutcome.Rejected(write.reason)
         }
+    }
+
+    private companion object {
+        const val TAG = "PT/StartLiveCardio"
     }
 }

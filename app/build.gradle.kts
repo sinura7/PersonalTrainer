@@ -17,7 +17,7 @@ val appVersionName = "1.0.0"
 // appVersionCode. The two apps are different ids, so they do not share
 // Android's upgrade counter. Obtainium will not offer an update if this
 // stays put — both previous debug-live APKs were versionCode 1.
-val debugLiveCode = 21
+val debugLiveCode = 22
 
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 val keystoreProperties = Properties()
@@ -29,6 +29,23 @@ val releaseStoreFile = if (keystorePropertiesFile.exists()) {
     null
 }
 val releaseSigningReady = releaseStoreFile != null && releaseStoreFile.exists()
+
+// Temper Debug's distribution signer. Two drops signed by two different keys cannot
+// update each other — Android refuses the install and the Drive OAuth client's SHA-1
+// stops matching — and a fresh hosted runner mints a fresh debug keystore every run.
+// debug-live.yml restores one stable keystore from repository secrets into this
+// gitignored file; a developer machine without the file keeps AGP's default debug
+// keystore exactly as before. Release signing is a separate key in a separate file.
+val debugKeystorePropertiesFile = rootProject.file("debug-keystore.properties")
+val debugKeystoreProperties = Properties()
+val debugStoreFile = if (debugKeystorePropertiesFile.exists()) {
+    debugKeystorePropertiesFile.inputStream().use { debugKeystoreProperties.load(it) }
+    val storePath = debugKeystoreProperties.getProperty("storeFile").orEmpty()
+    if (storePath.isNotBlank()) rootProject.file(storePath) else null
+} else {
+    null
+}
+val debugSigningReady = debugStoreFile != null && debugStoreFile.exists()
 
 android {
     namespace = "com.sinura.personaltrainer"
@@ -91,16 +108,29 @@ android {
                 keyPassword = keystoreProperties.getProperty("keyPassword").orEmpty()
             }
         }
+        if (debugSigningReady) {
+            create("debugLive") {
+                storeFile = debugStoreFile
+                storePassword = debugKeystoreProperties.getProperty("storePassword").orEmpty()
+                keyAlias = debugKeystoreProperties.getProperty("keyAlias").orEmpty()
+                keyPassword = debugKeystoreProperties.getProperty("keyPassword").orEmpty()
+            }
+        }
     }
 
     buildTypes {
         debug {
-            // Debug signing stays on the default debug keystore.
-            // A different id so Run ▶ cannot open the release history. The next
-            // debug install is a new app; uninstall the old debug (same id as
-            // release, debug-signed) when you see two Temper icons.
+            // Debug signing stays on the default debug keystore unless
+            // debug-keystore.properties names the distribution signer (see the
+            // comment on debugSigningReady). A different id so Run ▶ cannot open
+            // the release history. The next debug install is a new app; uninstall
+            // the old debug (same id as release, debug-signed) when you see two
+            // Temper icons.
             applicationIdSuffix = ".debug"
             enableUnitTestCoverage = true
+            if (debugSigningReady) {
+                signingConfig = signingConfigs.getByName("debugLive")
+            }
         }
         release {
             isMinifyEnabled = true

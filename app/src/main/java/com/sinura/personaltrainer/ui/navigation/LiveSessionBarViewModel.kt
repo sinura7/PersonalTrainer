@@ -9,6 +9,7 @@ import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.LiveSessionRules
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.AppClock
+import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.workout.DiscardOutcome
 import com.sinura.personaltrainer.workout.FinishOutcome
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -178,34 +179,45 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
         _actionError.value = null
     }
 
+    private suspend fun finishActivityFromBar(sessionId: String) {
+        val now = com.sinura.personaltrainer.util.JvmTime.captureNow()
+        val current = container.activityRepository.get(sessionId)
+        val persisted = container.cardioTimerPersistence.load()
+            ?.takeIf { it.sessionId == sessionId }
+        val elapsed = com.sinura.personaltrainer.timer.CardioElapsed.seconds(
+            persisted = persisted,
+            sessionStartedAtMs = current?.performedStart?.instantMillis ?: now.instantMillis,
+            nowWallMs = now.instantMillis,
+            nowBootCount = com.sinura.personaltrainer.timer.BootSession.count(getApplication()),
+        )
+        val blocks = current?.cardioBlocks?.map { block ->
+            block.copy(elapsedSeconds = elapsed, movingSeconds = elapsed)
+        } ?: current?.blocks
+        when (val write = container.finishActivity(sessionId, now, blocks)) {
+            is com.sinura.personaltrainer.domain.ActivityWrite.Accepted -> {
+                container.cardioTimerPersistence.clear()
+                _actionError.value = null
+                _finishedActivityNavigation.value = write.session.id
+            }
+            is com.sinura.personaltrainer.domain.ActivityWrite.Rejected -> {
+                AppLog.w(TAG, "Finishing live cardio from the bar failed: ${write.reason}")
+                _actionError.value = write.reason
+            }
+        }
+    }
+
     fun finishFromBar() {
         val live = uiState.value ?: return
         viewModelScope.launch {
             if (live.kind == LiveBarKind.ACTIVITY) {
-                val now = com.sinura.personaltrainer.util.JvmTime.captureNow()
-                val current = container.activityRepository.get(live.sessionId)
-                val persisted = container.cardioTimerPersistence.load()
-                    ?.takeIf { it.sessionId == live.sessionId }
-                val elapsed = com.sinura.personaltrainer.timer.CardioElapsed.seconds(
-                    persisted = persisted,
-                    sessionStartedAtMs = current?.performedStart?.instantMillis ?: now.instantMillis,
-                    nowWallMs = now.instantMillis,
-                    nowBootCount = com.sinura.personaltrainer.timer.BootSession.count(getApplication()),
-                )
-                val blocks = current?.cardioBlocks?.map { block ->
-                    block.copy(elapsedSeconds = elapsed, movingSeconds = elapsed)
-                } ?: current?.blocks
-                when (val write = container.finishActivity(live.sessionId, now, blocks)) {
-                    is com.sinura.personaltrainer.domain.ActivityWrite.Accepted -> {
-                        container.cardioTimerPersistence.clear()
-                        _actionError.value = null
-                        _finishedActivityNavigation.value = write.session.id
+                // Wrapped like the workout branch's outcomes: a read fault before the write,
+                // or anything the finish throws, used to be an uncaught coroutine failure in
+                // viewModelScope, which takes the process down for a tap on the bar.
+                runCatchingCancellable { finishActivityFromBar(live.sessionId) }
+                    .onFailure { thrown ->
+                        AppLog.w(TAG, "Finishing live cardio from the bar threw", thrown)
+                        _actionError.value = "Could not finish that session. Try again."
                     }
-                    is com.sinura.personaltrainer.domain.ActivityWrite.Rejected -> {
-                        AppLog.w(TAG, "Finishing live cardio from the bar failed: ${write.reason}")
-                        _actionError.value = write.reason
-                    }
-                }
             } else {
                 when (val outcome = container.finishWorkout(live.sessionId, notes = null)) {
                     is FinishOutcome.Finished -> {

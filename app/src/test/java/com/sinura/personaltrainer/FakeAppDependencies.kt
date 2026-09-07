@@ -2,7 +2,9 @@ package com.sinura.personaltrainer
 
 import android.content.Context
 import android.content.ContextWrapper
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
@@ -23,6 +25,7 @@ import com.sinura.personaltrainer.activity.DiscardActivity
 import com.sinura.personaltrainer.activity.FinishActivity
 import com.sinura.personaltrainer.activity.StartLiveActivity
 import com.sinura.personaltrainer.data.local.TemperDatabase
+import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.repository.ActivityRepository
 import com.sinura.personaltrainer.data.repository.BackupRepository
 import com.sinura.personaltrainer.timer.CardioTimerPersistence
@@ -98,6 +101,23 @@ class FakeAppDependencies(
     override val ioDispatcher: CoroutineDispatcher = scheduler ?: Dispatchers.IO,
     override val computeDispatcher: CoroutineDispatcher = scheduler ?: Dispatchers.Default,
     override val time: com.sinura.personaltrainer.domain.TimePort = JvmTime,
+    /**
+     * Wraps the preferences store before the repository sees it. Restore-recovery tests
+     * hand in a store whose writes fail on demand, which is the only way to reach the
+     * "Room committed, preferences did not" branch without a seam in production code.
+     */
+    prefsStoreDecorator: (DataStore<Preferences>) -> DataStore<Preferences> = { it },
+    /**
+     * Wraps the activity DAO before the repository sees it. Read-fault tests hand in a
+     * delegate whose one read throws on demand, the same seam the routine editor's
+     * hydration tests use, so a screen can be shown a Room failure without one.
+     */
+    activityDaoDecorator: (ActivityDao) -> ActivityDao = { it },
+    /**
+     * Replaces the reminder cleanup that runs after an activity commits. Null keeps the
+     * production wiring; a throwing one reproduces the cleanup failure R06 is about.
+     */
+    occurrenceCleanup: (suspend (String) -> Unit)? = null,
 ) : AppDependencies {
     /**
      * Real threads, not the test scheduler. See the constructor KDoc on why Room stays
@@ -142,13 +162,15 @@ class FakeAppDependencies(
             database,
             database.workoutDao(),
             dbMaintenance,
-            restoreInProgress = { backupRepository.restoreInProgress() },
+            restoreBlocksStart = { backupRepository.restoreBlocksStart() },
         )
     private val prefsContext = IsolatedAppContext(context.applicationContext)
     private val prefsScope = CoroutineScope(SupervisorJob() + prefsDispatcher)
-    private val prefsStore = PreferenceDataStoreFactory.create(
-        scope = prefsScope,
-        produceFile = { File(prefsContext.filesDir, "datastore/user_settings.preferences_pb") },
+    private val prefsStore = prefsStoreDecorator(
+        PreferenceDataStoreFactory.create(
+            scope = prefsScope,
+            produceFile = { File(prefsContext.filesDir, "datastore/user_settings.preferences_pb") },
+        ),
     )
     override val preferencesRepository: PreferencesRepository =
         PreferencesRepository(
@@ -158,9 +180,14 @@ class FakeAppDependencies(
             trainingBlockDao = database.trainingBlockDao(),
         )
     override val activityRepository: ActivityRepository = ActivityRepository(
-        database,
+        database = database,
+        dao = activityDaoDecorator(database.activityDao()),
         dbMaintenance = dbMaintenance,
-        onOccurrenceCompleted = { plannerRepository.cancelRemindersFor(it) },
+        onOccurrenceCompleted = { occurrenceId ->
+            occurrenceCleanup?.invoke(occurrenceId)
+                ?: plannerRepository.cancelRemindersFor(occurrenceId)
+        },
+        restoreBlocksStart = { backupRepository.restoreBlocksStart() },
     )
     override val confirmActivity: ConfirmActivity =
         ConfirmActivity(activityRepository, IdFactory.Uuid, time)
@@ -187,6 +214,11 @@ class FakeAppDependencies(
 
     fun setExactAlarmAttempt(attempt: ExactAlarmAttempt) {
         inMemoryRestTimer.setAttempt(attempt)
+    }
+
+    /** What the production controller publishes after a rest row failed to commit. */
+    fun setRestPersistenceHealthy(healthy: Boolean) {
+        inMemoryRestTimer.setPersistenceHealthy(healthy)
     }
     override val workoutDraftCache: WorkoutDraftCache = WorkoutDraftCache()
     override val finishWorkout: FinishWorkout = FinishWorkout(
@@ -221,9 +253,10 @@ class FakeAppDependencies(
         startTrainingDay = startTrainingDay,
         startLiveCardio = startLiveCardio,
     )
-    val restoreJournal = RestoreJournalStore(
-        File(context.cacheDir, "restore-journal-${System.nanoTime()}").also { it.mkdirs() },
-    )
+    /** Exposed so a fault-matrix test can delete one journal file, as a crash would leave it. */
+    val restoreJournalDir: File =
+        File(context.cacheDir, "restore-journal-${System.nanoTime()}").also { it.mkdirs() }
+    val restoreJournal = RestoreJournalStore(restoreJournalDir)
     val localBackupRepository = LocalBackupRepository(
         database = database,
         activityDao = database.activityDao(),
@@ -287,6 +320,7 @@ private class InMemoryRestTimerGateway(
     private var elapsedRealtimeMs: Long = 0L
     private val _lastAlarmSchedule = MutableStateFlow(AlarmScheduleResult.EXACT)
     private val _exactAlarmAttempt = MutableStateFlow(ExactAlarmAttempt.EXACT)
+    private val _persistenceHealthy = MutableStateFlow(true)
 
     override val snapshot: StateFlow<RestTimerSnapshot> = store.snapshot
     override val remainingSeconds: Flow<Int> = snapshot
@@ -299,9 +333,14 @@ private class InMemoryRestTimerGateway(
     override val lastCompletedTimerId: StateFlow<String?> = _lastCompletedTimerId
     override val lastAlarmSchedule: StateFlow<AlarmScheduleResult> = _lastAlarmSchedule
     override val exactAlarmAttempt: StateFlow<ExactAlarmAttempt> = _exactAlarmAttempt
+    override val persistenceHealthy: StateFlow<Boolean> = _persistenceHealthy
 
     fun setAttempt(attempt: ExactAlarmAttempt) {
         _exactAlarmAttempt.value = attempt
+    }
+
+    fun setPersistenceHealthy(healthy: Boolean) {
+        _persistenceHealthy.value = healthy
     }
 
     override fun markCompleted(timerId: String) {
@@ -329,13 +368,15 @@ private class InMemoryRestTimerGateway(
 private class InMemoryCardioTimerPersistence : CardioTimerPersistence {
     private var stored: PersistedCardioTimer? = null
 
-    override fun save(state: PersistedCardioTimer) {
+    override fun save(state: PersistedCardioTimer): Boolean {
         stored = state
+        return true
     }
 
     override fun load(): PersistedCardioTimer? = stored
 
-    override fun clear() {
+    override fun clear(): Boolean {
         stored = null
+        return true
     }
 }

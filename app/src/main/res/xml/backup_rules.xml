@@ -6,7 +6,7 @@
 
   Stores named from docs/architecture/backup-threat-model.md §3:
   Room, DataStore, rest_timer_state, schema_marker, safety snapshots,
-  restore journal, pre-migration copy.
+  restore journal, pre-migration copy, last-crash diagnostics.
 -->
 <full-backup-content>
     <exclude domain="root" />
@@ -27,6 +27,7 @@
     <exclude domain="file" path="safety-snapshots" />
     <exclude domain="file" path="restore-journal" />
     <exclude domain="file" path="pre-migration" />
+    <exclude domain="file" path="diagnostics" />
     <exclude domain="sharedpref" path="rest_timer_state.xml" />
     <exclude domain="sharedpref" path="schema_marker.xml" />
 </full-backup-content>

@@ -372,4 +372,16 @@ data class DriveBackupFile(
     val modifiedAtMillis: Long,
 )
 
+/**
+ * One `listBackups` answer, newest first.
+ *
+ * [truncated] means the listing stopped at its file or request ceiling while Drive
+ * still offered a next page: [files] are the newest backups, not all of them, and
+ * a count of them is not a count of the folder (R13).
+ */
+data class DriveBackupListing(
+    val files: List<DriveBackupFile>,
+    val truncated: Boolean,
+)
+
 class BackupException(message: String) : Exception(message)

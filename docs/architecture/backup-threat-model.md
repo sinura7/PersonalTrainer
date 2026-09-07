@@ -68,6 +68,7 @@ encryption.
 | Safety snapshots | `files/safety-snapshots/pre-restore-*.json` | Plaintext JSON of current state; keep newest 3 | N/A (they *are* backups) | No |
 | Restore journal | `files/restore-journal/` | Phase + incoming JSON for a killed restore | No | No |
 | Pre-migration v1 copy | `files/pre-migration/v1/personal_trainer.db` (+ WAL/SHM) | Byte copy taken once before Room v2 | No | No |
+| Last crash | `files/diagnostics/last-crash.txt` | One already-redacted diagnostic event (id, time, kind, exception class, `PT/` tag, Temper frames); no message, no user data | No | No |
 | Workout draft | In-process cache + Activity `SavedStateHandle` | Unlogged set entry | No | OS saved state only |
 | Drive token | `DriveAuthClient` memory | Access token + email | No | No |
 | Logcat | Not persisted by the app | `PT/<Component>` breadcrumbs | No | No |
@@ -95,8 +96,10 @@ backup/restore stamps; rest-timer runtime state.
 
 - Settings → Export to file / Import file.
 - Default export: versioned envelope (`temper-backup-envelope`) wrapping
-  the same `BackupJson` document. KDF is PBKDF2-HMAC-SHA256 (210,000
-  iterations). Cipher is AES-256-GCM with a random salt and nonce.
+  the same `BackupJson` document. KDF is PBKDF2-HMAC-SHA256 at
+  `BackupEnvelope.DEFAULT_ITERATIONS` (600,000 at this commit; the
+  constant in code is authoritative, and a file carries its own count up
+  to `MAX_ITERATIONS`). Cipher is AES-256-GCM with a random salt and nonce.
   Password is typed at export and at import; it is not stored.
 - Advanced export: plaintext JSON after an explicit warning. Anyone who
   can read that file can read bodyweight and the full finished history.

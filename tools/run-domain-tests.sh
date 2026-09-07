@@ -13,11 +13,13 @@
 # Two lanes:
 #   domain — always. domain/, util/, logging/ against test/.../domain/.
 #   backup — when a Gson jar is present. BackupDocument/BackupJson/BackupValidator
-#            against test/.../data/backup/. These three files are the only ones in
-#            data/backup/ with no Android imports; the Drive HTTP clients are
-#            excluded by name rather than by directory for exactly that reason.
-#            DriveAboutJson and DriveFolderJson stay in the lane: they are
-#            Gson-only parsers. The lane exists because a silent backup defect
+#            against test/.../data/backup/. Files are named one by one because the
+#            directory also holds DriveAuthClient (Play Services) and NetworkChecker
+#            (Android connectivity), which cannot link here. DriveAboutJson and
+#            DriveFolderJson are Gson-only parsers; DriveHttp and DriveRestClient are
+#            java.net plus Gson, and the client takes its transport as a constructor
+#            argument so its paging runs against a fake without a socket.
+#            The lane exists because a silent backup defect
 #            costs the owner their entire training history, and four test files
 #            sat here never once executed.
 #
@@ -144,17 +146,25 @@ TESTS=app/src/test/java/com/sinura/personaltrainer
 EXTRA_MAIN="$SRC/workout/WorkoutDraftCache.kt $SRC/workout/WorkoutDraftRecovery.kt \
             $SRC/timer/RestTimerStore.kt $SRC/timer/RestTimerStatePersistence.kt \
             $SRC/timer/RestAlarmPlan.kt $SRC/timer/CardioTimerPersistence.kt \
-            $SRC/timer/BootSession.kt"
+            $SRC/timer/BootSession.kt \
+            $SRC/diagnostics/DiagnosticRing.kt $SRC/diagnostics/DiagnosticRedaction.kt \
+            $SRC/diagnostics/LastCrashStore.kt"
 # Workout and timer tests are named: StartTrainingDayTest, WorkoutLifecycleUseCasesTest,
 # and RestTimerStatePersistenceTest are Robolectric and cannot compile against these
 # stubs. Keep them out of this lane; Gradle still runs them.
+# FrozenTime is the one testutil helper with no Android imports; OccurrenceGeneratorTest
+# needs it, and leaving it out is how the whole domain lane stopped compiling after J4.
+# diagnostics/ tests are passed whole: DiagnosticMetadata is the one Android file in the
+# main package and is left out above, and the test directory has no Android imports.
 EXTRA_TESTS="$TESTS/util \
+             $TESTS/testutil/FrozenTime.kt \
              $TESTS/workout/WorkoutDraftCacheTest.kt \
              $TESTS/workout/WorkoutDraftRecoveryTest.kt \
              $TESTS/timer/RestTimerStoreTest.kt \
              $TESTS/timer/RestTimerRehydratorTest.kt \
              $TESTS/timer/RestAlarmPlanTest.kt \
-             $TESTS/timer/CardioElapsedTest.kt"
+             $TESTS/timer/CardioElapsedTest.kt \
+             $TESTS/diagnostics"
 
 echo "Compiling domain sources..."
 # shellcheck disable=SC2086
@@ -176,7 +186,9 @@ case "$CP" in
     BACKUP="app/src/main/java/com/sinura/personaltrainer/data/backup"
     for f in BackupDocument.kt BackupJson.kt BackupValidator.kt AuthoredInventory.kt \
              SafetySnapshot.kt SafetySnapshotStore.kt RestoreJournal.kt RestoreJournalStore.kt \
-             BackupEnvelope.kt BackupScaleBudget.kt DriveAboutJson.kt DriveFolderJson.kt; do
+             RestoreWitness.kt \
+             BackupEnvelope.kt BackupScaleBudget.kt DriveAboutJson.kt DriveFolderJson.kt \
+             DriveHttp.kt DriveRestClient.kt; do
       [ -f "$BACKUP/$f" ] || { echo "FAILED: $BACKUP/$f is missing." >&2; exit 1; }
       BACKUP_SRC="$BACKUP_SRC $BACKUP/$f"
     done
