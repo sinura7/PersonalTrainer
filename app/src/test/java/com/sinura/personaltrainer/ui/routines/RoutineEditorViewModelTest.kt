@@ -7,10 +7,12 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.local.dao.RoutineDao
+import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.local.relation.RoutineWithExercises
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.RoutineSaveCopy
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.insertTestExercise
@@ -639,6 +641,199 @@ class RoutineEditorViewModelTest {
         )
     }
 
+    // ---- UX04: Save is truthful ----
+
+    /**
+     * The defect: the details write threw, the failure was logged, and the screen popped with
+     * the owner believing the rename was stored. Save must stay, say so, and retry cleanly.
+     */
+    @Test
+    fun saveWithFailingDetailsWriteStaysAndKeepsTheName() = runBlocking {
+        val fixture = seedTestWorkout(deps)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val gate = FailureGate(shouldFail = true)
+        val dao = FailingUpdateRoutineDao(deps.database.routineDao(), gate)
+        val vm = createViewModel(fixture.routine.id, container = withRoutineDao(dao))
+        vm.uiState.first { it.routine != null && it.name == fixture.routine.name }
+
+        vm.onNameChange("Lower strength")
+        vm.saveAndLeave()
+
+        val blocked = vm.uiState.first { it.saveError != null && !it.saving }
+        assertFalse(vm.exitRequested.value)
+        assertEquals(RoutineSaveCopy.DETAILS_FAILED, blocked.saveError)
+        assertEquals("Lower strength", blocked.name)
+        assertNull(blocked.unsavedOnBack)
+        assertEquals(fixture.routine.name, checkNotNull(deps.routineRepository.getById(fixture.routine.id)).name)
+        assertEquals(0, dao.updates)
+
+        gate.shouldFail = false
+        vm.saveAndLeave()
+        vm.exitRequested.first { it }
+        val saved = checkNotNull(deps.routineRepository.getById(fixture.routine.id))
+        assertEquals("Lower strength", saved.name)
+        assertEquals(1, saved.exercises.size)
+        assertEquals(1, dao.updates)
+    }
+
+    /** A staged target whose write threw stays staged; the retry lands it exactly once. */
+    @Test
+    fun saveWithFailingTargetWriteStaysAndRetryPersistsOnce() = runBlocking {
+        val fixture = seedTestWorkout(deps, targetSets = 3, targetReps = 5)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val itemId = fixture.routine.exercises.single().id
+        val gate = FailureGate(shouldFail = true)
+        val dao = FailingUpsertExerciseDao(deps.database.routineDao(), gate)
+        val vm = createViewModel(fixture.routine.id, container = withRoutineDao(dao))
+        vm.uiState.first { it.routine != null }
+
+        vm.stageTargets(itemId, targetSets = 4, targetReps = 6, targetWeightKg = 110.0, restSeconds = 120)
+        vm.saveAndLeave()
+
+        val blocked = vm.uiState.first { it.saveError != null && !it.saving }
+        assertFalse(vm.exitRequested.value)
+        assertEquals(RoutineSaveCopy.targetsFailed(fixture.exercise.name), blocked.saveError)
+        assertEquals(3, checkNotNull(deps.routineRepository.getById(fixture.routine.id)).exercises.single().targetSets)
+        assertEquals(0, dao.upserts)
+
+        gate.shouldFail = false
+        vm.saveAndLeave()
+        vm.exitRequested.first { it }
+        val stored = checkNotNull(deps.routineRepository.getById(fixture.routine.id)).exercises.single()
+        assertEquals(4, stored.targetSets)
+        assertEquals(6, stored.targetReps)
+        assertEquals(110.0, stored.targetWeightKg)
+        assertEquals(120, stored.restSeconds)
+        assertEquals(1, dao.upserts)
+    }
+
+    /**
+     * A rejected value blocks Save with the card's own words, said once: the focus-change
+     * commit already put it in the banner, and the dock takes it over rather than doubling it.
+     */
+    @Test
+    fun saveWithARejectedTargetStaysWithTheExistingErrorSaidOnce() = runBlocking {
+        val fixture = seedTestWorkout(deps, targetSets = 3, targetReps = 5)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val itemId = fixture.routine.exercises.single().id
+        val vm = createViewModel(fixture.routine.id)
+        vm.uiState.first { it.routine != null }
+
+        vm.stageTargets(itemId, targetSets = 0, targetReps = 5, targetWeightKg = 100.0, restSeconds = 90)
+        vm.commitTargets(itemId)
+        vm.uiState.first { it.error == RoutineSaveCopy.TARGETS_REJECTED }
+        vm.saveAndLeave()
+
+        val blocked = vm.uiState.first { it.saveError == RoutineSaveCopy.TARGETS_REJECTED && !it.saving }
+        assertFalse(vm.exitRequested.value)
+        assertNull(blocked.error)
+        assertEquals(3, checkNotNull(deps.routineRepository.getById(fixture.routine.id)).exercises.single().targetSets)
+    }
+
+    /**
+     * Back with a write that will not land must not drop it quietly. It asks; leave-anyway
+     * pops without another attempt, and every write-through edit is still in Room.
+     */
+    @Test
+    fun backWithUnsavedWritesOffersLeaveAnyway() = runBlocking {
+        val fixture = seedTestWorkout(deps)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val row = insertTestExercise(deps, "row", "Row")
+        val gate = FailureGate(shouldFail = false)
+        val dao = FailingUpdateRoutineDao(deps.database.routineDao(), gate)
+        val vm = createViewModel(fixture.routine.id, container = withRoutineDao(dao))
+        vm.uiState.first { it.routine != null && it.name == fixture.routine.name }
+        val before = checkNotNull(deps.routineRepository.getById(fixture.routine.id)).updatedAt
+        vm.addExercise(row, 3, 8, null, 90)
+        // Both conditions: the lift's upsert emits before addExercise's closing touch() has
+        // run updateRoutine, and flipping the gate in that window would fail the add itself
+        // rather than the details write this test is about. The touch moves updatedAt.
+        awaitRoutine { it.exercises.size == 2 && it.updatedAt != before }
+
+        gate.shouldFail = true
+        vm.onNotesChange("tempo on the last set")
+        vm.leave()
+
+        val prompted = vm.uiState.first { it.unsavedOnBack != null && !it.saving }
+        assertFalse(vm.exitRequested.value)
+        assertEquals(listOf(RoutineSaveCopy.DETAILS_ITEM), prompted.unsavedOnBack?.items)
+        assertEquals(RoutineSaveCopy.DETAILS_FAILED, prompted.unsavedOnBack?.message)
+        assertNull(prompted.saveError)
+        assertEquals("tempo on the last set", prompted.notes)
+
+        vm.leaveAnyway()
+        vm.exitRequested.first { it }
+        val stored = checkNotNull(deps.routineRepository.getById(fixture.routine.id))
+        assertEquals(listOf(fixture.exercise.id, row.id), stored.exercises.map { it.exercise.id })
+        assertEquals("", stored.notes)
+    }
+
+    /** A card reading 0 sets is unsaved work too. Back asks; fixing it and trying again lands it. */
+    @Test
+    fun backWithARejectedTargetAsksInsteadOfDroppingIt() = runBlocking {
+        val fixture = seedTestWorkout(deps, targetSets = 3, targetReps = 5)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val itemId = fixture.routine.exercises.single().id
+        val vm = createViewModel(fixture.routine.id)
+        vm.uiState.first { it.routine != null }
+
+        vm.stageTargets(itemId, targetSets = 0, targetReps = 5, targetWeightKg = 100.0, restSeconds = 90)
+        vm.leave()
+
+        val prompted = vm.uiState.first { it.unsavedOnBack != null && !it.saving }
+        assertFalse(vm.exitRequested.value)
+        assertEquals(RoutineSaveCopy.TARGETS_REJECTED, prompted.unsavedOnBack?.message)
+        assertEquals(listOf(RoutineSaveCopy.targetsItem(fixture.exercise.name)), prompted.unsavedOnBack?.items)
+
+        vm.stageTargets(itemId, targetSets = 4, targetReps = 5, targetWeightKg = 100.0, restSeconds = 90)
+        vm.leave()
+        vm.exitRequested.first { it }
+        assertEquals(4, checkNotNull(deps.routineRepository.getById(fixture.routine.id)).exercises.single().targetSets)
+    }
+
+    /** Leave-anyway is Back minus the flush: an empty stub created this session still goes. */
+    @Test
+    fun leaveAnywayStillDiscardsAnEmptyStubCreatedThisSession() = runBlocking {
+        val exercise = insertTestExercise(deps, "row", "Row")
+        val vm = createViewModel("new")
+        vm.uiState.first { !it.isLoading }
+        vm.addExercise(exercise, 3, 8, null, 90)
+        val created = awaitRoutine { it.exercises.size == 1 }
+        vm.removeExercise(created.exercises.single().id)
+        awaitRoutine { it.exercises.isEmpty() }
+
+        vm.leaveAnyway()
+        vm.exitRequested.first { it }
+        assertTrue(deps.routineRepository.observeAll().first().isEmpty())
+    }
+
+    /** While the attempt runs the dock reads Saving…; a second Save or Back starts nothing. */
+    @Test
+    fun savingIsVisibleAndASecondPressIsIgnored() = runBlocking {
+        val fixture = seedTestWorkout(deps)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val gate = CompletableDeferred<Unit>()
+        val dao = GatedUpdateRoutineDao(deps.database.routineDao(), gate)
+        val vm = createViewModel(fixture.routine.id, container = withRoutineDao(dao))
+        try {
+            vm.uiState.first { it.routine != null && it.name == fixture.routine.name }
+            vm.onNameChange("Lower strength")
+            vm.saveAndLeave()
+            val busy = vm.uiState.first { it.saving }
+            assertTrue(busy.saving)
+            assertFalse(vm.exitRequested.value)
+
+            vm.saveAndLeave()
+            vm.leave()
+            gate.complete(Unit)
+            vm.exitRequested.first { it }
+            assertEquals(1, dao.updates)
+            assertEquals("Lower strength", checkNotNull(deps.routineRepository.getById(fixture.routine.id)).name)
+        } finally {
+            if (!gate.isCompleted) gate.complete(Unit)
+        }
+    }
+
     private fun createViewModel(
         routineId: String,
         container: AppDependencies = deps,
@@ -680,6 +875,56 @@ class RoutineEditorViewModelTest {
         val repo = RoutineRepository(GatedFailingUpsertDao(deps.database.routineDao(), gate))
         return object : AppDependencies by deps {
             override val routineRepository: RoutineRepository = repo
+        }
+    }
+
+    /** The graph with one DAO swapped in, so a test can hold the DAO and read its counters. */
+    private fun withRoutineDao(dao: RoutineDao): AppDependencies {
+        val repo = RoutineRepository(dao)
+        return object : AppDependencies by deps {
+            override val routineRepository: RoutineRepository = repo
+        }
+    }
+
+    /** Fails the details write ([RoutineRepository.updateDetails]) while the gate is set. */
+    private class FailingUpdateRoutineDao(
+        private val delegate: RoutineDao,
+        private val gate: FailureGate,
+    ) : RoutineDao by delegate {
+        var updates = 0
+
+        override suspend fun updateRoutine(routine: RoutineEntity) {
+            if (gate.shouldFail) error("boom: Room could not update routine ${routine.id}")
+            updates += 1
+            delegate.updateRoutine(routine)
+        }
+    }
+
+    /** Fails the targets write ([RoutineRepository.updateExercise]) while the gate is set. */
+    private class FailingUpsertExerciseDao(
+        private val delegate: RoutineDao,
+        private val gate: FailureGate,
+    ) : RoutineDao by delegate {
+        var upserts = 0
+
+        override suspend fun upsertRoutineExercise(item: RoutineExerciseEntity) {
+            if (gate.shouldFail) error("boom: Room could not write targets for ${item.id}")
+            upserts += 1
+            delegate.upsertRoutineExercise(item)
+        }
+    }
+
+    /** Holds the details write until the gate completes, so an in-flight Save can be observed. */
+    private class GatedUpdateRoutineDao(
+        private val delegate: RoutineDao,
+        private val gate: CompletableDeferred<Unit>,
+    ) : RoutineDao by delegate {
+        var updates = 0
+
+        override suspend fun updateRoutine(routine: RoutineEntity) {
+            gate.await()
+            updates += 1
+            delegate.updateRoutine(routine)
         }
     }
 
