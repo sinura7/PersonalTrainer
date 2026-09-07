@@ -45,6 +45,7 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.TargetEntry
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -112,7 +113,7 @@ fun SessionLiftStrip(
     onMoveEarlier: (String) -> Unit,
     onMoveLater: (String) -> Unit,
     onRemove: (String) -> Unit,
-    onStageTargets: (String, Int?, Int?, Int?, Double?) -> Unit,
+    onStageTargets: (String, Int?, Int?, Int?, Double?, String?) -> Unit,
     onCommitTargets: (String) -> Unit,
     modifier: Modifier = Modifier,
     canSwap: (String) -> Boolean = { false },
@@ -158,8 +159,8 @@ fun SessionLiftStrip(
                 onMoveLater = { onMoveLater(item.id) },
                 onRemove = { onRemove(item.id) },
                 onSwap = { onSwap(item.id) },
-                onStageTargets = { sets, reps, rest, kg ->
-                    onStageTargets(item.id, sets, reps, rest, kg)
+                onStageTargets = { sets, reps, rest, kg, invalid ->
+                    onStageTargets(item.id, sets, reps, rest, kg, invalid)
                 },
                 onCommitTargets = { onCommitTargets(item.id) },
                 modifier = Modifier.then(
@@ -192,7 +193,7 @@ private fun SessionLiftCard(
     onMoveLater: () -> Unit,
     onRemove: () -> Unit,
     onSwap: () -> Unit,
-    onStageTargets: (Int?, Int?, Int?, Double?) -> Unit,
+    onStageTargets: (Int?, Int?, Int?, Double?, String?) -> Unit,
     onCommitTargets: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -323,7 +324,7 @@ private fun SessionLiftEditor(
     onMoveLater: () -> Unit,
     onRemove: () -> Unit,
     onSwap: () -> Unit,
-    onStageTargets: (Int?, Int?, Int?, Double?) -> Unit,
+    onStageTargets: (Int?, Int?, Int?, Double?, String?) -> Unit,
     onCommitTargets: () -> Unit,
 ) {
     Column(
@@ -429,7 +430,7 @@ internal fun CompactTargetFields(
     reps: Int,
     restSeconds: Int,
     targetWeightKg: Double?,
-    onStageTargets: (Int?, Int?, Int?, Double?) -> Unit,
+    onStageTargets: (Int?, Int?, Int?, Double?, String?) -> Unit,
     onCommitTargets: () -> Unit,
     onRemove: () -> Unit,
     onSwap: (() -> Unit)?,
@@ -450,9 +451,14 @@ internal fun CompactTargetFields(
             }.orEmpty(),
         )
     }
+    // The four boxes, read as typed. An empty box means "leave this one alone"; a box that
+    // cannot be stored as written is a complaint under that box and a rejection staged with the
+    // card, so the commit refuses it and Save and Back count it as unsaved (UX06). The text is
+    // never rewritten on the way.
+    val entry = TargetEntry.read(setsText, repsText, restText, weightText, unit)
     val stage = {
-        val kg = NumericEntry.parseWeightKg(weightText, unit)?.takeIf { it > 0.0 }
-        onStageTargets(setsText.toIntOrNull(), repsText.toIntOrNull(), restText.toIntOrNull(), kg)
+        val read = TargetEntry.read(setsText, repsText, restText, weightText, unit)
+        onStageTargets(read.typedSets, read.typedReps, read.typedRest, read.typedWeightKg, read.firstError)
     }
     Column(
         modifier = Modifier.padding(start = Metrics.space3, end = Metrics.space3, bottom = Metrics.space3),
@@ -460,10 +466,11 @@ internal fun CompactTargetFields(
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
             MiniNumberField(
-                "Sets",
-                setsText,
-                Modifier.weight(1f),
-                onCommitTargets,
+                label = "Sets",
+                value = setsText,
+                modifier = Modifier.weight(1f),
+                onFocusLost = onCommitTargets,
+                error = entry.setsError,
                 ime = chain[0],
                 focusRequester = setsFocus,
                 onImeNext = { repsFocus.requestFocus() },
@@ -472,10 +479,11 @@ internal fun CompactTargetFields(
                 stage()
             }
             MiniNumberField(
-                "Reps",
-                repsText,
-                Modifier.weight(1f),
-                onCommitTargets,
+                label = "Reps",
+                value = repsText,
+                modifier = Modifier.weight(1f),
+                onFocusLost = onCommitTargets,
+                error = entry.repsError,
                 ime = chain[1],
                 focusRequester = repsFocus,
                 onImeNext = { restFocus.requestFocus() },
@@ -489,6 +497,7 @@ internal fun CompactTargetFields(
             value = restText,
             modifier = Modifier.fillMaxWidth(),
             onFocusLost = onCommitTargets,
+            error = entry.restError,
             suffix = "s",
             ime = chain[2],
             focusRequester = restFocus,
@@ -504,6 +513,7 @@ internal fun CompactTargetFields(
                 .fillMaxWidth()
                 .testTag(CompactLiftTags.TARGET_WEIGHT),
             onFocusLost = onCommitTargets,
+            error = entry.weightError,
             allowDecimal = true,
             suffix = unit.suffix,
             ime = chain[3],
@@ -531,6 +541,12 @@ private fun MiniNumberField(
     value: String,
     modifier: Modifier,
     onFocusLost: () -> Unit,
+    /**
+     * The rule this box's text breaks, or null. Shown once the finger has left the box — a
+     * half-typed "62." would otherwise flash red on the way to "62.5" — and kept there until
+     * the text changes to something the routine can hold.
+     */
+    error: String? = null,
     allowDecimal: Boolean = false,
     suffix: String? = null,
     ime: NumericEntry.Ime = NumericEntry.Ime.NEXT,
@@ -539,6 +555,11 @@ private fun MiniNumberField(
     onValueChange: (String) -> Unit,
 ) {
     var hadFocus by remember { mutableStateOf(false) }
+    var focused by remember { mutableStateOf(false) }
+    val shownError = error?.takeIf { !focused }
+    val complaint: (@Composable () -> Unit)? = shownError?.let { message ->
+        { Text(message, style = InstrumentType.caption, color = Danger) }
+    }
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -548,8 +569,11 @@ private fun MiniNumberField(
             .onFocusChanged { focus ->
                 if (hadFocus && !focus.isFocused) onFocusLost()
                 hadFocus = focus.isFocused
+                focused = focus.isFocused
             },
         singleLine = true,
+        isError = shownError != null,
+        supportingText = complaint,
         textStyle = InstrumentType.numeralMd,
         suffix = suffix?.let { unit ->
             { Text(unit, style = InstrumentType.unit, color = TextSecondary) }

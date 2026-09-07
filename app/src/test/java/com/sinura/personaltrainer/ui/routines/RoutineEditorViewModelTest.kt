@@ -11,6 +11,7 @@ import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.local.relation.RoutineWithExercises
 import com.sinura.personaltrainer.data.repository.RoutineRepository
+import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineSaveCopy
 import com.sinura.personaltrainer.domain.SessionOrderCopy
@@ -789,6 +790,75 @@ class RoutineEditorViewModelTest {
         vm.leave()
         vm.exitRequested.first { it }
         assertEquals(4, checkNotNull(deps.routineRepository.getById(fixture.routine.id)).exercises.single().targetSets)
+    }
+
+    /**
+     * UX06 on the routine card: a box the owner typed "8.5" into is staged as a rejection with
+     * the box's own rule. The focus-change commit refuses it, nothing is written, and Save
+     * stays with that rule at the dock until the text is something the routine can hold.
+     */
+    @Test
+    fun anUnreadableTargetBoxIsRefusedNotReadAsLeaveAlone() = runBlocking {
+        val fixture = seedTestWorkout(deps, targetSets = 3, targetReps = 5)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val itemId = fixture.routine.exercises.single().id
+        val vm = createViewModel(fixture.routine.id)
+        vm.uiState.first { it.routine != null }
+
+        // What the card stages for sets "3", reps "8.5", rest "60", weight "": the reps box
+        // has no value and carries the rule it broke.
+        vm.stageTargets(
+            itemId = itemId,
+            targetSets = 3,
+            targetReps = null,
+            targetWeightKg = null,
+            restSeconds = 60,
+            invalidReason = NumericEntry.REPS_RULE,
+        )
+        vm.commitTargets(itemId)
+        vm.uiState.first { it.error == NumericEntry.REPS_RULE }
+        assertEquals(5, checkNotNull(deps.routineRepository.getById(fixture.routine.id)).exercises.single().targetReps)
+
+        vm.saveAndLeave()
+        val blocked = vm.uiState.first { it.saveError == NumericEntry.REPS_RULE && !it.saving }
+        assertFalse(vm.exitRequested.value)
+        assertNull(blocked.error)
+        assertEquals(5, checkNotNull(deps.routineRepository.getById(fixture.routine.id)).exercises.single().targetReps)
+
+        vm.stageTargets(itemId = itemId, targetSets = 3, targetReps = 8, targetWeightKg = null, restSeconds = 60)
+        vm.saveAndLeave()
+        vm.exitRequested.first { it }
+        assertEquals(8, checkNotNull(deps.routineRepository.getById(fixture.routine.id)).exercises.single().targetReps)
+    }
+
+    /**
+     * A read that throws on the way out used to leave the editor deaf: `leaving` stayed true
+     * and nothing could pop it. It is now one more unsaved outcome, and leave-anyway still exits.
+     */
+    @Test
+    fun aReadFaultOnTheWayOutStaysAndLeaveAnywayStillExits() = runBlocking {
+        val fixture = seedTestWorkout(deps)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val gate = FailureGate(shouldFail = false)
+        val vm = createViewModel(fixture.routine.id, container = failingHydration(gate))
+        vm.uiState.first { it.routine != null && it.name == fixture.routine.name }
+
+        gate.shouldFail = true
+        vm.onNameChange("Lower strength")
+        vm.saveAndLeave()
+        val blocked = vm.uiState.first { it.saveError != null && !it.saving }
+        assertEquals(RoutineSaveCopy.EXIT_READ_FAILED, blocked.saveError)
+        assertFalse(vm.exitRequested.value)
+
+        vm.leave()
+        val prompted = vm.uiState.first { it.unsavedOnBack != null && !it.saving }
+        assertEquals(RoutineSaveCopy.EXIT_READ_FAILED, prompted.unsavedOnBack?.message)
+        assertEquals(listOf(RoutineSaveCopy.UNKNOWN_ITEMS), prompted.unsavedOnBack?.items)
+
+        vm.leaveAnyway()
+        vm.exitRequested.first { it }
+        gate.shouldFail = false
+        assertEquals(fixture.routine.name, checkNotNull(deps.routineRepository.getById(fixture.routine.id)).name)
     }
 
     /** Leave-anyway is Back minus the flush: an empty stub created this session still goes. */

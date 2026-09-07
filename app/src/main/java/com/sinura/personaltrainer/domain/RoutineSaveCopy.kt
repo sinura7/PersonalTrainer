@@ -22,6 +22,13 @@ object RoutineSaveCopy {
     const val DETAILS_FAILED =
         "Could not save the name and notes. Your lifts are saved. Try again."
 
+    /** The exit could not even read the routine to decide what is owed. Nothing was written. */
+    const val EXIT_READ_FAILED =
+        "Could not check what still needs saving. Nothing was changed. Try again."
+
+    /** What the Back prompt lists when a read fault stopped it from naming the writes. */
+    const val UNKNOWN_ITEMS = "your latest changes"
+
     const val UNSAVED_TITLE = "Some changes are not saved"
     const val TRY_AGAIN = "Try again"
     const val LEAVE_ANYWAY = "Leave without saving these"

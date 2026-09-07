@@ -202,8 +202,8 @@ fun RoutineEditorScreen(
                             exerciseId != null && state.swapCandidates(exerciseId).isNotEmpty()
                         },
                         onSwap = { id -> viewModel.requestSwap(id) },
-                        onStageTargets = { id, sets, reps, rest, kg ->
-                            viewModel.stageTargets(id, sets, reps, kg, rest)
+                        onStageTargets = { id, sets, reps, rest, kg, invalid ->
+                            viewModel.stageTargets(id, sets, reps, kg, rest, invalid)
                         },
                         onCommitTargets = { id -> viewModel.commitTargets(id) },
                     )

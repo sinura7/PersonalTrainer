@@ -336,12 +336,20 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         targetReps: Int?,
         targetWeightKg: Double?,
         restSeconds: Int?,
+        /**
+         * Non-null when a box holds text that cannot be stored as written — "8.5" reps, "-50"
+         * — carrying the rule it broke. The card has already shown it under the box; staging
+         * it here is what lets the commit refuse and Save and Back count it as unsaved, rather
+         * than reading the unparseable box as "leave this one alone" (UX06).
+         */
+        invalidReason: String? = null,
     ) {
         stagedTargets[itemId] = StagedTargets(
             targetSets = targetSets,
             targetReps = targetReps,
             targetWeightKg = targetWeightKg,
             restSeconds = restSeconds,
+            invalidReason = invalidReason,
         )
     }
 
@@ -378,6 +386,12 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         if (stored == null) {
             stagedTargets.remove(itemId)
             return null
+        }
+        // A box that could not be read as written is refused before any value is compared:
+        // nothing is written, the value stays staged so Save and Back see it, and the card's
+        // own rule is the reason.
+        staged.invalidReason?.let { reason ->
+            return RoutineTargetsOutcome(stored.exercise.name, RoutineWriteOutcome.Rejected(reason))
         }
         val pending = RoutineEditorPolicy.targetsToPersist(
             typedSets = staged.targetSets,
@@ -458,11 +472,23 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         if (leaving) return
         beginExit()
         viewModelScope.launch {
-            joinWrites()
-            val targets = flushStagedTargets()
-            discardEmptyStub()
-            val details = persistDetailsOnExit()
-            when (val outcome = RoutineEditorPolicy.exitOutcome(details, targets)) {
+            // A read that throws on the way out (the row behind the stub check or the details
+            // compare) used to kill this coroutine with `leaving` stuck true: the editor stayed
+            // on screen deaf to Back, Save and every edit. It is now one more unsaved outcome.
+            val outcome = runCatchingCancellable {
+                joinWrites()
+                val targets = flushStagedTargets()
+                discardEmptyStub()
+                val details = persistDetailsOnExit()
+                RoutineEditorPolicy.exitOutcome(details, targets)
+            }.getOrElse { thrown ->
+                AppLog.w(TAG, "Leaving the routine editor failed before it could decide", thrown)
+                RoutineExitOutcome.Unsaved(
+                    message = RoutineSaveCopy.EXIT_READ_FAILED,
+                    items = listOf(RoutineSaveCopy.UNKNOWN_ITEMS),
+                )
+            }
+            when (outcome) {
                 RoutineExitOutcome.Landed -> _exitRequested.value = true
                 is RoutineExitOutcome.Unsaved -> stayOnScreen(unsavedOnBack = outcome)
             }
@@ -478,17 +504,28 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         if (leaving) return
         beginExit()
         viewModelScope.launch {
-            joinWrites()
-            val targets = flushStagedTargets()
-            val id = routineId.value
-            val count = if (id == null) 0 else currentExerciseCount(id)
-            if (count <= 0) {
-                error.value = SessionOrderCopy.NEED_A_LIFT
-                stayOnScreen()
-                return@launch
+            val outcome = runCatchingCancellable {
+                joinWrites()
+                val targets = flushStagedTargets()
+                val id = routineId.value
+                val count = if (id == null) 0 else currentExerciseCount(id)
+                if (count <= 0) {
+                    error.value = SessionOrderCopy.NEED_A_LIFT
+                    stayOnScreen()
+                    return@launch
+                }
+                val details = persistDetailsOnExit()
+                RoutineEditorPolicy.exitOutcome(details, targets)
+            }.getOrElse { thrown ->
+                // Same shape as leave(): a read fault is reported at the dock, not left to
+                // strand the screen with Save disabled forever.
+                AppLog.w(TAG, "Saving the routine failed before it could decide", thrown)
+                RoutineExitOutcome.Unsaved(
+                    message = RoutineSaveCopy.EXIT_READ_FAILED,
+                    items = listOf(RoutineSaveCopy.UNKNOWN_ITEMS),
+                )
             }
-            val details = persistDetailsOnExit()
-            when (val outcome = RoutineEditorPolicy.exitOutcome(details, targets)) {
+            when (outcome) {
                 RoutineExitOutcome.Landed -> _exitRequested.value = true
                 is RoutineExitOutcome.Unsaved -> {
                     // Said once. A focus-change commit may already have put the same rejection in
@@ -517,7 +554,10 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             joinWrites()
             stagedTargets.clear()
-            discardEmptyStub()
+            // The one exit that must always exit. A stub that could not be checked stays; an
+            // empty routine left behind is a nuisance, an editor that cannot be left is not.
+            runCatchingCancellable { discardEmptyStub() }
+                .onFailure { AppLog.w(TAG, "Leaving anyway could not check for an empty stub", it) }
             _exitRequested.value = true
         }
     }
@@ -877,6 +917,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         val targetReps: Int?,
         val targetWeightKg: Double?,
         val restSeconds: Int?,
+        val invalidReason: String? = null,
     )
 
     private data class EditorCore(
