@@ -9,7 +9,7 @@ engineering handoff.
 `trunk` carries pull requests #168, #169, and #170: every item R01
 through R19 from the 2026-09-06 engineering handoff, plus a Claude
 Code Android setup script. [`HANDOFF-2026-09-06.md`](HANDOFF-2026-09-06.md)
-is the full account. `debugLiveCode` is 22.
+is the full account. `debugLiveCode` is 23.
 
 Nothing about the app's data was changed. Room stays frozen at v4, the backup
 document and envelope formats are untouched, and no identifier is ever
@@ -99,9 +99,9 @@ No emulator is possible in that environment: no `/dev/kvm`, no `vmx`/`svm`.
    hosted runners as the test lane. Do not weaken
    `gradle/verification-metadata.xml`.
 
-4. The live-22 APK is already built. Do not bump `debugLiveCode` again
-   until the next drop. Sideload Temper Debug; gym-floor Temper stays
-   on the signed APK.
+4. Live test 23 is the current drop (`debugLiveCode` 23). Do not bump
+   it again until the next drop. Obtainium, not Studio; gym-floor
+   Temper stays on the signed APK.
 
 ## What is outstanding
 
