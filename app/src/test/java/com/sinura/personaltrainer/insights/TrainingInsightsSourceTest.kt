@@ -12,6 +12,7 @@ import com.sinura.personaltrainer.domain.TrainingInsightsCalculator
 import com.sinura.personaltrainer.domain.TrainingInsightsInput
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.TestSetInput
+import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import java.time.ZoneOffset
 import java.util.concurrent.Executors
@@ -107,7 +108,7 @@ class TrainingInsightsSourceTest {
             isWarmup = false,
         )
         // Picker recency must see the live set — that is the leak's trigger.
-        withTimeout(5_000) {
+        withTimeout(TestWaits.FLOW_MS) {
             deps.workoutRepository.observeLastLogged().first {
                 it[seeded.exercise.id] != null
             }
@@ -326,7 +327,7 @@ class TrainingInsightsSourceTest {
     private suspend fun awaitComputes(count: Int) = awaitUntil { inputs.size >= count }
 
     private suspend fun awaitUntil(predicate: () -> Boolean) {
-        withTimeout(5_000) {
+        withTimeout(TestWaits.FLOW_MS) {
             while (!predicate()) {
                 dispatcher.scheduler.runCurrent()
                 delay(10)

@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.testutil.TestSetInput
+import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.Dispatchers
@@ -112,7 +113,7 @@ class ExerciseDetailViewModelTest {
         vm.uiState.first { it.routines.any { membership -> membership.alreadyHolds } }
 
         vm.addToRoutine(fixture.routine.id)
-        val notice = withTimeout(5_000) { vm.uiState.first { it.notice != null }.notice }
+        val notice = withTimeout(TestWaits.FLOW_MS) { vm.uiState.first { it.notice != null }.notice }
         assertEquals(
             "${fixture.exercise.name} is already in ${fixture.routine.name}.",
             notice,
@@ -134,7 +135,7 @@ class ExerciseDetailViewModelTest {
         // the same coroutine as the write, but membership arrives through Room's observeAll
         // a frame later — so the notice alone would let the read below race the commit.
         // Once membership is true the row is committed, and the one-shot getById is safe.
-        val state = withTimeout(5_000) {
+        val state = withTimeout(TestWaits.FLOW_MS) {
             vm.uiState.first {
                 it.notice == "Added to ${routine.name}." &&
                     it.routines.any { membership ->

@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.testutil.TestSetInput
+import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -292,7 +293,7 @@ class SessionDetailViewModelTest {
     private suspend fun awaitSession(
         id: String,
         predicate: (WorkoutSession) -> Boolean,
-    ): WorkoutSession = withTimeout(5_000) {
+    ): WorkoutSession = withTimeout(TestWaits.FLOW_MS) {
         checkNotNull(
             deps.workoutRepository.observeSession(id).first { session ->
                 session != null && predicate(session)

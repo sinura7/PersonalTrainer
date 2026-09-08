@@ -9,6 +9,7 @@ import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
 import com.sinura.personaltrainer.domain.BackupPrompt
 import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.testutil.TestSetInput
+import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -62,11 +63,11 @@ class SettingsViewModelTest {
         )
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
-        val idle = withTimeout(5_000) { viewModel!!.backupState.first() }
+        val idle = withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first() }
         assertFalse(idle.sessionLive)
 
         deps.workoutRepository.startFreeWorkout("Legs")
-        val live = withTimeout(5_000) {
+        val live = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.backupState.first { it.sessionLive }
         }
         assertTrue(live.sessionLive)
@@ -80,7 +81,7 @@ class SettingsViewModelTest {
         )
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
-        val idle = withTimeout(5_000) { viewModel!!.backupState.first() }
+        val idle = withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first() }
         assertFalse(idle.sessionLive)
 
         val now = com.sinura.personaltrainer.util.JvmTime.captureNow()
@@ -105,7 +106,7 @@ class SettingsViewModelTest {
             now,
         )
         assertTrue(started is com.sinura.personaltrainer.domain.ActivityWrite.Accepted)
-        val live = withTimeout(5_000) {
+        val live = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.backupState.first { it.sessionLive }
         }
         assertTrue(live.sessionLive)
@@ -124,11 +125,11 @@ class SettingsViewModelTest {
         )
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
-        val stale = withTimeout(5_000) { viewModel!!.backupState.first { it.lastBackupAt != null } }
+        val stale = withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first { it.lastBackupAt != null } }
         assertTrue(stale.backupStale)
 
         deps.preferencesRepository.setLastBackup("personal-trainer-backup-now.json", now)
-        val fresh = withTimeout(5_000) {
+        val fresh = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.backupState.first { it.lastBackupAt == now }
         }
         assertFalse(fresh.backupStale)
@@ -148,7 +149,7 @@ class SettingsViewModelTest {
         assertFalse(deps.preferencesRepository.restAlarmEligible.first())
 
         viewModel!!.setDefaultRestSeconds(75)
-        withTimeout(5_000) {
+        withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.restTimerPreferences.first { it.defaultRestSeconds == 75 }
         }
         assertTrue(deps.preferencesRepository.restAlarmEligible.first())
@@ -170,11 +171,11 @@ class SettingsViewModelTest {
         viewModel!!.restTimerPreferences.first()
         viewModel!!.offerExactAlarmAccess.first { !it }
         viewModel!!.setRestSoundEnabled(false)
-        withTimeout(5_000) {
+        withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.restTimerPreferences.first { !it.soundEnabled }
         }
         assertTrue(deps.preferencesRepository.restAlarmEligible.first())
-        val offered = withTimeout(5_000) { viewModel!!.offerExactAlarmAccess.first { it } }
+        val offered = withTimeout(TestWaits.FLOW_MS) { viewModel!!.offerExactAlarmAccess.first { it } }
         assertTrue(offered)
     }
 
@@ -207,7 +208,7 @@ class SettingsViewModelTest {
         deps.backupRepository.restoreFromJson(json, sourceName = "phone.json")
 
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        val listed = withTimeout(5_000) {
+        val listed = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.backupState.first { it.safetySnapshots.isNotEmpty() }
         }
         assertEquals(1, listed.safetySnapshots.size)
@@ -218,7 +219,7 @@ class SettingsViewModelTest {
         assertTrue(snap.authored.sessions >= 1)
 
         viewModel!!.deleteSafetySnapshot(snap.id)
-        val empty = withTimeout(5_000) {
+        val empty = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.backupState.first {
                 it.safetySnapshots.isEmpty() && it.status?.contains("deleted") == true
             }
@@ -244,7 +245,7 @@ class SettingsViewModelTest {
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.backupState.first { it.safetySnapshots.isNotEmpty() }
         viewModel!!.requestSafetyRestore(id)
-        val preview = withTimeout(5_000) {
+        val preview = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.backupState.first { it.pendingPreview != null }
         }
         assertEquals(SafetySnapshotMeta.TITLE, preview.pendingPreview?.sourceName)
@@ -265,13 +266,13 @@ class SettingsViewModelTest {
         )
         viewModel!!.backupState.first()
         viewModel!!.beginFileExport()
-        val protect = withTimeout(5_000) {
+        val protect = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.backupState.first { it.pendingProtect == BackupProtectKind.FILE_EXPORT }
         }
         assertEquals(BackupProtectKind.FILE_EXPORT, protect.pendingProtect)
         assertFalse(viewModel!!.submitProtect("short", "short"))
         assertTrue(viewModel!!.submitProtect("long-enough", "long-enough"))
-        val picker = withTimeout(5_000) {
+        val picker = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.backupState.first { it.launchExportPicker }
         }
         assertTrue(picker.launchExportPicker)
@@ -288,12 +289,12 @@ class SettingsViewModelTest {
         viewModel!!.backupState.first()
         viewModel!!.beginFileExport()
         viewModel!!.beginPlaintextExport()
-        val warned = withTimeout(5_000) {
+        val warned = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.backupState.first { it.pendingPlaintextWarning }
         }
         assertTrue(warned.pendingPlaintextWarning)
         viewModel!!.confirmPlaintextWarning()
-        val picker = withTimeout(5_000) {
+        val picker = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.backupState.first { it.launchExportPicker }
         }
         assertTrue(picker.launchExportPicker)
@@ -315,11 +316,11 @@ class SettingsViewModelTest {
             ),
         )
         deps.preferencesRepository.setWeekStart(com.sinura.personaltrainer.domain.Weekday.MONDAY)
-        withTimeout(5_000) {
+        withTimeout(TestWaits.FLOW_MS) {
             deps.preferencesRepository.preferredDays.first { it.size == 5 }
         }
         deps.preferencesRepository.setTrainingDaysPerWeek(3)
-        val days = withTimeout(5_000) {
+        val days = withTimeout(TestWaits.FLOW_MS) {
             deps.preferencesRepository.preferredDays.first { it.size == 3 }
         }
         assertEquals(

@@ -11,6 +11,7 @@ import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
 import com.sinura.personaltrainer.workout.WorkoutDraft
 import kotlinx.coroutines.Dispatchers
@@ -230,7 +231,7 @@ class ActiveWorkoutViewModelTest {
         vm.skipRest()
 
         val rec = checkNotNull(
-            withTimeout(5_000) {
+            withTimeout(TestWaits.FLOW_MS) {
                 vm.microRec.first {
                     it?.reasonCode == SetMicroRecCalculator.SKIP_RPE_HOLD &&
                         it.showApply &&
@@ -267,7 +268,7 @@ class ActiveWorkoutViewModelTest {
         vm.skipRest()
 
         val rec = checkNotNull(
-            withTimeout(5_000) {
+            withTimeout(TestWaits.FLOW_MS) {
                 vm.microRec.first {
                     it?.reasonCode == SetMicroRecCalculator.IN_TANK &&
                         it.showApply &&
@@ -292,13 +293,13 @@ class ActiveWorkoutViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
         vm.awaitState { it.session?.sets?.size == 1 }
         vm.skipRest()
-        withTimeout(5_000) { vm.microRec.first { it != null && !it.previewOnly } }
+        withTimeout(TestWaits.FLOW_MS) { vm.microRec.first { it != null && !it.previewOnly } }
         vm.editSet(persisted.sets.single().id)
         vm.awaitState { it.editingSetId != null }
-        withTimeout(5_000) { vm.microRec.first { it == null } }
+        withTimeout(TestWaits.FLOW_MS) { vm.microRec.first { it == null } }
         vm.cancelEdit()
         vm.awaitState { it.editingSetId == null }
-        withTimeout(5_000) { vm.microRec.first { it != null } }
+        withTimeout(TestWaits.FLOW_MS) { vm.microRec.first { it != null } }
         Unit
     }
 
@@ -310,7 +311,7 @@ class ActiveWorkoutViewModelTest {
         vm.logSet()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         val rec = checkNotNull(
-            withTimeout(5_000) {
+            withTimeout(TestWaits.FLOW_MS) {
                 vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.LIFT_DONE }
             },
         )
@@ -329,7 +330,7 @@ class ActiveWorkoutViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
         vm.awaitState { it.session?.sets?.size == 1 }
         vm.skipRest()
-        withTimeout(5_000) { vm.microRec.first { it != null && !it.previewOnly } }
+        withTimeout(TestWaits.FLOW_MS) { vm.microRec.first { it != null && !it.previewOnly } }
 
         vm.setRpe(6)
         val draft = vm.awaitState { it.draft.rpe == 6 && it.draft.weightKg == 102.5 }.draft
@@ -347,13 +348,13 @@ class ActiveWorkoutViewModelTest {
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         dispatcher.scheduler.advanceUntilIdle()
         vm.awaitState { it.session?.sets?.size == 1 }
-        withTimeout(5_000) { vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.LIFT_DONE } }
+        withTimeout(TestWaits.FLOW_MS) { vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.LIFT_DONE } }
         assertFalse(deps.restTimerStore.current().running)
 
         vm.requestExtraSet()
         assertTrue(vm.extraSetRequested.value)
         val rec = checkNotNull(
-            withTimeout(5_000) {
+            withTimeout(TestWaits.FLOW_MS) {
                 vm.microRec.first { it != null && it.reasonCode != SetMicroRecCalculator.LIFT_DONE }
             },
         )
@@ -399,14 +400,14 @@ class ActiveWorkoutViewModelTest {
         vm.awaitState { it.session?.sets?.size == 1 }
         vm.skipRest()
         val rec = checkNotNull(
-            withTimeout(5_000) {
+            withTimeout(TestWaits.FLOW_MS) {
                 vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.SKIP_RPE_HOLD }
             },
         )
         vm.adjustWeight(2.5)
         dispatcher.scheduler.advanceUntilIdle()
         val after = checkNotNull(
-            withTimeout(5_000) {
+            withTimeout(TestWaits.FLOW_MS) {
                 vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.SKIP_RPE_HOLD }
             },
         )
@@ -485,7 +486,7 @@ class ActiveWorkoutViewModelTest {
         assertFalse(deps.preferencesRepository.restAlarmEligible.first())
         vm.startSelectedRest()
         deps.restTimerStore.snapshot.first { it.running }
-        withTimeout(5_000) { deps.preferencesRepository.restAlarmEligible.first { it } }
+        withTimeout(TestWaits.FLOW_MS) { deps.preferencesRepository.restAlarmEligible.first { it } }
         Unit
     }
 
@@ -825,14 +826,14 @@ class ActiveWorkoutViewModelTest {
 
     private suspend fun ActiveWorkoutViewModel.awaitState(
         predicate: (ActiveWorkoutUiState) -> Boolean,
-    ): ActiveWorkoutUiState = withTimeout(5_000) {
+    ): ActiveWorkoutUiState = withTimeout(TestWaits.FLOW_MS) {
         uiState.first(predicate)
     }
 
     private suspend fun awaitSession(
         sessionId: String,
         predicate: (WorkoutSession) -> Boolean,
-    ): WorkoutSession = withTimeout(5_000) {
+    ): WorkoutSession = withTimeout(TestWaits.FLOW_MS) {
         checkNotNull(
             deps.workoutRepository.observeSession(sessionId).first { session ->
                 session != null && predicate(session)

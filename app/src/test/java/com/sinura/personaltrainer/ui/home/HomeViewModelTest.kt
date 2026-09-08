@@ -19,6 +19,7 @@ import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.testutil.FrozenTime
+import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -365,7 +366,7 @@ class HomeViewModelTest {
         val leftover = deps.plannerRepository.occurrencesBetween(yesterday, yesterday).single()
         val enabled = deps.plannerRepository.rules().first { it.id == leftover.ruleId }.enabled
         viewModel!!.skipOccurrence(leftover.id)
-        val skipped = withTimeout(5_000) {
+        val skipped = withTimeout(TestWaits.FLOW_MS) {
             deps.plannerRepository.observeOccurrences().first { rows ->
                 rows.any { it.id == leftover.id && it.status == OccurrenceStatus.SKIPPED }
             }.first { it.id == leftover.id }
@@ -411,7 +412,7 @@ class HomeViewModelTest {
 
         viewModel!!.addDaySession(today, HomeDayAdd.Workout(routine.id), once = true)
         dispatcher.scheduler.advanceUntilIdle()
-        val rule = withTimeout(5_000) {
+        val rule = withTimeout(TestWaits.FLOW_MS) {
             deps.plannerRepository.observeRules().first { rows ->
                 rows.any { it.routineId == routine.id && !it.enabled }
             }.single { it.routineId == routine.id }
@@ -435,7 +436,7 @@ class HomeViewModelTest {
 
         viewModel!!.addDaySession(today, HomeDayAdd.Workout(routine.id), once = false)
         dispatcher.scheduler.advanceUntilIdle()
-        val rule = withTimeout(5_000) {
+        val rule = withTimeout(TestWaits.FLOW_MS) {
             deps.plannerRepository.observeRules().first { rows ->
                 rows.any { it.routineId == routine.id && it.enabled }
             }.single { it.routineId == routine.id }
@@ -447,7 +448,7 @@ class HomeViewModelTest {
         // returns inside that gap — which is why the `once` sibling passes on the same path:
         // its barrier is the rule being *disabled*, which `mintTimed` only does after publish
         // returns. Reading the occurrences straight after the rule appears reads them early.
-        withTimeout(5_000) {
+        withTimeout(TestWaits.FLOW_MS) {
             deps.plannerRepository.observeOccurrences().first { occurrences ->
                 occurrences.any { it.ruleId == rule.id && it.localEpochDay == today }
             }
