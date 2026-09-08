@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 8 Sep 2026 — Dependabot `#174` (coroutines 1.11.0) and `#176`
+> (android-all-instrumented 17) closed unmerged. Ignore list now
+> covers `kotlinx-coroutines-android` and the J3 API-35 jar.
+> Live test 22 is still the phone APK; Obtainium is still 20.
+>
 > 5 Sep 2026 — Live test 21 (`debugLiveCode` 21) on `trunk`: C–J4
 > plus lint publisher. Obtainium attach waits on a hosted runner;
 > sideload Temper Debug until a `debug-live-*` pre-release exists.

@@ -49,6 +49,12 @@ updates:
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "org.jetbrains.kotlinx:kotlinx-coroutines-test"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # The kotlin group matches org.jetbrains.kotlinx too. Ignoring core and
+      # test but not android is how #174 bundled coroutines 1.11.0 — the
+      # Kotlin 2.2.20 companion, refused while we stay on 2.0.21
+      # (docs/architecture/core-toolchain.md). #174 was closed unmerged.
+      - dependency-name: "org.jetbrains.kotlinx:kotlinx-coroutines-android"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
       # AGP 9.x wants compileSdk 37; 8.9.2 is the official compileSdk-36 pair
       # (docs/architecture/lint-policy.md, sdk36-compatibility.md). #125 bumped
       # to 9.3.2 and was closed unmerged.
@@ -58,6 +64,12 @@ updates:
       # the static gate fails closed on this bump. #126 was closed unmerged.
       - dependency-name: "com.google.android.gms:play-services-auth"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # J3 signed 15-robolectric-13954326-i7 (API 35, Java 17). The 17- jar
+      # is a different SDK; robolectric.properties pins sdk=35 because API 36
+      # wants Java 21 (docs/architecture/core-toolchain.md). Any bump also
+      # needs a ledger row. #176 was closed unmerged. 4.16.x patches of the
+      # Robolectric library itself still open.
+      - dependency-name: "org.robolectric:android-all-instrumented"
 
   - package-ecosystem: github-actions
     directory: /
