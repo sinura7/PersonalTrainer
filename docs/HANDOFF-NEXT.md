@@ -44,6 +44,44 @@ emulator lane still have not run. See
 [`CLOUD-ENVIRONMENT.md`](CLOUD-ENVIRONMENT.md) for Claude Code's
 environment; Cursor already has an SDK.
 
+### Reproduced in a cloud session, 2026-09-08
+
+The first Claude Code cloud session with the Android SDK actually present
+(`/opt/android-sdk-setup.log` dated 2026-09-07) re-ran every lane on
+`4a90551` from a cold container. All green, nothing fixed, no source
+changed:
+
+```bash
+PT_STATIC_ONLY=1 PT_JARS=build/test-jars sh tools/preflight.sh
+#  -> preflight: OK; all 19 ratchets at baseline
+PT_JARS=build/test-jars sh tools/run-domain-tests.sh build/test-jars
+#  -> 170 test classes, OK (1175 tests)
+./gradlew compileDebugKotlin   #  -> BUILD SUCCESSFUL, 0 errors
+./gradlew testDebugUnitTest    #  -> 1818 tests, 0 failures, 279 classes
+./gradlew lintDebug            #  -> BUILD SUCCESSFUL
+./gradlew assembleDebug        #  -> PersonalTrainer-1.0.0-debug.apk, code 22
+```
+
+This confirms Cursor's numbers on independent hardware. Two things the
+run surfaced that are worth carrying forward:
+
+1. **`compileDebugAndroidTestKotlin` is covered by no lane.** It was run
+   here for the first time and passes. The androidTest sources are where
+   the three 2026-09-07 self-test defects lived (`onAllNodes` imported as
+   a top-level function; the uninferable `sidecarFromHealth` generic), and
+   nothing in the merge gate compiles them. It costs about ten seconds on
+   a warm cache. Consider adding it beside `testDebugUnitTest`.
+2. **A cold container silently downgrades the static gate.** With an empty
+   Gradle cache `tools/preflight.sh` cannot find `kotlin-compiler-embeddable`,
+   so the syntax check prints `WARNING — syntax check skipped` and the JVM
+   lane falls back to `./gradlew testDebugUnitTest`, yet the script still
+   exits `preflight: OK`. Run any Gradle task first, or read the log rather
+   than the exit code.
+
+The APK built here is signed by AGP's throwaway debug key (R05 is still
+open), so it installs beside rather than over an existing Temper Debug.
+No emulator is possible in that environment: no `/dev/kvm`, no `vmx`/`svm`.
+
 ## First actions
 
 1. Confirm what the environment actually has:
@@ -77,7 +115,9 @@ app on the phone rather than over it.
 `debug-live.yml` died in seconds with no runner. Obtainium still offers
 `debug-live-2026-09-03` (live **20** — live 21 also never published).
 The Cursor APK at versionCode 22 is the phone install. Do not bump 22.
-Do not `gh release create`. Leave `#125` / `#126` unmerged.
+Do not `gh release create`. `#125` (AGP 9.3.2) and `#126` (play-services-auth
+22.0.0) were closed unmerged on 2026-09-08 and both are now in the
+`.github/dependabot.yml` ignore list, so they will not be re-opened.
 
 **R16 residue.** Production-screen tests exist for History, the activity
 composer, live cardio, the activity receipt and Home. Settings, onboarding,

@@ -49,6 +49,15 @@ updates:
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "org.jetbrains.kotlinx:kotlinx-coroutines-test"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # AGP 9.x wants compileSdk 37; 8.9.2 is the official compileSdk-36 pair
+      # (docs/architecture/lint-policy.md, sdk36-compatibility.md). #125 bumped
+      # to 9.3.2 and was closed unmerged.
+      - dependency-name: "com.android.application"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # tools/test_policy_move.py asserts "play-services-auth 22 is refused":
+      # the static gate fails closed on this bump. #126 was closed unmerged.
+      - dependency-name: "com.google.android.gms:play-services-auth"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
 
   - package-ecosystem: github-actions
     directory: /
