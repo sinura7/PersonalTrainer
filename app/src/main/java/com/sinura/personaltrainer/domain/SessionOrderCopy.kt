@@ -63,16 +63,38 @@ object SessionOrderCopy {
     }
 
     /**
+     * A settled row says so, in front of the order. DONE, SKIPPED and MOVED
+     * are the states a row cannot be started from as it stands, and the
+     * previous shape returned the lift preview whenever names existed — so
+     * every one of them rendered identically to a live planned row, and the
+     * words below were unreachable for any session that had lifts. A finished
+     * day and a waiting day looked the same, and the only difference on screen
+     * was a small trailing "Start" that appeared on one and not the other.
+     */
+    fun settledLabel(status: OccurrenceStatus): String? = when (status) {
+        OccurrenceStatus.DONE -> "Done"
+        OccurrenceStatus.SKIPPED -> "Skipped"
+        OccurrenceStatus.MOVED -> "Moved"
+        OccurrenceStatus.PLANNED, OccurrenceStatus.MISSED -> null
+    }
+
+    /**
      * Agenda and Plan day rows. When the routine is known, the order is the
      * line. Empty strength is "No lifts yet"; cardio/mixed planned is "Ready".
      * Never dump a schema enum onto the gym floor.
+     *
+     * A settled status is prefixed onto the order rather than replacing it:
+     * "Done · 1 Bench · 2 Row" still tells you what the day was.
      */
     fun occurrenceLine(
         status: OccurrenceStatus,
         names: List<String>,
         modality: ScheduleModality = ScheduleModality.STRENGTH,
     ): String {
-        if (names.isNotEmpty()) return numberedPreview(names)
+        if (names.isNotEmpty()) {
+            val preview = numberedPreview(names)
+            return settledLabel(status)?.let { "$it · $preview" } ?: preview
+        }
         return when (status) {
             OccurrenceStatus.PLANNED ->
                 if (modality == ScheduleModality.STRENGTH) EMPTY_PREVIEW else READY
