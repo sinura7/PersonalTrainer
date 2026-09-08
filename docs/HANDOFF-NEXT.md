@@ -120,14 +120,10 @@ on 2026-09-08 after a scan of all 72 commits found no keystore, private
 key, API key or token in any of them — the only matches were `printf`
 lines reading GitHub secrets and a placeholder in `SETUP.md`.
 
-`debugLiveCode` moves 22 -> 23 for live test 23, the first drop carrying
-app code since the Cursor build. Push a `debug-live/<suffix>` branch to
-cut a drop: the workflow derives the tag from the branch name and mints
-the pre-release with the Actions token. That spelling is what a cloud
-session needs — the git proxy 403s tag refs, and the session type refuses
-the Releases API outright ("Creating, editing, or deleting releases is not
-permitted for this session type"), so neither a tag push nor
-`gh release create` is reachable from here. The branch push is.
+`debugLiveCode` is 23. The Obtainium pre-release `debug-live-2026-09-08`
+exists (`PersonalTrainer-1.0.0-debug.apk`, THROWAWAY SIGNER). Pull Temper
+Debug in Obtainium with pre-releases included. Do not bump 23 again this
+drop. Gym-floor Temper stays on the signed APK.
 
 **R05 is closed as of live test 25.** The four `DEBUG_KEYSTORE_*` secrets
 and the `DEBUG_CERT_SHA256` variable were set on 2026-09-09, so
@@ -164,10 +160,9 @@ backdated strength activity counts toward PRs and movers, not only
 totals and Records. Exercise detail, the log-time PR badge, and activity
 edits are still later steps
 ([`architecture/completed-training-convergence.md`](architecture/completed-training-convergence.md)).
-Open `#181` is stacked on `#184` (`claude/test-wait-ceiling`) because both
-edit `HistoryViewModelTest.kt`; the new horizon test waits on
-`TestWaits.FLOW_MS`. Merge the tip. Do not start a second edit of that file
-from `trunk`.
+Open `#181` is rebased on `trunk` after `#184` (flow waits are
+`TestWaits.FLOW_MS`). The new horizon test uses that ceiling. Do not start a
+second edit of `HistoryViewModelTest.kt` from `trunk`.
 
 **R17 measurement.** The History catalog is shared and the revision keys are
 in place, but the full-history read behind the horizon readout was left alone
