@@ -41,11 +41,6 @@ import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 private fun HomePopulatedPreview() {
     PersonalTrainerTheme {
         HomePreviewColumn {
-            HomeStatRow(
-                lastSession = HomePreviewFixtures.lastSession,
-                todayEpoch = HomePreviewFixtures.TODAY,
-                unit = WeightUnit.KG,
-            )
             MissedWorkCard(
                 overdueCount = 1,
                 onMoveRemaining = {},
@@ -70,11 +65,6 @@ private fun HomePopulatedPreview() {
 private fun HomeEmptyPreview() {
     PersonalTrainerTheme {
         HomePreviewColumn {
-            HomeStatRow(
-                lastSession = null,
-                todayEpoch = HomePreviewFixtures.TODAY,
-                unit = WeightUnit.KG,
-            )
             ThisWeekCard(
                 day = null,
                 nextDay = null,
@@ -97,11 +87,6 @@ private fun HomeEmptyPreview() {
 private fun HomeReducedMotionPreview() {
     PersonalTrainerTheme(reduceMotion = true) {
         HomePreviewColumn {
-            HomeStatRow(
-                lastSession = HomePreviewFixtures.lastSession,
-                todayEpoch = HomePreviewFixtures.TODAY,
-                unit = WeightUnit.KG,
-            )
             DailyAgendaCard(
                 items = HomePreviewFixtures.agenda,
                 sessionLive = false,

@@ -36,12 +36,27 @@ object DailyAgenda {
      * used to stamp tonight MISSED one minute past the hour, and
      * `MoveToToday.decide` already treats that row as already-there.
      * Earlier-day leftovers stay startable so Still open can relocate.
+     *
+     * SKIPPED joins them, and `MoveToToday.isLeftover` counts only PLANNED
+     * and MISSED, so for a skipped row that arm is false by construction and
+     * the rule reduces to its own day. That is deliberate: changing your mind
+     * on the day you wrote off is ordinary, and Home offered no way back —
+     * the row simply stopped responding. A skip from an earlier day stays
+     * closed, and Still open does not resurface it.
+     *
+     * Re-opening one is safe because `PlannerRepository.skipOccurrence` only
+     * flips the status and cancels reminders; no session is ever bound to a
+     * skipped row, so there is nothing to collide with.
+     *
+     * DONE stays closed. A done row has a finished session behind it, and
+     * starting it again would bind a second session to the same occurrence.
+     * Repeating finished work is its own feature, not this predicate.
      */
     fun canOpenStart(item: AgendaItem, todayEpochDay: Long): Boolean {
         val occurrence = item.occurrence
         return when (occurrence.status) {
             OccurrenceStatus.PLANNED -> true
-            OccurrenceStatus.MISSED ->
+            OccurrenceStatus.MISSED, OccurrenceStatus.SKIPPED ->
                 occurrence.localEpochDay == todayEpochDay ||
                     MoveToToday.isLeftover(occurrence, todayEpochDay)
             else -> false

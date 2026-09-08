@@ -82,8 +82,14 @@ class HomeViewModelTest {
         )
     }
 
+    /**
+     * Home used to list every ready-to-progress lift, which made the card that
+     * only says "some lifts are ready" redundant, so it was filtered out. That
+     * list is off Home now and the card is the sole remaining signal, so the
+     * filter is gone and the card must survive alongside the hints.
+     */
     @Test
-    fun dropsProgressionReadyWhenHintsExist() = runBlocking {
+    fun keepsProgressionReadyNowThatHomeDoesNotListTheHints() = runBlocking {
         val insights = MutableStateFlow(
             TrainingInsights(
                 hints = listOf(hint()),
@@ -94,8 +100,11 @@ class HomeViewModelTest {
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
         val state = viewModel!!.uiState.first { !it.isLoading }
-        assertTrue(state.recommendations.none { it.id == "progression-ready" })
-        assertEquals(listOf("coverage-chest"), state.recommendations.map { it.id })
+        assertTrue(state.recommendations.any { it.id == "progression-ready" })
+        assertEquals(
+            listOf("progression-ready", "coverage-chest"),
+            state.recommendations.map { it.id },
+        )
     }
 
     @Test
@@ -158,7 +167,13 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun lastSessionReadsAllTimeSummariesWhenTheHeatWindowIsEmpty() = runBlocking {
+    /**
+     * The last-session and days-since tiles are off Home, but the week strip's
+     * done tick still comes from the same place, and it must keep reading the
+     * all-time summaries rather than the 30-day heat window: a session older
+     * than the window is still a session that happened.
+     */
+    fun loggedDaysReadAllTimeSummariesWhenTheHeatWindowIsEmpty() = runBlocking {
         val today = com.sinura.personaltrainer.domain.todayEpochDay()
         val old = com.sinura.personaltrainer.domain.SessionSummary(
             id = "ancient-pull",
@@ -181,9 +196,6 @@ class HomeViewModelTest {
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
         val state = viewModel!!.uiState.first { !it.isLoading }
-        assertEquals("ancient-pull", state.lastSession?.id)
-        assertEquals(today - 80, state.lastSession?.localEpochDay)
-        assertNull(state.previousSameRoutine)
         assertTrue(state.loggedEpochDays.contains(today - 80))
     }
 

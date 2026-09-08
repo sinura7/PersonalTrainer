@@ -24,11 +24,6 @@ class HistoryStrongerTest {
         assertTrue(calendar.contains("HistoryCopy.CALENDAR_MONTH"))
         assertTrue(calendar.contains("weekContaining("))
         assertTrue(calendar.contains("weeksToShow"))
-
-        val home = readOwned("ui/home/HomeScreen.kt")
-        assertTrue(home.contains("previousSameRoutine"))
-        assertTrue(home.contains("signedWorkDelta"))
-        assertTrue(home.contains("caption = delta"))
     }
 
     private fun readOwned(relative: String): String {

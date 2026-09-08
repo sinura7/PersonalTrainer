@@ -99,6 +99,53 @@ class DailyAgendaTest {
         assertTrue(DailyAgenda.startable(items).isEmpty())
     }
 
+    /**
+     * Skipping is a decision about a day, not about the day's existence.
+     * Home used to drop the click silently the moment a row was skipped, so
+     * changing your mind meant there was no way back to the session at all.
+     */
+    @Test
+    fun todaySkippedIsStartableButAnEarlierSkipIsNot() {
+        val day = 20_000L
+        val skippedToday = occ("s", "r-s", day, 18).copy(status = OccurrenceStatus.SKIPPED)
+        val skippedBefore = occ("b", "r-b", day - 1, 18).copy(status = OccurrenceStatus.SKIPPED)
+        val today = DailyAgenda.forDay(
+            day,
+            listOf(skippedToday),
+            listOf(rule("r-s", ScheduleModality.STRENGTH)),
+        ).single()
+        val earlier = DailyAgenda.forDay(
+            day - 1,
+            listOf(skippedBefore),
+            listOf(rule("r-b", ScheduleModality.STRENGTH)),
+        ).single()
+
+        assertTrue(DailyAgenda.canOpenStart(today, day))
+        assertTrue(!DailyAgenda.canOpenStart(earlier, day))
+        // isLeftover counts only PLANNED and MISSED, so a skip never returns
+        // through Still open; the row is reachable on its own day or not at all.
+        assertTrue(!MoveToToday.isLeftover(skippedBefore, day))
+        // startable() is the planned-only list and must not widen with this.
+        assertTrue(DailyAgenda.startable(listOf(today)).isEmpty())
+    }
+
+    /**
+     * A done row keeps a finished session behind it. Starting it again would
+     * bind a second session to one occurrence, so it stays closed on its own
+     * day too — this is the guard for that, not an accident of ordering.
+     */
+    @Test
+    fun todayDoneStaysClosed() {
+        val day = 20_000L
+        val done = occ("d", "r-d", day, 18).copy(status = OccurrenceStatus.DONE)
+        val item = DailyAgenda.forDay(
+            day,
+            listOf(done),
+            listOf(rule("r-d", ScheduleModality.STRENGTH)),
+        ).single()
+        assertTrue(!DailyAgenda.canOpenStart(item, day))
+    }
+
     @Test
     fun strengthTitlePrefersTheRoutineName() {
         val day = 20_000L
