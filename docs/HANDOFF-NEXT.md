@@ -121,10 +121,12 @@ closed unmerged: `#125` (AGP 9.3.2), `#126` (play-services-auth 22.0.0),
 the kotlin group bundled it with core/test), and `#176` (android-all
 17- jar; J3 stays on `15-robolectric-13954326-i7`). `#178` named those
 holes, and also ignores `org.robolectric:robolectric` major/minor so
-API-36-and-up Robolectric does not sneak in on Java 17. Leave `#173`
-(setup-gradle 6.3.0; Actions is not the test lane) and `#175`
-(Robolectric 4.16.1 patch) unless a dedicated JVM-gated packet takes
-them with a ledger update.
+API-36-and-up Robolectric does not sneak in on Java 17. Leave `#173` (setup-gradle 6.3.0; Actions is not the test lane),
+`#175` (Robolectric 4.16.1 patch), and `#180` (AGP **8.9.2 → 8.9.3**,
+a patch of the signed compileSdk-36 pair — not the 9.x refuse). None
+of those merge as a drive-by: each needs a JVM-gated packet and a
+ledger update, and AGP 8.9.3 also moves the `aapt2-8.9.2-*` pins in
+`tools/check-supply-chain.py`.
 
 **R16 residue.** Production-screen tests exist for History, the activity
 composer, live cardio, the activity receipt and Home. Settings, onboarding,
