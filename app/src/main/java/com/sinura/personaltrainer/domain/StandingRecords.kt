@@ -83,3 +83,27 @@ fun WorkoutSession.recordSets(): List<RecordSet> {
             )
         }
 }
+
+/** The same projection out of an activity graph. Warm-ups and live rows do not count. */
+fun ActivitySession.recordSets(): List<RecordSet> {
+    if (!isCompleted) return emptyList()
+    return strengthBlocks.flatMap { block ->
+        val loadClass = LoadClass.of(block.loadType)
+        block.sets
+            .filterNot { it.isWarmup }
+            .map { set ->
+                RecordSet(
+                    exerciseId = block.exerciseId,
+                    exerciseName = block.exerciseName,
+                    loadClass = loadClass,
+                    set = ExerciseSetRecord(
+                        setId = set.id,
+                        sessionId = id,
+                        weightKg = set.weightKg,
+                        reps = set.reps,
+                        completedAt = set.completedAtMs,
+                    ),
+                )
+            }
+    }
+}

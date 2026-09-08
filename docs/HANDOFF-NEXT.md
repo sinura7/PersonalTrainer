@@ -158,11 +158,12 @@ exercise detail and Library still have only isolated-control coverage, and
 `AccessibilityMatrix` claims automated evidence for all of them, which
 overstates it.
 
-**R18 step one.** `HistoryViewModel.pastBlockReviews`, its `horizonProgress`,
-and `PlanViewModel.completedBlockSessions` still read the strength store
-alone, so a backdated strength activity counts toward totals and Records but
-never toward the readout's PRs. The plan and the capability matrix are in
-[`architecture/completed-training-convergence.md`](architecture/completed-training-convergence.md).
+**R18 step one.** Horizon readout and past-block reviews (and Plan's
+completed-block review) read `CompletedTraining` from both stores, so a
+backdated strength activity counts toward PRs and movers, not only
+totals and Records. Exercise detail, the log-time PR badge, and activity
+edits are still later steps
+([`architecture/completed-training-convergence.md`](architecture/completed-training-convergence.md)).
 
 **R17 measurement.** The History catalog is shared and the revision keys are
 in place, but the full-history read behind the horizon readout was left alone

@@ -6,7 +6,15 @@ import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
+import com.sinura.personaltrainer.domain.ActivityDraft
+import com.sinura.personaltrainer.domain.ActivityOrigin
+import com.sinura.personaltrainer.domain.ActivityStatus
+import com.sinura.personaltrainer.domain.ActivityWrite
 import com.sinura.personaltrainer.domain.DataHealth
+import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.LoadType
+import com.sinura.personaltrainer.domain.StrengthBlock
+import com.sinura.personaltrainer.domain.StrengthSet
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.insertTestExercise
@@ -156,6 +164,64 @@ class HistoryViewModelTest {
         assertFalse(fine.stale)
         assertEquals(listOf("fresh"), fine.value)
     }
+
+    @Test
+    fun aBackdatedStrengthActivityCountsTowardTheHorizonReadout() = runBlocking {
+        // A first set against an empty prior is a baseline, not a broken record.
+        // The activity has to beat a finished strength session of the same lift.
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        val fixture = seedTestWorkout(
+            deps = deps,
+            loggedSets = listOf(TestSetInput(weightKg = 100.0, reps = 5)),
+            finish = true,
+        )
+        val now = com.sinura.personaltrainer.util.JvmTime.captureNow()
+        val write = deps.confirmActivity(
+            ActivityDraft(
+                status = ActivityStatus.COMPLETED,
+                origin = ActivityOrigin.BACKDATED,
+                title = "Make-up squat",
+                performedStart = now,
+                performedEnd = now,
+                blocks = listOf(backdatedSquat(fixture.exercise.id, now.instantMillis + 1_000L)),
+            ),
+            now,
+        )
+        assertTrue(write is ActivityWrite.Accepted)
+
+        viewModel = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        val state = withTimeout(5_000) {
+            viewModel!!.uiState.first {
+                it.summaries.size >= 2 && (it.horizonProgress?.recordsBroken ?: 0) > 0
+            }
+        }
+        assertEquals(2, state.summaries.size)
+        assertTrue((state.horizonProgress?.recordsBroken ?: 0) > 0)
+    }
+
+    private fun backdatedSquat(exerciseId: String, completedAtMs: Long) = StrengthBlock(
+        id = "blk-1",
+        sortOrder = 0,
+        exerciseId = exerciseId,
+        exerciseName = "Test squat",
+        loadType = LoadType.EXTERNAL,
+        equipment = EquipmentType.BARBELL,
+        muscles = emptyList(),
+        sets = listOf(
+            StrengthSet(
+                id = "set-act-1",
+                setNumber = 1,
+                weightKg = 110.0,
+                reps = 5,
+                rpe = null,
+                isWarmup = false,
+                completedAtMs = completedAtMs,
+            ),
+        ),
+    )
 
     private suspend fun insertFinishedSession(
         id: String,

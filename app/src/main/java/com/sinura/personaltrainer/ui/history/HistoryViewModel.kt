@@ -101,8 +101,11 @@ class HistoryViewModel @JvmOverloads constructor(
      * content identity — the horizon readout from list size and newest id, the block reviews
      * from the last weigh-in — and neither moved when a finished set was edited, deleted or
      * restored, so the PRs and mover stayed stale until the horizon was switched.
+     *
+     * Includes activity completions: a backdated strength day used to move the list and
+     * Records without recomputing the readout, because the token was strength-store only.
      */
-    private val revision = container.workoutRepository.observeFinishedWorkRevision()
+    private val revision = container.completedTrainingRepository.observeRevision()
 
     private val pastBlockReviews = combine(
         container.preferencesRepository.pastBlocks,
@@ -113,30 +116,16 @@ class HistoryViewModel @JvmOverloads constructor(
         .distinctUntilChanged()
         .flatMapLatest { inputs ->
             flow {
-                val zone = time.defaultZoneId()
+                val items = container.completedTrainingRepository.all()
                 val reviews = inputs.blocks
                     .asReversed()
                     .map { block ->
-                        val startMs = time.startOfDayMillis(
-                            CivilDate.fromEpochDay(block.startEpochDay),
-                            zone,
-                        )
-                        val endMs = time.startOfDayMillis(
-                            CivilDate.fromEpochDay(block.endExclusiveEpochDay),
-                            zone,
-                        ) - 1
-                        val sessions = container.workoutRepository.sessionsBetween(
-                            minDateMs = startMs,
-                            maxDateMs = endMs,
-                        )
                         FinishedBlock(
                             block = block,
                             review = BlockReviewBuilder.build(
                                 block = block,
-                                sessions = sessions,
+                                items = items,
                                 unit = inputs.unit,
-                                time = time,
-                                zoneId = zone,
                                 bodyweightLog = inputs.bodyweightLog,
                             ),
                         )
@@ -222,20 +211,13 @@ class HistoryViewModel @JvmOverloads constructor(
                     emit(null)
                     return@flow
                 }
-                val zone = time.defaultZoneId()
-                val endMs = time.startOfDayMillis(
-                    CivilDate.fromEpochDay(key.endEpochDay + 1),
-                    zone,
-                ) - 1
-                val sessions = container.workoutRepository.sessionsBetween(0L, endMs)
+                val items = container.completedTrainingRepository.all()
                 emit(
                     BlockReviewBuilder.overRange(
                         startEpochDay = key.startEpochDay,
                         endExclusiveEpochDay = key.endEpochDay + 1,
-                        sessions = sessions,
+                        items = items,
                         unit = key.unit,
-                        time = time,
-                        zoneId = zone,
                     ),
                 )
             }

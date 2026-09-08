@@ -31,6 +31,7 @@ import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.BlockReview
 import com.sinura.personaltrainer.domain.BodyweightEntry
 import com.sinura.personaltrainer.domain.BlockReviewBuilder
+import com.sinura.personaltrainer.domain.CompletedTraining
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.TrainingBlock
@@ -114,7 +115,10 @@ class PlanViewModel @JvmOverloads constructor(
             initialValue = null,
         )
 
-    private val completedBlockSessions = container.preferencesRepository.trainingBlock
+    private val completedBlockSessions = combine(
+        container.preferencesRepository.trainingBlock,
+        container.completedTrainingRepository.observeRevision(),
+    ) { block, _ -> block }
         .flatMapLatest { block ->
             flow {
                 val today = todayEpochDay()
@@ -122,19 +126,7 @@ class PlanViewModel @JvmOverloads constructor(
                     emit(emptyList())
                     return@flow
                 }
-                val zone = time.defaultZoneId()
-                emit(
-                    container.workoutRepository.sessionsBetween(
-                        minDateMs = time.startOfDayMillis(
-                            CivilDate.fromEpochDay(block.startEpochDay),
-                            zone,
-                        ),
-                        maxDateMs = time.startOfDayMillis(
-                            CivilDate.fromEpochDay(block.endExclusiveEpochDay),
-                            zone,
-                        ) - 1,
-                    ),
-                )
+                emit(container.completedTrainingRepository.all())
             }
         }
         .flowOn(container.computeDispatcher)
@@ -214,10 +206,8 @@ class PlanViewModel @JvmOverloads constructor(
                 ?.let { finished ->
                     BlockReviewBuilder.build(
                         block = finished,
-                        sessions = settings.blockSessions,
+                        items = settings.blockSessions,
                         unit = settings.unit,
-                        time = time,
-                        zoneId = zone,
                         bodyweightLog = settings.bodyweightLog,
                     )
                 },
@@ -716,6 +706,6 @@ class PlanViewModel @JvmOverloads constructor(
         val unit: WeightUnit,
         val bodyweightLog: List<BodyweightEntry>,
         val lighterWeekStart: Long?,
-        val blockSessions: List<WorkoutSession>,
+        val blockSessions: List<CompletedTraining>,
     )
 }

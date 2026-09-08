@@ -20,6 +20,7 @@ import com.sinura.personaltrainer.timer.SharedPrefsCardioTimerPersistence
 import com.sinura.personaltrainer.util.IdFactory
 import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.data.repository.BackupRepository
+import com.sinura.personaltrainer.data.repository.CompletedTrainingRepository
 import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
 import com.sinura.personaltrainer.data.repository.LocalBackupRepository
@@ -94,6 +95,8 @@ class AppContainer(context: Context) : AppDependencies {
         dbMaintenance,
         restoreBlocksStart = { backupRepository.restoreBlocksStart() },
     )
+    override val completedTrainingRepository: CompletedTrainingRepository =
+        CompletedTrainingRepository(workoutRepository, activityRepository, time)
     override val preferencesRepository: PreferencesRepository = PreferencesRepository(
         context,
         bodyweightDao = database.bodyweightDao(),

@@ -84,6 +84,10 @@
 > (`HistoryViewModel` waits for `#181`). No app-visible change; no drop.
 > `DESIGN_AUDIT` W-14/W-15 were already closed in code and are marked so.
 >
+> 8 Sep 2026 — R18 step one: History horizon and block reviews read
+> `CompletedTraining` from both stores. A backdated strength day counts
+> as a PR in the readout, not only in Records.
+>
 > 8 Sep 2026 — Dependabot `#174` (coroutines 1.11.0) and `#176`
 > (android-all-instrumented 17) closed unmerged. `#178` named
 > `kotlinx-coroutines-android` and the J3 API-35 jar on the ignore
