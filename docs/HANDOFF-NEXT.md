@@ -111,11 +111,28 @@ stable key, but only once four `DEBUG_KEYSTORE_*` secrets and the
 Until then every drop is marked THROWAWAY SIGNER and installs beside the
 app on the phone rather than over it.
 
-**The live test 22 Obtainium drop never published.** Hosted
-`debug-live.yml` died in seconds with no runner. Obtainium still offers
-`debug-live-2026-09-03` (live **20** — live 21 also never published).
-The Cursor APK at versionCode 22 is the phone install. Do not bump 22.
-Do not `gh release create`. Dependabot refuses now on the ignore list, all
+**The Obtainium lane is automatic again.** Hosted `debug-live.yml` had
+died in seconds with no runner since 2026-09-05, which stranded live 21
+and live 22. That was never a billing problem worth paying to solve:
+Actions is free and unmetered on a public repository, and the account had
+simply exhausted its private-repo minutes. The repository was made public
+on 2026-09-08 after a scan of all 72 commits found no keystore, private
+key, API key or token in any of them — the only matches were `printf`
+lines reading GitHub secrets and a placeholder in `SETUP.md`.
+
+`debugLiveCode` moves 22 -> 23 for live test 23, the first drop carrying
+app code since the Cursor build. Push a `debug-live/<suffix>` branch to
+cut a drop: the workflow derives the tag from the branch name and mints
+the pre-release with the Actions token. That spelling is what a cloud
+session needs — the git proxy 403s tag refs, and the session type refuses
+the Releases API outright ("Creating, editing, or deleting releases is not
+permitted for this session type"), so neither a tag push nor
+`gh release create` is reachable from here. The branch push is.
+
+**R05 still bites.** Without the four `DEBUG_KEYSTORE_*` secrets the
+workflow signs each drop with a throwaway key, so every drop installs
+beside the last with a fresh database instead of over it. Dependabot
+refuses now on the ignore list, all
 closed unmerged: `#125` (AGP 9.3.2), `#126` (play-services-auth 22.0.0),
 `#174` (coroutines 1.11.0 — `kotlinx-coroutines-android` was unnamed, so
 the kotlin group bundled it with core/test), and `#176` (android-all
