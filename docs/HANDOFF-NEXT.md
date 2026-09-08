@@ -115,9 +115,18 @@ app on the phone rather than over it.
 `debug-live.yml` died in seconds with no runner. Obtainium still offers
 `debug-live-2026-09-03` (live **20** — live 21 also never published).
 The Cursor APK at versionCode 22 is the phone install. Do not bump 22.
-Do not `gh release create`. `#125` (AGP 9.3.2) and `#126` (play-services-auth
-22.0.0) were closed unmerged on 2026-09-08 and both are now in the
-`.github/dependabot.yml` ignore list, so they will not be re-opened.
+Do not `gh release create`. Dependabot refuses now on the ignore list, all
+closed unmerged: `#125` (AGP 9.3.2), `#126` (play-services-auth 22.0.0),
+`#174` (coroutines 1.11.0 — `kotlinx-coroutines-android` was unnamed, so
+the kotlin group bundled it with core/test), and `#176` (android-all
+17- jar; J3 stays on `15-robolectric-13954326-i7`). `#178` named those
+holes, and also ignores `org.robolectric:robolectric` major/minor so
+API-36-and-up Robolectric does not sneak in on Java 17. Leave `#173` (setup-gradle 6.3.0; Actions is not the test lane),
+`#175` (Robolectric 4.16.1 patch), and `#180` (AGP **8.9.2 → 8.9.3**,
+a patch of the signed compileSdk-36 pair — not the 9.x refuse). None
+of those merge as a drive-by: each needs a JVM-gated packet and a
+ledger update, and AGP 8.9.3 also moves the `aapt2-8.9.2-*` pins in
+`tools/check-supply-chain.py`.
 
 **R16 residue.** Production-screen tests exist for History, the activity
 composer, live cardio, the activity receipt and Home. Settings, onboarding,
