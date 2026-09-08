@@ -11,6 +11,7 @@ import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.ActivityReadGate
 import com.sinura.personaltrainer.testutil.FailingGetGraphDao
+import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.util.JvmTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -125,14 +126,14 @@ class LiveCardioViewModelTest {
         val live = (started as ActivityWrite.Accepted).session
         val handle = SavedStateHandle(mapOf("sessionId" to live.id))
         val first = createViewModel(handle)
-        withTimeout(5_000) { first.uiState.first { it.session != null } }
+        withTimeout(TestWaits.FLOW_MS) { first.uiState.first { it.session != null } }
         first.setType(CardioType.WALK)
         first.setIndoor(true)
         first.setDistanceKm("2.5")
         first.clearAndJoinForTest()
 
         // The row still says RUN outdoors; the owner's later choices must win over it.
-        val state = withTimeout(5_000) { createViewModel(handle).uiState.first { it.session != null } }
+        val state = withTimeout(TestWaits.FLOW_MS) { createViewModel(handle).uiState.first { it.session != null } }
         assertEquals(CardioType.WALK, state.type)
         assertTrue(state.indoor)
         assertEquals("2.5", state.distanceKm)
@@ -147,11 +148,11 @@ class LiveCardioViewModelTest {
         val live = (started as ActivityWrite.Accepted).session
         val handle = SavedStateHandle(mapOf("sessionId" to live.id))
         val first = createViewModel(handle)
-        withTimeout(5_000) { first.uiState.first { it.session != null } }
+        withTimeout(TestWaits.FLOW_MS) { first.uiState.first { it.session != null } }
         first.setIndoor(true)
         first.clearAndJoinForTest()
 
-        val state = withTimeout(5_000) { createViewModel(handle).uiState.first { it.session != null } }
+        val state = withTimeout(TestWaits.FLOW_MS) { createViewModel(handle).uiState.first { it.session != null } }
         assertTrue(state.indoor)
         assertEquals(CardioType.RUN, state.type)
     }
@@ -170,13 +171,13 @@ class LiveCardioViewModelTest {
         gate.shouldFail = true
 
         val vm = createViewModel(live.id)
-        val failed = withTimeout(5_000) { vm.uiState.first { it.failed } }
+        val failed = withTimeout(TestWaits.FLOW_MS) { vm.uiState.first { it.failed } }
         assertFalse("a read fault is not a gone session", failed.missing)
         assertNull(failed.session)
 
         gate.shouldFail = false
         vm.retry()
-        val loaded = withTimeout(5_000) { vm.uiState.first { it.session != null } }
+        val loaded = withTimeout(TestWaits.FLOW_MS) { vm.uiState.first { it.session != null } }
         assertFalse(loaded.failed)
         assertEquals(live.id, loaded.session?.id)
         assertEquals(live.id, deps.activityRepository.getLive()?.id)

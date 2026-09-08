@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.testutil.TestWaits
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -175,7 +176,7 @@ class RestTimerViewModelTest {
         deps.preferencesRepository.restTimerPreferences.first()
 
         floor.selectRestDuration(105)
-        withTimeout(5_000) {
+        withTimeout(TestWaits.FLOW_MS) {
             workout.restTimerState.first { it.totalSeconds == 105 && !it.running }
         }
         assertEquals(105, floor.uiState.value.rest.totalSeconds)
@@ -197,20 +198,20 @@ class RestTimerViewModelTest {
 
     private suspend fun RestTimerViewModel.awaitState(
         predicate: (RestTimerScreenState) -> Boolean,
-    ): RestTimerScreenState = withTimeout(5_000) {
+    ): RestTimerScreenState = withTimeout(TestWaits.FLOW_MS) {
         uiState.first(predicate)
     }
 
     private suspend fun ActiveWorkoutViewModel.awaitState(
         predicate: (ActiveWorkoutUiState) -> Boolean,
-    ): ActiveWorkoutUiState = withTimeout(5_000) {
+    ): ActiveWorkoutUiState = withTimeout(TestWaits.FLOW_MS) {
         uiState.first(predicate)
     }
 
     private suspend fun awaitSession(
         sessionId: String,
         predicate: (WorkoutSession) -> Boolean,
-    ): WorkoutSession = withTimeout(5_000) {
+    ): WorkoutSession = withTimeout(TestWaits.FLOW_MS) {
         checkNotNull(
             deps.workoutRepository.observeSession(sessionId).first { session ->
                 session != null && predicate(session)

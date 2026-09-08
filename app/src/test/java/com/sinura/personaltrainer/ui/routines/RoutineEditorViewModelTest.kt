@@ -13,6 +13,7 @@ import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.testutil.TestSetInput
+import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.CompletableDeferred
@@ -726,7 +727,7 @@ class RoutineEditorViewModelTest {
     }
 
     private suspend fun awaitRoutine(predicate: (Routine) -> Boolean): Routine =
-        withTimeout(5_000) {
+        withTimeout(TestWaits.FLOW_MS) {
             deps.routineRepository.observeAll().first { list ->
                 list.singleOrNull()?.let(predicate) == true
             }.single()
