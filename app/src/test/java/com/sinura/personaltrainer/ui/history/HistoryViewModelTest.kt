@@ -193,7 +193,7 @@ class HistoryViewModelTest {
         assertTrue(write is ActivityWrite.Accepted)
 
         viewModel = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        val state = withTimeout(5_000) {
+        val state = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.uiState.first {
                 it.summaries.size >= 2 && (it.horizonProgress?.recordsBroken ?: 0) > 0
             }

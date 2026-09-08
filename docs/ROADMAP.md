@@ -86,7 +86,9 @@
 >
 > 8 Sep 2026 — R18 step one: History horizon and block reviews read
 > `CompletedTraining` from both stores. A backdated strength day counts
-> as a PR in the readout, not only in Records.
+> as a PR in the readout, not only in Records. Open `#181` is stacked on
+> `#184` (flow waits are `TestWaits.FLOW_MS`) because both edit
+> `HistoryViewModelTest.kt`.
 >
 > 8 Sep 2026 — Dependabot `#174` (coroutines 1.11.0) and `#176`
 > (android-all-instrumented 17) closed unmerged. `#178` named

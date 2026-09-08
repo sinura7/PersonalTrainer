@@ -164,6 +164,10 @@ backdated strength activity counts toward PRs and movers, not only
 totals and Records. Exercise detail, the log-time PR badge, and activity
 edits are still later steps
 ([`architecture/completed-training-convergence.md`](architecture/completed-training-convergence.md)).
+Open `#181` is stacked on `#184` (`claude/test-wait-ceiling`) because both
+edit `HistoryViewModelTest.kt`; the new horizon test waits on
+`TestWaits.FLOW_MS`. Merge the tip. Do not start a second edit of that file
+from `trunk`.
 
 **R17 measurement.** The History catalog is shared and the revision keys are
 in place, but the full-history read behind the horizon readout was left alone
