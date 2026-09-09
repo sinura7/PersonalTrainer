@@ -36,6 +36,7 @@ import com.sinura.personaltrainer.workout.DiscardOutcome
 import com.sinura.personaltrainer.workout.FinishOutcome
 import com.sinura.personaltrainer.workout.WorkoutDraft
 import com.sinura.personaltrainer.workout.WorkoutDraftRecovery
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.BufferOverflow
@@ -710,6 +711,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                         error.fail(source = ERR_ADD_LIFT, message = MuscleGroups.MISSING_MESSAGE)
                     is SaveExerciseResult.Saved -> addExerciseInternal(result.exercise)
                 }
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "createAndAddExercise failed", thrown)
                 error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.CREATE_LIFT_FAILED)
@@ -735,6 +738,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 // Let the session's own rule pick what to show next rather than guessing here.
                 selectedExerciseId.value = null
                 error.clearFrom(source = ERR_REMOVE_LIFT, before = started)
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "removeSelectedLift failed", thrown)
                 error.fail(
@@ -760,6 +765,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 selectExercise(exercise.id)
                 showPicker.value = false
                 error.clearFrom(source = ERR_ADD_LIFT, before = started)
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "swapExerciseInSession failed", thrown)
                 error.fail(
@@ -791,6 +798,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             selectExercise(exercise.id)
             showPicker.value = false
             error.clearFrom(source = ERR_ADD_LIFT, before = started)
+        } catch (thrown: CancellationException) {
+            throw thrown
         } catch (thrown: Exception) {
             AppLog.w(TAG, "addExerciseInternal failed", thrown)
             error.fail(source = ERR_ADD_LIFT, message = "Could not add that lift. Try again.")
@@ -946,6 +955,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 error.clearFrom(source = ERR_LOG_SET, before = started)
                 draft.value = current.copy(isWarmup = false, rpe = null)
                 persistDraft()
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 error.fail(
                     source = ERR_LOG_SET,
@@ -1030,6 +1041,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 }
                 undoableDelete.value = removed
                 error.clearFrom(source = ERR_DELETE_SET, before = started)
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "deleteSet failed", thrown)
                 error.fail(
@@ -1053,6 +1066,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             try {
                 container.workoutRepository.restoreSet(pending)
                 error.clearFrom(source = ERR_UNDO_DELETE, before = started)
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "restoreSet failed", thrown)
                 error.fail(

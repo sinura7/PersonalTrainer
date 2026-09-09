@@ -263,6 +263,26 @@ of scope. A helper named `awaitState` is bounded by the `withTimeout` in its bod
 by its name. Ratcheted in `checker-baselines.toml` (`unbounded_waits`);
 `test_unbounded_waits.py` is its fixture proof.
 
+## `check-cancellation.py`
+
+`CancellationException` extends `Exception`, so a `catch (thrown: Exception)` around a
+suspending call catches the cancellation too: the coroutine that was told to stop logs
+"failed", falls back, and carries on. `util/CoroutineErrors.kt` has the fix
+(`runCatchingCancellable`, `recoverWith`); this finds the sites that still need one.
+
+```bash
+python3 tools/check-cancellation.py               # app/src/main/java
+```
+
+A bare `catch (Exception)` / `catch (Throwable)` is a finding when its `try` sits inside a
+`suspend fun` or a lambda handed to a coroutine builder (`launch`, `async`, `withContext`,
+`flow`, `withTimeout`, ...) or to a project function declared with a `suspend` lambda
+parameter (`launchWrite`, `write`, `serialized`, ... — read from the sources), and no
+earlier `catch (_: CancellationException)` clause on the same `try` or `is
+CancellationException` rethrow in its body guards it. A bare catch in a plain function is
+not counted: nothing in it can suspend. Ratcheted in `checker-baselines.toml`
+(`cancellation_swallow`); `test_cancellation.py` is its fixture proof.
+
 ## `test_policy_move.py`
 
 J4 remainder. Fixture proofs for the sixteen source-reading policy tests that
