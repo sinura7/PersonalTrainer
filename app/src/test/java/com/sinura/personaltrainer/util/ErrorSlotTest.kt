@@ -100,4 +100,12 @@ class ErrorSlotTest {
         slot.dismiss()
         assertNull(slot.messages.first())
     }
+
+    @Test
+    fun messagesValueClearsInTheSameTurnAsDismiss() {
+        slot.fail(source = "detail", message = "That session is no longer available.")
+        slot.dismiss()
+        assertNull(slot.messages.value)
+        assertNull(slot.message)
+    }
 }

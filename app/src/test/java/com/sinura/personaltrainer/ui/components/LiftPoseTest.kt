@@ -8,6 +8,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import java.io.IOException
 
 /**
  * Family poses stay inside the thumb square, cover the catalog, and light the
@@ -109,9 +110,15 @@ class LiftPoseTest {
     fun writeSilhouetteBoard() {
         val dir = File("/opt/cursor/artifacts")
         if (!dir.isDirectory) return
-        dir.resolve("silhouette-board.svg").writeText(silhouetteBoardSvg())
-        dir.resolve("body-figure-board.svg").writeText(bodyFigureBoardSvg())
-        dir.resolve("body-plates.json").writeText(bodyPlatesJson())
+        try {
+            dir.resolve("silhouette-board.svg").writeText(silhouetteBoardSvg())
+            dir.resolve("body-figure-board.svg").writeText(bodyFigureBoardSvg())
+            dir.resolve("body-plates.json").writeText(bodyPlatesJson())
+        } catch (_: IOException) {
+            // Optional dump for the Cursor artifact mount. A FUSE I/O error
+            // must not fail the suite — the geometry assertions above already ran.
+            return
+        }
         assertTrue(dir.resolve("silhouette-board.svg").length() > 0)
         assertTrue(dir.resolve("body-figure-board.svg").length() > 0)
         assertTrue(dir.resolve("body-plates.json").length() > 0)

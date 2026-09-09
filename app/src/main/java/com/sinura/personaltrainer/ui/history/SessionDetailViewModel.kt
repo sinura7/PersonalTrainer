@@ -72,8 +72,7 @@ class SessionDetailViewModel @JvmOverloads constructor(
     private var notesHydrated = false
 
     private val errors = ErrorSlot()
-    val error: StateFlow<String?> =
-        errors.messages.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val error: StateFlow<String?> = errors.messages
 
     private val _deleted = MutableStateFlow(false)
     val deleted: StateFlow<Boolean> = _deleted.asStateFlow()

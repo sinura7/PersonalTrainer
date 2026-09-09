@@ -29,6 +29,7 @@ import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.repository.ActivityRepository
 import com.sinura.personaltrainer.data.repository.BackupRepository
+import com.sinura.personaltrainer.data.repository.CompletedTrainingRepository
 import com.sinura.personaltrainer.timer.CardioTimerPersistence
 import com.sinura.personaltrainer.timer.PersistedCardioTimer
 import com.sinura.personaltrainer.util.IdFactory
@@ -190,6 +191,8 @@ class FakeAppDependencies(
         },
         restoreBlocksStart = { backupRepository.restoreBlocksStart() },
     )
+    override val completedTrainingRepository: CompletedTrainingRepository =
+        CompletedTrainingRepository(workoutRepository, activityRepository, time)
     override val confirmActivity: ConfirmActivity =
         ConfirmActivity(activityRepository, IdFactory.Uuid, time)
     override val startLiveActivity: StartLiveActivity =

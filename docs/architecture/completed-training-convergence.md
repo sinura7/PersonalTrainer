@@ -30,8 +30,8 @@ session" is the live `WorkoutSession`; the other three are
 | History list and month groups | yes | yes | yes | yes | `SessionSummary` from both repositories, merged in `HistoryViewModel` |
 | Calendar day marks | yes | yes | yes | yes | same summaries |
 | Horizon totals (sets, volume, minutes, cardio) | yes | yes | yes | yes | `DailyProjectionBuilder` over merged summaries |
-| Horizon readout: PRs broken, moved most | yes | **no** | n/a | **strength half no** | `BlockReviewBuilder.overRange` over `workoutRepository.sessionsBetween` only |
-| Past-block reviews | yes | **no** | n/a | **strength half no** | `BlockReviewBuilder.build` over `sessionsBetween` only |
+| Horizon readout: PRs broken, moved most | yes | yes | n/a | yes | `BlockReviewBuilder.overRange` over `CompletedTraining` from both stores |
+| Past-block reviews | yes | yes | n/a | yes | `BlockReviewBuilder.build` over `CompletedTraining` from both stores |
 | Lifetime Records (History) | yes | yes | n/a | yes | `standingRecords` over both record-set queries (R08) |
 | PR badge at log time | yes | **no** (no live logging) | n/a | **no** | `WorkoutRepository.recordsBrokenBy` |
 | Exercise detail bests and history | yes | **no** | n/a | **no** | `observeFinishedWorkingSets(exerciseId)` reads `set_logs` only |
