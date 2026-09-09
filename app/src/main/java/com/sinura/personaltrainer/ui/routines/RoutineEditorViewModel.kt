@@ -325,12 +325,17 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     /**
      * The targets typed into one lift's card but not yet written.
      *
-     * A plain map, not a StateFlow: nothing renders from it. The card renders its own text
-     * fields and the stored prescription above them, and this exists only so that the values
-     * survive the trip from a field the finger has left to the write that follows. Every
-     * mutation runs on the main thread from a Compose callback, so it needs no synchronisation.
+     * Not a StateFlow: nothing renders from it. The card renders its own text fields and the
+     * stored prescription above them, and this exists only so that the values survive the trip
+     * from a field the finger has left to the write that follows.
+     *
+     * Concurrent, because the tails of the write coroutines are not all on the main thread. A
+     * continuation returning from Room resumes on whatever thread the dispatcher hands it —
+     * under an unconfined dispatcher that is Room's own query thread — while a Compose callback
+     * is free to stage the next keystroke at the same moment. A plain LinkedHashMap mutated
+     * from both is a data race, and the lost update it hides is the one [clearStaged] names.
      */
-    private val stagedTargets = mutableMapOf<String, StagedTargets>()
+    private val stagedTargets = ConcurrentHashMap<String, StagedTargets>()
 
     /**
      * Record what is currently in a card's four fields, without touching the database.
@@ -375,7 +380,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         )
         if (pending == null) {
             // Identical to what is stored, so there is nothing to write and nothing to keep.
-            stagedTargets.remove(itemId)
+            clearStaged(itemId, staged)
             return
         }
         val settled = writeTargets(
@@ -390,7 +395,24 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         // this path exists. Dropped when the write lands, and dropped when the value was
         // rejected: a rejected value that stayed staged would raise the same complaint on every
         // focus change and again on the way out, and the owner has to retype it either way.
-        if (settled) stagedTargets.remove(itemId)
+        if (settled) clearStaged(itemId, staged)
+    }
+
+    /**
+     * Drop the staged value this commit was working from, and only that one.
+     *
+     * A Room write is slow enough for the next value to be typed into the same card before
+     * it lands, and removing by key alone threw that newer value away: the write that had
+     * already gone out was the older one, the card kept showing a number the routine did not
+     * hold, and the exit flush had nothing left to save. Whatever is staged now is either
+     * this commit's own value — finished with — or one that has not been written yet.
+     *
+     * Compare-and-remove in one atomic step, because the staging and this removal can be on
+     * two threads: reading, comparing and then removing would let the newer value slip into
+     * the gap between the read and the remove, which is the very drop this exists to stop.
+     */
+    private fun clearStaged(itemId: String, committed: StagedTargets) {
+        stagedTargets.remove(itemId, committed)
     }
 
     /**

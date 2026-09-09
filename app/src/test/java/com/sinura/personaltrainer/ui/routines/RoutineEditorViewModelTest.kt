@@ -255,6 +255,43 @@ class RoutineEditorViewModelTest {
     }
 
     @Test
+    fun aTargetTypedDuringASlowCommitSurvivesToTheExitWrite() = runBlocking {
+        // The commit that is already in the DAO must not take the next typed value down with
+        // it. Dropping the staged value by key alone did exactly that: the write that landed
+        // was the older one, the card went on showing a number the routine did not hold, and
+        // the exit flush had nothing left to save. It also swallowed the refusal in
+        // stagedTargetsCommitWhenTheyDifferAndRejectZeroSets whenever the removal happened to
+        // land after the second stageTargets — which is how it failed on a two-core runner.
+        val fixture = seedTestWorkout(deps, targetSets = 3, targetReps = 5)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val itemId = fixture.routine.exercises.single().id
+        val gate = CompletableDeferred<Unit>()
+        val vm = createViewModel(fixture.routine.id, delayedAdd(gate))
+        try {
+            vm.awaitState { it.routine != null }
+            vm.stageTargets(itemId, targetSets = 4, targetReps = 6, targetWeightKg = 110.0, restSeconds = 120)
+            vm.commitTargets(itemId)
+            vm.stageTargets(itemId, targetSets = 5, targetReps = 8, targetWeightKg = 120.0, restSeconds = 150)
+            gate.complete(Unit)
+
+            // leave() joins the write before it flushes, so the drop has certainly happened
+            // by the time the flush looks for something to save.
+            vm.leave()
+            vm.awaitExit()
+
+            val stored = checkNotNull(deps.routineRepository.getById(fixture.routine.id))
+                .exercises
+                .single()
+            assertEquals(5, stored.targetSets)
+            assertEquals(8, stored.targetReps)
+            assertEquals(150, stored.restSeconds)
+            assertEquals(120.0, stored.targetWeightKg)
+        } finally {
+            if (!gate.isCompleted) gate.complete(Unit)
+        }
+    }
+
+    @Test
     fun aTargetsRefusalSurvivesThePreviousCommitsSuccess() = runBlocking {
         val fixture = seedTestWorkout(deps, targetSets = 3, targetReps = 5)
         deps.workoutRepository.discardSession(fixture.session.id)
@@ -839,10 +876,27 @@ class RoutineEditorViewModelTest {
         }
     }
 
-    private suspend fun awaitRoutine(predicate: (Routine) -> Boolean): Routine =
-        withTimeout(TestWaits.FLOW_MS) {
-            deps.routineRepository.observeAll().first { list ->
-                list.singleOrNull()?.let(predicate) == true
-            }.single()
+    /**
+     * The routine wait, bounded and reporting like its three siblings. A bare
+     * `TimeoutCancellationException` here named neither the routine nor the count: the
+     * predicate only runs on a single-routine list, so a database holding none or two never
+     * matches it and the failure looked identical to a value that was merely wrong.
+     */
+    private suspend fun awaitRoutine(predicate: (Routine) -> Boolean): Routine {
+        var last: List<Routine>? = null
+        return try {
+            withTimeout(TestWaits.FLOW_MS) {
+                deps.routineRepository.observeAll().first { list ->
+                    last = list
+                    list.singleOrNull()?.let(predicate) == true
+                }.single()
+            }
+        } catch (timedOut: TimeoutCancellationException) {
+            throw AssertionError(
+                "awaitRoutine gave up; last routine list was $last; " +
+                    "uiState was ${viewModel?.uiState?.value}",
+                timedOut,
+            )
         }
+    }
 }

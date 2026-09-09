@@ -159,12 +159,19 @@ class CustomWeekViewModelTest {
 
         vm.setPickerVisible(false)
 
-        val closed = vm.uiState.awaitFirst { !it.showPicker }
+        val closed = vm.uiState.awaitFirst {
+            !it.showPicker && it.searchQuery.isEmpty() && it.selectedLifts.size == 2
+        }
         assertEquals("", closed.searchQuery)
         assertEquals(listOf(squat.id, row.id), closed.selectedLifts.map { it.exercise.id })
-        // Reopening starts where the day stands, numbered from 1.
+        // Reopening starts where the day stands, numbered from 1. The search being empty is
+        // what tells the reopened sheet from the one that was never closed: both show the
+        // picker, and only the reopened one has had its query cleared.
         vm.setPickerVisible(true)
-        assertEquals(listOf(squat.id, row.id), vm.uiState.awaitFirst { it.showPicker }.pickedIds)
+        assertEquals(
+            listOf(squat.id, row.id),
+            vm.uiState.awaitFirst { it.showPicker && it.searchQuery.isEmpty() }.pickedIds,
+        )
     }
 
     @Test
@@ -316,7 +323,13 @@ class CustomWeekViewModelTest {
 
         vm.setPickerVisible(false)
 
-        val state = vm.uiState.awaitFirst { !it.showPicker }
+        // Every field this test goes on to assert is named in the predicate. `!showPicker`
+        // alone is also true of the snapshot from before the picker was ever opened — with
+        // no await between the open and the close, that stale value is what the collector
+        // sees first on a loaded runner, and the day it reports is still empty.
+        val state = vm.uiState.awaitFirst {
+            !it.showPicker && it.searchQuery.isEmpty() && it.pickedIds == listOf(squat.id)
+        }
         assertEquals("", state.searchQuery)
         assertEquals(listOf(squat.id), state.pickedIds)
         assertEquals(squat.id, state.selectedLifts.single().exercise.id)
