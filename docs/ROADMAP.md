@@ -19,12 +19,13 @@
 > under the map ("3 sessions this week · last finished yesterday"), **Show
 > this month** in one tap when Day or Week is empty, and the Front / Back
 > chips in their own strip under the figure (`DESIGN_AUDIT` B-05 closed).
-> Live test 28 (`debugLiveCode` 28), drop `debug-live/2026-09-09-6`.
+> Live test 28 (`debugLiveCode` 28), drop `debug-live/2026-09-09-7`.
 >
 > 9 Sep 2026 — E: Golf cool-down pack (`golf-cooldown`, Mobility: couch
 > stretch, incline pigeon, calf stretch, elephant walk, dead bug). After a
 > round, where the Golf warm-up is before one. Live test 27
-> (`debugLiveCode` 27), drop `debug-live/2026-09-09-5`.
+> (`debugLiveCode` 27), drop `debug-live/2026-09-09-6` — the `-5` cut died
+> on the `#188` / `#190` compile break that `#196` fixed.
 >
 > 9 Sep 2026 — W2: every ViewModel test wait goes through
 > `Flow.awaitFirst` (sharedTest `TestWaits.kt`): `withTimeout(FLOW_MS)`
