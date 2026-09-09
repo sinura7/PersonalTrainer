@@ -156,15 +156,11 @@ backdated strength activity counts toward PRs and movers, not only
 totals and Records. Exercise detail, the log-time PR badge, and activity
 edits are still later steps
 ([`architecture/completed-training-convergence.md`](architecture/completed-training-convergence.md)).
-Open `#181` is rebased on `trunk` after `#197` (cancellation checker;
-live 28 drop `debug-live/2026-09-09-7`). History's three error sites
-use `ErrorSlot` on this packet. `HistoryViewModelTest` stays at 0
-unbounded waits. `check-cancellation.py` is 0 on this packet. Do not
-bump `debugLiveCode` (still 28). Open `#198` finishes the four
-`SettingsViewModelTest` waits (`unbounded_waits` 4 → 0). Overlap is
-`docs/ROADMAP.md` only. Do not start a second edit of
-`SettingsViewModelTest.kt` or `tools/checker-baselines.toml` from
-`trunk`.
+Open `#181` is rebased on `trunk` after `#198` (`unbounded_waits` 4 → 0).
+History's three error sites use `ErrorSlot` on this packet.
+`HistoryViewModelTest` stays at 0 unbounded waits. `check-cancellation.py`
+is 0 on this packet. Do not bump `debugLiveCode` (still 28). Live 28 is
+`debug-live/2026-09-09-7`.
 
 **R17 measurement.** The History catalog is shared and the revision keys are
 in place, but the full-history read behind the horizon readout was left alone
@@ -176,10 +172,12 @@ nothing to measure on. Section 5 of the convergence record is the plan.
 after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
 `claude/file-visibility-check-jraqc2` is an unmerged Claude vehicle
 (UX + stub compiler); do not start a second edit of those paths from
-`trunk`. Open `#198` (`claude/android-verify-my59sw`) is the last four
-ViewModel waits. Do not delete that head. `#196`'s vehicle
+`trunk`. `#198` is on `trunk`; `claude/android-verify-my59sw` is leftover
+and Claude reuses it — do not start a second edit of those paths from
+`trunk` if a new PR appears on that head. `#196`'s vehicle
 `claude/google-signin-integration-xijk5e` was deleted after merge.
 `debugLiveCode` on trunk is 28; do not bump it on `#181`.
+`unbounded_waits` on trunk is 0.
 
 ## Rules that bind this work
 
