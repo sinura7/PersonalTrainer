@@ -19,6 +19,20 @@
 > `awaitFirst` now that `#188` has landed; `unbounded_waits` 4 → 0. Every
 > ViewModel wait in the suite has a ceiling and names what it last saw.
 >
+> 9 Sep 2026 — J: `DESIGN_AUDIT` re-read against the code. 42 of the 64
+> rows still marked P1 were closed by shipped work (keyed stills on every
+> picker, chip and header; the bundled rest cue on the alarm stream; the
+> nine-tenths picker with the create row only on no match; equipment on
+> the lift; staged targets and persist-on-exit; Room v4 with the catalog
+> versioned; the overlay superseded) and now say so with file evidence;
+> two are partly closed. What is genuinely open: the last-5-second tick
+> (R-04, T-02, T-05, T-17, N-02, G-10), Body's first-launch emptiness
+> (B-02), routine-card and recommendation pictures (S-02, B-03, I-01),
+> editor target steppers and a load-type control (E-04, E-12), a cue
+> preview in Settings (N-01), the battery-restriction copy (T-16), and
+> the walkthrough rows (W-02, W-11, G-02, G-05, T-12, I-04) and the
+> chip's set progress and rest badge (W-06). Docs only.
+>
 > 9 Sep 2026 — I: the hosted emulator lane boots the Nexus 5X profile the
 > goldens were recorded on (411 dp at 420 dpi, the `temper-tests-api29`
 > device); it had been booting a 320 px default. Still red, and now
