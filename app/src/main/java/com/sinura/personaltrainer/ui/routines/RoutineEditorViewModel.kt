@@ -534,7 +534,10 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                     } catch (thrown: Exception) {
                         AppLog.w(TAG, "addExercise failed", thrown)
                         restorePicker(remaining.map { it.id })
-                        error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.ADD_LIFT_FAILED)
+                        error.fail(
+                            source = ERR_ADD_LIFT,
+                            message = SessionOrderCopy.ADD_LIFT_FAILED,
+                        )
                         return@launchWrite
                     }
                 }
@@ -570,7 +573,10 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             val id = ensureRoutineId() ?: return@launchWrite
             val alreadyAdded = routineFlow.value?.exercises?.any { it.exercise.id == exercise.id } == true
             if (alreadyAdded) {
-                error.fail(source = ERR_ADD_LIFT, message = "${exercise.name} is already in this routine.")
+                error.fail(
+                    source = ERR_ADD_LIFT,
+                    message = "${exercise.name} is already in this routine.",
+                )
                 if (!leaving) showPicker.value = false
                 return@launchWrite
             }
@@ -606,8 +612,10 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         launchWrite {
             try {
                 when (val result = container.exerciseRepository.createCustom(name, muscleGroup)) {
-                    is SaveExerciseResult.DuplicateName -> error.fail(source = ERR_ADD_LIFT, message = DUPLICATE_NAME_MESSAGE)
-                    is SaveExerciseResult.MissingMuscle -> error.fail(source = ERR_ADD_LIFT, message = MuscleGroups.MISSING_MESSAGE)
+                    is SaveExerciseResult.DuplicateName ->
+                        error.fail(source = ERR_ADD_LIFT, message = DUPLICATE_NAME_MESSAGE)
+                    is SaveExerciseResult.MissingMuscle ->
+                        error.fail(source = ERR_ADD_LIFT, message = MuscleGroups.MISSING_MESSAGE)
                     is SaveExerciseResult.Saved -> {
                         extraCatalog.value = LiftCart.mergeSources(
                             extraCatalog.value,

@@ -21,6 +21,7 @@ import com.sinura.personaltrainer.domain.LibraryGrouping
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.util.ErrorSlot
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +30,11 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 private const val TAG = "PT/LibraryVM"
+
+/** [ErrorSlot] families: a success may clear only its own family's refusal. */
+private const val ERR_EDITOR = "editor"
+private const val ERR_DELETE = "delete"
+private const val ERR_ADD_TO_ROUTINE = "addToRoutine"
 
 data class ExerciseEditorDraft(
     val id: String? = null,
@@ -83,7 +89,7 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
     private val pendingDelete = MutableStateFlow<Exercise?>(null)
     private val blockedDelete = MutableStateFlow<Pair<Exercise, ExerciseUsage>?>(null)
     private val addToRoutine = MutableStateFlow<Exercise?>(null)
-    private val error = MutableStateFlow<String?>(null)
+    private val error = ErrorSlot()
     private val message = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<ExerciseLibraryUiState> = combine(
@@ -106,7 +112,7 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
         ) { collisions, dismissed, expanded ->
             LibraryAside(collisions.filterNot { it.id in dismissed }, expanded)
         },
-        combine(error, message) { err, note -> err to note },
+        combine(error.messages, message) { err, note -> err to note },
     ) { core, dialogs, aside, notices ->
         val needle = core.query.trim()
         // Muscle first, because it is the filter that reorders as well as narrows: a lift where
@@ -207,16 +213,16 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
 
     fun openCreate() {
         editor.value = ExerciseEditorDraft(muscleGroup = MuscleGroups.forNewDraft(selectedMuscle.value))
-        error.value = null
+        error.dismiss()
     }
 
     fun dismissError() {
-        error.value = null
+        error.dismiss()
     }
 
     fun openEdit(exercise: Exercise) {
         if (!exercise.isCustom) {
-            error.value = "Built-in lifts can’t be edited."
+            error.fail(source = ERR_EDITOR, message = "Built-in lifts can’t be edited.")
             return
         }
         editor.value = ExerciseEditorDraft(
@@ -225,7 +231,7 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
             muscleGroup = exercise.muscleGroup,
             notes = exercise.notes,
         )
-        error.value = null
+        error.dismiss()
     }
 
     fun updateEditor(draft: ExerciseEditorDraft) {
@@ -237,14 +243,15 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
     }
 
     fun saveEditor() {
+        val started = error.mark()
         val draft = editor.value ?: return
         val name = draft.name.trim()
         if (name.isEmpty()) {
-            error.value = "Give this lift a name."
+            error.fail(source = ERR_EDITOR, message = "Give this lift a name.")
             return
         }
         if (MuscleGroups.resolved(draft.muscleGroup) == null) {
-            error.value = MuscleGroups.MISSING_MESSAGE
+            error.fail(source = ERR_EDITOR, message = MuscleGroups.MISSING_MESSAGE)
             return
         }
         viewModelScope.launch {
@@ -263,32 +270,33 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
                     is SaveExerciseResult.DuplicateName -> {
                         // The editor stays open on the name that was refused, so the fix is one
                         // edit away rather than a re-entry of the whole form.
-                        error.value = DUPLICATE_NAME_MESSAGE
+                        error.fail(source = ERR_EDITOR, message = DUPLICATE_NAME_MESSAGE)
                         return@launch
                     }
                     is SaveExerciseResult.MissingMuscle -> {
-                        error.value = MuscleGroups.MISSING_MESSAGE
+                        error.fail(source = ERR_EDITOR, message = MuscleGroups.MISSING_MESSAGE)
                         return@launch
                     }
                     is SaveExerciseResult.Saved -> {
                         message.value = if (draft.id == null) "Created $name." else "Updated $name."
                         editor.value = null
-                        error.value = null
+                        error.clearFrom(source = ERR_EDITOR, before = started)
                     }
                     null -> {
-                        error.value = SessionOrderCopy.SAVE_LIFT_FAILED
+                        error.fail(source = ERR_EDITOR, message = SessionOrderCopy.SAVE_LIFT_FAILED)
                     }
                 }
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "saveEditor failed", thrown)
-                error.value = SessionOrderCopy.SAVE_LIFT_FAILED
+                error.fail(source = ERR_EDITOR, message = SessionOrderCopy.SAVE_LIFT_FAILED)
             }
         }
     }
 
     fun requestDelete(exercise: Exercise) {
+        val started = error.mark()
         if (!exercise.isCustom) {
-            error.value = "Built-in lifts can’t be deleted."
+            error.fail(source = ERR_DELETE, message = "Built-in lifts can’t be deleted.")
             return
         }
         viewModelScope.launch {
@@ -299,22 +307,26 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
                 } else {
                     pendingDelete.value = exercise
                 }
-                error.value = null
+                error.clearFrom(source = ERR_DELETE, before = started)
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "requestDelete failed", thrown)
-                error.value = "Could not check where this lift is used."
+                error.fail(
+                    source = ERR_DELETE,
+                    message = "Could not check where this lift is used.",
+                )
             }
         }
     }
 
     fun confirmDelete() {
+        val started = error.mark()
         val exercise = pendingDelete.value ?: return
         viewModelScope.launch {
             when (val result = container.exerciseRepository.deleteCustom(exercise.id)) {
                 DeleteExerciseResult.Deleted -> {
                     message.value = "Deleted ${exercise.name}."
                     pendingDelete.value = null
-                    error.value = null
+                    error.clearFrom(source = ERR_DELETE, before = started)
                 }
                 is DeleteExerciseResult.InUse -> {
                     pendingDelete.value = null
@@ -322,11 +334,11 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
                 }
                 DeleteExerciseResult.NotCustom -> {
                     pendingDelete.value = null
-                    error.value = "Built-in lifts can’t be deleted."
+                    error.fail(source = ERR_DELETE, message = "Built-in lifts can’t be deleted.")
                 }
                 DeleteExerciseResult.Missing -> {
                     pendingDelete.value = null
-                    error.value = "That lift is already gone."
+                    error.fail(source = ERR_DELETE, message = "That lift is already gone.")
                 }
             }
         }
@@ -349,7 +361,7 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
     fun openAddToRoutine(exercise: Exercise) {
         addToRoutine.value = exercise
         message.value = null
-        error.value = null
+        error.dismiss()
     }
 
     fun dismissAddToRoutine() {
@@ -357,11 +369,15 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
     }
 
     fun addToRoutine(routineId: String) {
+        val started = error.mark()
         val exercise = addToRoutine.value ?: return
         viewModelScope.launch {
             val routine = container.routineRepository.getById(routineId)
             if (routine == null) {
-                error.value = "That routine is no longer available."
+                error.fail(
+                    source = ERR_ADD_TO_ROUTINE,
+                    message = "That routine is no longer available.",
+                )
                 return@launch
             }
             if (routine.exercises.any { it.exercise.id == exercise.id }) {
@@ -381,10 +397,13 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
                 )
                 message.value = "Added ${exercise.name} to ${routine.name}."
                 addToRoutine.value = null
-                error.value = null
+                error.clearFrom(source = ERR_ADD_TO_ROUTINE, before = started)
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "addToRoutine failed", thrown)
-                error.value = "Could not add that lift to the routine."
+                error.fail(
+                    source = ERR_ADD_TO_ROUTINE,
+                    message = "Could not add that lift to the routine.",
+                )
             }
         }
     }

@@ -315,8 +315,8 @@ This screen **is** the app. It is currently a vertical form: rest card, chip row
 | W-11 | Warm-up is a switch with no visual change to the log button (`Log warm-up` vs `Log set`) | P1 |
 | W-12 | RPE 6–10 as chips is fine; it sits between reps and Log, adding scroll before the primary tap | P2 |
 | W-13 | Session notes on the live logging screen are in the way. Move to finish or a overflow | P2 |
-| W-14 | Finish is disabled until a set is logged (good). Discard is the **confirm** button on the leave dialog; Keep and exit is dismiss. Invert: Keep is default, Discard is the destructive text action | P1 |
-| W-15 | Close icon means leave, not discard — but it opens a dialog whose primary is Discard. Easy to kill a session | P1 |
+| W-14 | Finish is disabled until a set is logged (good). Discard is the **confirm** button on the leave dialog; Keep and exit is dismiss. Invert: Keep is default, Discard is the destructive text action | P1 | ✅ `LeaveWorkoutDialog`: **Keep and exit** is the `PrimaryGymButton`, "Discard this workout instead" is a `DangerGymButton` beneath it, stacked full-width; `LeaveCardioDialog` matches. Row was stale when re-read 9 Sep 2026 |
+| W-15 | Close icon means leave, not discard — but it opens a dialog whose primary is Discard. Easy to kill a session | P1 | ✅ Same dialog: Close opens Keep-first; Discard is the danger act, never the default |
 | W-16 | No “next lift” preview. After last set of a lift, the UI should offer the next routine lift with picture | P1 |
 | W-17 | No plate math, no bar + plates graphic | P2 |
 | W-18 | No rest-per-set history (how long they actually rested) | P3 |

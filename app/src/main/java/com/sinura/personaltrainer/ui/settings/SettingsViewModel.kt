@@ -37,6 +37,7 @@ import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.timer.exactAlarmSettingsIntent as buildExactAlarmSettingsIntent
+import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.domain.Weekday
 import kotlin.time.Duration.Companion.minutes
@@ -92,6 +93,10 @@ data class BackupUiState(
 enum class BackupProtectKind { FILE_EXPORT, DRIVE_BACKUP, SAFETY_EXPORT }
 
 private const val TAG = "PT/SettingsVM"
+
+/** [ErrorSlot] families: a success may clear only its own family's refusal. */
+private const val ERR_BACKUP = "backup"
+private const val ERR_PROTECT = "protect"
 
 class SettingsViewModel @JvmOverloads constructor(
     application: Application,
@@ -251,7 +256,7 @@ class SettingsViewModel @JvmOverloads constructor(
     private val isBusy = MutableStateFlow(false)
     private val busyLabel = MutableStateFlow<String?>(null)
     private val status = MutableStateFlow<String?>(null)
-    private val error = MutableStateFlow<String?>(null)
+    private val error = ErrorSlot()
     private val backups = MutableStateFlow<List<DriveBackupFile>>(emptyList())
     private val safetySnapshots = MutableStateFlow<List<SafetySnapshotMeta>>(emptyList())
     private val restorePending = MutableStateFlow<String?>(null)
@@ -301,7 +306,7 @@ class SettingsViewModel @JvmOverloads constructor(
             BackupMeta(email, lastAt, lastName, restoreAt, restoreName)
         },
         combine(
-            combine(isBusy, busyLabel, status, error, pendingPlan) { busy, label, note, err, plan ->
+            combine(isBusy, busyLabel, status, error.messages, pendingPlan) { busy, label, note, err, plan ->
                 BackupFlags(busy, label, note, err, plan?.toPreview())
             },
             dialogs,
@@ -507,7 +512,7 @@ class SettingsViewModel @JvmOverloads constructor(
     fun submitAutoBackupPassphrase(password: String, confirm: String): Boolean {
         val reason = BackupEnvelope.validateNewPassword(password, confirm)
         if (reason != null) {
-            error.value = reason
+            error.fail(source = ERR_PROTECT, message = reason)
             return false
         }
         val chars = password.toCharArray()
@@ -517,8 +522,11 @@ class SettingsViewModel @JvmOverloads constructor(
             chars.fill('\u0000')
         }
         if (sealed == null) {
-            error.value = "This phone would not store the backup password. " +
-                "Automatic backup stays off; Create backup now still works."
+            error.fail(
+                source = ERR_PROTECT,
+                message = "This phone would not store the backup password. " +
+                    "Automatic backup stays off; Create backup now still works.",
+            )
             return false
         }
         dialogs.value = BackupDialogs()
@@ -575,7 +583,7 @@ class SettingsViewModel @JvmOverloads constructor(
     fun submitProtect(password: String, confirm: String, activity: Activity? = null): Boolean {
         val reason = BackupEnvelope.validateNewPassword(password, confirm)
         if (reason != null) {
-            error.value = reason
+            error.fail(source = ERR_PROTECT, message = reason)
             return false
         }
         wipeHeldPassword()
@@ -602,7 +610,7 @@ class SettingsViewModel @JvmOverloads constructor(
     }
 
     fun dismissError() {
-        error.value = null
+        error.dismiss()
     }
 
     fun createBackup(activity: Activity) {
@@ -741,7 +749,10 @@ class SettingsViewModel @JvmOverloads constructor(
             // no file, no error, and the password wiped without explanation.
             wipeHeldPassword()
             plaintextSafetyApproved = false
-            error.value = "Another backup task is still running. Start the export again when it finishes."
+            error.fail(
+                source = ERR_BACKUP,
+                message = "Another backup task is still running. Start the export again when it finishes.",
+            )
             return
         }
         val password = heldPassword
@@ -814,7 +825,10 @@ class SettingsViewModel @JvmOverloads constructor(
             // choice for a lambda runBackupAction is about to drop.
             wipeHeldPassword()
             plaintextExportApproved = false
-            error.value = "Another backup task is still running. Start the export again when it finishes."
+            error.fail(
+                source = ERR_BACKUP,
+                message = "Another backup task is still running. Start the export again when it finishes.",
+            )
             return
         }
         val password = heldPassword
@@ -1003,7 +1017,7 @@ class SettingsViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             isBusy.value = true
             busyLabel.value = label
-            error.value = null
+            error.clearFrom(source = ERR_BACKUP)
             status.value = label
             try {
                 block()
@@ -1012,9 +1026,12 @@ class SettingsViewModel @JvmOverloads constructor(
                 // sign-in left no trace anywhere. AppLog.e is the level that also feeds the
                 // diagnostics hook; the message is redacted, the tag and stack are not.
                 AppLog.e(TAG, "Backup action failed: $label", thrown)
-                error.value = (thrown as? BackupException)?.message
-                    ?: thrown.message
-                    ?: "Something went wrong. Try again."
+                error.fail(
+                    source = ERR_BACKUP,
+                    message = (thrown as? BackupException)?.message
+                        ?: thrown.message
+                        ?: "Something went wrong. Try again.",
+                )
                 status.value = null
             } finally {
                 isBusy.value = false

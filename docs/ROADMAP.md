@@ -15,6 +15,15 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 9 Sep 2026 — `#189`: the 31-minute CI hang was a ViewModel error race
+> (every action wrote null into one shared error flow on success), not a
+> deadlock. `util/ErrorSlot`: a success clears only its own family, and
+> only refusals older than its own start. `tools/hang-watchdog.sh` wraps the
+> CI unit-test step and thread-dumps a wedged worker from outside the JVM.
+> B2 follows: the same slot in the eight remaining ViewModels
+> (`HistoryViewModel` waits for `#181`). No app-visible change; no drop.
+> `DESIGN_AUDIT` W-14/W-15 were already closed in code and are marked so.
+>
 > 8 Sep 2026 — Dependabot `#174` (coroutines 1.11.0) and `#176`
 > (android-all-instrumented 17) closed unmerged. `#178` named
 > `kotlinx-coroutines-android` and the J3 API-35 jar on the ignore
