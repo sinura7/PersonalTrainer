@@ -136,12 +136,15 @@ closed unmerged: `#125` (AGP 9.3.2), `#126` (play-services-auth 22.0.0),
 the kotlin group bundled it with core/test), and `#176` (android-all
 17- jar; J3 stays on `15-robolectric-13954326-i7`). `#178` named those
 holes, and also ignores `org.robolectric:robolectric` major/minor so
-API-36-and-up Robolectric does not sneak in on Java 17. Leave `#173` (setup-gradle 6.3.0; Actions is not the test lane),
-`#175` (Robolectric 4.16.1 patch), and `#180` (AGP **8.9.2 → 8.9.3**,
-a patch of the signed compileSdk-36 pair — not the 9.x refuse). None
-of those merge as a drive-by: each needs a JVM-gated packet and a
-ledger update, and AGP 8.9.3 also moves the `aapt2-8.9.2-*` pins in
-`tools/check-supply-chain.py`.
+API-36-and-up Robolectric does not sneak in on Java 17. `#175`
+(Robolectric 4.16.1) and `#180` (AGP 8.9.2 → 8.9.3) closed unmerged
+2026-09-09, same shape as `#174`/`#176`. Do not reopen as drive-bys:
+`check-sdk-target.py` pins Robolectric at exactly `4.16`; AGP 8.9.3
+needs the plugin, the `aapt2-8.9.2-*` ledger entries, and
+`tools/check-supply-chain.py` in one packet when a fix in 8.9.3 is
+needed. Leave `#173` (setup-gradle 6.3.0). It overlaps `#199` on
+`.github/workflows/ci.yml` — those two must stack, not a third edit
+from `trunk`. Actions is not the test lane.
 
 **R16 residue.** Production-screen tests exist for History, the activity
 composer, live cardio, the activity receipt and Home. Settings, onboarding,
@@ -172,9 +175,10 @@ nothing to measure on. Section 5 of the convergence record is the plan.
 after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
 `claude/file-visibility-check-jraqc2` is an unmerged Claude vehicle
 (UX + stub compiler); do not start a second edit of those paths from
-`trunk`. `#198` is on `trunk`; `claude/android-verify-my59sw` is leftover
-and Claude reuses it — do not start a second edit of those paths from
-`trunk` if a new PR appears on that head. `#196`'s vehicle
+`trunk`. `#198` is on `trunk`. Open `#199` (emulator lane: Nexus 5X
+profile) owns `claude/android-verify-my59sw` — do **not** delete that
+head. Do not start a second `ci.yml` edit from `trunk` while `#199`
+or `#173` is open. `#196`'s vehicle
 `claude/google-signin-integration-xijk5e` was deleted after merge.
 `debugLiveCode` on trunk is 28; do not bump it on `#181`.
 `unbounded_waits` on trunk is 0.

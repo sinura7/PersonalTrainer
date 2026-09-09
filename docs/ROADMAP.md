@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 9 Sep 2026 — `#175` (Robolectric 4.16.1) and `#180` (AGP 8.9.3)
+> closed unmerged. Robolectric stays pinned at `4.16`; 8.9.3 waits for
+> aapt2 ledger + checker in one packet. `#199` owns the emulator
+> profile in `ci.yml`. `#181` still does not bump 28.
+>
 > 9 Sep 2026 — W3: `SettingsViewModelTest`'s four waits go through
 > `awaitFirst` now that `#188` has landed; `unbounded_waits` 4 → 0. Every
 > ViewModel wait in the suite has a ceiling and names what it last saw.
