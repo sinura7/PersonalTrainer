@@ -154,14 +154,17 @@ backdated strength activity counts toward PRs and movers, not only
 totals and Records. Exercise detail, the log-time PR badge, and activity
 edits are still later steps
 ([`architecture/completed-training-convergence.md`](architecture/completed-training-convergence.md)).
-Open `#181` is rebased on `trunk` after `#190` (ErrorSlot in the
-eight remaining ViewModels). History's three error sites use
+Open `#181` is rebased on `trunk` after `#191` (unbounded-wait
+checker, ratcheted at 207). History's three error sites use
 `ErrorSlot` on this packet — `#190` left them because this file
-already owned `HistoryViewModel`. Do not bump `debugLiveCode`
-(still 26). The new horizon test uses `TestWaits.FLOW_MS`.
+already owned `HistoryViewModel`. `HistoryViewModelTest` stays at
+0 unbounded waits; the new ErrorSlot cases sit inside
+`withTimeout(TestWaits.FLOW_MS)`. Do not bump `debugLiveCode`
+(still 26). Do not start the 207-wait sweep from this packet.
 `#188` is independent of R18 but overlaps `#190` on
-`SettingsViewModel.kt`; it must rebase onto `57e3387`. Do not start
-a third edit of that file from `trunk`.
+`SettingsViewModel.kt`; it must rebase onto `5b44f9c`. Do not start
+a third edit of that file from `trunk`. `#191` also left
+`SettingsViewModelTest`'s 8 unbounded waits for `#188`.
 
 **R17 measurement.** The History catalog is shared and the revision keys are
 in place, but the full-history read behind the horizon readout was left alone
@@ -173,8 +176,8 @@ nothing to measure on. Section 5 of the convergence record is the plan.
 after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
 `claude/file-visibility-check-jraqc2` is an unmerged Claude vehicle
 (UX + stub compiler); do not start a second edit of those paths from
-`trunk`. `claude/android-verify-my59sw` (the `#189`/`#190` vehicle)
-was deleted after `#190` landed on `trunk`.
+`trunk`. `claude/android-verify-my59sw` was reused for `#191` and
+is leftover on `trunk` again; delete it.
 
 ## Rules that bind this work
 
