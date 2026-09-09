@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
@@ -61,6 +62,16 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 private const val TAG = "PT/ActiveWorkoutVM"
+
+/** [ErrorSlot] families: a success may clear only its own family's refusal. */
+private const val ERR_LOAD = "load"
+private const val ERR_ADD_LIFT = "addLift"
+private const val ERR_REMOVE_LIFT = "removeLift"
+private const val ERR_LOG_SET = "logSet"
+private const val ERR_DELETE_SET = "deleteSet"
+private const val ERR_UNDO_DELETE = "undoDelete"
+private const val ERR_FINISH = "finish"
+private const val ERR_DISCARD = "discard"
 
 /** A typing pause, not a keystroke, is what commits notes to the database. */
 private const val NOTES_WRITE_DEBOUNCE_MS = 400L
@@ -195,7 +206,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      */
     private val swapTargetItemId = MutableStateFlow<String?>(null)
     private val notes = MutableStateFlow("")
-    private val error = MutableStateFlow<String?>(null)
+    private val error = ErrorSlot()
     private val finished = MutableStateFlow(false)
     private val editingSetId = MutableStateFlow<String?>(null)
     private val logging = MutableStateFlow(false)
@@ -251,7 +262,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 
     init {
         if (sessionId.isBlank()) {
-            error.value = "This workout is no longer available."
+            error.fail(source = ERR_LOAD, message = "This workout is no longer available.")
             // Nothing will ever emit for a blank id, so resolve immediately rather than spin.
             sessionResolved.value = true
         }
@@ -451,7 +462,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             combine(restTotal, searchQuery, showPicker) { total, query, picker ->
                 Triple(total, query, picker)
             },
-            combine(notes, error, finished, editingSetId) { sessionNotes, err, done, editing ->
+            combine(notes, error.messages, finished, editingSetId) { sessionNotes, err, done, editing ->
                 EditorMeta(sessionNotes, err, done, editing)
             },
         ) { first, second ->
@@ -688,19 +699,19 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     fun createAndAddExercise(name: String, muscleGroup: String) {
         viewModelScope.launch {
             if (name.isBlank()) {
-                error.value = "Give that lift a name."
+                error.fail(source = ERR_ADD_LIFT, message = "Give that lift a name.")
                 return@launch
             }
             try {
                 when (val result = container.exerciseRepository.createCustom(name, muscleGroup)) {
-                    is SaveExerciseResult.DuplicateName -> error.value = DUPLICATE_NAME_MESSAGE
+                    is SaveExerciseResult.DuplicateName -> error.fail(source = ERR_ADD_LIFT, message = DUPLICATE_NAME_MESSAGE)
                     is SaveExerciseResult.MissingMuscle ->
-                        error.value = MuscleGroups.MISSING_MESSAGE
+                        error.fail(source = ERR_ADD_LIFT, message = MuscleGroups.MISSING_MESSAGE)
                     is SaveExerciseResult.Saved -> addExerciseInternal(result.exercise)
                 }
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "createAndAddExercise failed", thrown)
-                error.value = SessionOrderCopy.CREATE_LIFT_FAILED
+                error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.CREATE_LIFT_FAILED)
             }
         }
     }
@@ -714,6 +725,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun removeSelectedLift() {
+        val started = error.mark()
         val selectedId = selectedExerciseId.value ?: return
         val item = session.value?.exercises?.firstOrNull { it.exercise.id == selectedId } ?: return
         viewModelScope.launch {
@@ -721,20 +733,23 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 container.workoutRepository.removeExerciseFromSession(sessionId, item.id)
                 // Let the session's own rule pick what to show next rather than guessing here.
                 selectedExerciseId.value = null
-                error.value = null
+                error.clearFrom(source = ERR_REMOVE_LIFT, before = started)
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "removeSelectedLift failed", thrown)
-                error.value = thrown.message?.takeIf {
-                    SetLogRules.isUserMessage(it) || SessionEditRules.isUserMessage(it)
-                }
-                    ?: "Could not remove that lift. Try again."
+                error.fail(
+                    source = ERR_REMOVE_LIFT,
+                    message = thrown.message?.takeIf {
+                        SetLogRules.isUserMessage(it) || SessionEditRules.isUserMessage(it)
+                    } ?: "Could not remove that lift. Try again.",
+                )
             }
         }
     }
 
     private suspend fun addExerciseInternal(exercise: Exercise) {
+        val started = error.mark()
         if (sessionId.isBlank()) {
-            error.value = "This workout is no longer available."
+            error.fail(source = ERR_ADD_LIFT, message = "This workout is no longer available.")
             return
         }
         swapTargetItemId.value?.let { itemId ->
@@ -743,13 +758,15 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 container.workoutRepository.swapExerciseInSession(sessionId, itemId, exercise)
                 selectExercise(exercise.id)
                 showPicker.value = false
-                error.value = null
+                error.clearFrom(source = ERR_ADD_LIFT, before = started)
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "swapExerciseInSession failed", thrown)
-                error.value = thrown.message?.takeIf {
-                    SetLogRules.isUserMessage(it) || SessionEditRules.isUserMessage(it)
-                }
-                    ?: "Could not swap that lift. Try again."
+                error.fail(
+                    source = ERR_ADD_LIFT,
+                    message = thrown.message?.takeIf {
+                        SetLogRules.isUserMessage(it) || SessionEditRules.isUserMessage(it)
+                    } ?: "Could not swap that lift. Try again.",
+                )
             }
             return
         }
@@ -757,7 +774,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         if (alreadyAdded) {
             selectExercise(exercise.id)
             showPicker.value = false
-            error.value = null
+            error.clearFrom(source = ERR_ADD_LIFT, before = started)
             return
         }
         try {
@@ -772,10 +789,10 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             )
             selectExercise(exercise.id)
             showPicker.value = false
-            error.value = null
+            error.clearFrom(source = ERR_ADD_LIFT, before = started)
         } catch (thrown: Exception) {
             AppLog.w(TAG, "addExerciseInternal failed", thrown)
-            error.value = "Could not add that lift. Try again."
+            error.fail(source = ERR_ADD_LIFT, message = "Could not add that lift. Try again.")
         }
     }
 
@@ -812,10 +829,11 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun logSet() {
+        val started = error.mark()
         if (logging.value) return
         val exerciseId = selectedExerciseId.value
         if (exerciseId == null) {
-            error.value = "Add a lift before logging a set."
+            error.fail(source = ERR_LOG_SET, message = "Add a lift before logging a set.")
             return
         }
         val current = draft.value
@@ -832,7 +850,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             loadType = loadType,
         )
         if (invalid != null) {
-            error.value = invalid
+            error.fail(source = ERR_LOG_SET, message = invalid)
             return
         }
         logging.value = true
@@ -924,13 +942,16 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                         startRestAfterSet()
                     }
                 }
-                error.value = null
+                error.clearFrom(source = ERR_LOG_SET, before = started)
                 draft.value = current.copy(isWarmup = false, rpe = null)
                 persistDraft()
             } catch (thrown: Exception) {
-                error.value = thrown.message?.takeIf { message ->
-                    SetLogRules.isUserMessage(message)
-                } ?: "Could not save that set. Try again."
+                error.fail(
+                    source = ERR_LOG_SET,
+                    message = thrown.message?.takeIf { message ->
+                        SetLogRules.isUserMessage(message)
+                    } ?: "Could not save that set. Try again.",
+                )
             } finally {
                 logging.value = false
             }
@@ -958,7 +979,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun dismissError() {
-        error.value = null
+        error.dismiss()
     }
 
     fun editSet(setId: String) {
@@ -992,6 +1013,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * charges nothing until you were actually wrong.
      */
     fun deleteSet(setId: String) {
+        val started = error.mark()
         viewModelScope.launch {
             val current = session.value
             val deleted = current?.sets?.firstOrNull { it.id == setId }
@@ -1006,10 +1028,10 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                     restTimer.stop()
                 }
                 undoableDelete.value = removed
-                error.value = null
+                error.clearFrom(source = ERR_DELETE_SET, before = started)
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "deleteSet failed", thrown)
-                error.value = "Could not delete that set. Try again."
+                error.fail(source = ERR_DELETE_SET, message = "Could not delete that set. Try again.")
             }
         }
     }
@@ -1020,15 +1042,16 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * minutes later would be the app inventing a state the lifter is not in.
      */
     fun undoDeleteSet() {
+        val started = error.mark()
         val pending = undoableDelete.value ?: return
         undoableDelete.value = null
         viewModelScope.launch {
             try {
                 container.workoutRepository.restoreSet(pending)
-                error.value = null
+                error.clearFrom(source = ERR_UNDO_DELETE, before = started)
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "restoreSet failed", thrown)
-                error.value = "Could not restore that set. Try again."
+                error.fail(source = ERR_UNDO_DELETE, message = "Could not restore that set. Try again.")
             }
         }
     }
@@ -1155,11 +1178,12 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * one-shot exit event.
      */
     fun finishWorkout() {
+        val started = error.mark()
         viewModelScope.launch {
             when (val outcome = container.finishWorkout(sessionId, notes.value)) {
                 is FinishOutcome.Finished -> {
                     PendingOccurrence.complete(container, outcome.sessionId)
-                    error.value = null
+                    error.clearFrom(source = ERR_FINISH, before = started)
                     // The use case clears the process-wide cache; the SavedStateHandle mirror
                     // is scoped to this nav entry and unreachable from anywhere else, so it
                     // stays this ViewModel's job.
@@ -1174,20 +1198,21 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 }
 
                 FinishOutcome.NothingLogged ->
-                    error.value = "Log at least one set before finishing."
+                    error.fail(source = ERR_FINISH, message = "Log at least one set before finishing.")
 
                 FinishOutcome.SessionMissing, is FinishOutcome.Failed ->
-                    error.value = "Could not finish this workout. Try again."
+                    error.fail(source = ERR_FINISH, message = "Could not finish this workout. Try again.")
             }
         }
     }
 
     fun discardWorkout() {
+        val started = error.mark()
         viewModelScope.launch {
             when (container.discardWorkout(sessionId)) {
                 DiscardOutcome.Discarded -> {
                     PendingOccurrence.forgetIfSession(container, sessionId)
-                    error.value = null
+                    error.clearFrom(source = ERR_DISCARD, before = started)
                     terminalExit = true
                     draftCache.clear(sessionId)
                     savedDraft.clear()
@@ -1195,7 +1220,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 }
 
                 is DiscardOutcome.Failed ->
-                    error.value = "Could not discard this workout. Try again."
+                    error.fail(source = ERR_DISCARD, message = "Could not discard this workout. Try again.")
             }
         }
     }

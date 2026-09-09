@@ -16,11 +16,15 @@ import com.sinura.personaltrainer.domain.ProgressionAction
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineExercise
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.testutil.TestWaits
 import java.util.concurrent.Executors
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -234,12 +238,19 @@ class WorkoutRepositoryInsightsQueriesTest {
             finishedAt = START + 1,
             sets = listOf(Triple(SQUAT, 100.0, 5)),
         )
-        val emissions = mutableListOf<Int>()
+        val emissions = MutableStateFlow<List<Int>>(emptyList())
         val job = launch {
-            repository.observeSessionSummaries().collect { emissions.add(it.size) }
+            repository.observeSessionSummaries().collect { summaries ->
+                emissions.update { it + summaries.size }
+            }
         }
-        repository.observeSessionSummaries().first { it.size == 1 }
-        val before = emissions.size
+        // Wait for *this* collector's first value. The baseline used to be taken after a
+        // second, independent collector had seen the row, which says nothing about this
+        // one: on an unlucky interleaving `emissions` was still empty at that point, and
+        // its initial emission then landed inside the sampling window below and read as a
+        // re-scan that never happened.
+        withTimeout(TestWaits.FLOW_MS) { emissions.first { it.isNotEmpty() } }
+        val before = emissions.value.size
 
         insertLiveSession("live")
         repository.logSet("live", SQUAT, 102.5, 5, rpe = null, isWarmup = false)
@@ -251,8 +262,12 @@ class WorkoutRepositoryInsightsQueriesTest {
         // must arrive and asserting exactly one new one landed, which rewrites what the test
         // asserts rather than how it waits, so it is left for the rest of J4.
         delay(50)
-        assertEquals("in-progress logs must not re-emit finished summaries", before, emissions.size)
-        assertEquals(1, emissions.last())
+        assertEquals(
+            "in-progress logs must not re-emit finished summaries",
+            before,
+            emissions.value.size,
+        )
+        assertEquals(1, emissions.value.last())
         job.cancel()
     }
 
