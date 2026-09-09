@@ -144,7 +144,10 @@ needs the plugin, the `aapt2-8.9.2-*` ledger entries, and
 `tools/check-supply-chain.py` in one packet when a fix in 8.9.3 is
 needed. Leave `#173` (setup-gradle 6.3.0). It overlaps `#199` on
 `.github/workflows/ci.yml` — those two must stack, not a third edit
-from `trunk`. Actions is not the test lane.
+from `trunk`. `#199` also touches `docs/ROADMAP.md` (Nexus 5X profile
+plus five named instrumented failures). That file is last-merge-wins
+with `#181`; do **not** stack R18 onto `#199` for it. Actions is not
+the test lane.
 
 **R16 residue.** Production-screen tests exist for History, the activity
 composer, live cardio, the activity receipt and Home. Settings, onboarding,
@@ -175,10 +178,15 @@ nothing to measure on. Section 5 of the convergence record is the plan.
 after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
 `claude/file-visibility-check-jraqc2` is an unmerged Claude vehicle
 (UX + stub compiler); do not start a second edit of those paths from
-`trunk`. `#198` is on `trunk`. Open `#199` (emulator lane: Nexus 5X
-profile) owns `claude/android-verify-my59sw` — do **not** delete that
-head. Do not start a second `ci.yml` edit from `trunk` while `#199`
-or `#173` is open. `#196`'s vehicle
+`trunk`. `#198` is on `trunk`. Open `#199` (`ci.yml` Nexus 5X profile +
+ROADMAP) owns `claude/android-verify-my59sw` — do **not** delete that
+head. The hosted lane is still red and now honestly so: five of
+eighty (`FoundationGoldenTest` 0.43% figure-region pixels,
+`ExactAlarmCapability.apiBelow31SchedulesExact`,
+`ProductionScreensPass.historyAt360Font2` Records unreachable, both
+`ActiveWorkoutJourney` journeys). Do not start a second `ci.yml`
+edit from `trunk` while `#199` or `#173` is open. Do not take those
+five as this packet. `#196`'s vehicle
 `claude/google-signin-integration-xijk5e` was deleted after merge.
 `debugLiveCode` on trunk is 28; do not bump it on `#181`.
 `unbounded_waits` on trunk is 0.
