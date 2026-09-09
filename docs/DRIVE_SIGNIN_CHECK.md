@@ -31,9 +31,12 @@ Almost every failure is configuration, not code. Confirm all four, then start.
       installed — `com.sinura.personaltrainer.debug` for Temper Debug,
       `com.sinura.personaltrainer` for gym-floor Temper.
 - [ ] **Its SHA-1 came from the APK you actually installed**, read with
-      `keytool -printcert -jarfile PersonalTrainer-<version>-debug.apk`. A
-      `./gradlew signingReport` on a laptop reports that machine's default debug
-      keystore, which is a different identity from the drop's distribution signer.
+      `apksigner verify --print-certs PersonalTrainer-<version>-debug.apk`.
+      Not `keytool -printcert -jarfile` — these APKs carry no v1 JAR signature,
+      so that form prints nothing and exits zero. Not `./gradlew signingReport`
+      either: on a laptop that reports the machine's own debug keystore, and in
+      a fresh clone `debug-signing/` does not exist at all. The stable signer's
+      fingerprint is recorded in [SETUP.md](../SETUP.md) §4.
 - [ ] **`drive.file` is listed under Data Access**, and your Gmail is under
       Audience → Test users.
 

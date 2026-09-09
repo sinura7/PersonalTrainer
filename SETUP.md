@@ -133,12 +133,34 @@ grant is recorded. Two consequences worth knowing before you debug anything:
 
 **Temper Debug** (the `debug-live-*` pre-release Obtainium installs): the signer
 is the debug distribution keystore from §6, not any machine's
-`~/.android/debug.keystore`. Read the SHA-1 straight off the APK that was
-installed:
+`~/.android/debug.keystore`, and not anything in a fresh clone —
+`debug-signing/` is gitignored, and `DEBUG_KEYSTORE_BASE64` is write-only.
+Read the SHA-1 off the APK that was installed:
 
 ```bash
-keytool -printcert -jarfile PersonalTrainer-<version>-debug.apk
+apksigner verify --print-certs PersonalTrainer-<version>-debug.apk
 ```
+
+`apksigner` ships in `$ANDROID_HOME/build-tools/<version>/`. Use it, not
+`keytool -printcert -jarfile`: AGP signs with APK Signature Scheme v2/v3 and no
+v1 JAR signature, so the `keytool` form prints **nothing at all** for these APKs
+— silently, with a zero exit. That is a wasted afternoon, not an error message.
+
+Cross-check the `SHA-256` line against the `DEBUG_CERT_SHA256` repository
+variable (§6) before registering: if they differ, the APK you have was signed by
+a throwaway runner key and its SHA-1 is worthless.
+
+The current stable debug distribution signer, measured from
+`debug-live-2026-09-09-3` (versionCode 25, the first drop on the stable key):
+
+```
+SHA-1:   7A:78:2C:6F:2F:FE:6C:6B:49:29:52:A4:6B:B7:09:2C:38:04:C8:39
+SHA-256: B2:6E:A6:4C:9E:3E:2C:C4:40:63:DE:E3:D1:89:2E:85:57:CE:A2:D2:5E:71:DE:05:AB:CD:75:4D:E9:12:C3:36
+```
+
+That is a certificate digest, not a secret — it is derivable by anyone holding
+the public APK. It is recorded here so the Cloud Console client can be rebuilt
+without re-deriving it, and it changes only if the debug keystore is replaced.
 
 A local `assembleDebug` without `debug-keystore.properties` is signed by that
 machine's default debug keystore instead (`./gradlew signingReport`, `SHA1` under
