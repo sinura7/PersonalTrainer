@@ -21,7 +21,8 @@
 > footer button is **Done**, not Add. Closing the sheet — scrim, back, a stray
 > tap — no longer empties a cart the owner built by hand. `LiftCart` keeps the
 > in-flight taps (`picked`/`settle`), `planConfirm` and `ExercisePickerEvent.Confirmed`
-> are gone. No schema change; no drop.
+> are gone. No schema change. Live test 29 (`debugLiveCode` 29), drop
+> `debug-live/2026-09-09-8`.
 >
 > 9 Sep 2026 — W3: `SettingsViewModelTest`'s four waits go through
 > `awaitFirst` now that `#188` has landed; `unbounded_waits` 4 → 0. Every
