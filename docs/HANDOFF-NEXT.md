@@ -9,7 +9,7 @@ engineering handoff.
 `trunk` carries pull requests #168, #169, and #170: every item R01
 through R19 from the 2026-09-06 engineering handoff, plus a Claude
 Code Android setup script. [`HANDOFF-2026-09-06.md`](HANDOFF-2026-09-06.md)
-is the full account. `debugLiveCode` is 23.
+is the full account. `debugLiveCode` is 24.
 
 Nothing about the app's data was changed. Room stays frozen at v4, the backup
 document and envelope formats are untouched, and no identifier is ever
@@ -99,7 +99,7 @@ No emulator is possible in that environment: no `/dev/kvm`, no `vmx`/`svm`.
    hosted runners as the test lane. Do not weaken
    `gradle/verification-metadata.xml`.
 
-4. Live test 23 is the current drop (`debugLiveCode` 23). Do not bump
+4. Live test 24 is the current drop (`debugLiveCode` 24). Do not bump
    it again until the next drop. Obtainium, not Studio; gym-floor
    Temper stays on the signed APK.
 
@@ -120,10 +120,9 @@ on 2026-09-08 after a scan of all 72 commits found no keystore, private
 key, API key or token in any of them — the only matches were `printf`
 lines reading GitHub secrets and a placeholder in `SETUP.md`.
 
-`debugLiveCode` is 23. The Obtainium pre-release `debug-live-2026-09-08`
-exists (`PersonalTrainer-1.0.0-debug.apk`, THROWAWAY SIGNER). Pull Temper
-Debug in Obtainium with pre-releases included. Do not bump 23 again this
-drop. Gym-floor Temper stays on the signed APK.
+`debugLiveCode` is 24 (`#185`). The Obtainium drop is `debug-live/2026-09-09`.
+Do not bump 24. Gym-floor Temper stays on the signed APK. Live 23 remains
+`debug-live-2026-09-08` until the new pre-release exists.
 
 **R05 is closed as of live test 25.** The four `DEBUG_KEYSTORE_*` secrets
 and the `DEBUG_CERT_SHA256` variable were set on 2026-09-09, so
@@ -160,9 +159,8 @@ backdated strength activity counts toward PRs and movers, not only
 totals and Records. Exercise detail, the log-time PR badge, and activity
 edits are still later steps
 ([`architecture/completed-training-convergence.md`](architecture/completed-training-convergence.md)).
-Open `#181` is rebased on `trunk` after `#184` (flow waits are
-`TestWaits.FLOW_MS`). The new horizon test uses that ceiling. Do not start a
-second edit of `HistoryViewModelTest.kt` from `trunk`.
+Open `#181` is rebased on `trunk` after `#185` (live 24). Do not bump
+`debugLiveCode`. The new horizon test uses `TestWaits.FLOW_MS`.
 
 **R17 measurement.** The History catalog is shared and the revision keys are
 in place, but the full-history read behind the horizon readout was left alone
