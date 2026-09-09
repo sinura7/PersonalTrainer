@@ -342,6 +342,91 @@ class MuscleLoadCalculatorTest {
         )
     }
 
+    @Test
+    fun snapshotCountsWindowSessionsAndTheLastFinish() {
+        val quads = listOf(sessionExercise("ex-squat", "Squat", "Quads"))
+        val recent = session(
+            id = "recent",
+            finishedAt = now - days(2),
+            sets = listOf(set("r", "recent", "ex-squat", "Squat", 80.0, 5, at = now - days(2))),
+            exercises = quads,
+        )
+        val older = session(
+            id = "older",
+            finishedAt = now - days(5),
+            sets = listOf(set("o", "older", "ex-squat", "Squat", 80.0, 5, at = now - days(5))),
+            exercises = quads,
+        )
+        val outside = session(
+            id = "outside",
+            finishedAt = now - days(40),
+            sets = listOf(set("x", "outside", "ex-squat", "Squat", 140.0, 5, at = now - days(40))),
+            exercises = quads,
+        )
+        val open = session(
+            id = "open",
+            finishedAt = null,
+            sets = listOf(set("p", "open", "ex-squat", "Squat", 80.0, 5, at = now - days(1))),
+            exercises = quads,
+        )
+        val snap = MuscleLoadCalculator.snapshot(
+            listOf(recent, older, outside, open),
+            HeatWindow.CURRENT_MONTH,
+            now,
+            zone,
+        )
+        // Two finished sessions inside the month; the 40-day-old one is outside it and the
+        // open one is not a session yet. The last finish is the newest finished one.
+        assertEquals(2, snap.windowSessions)
+        assertEquals(now - days(2), snap.lastFinishedAtMs)
+        assertEquals(2, snap.daysSinceLastFinished)
+    }
+
+    @Test
+    fun lifetimeSummariesLiftTheLastFinishPastTheSourceWindow() {
+        val blank = MuscleLoadCalculator.snapshot(emptyList(), HeatWindow.CURRENT_WEEK, now, zone)
+        assertNull(blank.daysSinceLastFinished)
+        assertEquals(0, blank.windowSessions)
+
+        val lifted = blank.rememberLifetimeWork(
+            summaries = listOf(summary("s40", finishedAt = now - days(40), workingSets = 3)),
+            nowMs = now,
+            zoneId = zone.id,
+        )
+        assertTrue(lifted.hasAnyWorkingSets)
+        assertEquals(40, lifted.daysSinceLastFinished)
+
+        // A cardio-only day proves something was ever logged, but it is not a strength
+        // finish and must not become "last finished" under a strength figure.
+        val cardio = blank.rememberLifetimeWork(
+            summaries = listOf(
+                summary("run", finishedAt = now - days(3), workingSets = 0, cardioSeconds = 600L),
+            ),
+            nowMs = now,
+            zoneId = zone.id,
+        )
+        assertTrue(cardio.hasAnyWorkingSets)
+        assertNull(cardio.daysSinceLastFinished)
+    }
+
+    private fun summary(
+        id: String,
+        finishedAt: Long,
+        workingSets: Int,
+        cardioSeconds: Long = 0L,
+    ): SessionSummary = SessionSummary(
+        id = id,
+        routineId = null,
+        routineName = null,
+        date = finishedAt,
+        finishedAt = finishedAt,
+        durationMinutes = 40,
+        workingSets = workingSets,
+        volumeKg = workingSets * 400.0,
+        localEpochDay = finishedAt / days(1),
+        cardioSeconds = cardioSeconds,
+    )
+
     private fun days(count: Long): Long = count * 24L * 60L * 60L * 1000L
 }
 

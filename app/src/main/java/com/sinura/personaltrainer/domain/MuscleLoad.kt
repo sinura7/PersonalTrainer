@@ -165,6 +165,15 @@ data class BodyHeatSnapshot(
     val loads: List<MuscleLoadSummary>,
     val hasAnyWorkingSets: Boolean,
     val hasWindowWorkingSets: Boolean,
+    /**
+     * What the figure was built from, in units History can confirm: finished sessions
+     * with a working set inside the window, and how long since the last strength
+     * session anywhere in history finished. A blank figure over "No sessions this week ·
+     * last finished 9 days ago" is a fact; a blank figure alone is a question.
+     */
+    val windowSessions: Int = 0,
+    val lastFinishedAtMs: Long? = null,
+    val daysSinceLastFinished: Int? = null,
 ) {
     fun load(muscle: CanonicalMuscle): MuscleLoadSummary =
         loads.firstOrNull { it.muscle == muscle }
@@ -189,9 +198,26 @@ data class BodyHeatSnapshot(
      * not: a 31-day gap would otherwise blank Body while History still
      * lists the last session.
      */
-    fun rememberLifetimeWork(summaries: List<SessionSummary>): BodyHeatSnapshot {
-        if (hasAnyWorkingSets) return this
-        return if (summaries.any { it.hasLoggedWork() }) copy(hasAnyWorkingSets = true) else this
+    fun rememberLifetimeWork(
+        summaries: List<SessionSummary>,
+        nowMs: Long = generatedAtMs,
+        time: TimePort = JvmTime,
+        zoneId: String = time.defaultZoneId(),
+    ): BodyHeatSnapshot {
+        val anyWork = hasAnyWorkingSets || summaries.any { it.hasLoggedWork() }
+        // The newest strength finish in all of history, not just the source window: a
+        // 40-day gap reads as "last finished 40 days ago", not as nothing. Cardio-only
+        // days keep the "ever trained" flag but are not a finish the figure was built from.
+        val lifetimeLast = summaries
+            .filter { it.workingSets > 0 }
+            .maxOfOrNull { it.finishedAt ?: it.date }
+        val last = listOfNotNull(lastFinishedAtMs, lifetimeLast).maxOrNull()
+        if (anyWork == hasAnyWorkingSets && last == lastFinishedAtMs) return this
+        return copy(
+            hasAnyWorkingSets = anyWork,
+            lastFinishedAtMs = last,
+            daysSinceLastFinished = MuscleLoadCalculator.daysSince(last, nowMs, time, zoneId),
+        )
     }
 
     /**

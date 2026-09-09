@@ -114,7 +114,12 @@ object TrainingInsightsCalculator {
                 exerciseCatalog = input.exerciseCatalog,
                 weekStart = input.preferences.weekStart,
             )
-        }?.rememberLifetimeWork(input.summaries)
+        }?.rememberLifetimeWork(
+            summaries = input.summaries,
+            nowMs = input.nowMs,
+            time = input.time,
+            zoneId = input.zoneId,
+        )
             ?.rememberLifetimeRecency(
                 lastTrainedByMuscle = MuscleRecency.byMuscle(
                     input.lastLoggedAtByExerciseId,
@@ -246,7 +251,12 @@ object TrainingInsightsCalculator {
                 exerciseCatalog = exerciseCatalog,
                 weekStart = weekStart,
             )
-        }?.rememberLifetimeWork(insights.summaries)
+        }?.rememberLifetimeWork(
+            summaries = insights.summaries,
+            nowMs = nowMs,
+            time = time,
+            zoneId = zoneId,
+        )
             ?.rememberLifetimeRecency(
                 lastTrainedByMuscle = MuscleRecency.byMuscle(
                     lastLoggedAtByExerciseId,
