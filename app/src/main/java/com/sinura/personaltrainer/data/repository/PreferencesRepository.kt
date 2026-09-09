@@ -414,6 +414,17 @@ class PreferencesRepository(
 
     val lastBackupName: Flow<String?> = pref { prefs -> prefs[LAST_BACKUP_NAME] }
 
+    /**
+     * The last backup that was read back out of Drive, decrypted and found to carry the history
+     * that was written. Device-local and deliberately absent from the backup document: a
+     * verification is a statement about THIS phone's copy, and restoring one onto a new phone
+     * would import a reassurance that had never been earned there.
+     */
+    val lastVerifiedBackupAt: Flow<Long?> = pref { prefs -> prefs[LAST_VERIFIED_BACKUP_AT] }
+
+    val lastVerifiedBackupName: Flow<String?> =
+        pref { prefs -> prefs[LAST_VERIFIED_BACKUP_NAME] }
+
     suspend fun setDriveAccountEmail(email: String?) {
         dataStore.edit { prefs ->
             if (email.isNullOrBlank()) {
@@ -485,6 +496,10 @@ class PreferencesRepository(
     suspend fun setAutoBackupLastSession(sessionId: String) {
         dataStore.edit { prefs -> prefs[AUTO_BACKUP_LAST_SESSION] = sessionId }
     }
+
+    /** One-shot, for the account-change guard, which must read before it writes. */
+    suspend fun driveAccountEmailOnce(): String? =
+        safePreferences.first()[DRIVE_ACCOUNT]?.takeIf { it.isNotBlank() }
 
     suspend fun driveFolderId(): String? = safePreferences.first()[DRIVE_FOLDER_ID]
 
@@ -910,6 +925,14 @@ class PreferencesRepository(
         }
     }
 
+    /** Written only after the file has come back out of Drive intact. */
+    suspend fun setLastVerifiedBackup(fileName: String, atMillis: Long) {
+        dataStore.edit { prefs ->
+            prefs[LAST_VERIFIED_BACKUP_NAME] = fileName
+            prefs[LAST_VERIFIED_BACKUP_AT] = atMillis
+        }
+    }
+
     /**
      * Signing out of Drive also disarms automatic backup — without a grant it cannot run, and
      * leaving the toggle on would promise a copy that never happens. The sealed passphrase
@@ -979,6 +1002,8 @@ class PreferencesRepository(
         val AUTO_BACKUP_NEEDS_SIGN_IN = booleanPreferencesKey("auto_backup_needs_sign_in")
         val LAST_BACKUP_AT = longPreferencesKey("last_backup_at")
         val LAST_BACKUP_NAME = stringPreferencesKey("last_backup_name")
+        val LAST_VERIFIED_BACKUP_AT = longPreferencesKey("last_verified_backup_at")
+        val LAST_VERIFIED_BACKUP_NAME = stringPreferencesKey("last_verified_backup_name")
         val LAST_RESTORE_AT = longPreferencesKey("last_restore_at")
         val LAST_RESTORE_NAME = stringPreferencesKey("last_restore_name")
         val RESTORE_RECOVERY_NOTE = stringPreferencesKey("restore_recovery_note")

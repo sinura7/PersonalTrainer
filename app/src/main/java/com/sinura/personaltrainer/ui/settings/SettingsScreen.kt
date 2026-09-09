@@ -61,7 +61,6 @@ import com.sinura.personaltrainer.data.backup.BackupEnvelope
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
 import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
-import com.sinura.personaltrainer.domain.BackupPrompt
 import com.sinura.personaltrainer.domain.BodyweightCheckIn
 import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.CoachPreferences
@@ -836,7 +835,7 @@ private fun BackupRestoreSection(
     }
     SettingsGroup(
         title = "Backup",
-        caption = BackupPrompt.caption(state.backupStale),
+        caption = state.backupCaption,
     ) {
         GroupedList {
             BackupStampRow(

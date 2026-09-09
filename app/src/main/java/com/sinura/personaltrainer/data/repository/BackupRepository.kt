@@ -95,8 +95,50 @@ class BackupRepository(
             fileName = fileName,
             json = payload,
         )
-        preferencesRepository.setLastBackup(uploaded.name, System.currentTimeMillis())
+        val writtenAt = System.currentTimeMillis()
+        preferencesRepository.setLastBackup(uploaded.name, writtenAt)
+        // An upload that returned 200 proves Drive accepted bytes. It does not prove those
+        // bytes come back, decrypt with the password we hold, or contain this history. Until
+        // one is read back, a backup is a hypothesis. This is the only place that can check
+        // cheaply, while the password is still in hand.
+        if (verifyUploadedBackup(session, uploaded, password, expected = AuthoredInventory.fromDocument(snapshot))) {
+            preferencesRepository.setLastVerifiedBackup(uploaded.name, writtenAt)
+        }
         uploaded
+    }
+
+    /**
+     * Reads the file back out of Drive and proves it is the history that just went up.
+     *
+     * Round-trip fidelity, deliberately not restore-safety: [BackupValidator] refuses a
+     * document with no authored rows, which is correct before a restore and wrong here — a
+     * genuinely empty history backs up to a genuinely empty file, and that is not a fault.
+     * What matters is that the bytes Drive returns decrypt, decode, and carry the same counts
+     * that were serialised.
+     *
+     * Never throws. A failed verification is not a failed backup: the file is uploaded and may
+     * well be fine, so the upload stands and only the verified stamp is withheld. Settings then
+     * shows a backup that has not been proven readable, which is the honest state.
+     */
+    private suspend fun verifyUploadedBackup(
+        session: DriveSession,
+        uploaded: DriveBackupFile,
+        password: CharArray?,
+        expected: AuthoredInventory,
+    ): Boolean = try {
+        val raw = driveRestClient.downloadBackup(session.accessToken, uploaded.id)
+        val plaintext = BackupEnvelope.open(raw, password)
+        val actual = AuthoredInventory.fromDocument(BackupJson.decode(plaintext))
+        val same = actual == expected
+        if (!same) {
+            AppLog.e(TAG, "Backup read back with different counts than were written")
+        }
+        same
+    } catch (thrown: CancellationException) {
+        throw thrown
+    } catch (thrown: Exception) {
+        AppLog.e(TAG, "Backup could not be read back and verified", thrown)
+        false
     }
 
     suspend fun listBackups(
@@ -570,19 +612,40 @@ class BackupRepository(
         // sign-in and falls back to the label, but is logged so a 401 or a dead network is
         // distinguishable from success in the diagnostics — and cancellation propagates
         // instead of being read as "no email".
-        val email = runCatchingCancellable { driveRestClient.fetchAccountEmail(session.accessToken) }
+        val looked = runCatchingCancellable { driveRestClient.fetchAccountEmail(session.accessToken) }
             .onFailure { thrown -> AppLog.w(TAG, "Drive account lookup failed; using the label", thrown) }
             .getOrNull()
             ?.ifBlank { null }
             ?: session.email
-            ?: "Google Drive"
-        val named = session.copy(email = email)
+        // A different account at the chooser used to be written straight over the old one.
+        // Under drive.file this app can only see files it created, so the previous account's
+        // backups become invisible from inside Temper and the next upload silently starts a
+        // second "PersonalTrainer Backups" folder somewhere else. Nothing is deleted, but the
+        // history stops being where the app looks. Refuse instead, and name both accounts.
+        //
+        // Only a real address may disagree: [DRIVE_LABEL] is what a failed About read falls
+        // back to, and comparing it would refuse on a dead network rather than a wrong account.
+        val stored = preferencesRepository.driveAccountEmailOnce()
+        if (looked != null && stored != null && stored != DRIVE_LABEL &&
+            !looked.equals(stored, ignoreCase = true)
+        ) {
+            AppLog.e(TAG, "Drive account changed since the last backup")
+            throw BackupException(
+                "This is a different Google account. Temper backed up to $stored, and can only " +
+                    "see backups it made there. Sign in as $stored, or sign out first if you " +
+                    "meant to switch.",
+            )
+        }
+        val named = session.copy(email = looked ?: DRIVE_LABEL)
         preferencesRepository.setDriveAccountEmail(named.email)
         return named
     }
 
     private companion object {
         const val TAG = "PT/BackupRepository"
+
+        /** Shown when Drive About could not be read. Never compared as an account. */
+        const val DRIVE_LABEL = "Google Drive"
     }
 }
 

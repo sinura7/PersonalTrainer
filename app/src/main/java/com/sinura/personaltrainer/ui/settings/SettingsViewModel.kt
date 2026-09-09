@@ -66,8 +66,12 @@ data class BackupUiState(
     val pendingPreview: RestorePreviewUi? = null,
     /** Restore would wipe the live session. Say so before the tap, not after the refuse. */
     val sessionLive: Boolean = false,
-    /** No stamp, or older than 14 days. Caption nags; Export stays the tap. */
+    /** No VERIFIED stamp, or older than 14 days. Caption nags; Export stays the tap. */
     val backupStale: Boolean = true,
+    /** The one backup line Settings shows. Computed with the clock, so the screen stays pure. */
+    val backupCaption: String = BackupPrompt.caption(true),
+    /** When a backup was last read back out of Drive and found intact. */
+    val lastVerifiedBackupAt: Long? = null,
     val safetySnapshots: List<SafetySnapshotMeta> = emptyList(),
     val pendingProtect: BackupProtectKind? = null,
     /** The toggle is asking for a passphrase to seal before arming automatic backup. */
@@ -293,12 +297,28 @@ class SettingsViewModel @JvmOverloads constructor(
     val backupState: StateFlow<BackupUiState> = combine(
         combine(
             container.preferencesRepository.driveAccountEmail,
-            container.preferencesRepository.lastBackupAt,
-            container.preferencesRepository.lastBackupName,
+            // Nested because the typed combine overloads stop at five flows and the written
+            // and verified stamps are seven between them.
+            combine(
+                container.preferencesRepository.lastBackupAt,
+                container.preferencesRepository.lastBackupName,
+                container.preferencesRepository.lastVerifiedBackupAt,
+                container.preferencesRepository.lastVerifiedBackupName,
+            ) { at, name, verifiedAt, verifiedName ->
+                BackupStamps(at, name, verifiedAt, verifiedName)
+            },
             container.preferencesRepository.lastRestoreAt,
             container.preferencesRepository.lastRestoreName,
-        ) { email, lastAt, lastName, restoreAt, restoreName ->
-            BackupMeta(email, lastAt, lastName, restoreAt, restoreName)
+        ) { email, stamps, restoreAt, restoreName ->
+            BackupMeta(
+                email,
+                stamps.writtenAt,
+                stamps.writtenName,
+                restoreAt,
+                restoreName,
+                stamps.verifiedAt,
+                stamps.verifiedName,
+            )
         },
         combine(
             combine(isBusy, busyLabel, status, error, pendingPlan) { busy, label, note, err, plan ->
@@ -340,7 +360,13 @@ class SettingsViewModel @JvmOverloads constructor(
             error = flags.error,
             pendingPreview = flags.pendingPreview,
             sessionLive = live,
-            backupStale = BackupPrompt.isStale(meta.lastAt, System.currentTimeMillis()),
+            backupStale = BackupPrompt.isStale(meta.verifiedAt, System.currentTimeMillis()),
+            backupCaption = BackupPrompt.caption(
+                lastVerifiedAt = meta.verifiedAt,
+                lastBackupAt = meta.lastAt,
+                nowMs = System.currentTimeMillis(),
+            ),
+            lastVerifiedBackupAt = meta.verifiedAt,
             safetySnapshots = snaps,
             pendingProtect = flags.dialogs.protect,
             pendingAutoBackupArm = flags.dialogs.armAutoBackup,
@@ -1034,6 +1060,15 @@ class SettingsViewModel @JvmOverloads constructor(
         val lastName: String?,
         val restoreAt: Long?,
         val restoreName: String?,
+        val verifiedAt: Long?,
+        val verifiedName: String?,
+    )
+
+    private data class BackupStamps(
+        val writtenAt: Long?,
+        val writtenName: String?,
+        val verifiedAt: Long?,
+        val verifiedName: String?,
     )
 
     private data class BackupFlags(
