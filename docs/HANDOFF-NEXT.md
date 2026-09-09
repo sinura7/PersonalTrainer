@@ -157,11 +157,13 @@ totals and Records. Exercise detail, the log-time PR badge, and activity
 edits are still later steps
 ([`architecture/completed-training-convergence.md`](architecture/completed-training-convergence.md)).
 Open `#181` is rebased on `trunk` after `#195` (Body facts line,
-live 28, drop `debug-live/2026-09-09-7`). History's three error sites
-use `ErrorSlot` on this packet. `HistoryViewModelTest` stays at 0
-unbounded waits. Do not bump `debugLiveCode` (still 28). Independent
-of Body/Progress; those files are on `trunk`. The four unbounded waits
-in `SettingsViewModelTest` remain (baseline 4).
+live 28). History's three error sites use `ErrorSlot` on this packet.
+`HistoryViewModelTest` stays at 0 unbounded waits. Do not bump
+`debugLiveCode` (still 28). Open `#197` is the cancellation checker
+on `claude/android-verify-my59sw`; overlap with `#181` is
+`docs/ROADMAP.md` only. Drop 28 (`debug-live/2026-09-09-7`) waits on
+`#197`. The four unbounded waits in `SettingsViewModelTest` remain
+(baseline 4).
 
 **R17 measurement.** The History catalog is shared and the revision keys are
 in place, but the full-history read behind the horizon readout was left alone
@@ -173,10 +175,11 @@ nothing to measure on. Section 5 of the convergence record is the plan.
 after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
 `claude/file-visibility-check-jraqc2` is an unmerged Claude vehicle
 (UX + stub compiler); do not start a second edit of those paths from
-`trunk`. `#195` (`claude/android-verify-my59sw`) is on `trunk`; that
-vehicle is leftover. `#196`'s vehicle `claude/google-signin-integration-xijk5e`
-was deleted after merge. `debugLiveCode` on trunk is 28; do not bump
-it on `#181`.
+`trunk`. Open `#197` (`claude/android-verify-my59sw`) is the
+cancellation checker. Do not delete that head. `#196`'s vehicle
+`claude/google-signin-integration-xijk5e` was deleted after merge.
+`debugLiveCode` on trunk is 28; do not bump it on `#181`. Drop 28
+waits on `#197` (`debug-live/2026-09-09-7`).
 
 ## Rules that bind this work
 
