@@ -141,6 +141,68 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun aFailedLockScreenRevealsNothing() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first() }
+
+        viewModel!!.setAutoBackupEnabled(true)
+        viewModel!!.submitAutoBackupPassphrase("correct horse", "correct horse")
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first { it.autoBackupEnabled } }
+
+        viewModel!!.onPasswordRevealAuthenticated(false)
+
+        assertNull(viewModel!!.revealedPassword.value)
+    }
+
+    @Test
+    fun aPassedLockScreenShowsTheStoredPassword() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first() }
+
+        viewModel!!.setAutoBackupEnabled(true)
+        viewModel!!.submitAutoBackupPassphrase("correct horse", "correct horse")
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first { it.autoBackupEnabled } }
+
+        viewModel!!.onPasswordRevealAuthenticated(true)
+
+        // This is the whole point of the row: arming stopped the app asking again, so the
+        // sealed copy has to be readable back or a forgotten password seals Drive for good.
+        val shown = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.revealedPassword.first { it != null }
+        }
+        assertEquals("correct horse", shown)
+
+        viewModel!!.dismissRevealedPassword()
+        assertNull(viewModel!!.revealedPassword.value)
+    }
+
+    @Test
+    fun revealingWithNothingStoredSaysSoInsteadOfShowingBlank() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first() }
+
+        viewModel!!.onPasswordRevealAuthenticated(true)
+
+        assertNull(viewModel!!.revealedPassword.value)
+        val failed = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.backupState.first { it.error != null }
+        }
+        assertTrue(failed.error!!.contains("No backup password"))
+    }
+
+    @Test
     fun turningItOffForgetsThePassphrase() = runBlocking {
         deps = FakeAppDependencies(
             context = ApplicationProvider.getApplicationContext(),
@@ -206,20 +268,32 @@ class SettingsViewModelTest {
             scheduler = dispatcher,
         )
         val now = System.currentTimeMillis()
-        deps.preferencesRepository.setLastBackup(
-            "personal-trainer-backup-old.json",
-            now - BackupPrompt.STALE_AFTER_MS - 1_000L,
-        )
+        val old = now - BackupPrompt.STALE_AFTER_MS - 1_000L
+        deps.preferencesRepository.setLastBackup("personal-trainer-backup-old.json", old)
+        deps.preferencesRepository.setLastVerifiedBackup("personal-trainer-backup-old.json", old)
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
-        val stale = withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first { it.lastBackupAt != null } }
+        val stale = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.backupState.first { it.lastBackupAt != null }
+        }
         assertTrue(stale.backupStale)
 
+        // A fresh upload alone is NOT freshness any more. Nothing has read this file back, so
+        // the prompt stays up — and says so, rather than claiming there was no backup.
         deps.preferencesRepository.setLastBackup("personal-trainer-backup-now.json", now)
-        val fresh = withTimeout(TestWaits.FLOW_MS) {
+        val written = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.backupState.first { it.lastBackupAt == now }
         }
-        assertFalse(fresh.backupStale)
+        assertTrue(written.backupStale)
+        assertEquals(BackupPrompt.UNVERIFIED_CAPTION, written.backupCaption)
+
+        // Read back and proven: only now does the nag clear.
+        deps.preferencesRepository.setLastVerifiedBackup("personal-trainer-backup-now.json", now)
+        val verified = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.backupState.first { it.lastVerifiedBackupAt == now }
+        }
+        assertFalse(verified.backupStale)
+        assertEquals(BackupPrompt.FRESH_CAPTION, verified.backupCaption)
     }
 
     @Test

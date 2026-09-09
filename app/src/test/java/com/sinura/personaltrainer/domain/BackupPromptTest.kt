@@ -34,4 +34,48 @@ class BackupPromptTest {
         const val THIRTEEN_DAYS = 13L * 24 * 60 * 60 * 1000
         const val FIFTEEN_DAYS = 15L * 24 * 60 * 60 * 1000
     }
+
+    @Test
+    fun anUploadNobodyReadBackIsNotABackupYet() {
+        // The whole point of the verified stamp: a file that went up but would not come back
+        // must nag, and must not claim there was no backup.
+        val caption = BackupPrompt.caption(
+            lastVerifiedAt = null,
+            lastBackupAt = NOW,
+            nowMs = NOW,
+        )
+        assertEquals(BackupPrompt.UNVERIFIED_CAPTION, caption)
+        assertTrue(caption.contains("could not be read back"))
+    }
+
+    @Test
+    fun averifiedBackupTodayReadsAsFresh() {
+        assertEquals(
+            BackupPrompt.FRESH_CAPTION,
+            BackupPrompt.caption(lastVerifiedAt = NOW, lastBackupAt = NOW, nowMs = NOW),
+        )
+    }
+
+    @Test
+    fun nothingRecentAtAllStillSaysNoBackup() {
+        assertEquals(
+            BackupPrompt.STALE_CAPTION,
+            BackupPrompt.caption(lastVerifiedAt = null, lastBackupAt = null, nowMs = NOW),
+        )
+        // An old written copy and an old verified copy are the same story: overdue.
+        assertEquals(
+            BackupPrompt.STALE_CAPTION,
+            BackupPrompt.caption(
+                lastVerifiedAt = NOW - FIFTEEN_DAYS,
+                lastBackupAt = NOW - FIFTEEN_DAYS,
+                nowMs = NOW,
+            ),
+        )
+    }
+
+    @Test
+    fun staleIsMeasuredFromTheVerifiedStamp() {
+        // Written five minutes ago, last proven readable three weeks ago: still overdue.
+        assertTrue(BackupPrompt.isStale(NOW - FIFTEEN_DAYS, NOW))
+    }
 }

@@ -61,7 +61,6 @@ import com.sinura.personaltrainer.data.backup.BackupEnvelope
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
 import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
-import com.sinura.personaltrainer.domain.BackupPrompt
 import com.sinura.personaltrainer.domain.BodyweightCheckIn
 import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.CoachPreferences
@@ -147,6 +146,13 @@ fun SettingsScreen(
         viewModel.onResolutionFinished(result.resultCode == Activity.RESULT_OK)
     }
 
+    // The lock-screen challenge before the backup password is shown.
+    val revealLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        viewModel.onPasswordRevealAuthenticated(result.resultCode == Activity.RESULT_OK)
+    }
+
     // Local file export/import. Deliberately independent of Google: if the OAuth client or
     // the signing key is ever lost, this is still a complete way in and out of the data.
     val exportLauncher = rememberLauncherForActivityResult(
@@ -194,6 +200,21 @@ fun SettingsScreen(
         val sender = pendingResolution ?: return@LaunchedEffect
         resolutionLauncher.launch(IntentSenderRequest.Builder(sender).build())
         viewModel.onResolutionLaunched()
+    }
+
+    val pendingPasswordReveal by viewModel.pendingPasswordReveal.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingPasswordReveal) {
+        val challenge = pendingPasswordReveal ?: return@LaunchedEffect
+        revealLauncher.launch(challenge)
+        viewModel.onPasswordRevealLaunched()
+    }
+
+    val revealedPassword by viewModel.revealedPassword.collectAsStateWithLifecycle()
+    revealedPassword?.let { shown ->
+        RevealedPasswordDialog(
+            password = shown,
+            onDismiss = viewModel::dismissRevealedPassword,
+        )
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -280,6 +301,7 @@ fun SettingsScreen(
                     onSignOut = { viewModel.signOut(activity) },
                     onCreateBackup = { viewModel.beginDriveBackup() },
                     onAutoBackupChange = viewModel::setAutoBackupEnabled,
+                    onShowBackupPassword = viewModel::beginRevealBackupPassword,
                     onRefresh = { viewModel.refreshBackups(activity) },
                     onRestore = { file -> viewModel.requestRestore(activity, file) },
                     onExportFile = { viewModel.beginFileExport() },
@@ -815,6 +837,7 @@ private fun BackupRestoreSection(
     onSignOut: () -> Unit,
     onCreateBackup: () -> Unit,
     onAutoBackupChange: (Boolean) -> Unit,
+    onShowBackupPassword: () -> Unit,
     onRefresh: () -> Unit,
     onRestore: (DriveBackupFile) -> Unit,
     onExportFile: () -> Unit,
@@ -836,7 +859,7 @@ private fun BackupRestoreSection(
     }
     SettingsGroup(
         title = "Backup",
-        caption = BackupPrompt.caption(state.backupStale),
+        caption = state.backupCaption,
     ) {
         GroupedList {
             BackupStampRow(
@@ -983,6 +1006,16 @@ private fun BackupRestoreSection(
                         )
                     },
                 )
+                if (state.autoBackupEnabled) {
+                    // Arming stopped the app ever asking for the password again. Without a way
+                    // back to it, a forgotten password seals every Drive backup permanently.
+                    InstrumentRow(
+                        title = "Show backup password",
+                        subtitle = "Asks for your screen lock first",
+                        modifier = Modifier.testTag(SettingsTags.SHOW_BACKUP_PASSWORD),
+                        onClick = if (state.isBusy) null else onShowBackupPassword,
+                    )
+                }
             }
             SecondaryGymButton(
                 text = "Create backup now",
@@ -1258,6 +1291,52 @@ private fun AboutSection() {
     }
 }
 
+/**
+ * Shows the stored backup password once, after the lock screen has said yes.
+ *
+ * Deliberately plain: no copy button, because the clipboard on Android is readable by other
+ * apps and persists after this dialog is gone. Read it and write it down.
+ */
+@Composable
+private fun RevealedPasswordDialog(
+    password: String,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Backup password",
+                style = InstrumentType.title,
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                Text(
+                    text = password,
+                    style = InstrumentType.title,
+                    color = Volt,
+                )
+                Text(
+                    text = "This opens every backup Temper has written to Drive, on any " +
+                        "phone. Keep it somewhere that is not this phone.",
+                    style = InstrumentType.body,
+                    color = TextSecondary,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = "Done",
+                    style = InstrumentType.bodyStrong,
+                    color = Volt,
+                )
+            }
+        },
+    )
+}
+
 @Composable
 private fun ProtectBackupDialog(
     drive: Boolean,
@@ -1296,7 +1375,10 @@ private fun ProtectBackupDialog(
                     if (arming) {
                         "A backup taken while you are not looking still has to be encrypted, " +
                             "so this password is kept on this phone, sealed by Android's " +
-                            "keystore. The copies in Drive stay encrypted either way."
+                            "keystore. The copies in Drive stay encrypted either way.\n\n" +
+                            "Save it somewhere outside this phone now. Temper will not ask " +
+                            "for it again, and without it every backup in Drive stays sealed " +
+                            "for good — including on a new phone."
                     } else {
                         "The file opens on another phone only with this password. " +
                             "It is not stored on this device."
@@ -1449,4 +1531,5 @@ object SettingsTags {
     const val BODYWEIGHT = "settings-bodyweight"
     const val REDACT_LOGS = "settings-redact-logs"
     const val AUTO_BACKUP = "settings-auto-backup"
+    const val SHOW_BACKUP_PASSWORD = "settings-show-backup-password"
 }
