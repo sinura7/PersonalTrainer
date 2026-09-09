@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.domain.BackupPrompt
 import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.TestWaits
+import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -305,7 +306,7 @@ class SettingsViewModelTest {
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
         viewModel!!.restTimerPreferences.first()
-        viewModel!!.offerExactAlarmAccess.first { !it }
+        viewModel!!.offerExactAlarmAccess.awaitFirst { !it }
         viewModel!!.refreshAlarmCapability()
         assertFalse(deps.preferencesRepository.restAlarmEligible.first())
 
@@ -330,7 +331,7 @@ class SettingsViewModelTest {
         // offer flag alone can complete on the stateIn initial value before
         // setRestSoundEnabled's edit is observed.
         viewModel!!.restTimerPreferences.first()
-        viewModel!!.offerExactAlarmAccess.first { !it }
+        viewModel!!.offerExactAlarmAccess.awaitFirst { !it }
         viewModel!!.setRestSoundEnabled(false)
         withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.restTimerPreferences.first { !it.soundEnabled }
@@ -349,7 +350,7 @@ class SettingsViewModelTest {
         deps.setExactAlarmAttempt(ExactAlarmAttempt.BEST_EFFORT)
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
-        viewModel!!.offerExactAlarmAccess.first { !it }
+        viewModel!!.offerExactAlarmAccess.awaitFirst { !it }
         assertFalse(deps.preferencesRepository.restAlarmEligible.first())
         assertFalse(viewModel!!.offerExactAlarmAccess.value)
     }
@@ -404,7 +405,7 @@ class SettingsViewModelTest {
         val id = deps.backupRepository.listSafetySnapshots().single().id
 
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.backupState.first { it.safetySnapshots.isNotEmpty() }
+        viewModel!!.backupState.awaitFirst { it.safetySnapshots.isNotEmpty() }
         viewModel!!.requestSafetyRestore(id)
         val preview = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.backupState.first { it.pendingPreview != null }
