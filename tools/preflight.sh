@@ -155,9 +155,11 @@ for c in "check-internal-imports.py app/src/main/java" \
          "check-play-rehearsal.py" \
          "check-still-pack.py" \
          "check-unbounded-waits.py" \
+         "check-cancellation.py" \
          "test_policy_move.py" \
          "test_checker_skips.py" \
-         "test_unbounded_waits.py"; do
+         "test_unbounded_waits.py" \
+         "test_cancellation.py"; do
     step "$c"
     # shellcheck disable=SC2086
     python3 tools/$c || fail "$c"

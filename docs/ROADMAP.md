@@ -15,6 +15,12 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 9 Sep 2026 — C: `tools/check-cancellation.py` fails preflight when a
+> `catch (Exception)` that can see a suspension has no `CancellationException`
+> clause ahead of it. 32 such sites (every ViewModel `launch`, the app's
+> start-up imports, two receivers, Drive sign-out, the foundation reset)
+> now rethrow cancellation; `cancellation_swallow` 32 → 0. No drop.
+>
 > 9 Sep 2026 — D: Body says what the figure was built from — a facts line
 > under the map ("3 sessions this week · last finished yesterday"), **Show
 > this month** in one tap when Day or Week is empty, and the Front / Back
