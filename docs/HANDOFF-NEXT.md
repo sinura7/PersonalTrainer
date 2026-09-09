@@ -117,7 +117,8 @@ lines reading GitHub secrets and a placeholder in `SETUP.md`.
 `debugLiveCode` is 28 (`#195` / `#197`). The Obtainium drop is
 `debug-live/2026-09-09-7` (Body facts line plus the cancellation
 checker). Live 27 remains `debug-live/2026-09-09-6`. Do not bump 28
-on `#181`. A Temper Debug from a throwaway-signed drop must still be
+on `#181`. Open `#201` is the 29 drop (`debug-live/2026-09-09-8`).
+A Temper Debug from a throwaway-signed drop must still be
 backed up, uninstalled, and reinstalled once onto 25+ (stable signer).
 Gym-floor Temper stays on the signed APK.
 
@@ -152,7 +153,14 @@ in `DESIGN_AUDIT` now cite the file that closed them; 21 still
 open (last-5s tick family, Body first-launch, walkthrough rows,
 chip progress/rest badge, E-04/E-12, N-01, T-16, S-02/B-03/I-01).
 Do not take those 21 as this packet. Do not start a second
-`DESIGN_AUDIT.md` edit from `trunk` while `#181` is open.
+`DESIGN_AUDIT.md` edit from `trunk` while `#181` is open. Open
+`#201` (write-through multi-add picker, `debugLiveCode` 28 → 29,
+drop `debug-live/2026-09-09-8`) overlaps `#181` on ROADMAP only.
+Independent. Merge in either order. Do **not** bump 28 on `#181`;
+inherit 29 after `#201` lands. Do not start a second edit of
+`ExercisePickerSheet`, `LiftCart`, `RoutineEditorViewModel`, or
+`CustomWeekViewModel` from `trunk`. Do not delete
+`claude/ecstatic-galileo-pw9iub`.
 
 **R16 residue.** Production-screen tests exist for History, the activity
 composer, live cardio, the activity receipt and Home. Settings, onboarding,
@@ -170,8 +178,9 @@ edits are still later steps
 Open `#181` is rebased on `trunk` after `#200` (`DESIGN_AUDIT` P1
 re-read). History's three error sites use `ErrorSlot` on this packet.
 `HistoryViewModelTest` stays at 0 unbounded waits. `check-cancellation.py`
-is 0 on this packet. Do not bump `debugLiveCode` (still 28). Live 28 is
-`debug-live/2026-09-09-7`.
+is 0 on this packet. Do not bump `debugLiveCode` (still 28 until
+`#201` lands). Live 28 is `debug-live/2026-09-09-7`. `#201` is the
+29 drop.
 
 **R17 measurement.** The History catalog is shared and the revision keys are
 in place, but the full-history read behind the horizon readout was left alone
@@ -185,13 +194,14 @@ after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
 (UX + stub compiler); do not start a second edit of those paths from
 `trunk`. `#200` is on `trunk`; `claude/android-verify-my59sw` is leftover
 and Claude reuses it — do **not** delete that head (deleting it after
-`#191` briefly removed `#192`). Leave `#173`. Do not start a second
-`ci.yml` or `DESIGN_AUDIT.md` edit from `trunk`. Do not take the five
-hosted-emulator failures or the remaining DESIGN_AUDIT P1 rows as this
-packet. `#196`'s vehicle
+`#191` briefly removed `#192`). Open `#201` owns
+`claude/ecstatic-galileo-pw9iub` — do **not** delete that head. Leave
+`#173`. Do not start a second `ci.yml`, `DESIGN_AUDIT.md`, or picker
+edit from `trunk`. Do not take the five hosted-emulator failures or the
+remaining DESIGN_AUDIT P1 rows as this packet. `#196`'s vehicle
 `claude/google-signin-integration-xijk5e` was deleted after merge.
-`debugLiveCode` on trunk is 28; do not bump it on `#181`.
-`unbounded_waits` on trunk is 0.
+`debugLiveCode` on trunk is 28; `#201` bumps it to 29. Do not bump it
+on `#181`. `unbounded_waits` on trunk is 0.
 
 ## Rules that bind this work
 
