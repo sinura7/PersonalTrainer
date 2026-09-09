@@ -310,7 +310,7 @@ This screen **is** the app. It is currently a vertical form: rest card, chip row
 | W-06 | Lift chips have no thumb, no set progress (`2/5`), no rest badge | P1 |
 | W-07 | “No lifts yet” vs missing selection — see A-01 | P0 |
 | W-08 | Duplicate set history: **Last set this lift** and **This exercise** list the same latest set with two Edit/Delete pairs | P1 |
-| W-09 | Only the latest set is editable in the list; the last-set card also edits it. One place | P1 |
+| W-09 | Only the latest set is editable in the list; the last-set card also edits it. One place | P1 | ✅ Any logged set is selectable now, and selection reveals the two actions. The gate was `if (isLatest)` in `SetRow` alone — `editSet(setId)`/`deleteSet(setId)` already resolved a row by id, and `updateSet` already preserved `completedAt` and `setNumber` so a revision cannot re-date a record. `isLatest` still earns its keep: it draws the Volt rail |
 | W-10 | Suggestion card is large and pushes the steppers down. Collapse to one line: `Last 100 × 5 → 102.5` + Use | P1 |
 | W-11 | Warm-up is a switch with no visual change to the log button (`Log warm-up` vs `Log set`) | P1 |
 | W-12 | RPE 6–10 as chips is fine; it sits between reps and Log, adding scroll before the primary tap | P2 |
