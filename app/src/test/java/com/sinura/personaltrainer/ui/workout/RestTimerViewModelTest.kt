@@ -11,6 +11,7 @@ import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.testutil.TestWaits
+import com.sinura.personaltrainer.testutil.awaitFirst
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -172,7 +173,7 @@ class RestTimerViewModelTest {
         workout.awaitState { it.loadState == SessionLoadState.FOUND }
         val floor = createViewModel(fixture.session.id)
         floor.awaitState { it.loadState == SessionLoadState.FOUND }
-        workout.restTimerState.first { !it.running && it.totalSeconds > 0 }
+        workout.restTimerState.awaitFirst { !it.running && it.totalSeconds > 0 }
         deps.preferencesRepository.restTimerPreferences.first()
 
         floor.selectRestDuration(105)
