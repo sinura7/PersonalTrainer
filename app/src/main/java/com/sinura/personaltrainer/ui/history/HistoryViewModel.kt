@@ -95,8 +95,7 @@ class HistoryViewModel @JvmOverloads constructor(
     val blockedRepeat: StateFlow<RepeatOutcome.Blocked?> = _blockedRepeat.asStateFlow()
 
     private val errors = ErrorSlot()
-    val error: StateFlow<String?> =
-        errors.messages.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val error: StateFlow<String?> = errors.messages
     private val repeating = AtomicBoolean(false)
 
     private val historyRetry = MutableStateFlow(0)

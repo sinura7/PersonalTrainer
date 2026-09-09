@@ -1,9 +1,9 @@
 package com.sinura.personaltrainer.util
 
 import java.util.concurrent.atomic.AtomicLong
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 /** A user-facing failure, remembered with the action that raised it and when. */
@@ -36,17 +36,28 @@ data class ActionError(
  *    the same field, the first slow and successful, the second instant and refused.
  *
  * Screens keep reading a plain `String?`: [messages] and [message] drop the bookkeeping.
+ *
+ * [messages] is a [StateFlow] whose [StateFlow.value] is written in the same
+ * turn as [fail] / [clearFrom] / [dismiss]. History and session-detail used to
+ * wrap the mapped flow in `stateIn`; under a loaded suite that collector lagged
+ * `dismiss()`, so `error.value` still held the refusal after the user (and the
+ * test) had acknowledged it.
  */
 class ErrorSlot {
     private val held = MutableStateFlow<ActionError?>(null)
+    private val _messages = MutableStateFlow<String?>(null)
     private val clock = AtomicLong()
 
     /** The text alone, for a `uiState` projection. Screens never see the source. */
-    val messages: Flow<String?> = held.map { it?.message }
+    val messages: StateFlow<String?> = _messages.asStateFlow()
 
     /** The text alone, read synchronously. */
     val message: String?
-        get() = held.value?.message
+        get() = _messages.value
+
+    private fun publish() {
+        _messages.value = held.value?.message
+    }
 
     /**
      * Where an action starts. Take it before the first suspension — at the tap, in effect —
@@ -61,6 +72,7 @@ class ErrorSlot {
             message = message,
             raisedAt = clock.incrementAndGet(),
         )
+        publish()
     }
 
     /**
@@ -73,10 +85,12 @@ class ErrorSlot {
         held.update { current ->
             current?.takeUnless { it.source == source && it.raisedAt <= before }
         }
+        publish()
     }
 
     /** The user dismissed it, whoever raised it. */
     fun dismiss() {
         held.value = null
+        publish()
     }
 }

@@ -165,9 +165,7 @@ class SessionDetailViewModelTest {
             vm.error.awaitFirst { it == SetLogRules.ZERO_WORKING_WEIGHT },
         )
         vm.onErrorShown()
-        // error is ErrorSlot.messages.stateIn: .value can still be the refusal
-        // until the collector runs, which the full suite under load has seen.
-        assertNull(vm.error.awaitFirst { it == null })
+        assertNull(vm.error.value)
         assertEquals(100.0, deps.workoutRepository.getSession(fixture.id)!!.sets.single().weightKg, 0.0001)
     }
 
