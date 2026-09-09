@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.data.backup
 
 import com.google.gson.JsonParser
+import com.sinura.personaltrainer.logging.AppLog
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
@@ -13,6 +14,11 @@ import java.net.URL
  * canned pages and records every URL exercises all of it without a socket.
  * Production wires [HttpUrlConnectionDriveHttp].
  */
+private const val TAG = "PT/DriveHttp"
+
+/** Enough of Drive's refusal to name it, short enough to read on a phone. */
+private const val REASON_MAX = 300
+
 fun interface DriveHttp {
     /** Throws [BackupException] for anything but a 2xx, including having no network. */
     fun call(
@@ -73,6 +79,12 @@ class HttpUrlConnectionDriveHttp : DriveHttp {
                 throw BackupException("Drive access was denied.")
             }
             if (code !in 200..299) {
+                // The body is Google's own explanation of what it refused. It used to be
+                // parsed for error.message and otherwise dropped, which left a 400 with an
+                // unexpected body shape as the bare sentence "Google Drive request failed
+                // (400)" — true, useless, and unactionable. It is an API diagnostic, not
+                // user data, so it is safe to show and to log.
+                AppLog.e(TAG, "Drive $method $url -> $code: $text")
                 throw BackupException(driveErrorMessage(code, text))
             }
             text
@@ -94,6 +106,14 @@ class HttpUrlConnectionDriveHttp : DriveHttp {
         } catch (_: Exception) {
             null
         }
-        return message?.ifBlank { null } ?: "Google Drive request failed ($code)."
+        message?.ifBlank { null }?.let { return "Google Drive: $it" }
+        // No parseable message. Show what Drive actually sent rather than only the number:
+        // on a phone with no adb to hand, the response body IS the diagnosis.
+        val reason = body.trim().take(REASON_MAX).ifBlank { null }
+        return if (reason == null) {
+            "Google Drive request failed ($code), and sent no explanation."
+        } else {
+            "Google Drive request failed ($code): $reason"
+        }
     }
 }
