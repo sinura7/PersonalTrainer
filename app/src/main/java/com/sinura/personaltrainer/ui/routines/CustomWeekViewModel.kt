@@ -20,6 +20,7 @@ import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
+import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.util.toLocalDate
@@ -36,6 +37,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 private const val TAG = "PT/CustomWeekVM"
+
+/** [ErrorSlot] families: a success may clear only its own family's refusal. */
+private const val ERR_ADD_LIFT = "addLift"
+private const val ERR_CONFIRM = "confirm"
 
 data class CustomWeekUiState(
     val selectedDay: Weekday = Weekday.MONDAY,
@@ -74,7 +79,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
     private val showPicker = MutableStateFlow(false)
     private val pendingAddIds = MutableStateFlow<List<String>>(emptyList())
     private val applying = MutableStateFlow(false)
-    private val error = MutableStateFlow<String?>(null)
+    private val error = ErrorSlot()
     private val catalog = MutableStateFlow<List<Exercise>>(emptyList())
     private val extraCatalog = MutableStateFlow<List<Exercise>>(emptyList())
     private var guidedAnswers: OnboardingAnswers? = null
@@ -95,7 +100,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
         combine(selectedDay, days, weekStart, preferredDays, searchQuery) { day, draft, start, preferred, query ->
             WeekCore(day, draft, start, preferred, query)
         },
-        combine(resultsFlow, showPicker, pendingAddIds, applying, error) { results, picker, pending, busy, err ->
+        combine(resultsFlow, showPicker, pendingAddIds, applying, error.messages) { results, picker, pending, busy, err ->
             WeekExtras(results, picker, pending, busy, err)
         },
         catalog,
@@ -209,7 +214,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
             already = days.value[day].orEmpty().map { it.exercise.id }.toSet(),
         )
         if (plan.blocked) {
-            error.value = SessionOrderCopy.ADD_LIFT_FAILED
+            error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.ADD_LIFT_FAILED)
             return
         }
         pendingAddIds.value = emptyList()
@@ -221,7 +226,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
         }
         showPicker.value = false
         searchQuery.value = ""
-        error.value = null
+        error.clearFrom(source = ERR_ADD_LIFT)
         persistDraft()
     }
 
@@ -229,15 +234,15 @@ class CustomWeekViewModel @JvmOverloads constructor(
         if (applying.value) return
         viewModelScope.launch {
             if (name.isBlank()) {
-                error.value = SessionOrderCopy.LIFT_NAME_REQUIRED
+                error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.LIFT_NAME_REQUIRED)
                 return@launch
             }
             runCatchingCancellable {
                 when (val result = container.exerciseRepository.createCustom(name, muscleGroup)) {
                     is SaveExerciseResult.DuplicateName ->
-                        error.value = DUPLICATE_NAME_MESSAGE
+                        error.fail(source = ERR_ADD_LIFT, message = DUPLICATE_NAME_MESSAGE)
                     is SaveExerciseResult.MissingMuscle ->
-                        error.value = MuscleGroups.MISSING_MESSAGE
+                        error.fail(source = ERR_ADD_LIFT, message = MuscleGroups.MISSING_MESSAGE)
                     is SaveExerciseResult.Saved -> {
                         extraCatalog.value = LiftCart.mergeSources(
                             extraCatalog.value,
@@ -251,7 +256,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
                 }
             }.onFailure {
                 AppLog.w(TAG, "createAndSelect failed", it)
-                error.value = SessionOrderCopy.CREATE_LIFT_FAILED
+                error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.CREATE_LIFT_FAILED)
             }
         }
     }
@@ -280,6 +285,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
     }
 
     fun confirm() {
+        val started = error.mark()
         if (applying.value || !CustomWeekPolicy.canConfirm(days.value)) return
         applying.value = true
         showPicker.value = false
@@ -304,16 +310,17 @@ class CustomWeekViewModel @JvmOverloads constructor(
                             todayEpochDay(),
                         )
                     }.onFailure { AppLog.w(TAG, "Publishing the custom week to Home failed", it) }
-                    error.value = null
+                    error.clearFrom(source = ERR_CONFIRM, before = started)
                     _finished.value = true
                 }
-                is ApplyPlanResult.Failed -> error.value = result.message
+                is ApplyPlanResult.Failed ->
+                    error.fail(source = ERR_CONFIRM, message = result.message)
             }
         }
     }
 
     fun dismissError() {
-        error.value = null
+        error.dismiss()
     }
 
     private fun persistDraft() {

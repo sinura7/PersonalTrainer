@@ -24,6 +24,7 @@ import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.workout.DiscardOutcome
+import com.sinura.personaltrainer.util.ErrorSlot
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -38,6 +39,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 private const val TAG = "PT/StartOptionsVM"
+
+/** [ErrorSlot] families: a success may clear only its own family's refusal. */
+private const val ERR_START = "start"
+private const val ERR_DISCARD = "discard"
 private const val START_BLOCKED_MESSAGE = "A workout is already in progress."
 
 data class StartOptionsUiState(
@@ -68,7 +73,7 @@ class StartOptionsViewModel @JvmOverloads constructor(
     application: Application,
     container: AppDependencies = application.appContainer(),
 ) : AppViewModel(application, container) {
-    private val error = MutableStateFlow<String?>(null)
+    private val error = ErrorSlot()
 
     private val suggestedLift: Flow<Pair<Exercise, String>?> =
         container.trainingInsights.observeShared(includeWeekPlan = false)
@@ -105,7 +110,7 @@ class StartOptionsViewModel @JvmOverloads constructor(
         combine(
             container.routineRepository.observeAll(),
             suggestedLift,
-            error,
+            error.messages,
         ) { routines, suggested, err -> Triple(routines, suggested, err) },
         combine(
             container.trainingInsights.observeShared(),
@@ -174,7 +179,7 @@ class StartOptionsViewModel @JvmOverloads constructor(
     }
 
     fun dismissError() {
-        error.value = null
+        error.dismiss()
     }
 
     fun openComposer(mode: String) {
@@ -182,6 +187,7 @@ class StartOptionsViewModel @JvmOverloads constructor(
     }
 
     fun startCardio() {
+        val started = error.mark()
         viewModelScope.launch {
             try {
                 when (
@@ -192,16 +198,17 @@ class StartOptionsViewModel @JvmOverloads constructor(
                     )
                 ) {
                     is StartCardioOutcome.Open -> {
-                        error.value = null
+                        error.clearFrom(source = ERR_START, before = started)
                         _navigateToCardio.value = outcome.sessionId
                     }
-                    is StartCardioOutcome.Rejected -> error.value = outcome.reason
+                    is StartCardioOutcome.Rejected ->
+                        error.fail(source = ERR_START, message = outcome.reason)
                 }
             } catch (thrown: kotlinx.coroutines.CancellationException) {
                 throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "startCardio failed", thrown)
-                error.value = "Could not start cardio. Try again."
+                error.fail(source = ERR_START, message = "Could not start cardio. Try again.")
             }
         }
     }
@@ -210,11 +217,11 @@ class StartOptionsViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             val routine = container.routineRepository.getById(routineId)
             if (routine == null) {
-                error.value = "That routine is no longer available."
+                error.fail(source = ERR_START, message = "That routine is no longer available.")
                 return@launch
             }
             if (routine.exercises.isEmpty()) {
-                error.value = SessionOrderCopy.NEED_A_LIFT
+                error.fail(source = ERR_START, message = SessionOrderCopy.NEED_A_LIFT)
                 return@launch
             }
             try {
@@ -223,7 +230,7 @@ class StartOptionsViewModel @JvmOverloads constructor(
                 throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "startRoutine failed", thrown)
-                error.value = "Could not start that routine. Try again."
+                error.fail(source = ERR_START, message = "Could not start that routine. Try again.")
             }
         }
     }
@@ -236,17 +243,18 @@ class StartOptionsViewModel @JvmOverloads constructor(
      * scrolling the routines list.
      */
     fun startSuggested() {
+        val started = error.mark()
         val exercise = uiState.value.suggestion ?: return
         viewModelScope.launch {
             try {
                 val focus = OwnedLiftResolver.primaryMuscleOf(exercise)?.displayName
                 val outcome = container.workoutRepository.startFreeWorkoutSafely(focusTitle = focus)
                 if (outcome is StartSessionOutcome.Blocked) {
-                    error.value = START_BLOCKED_MESSAGE
+                    error.fail(source = ERR_START, message = START_BLOCKED_MESSAGE)
                     return@launch
                 }
                 if (outcome is StartSessionOutcome.Unavailable) {
-                    error.value = outcome.message
+                    error.fail(source = ERR_START, message = outcome.message)
                     return@launch
                 }
                 val session = (outcome as StartSessionOutcome.Started).session
@@ -260,13 +268,13 @@ class StartOptionsViewModel @JvmOverloads constructor(
                     targetWeightKg = null,
                     restSeconds = defaults.restSeconds,
                 )
-                error.value = null
+                error.clearFrom(source = ERR_START, before = started)
                 _navigateToSession.value = session.id
             } catch (thrown: kotlinx.coroutines.CancellationException) {
                 throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "startSuggested failed", thrown)
-                error.value = "Could not start that session. Try again."
+                error.fail(source = ERR_START, message = "Could not start that session. Try again.")
             }
         }
     }
@@ -278,6 +286,7 @@ class StartOptionsViewModel @JvmOverloads constructor(
      * the sheet is not allowed its own idea of what discarding means.
      */
     fun discardInProgress() {
+        val started = error.mark()
         val liveWorkout = uiState.value.inProgress
         val liveActivity = uiState.value.liveActivity
         viewModelScope.launch {
@@ -285,9 +294,10 @@ class StartOptionsViewModel @JvmOverloads constructor(
                 liveWorkout != null -> when (val result = container.discardWorkout(liveWorkout.id)) {
                     DiscardOutcome.Discarded -> {
                         PendingOccurrence.forgetIfSession(container, liveWorkout.id)
-                        error.value = null
+                        error.clearFrom(source = ERR_DISCARD, before = started)
                     }
-                    is DiscardOutcome.Failed -> error.value = result.message
+                    is DiscardOutcome.Failed ->
+                        error.fail(source = ERR_DISCARD, message = result.message)
                 }
                 liveActivity != null -> {
                     // Guarded like the live bar: an unhandled throw here took
@@ -296,12 +306,15 @@ class StartOptionsViewModel @JvmOverloads constructor(
                     try {
                         container.discardActivity(liveActivity.id)
                         container.cardioTimerPersistence.clear()
-                        error.value = null
+                        error.clearFrom(source = ERR_DISCARD, before = started)
                     } catch (thrown: kotlinx.coroutines.CancellationException) {
                         throw thrown
                     } catch (thrown: Exception) {
                         AppLog.w(TAG, "Discarding live cardio from the sheet failed", thrown)
-                        error.value = "Could not discard this session. Try again."
+                        error.fail(
+                            source = ERR_DISCARD,
+                            message = "Could not discard this session. Try again.",
+                        )
                     }
                 }
             }
@@ -316,7 +329,10 @@ class StartOptionsViewModel @JvmOverloads constructor(
                 throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "startFree failed", thrown)
-                error.value = "Could not start a free workout. Try again."
+                error.fail(
+                    source = ERR_START,
+                    message = "Could not start a free workout. Try again.",
+                )
             }
         }
     }
@@ -326,6 +342,7 @@ class StartOptionsViewModel @JvmOverloads constructor(
      * the day, leftover slot week otherwise. Same binding Home uses.
      */
     fun startToday() {
+        val started = error.mark()
         val start = uiState.value.todayStart ?: return
         viewModelScope.launch {
             try {
@@ -343,23 +360,29 @@ class StartOptionsViewModel @JvmOverloads constructor(
                         } else {
                             PendingOccurrence.forget(container)
                         }
-                        error.value = null
+                        error.clearFrom(source = ERR_START, before = started)
                         _navigateToSession.value = outcome.sessionId
                     }
-                    is StartDayOutcome.Blocked -> error.value = START_BLOCKED_MESSAGE
-                    is StartDayOutcome.Failed -> error.value = outcome.message
+                    is StartDayOutcome.Blocked ->
+                        error.fail(source = ERR_START, message = START_BLOCKED_MESSAGE)
+                    is StartDayOutcome.Failed ->
+                        error.fail(source = ERR_START, message = outcome.message)
                     StartDayOutcome.Ignored -> Unit
                 }
             } catch (thrown: kotlinx.coroutines.CancellationException) {
                 throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "startToday failed", thrown)
-                error.value = "Could not start today's session. Try again."
+                error.fail(
+                    source = ERR_START,
+                    message = "Could not start today's session. Try again.",
+                )
             }
         }
     }
 
     private suspend fun startOccurrence(occurrenceId: String) {
+        val started = error.mark()
         when (val outcome = container.startOccurrence(occurrenceId)) {
             is StartOccurrenceOutcome.OpenWorkout -> {
                 PendingOccurrence.bindForSession(
@@ -367,36 +390,39 @@ class StartOptionsViewModel @JvmOverloads constructor(
                     outcome.occurrenceId,
                     outcome.sessionId,
                 )
-                error.value = null
+                error.clearFrom(source = ERR_START, before = started)
                 _navigateToSession.value = outcome.sessionId
             }
             is StartOccurrenceOutcome.OpenCardio -> {
                 PendingOccurrence.forget(container)
-                error.value = null
+                error.clearFrom(source = ERR_START, before = started)
                 _navigateToCardio.value = outcome.sessionId
             }
             is StartOccurrenceOutcome.OpenComposer -> {
                 PendingOccurrence.bind(container, outcome.occurrenceId)
                 _navigateToComposer.value = "mixed"
             }
-            is StartOccurrenceOutcome.Blocked -> error.value = START_BLOCKED_MESSAGE
-            is StartOccurrenceOutcome.Failed -> error.value = outcome.message
+            is StartOccurrenceOutcome.Blocked ->
+                error.fail(source = ERR_START, message = START_BLOCKED_MESSAGE)
+            is StartOccurrenceOutcome.Failed ->
+                error.fail(source = ERR_START, message = outcome.message)
             StartOccurrenceOutcome.Missing -> Unit
         }
     }
 
     private suspend fun handleStart(outcome: StartSessionOutcome) {
+        val started = error.mark()
         when (outcome) {
             is StartSessionOutcome.Started -> {
                 PendingOccurrence.forget(container)
-                error.value = null
+                error.clearFrom(source = ERR_START, before = started)
                 _navigateToSession.value = outcome.session.id
             }
             is StartSessionOutcome.Blocked -> {
-                error.value = START_BLOCKED_MESSAGE
+                error.fail(source = ERR_START, message = START_BLOCKED_MESSAGE)
             }
             is StartSessionOutcome.Unavailable -> {
-                error.value = outcome.message
+                error.fail(source = ERR_START, message = outcome.message)
             }
         }
     }

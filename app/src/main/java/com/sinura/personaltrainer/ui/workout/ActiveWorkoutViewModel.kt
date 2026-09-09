@@ -704,7 +704,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             }
             try {
                 when (val result = container.exerciseRepository.createCustom(name, muscleGroup)) {
-                    is SaveExerciseResult.DuplicateName -> error.fail(source = ERR_ADD_LIFT, message = DUPLICATE_NAME_MESSAGE)
+                    is SaveExerciseResult.DuplicateName ->
+                        error.fail(source = ERR_ADD_LIFT, message = DUPLICATE_NAME_MESSAGE)
                     is SaveExerciseResult.MissingMuscle ->
                         error.fail(source = ERR_ADD_LIFT, message = MuscleGroups.MISSING_MESSAGE)
                     is SaveExerciseResult.Saved -> addExerciseInternal(result.exercise)
@@ -1031,7 +1032,10 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 error.clearFrom(source = ERR_DELETE_SET, before = started)
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "deleteSet failed", thrown)
-                error.fail(source = ERR_DELETE_SET, message = "Could not delete that set. Try again.")
+                error.fail(
+                    source = ERR_DELETE_SET,
+                    message = "Could not delete that set. Try again.",
+                )
             }
         }
     }
@@ -1051,7 +1055,10 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 error.clearFrom(source = ERR_UNDO_DELETE, before = started)
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "restoreSet failed", thrown)
-                error.fail(source = ERR_UNDO_DELETE, message = "Could not restore that set. Try again.")
+                error.fail(
+                    source = ERR_UNDO_DELETE,
+                    message = "Could not restore that set. Try again.",
+                )
             }
         }
     }
@@ -1198,10 +1205,16 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 }
 
                 FinishOutcome.NothingLogged ->
-                    error.fail(source = ERR_FINISH, message = "Log at least one set before finishing.")
+                    error.fail(
+                        source = ERR_FINISH,
+                        message = "Log at least one set before finishing.",
+                    )
 
                 FinishOutcome.SessionMissing, is FinishOutcome.Failed ->
-                    error.fail(source = ERR_FINISH, message = "Could not finish this workout. Try again.")
+                    error.fail(
+                        source = ERR_FINISH,
+                        message = "Could not finish this workout. Try again.",
+                    )
             }
         }
     }
@@ -1220,7 +1233,10 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 }
 
                 is DiscardOutcome.Failed ->
-                    error.fail(source = ERR_DISCARD, message = "Could not discard this workout. Try again.")
+                    error.fail(
+                        source = ERR_DISCARD,
+                        message = "Could not discard this workout. Try again.",
+                    )
             }
         }
     }
