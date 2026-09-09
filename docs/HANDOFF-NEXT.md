@@ -9,7 +9,7 @@ engineering handoff.
 `trunk` carries pull requests #168, #169, and #170: every item R01
 through R19 from the 2026-09-06 engineering handoff, plus a Claude
 Code Android setup script. [`HANDOFF-2026-09-06.md`](HANDOFF-2026-09-06.md)
-is the full account. `debugLiveCode` is 24.
+is the full account. `debugLiveCode` is 26.
 
 Nothing about the app's data was changed. Room stays frozen at v4, the backup
 document and envelope formats are untouched, and no identifier is ever
@@ -99,17 +99,11 @@ No emulator is possible in that environment: no `/dev/kvm`, no `vmx`/`svm`.
    hosted runners as the test lane. Do not weaken
    `gradle/verification-metadata.xml`.
 
-4. Live test 24 is the current drop (`debugLiveCode` 24). Do not bump
+4. Live test 26 is the current drop (`debugLiveCode` 26). Do not bump
    it again until the next drop. Obtainium, not Studio; gym-floor
    Temper stays on the signed APK.
 
 ## What is outstanding
-
-**R05, blocked on the owner.** Temper Debug drops can be signed with one
-stable key, but only once four `DEBUG_KEYSTORE_*` secrets and the
-`DEBUG_CERT_SHA256` variable exist. `SETUP.md` section 6 has the procedure.
-Until then every drop is marked THROWAWAY SIGNER and installs beside the
-app on the phone rather than over it.
 
 **The Obtainium lane is automatic again.** Hosted `debug-live.yml` had
 died in seconds with no runner since 2026-09-05, which stranded live 21
@@ -120,9 +114,10 @@ on 2026-09-08 after a scan of all 72 commits found no keystore, private
 key, API key or token in any of them — the only matches were `printf`
 lines reading GitHub secrets and a placeholder in `SETUP.md`.
 
-`debugLiveCode` is 24 (`#185`). The Obtainium drop is `debug-live/2026-09-09`.
-Do not bump 24. Gym-floor Temper stays on the signed APK. Live 23 remains
-`debug-live-2026-09-08` until the new pre-release exists.
+`debugLiveCode` is 26 (`#187`). The Obtainium drop is `debug-live/2026-09-09-4`.
+Do not bump 26. A Temper Debug from a throwaway-signed drop must still be
+backed up, uninstalled, and reinstalled once onto 25+ (stable signer).
+Gym-floor Temper stays on the signed APK.
 
 **R05 is closed as of live test 25.** The four `DEBUG_KEYSTORE_*` secrets
 and the `DEBUG_CERT_SHA256` variable were set on 2026-09-09, so
@@ -159,8 +154,14 @@ backdated strength activity counts toward PRs and movers, not only
 totals and Records. Exercise detail, the log-time PR badge, and activity
 edits are still later steps
 ([`architecture/completed-training-convergence.md`](architecture/completed-training-convergence.md)).
-Open `#181` is rebased on `trunk` after `#185` (live 24). Do not bump
-`debugLiveCode`. The new horizon test uses `TestWaits.FLOW_MS`.
+Open `#181` is rebased on `trunk` after `#190` (ErrorSlot in the
+eight remaining ViewModels). History's three error sites use
+`ErrorSlot` on this packet — `#190` left them because this file
+already owned `HistoryViewModel`. Do not bump `debugLiveCode`
+(still 26). The new horizon test uses `TestWaits.FLOW_MS`.
+`#188` is independent of R18 but overlaps `#190` on
+`SettingsViewModel.kt`; it must rebase onto `57e3387`. Do not start
+a third edit of that file from `trunk`.
 
 **R17 measurement.** The History catalog is shared and the revision keys are
 in place, but the full-history read behind the horizon readout was left alone
@@ -172,7 +173,8 @@ nothing to measure on. Section 5 of the convergence record is the plan.
 after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
 `claude/file-visibility-check-jraqc2` is an unmerged Claude vehicle
 (UX + stub compiler); do not start a second edit of those paths from
-`trunk`.
+`trunk`. `claude/android-verify-my59sw` is the leftover `#189`/`#190`
+vehicle sitting on `trunk`; delete it.
 
 ## Rules that bind this work
 

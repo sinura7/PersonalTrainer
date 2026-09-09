@@ -75,6 +75,11 @@
 > (`unbounded_waits`); `test_unbounded_waits.py` is its fixture proof.
 > No app code; no drop.
 >
+> 9 Sep 2026 — `#190`: ErrorSlot in the eight remaining ViewModels
+> (StartOptions, ExerciseLibrary, ActivityComposer, CustomWeek,
+> Settings, Onboarding, LiveCardio, SessionDetail). History's three
+> sites ride `#181`, which owns that file. No drop.
+>
 > 9 Sep 2026 — `#189`: the 31-minute CI hang was a ViewModel error race
 > (every action wrote null into one shared error flow on success), not a
 > deadlock. `util/ErrorSlot`: a success clears only its own family, and
