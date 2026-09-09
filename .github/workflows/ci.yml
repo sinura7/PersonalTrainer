@@ -133,11 +133,11 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
-  # Non-blocking by design. CI on this repo has never been assigned a runner
-  # (account billing — see docs/DEVELOPMENT.md), so this job is written blind: it
-  # exists so the instrumented smoke starts running the day the owner fixes
-  # billing, with zero further changes. continue-on-error keeps it from ever
-  # gating a merge, even once it runs — emulator jobs flake.
+  # Non-blocking by design. Written blind while CI had no runner (account
+  # billing); it runs now. continue-on-error stays until the lane has earned a
+  # gate — emulator jobs flake, and a red that blocks merges on a flake costs
+  # more than a red nobody reads. The bar: green on trunk ten runs in a row,
+  # then drop the flag. Until then, read the job, not the check.
   instrumented-smoke:
     name: Instrumented smoke (non-blocking)
     runs-on: ubuntu-latest
@@ -177,6 +177,12 @@ jobs:
         with:
           api-level: 29
           arch: x86_64
+          # The goldens and the screen passes were recorded on the
+          # `temper-tests-api29` profile: 411 dp at 420 dpi, which is the Nexus 5X
+          # device definition. The runner's default AVD is 320 px wide at mdpi and
+          # failed four tests that never failed on the profile (golden 320×616 for
+          # 945×1731, two screens too short to reach their rows).
+          profile: Nexus 5X
           disable-animations: true
           script: ./gradlew connectedDebugAndroidTest --stacktrace
 
