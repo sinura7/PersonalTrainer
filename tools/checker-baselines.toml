@@ -14,7 +14,7 @@ when_exhaustive = 47
 unbounded_waits = 4
 # `catch (Exception)` inside a suspend fun or a coroutine builder's lambda with no
 # CancellationException clause ahead of it: it eats the cancellation and carries on.
-cancellation_swallow = 32
+cancellation_swallow = 0
 
 [tokens]
 # Ratched 2026-09-05 so live test 21 / further packets have a green

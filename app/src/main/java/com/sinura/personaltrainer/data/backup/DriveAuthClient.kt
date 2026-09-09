@@ -84,12 +84,16 @@ class DriveAuthClient {
         if (token != null) {
             try {
                 client.clearToken(ClearTokenRequest.builder().setToken(token).build()).await()
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (_: Exception) {
                 // Local session is cleared either way.
             }
         }
         try {
             client.revokeAccess(RevokeAccessRequest.builder().build()).await()
+        } catch (thrown: CancellationException) {
+            throw thrown
         } catch (_: Exception) {
             // Local session is cleared either way.
         }

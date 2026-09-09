@@ -23,6 +23,7 @@ import com.sinura.personaltrainer.domain.RoutineEditorLoad
 import com.sinura.personaltrainer.domain.RoutineEditorPolicy
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -461,6 +462,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         ) ?: return
         try {
             container.routineRepository.updateDetails(id, pending.name, pending.notes)
+        } catch (thrown: CancellationException) {
+            throw thrown
         } catch (thrown: Exception) {
             // Keep leaving. The edit is lost either way if the write fails, and trapping the
             // user on the screen to say so would turn one bad outcome into two.
@@ -531,6 +534,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                             restSeconds = defaults.restSeconds,
                         )
                         remaining.remove(exercise)
+                    } catch (thrown: CancellationException) {
+                        throw thrown
                     } catch (thrown: Exception) {
                         AppLog.w(TAG, "addExercise failed", thrown)
                         restorePicker(remaining.map { it.id })
@@ -595,6 +600,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 }
                 error.clearFrom(source = ERR_ADD_LIFT, before = started)
                 error.clearFrom(source = ERR_SAVE, before = started)
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "addExercise failed", thrown)
                 error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.ADD_LIFT_FAILED)
@@ -628,6 +635,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                         error.clearFrom(source = ERR_SAVE, before = started)
                     }
                 }
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "createAndSelect failed", thrown)
                 error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.CREATE_LIFT_FAILED)
@@ -679,6 +688,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 container.routineRepository.removeExercise(itemId, id)
                 stagedTargets.remove(itemId)
                 error.clearFrom(source = ERR_REMOVE_LIFT, before = started)
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "removeExercise failed", thrown)
                 error.fail(source = ERR_REMOVE_LIFT, message = SessionOrderCopy.REMOVE_LIFT_FAILED)
@@ -692,6 +703,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             val id = ensureRoutineId() ?: return@launchWrite
             try {
                 container.routineRepository.moveExercise(id, itemId, direction)
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "moveExercise failed", thrown)
                 error.fail(source = ERR_REORDER, message = SessionOrderCopy.REORDER_LIFT_FAILED)
@@ -748,6 +761,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             routineId.value = created.id
             persistDraft()
             created.id
+        } catch (thrown: CancellationException) {
+            throw thrown
         } catch (thrown: Exception) {
             AppLog.w(TAG, "ensureRoutineId failed", thrown)
             error.fail(source = ERR_ROUTINE, message = "Could not create this routine. Try again.")
@@ -767,6 +782,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         if (!RoutineEditorPolicy.shouldDiscardStub(createdThisSession, count)) return
         try {
             container.routineRepository.delete(id)
+        } catch (thrown: CancellationException) {
+            throw thrown
         } catch (thrown: Exception) {
             AppLog.w(TAG, "discardEmptyStub failed", thrown)
             // Keep navigating back; an empty stub can be deleted later.

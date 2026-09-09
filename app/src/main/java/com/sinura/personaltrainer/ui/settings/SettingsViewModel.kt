@@ -42,6 +42,7 @@ import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.domain.Weekday
 import kotlin.time.Duration.Companion.minutes
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -1142,6 +1143,8 @@ class SettingsViewModel @JvmOverloads constructor(
             status.value = label
             try {
                 block()
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 // Mapping the throwable to a sentence and dropping it is why a failed Drive
                 // sign-in left no trace anywhere. AppLog.e is the level that also feeds the

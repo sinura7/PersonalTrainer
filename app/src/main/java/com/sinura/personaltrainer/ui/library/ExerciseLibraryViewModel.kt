@@ -22,6 +22,7 @@ import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.util.ErrorSlot
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -286,6 +287,8 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
                         error.fail(source = ERR_EDITOR, message = SessionOrderCopy.SAVE_LIFT_FAILED)
                     }
                 }
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "saveEditor failed", thrown)
                 error.fail(source = ERR_EDITOR, message = SessionOrderCopy.SAVE_LIFT_FAILED)
@@ -308,6 +311,8 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
                     pendingDelete.value = exercise
                 }
                 error.clearFrom(source = ERR_DELETE, before = started)
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "requestDelete failed", thrown)
                 error.fail(
@@ -398,6 +403,8 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
                 message.value = "Added ${exercise.name} to ${routine.name}."
                 addToRoutine.value = null
                 error.clearFrom(source = ERR_ADD_TO_ROUTINE, before = started)
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "addToRoutine failed", thrown)
                 error.fail(
