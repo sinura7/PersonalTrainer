@@ -230,4 +230,30 @@ class ExerciseHistoryBuilderTest {
         assertEquals(1, prior.size)
         assertEquals(100.0, prior.single().weightKg, 0.0001)
     }
+
+    @Test
+    fun anActivityEntryKeepsItsKindOnTheSessionSummary() {
+        val day = at("2026-08-10T10:00:00Z")
+        val history = ExerciseHistoryBuilder.fromEntries(
+            exerciseId = squat,
+            entries = listOf(
+                ExerciseSetEntry(
+                    record = ExerciseSetRecord(
+                        setId = "set-a",
+                        sessionId = "act-1",
+                        weightKg = 110.0,
+                        reps = 5,
+                        completedAt = day,
+                    ),
+                    sessionName = "Make-up squat",
+                    sessionPerformedAtMs = day,
+                    kind = HistoryKind.ACTIVITY,
+                ),
+            ),
+            loadClass = LoadClass.LOADED,
+            zone = zone,
+        )
+        assertEquals(HistoryKind.ACTIVITY, history.sessions.single().kind)
+        assertEquals(110.0, history.records.getValue(PersonalRecordKind.WEIGHT).value, 0.0001)
+    }
 }

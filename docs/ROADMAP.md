@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 9 Sep 2026 — R18 step two: exercise detail bests and history read
+> `CompletedTrainingRepository.observeExerciseSets` (both stores). A
+> backdated strength day counts as a PR on that lift, not only in
+> Records. `#201` is the live-29 drop; this packet does not bump 28.
+>
 > 9 Sep 2026 — `#175` (Robolectric 4.16.1) and `#180` (AGP 8.9.3)
 > closed unmerged. Robolectric stays pinned at `4.16`; 8.9.3 waits for
 > aapt2 ledger + checker in one packet. `#173`, `#199` and `#200` are

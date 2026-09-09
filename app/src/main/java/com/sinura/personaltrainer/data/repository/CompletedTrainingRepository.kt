@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.data.repository
 
 import com.sinura.personaltrainer.domain.CompletedTraining
+import com.sinura.personaltrainer.domain.ExerciseSetEntry
 import com.sinura.personaltrainer.domain.TimePort
 import com.sinura.personaltrainer.domain.toCompletedTraining
 import kotlinx.coroutines.flow.Flow
@@ -22,6 +23,18 @@ class CompletedTrainingRepository(
             .mapNotNull { session -> session.toCompletedTraining(time, zone) }
         val fromActivities = activities.all().mapNotNull { session -> session.toCompletedTraining() }
         return fromWorkouts + fromActivities
+    }
+
+    /**
+     * Finished working sets of one lift from both stores. Strength sessions
+     * and backdated strength activities share [ExerciseSetEntry]; the PR
+     * badge at log time still reads the strength store alone.
+     */
+    fun observeExerciseSets(exerciseId: String): Flow<List<ExerciseSetEntry>> = combine(
+        workouts.observeExerciseSets(exerciseId),
+        activities.observeExerciseSets(exerciseId),
+    ) { fromWorkouts, fromActivities ->
+        (fromWorkouts + fromActivities).sortedBy { entry -> entry.record.completedAt }
     }
 
     /**

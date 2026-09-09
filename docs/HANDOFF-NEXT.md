@@ -117,7 +117,7 @@ lines reading GitHub secrets and a placeholder in `SETUP.md`.
 `debugLiveCode` is 28 (`#195` / `#197`). The Obtainium drop is
 `debug-live/2026-09-09-7` (Body facts line plus the cancellation
 checker). Live 27 remains `debug-live/2026-09-09-6`. Do not bump 28
-on `#181`. Open `#201` is the 29 drop (`debug-live/2026-09-09-8`).
+on this packet. Open `#201` is the 29 drop (`debug-live/2026-09-09-8`).
 A Temper Debug from a throwaway-signed drop must still be
 backed up, uninstalled, and reinstalled once onto 25+ (stable signer).
 Gym-floor Temper stays on the signed APK.
@@ -152,11 +152,10 @@ those five as this packet. `#200` is on `trunk`: 42 of 64 stale P1 rows
 in `DESIGN_AUDIT` now cite the file that closed them; 21 still
 open (last-5s tick family, Body first-launch, walkthrough rows,
 chip progress/rest badge, E-04/E-12, N-01, T-16, S-02/B-03/I-01).
-Do not take those 21 as this packet. Do not start a second
-`DESIGN_AUDIT.md` edit from `trunk` while `#181` is open. Open
+Do not take those 21 as this packet. Open
 `#201` (write-through multi-add picker, `debugLiveCode` 28 → 29,
-drop `debug-live/2026-09-09-8`) overlaps `#181` on ROADMAP only.
-Independent. Merge in either order. Do **not** bump 28 on `#181`;
+drop `debug-live/2026-09-09-8`) overlaps this packet on ROADMAP only.
+Independent. Merge in either order. Do **not** bump 28 here;
 inherit 29 after `#201` lands. Do not start a second edit of
 `ExercisePickerSheet`, `LiftCart`, `RoutineEditorViewModel`, or
 `CustomWeekViewModel` from `trunk`. Do not delete
@@ -169,17 +168,14 @@ exercise detail and Library still have only isolated-control coverage, and
 `AccessibilityMatrix` claims automated evidence for all of them, which
 overstates it.
 
-**R18 step one.** Horizon readout and past-block reviews (and Plan's
-completed-block review) read `CompletedTraining` from both stores, so a
-backdated strength activity counts toward PRs and movers, not only
-totals and Records. Exercise detail, the log-time PR badge, and activity
-edits are still later steps
+**R18 step two.** Exercise detail bests and history read
+`CompletedTrainingRepository.observeExerciseSets`, so a backdated
+strength activity counts toward that lift's PRs and session list, not
+only Records. The log-time PR badge and activity edits are still later
+steps
 ([`architecture/completed-training-convergence.md`](architecture/completed-training-convergence.md)).
-Open `#181` is rebased on `trunk` after `#173` (setup-gradle 6.3.0).
-History's three error sites use `ErrorSlot` on this packet.
-`HistoryViewModelTest` stays at 0 unbounded waits. `check-cancellation.py`
-is 0 on this packet. Do not bump `debugLiveCode` (still 28 until
-`#201` lands). Live 28 is `debug-live/2026-09-09-7`. `#201` is the
+`#181` (step one) is on `trunk`. Do not bump `debugLiveCode` (still 28
+until `#201` lands). Live 28 is `debug-live/2026-09-09-7`. `#201` is the
 29 drop.
 
 **R17 measurement.** The History catalog is shared and the revision keys are
@@ -201,7 +197,8 @@ take the five hosted-emulator failures or the remaining DESIGN_AUDIT
 P1 rows as this packet. `#196`'s vehicle
 `claude/google-signin-integration-xijk5e` was deleted after merge.
 `debugLiveCode` on trunk is 28; `#201` bumps it to 29. Do not bump it
-on `#181`. `unbounded_waits` on trunk is 0.
+on this packet. `unbounded_waits` on trunk is 0. `#181`'s vehicle
+`cursor/r18-horizon-reviews-a14c` was deleted after merge.
 
 ## Rules that bind this work
 
