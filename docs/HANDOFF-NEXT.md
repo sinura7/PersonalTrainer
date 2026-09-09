@@ -114,11 +114,11 @@ on 2026-09-08 after a scan of all 72 commits found no keystore, private
 key, API key or token in any of them — the only matches were `printf`
 lines reading GitHub secrets and a placeholder in `SETUP.md`.
 
-`debugLiveCode` is 27 (`#194`, the verified-backup drop after `#188`).
-Do not bump 27 on `#181`. A Temper Debug from a throwaway-signed drop
+`debugLiveCode` is 27 (`#193` / `#194`). The Obtainium drop is
+`debug-live/2026-09-09-5` (Golf cool-down plus the verified-backup
+work). Do not bump 27 on `#181`. A Temper Debug from a throwaway-signed drop
 must still be backed up, uninstalled, and reinstalled once onto 25+
-(stable signer). Gym-floor Temper stays on the signed APK. Live 26
-remains `debug-live/2026-09-09-4` until the 27 pre-release exists.
+(stable signer). Gym-floor Temper stays on the signed APK.
 
 **R05 is closed as of live test 25.** The four `DEBUG_KEYSTORE_*` secrets
 and the `DEBUG_CERT_SHA256` variable were set on 2026-09-09, so
@@ -155,16 +155,17 @@ backdated strength activity counts toward PRs and movers, not only
 totals and Records. Exercise detail, the log-time PR badge, and activity
 edits are still later steps
 ([`architecture/completed-training-convergence.md`](architecture/completed-training-convergence.md)).
-Open `#181` is rebased on `trunk` after `#188` and `#194`
-(`debugLiveCode` 27, verified-backup drop). History's three error
-sites use `ErrorSlot` on this packet — `#190` left them because this
-file already owned `HistoryViewModel`. `HistoryViewModelTest` stays
-at 0 unbounded waits. Do not bump `debugLiveCode` (still 27). Open
-`#193` is the Golf cool-down pack on `claude/android-verify-my59sw`
-and also wants 27; overlap with `#181` is `docs/ROADMAP.md` only.
-Independent. Do not start a second edit of `AuxiliaryPacks.kt` or
-`app/build.gradle.kts` from `trunk`. `#188` is on `trunk`; the four
-unbounded waits in `SettingsViewModelTest` remain (baseline 4).
+Open `#181` is rebased on `trunk` after `#193` (Golf cool-down,
+live 27, drop `debug-live/2026-09-09-5`). History's three error
+sites use `ErrorSlot` on this packet. `HistoryViewModelTest` stays
+at 0 unbounded waits. Do not bump `debugLiveCode` (still 27).
+Open `#196` is the Settings ErrorSlot compile fix `#188` missed;
+this packet stacks that commit so the gate compiles. Merge `#196`
+first, or merge this tip. Open `#195` is live 28 (Body figure
+copy). Overlap with `#181` is `docs/ROADMAP.md` only. Independent.
+Do not start a second edit of Body/Progress files or
+`app/build.gradle.kts` from `trunk`. The four unbounded waits in
+`SettingsViewModelTest` remain (baseline 4).
 
 **R17 measurement.** The History catalog is shared and the revision keys are
 in place, but the full-history read behind the horizon readout was left alone
@@ -176,9 +177,11 @@ nothing to measure on. Section 5 of the convergence record is the plan.
 after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
 `claude/file-visibility-check-jraqc2` is an unmerged Claude vehicle
 (UX + stub compiler); do not start a second edit of those paths from
-`trunk`. Open `#193` (`claude/android-verify-my59sw`) is the Golf
-cool-down pack. Do not delete that head. `debugLiveCode` on trunk
-is 27 (`#194`); do not bump it on `#181`.
+`trunk`. Open `#195` (`claude/android-verify-my59sw`) is live test 28
+(Body figure copy). Do not delete that head. Open `#196`
+(`claude/google-signin-integration-xijk5e`) is the Settings
+ErrorSlot compile fix. Do not delete that head. `debugLiveCode` on
+trunk is 27; do not bump it on `#181`.
 
 ## Rules that bind this work
 
