@@ -142,12 +142,15 @@ API-36-and-up Robolectric does not sneak in on Java 17. `#175`
 `check-sdk-target.py` pins Robolectric at exactly `4.16`; AGP 8.9.3
 needs the plugin, the `aapt2-8.9.2-*` ledger entries, and
 `tools/check-supply-chain.py` in one packet when a fix in 8.9.3 is
-needed. Leave `#173` (setup-gradle 6.3.0). It still owns three
-workflow files against `trunk` after `#199`; do not start a second
-`ci.yml` edit from `trunk`. Actions is not the test lane. The
-hosted emulator lane is on `trunk` (`#199`): Nexus 5X profile, still
-red — five of eighty named in ROADMAP. Do not take those five as
-this packet.
+needed. Leave `#173` (setup-gradle 6.3.0). Claude is rebasing it
+onto `trunk` after `#199` (Node 20→24 warning). Do not start a
+second `ci.yml` edit from `trunk`. Actions is not the test lane.
+The hosted emulator lane is on `trunk` (`#199`): Nexus 5X profile,
+still red — five of eighty named in ROADMAP. Do not take those
+five as this packet. Open `#200` owns `docs/DESIGN_AUDIT.md` (42
+of 64 stale P1 rows closed with file evidence; 21 still open).
+ROADMAP last-merge-wins with `#181`; do **not** stack R18 onto
+`#200`. Do not start a second `DESIGN_AUDIT.md` edit from `trunk`.
 
 **R16 residue.** Production-screen tests exist for History, the activity
 composer, live cardio, the activity receipt and Home. Settings, onboarding,
@@ -178,11 +181,12 @@ nothing to measure on. Section 5 of the convergence record is the plan.
 after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
 `claude/file-visibility-check-jraqc2` is an unmerged Claude vehicle
 (UX + stub compiler); do not start a second edit of those paths from
-`trunk`. `#199` is on `trunk`; `claude/android-verify-my59sw` is leftover
-and Claude reuses it — do **not** delete that head (deleting it after
-`#191` briefly removed `#192`). Leave `#173`. Do not start a second
-`ci.yml` edit from `trunk`. Do not take the five hosted-emulator
-failures as this packet. `#196`'s vehicle
+`trunk`. `#199` is on `trunk`. Open `#200` (DESIGN_AUDIT P1
+re-read) owns `claude/android-verify-my59sw` — do **not** delete
+that head (deleting it after `#191` briefly removed `#192`). Leave
+`#173`. Do not start a second `ci.yml` or `DESIGN_AUDIT.md` edit
+from `trunk`. Do not take the five hosted-emulator failures as
+this packet. `#196`'s vehicle
 `claude/google-signin-integration-xijk5e` was deleted after merge.
 `debugLiveCode` on trunk is 28; do not bump it on `#181`.
 `unbounded_waits` on trunk is 0.

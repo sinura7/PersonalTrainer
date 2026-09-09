@@ -17,8 +17,9 @@
 >
 > 9 Sep 2026 — `#175` (Robolectric 4.16.1) and `#180` (AGP 8.9.3)
 > closed unmerged. Robolectric stays pinned at `4.16`; 8.9.3 waits for
-> aapt2 ledger + checker in one packet. `#199` is on `trunk`. `#181`
-> still does not bump 28.
+> aapt2 ledger + checker in one packet. `#199` is on `trunk`. `#200`
+> owns `DESIGN_AUDIT` (ROADMAP last-merge-wins with this packet).
+> `#181` still does not bump 28.
 >
 > 9 Sep 2026 — W3: `SettingsViewModelTest`'s four waits go through
 > `awaitFirst` now that `#188` has landed; `unbounded_waits` 4 → 0. Every
