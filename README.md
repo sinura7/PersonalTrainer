@@ -46,6 +46,7 @@ databases, different icons.
 | [docs/SUPPORT.md](docs/SUPPORT.md) | how to report a defect without sending a database |
 | [docs/COMMERCIAL_BOUNDARY.md](docs/COMMERCIAL_BOUNDARY.md) | local core is never paywalled |
 | [SETUP.md](SETUP.md) | release keystore, Google Drive OAuth, building a signed APK |
+| [docs/DRIVE_SIGNIN_CHECK.md](docs/DRIVE_SIGNIN_CHECK.md) | the ten-step phone check that proves Drive sign-in works |
 | [docs/RECOVERY.md](docs/RECOVERY.md) | **new phone, dead laptop, lost keystore — read before you need it** |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | *historical* — how the strength logger was built |
 | [docs/AUDIT.md](docs/AUDIT.md) | pointer to the current audit, plus the 19 August review |

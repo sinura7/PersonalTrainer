@@ -937,6 +937,10 @@ class SettingsViewModel @JvmOverloads constructor(
             try {
                 block()
             } catch (thrown: Exception) {
+                // Mapping the throwable to a sentence and dropping it is why a failed Drive
+                // sign-in left no trace anywhere. AppLog.e is the level that also feeds the
+                // diagnostics hook; the message is redacted, the tag and stack are not.
+                AppLog.e(TAG, "Backup action failed: $label", thrown)
                 error.value = (thrown as? BackupException)?.message
                     ?: thrown.message
                     ?: "Something went wrong. Try again."
