@@ -129,9 +129,15 @@ the Releases API outright ("Creating, editing, or deleting releases is not
 permitted for this session type"), so neither a tag push nor
 `gh release create` is reachable from here. The branch push is.
 
-**R05 still bites.** Without the four `DEBUG_KEYSTORE_*` secrets the
-workflow signs each drop with a throwaway key, so every drop installs
-beside the last with a fresh database instead of over it. Dependabot
+**R05 is closed as of live test 25.** The four `DEBUG_KEYSTORE_*` secrets
+and the `DEBUG_CERT_SHA256` variable were set on 2026-09-09, so
+`debug-live.yml` restores one stable keystore and every drop from 25 on
+updates a Temper Debug in place instead of installing beside it. The
+certificate is `B2:6E:A6:4C:...:E9:12:C3:36`; the workflow fails the drop
+if a build is signed by anything else. The one-time cost of the switch is
+on the phone, not in the repository: a Temper Debug installed from an
+earlier throwaway-signed drop must be backed up, uninstalled and
+reinstalled once, per SETUP.md section 6. Dependabot
 refuses now on the ignore list, all
 closed unmerged: `#125` (AGP 9.3.2), `#126` (play-services-auth 22.0.0),
 `#174` (coroutines 1.11.0 — `kotlinx-coroutines-android` was unnamed, so

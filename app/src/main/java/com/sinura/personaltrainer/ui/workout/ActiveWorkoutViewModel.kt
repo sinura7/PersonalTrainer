@@ -139,6 +139,19 @@ data class ActiveWorkoutUiState(
 }
 
 /** A record broken by the set just logged, for the in-workout moment. */
+/**
+ * A lift finished its prescribed sets and another is waiting.
+ *
+ * [finishedName] is what the screen names as done; [nextExerciseId] is where it goes if the
+ * offer is not refused.
+ */
+data class PendingAdvance(
+    val finishedExerciseId: String,
+    val finishedName: String,
+    val nextExerciseId: String,
+    val nextName: String,
+)
+
 data class PersonalRecordMoment(
     val exerciseName: String,
     val kinds: Set<PersonalRecordKind>,
@@ -599,6 +612,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun selectExercise(exerciseId: String) {
+        // Any deliberate move settles a standing offer: the lifter has already answered it by
+        // choosing, and leaving it armed would move them again a beat later.
+        _pendingAdvance.value = null
         wantAnotherSet.value = false
         if (selectedExerciseId.value == exerciseId) {
             reselections.tryEmit(exerciseId)
@@ -779,6 +795,18 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     /** True while the lifter asked to log past the prescription. Cleared on log, Next, or switch. */
     val extraSetRequested: StateFlow<Boolean> = wantAnotherSet.asStateFlow()
 
+    /**
+     * The lift the loop is about to move to, and the one it just finished, or null when it is
+     * staying put.
+     *
+     * Offered rather than taken: the screen shows it for a beat with a way out, because the
+     * prescription is a plan and not a rule. A fourth set on a three-set lift is ordinary, and
+     * a loop that jumps the moment the third lands puts the lifter on the wrong card with a
+     * bar in their hands.
+     */
+    private val _pendingAdvance = MutableStateFlow<PendingAdvance?>(null)
+    val pendingAdvance: StateFlow<PendingAdvance?> = _pendingAdvance.asStateFlow()
+
     fun onPersonalRecordShown() {
         _personalRecord.value = null
     }
@@ -857,6 +885,30 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                     }
                     val workingAfter = previousWorking + if (current.isWarmup) 0 else 1
                     wantAnotherSet.value = false
+                    // The set that meets the target is the one that offers the move. Warm-ups
+                    // never do, and neither does a lift with no prescription to meet: both
+                    // would march the loop off a lift the session is not done with. The offer
+                    // is only made once per crossing, because `workingAfter == targetSets` is
+                    // false for the extra sets that follow.
+                    if (!current.isWarmup && targetSets > 0 && workingAfter == targetSets) {
+                        val after = session.value
+                        val nextId = after?.nextUnfinishedExerciseAfter(exerciseId)
+                        val nameOf = { id: String ->
+                            after?.exercises
+                                ?.firstOrNull { it.exercise.id == id }
+                                ?.exercise
+                                ?.name
+                                .orEmpty()
+                        }
+                        _pendingAdvance.value = nextId?.let { next ->
+                            PendingAdvance(
+                                finishedExerciseId = exerciseId,
+                                finishedName = nameOf(exerciseId),
+                                nextExerciseId = next,
+                                nextName = nameOf(next),
+                            )
+                        }
+                    }
                     if (
                         RestTimer.shouldStartAfterLog(
                             isWarmup = current.isWarmup,
@@ -885,6 +937,26 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         }
     }
 
+    /** Take the offer: move the loop to the waiting lift. */
+    fun advanceNow() {
+        val pending = _pendingAdvance.value ?: return
+        _pendingAdvance.value = null
+        selectedExerciseId.value = pending.nextExerciseId
+        wantAnotherSet.value = false
+        persistDraft()
+    }
+
+    /**
+     * Refuse the offer and stay on the lift that just finished, ready for another set. Without
+     * arming [wantAnotherSet] the entry wells would be closed on a lift already at target, so
+     * refusing would leave nothing to do but refuse again.
+     */
+    fun stayOnCurrentExercise() {
+        if (_pendingAdvance.value == null) return
+        _pendingAdvance.value = null
+        wantAnotherSet.value = true
+    }
+
     fun dismissError() {
         error.value = null
     }
@@ -894,6 +966,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         // editingSetId is set below and prefill refuses to run while it is, so selecting the
         // set's lift here cannot overwrite the values being edited.
         editingSetId.value = set.id
+        // Revising a set is not moving on from it.
+        _pendingAdvance.value = null
         selectedExerciseId.value = set.exerciseId
         draft.value = ActiveExerciseDraft(
             weightKg = set.weightKg,
