@@ -15,6 +15,12 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 9 Sep 2026 — W2: every ViewModel test wait goes through
+> `Flow.awaitFirst` (sharedTest `TestWaits.kt`): `withTimeout(FLOW_MS)`
+> and, on giving up, the last value the flow showed. 203 sites in 16
+> classes; `unbounded_waits` 207 → 4 (`SettingsViewModelTest`, owned by
+> `#188`, follows). No app code; no drop.
+>
 > 9 Sep 2026 — W: `tools/check-unbounded-waits.py` fails preflight when a
 > `*ViewModelTest.kt` waits on a ViewModel flow with no `withTimeout`
 > around it — the shape that wedged CI twice on 9 Sep. Ratcheted at 207

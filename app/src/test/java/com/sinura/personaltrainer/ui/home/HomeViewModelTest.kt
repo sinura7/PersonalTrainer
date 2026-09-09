@@ -20,6 +20,7 @@ import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.testutil.FrozenTime
 import com.sinura.personaltrainer.testutil.TestWaits
+import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -100,7 +101,7 @@ class HomeViewModelTest {
         deps = graph(insights)
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
-        val state = viewModel!!.uiState.first { !it.isLoading }
+        val state = viewModel!!.uiState.awaitFirst { !it.isLoading }
         assertTrue(state.recommendations.any { it.id == "progression-ready" })
         assertEquals(
             listOf("progression-ready", "coverage-chest"),
@@ -119,7 +120,7 @@ class HomeViewModelTest {
         deps = graph(insights)
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
-        val state = viewModel!!.uiState.first { !it.isLoading }
+        val state = viewModel!!.uiState.awaitFirst { !it.isLoading }
         assertEquals(listOf("progression-ready"), state.recommendations.map { it.id })
     }
 
@@ -148,7 +149,7 @@ class HomeViewModelTest {
         )
         deps.plannerRepository.ensureWeek(weekStart)
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        val state = viewModel!!.uiState.first { !it.isLoading && it.occurrences.size >= 2 }
+        val state = viewModel!!.uiState.awaitFirst { !it.isLoading && it.occurrences.size >= 2 }
         val names = state.routines.associate { it.id to it.name }
         val agenda = com.sinura.personaltrainer.domain.DailyAgenda.forDay(
             com.sinura.personaltrainer.domain.todayEpochDay(),
@@ -196,7 +197,7 @@ class HomeViewModelTest {
         deps = graph(insights)
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
-        val state = viewModel!!.uiState.first { !it.isLoading }
+        val state = viewModel!!.uiState.awaitFirst { !it.isLoading }
         assertTrue(state.loggedEpochDays.contains(today - 80))
     }
 
@@ -213,10 +214,10 @@ class HomeViewModelTest {
         deps.plannerRepository.importSlotsIfNeeded(1_700_000_000_000L)
         deps.plannerRepository.ensureWeek(weekStart)
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
 
         viewModel!!.startSuggestedDay(plannedDay(today, weekday, routine.id, routine.name))
-        val sessionId = viewModel!!.navigateToSession.first { it != null }!!
+        val sessionId = viewModel!!.navigateToSession.awaitFirst { it != null }!!
         PendingOccurrence.complete(deps, sessionId)
 
         val occurrence = deps.plannerRepository.occurrencesBetween(today, today).single()
@@ -242,11 +243,11 @@ class HomeViewModelTest {
             deps.plannerRepository.ensureWeek(todayWeekStart)
         }
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
 
         val leftover = deps.plannerRepository.occurrencesBetween(yesterday, yesterday).single()
         viewModel!!.startOccurrence(leftover.id)
-        val sessionId = viewModel!!.navigateToSession.first { it != null }!!
+        val sessionId = viewModel!!.navigateToSession.awaitFirst { it != null }!!
         assertEquals(OccurrenceStatus.MOVED, leftover.id.let { deps.plannerRepository.getOccurrence(it) }!!.status)
         val moved = deps.plannerRepository.occurrencesBetween(today, today).single()
         assertEquals(today, moved.localEpochDay)
@@ -261,7 +262,7 @@ class HomeViewModelTest {
     fun reminderStartStartsTheOccurrence() = runBlocking {
         val occurrence = seedTodayStrength()
         viewModel!!.startOccurrence(occurrence.id)
-        val sessionId = checkNotNull(viewModel!!.navigateToSession.first { it != null })
+        val sessionId = checkNotNull(viewModel!!.navigateToSession.awaitFirst { it != null })
         assertNull(viewModel!!.reviewOccurrenceId.value)
         assertEquals(sessionId, deps.workoutRepository.getInProgress()?.id)
     }
@@ -270,7 +271,7 @@ class HomeViewModelTest {
     fun reminderReviewOpensConfirmAndStartsNothing() = runBlocking {
         val occurrence = seedTodayStrength()
         viewModel!!.reviewOccurrence(occurrence.id)
-        assertEquals(occurrence.id, viewModel!!.reviewOccurrenceId.first { it != null })
+        assertEquals(occurrence.id, viewModel!!.reviewOccurrenceId.awaitFirst { it != null })
         assertEquals(occurrence.localEpochDay, viewModel!!.focusEpochDay.value)
         assertNull(viewModel!!.navigateToSession.value)
         assertNull(deps.workoutRepository.getInProgress())
@@ -281,9 +282,9 @@ class HomeViewModelTest {
     fun missingReminderStartSurfacesAMessage() = runBlocking {
         deps = graph()
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
         viewModel!!.startOccurrence("gone")
-        val state = viewModel!!.uiState.first { it.error != null }
+        val state = viewModel!!.uiState.awaitFirst { it.error != null }
         assertEquals(com.sinura.personaltrainer.domain.ReminderCopy.GONE, state.error)
         assertNull(viewModel!!.navigateToSession.value)
     }
@@ -292,9 +293,9 @@ class HomeViewModelTest {
     fun missingReminderReviewSurfacesAMessage() = runBlocking {
         deps = graph()
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
         viewModel!!.reviewOccurrence("gone")
-        val state = viewModel!!.uiState.first { it.error != null }
+        val state = viewModel!!.uiState.awaitFirst { it.error != null }
         assertEquals(com.sinura.personaltrainer.domain.ReminderCopy.GONE, state.error)
         assertNull(viewModel!!.reviewOccurrenceId.value)
         assertNull(viewModel!!.navigateToSession.value)
@@ -312,7 +313,7 @@ class HomeViewModelTest {
         deps.plannerRepository.importSlotsIfNeeded(1_700_000_000_000L)
         deps.plannerRepository.ensureWeek(weekStart)
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
         return deps.plannerRepository.occurrencesBetween(today, today).single()
     }
 
@@ -329,10 +330,10 @@ class HomeViewModelTest {
         deps.plannerRepository.importSlotsIfNeeded(1_700_000_000_000L)
         deps.plannerRepository.ensureWeek(weekStart)
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
 
         viewModel!!.startFreeWorkout()
-        val sessionId = viewModel!!.navigateToSession.first { it != null }!!
+        val sessionId = viewModel!!.navigateToSession.awaitFirst { it != null }!!
         val session = deps.workoutRepository.getSession(sessionId)!!
         assertEquals("Free workout", session.routineName)
         assertTrue(session.exercises.isEmpty())
@@ -361,7 +362,7 @@ class HomeViewModelTest {
             deps.plannerRepository.ensureWeek(todayWeekStart)
         }
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
 
         val leftover = deps.plannerRepository.occurrencesBetween(yesterday, yesterday).single()
         val enabled = deps.plannerRepository.rules().first { it.id == leftover.ruleId }.enabled
@@ -391,7 +392,7 @@ class HomeViewModelTest {
         deps.plannerRepository.importSlotsIfNeeded(1_700_000_000_000L)
         deps.plannerRepository.ensureWeek(weekStart)
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
 
         val planned = deps.plannerRepository.occurrencesBetween(today, today).single()
         viewModel!!.skipOccurrence(planned.id)
@@ -408,7 +409,7 @@ class HomeViewModelTest {
         val squat = insertTestExercise(deps, "ex-home-add-once", "Squat")
         deps.routineRepository.addExercise(routine.id, squat, 3, 5, 100.0, 90)
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
 
         viewModel!!.addDaySession(today, HomeDayAdd.Workout(routine.id), once = true)
         dispatcher.scheduler.advanceUntilIdle()
@@ -432,7 +433,7 @@ class HomeViewModelTest {
         val squat = insertTestExercise(deps, "ex-home-add-week", "Squat")
         deps.routineRepository.addExercise(routine.id, squat, 3, 5, 100.0, 90)
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
 
         viewModel!!.addDaySession(today, HomeDayAdd.Workout(routine.id), once = false)
         dispatcher.scheduler.advanceUntilIdle()
@@ -464,10 +465,10 @@ class HomeViewModelTest {
         deps.preferencesRepository.setOnboardingComplete(true)
         val today = todayEpochDay()
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
 
         viewModel!!.addDaySession(today, HomeDayAdd.NewWorkout, once = true)
-        val editorId = viewModel!!.navigateToEditor.first { it != null }!!
+        val editorId = viewModel!!.navigateToEditor.awaitFirst { it != null }!!
         val rule = deps.plannerRepository.rules().single { it.routineId == editorId }
         assertFalse(rule.enabled)
         assertTrue(
@@ -488,7 +489,7 @@ class HomeViewModelTest {
     fun firstInstallIsNotSetupComplete() = runBlocking {
         deps = graph()
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        val state = viewModel!!.uiState.first { !it.isLoading }
+        val state = viewModel!!.uiState.awaitFirst { !it.isLoading }
         assertFalse(state.setupComplete)
     }
 
@@ -497,7 +498,7 @@ class HomeViewModelTest {
         deps = graph()
         deps.preferencesRepository.setOnboardingComplete(true)
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        val state = viewModel!!.uiState.first { !it.isLoading }
+        val state = viewModel!!.uiState.awaitFirst { !it.isLoading }
         assertTrue(state.setupComplete)
     }
 
@@ -506,7 +507,7 @@ class HomeViewModelTest {
         deps = graph()
         deps.preferencesRepository.setOnboardingComplete(true)
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
         assertFalse(viewModel!!.uiState.value.sessionLive)
 
         val outcome = deps.startLiveCardio(
@@ -515,7 +516,7 @@ class HomeViewModelTest {
         )
         assertTrue(outcome is com.sinura.personaltrainer.workout.StartCardioOutcome.Open)
 
-        val state = viewModel!!.uiState.first { it.sessionLive }
+        val state = viewModel!!.uiState.awaitFirst { it.sessionLive }
         assertNull(state.inProgress)
         assertNotNull(state.liveActivity)
         assertTrue(state.sessionLive)

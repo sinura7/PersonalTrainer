@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.testutil.awaitFirst
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -63,7 +64,7 @@ class OnboardingGateViewModelTest {
             scheduler = dispatcher,
         )
         val vm = createViewModel()
-        assertEquals(OnboardingGate.APP, vm.gate.first { it != OnboardingGate.UNKNOWN })
+        assertEquals(OnboardingGate.APP, vm.gate.awaitFirst { it != OnboardingGate.UNKNOWN })
     }
 
     @Test
@@ -74,7 +75,7 @@ class OnboardingGateViewModelTest {
         )
         deps.preferencesRepository.setOnboardingComplete(true)
         val vm = createViewModel()
-        assertEquals(OnboardingGate.APP, vm.gate.first { it != OnboardingGate.UNKNOWN })
+        assertEquals(OnboardingGate.APP, vm.gate.awaitFirst { it != OnboardingGate.UNKNOWN })
     }
 
     @Test
@@ -84,11 +85,11 @@ class OnboardingGateViewModelTest {
             scheduler = dispatcher,
         )
         val vm = createViewModel()
-        vm.gate.first { it == OnboardingGate.APP }
+        vm.gate.awaitFirst { it == OnboardingGate.APP }
 
         deps.preferencesRepository.setOnboardingComplete(true)
 
-        assertEquals(OnboardingGate.APP, vm.gate.first { it == OnboardingGate.APP })
+        assertEquals(OnboardingGate.APP, vm.gate.awaitFirst { it == OnboardingGate.APP })
     }
 
     @Test

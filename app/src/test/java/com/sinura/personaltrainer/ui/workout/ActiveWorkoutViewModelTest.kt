@@ -12,6 +12,7 @@ import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.testutil.TestWaits
+import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
 import com.sinura.personaltrainer.workout.WorkoutDraft
 import kotlinx.coroutines.Dispatchers
@@ -196,7 +197,7 @@ class ActiveWorkoutViewModelTest {
         assertEquals(100.0, persisted.sets.single().weightKg, 0.0001)
         assertEquals(5, persisted.sets.single().reps)
         assertNull(vm.uiState.value.error)
-        val record = checkNotNull(vm.personalRecord.first { it != null })
+        val record = checkNotNull(vm.personalRecord.awaitFirst { it != null })
         assertEquals("Squat", record.exerciseName)
         assertTrue(record.kinds.isNotEmpty())
 
@@ -530,7 +531,7 @@ class ActiveWorkoutViewModelTest {
         deps.restTimerStore.snapshot.first { it.running }
 
         vm.deleteSet(logged.id)
-        checkNotNull(vm.deletedSet.first { it != null })
+        checkNotNull(vm.deletedSet.awaitFirst { it != null })
         awaitSession(fixture.session.id) { it.sets.isEmpty() }
         assertFalse(deps.restTimerStore.current().running)
 
@@ -678,7 +679,7 @@ class ActiveWorkoutViewModelTest {
 
         vm.finishWorkout()
 
-        val exit = checkNotNull(vm.exitRequested.first { it != null })
+        val exit = checkNotNull(vm.exitRequested.awaitFirst { it != null })
         assertEquals(WorkoutExit.Finished(fixture.session.id), exit)
         assertNotNull(deps.workoutRepository.getSession(fixture.session.id)?.finishedAt)
         assertNull(deps.workoutRepository.getInProgress())
@@ -701,7 +702,7 @@ class ActiveWorkoutViewModelTest {
 
         vm.discardWorkout()
 
-        val exit = checkNotNull(vm.exitRequested.first { it != null })
+        val exit = checkNotNull(vm.exitRequested.awaitFirst { it != null })
         assertEquals(WorkoutExit.Discarded, exit)
         assertNull(deps.workoutRepository.getSession(fixture.session.id))
         assertNull(deps.workoutDraftCache.get(fixture.session.id))

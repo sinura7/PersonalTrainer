@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.TestWaits
+import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.Dispatchers
@@ -61,7 +62,7 @@ class ExerciseDetailViewModelTest {
     @Test
     fun blankIdResolvesMissingWithoutSpinning() = runBlocking {
         val vm = createViewModel("")
-        val state = vm.uiState.first { !it.isLoading }
+        val state = vm.uiState.awaitFirst { !it.isLoading }
         assertTrue(state.missing)
         assertNull(state.exercise)
     }
@@ -69,7 +70,7 @@ class ExerciseDetailViewModelTest {
     @Test
     fun missingExerciseResolvesMissing() = runBlocking {
         val vm = createViewModel("gone")
-        val state = vm.uiState.first { !it.isLoading }
+        val state = vm.uiState.awaitFirst { !it.isLoading }
         assertTrue(state.missing)
         assertNull(state.exercise)
     }
@@ -82,7 +83,7 @@ class ExerciseDetailViewModelTest {
         deps.routineRepository.addExercise(holding.id, squat, 3, 5, null, 90)
 
         val vm = createViewModel(squat.id)
-        val state = vm.uiState.first { !it.isLoading && it.exercise != null }
+        val state = vm.uiState.awaitFirst { !it.isLoading && it.exercise != null }
         assertFalse(state.missing)
         assertEquals(squat.id, state.exercise?.id)
         assertEquals(0, state.history.sessions.size)
@@ -100,7 +101,7 @@ class ExerciseDetailViewModelTest {
             finish = true,
         )
         val vm = createViewModel(fixture.exercise.id)
-        val state = vm.uiState.first { it.history.sessions.isNotEmpty() }
+        val state = vm.uiState.awaitFirst { it.history.sessions.isNotEmpty() }
         assertEquals(1, state.history.sessions.size)
         assertTrue(state.history.sessions.single().sets.any { it.weightKg == 100.0 && it.reps == 5 })
     }
@@ -110,7 +111,7 @@ class ExerciseDetailViewModelTest {
         val fixture = seedTestWorkout(deps)
         deps.workoutRepository.discardSession(fixture.session.id)
         val vm = createViewModel(fixture.exercise.id)
-        vm.uiState.first { it.routines.any { membership -> membership.alreadyHolds } }
+        vm.uiState.awaitFirst { it.routines.any { membership -> membership.alreadyHolds } }
 
         vm.addToRoutine(fixture.routine.id)
         val notice = withTimeout(TestWaits.FLOW_MS) { vm.uiState.first { it.notice != null }.notice }
@@ -120,7 +121,7 @@ class ExerciseDetailViewModelTest {
         )
         assertEquals(1, deps.routineRepository.getById(fixture.routine.id)?.exercises?.size)
         vm.dismissNotice()
-        assertNull(vm.uiState.first { it.notice == null }.notice)
+        assertNull(vm.uiState.awaitFirst { it.notice == null }.notice)
     }
 
     @Test
@@ -128,7 +129,7 @@ class ExerciseDetailViewModelTest {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val routine = deps.routineRepository.create("Upper")
         val vm = createViewModel(squat.id)
-        vm.uiState.first { it.routines.any { it.routine.id == routine.id && !it.alreadyHolds } }
+        vm.uiState.awaitFirst { it.routines.any { it.routine.id == routine.id && !it.alreadyHolds } }
 
         vm.addToRoutine(routine.id)
         // One wait, on the view model, and it has to be both halves. The notice is set in

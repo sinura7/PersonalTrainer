@@ -20,6 +20,7 @@ import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.testutil.FrozenTime
 import com.sinura.personaltrainer.testutil.TestWaits
+import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.util.toJavaDayOfWeek
 import com.sinura.personaltrainer.util.toWeekday
 import java.time.LocalDate
@@ -82,7 +83,7 @@ class PlanViewModelTest {
         )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
         viewModel!!.suggestFills()
         // Suggest re-plans from wall clock and will not propose days already behind
         // today. On a Sunday of a Mon-start 4-day week that set is empty — waiting
@@ -125,7 +126,7 @@ class PlanViewModelTest {
             routines = listOf(upper, lower),
         )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
         viewModel!!.suggestFills()
         withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { !it.isLoading } }
         assertTrue(viewModel!!.uiState.value.proposals.isEmpty())
@@ -164,7 +165,7 @@ class PlanViewModelTest {
         )
 
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
         viewModel!!.replayStoredAnswers()
         val proposals = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.uiState.first { it.proposals.isNotEmpty() || it.error != null }.proposals
@@ -189,7 +190,7 @@ class PlanViewModelTest {
             time = mondayMorningTime(),
         )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
         viewModel!!.pinFocus(monday.toEpochDay(), SessionFocusKind.PUSH)
         withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.uiState.first { it.rules.isNotEmpty() }
@@ -226,7 +227,7 @@ class PlanViewModelTest {
             time = mondayMorningTime(),
         )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
         viewModel!!.pinFocus(monday.toEpochDay(), SessionFocusKind.PUSH)
         withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.uiState.first { it.rules.isNotEmpty() }
@@ -261,7 +262,7 @@ class PlanViewModelTest {
             time = mondayMorningTime(),
         )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
         viewModel!!.pinFocus(monday.toEpochDay(), SessionFocusKind.PUSH)
         withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.uiState.first { it.rules.isNotEmpty() }
@@ -305,7 +306,7 @@ class PlanViewModelTest {
             time = FrozenTime(frozenMs, zone.id),
         )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
         viewModel!!.pinFocus(thursday.toEpochDay(), SessionFocusKind.PUSH)
         withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.uiState.first { it.rules.isNotEmpty() }
@@ -335,7 +336,7 @@ class PlanViewModelTest {
         )
         deps.dbMaintenance.seedCatalog()
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
         viewModel!!.pinFocus(monday.toEpochDay(), SessionFocusKind.PUSH)
         withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.uiState.first { it.rules.isNotEmpty() }
@@ -372,7 +373,7 @@ class PlanViewModelTest {
         )
         deps.dbMaintenance.seedCatalog()
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
         viewModel!!.addAuxiliary(monday.toEpochDay(), "golf", once = true)
         dispatcher.scheduler.advanceUntilIdle()
         val aux = withTimeout(TestWaits.FLOW_MS) {
@@ -407,7 +408,7 @@ class PlanViewModelTest {
             time = mondayMorningTime(),
         )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
         viewModel!!.pinFocus(monday.toEpochDay(), SessionFocusKind.PUSH)
         withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.uiState.first { it.rules.isNotEmpty() }
@@ -447,7 +448,7 @@ class PlanViewModelTest {
         )
         val extra = deps.routineRepository.create("Monday extra")
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
         viewModel!!.pinFocus(monday.toEpochDay(), SessionFocusKind.PUSH)
         withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.uiState.first { it.rules.isNotEmpty() }
@@ -494,7 +495,7 @@ class PlanViewModelTest {
         val pull = deps.routineRepository.create("Pull")
         val extra = deps.routineRepository.create("Monday extra")
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
         viewModel!!.pinRoutine(monday.toEpochDay(), push.id)
         withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.uiState.first { it.rules.any { rule -> rule.routineId == push.id } }
@@ -531,7 +532,7 @@ class PlanViewModelTest {
             time = mondayMorningTime(),
         )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
         viewModel!!.pinFocus(monday.toEpochDay(), SessionFocusKind.PUSH)
         withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.uiState.first { it.rules.isNotEmpty() }
@@ -562,7 +563,7 @@ class PlanViewModelTest {
         )
         val extra = deps.routineRepository.create("Monday extra")
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
         viewModel!!.pinFocus(monday.toEpochDay(), SessionFocusKind.PUSH)
         withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.uiState.first { it.rules.isNotEmpty() }
@@ -600,7 +601,7 @@ class PlanViewModelTest {
             time = mondayMorningTime(),
         )
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
 
         viewModel!!.buildDay(monday.toEpochDay())
         dispatcher.scheduler.advanceUntilIdle()
@@ -637,7 +638,7 @@ class PlanViewModelTest {
         val push = deps.routineRepository.create("Push")
         val pull = deps.routineRepository.create("Pull")
         viewModel = PlanViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.first { !it.isLoading }
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
         viewModel!!.pinRoutine(monday.toEpochDay(), push.id)
         withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.uiState.first { it.rules.any { rule -> rule.routineId == push.id } }

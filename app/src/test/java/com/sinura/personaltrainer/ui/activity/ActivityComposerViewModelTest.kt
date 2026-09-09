@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.domain.ActivityWrite
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.testutil.TestWaits
+import com.sinura.personaltrainer.testutil.awaitFirst
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -127,7 +128,7 @@ class ActivityComposerViewModelTest {
     @Test
     fun pastModeOpensTheStrengthComposer() = runBlocking {
         viewModel = composer("past")
-        val state = viewModel!!.uiState.first { it.todayEpochDay != 0L }
+        val state = viewModel!!.uiState.awaitFirst { it.todayEpochDay != 0L }
         assertEquals(ComposerMode.STRENGTH, state.mode)
     }
 
@@ -144,7 +145,7 @@ class ActivityComposerViewModelTest {
 
         // The same handle is what the framework hands the recreated ViewModel.
         viewModel = composer(handle)
-        val state = viewModel!!.uiState.first { it.todayEpochDay != 0L }
+        val state = viewModel!!.uiState.awaitFirst { it.todayEpochDay != 0L }
 
         assertEquals("Leg day", state.title)
         assertEquals(20_000L, state.epochDay)
@@ -172,7 +173,7 @@ class ActivityComposerViewModelTest {
         viewModel!!.clearAndJoinForTest()
 
         viewModel = composer(handle)
-        val state = viewModel!!.uiState.first { it.todayEpochDay != 0L }
+        val state = viewModel!!.uiState.awaitFirst { it.todayEpochDay != 0L }
         assertEquals("", state.title)
         assertTrue(state.cardio.isEmpty())
         assertEquals(1, deps.activityRepository.all().size)
@@ -187,7 +188,7 @@ class ActivityComposerViewModelTest {
         viewModel!!.clearAndJoinForTest()
 
         viewModel = composer(handle)
-        val state = viewModel!!.uiState.first { it.todayEpochDay != 0L }
+        val state = viewModel!!.uiState.awaitFirst { it.todayEpochDay != 0L }
         assertTrue(state.cardio.isEmpty())
     }
 
