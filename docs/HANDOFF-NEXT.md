@@ -160,7 +160,9 @@ checker, ratcheted at 207). History's three error sites use
 already owned `HistoryViewModel`. `HistoryViewModelTest` stays at
 0 unbounded waits; the new ErrorSlot cases sit inside
 `withTimeout(TestWaits.FLOW_MS)`. Do not bump `debugLiveCode`
-(still 26). Do not start the 207-wait sweep from this packet.
+(still 26). Do not start the 207-wait sweep from this packet;
+open `#192` is that sweep (`awaitFirst`, 207 → 4). Independent
+except `docs/ROADMAP.md`.
 `#188` is independent of R18 but overlaps `#190` on
 `SettingsViewModel.kt`; it must rebase onto `5b44f9c`. Do not start
 a third edit of that file from `trunk`. `#191` also left
@@ -176,8 +178,9 @@ nothing to measure on. Section 5 of the convergence record is the plan.
 after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
 `claude/file-visibility-check-jraqc2` is an unmerged Claude vehicle
 (UX + stub compiler); do not start a second edit of those paths from
-`trunk`. `claude/android-verify-my59sw` was reused for `#191` and
-is leftover on `trunk` again; delete it.
+`trunk`. Open `#192` (`claude/android-verify-my59sw`) is the
+`awaitFirst` sweep (`unbounded_waits` 207 → 4). Do not delete that
+head. Overlap with `#181` is `docs/ROADMAP.md` only. Independent.
 
 ## Rules that bind this work
 
