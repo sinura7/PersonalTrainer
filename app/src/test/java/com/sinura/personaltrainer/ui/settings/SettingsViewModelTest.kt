@@ -22,6 +22,8 @@ import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -71,6 +73,91 @@ class SettingsViewModelTest {
             viewModel!!.backupState.first { it.sessionLive }
         }
         assertTrue(live.sessionLive)
+    }
+
+    @Test
+    fun turningAutomaticBackupOnAsksForAPassphraseBeforeArming() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+
+        val idle = withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first() }
+        assertFalse(idle.autoBackupEnabled)
+        assertFalse(idle.pendingAutoBackupArm)
+
+        viewModel!!.setAutoBackupEnabled(true)
+
+        // The toggle alone must not arm anything: without a sealed passphrase the only
+        // copy an unattended path could write would be plaintext.
+        val asking = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.backupState.first { it.pendingAutoBackupArm }
+        }
+        assertFalse(asking.autoBackupEnabled)
+        assertNull(deps.preferencesRepository.autoBackupSettings().sealedPassphrase)
+    }
+
+    @Test
+    fun aConfirmedPassphraseArmsAutomaticBackupAndSurvivesAsCiphertext() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first() }
+
+        viewModel!!.setAutoBackupEnabled(true)
+        assertTrue(viewModel!!.submitAutoBackupPassphrase("correct horse", "correct horse"))
+
+        val armed = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.backupState.first { it.autoBackupEnabled }
+        }
+        assertFalse(armed.pendingAutoBackupArm)
+
+        val settings = deps.preferencesRepository.autoBackupSettings()
+        assertTrue(settings.enabled)
+        val sealed = settings.sealedPassphrase
+        assertNotNull(sealed)
+        // What is stored is not the passphrase. The sealer is the only thing that reads it.
+        assertFalse(sealed!!.contains("correct horse"))
+        assertEquals("correct horse", String(deps.backupPassphraseSealer.open(sealed)!!))
+    }
+
+    @Test
+    fun aMismatchedConfirmationArmsNothing() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first() }
+
+        viewModel!!.setAutoBackupEnabled(true)
+        assertFalse(viewModel!!.submitAutoBackupPassphrase("correct horse", "clopper horse"))
+
+        assertFalse(deps.preferencesRepository.autoBackupSettings().enabled)
+        assertNull(deps.preferencesRepository.autoBackupSettings().sealedPassphrase)
+    }
+
+    @Test
+    fun turningItOffForgetsThePassphrase() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first() }
+
+        viewModel!!.setAutoBackupEnabled(true)
+        viewModel!!.submitAutoBackupPassphrase("correct horse", "correct horse")
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first { it.autoBackupEnabled } }
+
+        viewModel!!.setAutoBackupEnabled(false)
+
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first { !it.autoBackupEnabled } }
+        // An unopenable secret for a feature that is off helps nobody, so it goes too.
+        assertNull(deps.preferencesRepository.autoBackupSettings().sealedPassphrase)
     }
 
     @Test

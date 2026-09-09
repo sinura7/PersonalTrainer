@@ -28,6 +28,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
@@ -37,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.ui.findActivity
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.WeightConverter
@@ -96,6 +98,12 @@ fun WorkoutSummaryScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
     val summary = state.summary
+
+    // The first moment this workout exists in a form a backup would contain, and one of the
+    // few places an Activity is reachable — Drive authorization needs one. Fires once per
+    // summary entry; the ViewModel is idempotent across a process-death rebuild.
+    val activity = LocalContext.current.findActivity()
+    LaunchedEffect(Unit) { viewModel.maybeAutoBackup(activity) }
 
     // Back is Done. The workout behind this screen is finished and gone from the stack, so
     // there is nowhere else back could sensibly lead.
@@ -187,6 +195,18 @@ fun WorkoutSummaryScreen(
                                 Kicker("Notes")
                                 Text(summary.notes, style = InstrumentType.body, color = TextSecondary)
                             }
+                        }
+                    }
+
+                    // A caption, not a card: an automatic copy is housekeeping, and the
+                    // records above are the only thing on this screen allowed to be an event.
+                    state.autoBackup?.let { line ->
+                        item(key = "auto-backup") {
+                            Text(
+                                text = line,
+                                style = InstrumentType.caption,
+                                color = TextTertiary,
+                            )
                         }
                     }
                 }
