@@ -9,7 +9,7 @@ engineering handoff.
 `trunk` carries pull requests #168, #169, and #170: every item R01
 through R19 from the 2026-09-06 engineering handoff, plus a Claude
 Code Android setup script. [`HANDOFF-2026-09-06.md`](HANDOFF-2026-09-06.md)
-is the full account. `debugLiveCode` is 22.
+is the full account. `debugLiveCode` is 28.
 
 Nothing about the app's data was changed. Room stays frozen at v4, the backup
 document and envelope formats are untouched, and no identifier is ever
@@ -99,17 +99,11 @@ No emulator is possible in that environment: no `/dev/kvm`, no `vmx`/`svm`.
    hosted runners as the test lane. Do not weaken
    `gradle/verification-metadata.xml`.
 
-4. The live-22 APK is already built. Do not bump `debugLiveCode` again
-   until the next drop. Sideload Temper Debug; gym-floor Temper stays
-   on the signed APK.
+4. Live test 28 is the current drop (`debugLiveCode` 28). Do not bump
+   it again until the next drop. Obtainium, not Studio; gym-floor
+   Temper stays on the signed APK.
 
 ## What is outstanding
-
-**R05, blocked on the owner.** Temper Debug drops can be signed with one
-stable key, but only once four `DEBUG_KEYSTORE_*` secrets and the
-`DEBUG_CERT_SHA256` variable exist. `SETUP.md` section 6 has the procedure.
-Until then every drop is marked THROWAWAY SIGNER and installs beside the
-app on the phone rather than over it.
 
 **The Obtainium lane is automatic again.** Hosted `debug-live.yml` had
 died in seconds with no runner since 2026-09-05, which stranded live 21
@@ -120,14 +114,13 @@ on 2026-09-08 after a scan of all 72 commits found no keystore, private
 key, API key or token in any of them — the only matches were `printf`
 lines reading GitHub secrets and a placeholder in `SETUP.md`.
 
-`debugLiveCode` moves 22 -> 23 for live test 23, the first drop carrying
-app code since the Cursor build. Push a `debug-live/<suffix>` branch to
-cut a drop: the workflow derives the tag from the branch name and mints
-the pre-release with the Actions token. That spelling is what a cloud
-session needs — the git proxy 403s tag refs, and the session type refuses
-the Releases API outright ("Creating, editing, or deleting releases is not
-permitted for this session type"), so neither a tag push nor
-`gh release create` is reachable from here. The branch push is.
+`debugLiveCode` is 28 (`#195` / `#197`). The Obtainium drop is
+`debug-live/2026-09-09-7` (Body facts line plus the cancellation
+checker). Live 27 remains `debug-live/2026-09-09-6`. Do not bump 28
+on `#181`. Open `#201` is the 29 drop (`debug-live/2026-09-09-8`).
+A Temper Debug from a throwaway-signed drop must still be
+backed up, uninstalled, and reinstalled once onto 25+ (stable signer).
+Gym-floor Temper stays on the signed APK.
 
 **R05 is closed as of live test 25.** The four `DEBUG_KEYSTORE_*` secrets
 and the `DEBUG_CERT_SHA256` variable were set on 2026-09-09, so
@@ -144,12 +137,30 @@ closed unmerged: `#125` (AGP 9.3.2), `#126` (play-services-auth 22.0.0),
 the kotlin group bundled it with core/test), and `#176` (android-all
 17- jar; J3 stays on `15-robolectric-13954326-i7`). `#178` named those
 holes, and also ignores `org.robolectric:robolectric` major/minor so
-API-36-and-up Robolectric does not sneak in on Java 17. Leave `#173` (setup-gradle 6.3.0; Actions is not the test lane),
-`#175` (Robolectric 4.16.1 patch), and `#180` (AGP **8.9.2 → 8.9.3**,
-a patch of the signed compileSdk-36 pair — not the 9.x refuse). None
-of those merge as a drive-by: each needs a JVM-gated packet and a
-ledger update, and AGP 8.9.3 also moves the `aapt2-8.9.2-*` pins in
-`tools/check-supply-chain.py`.
+API-36-and-up Robolectric does not sneak in on Java 17. `#175`
+(Robolectric 4.16.1) and `#180` (AGP 8.9.2 → 8.9.3) closed unmerged
+2026-09-09, same shape as `#174`/`#176`. Do not reopen as drive-bys:
+`check-sdk-target.py` pins Robolectric at exactly `4.16`; AGP 8.9.3
+needs the plugin, the `aapt2-8.9.2-*` ledger entries, and
+`tools/check-supply-chain.py` in one packet when a fix in 8.9.3 is
+needed. `#173` is on `trunk` (setup-gradle 6.3.0, Node 20→24
+warning). Actions is still not the test lane. Do not start a
+second workflow edit from `trunk` unless that packet is the
+work. The hosted emulator lane is on `trunk` (`#199`): Nexus 5X
+profile, still red — five of eighty named in ROADMAP. Do not take
+those five as this packet. `#200` is on `trunk`: 42 of 64 stale P1 rows
+in `DESIGN_AUDIT` now cite the file that closed them; 21 still
+open (last-5s tick family, Body first-launch, walkthrough rows,
+chip progress/rest badge, E-04/E-12, N-01, T-16, S-02/B-03/I-01).
+Do not take those 21 as this packet. Do not start a second
+`DESIGN_AUDIT.md` edit from `trunk` while `#181` is open. Open
+`#201` (write-through multi-add picker, `debugLiveCode` 28 → 29,
+drop `debug-live/2026-09-09-8`) overlaps `#181` on ROADMAP only.
+Independent. Merge in either order. Do **not** bump 28 on `#181`;
+inherit 29 after `#201` lands. Do not start a second edit of
+`ExercisePickerSheet`, `LiftCart`, `RoutineEditorViewModel`, or
+`CustomWeekViewModel` from `trunk`. Do not delete
+`claude/ecstatic-galileo-pw9iub`.
 
 **R16 residue.** Production-screen tests exist for History, the activity
 composer, live cardio, the activity receipt and Home. Settings, onboarding,
@@ -158,11 +169,18 @@ exercise detail and Library still have only isolated-control coverage, and
 `AccessibilityMatrix` claims automated evidence for all of them, which
 overstates it.
 
-**R18 step one.** `HistoryViewModel.pastBlockReviews`, its `horizonProgress`,
-and `PlanViewModel.completedBlockSessions` still read the strength store
-alone, so a backdated strength activity counts toward totals and Records but
-never toward the readout's PRs. The plan and the capability matrix are in
-[`architecture/completed-training-convergence.md`](architecture/completed-training-convergence.md).
+**R18 step one.** Horizon readout and past-block reviews (and Plan's
+completed-block review) read `CompletedTraining` from both stores, so a
+backdated strength activity counts toward PRs and movers, not only
+totals and Records. Exercise detail, the log-time PR badge, and activity
+edits are still later steps
+([`architecture/completed-training-convergence.md`](architecture/completed-training-convergence.md)).
+Open `#181` is rebased on `trunk` after `#173` (setup-gradle 6.3.0).
+History's three error sites use `ErrorSlot` on this packet.
+`HistoryViewModelTest` stays at 0 unbounded waits. `check-cancellation.py`
+is 0 on this packet. Do not bump `debugLiveCode` (still 28 until
+`#201` lands). Live 28 is `debug-live/2026-09-09-7`. `#201` is the
+29 drop.
 
 **R17 measurement.** The History catalog is shared and the revision keys are
 in place, but the full-history read behind the horizon readout was left alone
@@ -174,7 +192,16 @@ nothing to measure on. Section 5 of the convergence record is the plan.
 after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
 `claude/file-visibility-check-jraqc2` is an unmerged Claude vehicle
 (UX + stub compiler); do not start a second edit of those paths from
-`trunk`.
+`trunk`. `#173` is on `trunk`. `claude/android-verify-my59sw` is leftover
+and Claude reuses it — do **not** delete that head (deleting it after
+`#191` briefly removed `#192`). Open `#201` owns
+`claude/ecstatic-galileo-pw9iub` — do **not** delete that head. Do not
+start a second picker or `DESIGN_AUDIT.md` edit from `trunk`. Do not
+take the five hosted-emulator failures or the remaining DESIGN_AUDIT
+P1 rows as this packet. `#196`'s vehicle
+`claude/google-signin-integration-xijk5e` was deleted after merge.
+`debugLiveCode` on trunk is 28; `#201` bumps it to 29. Do not bump it
+on `#181`. `unbounded_waits` on trunk is 0.
 
 ## Rules that bind this work
 

@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 9 Sep 2026 — `#175` (Robolectric 4.16.1) and `#180` (AGP 8.9.3)
+> closed unmerged. Robolectric stays pinned at `4.16`; 8.9.3 waits for
+> aapt2 ledger + checker in one packet. `#173`, `#199` and `#200` are
+> on `trunk`. `#201` is the live-29 drop. `#181` does not bump 28.
+>
 > 9 Sep 2026 — W3: `SettingsViewModelTest`'s four waits go through
 > `awaitFirst` now that `#188` has landed; `unbounded_waits` 4 → 0. Every
 > ViewModel wait in the suite has a ceiling and names what it last saw.
@@ -56,12 +61,17 @@
 > this month** in one tap when Day or Week is empty, and the Front / Back
 > chips in their own strip under the figure (`DESIGN_AUDIT` B-05 closed).
 > Live test 28 (`debugLiveCode` 28), drop `debug-live/2026-09-09-7`.
+> `#181` does not bump it.
 >
 > 9 Sep 2026 — E: Golf cool-down pack (`golf-cooldown`, Mobility: couch
 > stretch, incline pigeon, calf stretch, elephant walk, dead bug). After a
 > round, where the Golf warm-up is before one. Live test 27
 > (`debugLiveCode` 27), drop `debug-live/2026-09-09-6` — the `-5` cut died
 > on the `#188` / `#190` compile break that `#196` fixed.
+>
+> 9 Sep 2026 — `#194` / `#188`: verified backup drop. A finished
+> backup can be opened, a silent Drive account switch is refused, and
+> the sealed password can be shown. `debugLiveCode` 27.
 >
 > 9 Sep 2026 — W2: every ViewModel test wait goes through
 > `Flow.awaitFirst` (sharedTest `TestWaits.kt`): `withTimeout(FLOW_MS)`
@@ -75,6 +85,11 @@
 > (`unbounded_waits`); `test_unbounded_waits.py` is its fixture proof.
 > No app code; no drop.
 >
+> 9 Sep 2026 — `#190`: ErrorSlot in the eight remaining ViewModels
+> (StartOptions, ExerciseLibrary, ActivityComposer, CustomWeek,
+> Settings, Onboarding, LiveCardio, SessionDetail). History's three
+> sites ride `#181`, which owns that file. No drop.
+>
 > 9 Sep 2026 — `#189`: the 31-minute CI hang was a ViewModel error race
 > (every action wrote null into one shared error flow on success), not a
 > deadlock. `util/ErrorSlot`: a success clears only its own family, and
@@ -83,6 +98,11 @@
 > B2 follows: the same slot in the eight remaining ViewModels
 > (`HistoryViewModel` waits for `#181`). No app-visible change; no drop.
 > `DESIGN_AUDIT` W-14/W-15 were already closed in code and are marked so.
+>
+> 8 Sep 2026 — R18 step one: History horizon and block reviews read
+> `CompletedTraining` from both stores. A backdated strength day counts
+> as a PR in the readout, not only in Records. `#184` (flow waits are
+> `TestWaits.FLOW_MS`) is on `trunk`.
 >
 > 8 Sep 2026 — Dependabot `#174` (coroutines 1.11.0) and `#176`
 > (android-all-instrumented 17) closed unmerged. `#178` named

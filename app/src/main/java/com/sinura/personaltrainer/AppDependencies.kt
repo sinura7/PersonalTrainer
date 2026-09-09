@@ -6,6 +6,7 @@ import com.sinura.personaltrainer.activity.FinishActivity
 import com.sinura.personaltrainer.activity.StartLiveActivity
 import com.sinura.personaltrainer.data.repository.ActivityRepository
 import com.sinura.personaltrainer.data.repository.BackupRepository
+import com.sinura.personaltrainer.data.repository.CompletedTrainingRepository
 import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
 import com.sinura.personaltrainer.data.repository.OnboardingApplier
@@ -80,6 +81,7 @@ interface AppDependencies {
     val startOccurrence: StartOccurrence
     val backupRepository: BackupRepository
     val activityRepository: ActivityRepository
+    val completedTrainingRepository: CompletedTrainingRepository
     val confirmActivity: ConfirmActivity
     val startLiveActivity: StartLiveActivity
     val discardActivity: DiscardActivity

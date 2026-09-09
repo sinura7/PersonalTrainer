@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.domain.RecommendationPriority
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.domain.TrainingRecommendation
+import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
@@ -16,6 +17,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.yield
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -304,7 +307,14 @@ class StartOptionsViewModelTest {
         vm.discardInProgress()
 
         vm.uiState.awaitFirst { it.liveActivity == null }
-        dispatcher.scheduler.advanceUntilIdle()
+        // discardActivity suspends on Room; liveActivity can go null before the
+        // persistence clear that follows it. Wait for that write, not only idle.
+        withTimeout(TestWaits.FLOW_MS) {
+            while (deps.cardioTimerPersistence.load() != null) {
+                dispatcher.scheduler.advanceUntilIdle()
+                yield()
+            }
+        }
         assertNull(deps.activityRepository.getLive())
         assertNull(deps.cardioTimerPersistence.load())
         assertNull(vm.uiState.value.error)

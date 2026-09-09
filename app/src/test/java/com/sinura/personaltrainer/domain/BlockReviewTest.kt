@@ -5,6 +5,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.util.JvmTime
 import java.time.LocalDate
 import java.time.ZoneOffset
 
@@ -331,5 +332,71 @@ class BlockReviewTest {
             zone = zone,
         )
         assertNull(review.bodyweight)
+    }
+
+    @Test
+    fun aBackdatedStrengthActivityCountsAsASessionAndARecord() {
+        val live = workout("live", dayMs(1), sets = listOf(80.0 to 5))
+        val makeup = activity(id = "act", weeksIn = 2, sets = listOf(120.0 to 5))
+        val review = BlockReviewBuilder.build(
+            block = block,
+            items = listOf(
+                live.toCompletedTraining(JvmTime, zone.id)!!,
+                makeup.toCompletedTraining()!!,
+            ),
+            unit = WeightUnit.KG,
+        )
+        assertEquals(2, review.sessions)
+        assertEquals(2, review.workingSets)
+        assertTrue(review.recordsBroken > 0)
+    }
+
+    private fun activity(
+        id: String,
+        weeksIn: Long,
+        exerciseId: String = "ex-squat",
+        name: String = "Squat",
+        sets: List<Pair<Double, Int>>,
+    ): ActivitySession {
+        val at = dayMs(weeksIn)
+        val day = start.plusWeeks(weeksIn).toEpochDay()
+        val when_ = CapturedCivilTime(at, zone.id, 0, day)
+        return ActivitySession(
+            id = id,
+            status = ActivityStatus.COMPLETED,
+            origin = ActivityOrigin.BACKDATED,
+            source = ActivitySource.TEMPER,
+            title = "Make-up",
+            notes = "",
+            performedStart = when_,
+            performedEnd = when_,
+            templateId = null,
+            occurrenceId = null,
+            blocks = listOf(
+                StrengthBlock(
+                    id = "$id-blk",
+                    sortOrder = 0,
+                    exerciseId = exerciseId,
+                    exerciseName = name,
+                    loadType = LoadType.EXTERNAL,
+                    equipment = EquipmentType.BARBELL,
+                    muscles = emptyList(),
+                    sets = sets.mapIndexed { index, (weight, reps) ->
+                        StrengthSet(
+                            id = "$id-$index",
+                            setNumber = index + 1,
+                            weightKg = weight,
+                            reps = reps,
+                            rpe = null,
+                            isWarmup = false,
+                            completedAtMs = at + index,
+                        )
+                    },
+                ),
+            ),
+            createdAtMs = at,
+            updatedAtMs = at,
+            revision = 1L,
+        )
     }
 }

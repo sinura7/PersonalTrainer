@@ -1,7 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import com.sinura.personaltrainer.util.JvmTime
-
 /**
  * What twelve weeks actually came to.
  *
@@ -86,44 +84,38 @@ object BlockReviewBuilder {
     fun comparisonWeeks(blockWeeks: Int): Int = maxOf(1, minOf(2, blockWeeks / 4))
 
     /**
-     * @param sessions every session; those outside the block are ignored rather than trusted to
-     * have been filtered, because a caller that forgets turns a block review into a career one.
+     * @param items every finished piece of training; those outside the block are ignored
+     * rather than trusted to have been filtered, because a caller that forgets turns a
+     * block review into a career one. Strength sessions and completed activities both
+     * count; cardio-only days add a session and a trained day, not PRs.
      * @param unit only for rendering the movers' labels.
      */
     fun build(
         block: TrainingBlock,
-        sessions: List<WorkoutSession>,
+        items: List<CompletedTraining>,
         unit: WeightUnit,
-        time: TimePort = JvmTime,
-        zoneId: String = time.defaultZoneId(),
         bodyweightLog: List<BodyweightEntry> = emptyList(),
     ): BlockReview {
-        val inBlock = sessions.filter { session ->
-            val day = session.performedEpochDay(time, zoneId)
-            session.isFinished &&
-                day >= block.startEpochDay &&
-                day < block.endExclusiveEpochDay
+        val inBlock = items.filter { item ->
+            item.localEpochDay >= block.startEpochDay &&
+                item.localEpochDay < block.endExclusiveEpochDay
         }
         // What [countRecords] compares each in-block set against. Everything the caller handed
         // over that finished before day one — the same list, differently filtered, so no extra
         // query and no chance of the two halves coming from different reads.
-        val beforeBlock = sessions.filter { session ->
-            session.isFinished && session.performedEpochDay(time, zoneId) < block.startEpochDay
-        }
+        val beforeBlock = items.filter { item -> item.localEpochDay < block.startEpochDay }
         return BlockReview(
             weeks = block.weeks,
             sessions = inBlock.size,
-            workingSets = inBlock.sumOf { it.workingSetCount() },
-            work = SetWork.sum(inBlock.map { it.work() }),
-            daysTrained = inBlock.map { it.performedEpochDay(time, zoneId) }.distinct().size,
+            workingSets = inBlock.sumOf { it.strength.size },
+            work = SetWork.sum(inBlock.map { it.strengthWork() }),
+            daysTrained = inBlock.map { it.localEpochDay }.distinct().size,
             recordsBroken = countRecords(inBlock = inBlock, beforeBlock = beforeBlock),
             movers = movers(
                 startEpochDay = block.startEpochDay,
                 endExclusiveEpochDay = block.endExclusiveEpochDay,
                 inBlock = inBlock,
                 unit = unit,
-                time = time,
-                zoneId = zoneId,
             ),
             bodyweight = bodyweightChange(block, bodyweightLog),
         )
@@ -154,76 +146,57 @@ object BlockReviewBuilder {
      * only a best if it beat what came before, and starting the comparison at the block's first
      * day would hand a returning lifter a record for every lift they touched.
      *
-     * @param beforeBlock every finished session earlier than the block's first day, in any
-     * order. Only its working sets are read.
+     * @param beforeBlock every finished piece of training earlier than the block's first day, in
+     * any order. Only its working sets are read.
      */
     private fun countRecords(
-        inBlock: List<WorkoutSession>,
-        beforeBlock: List<WorkoutSession>,
+        inBlock: List<CompletedTraining>,
+        beforeBlock: List<CompletedTraining>,
     ): Int {
         var total = 0
         // The prior history each lift is judged against, keyed by lift so a block that touches
         // one exercise does not pay for the whole career graph twice.
-        val priorByExercise = beforeBlock
-            .flatMap { session -> session.sets.filterNot { it.isWarmup } }
-            .groupBy { it.exerciseId }
-        val byExercise = inBlock
-            .flatMap { session -> session.sets.filterNot { it.isWarmup }.map { session to it } }
-            .groupBy { (_, set) -> set.exerciseId }
+        val priorByExercise = beforeBlock.attempts().groupBy { it.exerciseId }
+        val byExercise = inBlock.attempts().groupBy { it.exerciseId }
         byExercise.forEach { (exerciseId, pairs) ->
-            val loadClass = pairs.first().first.loadClassOf(exerciseId)
-            val ordered = pairs.map { (_, set) -> set }.sortedBy { it.completedAt }
+            val loadClass = pairs.first().loadClass
+            val ordered = pairs.sortedBy { it.set.completedAt }
             // Seeded from before the block, which is what the paragraph above has always
             // claimed and what the code did not do: starting from an empty list handed a
             // returning lifter a record for the first set of every lift they touched, so
             // 110 kg in week one was celebrated twice against a standing best of 150 kg.
             val seen = priorByExercise[exerciseId]
                 .orEmpty()
-                .map { it.toSetRecord() }
+                .map { it.set }
                 .sortedBy { it.completedAt }
                 .toMutableList()
-            ordered.forEach { set ->
-                val record = set.toSetRecord()
-                total += PersonalRecords.detect(record, seen, loadClass).size
-                seen += record
+            ordered.forEach { attempt ->
+                total += PersonalRecords.detect(attempt.set, seen, loadClass).size
+                seen += attempt.set
             }
         }
         return total
     }
-
-    private fun SetLog.toSetRecord(): ExerciseSetRecord = ExerciseSetRecord(
-        setId = id,
-        sessionId = sessionId,
-        weightKg = weightKg,
-        reps = reps,
-        completedAt = completedAt,
-    )
 
     /**
      * Records and movers over an inclusive-start, exclusive-end civil range.
      *
      * History's horizon readout reuses the block review's measure so "moved most"
      * means the same thing at four weeks as it does at twelve. Callers may pass
-     * sessions from before [startEpochDay]; those seed record detection and are
+     * items from before [startEpochDay]; those seed record detection and are
      * ignored for movers.
      */
     fun overRange(
         startEpochDay: Long,
         endExclusiveEpochDay: Long,
-        sessions: List<WorkoutSession>,
+        items: List<CompletedTraining>,
         unit: WeightUnit,
-        time: TimePort = JvmTime,
-        zoneId: String = time.defaultZoneId(),
     ): HorizonProgress {
-        val inRange = sessions.filter { session ->
-            val day = session.performedEpochDay(time, zoneId)
-            session.isFinished &&
-                day >= startEpochDay &&
-                day < endExclusiveEpochDay
+        val inRange = items.filter { item ->
+            item.localEpochDay >= startEpochDay &&
+                item.localEpochDay < endExclusiveEpochDay
         }
-        val before = sessions.filter { session ->
-            session.isFinished && session.performedEpochDay(time, zoneId) < startEpochDay
-        }
+        val before = items.filter { item -> item.localEpochDay < startEpochDay }
         return HorizonProgress(
             recordsBroken = countRecords(inBlock = inRange, beforeBlock = before),
             movers = movers(
@@ -231,8 +204,6 @@ object BlockReviewBuilder {
                 endExclusiveEpochDay = endExclusiveEpochDay,
                 inBlock = inRange,
                 unit = unit,
-                time = time,
-                zoneId = zoneId,
             ),
         )
     }
@@ -262,35 +233,31 @@ object BlockReviewBuilder {
     private fun movers(
         startEpochDay: Long,
         endExclusiveEpochDay: Long,
-        inBlock: List<WorkoutSession>,
+        inBlock: List<CompletedTraining>,
         unit: WeightUnit,
-        time: TimePort,
-        zoneId: String,
     ): List<BlockMover> {
         val window = comparisonDays(endExclusiveEpochDay - startEpochDay)
         if (window <= 0L) return emptyList()
         val openingEnds = startEpochDay + window
         val closingBegins = endExclusiveEpochDay - window
 
-        val byExercise = inBlock
-            .flatMap { session -> session.sets.filterNot { it.isWarmup }.map { session to it } }
-            .groupBy { (_, set) -> set.exerciseId }
+        val byExercise = inBlock.attempts().groupBy { it.exerciseId }
 
         return byExercise.mapNotNull { (exerciseId, pairs) ->
-            val loadClass = pairs.first().first.loadClassOf(exerciseId)
-            val opening = pairs.filter { (session, _) -> session.performedEpochDay(time, zoneId) < openingEnds }
-            val closing = pairs.filter { (session, _) -> session.performedEpochDay(time, zoneId) >= closingBegins }
+            val loadClass = pairs.first().loadClass
+            val opening = pairs.filter { it.localEpochDay < openingEnds }
+            val closing = pairs.filter { it.localEpochDay >= closingBegins }
             if (opening.isEmpty() || closing.isEmpty()) return@mapNotNull null
 
-            val from = bestOf(opening.map { it.second }, loadClass) ?: return@mapNotNull null
-            val to = bestOf(closing.map { it.second }, loadClass) ?: return@mapNotNull null
+            val from = bestOf(opening, loadClass) ?: return@mapNotNull null
+            val to = bestOf(closing, loadClass) ?: return@mapNotNull null
             if (from <= 0.0) return@mapNotNull null
 
             val gain = (to - from) / from
             if (gain < MIN_GAIN) return@mapNotNull null
             BlockMover(
                 exerciseId = exerciseId,
-                exerciseName = pairs.first().second.exerciseName,
+                exerciseName = pairs.first().exerciseName,
                 fromLabel = label(from, loadClass, unit),
                 toLabel = label(to, loadClass, unit),
                 gain = gain,
@@ -308,12 +275,14 @@ object BlockReviewBuilder {
      * than the bar weight because five at 100 and three at 105 are not ordered by the number on
      * the bar, and a block review that called the second one a regression would be wrong.
      */
-    private fun bestOf(sets: List<SetLog>, loadClass: LoadClass): Double? {
-        if (sets.isEmpty()) return null
-        if (loadClass.repsAreTheMeasure) return sets.maxOf { it.reps }.toDouble()
-        val estimate = sets.mapNotNull { PersonalRecords.estimatedOneRepMaxKg(it.weightKg, it.reps) }
+    private fun bestOf(attempts: List<ReviewAttempt>, loadClass: LoadClass): Double? {
+        if (attempts.isEmpty()) return null
+        if (loadClass.repsAreTheMeasure) return attempts.maxOf { it.set.reps }.toDouble()
+        val estimate = attempts.mapNotNull {
+            PersonalRecords.estimatedOneRepMaxKg(it.set.weightKg, it.set.reps)
+        }
             .maxOrNull()
-        return estimate ?: sets.maxOf { it.weightKg }.takeIf { it > 0.0 }
+        return estimate ?: attempts.maxOf { it.set.weightKg }.takeIf { it > 0.0 }
     }
 
     private fun label(value: Double, loadClass: LoadClass, unit: WeightUnit): String =
@@ -323,4 +292,25 @@ object BlockReviewBuilder {
         } else {
             value.toWeightLabel(unit)
         }
+
+    private fun List<CompletedTraining>.attempts(): List<ReviewAttempt> =
+        flatMap { item ->
+            item.strength.map { row ->
+                ReviewAttempt(
+                    exerciseId = row.exerciseId,
+                    exerciseName = row.exerciseName,
+                    loadClass = row.loadClass,
+                    set = row.set,
+                    localEpochDay = item.localEpochDay,
+                )
+            }
+        }
+
+    private data class ReviewAttempt(
+        val exerciseId: String,
+        val exerciseName: String,
+        val loadClass: LoadClass,
+        val set: ExerciseSetRecord,
+        val localEpochDay: Long,
+    )
 }
