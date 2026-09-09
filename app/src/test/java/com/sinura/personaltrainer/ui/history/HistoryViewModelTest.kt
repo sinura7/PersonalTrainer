@@ -89,7 +89,7 @@ class HistoryViewModelTest {
     @Test
     fun repeatMissingSessionSurfacesFailedWithoutNavigating() = runBlocking {
         deps = FakeAppDependencies(
-            ApplicationProvider.getApplicationContext(),
+            context = ApplicationProvider.getApplicationContext(),
             scheduler = dispatcher,
         )
         viewModel = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
@@ -108,7 +108,7 @@ class HistoryViewModelTest {
     @Test
     fun aSuccessfulRepeatClearsItsOwnEarlierRefusal() = runBlocking {
         deps = FakeAppDependencies(
-            ApplicationProvider.getApplicationContext(),
+            context = ApplicationProvider.getApplicationContext(),
             scheduler = dispatcher,
         )
         val finished = deps.workoutRepository.startFreeWorkout("Push")
