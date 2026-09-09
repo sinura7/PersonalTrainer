@@ -9,6 +9,8 @@ import com.sinura.personaltrainer.domain.ActivityOrigin
 import com.sinura.personaltrainer.domain.ActivityWrite
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.testutil.TestWaits
+import com.sinura.personaltrainer.testutil.awaitFirst
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -56,7 +58,7 @@ class ActivityComposerViewModelTest {
         viewModel!!.addStrength(exercise, 100.0, 5)
         viewModel!!.setEpochDay(20_000L)
         viewModel!!.save()
-        val id = withTimeout(5_000) { viewModel!!.savedId.first { it != null } }!!
+        val id = withTimeout(TestWaits.FLOW_MS) { viewModel!!.savedId.first { it != null } }!!
         val session = deps.activityRepository.get(id)!!
         assertEquals(ActivityOrigin.BACKDATED, session.origin)
         assertEquals(1, session.strengthSetCount())
@@ -69,7 +71,7 @@ class ActivityComposerViewModelTest {
         viewModel = composer("cardio")
         viewModel!!.addCardio(CardioType.RUN, 30, 5.0, false)
         viewModel!!.save()
-        val id = withTimeout(5_000) { viewModel!!.savedId.first { it != null } }!!
+        val id = withTimeout(TestWaits.FLOW_MS) { viewModel!!.savedId.first { it != null } }!!
         val session = deps.activityRepository.get(id)!!
         assertTrue(session.isCardioOnly)
         assertEquals(0, session.strengthSetCount())
@@ -83,7 +85,7 @@ class ActivityComposerViewModelTest {
         viewModel!!.addStrength(exercise, 80.0, 8)
         viewModel!!.addCardio(CardioType.RIDE, 20, null, true)
         viewModel!!.save()
-        val id = withTimeout(5_000) { viewModel!!.savedId.first { it != null } }!!
+        val id = withTimeout(TestWaits.FLOW_MS) { viewModel!!.savedId.first { it != null } }!!
         val session = deps.activityRepository.get(id)!!
         assertTrue(session.isMixed)
         assertEquals(1, session.strengthBlocks.size)
@@ -97,7 +99,7 @@ class ActivityComposerViewModelTest {
         viewModel = composer("cardio")
         viewModel!!.addCardio(CardioType.RUN, 30, 5.0, false)
         viewModel!!.save()
-        val id = withTimeout(5_000) { viewModel!!.savedId.first { it != null } }!!
+        val id = withTimeout(TestWaits.FLOW_MS) { viewModel!!.savedId.first { it != null } }!!
         val session = deps.activityRepository.get(id)!!
         assertEquals("Run", session.title)
         assertNotEquals("RUN", session.title)
@@ -126,7 +128,7 @@ class ActivityComposerViewModelTest {
     @Test
     fun pastModeOpensTheStrengthComposer() = runBlocking {
         viewModel = composer("past")
-        val state = viewModel!!.uiState.first { it.todayEpochDay != 0L }
+        val state = viewModel!!.uiState.awaitFirst { it.todayEpochDay != 0L }
         assertEquals(ComposerMode.STRENGTH, state.mode)
     }
 
@@ -143,7 +145,7 @@ class ActivityComposerViewModelTest {
 
         // The same handle is what the framework hands the recreated ViewModel.
         viewModel = composer(handle)
-        val state = viewModel!!.uiState.first { it.todayEpochDay != 0L }
+        val state = viewModel!!.uiState.awaitFirst { it.todayEpochDay != 0L }
 
         assertEquals("Leg day", state.title)
         assertEquals(20_000L, state.epochDay)
@@ -167,11 +169,11 @@ class ActivityComposerViewModelTest {
         viewModel!!.setTitle("Tempo")
         viewModel!!.addCardio(CardioType.RUN, 30, 5.0, false)
         viewModel!!.save()
-        withTimeout(5_000) { viewModel!!.savedId.first { it != null } }
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.savedId.first { it != null } }
         viewModel!!.clearAndJoinForTest()
 
         viewModel = composer(handle)
-        val state = viewModel!!.uiState.first { it.todayEpochDay != 0L }
+        val state = viewModel!!.uiState.awaitFirst { it.todayEpochDay != 0L }
         assertEquals("", state.title)
         assertTrue(state.cardio.isEmpty())
         assertEquals(1, deps.activityRepository.all().size)
@@ -186,7 +188,7 @@ class ActivityComposerViewModelTest {
         viewModel!!.clearAndJoinForTest()
 
         viewModel = composer(handle)
-        val state = viewModel!!.uiState.first { it.todayEpochDay != 0L }
+        val state = viewModel!!.uiState.awaitFirst { it.todayEpochDay != 0L }
         assertTrue(state.cardio.isEmpty())
     }
 
@@ -205,7 +207,7 @@ class ActivityComposerViewModelTest {
         viewModel!!.addCardio(CardioType.RUN, 30, 5.0, false)
         viewModel!!.save()
 
-        val id = withTimeout(5_000) { viewModel!!.savedId.first { it != null } }!!
+        val id = withTimeout(TestWaits.FLOW_MS) { viewModel!!.savedId.first { it != null } }!!
         val saved = deps.activityRepository.all().single()
         assertEquals(id, saved.id)
         assertEquals("occ-1", saved.occurrenceId)

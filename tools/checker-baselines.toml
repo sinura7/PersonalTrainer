@@ -8,6 +8,13 @@ state_members = 2
 required_args_mixed = 180
 required_args_lambda = 46
 when_exhaustive = 47
+# ViewModel-flow `first { }` waits in *ViewModelTest.kt with no withTimeout around
+# them. Each is a wedge, not a failure, when the value it waits for is overwritten
+# (9 Sep 2026, twice). Ratchet down class by class.
+unbounded_waits = 0
+# `catch (Exception)` inside a suspend fun or a coroutine builder's lambda with no
+# CancellationException clause ahead of it: it eats the cancellation and carries on.
+cancellation_swallow = 0
 
 [tokens]
 # Ratched 2026-09-05 so live test 21 / further packets have a green

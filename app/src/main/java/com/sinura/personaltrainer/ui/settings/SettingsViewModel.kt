@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.settings
 
 import android.app.Activity
 import android.app.Application
+import android.app.KeyguardManager
 import android.content.Intent
 import android.content.IntentSender
 import android.net.Uri
@@ -37,9 +38,11 @@ import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.timer.exactAlarmSettingsIntent as buildExactAlarmSettingsIntent
+import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.domain.Weekday
 import kotlin.time.Duration.Companion.minutes
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -66,10 +69,20 @@ data class BackupUiState(
     val pendingPreview: RestorePreviewUi? = null,
     /** Restore would wipe the live session. Say so before the tap, not after the refuse. */
     val sessionLive: Boolean = false,
-    /** No stamp, or older than 14 days. Caption nags; Export stays the tap. */
+    /** No VERIFIED stamp, or older than 14 days. Caption nags; Export stays the tap. */
     val backupStale: Boolean = true,
+    /** The one backup line Settings shows. Computed with the clock, so the screen stays pure. */
+    val backupCaption: String = BackupPrompt.caption(true),
+    /** When a backup was last read back out of Drive and found intact. */
+    val lastVerifiedBackupAt: Long? = null,
     val safetySnapshots: List<SafetySnapshotMeta> = emptyList(),
     val pendingProtect: BackupProtectKind? = null,
+    /** The toggle is asking for a passphrase to seal before arming automatic backup. */
+    val pendingAutoBackupArm: Boolean = false,
+    /** Automatic backup after a finished workout is armed. */
+    val autoBackupEnabled: Boolean = false,
+    /** An unattended copy found the Drive grant lapsed and stopped rather than prompting. */
+    val autoBackupNeedsSignIn: Boolean = false,
     val pendingUnlock: Boolean = false,
     val pendingPlaintextWarning: Boolean = false,
     val launchExportPicker: Boolean = false,
@@ -86,6 +99,13 @@ data class BackupUiState(
 enum class BackupProtectKind { FILE_EXPORT, DRIVE_BACKUP, SAFETY_EXPORT }
 
 private const val TAG = "PT/SettingsVM"
+
+/** [ErrorSlot] families: a success may clear only its own family's refusal. */
+private const val ERR_BACKUP = "backup"
+private const val ERR_PROTECT = "protect"
+
+/** Showing the stored backup password back. Its refusals are nobody else's to clear. */
+private const val ERR_REVEAL = "reveal"
 
 class SettingsViewModel @JvmOverloads constructor(
     application: Application,
@@ -245,7 +265,7 @@ class SettingsViewModel @JvmOverloads constructor(
     private val isBusy = MutableStateFlow(false)
     private val busyLabel = MutableStateFlow<String?>(null)
     private val status = MutableStateFlow<String?>(null)
-    private val error = MutableStateFlow<String?>(null)
+    private val error = ErrorSlot()
     private val backups = MutableStateFlow<List<DriveBackupFile>>(emptyList())
     private val safetySnapshots = MutableStateFlow<List<SafetySnapshotMeta>>(emptyList())
     private val restorePending = MutableStateFlow<String?>(null)
@@ -280,6 +300,97 @@ class SettingsViewModel @JvmOverloads constructor(
     private val _pendingResolution = MutableStateFlow<IntentSender?>(null)
     val pendingResolution: StateFlow<IntentSender?> = _pendingResolution.asStateFlow()
 
+    /** The lock-screen challenge to launch before the backup password is shown. */
+    private val _pendingPasswordReveal = MutableStateFlow<Intent?>(null)
+    val pendingPasswordReveal: StateFlow<Intent?> = _pendingPasswordReveal.asStateFlow()
+
+    /**
+     * The backup password, in the clear, while the reveal dialog is up.
+     *
+     * Held as a String because Compose can only draw one, which means it cannot be wiped the
+     * way [heldPassword] is — so it exists for as long as the dialog and no longer, and is
+     * never put in saved state. That is the same reason [ProtectBackupDialog] uses `remember`
+     * rather than `rememberSaveable` for what is typed into it.
+     */
+    private val _revealedPassword = MutableStateFlow<String?>(null)
+    val revealedPassword: StateFlow<String?> = _revealedPassword.asStateFlow()
+
+    /**
+     * Asks for the lock screen, then shows the stored backup password.
+     *
+     * Exists because arming automatic backup stopped the app ever asking for the password
+     * again, which quietly removed the rehearsal that used to keep it in memory. The Drive
+     * files are useless without it, so there has to be a way back to it.
+     *
+     * Refuses outright with no screen lock: the password opens every backup this phone ever
+     * wrote, and showing it on a device anyone can pick up and swipe into is not a trade worth
+     * making silently.
+     */
+    fun beginRevealBackupPassword() {
+        val keyguard = getApplication<Application>().getSystemService(KeyguardManager::class.java)
+        if (keyguard == null || !keyguard.isDeviceSecure) {
+            error.fail(
+                source = ERR_REVEAL,
+                message = "Set a screen lock on this phone first. " +
+                    "The backup password opens every backup Temper has written.",
+            )
+            return
+        }
+        @Suppress("DEPRECATION")
+        val challenge = keyguard.createConfirmDeviceCredentialIntent(
+            "Show backup password",
+            "Confirm it is you before Temper shows the password.",
+        )
+        if (challenge == null) {
+            error.fail(
+                source = ERR_REVEAL,
+                message = "This phone would not ask for your screen lock. Password not shown.",
+            )
+            return
+        }
+        _pendingPasswordReveal.value = challenge
+    }
+
+    fun onPasswordRevealLaunched() {
+        _pendingPasswordReveal.value = null
+    }
+
+    /** Opens the sealed blob only after the lock screen said yes. */
+    fun onPasswordRevealAuthenticated(authenticated: Boolean) {
+        _pendingPasswordReveal.value = null
+        if (!authenticated) return
+        viewModelScope.launch {
+            val sealed = container.preferencesRepository.autoBackupSettings().sealedPassphrase
+            if (sealed == null) {
+                error.fail(
+                    source = ERR_REVEAL,
+                    message = "No backup password is stored on this phone.",
+                )
+                return@launch
+            }
+            val chars = container.backupPassphraseSealer.open(sealed)
+            if (chars == null) {
+                AppLog.e(TAG, "Sealed backup passphrase would not open for display")
+                error.fail(
+                    source = ERR_REVEAL,
+                    message = "This phone can no longer open the stored password. " +
+                        "Turn automatic backup off and on again to set a new one — and keep " +
+                        "any existing Drive backups, which still need the old password.",
+                )
+                return@launch
+            }
+            try {
+                _revealedPassword.value = String(chars)
+            } finally {
+                chars.fill('\u0000')
+            }
+        }
+    }
+
+    fun dismissRevealedPassword() {
+        _revealedPassword.value = null
+    }
+
     fun onResolutionLaunched() {
         _pendingResolution.value = null
     }
@@ -287,22 +398,49 @@ class SettingsViewModel @JvmOverloads constructor(
     val backupState: StateFlow<BackupUiState> = combine(
         combine(
             container.preferencesRepository.driveAccountEmail,
-            container.preferencesRepository.lastBackupAt,
-            container.preferencesRepository.lastBackupName,
+            // Nested because the typed combine overloads stop at five flows and the written
+            // and verified stamps are seven between them.
+            combine(
+                container.preferencesRepository.lastBackupAt,
+                container.preferencesRepository.lastBackupName,
+                container.preferencesRepository.lastVerifiedBackupAt,
+                container.preferencesRepository.lastVerifiedBackupName,
+            ) { at, name, verifiedAt, verifiedName ->
+                BackupStamps(at, name, verifiedAt, verifiedName)
+            },
             container.preferencesRepository.lastRestoreAt,
             container.preferencesRepository.lastRestoreName,
-        ) { email, lastAt, lastName, restoreAt, restoreName ->
-            BackupMeta(email, lastAt, lastName, restoreAt, restoreName)
+        ) { email, stamps, restoreAt, restoreName ->
+            BackupMeta(
+                email,
+                stamps.writtenAt,
+                stamps.writtenName,
+                restoreAt,
+                restoreName,
+                stamps.verifiedAt,
+                stamps.verifiedName,
+            )
         },
         combine(
-            combine(isBusy, busyLabel, status, error, pendingPlan) { busy, label, note, err, plan ->
+            combine(isBusy, busyLabel, status, error.messages, pendingPlan) { busy, label, note, err, plan ->
                 BackupFlags(busy, label, note, err, plan?.toPreview())
             },
             dialogs,
             combine(restorePending, container.preferencesRepository.restoreRecoveryNote) { pending, note ->
                 RecoveryUi(pendingSource = pending, note = note)
             },
-        ) { flags, gate, recovery -> flags.copy(dialogs = gate, recovery = recovery) },
+            container.preferencesRepository.autoBackupEnabled,
+            container.preferencesRepository.autoBackupNeedsSignIn,
+            // Folded in here rather than into the outer combine, which is already at the
+            // five-flow ceiling of the typed combine overloads.
+        ) { flags, gate, recovery, autoOn, needsSignIn ->
+            flags.copy(
+                dialogs = gate,
+                recovery = recovery,
+                autoBackupEnabled = autoOn,
+                autoBackupNeedsSignIn = needsSignIn,
+            )
+        },
         backups,
         combine(
             container.workoutRepository.observeInProgress(),
@@ -323,9 +461,18 @@ class SettingsViewModel @JvmOverloads constructor(
             error = flags.error,
             pendingPreview = flags.pendingPreview,
             sessionLive = live,
-            backupStale = BackupPrompt.isStale(meta.lastAt, System.currentTimeMillis()),
+            backupStale = BackupPrompt.isStale(meta.verifiedAt, System.currentTimeMillis()),
+            backupCaption = BackupPrompt.caption(
+                lastVerifiedAt = meta.verifiedAt,
+                lastBackupAt = meta.lastAt,
+                nowMs = System.currentTimeMillis(),
+            ),
+            lastVerifiedBackupAt = meta.verifiedAt,
             safetySnapshots = snaps,
             pendingProtect = flags.dialogs.protect,
+            pendingAutoBackupArm = flags.dialogs.armAutoBackup,
+            autoBackupEnabled = flags.autoBackupEnabled,
+            autoBackupNeedsSignIn = flags.autoBackupNeedsSignIn,
             pendingUnlock = flags.dialogs.unlock,
             pendingPlaintextWarning = flags.dialogs.plaintextWarning,
             launchExportPicker = flags.dialogs.launchExportPicker,
@@ -458,6 +605,60 @@ class SettingsViewModel @JvmOverloads constructor(
         dialogs.value = BackupDialogs(protect = BackupProtectKind.DRIVE_BACKUP)
     }
 
+    /**
+     * Turning automatic backup on. Asks for the passphrase once; turning it off forgets it.
+     *
+     * The toggle is the only place the passphrase is ever sealed. There is deliberately no
+     * plaintext escape here: an unattended copy that quietly wrote a readable file would
+     * reverse the signed default in ADR-009 §9 without anyone being asked.
+     */
+    fun setAutoBackupEnabled(enabled: Boolean) {
+        if (enabled) {
+            dialogs.value = BackupDialogs(armAutoBackup = true)
+        } else {
+            runBackupAction("Turning off automatic backup…") {
+                container.preferencesRepository.disarmAutoBackup()
+                status.value = "Automatic backup is off. Create backup now still works."
+            }
+        }
+    }
+
+    fun cancelAutoBackupArm() {
+        dialogs.value = BackupDialogs()
+    }
+
+    /**
+     * Seals the typed passphrase and arms automatic backup. Returns false, leaving the dialog
+     * up, when the passphrase is refused or the phone would not seal it.
+     */
+    fun submitAutoBackupPassphrase(password: String, confirm: String): Boolean {
+        val reason = BackupEnvelope.validateNewPassword(password, confirm)
+        if (reason != null) {
+            error.fail(source = ERR_PROTECT, message = reason)
+            return false
+        }
+        val chars = password.toCharArray()
+        val sealed = try {
+            container.backupPassphraseSealer.seal(chars)
+        } finally {
+            chars.fill('\u0000')
+        }
+        if (sealed == null) {
+            error.fail(
+                source = ERR_PROTECT,
+                message = "This phone would not store the backup password. " +
+                    "Automatic backup stays off; Create backup now still works.",
+            )
+            return false
+        }
+        dialogs.value = BackupDialogs()
+        runBackupAction("Turning on automatic backup…") {
+            container.preferencesRepository.armAutoBackup(sealed)
+            status.value = "Automatic backup is on. Each finished workout goes to Drive."
+        }
+        return true
+    }
+
     fun beginPlaintextExport() {
         plaintextKind = dialogs.value.protect ?: BackupProtectKind.FILE_EXPORT
         wipeHeldPassword()
@@ -504,7 +705,7 @@ class SettingsViewModel @JvmOverloads constructor(
     fun submitProtect(password: String, confirm: String, activity: Activity? = null): Boolean {
         val reason = BackupEnvelope.validateNewPassword(password, confirm)
         if (reason != null) {
-            error.value = reason
+            error.fail(source = ERR_PROTECT, message = reason)
             return false
         }
         wipeHeldPassword()
@@ -531,7 +732,7 @@ class SettingsViewModel @JvmOverloads constructor(
     }
 
     fun dismissError() {
-        error.value = null
+        error.dismiss()
     }
 
     fun createBackup(activity: Activity) {
@@ -670,7 +871,10 @@ class SettingsViewModel @JvmOverloads constructor(
             // no file, no error, and the password wiped without explanation.
             wipeHeldPassword()
             plaintextSafetyApproved = false
-            error.value = "Another backup task is still running. Start the export again when it finishes."
+            error.fail(
+                source = ERR_BACKUP,
+                message = "Another backup task is still running. Start the export again when it finishes.",
+            )
             return
         }
         val password = heldPassword
@@ -743,7 +947,10 @@ class SettingsViewModel @JvmOverloads constructor(
             // choice for a lambda runBackupAction is about to drop.
             wipeHeldPassword()
             plaintextExportApproved = false
-            error.value = "Another backup task is still running. Start the export again when it finishes."
+            error.fail(
+                source = ERR_BACKUP,
+                message = "Another backup task is still running. Start the export again when it finishes.",
+            )
             return
         }
         val password = heldPassword
@@ -932,14 +1139,23 @@ class SettingsViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             isBusy.value = true
             busyLabel.value = label
-            error.value = null
+            error.clearFrom(source = ERR_BACKUP)
             status.value = label
             try {
                 block()
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
-                error.value = (thrown as? BackupException)?.message
-                    ?: thrown.message
-                    ?: "Something went wrong. Try again."
+                // Mapping the throwable to a sentence and dropping it is why a failed Drive
+                // sign-in left no trace anywhere. AppLog.e is the level that also feeds the
+                // diagnostics hook; the message is redacted, the tag and stack are not.
+                AppLog.e(TAG, "Backup action failed: $label", thrown)
+                error.fail(
+                    source = ERR_BACKUP,
+                    message = (thrown as? BackupException)?.message
+                        ?: thrown.message
+                        ?: "Something went wrong. Try again.",
+                )
                 status.value = null
             } finally {
                 isBusy.value = false
@@ -959,6 +1175,15 @@ class SettingsViewModel @JvmOverloads constructor(
         val lastName: String?,
         val restoreAt: Long?,
         val restoreName: String?,
+        val verifiedAt: Long?,
+        val verifiedName: String?,
+    )
+
+    private data class BackupStamps(
+        val writtenAt: Long?,
+        val writtenName: String?,
+        val verifiedAt: Long?,
+        val verifiedName: String?,
     )
 
     private data class BackupFlags(
@@ -969,6 +1194,8 @@ class SettingsViewModel @JvmOverloads constructor(
         val pendingPreview: RestorePreviewUi?,
         val dialogs: BackupDialogs = BackupDialogs(),
         val recovery: RecoveryUi = RecoveryUi(),
+        val autoBackupEnabled: Boolean = false,
+        val autoBackupNeedsSignIn: Boolean = false,
     )
 
     private data class RecoveryUi(
@@ -978,6 +1205,9 @@ class SettingsViewModel @JvmOverloads constructor(
 
     private data class BackupDialogs(
         val protect: BackupProtectKind? = null,
+        /** Arming automatic backup. A separate flag, not a fourth [BackupProtectKind]: this
+         *  one seals a passphrase instead of writing a file, and must never offer plaintext. */
+        val armAutoBackup: Boolean = false,
         val unlock: Boolean = false,
         val plaintextWarning: Boolean = false,
         val launchExportPicker: Boolean = false,

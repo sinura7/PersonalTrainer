@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
 import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.testutil.TestSetInput
+import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.Dispatchers
@@ -68,7 +69,7 @@ class HistoryViewModelTest {
         viewModel = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.repeatSession(finished.id)
 
-        val blocked = withTimeout(5_000) {
+        val blocked = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.blockedRepeat.first { it != null }
         }
         assertEquals(live.id, blocked!!.inProgressSessionId)
@@ -101,7 +102,7 @@ class HistoryViewModelTest {
         deps.workoutRepository.finishSession(sessionId = later.id, notes = "")
 
         viewModel = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        val before = withTimeout(5_000) {
+        val before = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.uiState.first { it.horizonProgress != null && it.summaries.size == 2 }
         }
         assertEquals(0, before.horizonProgress!!.recordsBroken)
@@ -114,7 +115,7 @@ class HistoryViewModelTest {
             isWarmup = false,
         )
 
-        val after = withTimeout(5_000) {
+        val after = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.uiState.first { (it.horizonProgress?.recordsBroken ?: 0) > 0 }
         }
         assertEquals(2, after.summaries.size)
@@ -132,7 +133,7 @@ class HistoryViewModelTest {
         insertFinishedSession(id = "recent", at = now - DAY, exerciseId = bench.id, weightKg = 100.0)
 
         viewModel = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        val state = withTimeout(5_000) { viewModel!!.uiState.first { it.records.isNotEmpty() } }
+        val state = withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.records.isNotEmpty() } }
 
         val record = state.records.single()
         assertEquals(bench.id, record.exerciseId)

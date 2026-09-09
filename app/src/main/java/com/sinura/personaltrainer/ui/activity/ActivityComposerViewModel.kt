@@ -25,6 +25,7 @@ import com.sinura.personaltrainer.domain.StrengthBlock
 import com.sinura.personaltrainer.domain.StrengthSet
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.IdFactory
 import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.util.runCatchingCancellable
@@ -36,6 +37,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+/** [ErrorSlot] families: a success may clear only its own family's refusal. */
+private const val ERR_DRAFT = "draft"
+private const val ERR_SAVE = "save"
+private const val ERR_CREATE_LIFT = "createLift"
 
 enum class ComposerMode { STRENGTH, CARDIO, MIXED }
 
@@ -101,14 +107,14 @@ class ActivityComposerViewModel @JvmOverloads constructor(
     private val strength = MutableStateFlow(draft.strength())
     private val cardio = MutableStateFlow(draft.cardio())
     private val catalog = MutableStateFlow<List<Exercise>>(emptyList())
-    private val error = MutableStateFlow<String?>(null)
+    private val error = ErrorSlot()
     private val saving = MutableStateFlow(false)
 
     val uiState: StateFlow<ActivityComposerUiState> = combine(
         combine(mode, title, epochDay, catalog) { currentMode, name, day, lifts ->
             Quad(currentMode, name, day, lifts)
         },
-        combine(strength, cardio, error, saving) { sets, cardioLines, err, busy ->
+        combine(strength, cardio, error.messages, saving) { sets, cardioLines, err, busy ->
             Flags(sets, cardioLines, err, busy)
         },
     ) { quad, flags ->
@@ -161,18 +167,18 @@ class ActivityComposerViewModel @JvmOverloads constructor(
 
     fun setTitle(value: String) {
         title.value = value
-        error.value = null
+        error.dismiss()
         rememberDraft()
     }
 
     fun dismissError() {
-        error.value = null
+        error.dismiss()
     }
 
     fun setEpochDay(value: Long) {
         val today = clock.captureNow().localEpochDay
         epochDay.value = value.coerceAtMost(today)
-        error.value = null
+        error.dismiss()
         rememberDraft()
     }
 
@@ -182,11 +188,11 @@ class ActivityComposerViewModel @JvmOverloads constructor(
 
     fun addStrength(exercise: Exercise, weightKg: Double, reps: Int) {
         if (reps <= 0) {
-            error.value = "Reps must be at least 1."
+            error.fail(source = ERR_DRAFT, message = "Reps must be at least 1.")
             return
         }
         strength.value = strength.value + ComposerStrengthLine(exercise, weightKg, reps)
-        error.value = null
+        error.dismiss()
         rememberDraft()
     }
 
@@ -197,11 +203,11 @@ class ActivityComposerViewModel @JvmOverloads constructor(
 
     fun addCardio(type: CardioType, minutes: Int, distanceKm: Double?, indoor: Boolean) {
         if (minutes <= 0) {
-            error.value = "Duration must be at least one minute."
+            error.fail(source = ERR_DRAFT, message = "Duration must be at least one minute.")
             return
         }
         cardio.value = cardio.value + ComposerCardioLine(type, minutes, distanceKm, indoor)
-        error.value = null
+        error.dismiss()
         rememberDraft()
     }
 
@@ -229,6 +235,7 @@ class ActivityComposerViewModel @JvmOverloads constructor(
     }
 
     fun save() {
+        val started = error.mark()
         if (saving.value) return
         saving.value = true
         viewModelScope.launch {
@@ -240,14 +247,15 @@ class ActivityComposerViewModel @JvmOverloads constructor(
                         // Only an accepted write spends the draft, like the plan link: a
                         // rejected or thrown save keeps everything typed for the retry.
                         draft.clear()
-                        error.value = null
+                        error.clearFrom(source = ERR_SAVE, before = started)
                         _savedId.value = result.session.id
                     }
-                    is ActivityWrite.Rejected -> error.value = result.reason
+                    is ActivityWrite.Rejected ->
+                        error.fail(source = ERR_SAVE, message = result.reason)
                 }
             }.onFailure { thrown ->
                 AppLog.w(TAG, "Saving an activity failed", thrown)
-                error.value = "Could not save that session. Try again."
+                error.fail(source = ERR_SAVE, message = "Could not save that session. Try again.")
             }
         }
     }
@@ -268,24 +276,26 @@ class ActivityComposerViewModel @JvmOverloads constructor(
     }
 
     fun createExercise(name: String, muscleGroup: String) {
+        val started = error.mark()
         viewModelScope.launch {
             if (name.isBlank()) {
-                error.value = "Give that lift a name."
+                error.fail(source = ERR_CREATE_LIFT, message = "Give that lift a name.")
                 return@launch
             }
             runCatchingCancellable {
                 when (val result = container.exerciseRepository.createCustom(name, muscleGroup)) {
-                    is SaveExerciseResult.DuplicateName -> error.value = DUPLICATE_NAME_MESSAGE
+                    is SaveExerciseResult.DuplicateName ->
+                        error.fail(source = ERR_CREATE_LIFT, message = DUPLICATE_NAME_MESSAGE)
                     is SaveExerciseResult.MissingMuscle ->
-                        error.value = MuscleGroups.MISSING_MESSAGE
+                        error.fail(source = ERR_CREATE_LIFT, message = MuscleGroups.MISSING_MESSAGE)
                     is SaveExerciseResult.Saved -> {
-                        error.value = null
+                        error.clearFrom(source = ERR_CREATE_LIFT, before = started)
                         _createdExercise.value = result.exercise
                     }
                 }
             }.onFailure { thrown ->
                 AppLog.w(TAG, "createExercise failed", thrown)
-                error.value = SessionOrderCopy.CREATE_LIFT_FAILED
+                error.fail(source = ERR_CREATE_LIFT, message = SessionOrderCopy.CREATE_LIFT_FAILED)
             }
         }
     }

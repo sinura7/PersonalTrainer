@@ -11,7 +11,7 @@ class AuxiliaryPacksTest {
         assertEquals(
             listOf(
                 "golf", "lower-body", "upper-body", "shoulder",
-                "stretch", "lower-back", "hips", "holds", "core",
+                "golf-cooldown", "stretch", "lower-back", "hips", "holds", "core",
             ),
             AuxiliaryPacks.all.map { it.id },
         )
@@ -32,5 +32,28 @@ class AuxiliaryPacksTest {
         assertEquals(AuxiliaryPacks.Core, AuxiliaryPacks.byId("core"))
         assertEquals(AuxiliaryKind.WARMUP, AuxiliaryPacks.Shoulder.kind)
         assertEquals(AuxiliaryKind.MOBILITY, AuxiliaryPacks.Hips.kind)
+        assertEquals(AuxiliaryPacks.all.size, AuxiliaryPacks.all.map { it.id }.toSet().size)
+    }
+
+    @Test
+    fun theGolfCoolDownIsAMobilityPackThatFollowsTheRound() {
+        val pack = AuxiliaryPacks.byId("golf-cooldown")
+        assertEquals(AuxiliaryPacks.GolfCooldown, pack)
+        assertEquals(AuxiliaryKind.MOBILITY, pack!!.kind)
+        assertEquals("golf-cooldown", AuxiliaryPacks.mobility.first().id)
+        assertEquals(
+            listOf(
+                "ex-hyper-pro-couch-stretch",
+                "ex-hyper-pro-incline-pigeon",
+                "ex-hyper-pro-calf-stretch",
+                "ex-hyper-pro-elephant-walk",
+                "ex-dead-bug",
+            ),
+            pack.lifts.map { it.exerciseId },
+        )
+        // A cool-down that repeats the warm-up is the warm-up again.
+        assertTrue(pack.lifts.map { it.exerciseId }.intersect(
+            AuxiliaryPacks.Golf.lifts.map { it.exerciseId }.toSet(),
+        ).size <= 1)
     }
 }

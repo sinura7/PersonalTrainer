@@ -142,20 +142,37 @@ fun ProgressScreen(
                             onViewChange = { bodyView = it },
                             selected = selected,
                             onSelect = { selectedName = it.name },
+                            facts = BodyHeatCopy.facts(
+                                window = state.window,
+                                windowSessions = snap.windowSessions,
+                                daysSinceLastFinished = snap.daysSinceLastFinished,
+                            ),
                         )
                     }
                     if (!snap.hasWindowWorkingSets) {
                         item(key = "window-empty") {
-                            Text(
-                                if (snap.hasAnyWorkingSets) {
-                                    BodyHeatCopy.EMPTY_WINDOW
-                                } else {
-                                    BodyHeatCopy.EMPTY_LOG
-                                },
-                                style = InstrumentType.body,
-                                color = TextSecondary,
-                                modifier = Modifier.testTag(BodyTags.EMPTY),
-                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
+                                Text(
+                                    if (snap.hasAnyWorkingSets) {
+                                        BodyHeatCopy.EMPTY_WINDOW
+                                    } else {
+                                        BodyHeatCopy.EMPTY_LOG
+                                    },
+                                    style = InstrumentType.body,
+                                    color = TextSecondary,
+                                    modifier = Modifier.testTag(BodyTags.EMPTY),
+                                )
+                                // Older work exists and a wider window would show it. The
+                                // month is the widest window there is, so the tap is the
+                                // same whether Day or Week came up empty.
+                                if (snap.hasAnyWorkingSets && state.window != HeatWindow.CURRENT_MONTH) {
+                                    SecondaryGymButton(
+                                        text = BodyHeatCopy.SHOW_MONTH,
+                                        onClick = { viewModel.setWindow(HeatWindow.CURRENT_MONTH) },
+                                        modifier = Modifier.testTag(BodyTags.SHOW_MONTH),
+                                    )
+                                }
+                            }
                         }
                     }
                     item(key = "muscles-header") {

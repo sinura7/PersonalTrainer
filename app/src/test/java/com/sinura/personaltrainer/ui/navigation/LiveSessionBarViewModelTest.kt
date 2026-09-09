@@ -6,6 +6,7 @@ import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.testutil.FakeClock
 import com.sinura.personaltrainer.testutil.TestSetInput
+import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import com.sinura.personaltrainer.workout.WorkoutDraft
 import java.util.concurrent.TimeUnit
@@ -77,7 +78,7 @@ class LiveSessionBarViewModelTest {
         val clock = FakeClock(fixture.session.startedAt + 65_000)
         val vm = createViewModel(clock)
 
-        val state = vm.uiState.first { it?.totalSets == 2 }
+        val state = vm.uiState.awaitFirst { it?.totalSets == 2 }
         checkNotNull(state)
         assertEquals(fixture.session.id, state.sessionId)
         assertEquals(1, state.workingSets)
@@ -94,13 +95,13 @@ class LiveSessionBarViewModelTest {
         val fixture = seedTestWorkout(deps)
         val clock = FakeClock(fixture.session.startedAt + TimeUnit.HOURS.toMillis(3))
         val vm = createViewModel(clock)
-        assertFalse(checkNotNull(vm.uiState.first { it != null }).stale)
+        assertFalse(checkNotNull(vm.uiState.awaitFirst { it != null }).stale)
 
         clock.nowMs = fixture.session.startedAt + TimeUnit.HOURS.toMillis(4)
         dispatcher.scheduler.advanceTimeBy(1_001)
         dispatcher.scheduler.runCurrent()
 
-        val stale = vm.uiState.first { it?.stale == true }
+        val stale = vm.uiState.awaitFirst { it?.stale == true }
         assertEquals(4L, stale?.staleHours)
     }
 
@@ -117,11 +118,11 @@ class LiveSessionBarViewModelTest {
         )
         deps.restTimerController.start(90, fixture.session.id)
         val vm = createViewModel(FakeClock(fixture.session.startedAt + 1_000))
-        vm.uiState.first { it?.canFinish == true }
+        vm.uiState.awaitFirst { it?.canFinish == true }
 
         vm.finishFromBar()
 
-        val navigation = checkNotNull(vm.finishedNavigation.first { it != null })
+        val navigation = checkNotNull(vm.finishedNavigation.awaitFirst { it != null })
         assertEquals(fixture.session.id, navigation)
         val saved = checkNotNull(deps.workoutRepository.getSession(fixture.session.id))
         assertEquals("keep this", saved.notes)
@@ -137,7 +138,7 @@ class LiveSessionBarViewModelTest {
     fun finishFromBarWithNoSetsDoesNotNavigateOrWriteFinishedAt() = runBlocking {
         val fixture = seedTestWorkout(deps)
         val vm = createViewModel(FakeClock(fixture.session.startedAt + 1_000))
-        val state = checkNotNull(vm.uiState.first { it != null })
+        val state = checkNotNull(vm.uiState.awaitFirst { it != null })
         assertFalse(state.canFinish)
 
         vm.finishFromBar()
@@ -155,14 +156,14 @@ class LiveSessionBarViewModelTest {
         val vm = createViewModel(clock)
         val emissions = mutableListOf<Boolean>()
         val job = launch { vm.hasLiveSession.collect { emissions += it } }
-        vm.hasLiveSession.first { it }
-        assertEquals("0:05", checkNotNull(vm.uiState.first { it != null }).elapsedLabel)
+        vm.hasLiveSession.awaitFirst { it }
+        assertEquals("0:05", checkNotNull(vm.uiState.awaitFirst { it != null }).elapsedLabel)
         val settled = emissions.toList()
 
         clock.nowMs = fixture.session.startedAt + 90_000
         dispatcher.scheduler.advanceTimeBy(1_001)
         dispatcher.scheduler.runCurrent()
-        assertEquals("1:30", checkNotNull(vm.uiState.first { it?.elapsedLabel == "1:30" }).elapsedLabel)
+        assertEquals("1:30", checkNotNull(vm.uiState.awaitFirst { it?.elapsedLabel == "1:30" }).elapsedLabel)
         dispatcher.scheduler.advanceTimeBy(3_000)
         dispatcher.scheduler.runCurrent()
 
@@ -175,13 +176,13 @@ class LiveSessionBarViewModelTest {
         val fixture = seedTestWorkout(deps)
         val clock = FakeClock(fixture.session.startedAt + 5_000)
         val vm = createViewModel(clock)
-        assertEquals("0:05", checkNotNull(vm.uiState.first { it != null }).elapsedLabel)
+        assertEquals("0:05", checkNotNull(vm.uiState.awaitFirst { it != null }).elapsedLabel)
 
         clock.nowMs = fixture.session.startedAt + 90_000
         dispatcher.scheduler.advanceTimeBy(1_001)
         dispatcher.scheduler.runCurrent()
 
-        assertEquals("1:30", checkNotNull(vm.uiState.first { it?.elapsedLabel == "1:30" }).elapsedLabel)
+        assertEquals("1:30", checkNotNull(vm.uiState.awaitFirst { it?.elapsedLabel == "1:30" }).elapsedLabel)
     }
 
     @Test
@@ -189,7 +190,7 @@ class LiveSessionBarViewModelTest {
         val fixture = seedTestWorkout(deps)
         val clock = FakeClock(fixture.session.startedAt + 5_000)
         val vm = createViewModel(clock)
-        assertEquals("0:05", checkNotNull(vm.uiState.first { it != null }).elapsedLabel)
+        assertEquals("0:05", checkNotNull(vm.uiState.awaitFirst { it != null }).elapsedLabel)
 
         vm.setRouteHidesBar(true)
         clock.nowMs = fixture.session.startedAt + 90_000
@@ -200,7 +201,7 @@ class LiveSessionBarViewModelTest {
         vm.setRouteHidesBar(false)
         dispatcher.scheduler.advanceTimeBy(1)
         dispatcher.scheduler.runCurrent()
-        assertEquals("1:30", checkNotNull(vm.uiState.first { it?.elapsedLabel == "1:30" }).elapsedLabel)
+        assertEquals("1:30", checkNotNull(vm.uiState.awaitFirst { it?.elapsedLabel == "1:30" }).elapsedLabel)
     }
 
     @Test
@@ -210,7 +211,7 @@ class LiveSessionBarViewModelTest {
             WorkoutDraft(fixture.session.id, fixture.exercise.id, 100.0, 5, null, false, ""),
         )
         val vm = createViewModel(FakeClock(fixture.session.startedAt))
-        val state = checkNotNull(vm.uiState.first { it != null })
+        val state = checkNotNull(vm.uiState.awaitFirst { it != null })
         assertFalse(state.canFinish)
 
         vm.discardFromBar()

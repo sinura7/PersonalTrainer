@@ -241,6 +241,48 @@ is 1024×1024 so the panel is not upscaling 768. Heat stays 768.
 python3 tools/check-still-pack.py
 ```
 
+## `check-unbounded-waits.py`
+
+A `first { }` on a ViewModel flow in a `*ViewModelTest.kt` must sit inside a
+`withTimeout(...)`. Written after two wedged CI runs on 9 Sep 2026: the value a
+test waited for was written and overwritten before its collector ran, and under
+`runBlocking` nothing ends that wait but the job's own thirty-minute timeout.
+A wedge uploads no report; a `TimeoutCancellationException` names the state that
+never came.
+
+```bash
+python3 tools/check-unbounded-waits.py            # app/src/test/java against app/src/main/java
+```
+
+Which properties are ViewModel flows is read from main sources (`StateFlow<>`,
+`stateIn`, `asStateFlow`; plain `Flow<>` / `SharedFlow<>` too), and the receiver has
+to be a name the test binds to a `*ViewModel`, an inline `createViewModel(...)`, or the
+implicit receiver of a `fun FooViewModel.helper()`. A bare `first()` on a `StateFlow`
+is the current value and is not counted. Repository and store waits (`deps.…`) are out
+of scope. A helper named `awaitState` is bounded by the `withTimeout` in its body, not
+by its name. Ratcheted in `checker-baselines.toml` (`unbounded_waits`);
+`test_unbounded_waits.py` is its fixture proof.
+
+## `check-cancellation.py`
+
+`CancellationException` extends `Exception`, so a `catch (thrown: Exception)` around a
+suspending call catches the cancellation too: the coroutine that was told to stop logs
+"failed", falls back, and carries on. `util/CoroutineErrors.kt` has the fix
+(`runCatchingCancellable`, `recoverWith`); this finds the sites that still need one.
+
+```bash
+python3 tools/check-cancellation.py               # app/src/main/java
+```
+
+A bare `catch (Exception)` / `catch (Throwable)` is a finding when its `try` sits inside a
+`suspend fun` or a lambda handed to a coroutine builder (`launch`, `async`, `withContext`,
+`flow`, `withTimeout`, ...) or to a project function declared with a `suspend` lambda
+parameter (`launchWrite`, `write`, `serialized`, ... — read from the sources), and no
+earlier `catch (_: CancellationException)` clause on the same `try` or `is
+CancellationException` rethrow in its body guards it. A bare catch in a plain function is
+not counted: nothing in it can suspend. Ratcheted in `checker-baselines.toml`
+(`cancellation_swallow`); `test_cancellation.py` is its fixture proof.
+
 ## `test_policy_move.py`
 
 J4 remainder. Fixture proofs for the sixteen source-reading policy tests that

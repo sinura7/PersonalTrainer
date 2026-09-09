@@ -13,11 +13,14 @@ import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.testutil.TestSetInput
+import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -68,7 +71,7 @@ class RoutineEditorViewModelTest {
     @Test
     fun newRoutineOpensEditingWithoutARow() = runBlocking {
         val vm = createViewModel("new")
-        val state = vm.uiState.first { !it.isLoading }
+        val state = vm.awaitState { !it.isLoading }
         assertFalse(state.missing)
         assertNull(state.routine)
         assertNull(deps.routineRepository.observeAll().first().singleOrNull())
@@ -81,7 +84,7 @@ class RoutineEditorViewModelTest {
         deps.routineRepository.updateDetails(fixture.routine.id, fixture.routine.name, "keep these")
 
         val vm = createViewModel(fixture.routine.id)
-        val state = vm.uiState.first { !it.isLoading && it.routine != null }
+        val state = vm.awaitState { !it.isLoading && it.routine != null }
 
         assertEquals(fixture.routine.id, state.routine?.id)
         assertEquals(fixture.routine.name, state.name)
@@ -92,7 +95,7 @@ class RoutineEditorViewModelTest {
     @Test
     fun missingRoutineResolvesMissingWithUserMessage() = runBlocking {
         val vm = createViewModel("gone")
-        val state = vm.uiState.first { it.missing && it.error != null }
+        val state = vm.awaitState { it.missing && it.error != null }
         assertEquals("This routine is no longer available.", state.error)
         assertFalse(state.isLoading)
     }
@@ -106,7 +109,7 @@ class RoutineEditorViewModelTest {
         val gate = FailureGate(shouldFail = true)
         val vm = createViewModel(fixture.routine.id, container = failingHydration(gate))
 
-        val state = vm.uiState.first { it.failed }
+        val state = vm.awaitState { it.failed }
         assertFalse(state.isLoading)
         assertFalse(state.missing)
     }
@@ -117,12 +120,17 @@ class RoutineEditorViewModelTest {
         deps.workoutRepository.discardSession(fixture.session.id)
         val gate = FailureGate(shouldFail = true)
         val vm = createViewModel(fixture.routine.id, container = failingHydration(gate))
-        vm.uiState.first { it.failed }
+        vm.awaitState { it.failed }
 
         gate.shouldFail = false
         vm.retryHydration()
 
-        val recovered = vm.uiState.first { !it.failed && !it.isLoading && it.routine != null }
+        // The editable name is hydrated by a later write than the row, so wait for the
+        // emission that carries it too. Waiting on the row alone read the name as "" —
+        // 1 of 30 runs, as `expected:<[Test lower]> but was:<[]>`.
+        val recovered = vm.awaitState {
+            !it.failed && !it.isLoading && it.routine != null && it.name == fixture.routine.name
+        }
         assertFalse(recovered.missing)
         assertEquals(fixture.routine.id, recovered.routine?.id)
         assertEquals(fixture.routine.name, recovered.name)
@@ -132,7 +140,7 @@ class RoutineEditorViewModelTest {
     fun addExerciseCreatesTheStubAndPersistsTheLift() = runBlocking {
         val exercise = insertTestExercise(deps, "row", "Chest-supported row")
         val vm = createViewModel("new")
-        vm.uiState.first { !it.isLoading }
+        vm.awaitState { !it.isLoading }
         vm.onNameChange("Pull")
         vm.addExercise(exercise, targetSets = 4, targetReps = 8, targetWeightKg = null, restSeconds = 90)
 
@@ -148,13 +156,13 @@ class RoutineEditorViewModelTest {
         val fixture = seedTestWorkout(deps)
         deps.workoutRepository.discardSession(fixture.session.id)
         val vm = createViewModel(fixture.routine.id)
-        vm.uiState.first { it.routine != null }
+        vm.awaitState { it.routine != null }
 
         vm.addExercise(fixture.exercise, 3, 5, 100.0, 90)
 
         assertEquals(
             "${fixture.exercise.name} is already in this routine.",
-            vm.uiState.first { it.error == "${fixture.exercise.name} is already in this routine." }.error,
+            vm.awaitState { it.error == "${fixture.exercise.name} is already in this routine." }.error,
         )
         assertEquals(1, deps.routineRepository.getById(fixture.routine.id)?.exercises?.size)
     }
@@ -163,14 +171,14 @@ class RoutineEditorViewModelTest {
     fun leaveDiscardsAnEmptyStubCreatedThisSession() = runBlocking {
         val exercise = insertTestExercise(deps, "row", "Row")
         val vm = createViewModel("new")
-        vm.uiState.first { !it.isLoading }
+        vm.awaitState { !it.isLoading }
         vm.addExercise(exercise, 3, 8, null, 90)
         val created = awaitRoutine { it.exercises.size == 1 }
         vm.removeExercise(created.exercises.single().id)
         awaitRoutine { it.exercises.isEmpty() }
 
         vm.leave()
-        vm.exitRequested.first { it }
+        vm.awaitExit()
         assertTrue(deps.routineRepository.observeAll().first().isEmpty())
         vm.onExitHandled()
         assertFalse(vm.exitRequested.value)
@@ -181,13 +189,13 @@ class RoutineEditorViewModelTest {
         val fixture = seedTestWorkout(deps)
         deps.workoutRepository.discardSession(fixture.session.id)
         val vm = createViewModel(fixture.routine.id)
-        vm.uiState.first { it.routine != null && it.name == fixture.routine.name }
+        vm.awaitState { it.routine != null && it.name == fixture.routine.name }
 
         vm.onNameChange("Lower strength")
         vm.onNotesChange("tempo on the last set")
         vm.leave()
 
-        vm.exitRequested.first { it }
+        vm.awaitExit()
         val saved = checkNotNull(deps.routineRepository.getById(fixture.routine.id))
         assertEquals("Lower strength", saved.name)
         assertEquals("tempo on the last set", saved.notes)
@@ -197,13 +205,13 @@ class RoutineEditorViewModelTest {
     fun saveAndLeaveKeepsACreatedRoutineWithLiftsAndPersistsTheName() = runBlocking {
         val exercise = insertTestExercise(deps, "row", "Row")
         val vm = createViewModel("new")
-        vm.uiState.first { !it.isLoading }
+        vm.awaitState { !it.isLoading }
         vm.onNameChange("Push")
         vm.addExercise(exercise, 3, 8, null, 90)
         val created = awaitRoutine { it.exercises.size == 1 }
 
         vm.saveAndLeave()
-        vm.exitRequested.first { it }
+        vm.awaitExit()
         val saved = checkNotNull(deps.routineRepository.getById(created.id))
         assertEquals("Push", saved.name)
         assertEquals(1, saved.exercises.size)
@@ -212,12 +220,12 @@ class RoutineEditorViewModelTest {
     @Test
     fun saveAndLeaveWithoutLiftsStaysOnTheEditor() = runBlocking {
         val vm = createViewModel("new")
-        vm.uiState.first { !it.isLoading }
+        vm.awaitState { !it.isLoading }
         vm.saveAndLeave()
         assertFalse(vm.exitRequested.value)
         assertEquals(
             SessionOrderCopy.NEED_A_LIFT,
-            vm.uiState.first { it.error == SessionOrderCopy.NEED_A_LIFT }.error,
+            vm.awaitState { it.error == SessionOrderCopy.NEED_A_LIFT }.error,
         )
         assertTrue(deps.routineRepository.observeAll().first().isEmpty())
     }
@@ -228,7 +236,7 @@ class RoutineEditorViewModelTest {
         deps.workoutRepository.discardSession(fixture.session.id)
         val itemId = fixture.routine.exercises.single().id
         val vm = createViewModel(fixture.routine.id)
-        vm.uiState.first { it.routine != null }
+        vm.awaitState { it.routine != null }
 
         vm.stageTargets(itemId, targetSets = 4, targetReps = 6, targetWeightKg = 110.0, restSeconds = 120)
         vm.commitTargets(itemId)
@@ -241,9 +249,34 @@ class RoutineEditorViewModelTest {
         vm.commitTargets(itemId)
         assertEquals(
             "Sets and reps must be at least 1.",
-            vm.uiState.first { it.error == "Sets and reps must be at least 1." }.error,
+            vm.awaitState { it.error == "Sets and reps must be at least 1." }.error,
         )
         assertEquals(4, deps.routineRepository.getById(fixture.routine.id)!!.exercises.single().targetSets)
+    }
+
+    @Test
+    fun aTargetsRefusalSurvivesThePreviousCommitsSuccess() = runBlocking {
+        val fixture = seedTestWorkout(deps, targetSets = 3, targetReps = 5)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val itemId = fixture.routine.exercises.single().id
+        val vm = createViewModel(fixture.routine.id)
+        vm.awaitState { it.routine != null }
+
+        // Nothing is awaited between the two commits on purpose. The first is slow (a Room
+        // write) and succeeds; the second is refused before it writes. Before ErrorSlot the
+        // first commit's success-path `error = null` landed after the refusal and erased it,
+        // and the wait below ran forever — the wedge the CI watchdog caught.
+        vm.stageTargets(itemId, targetSets = 4, targetReps = 6, targetWeightKg = 110.0, restSeconds = 120)
+        vm.commitTargets(itemId)
+        vm.stageTargets(itemId, targetSets = 0, targetReps = 6, targetWeightKg = 110.0, restSeconds = 120)
+        vm.commitTargets(itemId)
+
+        assertEquals(
+            "Sets and reps must be at least 1.",
+            vm.awaitState { it.error != null }.error,
+        )
+        val written = awaitRoutine { it.exercises.single().targetSets == 4 }
+        assertEquals(6, written.exercises.single().targetReps)
     }
 
     @Test
@@ -253,7 +286,7 @@ class RoutineEditorViewModelTest {
         val row = insertTestExercise(deps, "row", "Row")
         deps.routineRepository.addExercise(fixture.routine.id, row, 3, 8, null, 90)
         val vm = createViewModel(fixture.routine.id)
-        val loaded = vm.uiState.first { it.routine?.exercises?.size == 2 }.routine!!
+        val loaded = vm.awaitState { it.routine?.exercises?.size == 2 }.routine!!
         val first = loaded.exercises.first()
         val second = loaded.exercises.last()
 
@@ -272,13 +305,13 @@ class RoutineEditorViewModelTest {
         deps.workoutRepository.discardSession(fixture.session.id)
         val replacement = insertTestExercise(deps, "front-squat", "Front squat", muscleGroup = "Quads")
         val vm = createViewModel(fixture.routine.id)
-        val item = vm.uiState.first { it.routine?.exercises?.size == 1 }.routine!!.exercises.single()
+        val item = vm.awaitState { it.routine?.exercises?.size == 1 }.routine!!.exercises.single()
 
         vm.requestSwap(item.id)
-        vm.uiState.first { it.swapItemId == item.id }
+        vm.awaitState { it.swapItemId == item.id }
         vm.swapExercise(replacement)
 
-        val saved = vm.uiState.first {
+        val saved = vm.awaitState {
             it.routine?.exercises?.singleOrNull()?.exercise?.id == replacement.id
         }.routine!!
         assertEquals(3, saved.exercises.single().targetSets)
@@ -294,18 +327,18 @@ class RoutineEditorViewModelTest {
     fun createAndSelectBlankOrDuplicateSurfacesErrorsWithoutWriting() = runBlocking {
         insertTestExercise(deps, "existing", "Existing lift")
         val vm = createViewModel("new")
-        vm.uiState.first { !it.isLoading }
+        vm.awaitState { !it.isLoading }
 
         vm.createAndSelect("  ", "Back")
         assertEquals(
             SessionOrderCopy.LIFT_NAME_REQUIRED,
-            vm.uiState.first { it.error == SessionOrderCopy.LIFT_NAME_REQUIRED }.error,
+            vm.awaitState { it.error == SessionOrderCopy.LIFT_NAME_REQUIRED }.error,
         )
 
         vm.createAndSelect("Existing lift", "Back")
         assertEquals(
             "That name is already in your library",
-            vm.uiState.first { it.error == "That name is already in your library" }.error,
+            vm.awaitState { it.error == "That name is already in your library" }.error,
         )
         assertTrue(deps.exerciseRepository.observeAll().first().none { it.isCustom })
     }
@@ -313,12 +346,12 @@ class RoutineEditorViewModelTest {
     @Test
     fun createAndSelectAfterDismissDoesNotLeaveAGhostCart() = runBlocking {
         val vm = createViewModel("new")
-        vm.uiState.first { !it.isLoading }
+        vm.awaitState { !it.isLoading }
         vm.setPickerVisible(true)
         vm.setPickerVisible(false)
         vm.createAndSelect("Good morning", "Hamstrings")
 
-        deps.exerciseRepository.observeAll().first { list -> list.any { it.name == "Good morning" } }
+        awaitList("exerciseRepository", deps.exerciseRepository.observeAll()) { list -> list.any { it.name == "Good morning" } }
         assertTrue(vm.uiState.value.pendingAddIds.isEmpty())
         assertFalse(vm.uiState.value.showExercisePicker)
     }
@@ -328,20 +361,20 @@ class RoutineEditorViewModelTest {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val row = insertTestExercise(deps, "row", "Row")
         val vm = createViewModel("new")
-        vm.uiState.first { it.catalog.isNotEmpty() }
+        vm.awaitState { it.catalog.isNotEmpty() }
 
         vm.setPickerVisible(true)
         vm.togglePendingAdd(squat)
         vm.togglePendingAdd(row)
         vm.togglePendingAdd(row)
-        assertEquals(listOf(squat.id), vm.uiState.first { it.pendingAddIds == listOf(squat.id) }.pendingAddIds)
+        assertEquals(listOf(squat.id), vm.awaitState { it.pendingAddIds == listOf(squat.id) }.pendingAddIds)
         vm.togglePendingAdd(row)
-        vm.uiState.first { it.pendingAddIds == listOf(squat.id, row.id) }
+        vm.awaitState { it.pendingAddIds == listOf(squat.id, row.id) }
         vm.confirmPendingAdd()
 
         val saved = awaitRoutine { it.exercises.size == 2 }
         assertEquals(listOf(squat.id, row.id), saved.exercises.map { it.exercise.id })
-        val closed = vm.uiState.first { !it.showExercisePicker && it.pendingAddIds.isEmpty() }
+        val closed = vm.awaitState { !it.showExercisePicker && it.pendingAddIds.isEmpty() }
         assertFalse(closed.showExercisePicker)
         assertTrue(closed.pendingAddIds.isEmpty())
     }
@@ -355,7 +388,7 @@ class RoutineEditorViewModelTest {
         // uiState.catalog, and LiftCart.planConfirm returns blocked and writes nothing if one
         // is missing (LiftCart:66-68) — leaving the routine empty and the size == 2 wait below
         // unable to come true. isNotEmpty() is satisfied by the first of the two emissions.
-        vm.uiState.first { it.catalog.size >= 2 }
+        vm.awaitState { it.catalog.size >= 2 }
 
         vm.togglePendingAdd(row)
         vm.togglePendingAdd(squat)
@@ -371,7 +404,7 @@ class RoutineEditorViewModelTest {
         val row = insertTestExercise(deps, "row", "Row")
         val vm = createViewModel("new")
         // Both lifts — see confirmPendingAddWritesLiftsInReverseTapOrder above.
-        vm.uiState.first { it.catalog.size >= 2 }
+        vm.awaitState { it.catalog.size >= 2 }
         vm.togglePendingAdd(squat)
         vm.togglePendingAdd(row)
         vm.confirmPendingAdd()
@@ -385,12 +418,15 @@ class RoutineEditorViewModelTest {
     fun confirmPendingAddKeepsTheCartWhenALiftIsMissingFromTheCatalog() = runBlocking {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val vm = createViewModel("new")
-        vm.uiState.first { it.catalog.isNotEmpty() }
+        vm.awaitState { it.catalog.isNotEmpty() }
         vm.setPickerVisible(true)
         vm.togglePendingAdd(squat.copy(id = "ghost", name = "Ghost"))
         vm.confirmPendingAdd()
 
-        val state = vm.uiState.first { it.error != null }
+        // The refusal and the kept cart are separate writes, so wait for the emission that
+        // carries both. Waiting on the error alone read an in-between state where the cart
+        // was momentarily empty — 2 of 30 runs, as `expected:<[ghost]> but was:<[]>`.
+        val state = vm.awaitState { it.error != null && it.pendingAddIds == listOf("ghost") }
         assertTrue(state.showExercisePicker)
         assertEquals(listOf("ghost"), state.pendingAddIds)
         assertTrue(deps.routineRepository.observeAll().first().isEmpty())
@@ -408,7 +444,7 @@ class RoutineEditorViewModelTest {
         // unresolvable, the second confirm writes nothing, and the size == 2 wait at the
         // end can never come true. Two other tests in this file were tightened for exactly
         // this in b29aade; this one was missed and it failed on trunk.
-        vm.uiState.first { it.catalog.size >= 2 }
+        vm.awaitState { it.catalog.size >= 2 }
         vm.togglePendingAdd(squat)
         vm.confirmPendingAdd()
         awaitRoutine { it.exercises.size == 1 }
@@ -420,7 +456,7 @@ class RoutineEditorViewModelTest {
         // after the write returns; Room can emit the saved routine before that runs. Wait on
         // the routine alone and the second confirm is a no-op against a view model still
         // refusing confirms, which is how this failed on trunk. addingLifts is that flag.
-        vm.uiState.first { it.routine?.exercises?.size == 1 && !it.addingLifts }
+        vm.awaitState { it.routine?.exercises?.size == 1 && !it.addingLifts }
 
         vm.setPickerVisible(true)
         vm.togglePendingAdd(squat)
@@ -434,10 +470,10 @@ class RoutineEditorViewModelTest {
     @Test
     fun confirmPendingAddWritesALiftCreatedInThePicker() = runBlocking {
         val vm = createViewModel("new")
-        vm.uiState.first { !it.isLoading }
+        vm.awaitState { !it.isLoading }
         vm.setPickerVisible(true)
         vm.createAndSelect("Good morning", "Hamstrings")
-        vm.uiState.first { it.pendingAddIds.isNotEmpty() }
+        vm.awaitState { it.pendingAddIds.isNotEmpty() }
         vm.confirmPendingAdd()
 
         val saved = awaitRoutine { it.exercises.size == 1 }
@@ -457,7 +493,7 @@ class RoutineEditorViewModelTest {
         )
         insertTestExercise(deps, "aa-bench", "AA Bench", muscleGroup = "Chest")
         val vm = createViewModel("new")
-        val state = vm.uiState.first {
+        val state = vm.awaitState {
             it.searchResults.size >= 2 && it.searchResults.first().name == "ZZ Squat"
         }
         assertEquals("ZZ Squat", state.searchResults.first().name)
@@ -466,10 +502,10 @@ class RoutineEditorViewModelTest {
     @Test
     fun createAndSelectAppearsInPickerResultsBeforeTheCatalogCatchesUp() = runBlocking {
         val vm = createViewModel("new")
-        vm.uiState.first { !it.isLoading }
+        vm.awaitState { !it.isLoading }
         vm.setPickerVisible(true)
         vm.createAndSelect("Good morning", "Hamstrings")
-        val state = vm.uiState.first { it.pendingAddIds.isNotEmpty() }
+        val state = vm.awaitState { it.pendingAddIds.isNotEmpty() }
         assertTrue(state.searchResults.any { it.name == "Good morning" })
     }
 
@@ -479,15 +515,15 @@ class RoutineEditorViewModelTest {
         deps.workoutRepository.discardSession(fixture.session.id)
         val replacement = insertTestExercise(deps, "front-squat", "Front squat", muscleGroup = "Quads")
         val vm = createViewModel(fixture.routine.id)
-        val item = vm.uiState.first { it.routine?.exercises?.size == 1 }.routine!!.exercises.single()
+        val item = vm.awaitState { it.routine?.exercises?.size == 1 }.routine!!.exercises.single()
 
         vm.stageTargets(item.id, targetSets = 3, targetReps = 5, targetWeightKg = 80.0, restSeconds = 90)
         vm.requestSwap(item.id)
         vm.swapExercise(replacement)
-        vm.uiState.first { it.routine?.exercises?.singleOrNull()?.exercise?.id == replacement.id }
+        vm.awaitState { it.routine?.exercises?.singleOrNull()?.exercise?.id == replacement.id }
 
         vm.leave()
-        vm.exitRequested.first { it }
+        vm.awaitExit()
         val stored = checkNotNull(deps.routineRepository.getById(fixture.routine.id))
         assertEquals(replacement.id, stored.exercises.single().exercise.id)
         assertNull(stored.exercises.single().targetWeightKg)
@@ -502,7 +538,7 @@ class RoutineEditorViewModelTest {
         val gate = CompletableDeferred<Unit>()
         val vm = createViewModel("new", delayedAdd(gate))
         try {
-            vm.uiState.first { it.catalog.size >= 2 }
+            vm.awaitState { it.catalog.size >= 2 }
             vm.togglePendingAdd(squat)
             vm.togglePendingAdd(row)
             vm.confirmPendingAdd()
@@ -511,7 +547,7 @@ class RoutineEditorViewModelTest {
             assertFalse(vm.exitRequested.value)
 
             gate.complete(Unit)
-            vm.exitRequested.first { it }
+            vm.awaitExit()
             val saved = deps.routineRepository.observeAll().first().single()
             assertEquals(listOf(squat.id, row.id), saved.exercises.map { it.exercise.id })
         } finally {
@@ -525,15 +561,15 @@ class RoutineEditorViewModelTest {
         val gate = CompletableDeferred<Unit>()
         val vm = createViewModel("new", delayedAdd(gate))
         try {
-            vm.uiState.first { it.catalog.isNotEmpty() }
+            vm.awaitState { it.catalog.isNotEmpty() }
             vm.togglePendingAdd(squat)
             vm.confirmPendingAdd()
-            val busy = vm.uiState.first { it.addingLifts }
+            val busy = vm.awaitState { it.addingLifts }
             assertTrue(busy.addingLifts)
             vm.setPickerVisible(true)
             assertFalse(vm.uiState.value.showExercisePicker)
             gate.complete(Unit)
-            val done = vm.uiState.first { !it.addingLifts && it.routine?.exercises?.size == 1 }
+            val done = vm.awaitState { !it.addingLifts && it.routine?.exercises?.size == 1 }
             assertFalse(done.addingLifts)
         } finally {
             if (!gate.isCompleted) gate.complete(Unit)
@@ -546,7 +582,7 @@ class RoutineEditorViewModelTest {
         val gate = CompletableDeferred<Unit>()
         val vm = createViewModel("new", delayedDelete(gate))
         try {
-            vm.uiState.first { it.catalog.isNotEmpty() }
+            vm.awaitState { it.catalog.isNotEmpty() }
             vm.togglePendingAdd(squat)
             vm.confirmPendingAdd()
             val created = awaitRoutine { it.exercises.size == 1 }
@@ -557,7 +593,7 @@ class RoutineEditorViewModelTest {
             assertEquals(1, deps.routineRepository.observeAll().first().single().exercises.size)
 
             gate.complete(Unit)
-            vm.exitRequested.first { it }
+            vm.awaitExit()
             assertTrue(deps.routineRepository.observeAll().first().isEmpty())
         } finally {
             if (!gate.isCompleted) gate.complete(Unit)
@@ -570,14 +606,14 @@ class RoutineEditorViewModelTest {
         val gate = CompletableDeferred<Unit>()
         val vm = createViewModel("new", delayedAdd(gate))
         try {
-            vm.uiState.first { it.catalog.isNotEmpty() }
+            vm.awaitState { it.catalog.isNotEmpty() }
             vm.addExercise(squat, 3, 5, null, 90)
             vm.leave()
             dispatcher.scheduler.runCurrent()
             assertFalse(vm.exitRequested.value)
 
             gate.complete(Unit)
-            vm.exitRequested.first { it }
+            vm.awaitExit()
             val saved = deps.routineRepository.observeAll().first().single()
             assertEquals(squat.id, saved.exercises.single().exercise.id)
         } finally {
@@ -591,7 +627,7 @@ class RoutineEditorViewModelTest {
         val gate = CompletableDeferred<Unit>()
         val vm = createViewModel("new", failingAdd(gate))
         try {
-            vm.uiState.first { it.catalog.isNotEmpty() }
+            vm.awaitState { it.catalog.isNotEmpty() }
             vm.setPickerVisible(true)
             vm.togglePendingAdd(squat)
             vm.confirmPendingAdd()
@@ -599,7 +635,7 @@ class RoutineEditorViewModelTest {
             dispatcher.scheduler.runCurrent()
             assertFalse(vm.exitRequested.value)
             gate.complete(Unit)
-            vm.exitRequested.first { it }
+            vm.awaitExit()
             assertFalse(vm.uiState.value.showExercisePicker)
         } finally {
             if (!gate.isCompleted) gate.complete(Unit)
@@ -612,22 +648,22 @@ class RoutineEditorViewModelTest {
         val row = insertTestExercise(deps, "row", "Row")
         val handle = SavedStateHandle(mapOf("routineId" to "new"))
         val first = createViewModel("new", savedStateHandle = handle)
-        first.uiState.first { it.catalog.size >= 2 }
+        first.awaitState { it.catalog.size >= 2 }
         first.onNameChange("Push")
         first.setPickerVisible(true)
         first.togglePendingAdd(squat)
         first.confirmPendingAdd()
         val created = awaitRoutine { it.exercises.size == 1 }
-        first.uiState.first { it.routine?.exercises?.size == 1 && !it.addingLifts }
+        first.awaitState { it.routine?.exercises?.size == 1 && !it.addingLifts }
         first.clearAndJoinForTest()
         viewModel = null
 
         val restored = createViewModel("new", savedStateHandle = handle)
-        restored.uiState.first { !it.isLoading && it.name == "Push" }
+        restored.awaitState { !it.isLoading && it.name == "Push" }
         restored.setPickerVisible(true)
         restored.togglePendingAdd(row)
         restored.confirmPendingAdd()
-        restored.uiState.first { it.routine?.exercises?.size == 2 && !it.addingLifts }
+        restored.awaitState { it.routine?.exercises?.size == 2 && !it.addingLifts }
 
         val routines = deps.routineRepository.observeAll().first()
         assertEquals(1, routines.size)
@@ -725,8 +761,53 @@ class RoutineEditorViewModelTest {
         }
     }
 
+    /**
+     * A bare `first { }` on the ViewModel had no ceiling. When a refusal was wiped before this
+     * collector saw it, the wait was not a failed test but a wedged JVM: CI sat for 31 minutes
+     * on exactly that, in `stagedTargetsCommitWhenTheyDifferAndRejectZeroSets`. Bounded, and
+     * naming the state it never reached, because "timed out" alone is the one fact already
+     * known. Reading `uiState.value` in the catch cannot perturb the race — it has already
+     * lost by then.
+     */
+    private suspend fun RoutineEditorViewModel.awaitState(
+        predicate: (RoutineEditorUiState) -> Boolean,
+    ): RoutineEditorUiState = try {
+        withTimeout(TestWaits.FLOW_MS) { uiState.first(predicate) }
+    } catch (timedOut: TimeoutCancellationException) {
+        throw AssertionError("awaitState gave up; last uiState was ${uiState.value}", timedOut)
+    }
+
+    private suspend fun RoutineEditorViewModel.awaitExit() {
+        try {
+            withTimeout(TestWaits.FLOW_MS) { exitRequested.first { it } }
+        } catch (timedOut: TimeoutCancellationException) {
+            throw AssertionError("awaitExit gave up; last uiState was ${uiState.value}", timedOut)
+        }
+    }
+
+    /**
+     * A repository wait, bounded the same way. The third wedge in this class sat on
+     * `exerciseRepository.observeAll().first { }` after a create, with every thread idle;
+     * this names what the list held instead of hanging.
+     */
+    private suspend fun <T> awaitList(
+        what: String,
+        flow: Flow<List<T>>,
+        predicate: (List<T>) -> Boolean,
+    ): List<T> {
+        var last: List<T>? = null
+        return try {
+            withTimeout(TestWaits.FLOW_MS) { flow.first { list -> last = list; predicate(list) } }
+        } catch (timedOut: TimeoutCancellationException) {
+            throw AssertionError(
+                "awaitList($what) gave up; last list was $last; uiState was ${viewModel?.uiState?.value}",
+                timedOut,
+            )
+        }
+    }
+
     private suspend fun awaitRoutine(predicate: (Routine) -> Boolean): Routine =
-        withTimeout(5_000) {
+        withTimeout(TestWaits.FLOW_MS) {
             deps.routineRepository.observeAll().first { list ->
                 list.singleOrNull()?.let(predicate) == true
             }.single()

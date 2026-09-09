@@ -55,9 +55,16 @@ object MuscleLoadCalculator {
         val acc = CanonicalMuscle.entries.associateWith { MuscleAccumulator() }.toMutableMap()
         var anyWorkingSets = false
         var windowWorkingSets = false
+        val windowSessionIds = mutableSetOf<String>()
+        var lastFinishedAtMs: Long? = null
 
         finished.forEach { session ->
-            session.sets.filterNot { it.isWarmup }.forEach { set ->
+            val working = session.sets.filterNot { it.isWarmup }
+            if (working.isNotEmpty()) {
+                val finishedAt = session.finishedAt ?: session.date
+                lastFinishedAtMs = maxOf(lastFinishedAtMs ?: finishedAt, finishedAt)
+            }
+            working.forEach { set ->
                 anyWorkingSets = true
                 val trainedAt = trainedAtMs(session, set)
                 val credits = creditsFor(set, session, exerciseCatalog)
@@ -70,6 +77,7 @@ object MuscleLoadCalculator {
 
                 if (inWindow) {
                     windowWorkingSets = true
+                    windowSessionIds += session.id
                     credits.forEach { (muscle, weight) ->
                         acc.getValue(muscle).recordWindow(
                             sessionId = session.id,
@@ -113,6 +121,9 @@ object MuscleLoadCalculator {
             loads = loads,
             hasAnyWorkingSets = anyWorkingSets,
             hasWindowWorkingSets = windowWorkingSets,
+            windowSessions = windowSessionIds.size,
+            lastFinishedAtMs = lastFinishedAtMs,
+            daysSinceLastFinished = daysSince(lastFinishedAtMs, nowMs, time, zoneId),
         )
     }
 

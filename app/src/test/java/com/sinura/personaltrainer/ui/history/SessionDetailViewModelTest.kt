@@ -8,6 +8,8 @@ import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.testutil.TestSetInput
+import com.sinura.personaltrainer.testutil.TestWaits
+import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -60,7 +62,7 @@ class SessionDetailViewModelTest {
     @Test
     fun missingSessionResolvesWithoutSpinner() = runBlocking {
         val vm = createViewModel("missing")
-        val state = vm.uiState.first { !it.isLoading }
+        val state = vm.uiState.awaitFirst { !it.isLoading }
 
         assertNull(state.session)
         assertFalse(state.isLoading)
@@ -71,7 +73,7 @@ class SessionDetailViewModelTest {
         val fixture = seedFinished(notes = "original note")
         val vm = createViewModel(fixture.id)
 
-        val state = vm.uiState.first { !it.isLoading && it.notes == "original note" }
+        val state = vm.uiState.awaitFirst { !it.isLoading && it.notes == "original note" }
         assertEquals(fixture.id, state.session?.id)
     }
 
@@ -80,7 +82,7 @@ class SessionDetailViewModelTest {
         val fixture = seedFinished()
         val original = fixture.sets.single()
         val vm = createViewModel(fixture.id)
-        vm.uiState.first { !it.isLoading }
+        vm.uiState.awaitFirst { !it.isLoading }
 
         vm.updateSet(original.id, 105.0, 6, rpe = 9, isWarmup = false)
 
@@ -98,7 +100,7 @@ class SessionDetailViewModelTest {
     fun addSetAppendsInsideFinishedSessionWindow() = runBlocking {
         val fixture = seedFinished()
         val vm = createViewModel(fixture.id)
-        vm.uiState.first { !it.isLoading }
+        vm.uiState.awaitFirst { !it.isLoading }
 
         vm.addSet(TEST_EXERCISE, 90.0, 8, rpe = 8, isWarmup = false)
 
@@ -114,11 +116,11 @@ class SessionDetailViewModelTest {
         val fixture = seedFinished()
         val original = fixture.sets.single()
         val vm = createViewModel(fixture.id)
-        vm.uiState.first { !it.isLoading }
+        vm.uiState.awaitFirst { !it.isLoading }
 
         vm.deleteSet(original.id)
 
-        val offered = checkNotNull(vm.deletedSet.first { it != null })
+        val offered = checkNotNull(vm.deletedSet.awaitFirst { it != null })
         assertEquals(original.id, offered.setId)
         awaitSession(fixture.id) { it.sets.isEmpty() }
 
@@ -134,7 +136,7 @@ class SessionDetailViewModelTest {
     fun notesDebounceAndExitFlushBothPersist() = runBlocking {
         val fixture = seedFinished()
         val vm = createViewModel(fixture.id)
-        vm.uiState.first { !it.isLoading }
+        vm.uiState.awaitFirst { !it.isLoading }
 
         vm.setNotes("debounced")
         dispatcher.scheduler.advanceTimeBy(399)
@@ -154,13 +156,13 @@ class SessionDetailViewModelTest {
         val fixture = seedFinished()
         val original = fixture.sets.single()
         val vm = createViewModel(fixture.id)
-        vm.uiState.first { !it.isLoading }
+        vm.uiState.awaitFirst { !it.isLoading }
 
         vm.updateSet(original.id, 0.0, 5, rpe = null, isWarmup = false)
 
         assertEquals(
             SetLogRules.ZERO_WORKING_WEIGHT,
-            vm.error.first { it == SetLogRules.ZERO_WORKING_WEIGHT },
+            vm.error.awaitFirst { it == SetLogRules.ZERO_WORKING_WEIGHT },
         )
         vm.onErrorShown()
         assertNull(vm.error.value)
@@ -171,11 +173,11 @@ class SessionDetailViewModelTest {
     fun repeatWhenIdleNavigatesOnceAndCopiesNoLoggedSets() = runBlocking {
         val fixture = seedFinished()
         val vm = createViewModel(fixture.id)
-        vm.uiState.first { !it.isLoading }
+        vm.uiState.awaitFirst { !it.isLoading }
 
         vm.repeatSession()
 
-        val newId = checkNotNull(vm.navigateToSession.first { it != null })
+        val newId = checkNotNull(vm.navigateToSession.awaitFirst { it != null })
         val repeated = checkNotNull(deps.workoutRepository.getSession(newId))
         assertTrue(repeated.sets.isEmpty())
         assertEquals(1, repeated.exercises.size)
@@ -188,11 +190,11 @@ class SessionDetailViewModelTest {
         val fixture = seedFinished()
         val live = deps.workoutRepository.startFreeWorkout()
         val vm = createViewModel(fixture.id)
-        vm.uiState.first { !it.isLoading }
+        vm.uiState.awaitFirst { !it.isLoading }
 
         vm.repeatSession()
 
-        val blocked = checkNotNull(vm.blockedRepeat.first { it != null })
+        val blocked = checkNotNull(vm.blockedRepeat.awaitFirst { it != null })
         assertEquals(live.id, blocked.inProgressSessionId)
         assertNull(vm.navigateToSession.value)
         vm.resumeBlockedSession()
@@ -204,13 +206,13 @@ class SessionDetailViewModelTest {
     fun addSetValidationErrorIsUserFacingAndWritesNothing() = runBlocking {
         val fixture = seedFinished()
         val vm = createViewModel(fixture.id)
-        vm.uiState.first { !it.isLoading }
+        vm.uiState.awaitFirst { !it.isLoading }
 
         vm.addSet(TEST_EXERCISE, 0.0, 5, rpe = null, isWarmup = false)
 
         assertEquals(
             SetLogRules.ZERO_WORKING_WEIGHT,
-            vm.error.first { it == SetLogRules.ZERO_WORKING_WEIGHT },
+            vm.error.awaitFirst { it == SetLogRules.ZERO_WORKING_WEIGHT },
         )
         assertEquals(1, deps.workoutRepository.getSession(fixture.id)!!.sets.size)
     }
@@ -218,13 +220,13 @@ class SessionDetailViewModelTest {
     @Test
     fun repeatMissingSessionSurfacesFailedWithoutNavigating() = runBlocking {
         val vm = createViewModel("missing")
-        vm.uiState.first { !it.isLoading }
+        vm.uiState.awaitFirst { !it.isLoading }
 
         vm.repeatSession()
 
         assertEquals(
             "That session is no longer available.",
-            vm.error.first { it == "That session is no longer available." },
+            vm.error.awaitFirst { it == "That session is no longer available." },
         )
         assertNull(vm.navigateToSession.value)
         assertNull(vm.blockedRepeat.value)
@@ -236,10 +238,10 @@ class SessionDetailViewModelTest {
         val fixture = seedFinished()
         val live = deps.workoutRepository.startFreeWorkout()
         val vm = createViewModel(fixture.id)
-        vm.uiState.first { !it.isLoading }
+        vm.uiState.awaitFirst { !it.isLoading }
 
         vm.repeatSession()
-        vm.blockedRepeat.first { it != null }
+        vm.blockedRepeat.awaitFirst { it != null }
 
         vm.dismissBlockedRepeat()
 
@@ -252,7 +254,7 @@ class SessionDetailViewModelTest {
     fun undoWithNothingPendingIsANoOp() = runBlocking {
         val fixture = seedFinished()
         val vm = createViewModel(fixture.id)
-        vm.uiState.first { !it.isLoading }
+        vm.uiState.awaitFirst { !it.isLoading }
 
         vm.undoDeleteSet()
 
@@ -265,11 +267,11 @@ class SessionDetailViewModelTest {
     fun deleteSessionRemovesRowAndEmitsDeleted() = runBlocking {
         val fixture = seedFinished()
         val vm = createViewModel(fixture.id)
-        vm.uiState.first { !it.isLoading }
+        vm.uiState.awaitFirst { !it.isLoading }
 
         vm.deleteSession()
 
-        vm.deleted.first { it }
+        vm.deleted.awaitFirst { it }
         assertNull(deps.workoutRepository.getSession(fixture.id))
     }
 
@@ -292,7 +294,7 @@ class SessionDetailViewModelTest {
     private suspend fun awaitSession(
         id: String,
         predicate: (WorkoutSession) -> Boolean,
-    ): WorkoutSession = withTimeout(5_000) {
+    ): WorkoutSession = withTimeout(TestWaits.FLOW_MS) {
         checkNotNull(
             deps.workoutRepository.observeSession(id).first { session ->
                 session != null && predicate(session)

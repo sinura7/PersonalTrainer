@@ -310,13 +310,13 @@ This screen **is** the app. It is currently a vertical form: rest card, chip row
 | W-06 | Lift chips have no thumb, no set progress (`2/5`), no rest badge | P1 |
 | W-07 | “No lifts yet” vs missing selection — see A-01 | P0 |
 | W-08 | Duplicate set history: **Last set this lift** and **This exercise** list the same latest set with two Edit/Delete pairs | P1 |
-| W-09 | Only the latest set is editable in the list; the last-set card also edits it. One place | P1 |
+| W-09 | Only the latest set is editable in the list; the last-set card also edits it. One place | P1 | ✅ Any logged set is selectable now, and selection reveals the two actions. The gate was `if (isLatest)` in `SetRow` alone — `editSet(setId)`/`deleteSet(setId)` already resolved a row by id, and `updateSet` already preserved `completedAt` and `setNumber` so a revision cannot re-date a record. `isLatest` still earns its keep: it draws the Volt rail |
 | W-10 | Suggestion card is large and pushes the steppers down. Collapse to one line: `Last 100 × 5 → 102.5` + Use | P1 |
 | W-11 | Warm-up is a switch with no visual change to the log button (`Log warm-up` vs `Log set`) | P1 |
 | W-12 | RPE 6–10 as chips is fine; it sits between reps and Log, adding scroll before the primary tap | P2 |
 | W-13 | Session notes on the live logging screen are in the way. Move to finish or a overflow | P2 |
-| W-14 | Finish is disabled until a set is logged (good). Discard is the **confirm** button on the leave dialog; Keep and exit is dismiss. Invert: Keep is default, Discard is the destructive text action | P1 |
-| W-15 | Close icon means leave, not discard — but it opens a dialog whose primary is Discard. Easy to kill a session | P1 |
+| W-14 | Finish is disabled until a set is logged (good). Discard is the **confirm** button on the leave dialog; Keep and exit is dismiss. Invert: Keep is default, Discard is the destructive text action | P1 | ✅ `LeaveWorkoutDialog`: **Keep and exit** is the `PrimaryGymButton`, "Discard this workout instead" is a `DangerGymButton` beneath it, stacked full-width; `LeaveCardioDialog` matches. Row was stale when re-read 9 Sep 2026 |
+| W-15 | Close icon means leave, not discard — but it opens a dialog whose primary is Discard. Easy to kill a session | P1 | ✅ Same dialog: Close opens Keep-first; Discard is the danger act, never the default |
 | W-16 | No “next lift” preview. After last set of a lift, the UI should offer the next routine lift with picture | P1 |
 | W-17 | No plate math, no bar + plates graphic | P2 |
 | W-18 | No rest-per-set history (how long they actually rested) | P3 |
@@ -419,7 +419,7 @@ This is the second most important design surface after Active Workout. Today it 
 | B-02 | Empty until history — the tab is a dead end on first launch | P1 |
 | B-03 | Recommendations can still read generic. They should name **lifts you already have** with pictures **— Naming closed 21 Aug 2026 (Phase 5): every muscle-targeted card resolves one lift the owner already has, preferring routines over recent history and filtered by the equipment they say they own, and taps through to that lift. Pictures remain open (Phase 8).** | P1 |
 | B-04 | Home dots + this tab tell the same story twice | P2 |
-| B-05 | Front/back toggle is easy to miss | P2 |
+| B-05 | Front/back toggle is easy to miss **— Closed 9 Sep 2026: the Front / Back chips sit in their own strip under the figure, beside a facts line that says what the figure was built from ("3 sessions this week · last finished yesterday"); an empty Day or Week offers **Show this month** in one tap.** | P2 |
 
 ### 6.9 Schedule
 

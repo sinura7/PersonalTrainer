@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
@@ -22,6 +23,7 @@ import com.sinura.personaltrainer.domain.RoutineEditorLoad
 import com.sinura.personaltrainer.domain.RoutineEditorPolicy
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -36,6 +38,16 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 private const val TAG = "PT/RoutineEditorVM"
+
+/** [ErrorSlot] families: a success may clear only its own family's refusal. */
+private const val ERR_LOAD = "load"
+private const val ERR_SWAP_LIFT = "swapLift"
+private const val ERR_SAVE = "save"
+private const val ERR_ADD_LIFT = "addLift"
+private const val ERR_TARGETS = "targets"
+private const val ERR_REMOVE_LIFT = "removeLift"
+private const val ERR_REORDER = "reorder"
+private const val ERR_ROUTINE = "routine"
 
 data class RoutineEditorUiState(
     val isLoading: Boolean = true,
@@ -95,7 +107,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     private val notes = MutableStateFlow(savedStateHandle.get<String>(KEY_NOTES).orEmpty())
     private val searchQuery = MutableStateFlow("")
     private val showPicker = MutableStateFlow(false)
-    private val error = MutableStateFlow<String?>(null)
+    private val error = ErrorSlot()
     private val extraCatalog = MutableStateFlow<List<Exercise>>(emptyList())
     private val swapItemId = MutableStateFlow<String?>(null)
     private val pendingAddIds = MutableStateFlow<List<String>>(emptyList())
@@ -165,7 +177,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     /** Re-read after a failed hydration. No-op unless the editor is actually in FAILED. */
     fun retryHydration() {
         if (load.value.phase != EditorPhase.FAILED) return
-        error.value = null
+        error.clearFrom(source = ERR_LOAD)
         applyLoad { it.onRetry() }
         hydrate()
     }
@@ -181,7 +193,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         if (after == before) return
         load.value = after
         if (after.phase == EditorPhase.MISSING && before.phase != EditorPhase.MISSING) {
-            error.value = "This routine is no longer available."
+            error.fail(source = ERR_LOAD, message = "This routine is no longer available.")
             routineId.value = null
             persistDraft()
         }
@@ -191,7 +203,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         combine(routineFlow, name, notes, searchQuery, resultsFlow) { routine, currentName, currentNotes, query, results ->
             EditorCore(routine, currentName, currentNotes, query, results)
         },
-        combine(showPicker, error, load, confirmInFlight) { picker, err, loadState, adding ->
+        combine(showPicker, error.messages, load, confirmInFlight) { picker, err, loadState, adding ->
             EditorFlags(picker, err, loadState.phase, adding)
         },
         combine(
@@ -252,6 +264,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
      * from the rule the routine actually enforces.
      */
     fun swapExercise(replacement: Exercise) {
+        val started = error.mark()
         if (leaving) return
         val itemId = swapItemId.value ?: return
         val routineId = routineId.value ?: return
@@ -260,11 +273,15 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         launchWrite {
             runCatchingCancellable {
                 val message = container.routineRepository.swapExercise(routineId, itemId, replacement)
-                error.value = message
+                if (message != null) {
+                    error.fail(source = ERR_SWAP_LIFT, message = message)
+                } else {
+                    error.clearFrom(source = ERR_SWAP_LIFT, before = started)
+                }
                 if (message != null && dropped != null) stagedTargets[itemId] = dropped
             }.onFailure {
                 AppLog.w(TAG, "swapExercise failed", it)
-                error.value = "Could not swap that lift. Try again."
+                error.fail(source = ERR_SWAP_LIFT, message = "Could not swap that lift. Try again.")
                 if (dropped != null) stagedTargets[itemId] = dropped
             }
         }
@@ -281,7 +298,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     }
 
     fun dismissError() {
-        error.value = null
+        error.dismiss()
     }
 
     /**
@@ -406,7 +423,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             val id = routineId.value
             val count = if (id == null) 0 else currentExerciseCount(id)
             if (count <= 0) {
-                error.value = SessionOrderCopy.NEED_A_LIFT
+                error.fail(source = ERR_SAVE, message = SessionOrderCopy.NEED_A_LIFT)
                 leaving = false
                 return@launch
             }
@@ -445,6 +462,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         ) ?: return
         try {
             container.routineRepository.updateDetails(id, pending.name, pending.notes)
+        } catch (thrown: CancellationException) {
+            throw thrown
         } catch (thrown: Exception) {
             // Keep leaving. The edit is lost either way if the write fails, and trapping the
             // user on the screen to say so would turn one bad outcome into two.
@@ -468,6 +487,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     }
 
     fun confirmPendingAdd() {
+        val started = error.mark()
         if (confirmInFlight.value || leaving) return
         val selected = LiftCart.sanitize(pendingAddIds.value)
         if (selected.isEmpty()) return
@@ -481,14 +501,15 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             already = routineFlow.value?.exercises.orEmpty().map { it.exercise.id }.toSet(),
         )
         if (plan.blocked) {
-            error.value = SessionOrderCopy.ADD_LIFT_FAILED
+            error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.ADD_LIFT_FAILED)
             return
         }
         pendingAddIds.value = emptyList()
         if (plan.nothingNew) {
             showPicker.value = false
             searchQuery.value = ""
-            error.value = null
+            error.clearFrom(source = ERR_ADD_LIFT, before = started)
+            error.clearFrom(source = ERR_SAVE, before = started)
             return
         }
         confirmInFlight.value = true
@@ -513,17 +534,23 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                             restSeconds = defaults.restSeconds,
                         )
                         remaining.remove(exercise)
+                    } catch (thrown: CancellationException) {
+                        throw thrown
                     } catch (thrown: Exception) {
                         AppLog.w(TAG, "addExercise failed", thrown)
                         restorePicker(remaining.map { it.id })
-                        error.value = SessionOrderCopy.ADD_LIFT_FAILED
+                        error.fail(
+                            source = ERR_ADD_LIFT,
+                            message = SessionOrderCopy.ADD_LIFT_FAILED,
+                        )
                         return@launchWrite
                     }
                 }
                 extraCatalog.value = extraCatalog.value.filter { extra ->
                     extra.id !in plan.toAdd.map { it.id }.toSet()
                 }
-                error.value = null
+                error.clearFrom(source = ERR_ADD_LIFT, before = started)
+                error.clearFrom(source = ERR_SAVE, before = started)
             } finally {
                 confirmInFlight.value = false
             }
@@ -541,8 +568,9 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         targetWeightKg: Double?,
         restSeconds: Int,
     ) {
+        val started = error.mark()
         if (missing) {
-            error.value = "This routine is no longer available."
+            error.fail(source = ERR_ADD_LIFT, message = "This routine is no longer available.")
             return
         }
         if (leaving) return
@@ -550,7 +578,10 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             val id = ensureRoutineId() ?: return@launchWrite
             val alreadyAdded = routineFlow.value?.exercises?.any { it.exercise.id == exercise.id } == true
             if (alreadyAdded) {
-                error.value = "${exercise.name} is already in this routine."
+                error.fail(
+                    source = ERR_ADD_LIFT,
+                    message = "${exercise.name} is already in this routine.",
+                )
                 if (!leaving) showPicker.value = false
                 return@launchWrite
             }
@@ -567,25 +598,31 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                     showPicker.value = false
                     searchQuery.value = ""
                 }
-                error.value = null
+                error.clearFrom(source = ERR_ADD_LIFT, before = started)
+                error.clearFrom(source = ERR_SAVE, before = started)
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "addExercise failed", thrown)
-                error.value = SessionOrderCopy.ADD_LIFT_FAILED
+                error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.ADD_LIFT_FAILED)
             }
         }
     }
 
     fun createAndSelect(name: String, muscleGroup: String) {
+        val started = error.mark()
         if (leaving) return
         if (name.isBlank()) {
-            error.value = SessionOrderCopy.LIFT_NAME_REQUIRED
+            error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.LIFT_NAME_REQUIRED)
             return
         }
         launchWrite {
             try {
                 when (val result = container.exerciseRepository.createCustom(name, muscleGroup)) {
-                    is SaveExerciseResult.DuplicateName -> error.value = DUPLICATE_NAME_MESSAGE
-                    is SaveExerciseResult.MissingMuscle -> error.value = MuscleGroups.MISSING_MESSAGE
+                    is SaveExerciseResult.DuplicateName ->
+                        error.fail(source = ERR_ADD_LIFT, message = DUPLICATE_NAME_MESSAGE)
+                    is SaveExerciseResult.MissingMuscle ->
+                        error.fail(source = ERR_ADD_LIFT, message = MuscleGroups.MISSING_MESSAGE)
                     is SaveExerciseResult.Saved -> {
                         extraCatalog.value = LiftCart.mergeSources(
                             extraCatalog.value,
@@ -594,12 +631,15 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                         if (showPicker.value && !confirmInFlight.value) {
                             togglePendingAdd(result.exercise)
                         }
-                        error.value = null
+                        error.clearFrom(source = ERR_ADD_LIFT, before = started)
+                        error.clearFrom(source = ERR_SAVE, before = started)
                     }
                 }
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "createAndSelect failed", thrown)
-                error.value = SessionOrderCopy.CREATE_LIFT_FAILED
+                error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.CREATE_LIFT_FAILED)
             }
         }
     }
@@ -615,8 +655,9 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         targetWeightKg: Double?,
         restSeconds: Int,
     ): Boolean {
+        val started = error.mark()
         if (targetSets < 1 || targetReps < 1) {
-            error.value = "Sets and reps must be at least 1."
+            error.fail(source = ERR_TARGETS, message = "Sets and reps must be at least 1.")
             return true
         }
         val id = ensureRoutineId() ?: return false
@@ -629,26 +670,29 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 targetWeightKg = targetWeightKg,
                 restSeconds = restSeconds,
             )
-            error.value = null
+            error.clearFrom(source = ERR_TARGETS, before = started)
             true
         } catch (thrown: Exception) {
             AppLog.w(TAG, "writeTargets failed", thrown)
-            error.value = "Could not update those targets. Try again."
+            error.fail(source = ERR_TARGETS, message = "Could not update those targets. Try again.")
             false
         }
     }
 
     fun removeExercise(itemId: String) {
+        val started = error.mark()
         if (leaving) return
         launchWrite {
             val id = ensureRoutineId() ?: return@launchWrite
             try {
                 container.routineRepository.removeExercise(itemId, id)
                 stagedTargets.remove(itemId)
-                error.value = null
+                error.clearFrom(source = ERR_REMOVE_LIFT, before = started)
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "removeExercise failed", thrown)
-                error.value = SessionOrderCopy.REMOVE_LIFT_FAILED
+                error.fail(source = ERR_REMOVE_LIFT, message = SessionOrderCopy.REMOVE_LIFT_FAILED)
             }
         }
     }
@@ -659,9 +703,11 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             val id = ensureRoutineId() ?: return@launchWrite
             try {
                 container.routineRepository.moveExercise(id, itemId, direction)
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "moveExercise failed", thrown)
-                error.value = SessionOrderCopy.REORDER_LIFT_FAILED
+                error.fail(source = ERR_REORDER, message = SessionOrderCopy.REORDER_LIFT_FAILED)
             }
         }
     }
@@ -693,7 +739,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
 
     private suspend fun ensureRoutineId(): String? {
         if (missing) {
-            error.value = "This routine is no longer available."
+            error.fail(source = ERR_ROUTINE, message = "This routine is no longer available.")
             return null
         }
         val current = routineId.value
@@ -715,9 +761,11 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             routineId.value = created.id
             persistDraft()
             created.id
+        } catch (thrown: CancellationException) {
+            throw thrown
         } catch (thrown: Exception) {
             AppLog.w(TAG, "ensureRoutineId failed", thrown)
-            error.value = "Could not create this routine. Try again."
+            error.fail(source = ERR_ROUTINE, message = "Could not create this routine. Try again.")
             null
         }
     }
@@ -734,6 +782,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         if (!RoutineEditorPolicy.shouldDiscardStub(createdThisSession, count)) return
         try {
             container.routineRepository.delete(id)
+        } catch (thrown: CancellationException) {
+            throw thrown
         } catch (thrown: Exception) {
             AppLog.w(TAG, "discardEmptyStub failed", thrown)
             // Keep navigating back; an empty stub can be deleted later.

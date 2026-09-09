@@ -11,9 +11,12 @@ import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.testutil.TestWaits
+import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
 import com.sinura.personaltrainer.workout.WorkoutDraft
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -169,7 +172,7 @@ class ActiveWorkoutViewModelTest {
         vm.awaitFound()
 
         vm.setWeight(0.0)
-        vm.logSet()
+        vm.logSetAndSettle()
 
         val state = vm.awaitState { it.error != null }
         assertTrue(state.error.orEmpty().contains("weight", ignoreCase = true))
@@ -188,13 +191,13 @@ class ActiveWorkoutViewModelTest {
 
         vm.setWeight(100.0)
         vm.awaitState { it.draft.weightKg == 100.0 }
-        vm.logSet()
+        vm.logSetAndSettle()
 
         val persisted = awaitSession(fixture.session.id) { it.sets.size == 1 }
         assertEquals(100.0, persisted.sets.single().weightKg, 0.0001)
         assertEquals(5, persisted.sets.single().reps)
         assertNull(vm.uiState.value.error)
-        val record = checkNotNull(vm.personalRecord.first { it != null })
+        val record = checkNotNull(vm.personalRecord.awaitFirst { it != null })
         assertEquals("Squat", record.exerciseName)
         assertTrue(record.kinds.isNotEmpty())
 
@@ -210,7 +213,7 @@ class ActiveWorkoutViewModelTest {
         vm.setWeight(100.0)
 
         deps.database.workoutDao().deleteSession(fixture.session.id)
-        vm.logSet()
+        vm.logSetAndSettle()
 
         val state = vm.awaitState { it.error != null }
         assertTrue(state.error.orEmpty().contains("no longer available", ignoreCase = true))
@@ -223,14 +226,14 @@ class ActiveWorkoutViewModelTest {
         val vm = createViewModel(fixture.session.id)
         vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
         vm.setWeight(100.0)
-        vm.logSet()
+        vm.logSetAndSettle()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         dispatcher.scheduler.advanceUntilIdle()
         vm.awaitState { it.session?.sets?.size == 1 }
         vm.skipRest()
 
         val rec = checkNotNull(
-            withTimeout(5_000) {
+            withTimeout(TestWaits.FLOW_MS) {
                 vm.microRec.first {
                     it?.reasonCode == SetMicroRecCalculator.SKIP_RPE_HOLD &&
                         it.showApply &&
@@ -260,14 +263,14 @@ class ActiveWorkoutViewModelTest {
         vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
         vm.setWeight(100.0)
         vm.setRpe(6)
-        vm.logSet()
+        vm.logSetAndSettle()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         dispatcher.scheduler.advanceUntilIdle()
         vm.awaitState { it.session?.sets?.size == 1 && it.draft.rpe == null }
         vm.skipRest()
 
         val rec = checkNotNull(
-            withTimeout(5_000) {
+            withTimeout(TestWaits.FLOW_MS) {
                 vm.microRec.first {
                     it?.reasonCode == SetMicroRecCalculator.IN_TANK &&
                         it.showApply &&
@@ -287,18 +290,18 @@ class ActiveWorkoutViewModelTest {
         val fixture = seedWorkout()
         val vm = createViewModel(fixture.session.id)
         vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
-        vm.logSet()
+        vm.logSetAndSettle()
         val persisted = awaitSession(fixture.session.id) { it.sets.size == 1 }
         dispatcher.scheduler.advanceUntilIdle()
         vm.awaitState { it.session?.sets?.size == 1 }
         vm.skipRest()
-        withTimeout(5_000) { vm.microRec.first { it != null && !it.previewOnly } }
+        withTimeout(TestWaits.FLOW_MS) { vm.microRec.first { it != null && !it.previewOnly } }
         vm.editSet(persisted.sets.single().id)
         vm.awaitState { it.editingSetId != null }
-        withTimeout(5_000) { vm.microRec.first { it == null } }
+        withTimeout(TestWaits.FLOW_MS) { vm.microRec.first { it == null } }
         vm.cancelEdit()
         vm.awaitState { it.editingSetId == null }
-        withTimeout(5_000) { vm.microRec.first { it != null } }
+        withTimeout(TestWaits.FLOW_MS) { vm.microRec.first { it != null } }
         Unit
     }
 
@@ -307,10 +310,10 @@ class ActiveWorkoutViewModelTest {
         val fixture = seedWorkout(targetSets = 1)
         val vm = createViewModel(fixture.session.id)
         vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
-        vm.logSet()
+        vm.logSetAndSettle()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         val rec = checkNotNull(
-            withTimeout(5_000) {
+            withTimeout(TestWaits.FLOW_MS) {
                 vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.LIFT_DONE }
             },
         )
@@ -324,12 +327,12 @@ class ActiveWorkoutViewModelTest {
         val vm = createViewModel(fixture.session.id)
         vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
         vm.setWeight(100.0)
-        vm.logSet()
+        vm.logSetAndSettle()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         dispatcher.scheduler.advanceUntilIdle()
         vm.awaitState { it.session?.sets?.size == 1 }
         vm.skipRest()
-        withTimeout(5_000) { vm.microRec.first { it != null && !it.previewOnly } }
+        withTimeout(TestWaits.FLOW_MS) { vm.microRec.first { it != null && !it.previewOnly } }
 
         vm.setRpe(6)
         val draft = vm.awaitState { it.draft.rpe == 6 && it.draft.weightKg == 102.5 }.draft
@@ -343,17 +346,17 @@ class ActiveWorkoutViewModelTest {
         val vm = createViewModel(fixture.session.id)
         vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
         vm.setWeight(100.0)
-        vm.logSet()
+        vm.logSetAndSettle()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         dispatcher.scheduler.advanceUntilIdle()
         vm.awaitState { it.session?.sets?.size == 1 }
-        withTimeout(5_000) { vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.LIFT_DONE } }
+        withTimeout(TestWaits.FLOW_MS) { vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.LIFT_DONE } }
         assertFalse(deps.restTimerStore.current().running)
 
         vm.requestExtraSet()
         assertTrue(vm.extraSetRequested.value)
         val rec = checkNotNull(
-            withTimeout(5_000) {
+            withTimeout(TestWaits.FLOW_MS) {
                 vm.microRec.first { it != null && it.reasonCode != SetMicroRecCalculator.LIFT_DONE }
             },
         )
@@ -361,7 +364,7 @@ class ActiveWorkoutViewModelTest {
         assertEquals(100.0, rec.nextWeightKg, 0.0001)
 
         vm.setWeight(100.0)
-        vm.logSet()
+        vm.logSetAndSettle()
         awaitSession(fixture.session.id) { it.sets.size == 2 }
         deps.restTimerStore.snapshot.first { it.running }
         assertFalse(vm.extraSetRequested.value)
@@ -374,7 +377,7 @@ class ActiveWorkoutViewModelTest {
         vm.awaitState { it.loadState == SessionLoadState.FOUND && it.selectedExerciseId == SQUAT }
         vm.setWeight(100.0)
         vm.awaitState { it.draft.weightKg == 100.0 }
-        vm.logSet()
+        vm.logSetAndSettle()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         dispatcher.scheduler.advanceUntilIdle()
         vm.awaitState { it.session?.sets?.size == 1 }
@@ -393,20 +396,20 @@ class ActiveWorkoutViewModelTest {
         val vm = createViewModel(fixture.session.id)
         vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
         vm.setWeight(100.0)
-        vm.logSet()
+        vm.logSetAndSettle()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         dispatcher.scheduler.advanceUntilIdle()
         vm.awaitState { it.session?.sets?.size == 1 }
         vm.skipRest()
         val rec = checkNotNull(
-            withTimeout(5_000) {
+            withTimeout(TestWaits.FLOW_MS) {
                 vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.SKIP_RPE_HOLD }
             },
         )
         vm.adjustWeight(2.5)
         dispatcher.scheduler.advanceUntilIdle()
         val after = checkNotNull(
-            withTimeout(5_000) {
+            withTimeout(TestWaits.FLOW_MS) {
                 vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.SKIP_RPE_HOLD }
             },
         )
@@ -421,7 +424,7 @@ class ActiveWorkoutViewModelTest {
         val vm = createViewModel(fixture.session.id)
         vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
 
-        vm.logSet()
+        vm.logSetAndSettle()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         deps.restTimerStore.snapshot.first { it.running }
 
@@ -442,7 +445,7 @@ class ActiveWorkoutViewModelTest {
         warmupVm.awaitState { it.draft.weightKg == 40.0 }
         warmupVm.setWarmup(true)
         warmupVm.awaitState { it.draft.isWarmup }
-        warmupVm.logSet()
+        warmupVm.logSetAndSettle()
         val warmupSession = awaitSession(warmupFixture.session.id) { it.sets.size == 1 }
         assertTrue(warmupSession.sets.single().isWarmup)
         assertFalse(deps.restTimerStore.current().running)
@@ -455,7 +458,7 @@ class ActiveWorkoutViewModelTest {
         deps.restTimerController.stop()
         finalVm.setWeight(100.0)
         finalVm.awaitState { it.draft.weightKg == 100.0 }
-        finalVm.logSet()
+        finalVm.logSetAndSettle()
         val finalSession = awaitSession(finalFixture.session.id) { it.sets.size == 1 }
         assertFalse(finalSession.sets.single().isWarmup)
         assertFalse(deps.restTimerStore.current().running)
@@ -485,7 +488,7 @@ class ActiveWorkoutViewModelTest {
         assertFalse(deps.preferencesRepository.restAlarmEligible.first())
         vm.startSelectedRest()
         deps.restTimerStore.snapshot.first { it.running }
-        withTimeout(5_000) { deps.preferencesRepository.restAlarmEligible.first { it } }
+        withTimeout(TestWaits.FLOW_MS) { deps.preferencesRepository.restAlarmEligible.first { it } }
         Unit
     }
 
@@ -495,7 +498,7 @@ class ActiveWorkoutViewModelTest {
         val vm = createViewModel(fixture.session.id)
         vm.awaitFound()
         vm.setWeight(100.0)
-        vm.logSet()
+        vm.logSetAndSettle()
         val logged = awaitSession(fixture.session.id) { it.sets.size == 1 }.sets.single()
         vm.awaitState { state -> state.session?.sets?.any { it.id == logged.id } == true }
         vm.onPersonalRecordShown()
@@ -504,7 +507,7 @@ class ActiveWorkoutViewModelTest {
         vm.editSet(logged.id)
         vm.setWeight(105.0)
         vm.adjustReps(1)
-        vm.logSet()
+        vm.logSetAndSettle()
 
         val updated = awaitSession(fixture.session.id) {
             it.sets.singleOrNull()?.weightKg == 105.0
@@ -522,13 +525,13 @@ class ActiveWorkoutViewModelTest {
         val vm = createViewModel(fixture.session.id)
         vm.awaitFound()
         vm.setWeight(100.0)
-        vm.logSet()
+        vm.logSetAndSettle()
         val logged = awaitSession(fixture.session.id) { it.sets.size == 1 }.sets.single()
         vm.awaitState { state -> state.session?.sets?.any { it.id == logged.id } == true }
         deps.restTimerStore.snapshot.first { it.running }
 
         vm.deleteSet(logged.id)
-        checkNotNull(vm.deletedSet.first { it != null })
+        checkNotNull(vm.deletedSet.awaitFirst { it != null })
         awaitSession(fixture.session.id) { it.sets.isEmpty() }
         assertFalse(deps.restTimerStore.current().running)
 
@@ -632,7 +635,7 @@ class ActiveWorkoutViewModelTest {
         val vm = createViewModel(fixture.session.id)
         vm.awaitFound()
         vm.setWeight(100.0)
-        vm.logSet()
+        vm.logSetAndSettle()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         dispatcher.scheduler.advanceUntilIdle()
         vm.awaitState { it.session?.sets?.size == 1 }
@@ -667,7 +670,7 @@ class ActiveWorkoutViewModelTest {
         val vm = createViewModel(fixture.session.id, handle)
         vm.awaitFound()
         vm.setWeight(100.0)
-        vm.logSet()
+        vm.logSetAndSettle()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         dispatcher.scheduler.advanceUntilIdle()
         vm.awaitState { it.session?.sets?.size == 1 }
@@ -676,7 +679,7 @@ class ActiveWorkoutViewModelTest {
 
         vm.finishWorkout()
 
-        val exit = checkNotNull(vm.exitRequested.first { it != null })
+        val exit = checkNotNull(vm.exitRequested.awaitFirst { it != null })
         assertEquals(WorkoutExit.Finished(fixture.session.id), exit)
         assertNotNull(deps.workoutRepository.getSession(fixture.session.id)?.finishedAt)
         assertNull(deps.workoutRepository.getInProgress())
@@ -699,7 +702,7 @@ class ActiveWorkoutViewModelTest {
 
         vm.discardWorkout()
 
-        val exit = checkNotNull(vm.exitRequested.first { it != null })
+        val exit = checkNotNull(vm.exitRequested.awaitFirst { it != null })
         assertEquals(WorkoutExit.Discarded, exit)
         assertNull(deps.workoutRepository.getSession(fixture.session.id))
         assertNull(deps.workoutDraftCache.get(fixture.session.id))
@@ -748,7 +751,7 @@ class ActiveWorkoutViewModelTest {
         first.awaitState {
             it.loadState == SessionLoadState.FOUND && it.draft.weightKg == 100.0
         }
-        first.logSet()
+        first.logSetAndSettle()
         val persisted = awaitSession(fixture.session.id) { it.sets.size == 1 }
         dispatcher.scheduler.advanceUntilIdle()
         first.awaitState { it.session?.sets?.size == 1 }
@@ -810,6 +813,27 @@ class ActiveWorkoutViewModelTest {
         )
     }
 
+    @Test
+    fun aRefusalSurvivesALogSetStillInFlight() = runBlocking {
+        val fixture = seedWorkout(targetSets = 1)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitFound()
+        vm.setWeight(100.0)
+        // Deliberately not settled: the race under test is logSet's tail landing after the
+        // refusal below. Before ErrorSlot that tail's success-path `error = null` erased the
+        // refusal before this collector saw it, and the wait ran out its 30 seconds.
+        vm.logSet()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        vm.awaitState { it.session?.sets?.size == 1 }
+
+        vm.removeSelectedLift()
+
+        val state = vm.awaitState { it.error != null }
+        assertTrue(state.error.orEmpty().contains("set", ignoreCase = true))
+        vm.awaitState { !it.logging }
+        assertEquals(1, deps.workoutRepository.getSession(fixture.session.id)!!.exercises.size)
+    }
+
     private fun createViewModel(
         sessionId: String,
         handle: SavedStateHandle = handleFor(sessionId),
@@ -823,21 +847,53 @@ class ActiveWorkoutViewModelTest {
     private suspend fun ActiveWorkoutViewModel.awaitFound(): ActiveWorkoutUiState =
         awaitState { it.loadState == SessionLoadState.FOUND }
 
+    /**
+     * Log a set and wait for the whole action, not just for its row.
+     *
+     * The session Flow publishes the moment Room commits, which is the middle of
+     * [ActiveWorkoutViewModel.logSet]'s coroutine and not its end: the personal-record
+     * moment, `wantAnotherSet`, `error`, the draft reset and the double-tap guard are all
+     * written after that. Carrying on at the row raced the rest of the action — whatever the
+     * test set next could be taken back by the tail, and a second logSet() could be swallowed
+     * by a guard still true from the first.
+     *
+     * That is what wedged this class intermittently. `logging` is the action's own
+     * completion signal, so wait on it.
+     */
+    private suspend fun ActiveWorkoutViewModel.logSetAndSettle() {
+        logSet()
+        awaitState { !it.logging }
+    }
+
+    /**
+     * A bare timeout here reports only "Timed out waiting for 30000 ms", which is the one
+     * thing already known. The state the wait never reached is what says whether the action
+     * under test did nothing, did the wrong thing, or did the right thing into a value that
+     * was overwritten before this collector saw it. Reading it in the catch costs nothing on
+     * the happy path and cannot perturb the race that got us here — it has already lost.
+     */
     private suspend fun ActiveWorkoutViewModel.awaitState(
         predicate: (ActiveWorkoutUiState) -> Boolean,
-    ): ActiveWorkoutUiState = withTimeout(5_000) {
-        uiState.first(predicate)
+    ): ActiveWorkoutUiState = try {
+        withTimeout(TestWaits.FLOW_MS) { uiState.first(predicate) }
+    } catch (timedOut: TimeoutCancellationException) {
+        throw AssertionError("awaitState gave up; last uiState was ${uiState.value}", timedOut)
     }
 
     private suspend fun awaitSession(
         sessionId: String,
         predicate: (WorkoutSession) -> Boolean,
-    ): WorkoutSession = withTimeout(5_000) {
-        checkNotNull(
-            deps.workoutRepository.observeSession(sessionId).first { session ->
-                session != null && predicate(session)
-            },
-        )
+    ): WorkoutSession = try {
+        withTimeout(TestWaits.FLOW_MS) {
+            checkNotNull(
+                deps.workoutRepository.observeSession(sessionId).first { session ->
+                    session != null && predicate(session)
+                },
+            )
+        }
+    } catch (timedOut: TimeoutCancellationException) {
+        val stored = runCatching { deps.workoutRepository.getSession(sessionId) }
+        throw AssertionError("awaitSession gave up; stored row was ${stored.getOrNull()}", timedOut)
     }
 
     private suspend fun seedWorkout(

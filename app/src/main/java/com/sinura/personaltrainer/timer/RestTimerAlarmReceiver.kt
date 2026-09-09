@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.PowerManager
 import android.os.SystemClock
 import com.sinura.personaltrainer.PersonalTrainerApp
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -86,6 +87,8 @@ class RestTimerAlarmReceiver : BroadcastReceiver() {
                         playCue = playCue,
                     )
                 }
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (_: Exception) {
                 // Never let an alert failure crash the receiver.
             } finally {

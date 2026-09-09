@@ -10,10 +10,13 @@ import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.common.api.Scope
 import com.google.android.gms.tasks.Task
+import com.sinura.personaltrainer.logging.AppLog
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+
+private const val TAG = "PT/DriveAuth"
 
 data class DriveSession(
     val accessToken: String,
@@ -48,6 +51,7 @@ class DriveAuthClient {
                 ?: throw BackupException("Google sign-in could not continue.")
             val accepted = launchResolution(sender)
             if (!accepted) {
+                AppLog.e(TAG, "consent resolution declined or timed out")
                 throw BackupException("Google sign-in was cancelled.")
             }
             try {
@@ -59,7 +63,13 @@ class DriveAuthClient {
             first
         }
         if (resolved.hasResolution()) {
-            throw BackupException("Google sign-in was cancelled.")
+            // Approving the consent should leave the retry grantable. Still asking means the
+            // grant did not stick — a distinct state from a cancel, and one that reads as a
+            // phantom cancel if it borrows that copy.
+            AppLog.e(TAG, "authorize still wanted resolution after an accepted consent")
+            throw BackupException(
+                "Google needed another approval step and it did not complete. Try again.",
+            )
         }
         val token = resolved.accessToken
             ?: throw BackupException("Google did not return a Drive access token. Try again.")
@@ -74,12 +84,16 @@ class DriveAuthClient {
         if (token != null) {
             try {
                 client.clearToken(ClearTokenRequest.builder().setToken(token).build()).await()
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (_: Exception) {
                 // Local session is cleared either way.
             }
         }
         try {
             client.revokeAccess(RevokeAccessRequest.builder().build()).await()
+        } catch (thrown: CancellationException) {
+            throw thrown
         } catch (_: Exception) {
             // Local session is cleared either way.
         }
@@ -94,11 +108,18 @@ class DriveAuthClient {
     private fun mapAuthError(error: Exception, packageName: String): BackupException {
         if (error is CancellationException) throw error
         val api = error as? ApiException
+        // Every one of these used to reach Settings as the same sentence, so a Cloud Console
+        // problem and a genuine cancel were indistinguishable on the phone. The status code is
+        // the only evidence there is; log it before it is flattened into user-facing copy.
+        AppLog.e(TAG, "Drive authorize failed (status=${api?.statusCode})", error)
         return when (api?.statusCode) {
-            CommonStatusCodes.CANCELED,
-            CommonStatusCodes.SIGN_IN_REQUIRED,
-            ->
+            CommonStatusCodes.CANCELED ->
                 BackupException("Google sign-in was cancelled.")
+            CommonStatusCodes.SIGN_IN_REQUIRED ->
+                BackupException(
+                    "No Google account is available to this app. Add your Google account in " +
+                        "Android Settings, then try again.",
+                )
             CommonStatusCodes.NETWORK_ERROR ->
                 BackupException("Connect to the internet to use Google Drive.")
             CommonStatusCodes.DEVELOPER_ERROR ->

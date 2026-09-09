@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
@@ -60,6 +61,7 @@ import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.SteelDim
 import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.theme.SurfacePressed
+import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.heatColor
@@ -73,6 +75,8 @@ fun BodyMapCard(
     selected: CanonicalMuscle?,
     onSelect: (CanonicalMuscle) -> Unit,
     modifier: Modifier = Modifier,
+    /** [BodyHeatCopy.facts]; null before anything has finished. */
+    facts: String? = null,
 ) {
     val panelHeight = BodyViewport.figureHeightDp(
         LocalWindowInfo.current.containerDpSize.height.value.roundToInt(),
@@ -144,22 +148,35 @@ fun BodyMapCard(
                     }
                 }
             }
-            Row(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(Metrics.space2),
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-            ) {
-                BodyView.entries.forEach { option ->
-                    InstrumentChip(
-                        label = option.label,
-                        selected = view == option,
-                        onClick = { onViewChange(option) },
-                        modifier = Modifier.testTag(
-                            if (option == BodyView.FRONT) BodyTags.VIEW_FRONT else BodyTags.VIEW_BACK,
-                        ),
-                    )
-                }
+        }
+        // The view switch used to float over the figure's top-left corner and read as part
+        // of the drawing (DESIGN_AUDIT B-05). A control that changes the whole picture gets
+        // its own strip under the panel, beside what the picture was built from.
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
+            BodyView.entries.forEach { option ->
+                InstrumentChip(
+                    label = option.label,
+                    selected = view == option,
+                    onClick = { onViewChange(option) },
+                    modifier = Modifier.testTag(
+                        if (option == BodyView.FRONT) BodyTags.VIEW_FRONT else BodyTags.VIEW_BACK,
+                    ),
+                )
+            }
+            if (facts != null) {
+                Text(
+                    facts,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag(BodyTags.FACTS),
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                    textAlign = TextAlign.End,
+                )
             }
         }
     }
@@ -292,6 +309,8 @@ object BodyTags {
     const val VIEW_BACK = "body-view-back"
     const val EMPTY = "body-empty-window"
     const val START_SHEET = "body-start-sheet"
+    const val FACTS = "body-facts"
+    const val SHOW_MONTH = "body-show-month"
 
     fun muscle(muscle: CanonicalMuscle): String = "body-muscle-${muscle.name}"
 

@@ -54,14 +54,24 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      # The same static gate preflight runs locally (17 checkers + named-args +
-      # syntax). PT_STATIC_ONLY skips its JVM test step — Gradle runs the full
+      # The same static gate preflight runs locally (20 checkers, 4 fixture proofs,
+      # named-args, syntax). PT_STATIC_ONLY skips its JVM test step — Gradle runs the full
       # suite next — so the checker list lives in exactly one place.
       - name: Static checks (tools/preflight.sh)
         run: PT_STATIC_ONLY=1 sh tools/preflight.sh
 
+      # Wrapped, not bare: a run of this step once sat wedged for 31m10s and was
+      # killed by the job's timeout-minutes. A cancelled job skips its `if: always()`
+      # steps, so that half hour uploaded nothing at all — no report, no per-class
+      # XML, no stacks. The watchdog notices a test worker that has stopped burning
+      # CPU, dumps its threads into the log and build/hang-dumps/, and kills it, so
+      # the next hang costs ~3 minutes and arrives with evidence. The step timeout is
+      # the backstop for a wedge the watchdog cannot see (a spinning livelock), and
+      # is a *step* timeout on purpose: it fails the step and leaves the job alive to
+      # run the uploads below.
       - name: Unit tests
-        run: ./gradlew testDebugUnitTest --stacktrace
+        timeout-minutes: 20
+        run: sh tools/hang-watchdog.sh ./gradlew testDebugUnitTest --stacktrace
 
       # Blocking: the stated precondition for that (a known-clean lint state) has
       # been met for a while — lint-baseline.xml is committed and EMPTY, and
@@ -84,6 +94,9 @@ jobs:
         run: ./gradlew assembleDebugAndroidTest --stacktrace
 
       # Failures are useless without the report, and Gradle's console output truncates.
+      # The raw test-results XML is uploaded alongside it because the HTML report is
+      # only generated once the test task finishes: after a hang the XML is the only
+      # thing that survives, and the class missing from it is the one that wedged.
       - name: Upload test + lint reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -92,6 +105,8 @@ jobs:
           path: |
             app/build/reports/tests/
             app/build/reports/lint-results-debug.html
+            app/build/test-results/
+            build/hang-dumps/
           retention-days: 14
           if-no-files-found: ignore
 
@@ -118,11 +133,11 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
-  # Non-blocking by design. CI on this repo has never been assigned a runner
-  # (account billing — see docs/DEVELOPMENT.md), so this job is written blind: it
-  # exists so the instrumented smoke starts running the day the owner fixes
-  # billing, with zero further changes. continue-on-error keeps it from ever
-  # gating a merge, even once it runs — emulator jobs flake.
+  # Non-blocking by design. Written blind while CI had no runner (account
+  # billing); it runs now. continue-on-error stays until the lane has earned a
+  # gate — emulator jobs flake, and a red that blocks merges on a flake costs
+  # more than a red nobody reads. The bar: green on trunk ten runs in a row,
+  # then drop the flag. Until then, read the job, not the check.
   instrumented-smoke:
     name: Instrumented smoke (non-blocking)
     runs-on: ubuntu-latest
@@ -162,6 +177,12 @@ jobs:
         with:
           api-level: 29
           arch: x86_64
+          # The goldens and the screen passes were recorded on the
+          # `temper-tests-api29` profile: 411 dp at 420 dpi, which is the Nexus 5X
+          # device definition. The runner's default AVD is 320 px wide at mdpi and
+          # failed four tests that never failed on the profile (golden 320×616 for
+          # 945×1731, two screens too short to reach their rows).
+          profile: Nexus 5X
           disable-animations: true
           script: ./gradlew connectedDebugAndroidTest --stacktrace
 

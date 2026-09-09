@@ -158,6 +158,43 @@ data class WorkoutSession(
      * Prefer the last selected lift when it is still in the session, otherwise
      * the first lift that already has sets, otherwise the first lift.
      */
+    /**
+     * Working sets logged against one lift. Warm-ups do not count toward a target.
+     */
+    fun workingSetsFor(exerciseId: String): Int =
+        sets.count { it.exerciseId == exerciseId && !it.isWarmup }
+
+    /**
+     * Whether [exerciseId] has met the sets it was prescribed.
+     *
+     * A lift with no target is never "finished" — an ad-hoc lift added mid-session has
+     * nothing to be measured against, and reporting it done would march the log loop off it
+     * after a single set.
+     */
+    fun isTargetMet(exerciseId: String): Boolean {
+        val target = exercises.firstOrNull { it.exercise.id == exerciseId }?.targetSets ?: 0
+        return target > 0 && workingSetsFor(exerciseId) >= target
+    }
+
+    /**
+     * The lift the log loop should move to once [exerciseId] has met its target: the next one
+     * in prescribed order that has not met its own, wrapping to earlier lifts that were
+     * skipped rather than stopping at the end of the list.
+     *
+     * Null means there is nowhere useful to go — every other lift is finished, or this is the
+     * only one — and the caller must then leave the selection alone. Advancing to a lift that
+     * is already done would be worse than not advancing at all.
+     */
+    fun nextUnfinishedExerciseAfter(exerciseId: String): String? {
+        val ids = exercises.map { it.exercise.id }
+        val from = ids.indexOf(exerciseId)
+        if (from < 0) return null
+        // Search forward from the next lift, then wrap: a lift skipped earlier in the session
+        // is still owed, and the alternative is stranding it with no way back but a manual tap.
+        val order = (1 until ids.size).map { step -> ids[(from + step) % ids.size] }
+        return order.firstOrNull { !isTargetMet(it) }
+    }
+
     fun resolveSelectedExerciseId(preferredId: String?): String? {
         val exerciseIds = exercises.map { it.exercise.id }
         if (preferredId != null && preferredId in exerciseIds) return preferredId

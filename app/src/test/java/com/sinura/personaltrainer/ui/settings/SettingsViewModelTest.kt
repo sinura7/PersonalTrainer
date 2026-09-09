@@ -9,6 +9,8 @@ import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
 import com.sinura.personaltrainer.domain.BackupPrompt
 import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.testutil.TestSetInput
+import com.sinura.personaltrainer.testutil.TestWaits
+import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -21,6 +23,8 @@ import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -62,14 +66,161 @@ class SettingsViewModelTest {
         )
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
-        val idle = withTimeout(5_000) { viewModel!!.backupState.first() }
+        val idle = withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first() }
         assertFalse(idle.sessionLive)
 
         deps.workoutRepository.startFreeWorkout("Legs")
-        val live = withTimeout(5_000) {
+        val live = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.backupState.first { it.sessionLive }
         }
         assertTrue(live.sessionLive)
+    }
+
+    @Test
+    fun turningAutomaticBackupOnAsksForAPassphraseBeforeArming() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+
+        val idle = withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first() }
+        assertFalse(idle.autoBackupEnabled)
+        assertFalse(idle.pendingAutoBackupArm)
+
+        viewModel!!.setAutoBackupEnabled(true)
+
+        // The toggle alone must not arm anything: without a sealed passphrase the only
+        // copy an unattended path could write would be plaintext.
+        val asking = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.backupState.first { it.pendingAutoBackupArm }
+        }
+        assertFalse(asking.autoBackupEnabled)
+        assertNull(deps.preferencesRepository.autoBackupSettings().sealedPassphrase)
+    }
+
+    @Test
+    fun aConfirmedPassphraseArmsAutomaticBackupAndSurvivesAsCiphertext() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first() }
+
+        viewModel!!.setAutoBackupEnabled(true)
+        assertTrue(viewModel!!.submitAutoBackupPassphrase("correct horse", "correct horse"))
+
+        val armed = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.backupState.first { it.autoBackupEnabled }
+        }
+        assertFalse(armed.pendingAutoBackupArm)
+
+        val settings = deps.preferencesRepository.autoBackupSettings()
+        assertTrue(settings.enabled)
+        val sealed = settings.sealedPassphrase
+        assertNotNull(sealed)
+        // What is stored is not the passphrase. The sealer is the only thing that reads it.
+        assertFalse(sealed!!.contains("correct horse"))
+        assertEquals("correct horse", String(deps.backupPassphraseSealer.open(sealed)!!))
+    }
+
+    @Test
+    fun aMismatchedConfirmationArmsNothing() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first() }
+
+        viewModel!!.setAutoBackupEnabled(true)
+        assertFalse(viewModel!!.submitAutoBackupPassphrase("correct horse", "clopper horse"))
+
+        assertFalse(deps.preferencesRepository.autoBackupSettings().enabled)
+        assertNull(deps.preferencesRepository.autoBackupSettings().sealedPassphrase)
+    }
+
+    @Test
+    fun aFailedLockScreenRevealsNothing() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first() }
+
+        viewModel!!.setAutoBackupEnabled(true)
+        viewModel!!.submitAutoBackupPassphrase("correct horse", "correct horse")
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first { it.autoBackupEnabled } }
+
+        viewModel!!.onPasswordRevealAuthenticated(false)
+
+        assertNull(viewModel!!.revealedPassword.value)
+    }
+
+    @Test
+    fun aPassedLockScreenShowsTheStoredPassword() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first() }
+
+        viewModel!!.setAutoBackupEnabled(true)
+        viewModel!!.submitAutoBackupPassphrase("correct horse", "correct horse")
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first { it.autoBackupEnabled } }
+
+        viewModel!!.onPasswordRevealAuthenticated(true)
+
+        // This is the whole point of the row: arming stopped the app asking again, so the
+        // sealed copy has to be readable back or a forgotten password seals Drive for good.
+        val shown = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.revealedPassword.first { it != null }
+        }
+        assertEquals("correct horse", shown)
+
+        viewModel!!.dismissRevealedPassword()
+        assertNull(viewModel!!.revealedPassword.value)
+    }
+
+    @Test
+    fun revealingWithNothingStoredSaysSoInsteadOfShowingBlank() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first() }
+
+        viewModel!!.onPasswordRevealAuthenticated(true)
+
+        assertNull(viewModel!!.revealedPassword.value)
+        val failed = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.backupState.first { it.error != null }
+        }
+        assertTrue(failed.error!!.contains("No backup password"))
+    }
+
+    @Test
+    fun turningItOffForgetsThePassphrase() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first() }
+
+        viewModel!!.setAutoBackupEnabled(true)
+        viewModel!!.submitAutoBackupPassphrase("correct horse", "correct horse")
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first { it.autoBackupEnabled } }
+
+        viewModel!!.setAutoBackupEnabled(false)
+
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first { !it.autoBackupEnabled } }
+        // An unopenable secret for a feature that is off helps nobody, so it goes too.
+        assertNull(deps.preferencesRepository.autoBackupSettings().sealedPassphrase)
     }
 
     @Test
@@ -80,7 +231,7 @@ class SettingsViewModelTest {
         )
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
-        val idle = withTimeout(5_000) { viewModel!!.backupState.first() }
+        val idle = withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first() }
         assertFalse(idle.sessionLive)
 
         val now = com.sinura.personaltrainer.util.JvmTime.captureNow()
@@ -105,7 +256,7 @@ class SettingsViewModelTest {
             now,
         )
         assertTrue(started is com.sinura.personaltrainer.domain.ActivityWrite.Accepted)
-        val live = withTimeout(5_000) {
+        val live = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.backupState.first { it.sessionLive }
         }
         assertTrue(live.sessionLive)
@@ -118,20 +269,32 @@ class SettingsViewModelTest {
             scheduler = dispatcher,
         )
         val now = System.currentTimeMillis()
-        deps.preferencesRepository.setLastBackup(
-            "personal-trainer-backup-old.json",
-            now - BackupPrompt.STALE_AFTER_MS - 1_000L,
-        )
+        val old = now - BackupPrompt.STALE_AFTER_MS - 1_000L
+        deps.preferencesRepository.setLastBackup("personal-trainer-backup-old.json", old)
+        deps.preferencesRepository.setLastVerifiedBackup("personal-trainer-backup-old.json", old)
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
-        val stale = withTimeout(5_000) { viewModel!!.backupState.first { it.lastBackupAt != null } }
+        val stale = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.backupState.first { it.lastBackupAt != null }
+        }
         assertTrue(stale.backupStale)
 
+        // A fresh upload alone is NOT freshness any more. Nothing has read this file back, so
+        // the prompt stays up — and says so, rather than claiming there was no backup.
         deps.preferencesRepository.setLastBackup("personal-trainer-backup-now.json", now)
-        val fresh = withTimeout(5_000) {
+        val written = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.backupState.first { it.lastBackupAt == now }
         }
-        assertFalse(fresh.backupStale)
+        assertTrue(written.backupStale)
+        assertEquals(BackupPrompt.UNVERIFIED_CAPTION, written.backupCaption)
+
+        // Read back and proven: only now does the nag clear.
+        deps.preferencesRepository.setLastVerifiedBackup("personal-trainer-backup-now.json", now)
+        val verified = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.backupState.first { it.lastVerifiedBackupAt == now }
+        }
+        assertFalse(verified.backupStale)
+        assertEquals(BackupPrompt.FRESH_CAPTION, verified.backupCaption)
     }
 
     @Test
@@ -143,12 +306,12 @@ class SettingsViewModelTest {
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
         viewModel!!.restTimerPreferences.first()
-        viewModel!!.offerExactAlarmAccess.first { !it }
+        viewModel!!.offerExactAlarmAccess.awaitFirst { !it }
         viewModel!!.refreshAlarmCapability()
         assertFalse(deps.preferencesRepository.restAlarmEligible.first())
 
         viewModel!!.setDefaultRestSeconds(75)
-        withTimeout(5_000) {
+        withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.restTimerPreferences.first { it.defaultRestSeconds == 75 }
         }
         assertTrue(deps.preferencesRepository.restAlarmEligible.first())
@@ -168,13 +331,13 @@ class SettingsViewModelTest {
         // offer flag alone can complete on the stateIn initial value before
         // setRestSoundEnabled's edit is observed.
         viewModel!!.restTimerPreferences.first()
-        viewModel!!.offerExactAlarmAccess.first { !it }
+        viewModel!!.offerExactAlarmAccess.awaitFirst { !it }
         viewModel!!.setRestSoundEnabled(false)
-        withTimeout(5_000) {
+        withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.restTimerPreferences.first { !it.soundEnabled }
         }
         assertTrue(deps.preferencesRepository.restAlarmEligible.first())
-        val offered = withTimeout(5_000) { viewModel!!.offerExactAlarmAccess.first { it } }
+        val offered = withTimeout(TestWaits.FLOW_MS) { viewModel!!.offerExactAlarmAccess.first { it } }
         assertTrue(offered)
     }
 
@@ -187,7 +350,7 @@ class SettingsViewModelTest {
         deps.setExactAlarmAttempt(ExactAlarmAttempt.BEST_EFFORT)
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
 
-        viewModel!!.offerExactAlarmAccess.first { !it }
+        viewModel!!.offerExactAlarmAccess.awaitFirst { !it }
         assertFalse(deps.preferencesRepository.restAlarmEligible.first())
         assertFalse(viewModel!!.offerExactAlarmAccess.value)
     }
@@ -207,7 +370,7 @@ class SettingsViewModelTest {
         deps.backupRepository.restoreFromJson(json, sourceName = "phone.json")
 
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        val listed = withTimeout(5_000) {
+        val listed = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.backupState.first { it.safetySnapshots.isNotEmpty() }
         }
         assertEquals(1, listed.safetySnapshots.size)
@@ -218,7 +381,7 @@ class SettingsViewModelTest {
         assertTrue(snap.authored.sessions >= 1)
 
         viewModel!!.deleteSafetySnapshot(snap.id)
-        val empty = withTimeout(5_000) {
+        val empty = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.backupState.first {
                 it.safetySnapshots.isEmpty() && it.status?.contains("deleted") == true
             }
@@ -242,9 +405,9 @@ class SettingsViewModelTest {
         val id = deps.backupRepository.listSafetySnapshots().single().id
 
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.backupState.first { it.safetySnapshots.isNotEmpty() }
+        viewModel!!.backupState.awaitFirst { it.safetySnapshots.isNotEmpty() }
         viewModel!!.requestSafetyRestore(id)
-        val preview = withTimeout(5_000) {
+        val preview = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.backupState.first { it.pendingPreview != null }
         }
         assertEquals(SafetySnapshotMeta.TITLE, preview.pendingPreview?.sourceName)
@@ -265,13 +428,13 @@ class SettingsViewModelTest {
         )
         viewModel!!.backupState.first()
         viewModel!!.beginFileExport()
-        val protect = withTimeout(5_000) {
+        val protect = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.backupState.first { it.pendingProtect == BackupProtectKind.FILE_EXPORT }
         }
         assertEquals(BackupProtectKind.FILE_EXPORT, protect.pendingProtect)
         assertFalse(viewModel!!.submitProtect("short", "short"))
         assertTrue(viewModel!!.submitProtect("long-enough", "long-enough"))
-        val picker = withTimeout(5_000) {
+        val picker = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.backupState.first { it.launchExportPicker }
         }
         assertTrue(picker.launchExportPicker)
@@ -288,12 +451,12 @@ class SettingsViewModelTest {
         viewModel!!.backupState.first()
         viewModel!!.beginFileExport()
         viewModel!!.beginPlaintextExport()
-        val warned = withTimeout(5_000) {
+        val warned = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.backupState.first { it.pendingPlaintextWarning }
         }
         assertTrue(warned.pendingPlaintextWarning)
         viewModel!!.confirmPlaintextWarning()
-        val picker = withTimeout(5_000) {
+        val picker = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.backupState.first { it.launchExportPicker }
         }
         assertTrue(picker.launchExportPicker)
@@ -315,11 +478,11 @@ class SettingsViewModelTest {
             ),
         )
         deps.preferencesRepository.setWeekStart(com.sinura.personaltrainer.domain.Weekday.MONDAY)
-        withTimeout(5_000) {
+        withTimeout(TestWaits.FLOW_MS) {
             deps.preferencesRepository.preferredDays.first { it.size == 5 }
         }
         deps.preferencesRepository.setTrainingDaysPerWeek(3)
-        val days = withTimeout(5_000) {
+        val days = withTimeout(TestWaits.FLOW_MS) {
             deps.preferencesRepository.preferredDays.first { it.size == 3 }
         }
         assertEquals(

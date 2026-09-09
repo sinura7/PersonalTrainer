@@ -49,6 +49,22 @@ updates:
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "org.jetbrains.kotlinx:kotlinx-coroutines-test"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # All three coroutines artifacts share one `coroutines` version ref, so
+      # leaving -android uncovered let Dependabot move the ref through it and
+      # drag -core and -test along: #174 reached 1.11.0, the Kotlin 2.2.20
+      # companion, on a Kotlin 2.0.21 tree. Closed unmerged.
+      - dependency-name: "org.jetbrains.kotlinx:kotlinx-coroutines-android"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # Robolectric 4.16's API-36 jar needs Java 21; this tree is Java 17, so
+      # app/src/test/resources/robolectric.properties caps the sandbox at
+      # sdk=35. Patch updates on 4.16.x still open.
+      - dependency-name: "org.robolectric:robolectric"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # The android-all-instrumented coordinate is not semver
+      # ("15-robolectric-13954326-i7"), so update-types cannot classify it and
+      # every bump has to be refused here. #176 proposed the Android 17 jar,
+      # far past the sdk=35 ceiling above. Move this by hand with the JDK.
+      - dependency-name: "org.robolectric:android-all-instrumented"
       # AGP 9.x wants compileSdk 37; 8.9.2 is the official compileSdk-36 pair
       # (docs/architecture/lint-policy.md, sdk36-compatibility.md). #125 bumped
       # to 9.3.2 and was closed unmerged.

@@ -46,6 +46,7 @@ databases, different icons.
 | [docs/SUPPORT.md](docs/SUPPORT.md) | how to report a defect without sending a database |
 | [docs/COMMERCIAL_BOUNDARY.md](docs/COMMERCIAL_BOUNDARY.md) | local core is never paywalled |
 | [SETUP.md](SETUP.md) | release keystore, Google Drive OAuth, building a signed APK |
+| [docs/DRIVE_SIGNIN_CHECK.md](docs/DRIVE_SIGNIN_CHECK.md) | the ten-step phone check that proves Drive sign-in works |
 | [docs/RECOVERY.md](docs/RECOVERY.md) | **new phone, dead laptop, lost keystore — read before you need it** |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | *historical* — how the strength logger was built |
 | [docs/AUDIT.md](docs/AUDIT.md) | pointer to the current audit, plus the 19 August review |
@@ -74,7 +75,8 @@ Five tabs — **Home · Body · Plan · History · Settings**. Library is a push
 - **History** — finished sessions, calendar, personal records, and
   comparable Week / Month / Year / All time totals.
 - **Settings** — units, hours, schedule, coaching, reminders, rest,
-  export and restore. The fifth tab. Not a gear on Home or Plan.
+  export and restore, and whether a finished workout backs itself up.
+  The fifth tab. Not a gear on Home or Plan.
 - **Library** (pushed) — search the lift list, filter by muscle, add custom exercises.
 - **Activities** — strength, cardio, or mixed; live or backdated. One live
   activity at a time. Two timed items can sit on one day.
@@ -91,7 +93,12 @@ Five tabs — **Home · Body · Plan · History · Settings**. Library is a push
 
 **Backup, not sync.** Export/import a file with no Google account, or make an
 optional whole-file Google Drive **backup**. The default export is a
-password-protected envelope; plaintext is an advanced warned choice. Restores
+password-protected envelope; plaintext is an advanced warned choice.
+Drive backup can also run **after each finished workout** — opt-in from
+Settings, always the protected envelope, never a consent sheet mid-flow.
+Arming it keeps the backup password on that phone, sealed by the Android
+Keystore; the signed account of that trade is
+[backup-threat-model.md](docs/architecture/backup-threat-model.md) §4.3.1. Restores
 are validated before anything is written, and refuse to run while a workout is
 in progress. Drive does not merge two phones. Android Auto Backup is
 **disabled** in the shipping manifest. It is not the recovery path. Existing OS

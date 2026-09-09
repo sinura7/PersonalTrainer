@@ -3,7 +3,6 @@ package com.sinura.personaltrainer.ui.home
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,38 +28,24 @@ import com.sinura.personaltrainer.domain.HomeToday
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.MastheadCopy
 import com.sinura.personaltrainer.domain.PlanDayCopy
-import com.sinura.personaltrainer.domain.ProgressionHint
-import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.WeekBoard
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WeightConverter
-import com.sinura.personaltrainer.domain.WeightUnit
-import com.sinura.personaltrainer.domain.daysSince
 import com.sinura.personaltrainer.domain.featuredSession
-import com.sinura.personaltrainer.domain.homeWork
-import com.sinura.personaltrainer.domain.signedWorkDelta
 import com.sinura.personaltrainer.domain.leftoverLiftNames
 import com.sinura.personaltrainer.domain.nextSessionReason
-import com.sinura.personaltrainer.domain.toWeightLabel
-import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
-import com.sinura.personaltrainer.ui.components.GymSectionHeader
-import com.sinura.personaltrainer.ui.components.HairlineDivider
-import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
-import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.NumberEntryDialog
 import com.sinura.personaltrainer.ui.components.ResumeOrDiscardDialog
 import com.sinura.personaltrainer.ui.components.ScreenLoading
-import com.sinura.personaltrainer.ui.components.StatTile
 import com.sinura.personaltrainer.ui.components.WeekStrip
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
-import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import java.time.LocalDate
@@ -70,7 +55,6 @@ import java.time.format.DateTimeFormatter
 fun HomeScreen(
     onResumeWorkout: (String) -> Unit,
     onOpenPlan: () -> Unit,
-    onOpenExercise: (String) -> Unit,
     onOpenRoutine: (String) -> Unit = {},
     onLogActivity: (String) -> Unit = {},
     onOpenLiveCardio: (String) -> Unit = {},
@@ -284,12 +268,6 @@ fun HomeScreen(
                     selected = selectedEpochDay,
                     onSelectDay = { selectedEpochDay = it },
                 )
-                HomeStatRow(
-                    lastSession = state.lastSession,
-                    previousSameRoutine = state.previousSameRoutine,
-                    todayEpoch = today,
-                    unit = unit,
-                )
             }
         }
         state.error?.let { message ->
@@ -434,15 +412,6 @@ fun HomeScreen(
                 )
             }
         }
-        if (state.readyToProgress.isNotEmpty()) {
-            item {
-                ReadyToProgressSection(
-                    hints = state.readyToProgress,
-                    unit = unit,
-                    onOpenExercise = onOpenExercise,
-                )
-            }
-        }
     }
 }
 
@@ -477,118 +446,8 @@ internal fun HomeMasthead(
     }
 }
 
-/**
- * Two numerals above the fold.
- *
- * Home had none: a fitness tracker whose first screen was a menu of links, where the largest
- * type on the page was the app's own name. These are the last session's working volume and
- * how long ago it was — both exact from all-time summaries, not the 30-day heat graph.
- */
-@Composable
-internal fun HomeStatRow(
-    lastSession: SessionSummary?,
-    todayEpoch: Long,
-    unit: WeightUnit,
-    previousSameRoutine: SessionSummary? = null,
-) {
-    val column = remember(lastSession, unit) {
-        lastSession?.homeWork(unit)
-    }
-    val delta = remember(lastSession, previousSameRoutine, unit) {
-        if (lastSession != null && previousSameRoutine != null) {
-            lastSession.signedWorkDelta(previousSameRoutine, unit)
-        } else {
-            null
-        }
-    }
-    val daysSince = lastSession?.daysSince(todayEpoch)?.toString()
-    val stack = LogLoopScale.stackTiles(LocalDensity.current.fontScale)
-    if (stack) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Metrics.cardGap),
-        ) {
-            StatTile(
-                label = "Last session",
-                value = column?.value ?: NO_VALUE,
-                unit = column?.label,
-                caption = delta,
-                valueColor = if (column != null) TextPrimary else TextTertiary,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(HomeTags.LAST_SESSION),
-            )
-            StatTile(
-                label = "Days since",
-                value = daysSince ?: NO_VALUE,
-                valueColor = if (daysSince != null) TextPrimary else TextTertiary,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(HomeTags.DAYS_SINCE),
-            )
-        }
-    } else {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Metrics.cardGap),
-        ) {
-            StatTile(
-                label = "Last session",
-                value = column?.value ?: NO_VALUE,
-                unit = column?.label,
-                caption = delta,
-                valueColor = if (column != null) TextPrimary else TextTertiary,
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag(HomeTags.LAST_SESSION),
-            )
-            StatTile(
-                label = "Days since",
-                value = daysSince ?: NO_VALUE,
-                valueColor = if (daysSince != null) TextPrimary else TextTertiary,
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag(HomeTags.DAYS_SINCE),
-            )
-        }
-    }
-}
-
-@Composable
-private fun ReadyToProgressSection(
-    hints: List<ProgressionHint>,
-    unit: WeightUnit,
-    onOpenExercise: (String) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
-        GymSectionHeader("Ready to progress")
-        GroupedList {
-            hints.forEachIndexed { index, hint ->
-                if (index > 0) HairlineDivider()
-                InstrumentRow(
-                    title = hint.exerciseName,
-                    subtitle = "Top set ${hint.lastWeightKg.toWeightLabel(unit)} × ${hint.lastReps}",
-                    // The lift, not a start screen. A row that names a lift and opens a menu
-                    // was asking the user to find it again themselves.
-                    onClick = { onOpenExercise(hint.exerciseId) },
-                ) {
-                    MetricCluster(
-                        value = WeightConverter.formatDisplayNumber(
-                            WeightConverter.toDisplayValue(hint.suggestedWeightKg, unit),
-                        ),
-                        label = "target",
-                        unit = unit.suffix,
-                    )
-                }
-            }
-        }
-    }
-}
-
 // The separator is quoted: everything outside quotes in a pattern is a format field.
 object HomeTags {
-    const val LAST_SESSION = "home-last-session"
-    const val DAYS_SINCE = "home-days-since"
     const val START = "home-start"
     const val FREE = "home-free-start"
     const val REPLAY = "home-replay"

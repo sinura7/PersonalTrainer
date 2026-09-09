@@ -1,8 +1,6 @@
 package com.sinura.personaltrainer.ui.settings
 
 import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
@@ -63,7 +61,6 @@ import com.sinura.personaltrainer.data.backup.BackupEnvelope
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.DriveBackupFile
 import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
-import com.sinura.personaltrainer.domain.BackupPrompt
 import com.sinura.personaltrainer.domain.BodyweightCheckIn
 import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.CoachPreferences
@@ -82,6 +79,7 @@ import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.toWeightLabel
+import com.sinura.personaltrainer.ui.findActivity
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.CustomRestDialog
 import com.sinura.personaltrainer.ui.components.GroupedList
@@ -148,6 +146,13 @@ fun SettingsScreen(
         viewModel.onResolutionFinished(result.resultCode == Activity.RESULT_OK)
     }
 
+    // The lock-screen challenge before the backup password is shown.
+    val revealLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        viewModel.onPasswordRevealAuthenticated(result.resultCode == Activity.RESULT_OK)
+    }
+
     // Local file export/import. Deliberately independent of Google: if the OAuth client or
     // the signing key is ever lost, this is still a complete way in and out of the data.
     val exportLauncher = rememberLauncherForActivityResult(
@@ -195,6 +200,21 @@ fun SettingsScreen(
         val sender = pendingResolution ?: return@LaunchedEffect
         resolutionLauncher.launch(IntentSenderRequest.Builder(sender).build())
         viewModel.onResolutionLaunched()
+    }
+
+    val pendingPasswordReveal by viewModel.pendingPasswordReveal.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingPasswordReveal) {
+        val challenge = pendingPasswordReveal ?: return@LaunchedEffect
+        revealLauncher.launch(challenge)
+        viewModel.onPasswordRevealLaunched()
+    }
+
+    val revealedPassword by viewModel.revealedPassword.collectAsStateWithLifecycle()
+    revealedPassword?.let { shown ->
+        RevealedPasswordDialog(
+            password = shown,
+            onDismiss = viewModel::dismissRevealedPassword,
+        )
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -280,6 +300,8 @@ fun SettingsScreen(
                     onSignIn = { viewModel.signIn(activity) },
                     onSignOut = { viewModel.signOut(activity) },
                     onCreateBackup = { viewModel.beginDriveBackup() },
+                    onAutoBackupChange = viewModel::setAutoBackupEnabled,
+                    onShowBackupPassword = viewModel::beginRevealBackupPassword,
                     onRefresh = { viewModel.refreshBackups(activity) },
                     onRestore = { file -> viewModel.requestRestore(activity, file) },
                     onExportFile = { viewModel.beginFileExport() },
@@ -350,6 +372,18 @@ fun SettingsScreen(
             },
             onAdvanced = viewModel::beginPlaintextExport,
             onDismiss = viewModel::cancelProtect,
+        )
+    }
+
+    if (backup.pendingAutoBackupArm) {
+        ProtectBackupDialog(
+            drive = true,
+            onConfirm = { password, confirm ->
+                viewModel.submitAutoBackupPassphrase(password, confirm)
+            },
+            onAdvanced = null,
+            onDismiss = viewModel::cancelAutoBackupArm,
+            arming = true,
         )
     }
 
@@ -802,6 +836,8 @@ private fun BackupRestoreSection(
     onSignIn: () -> Unit,
     onSignOut: () -> Unit,
     onCreateBackup: () -> Unit,
+    onAutoBackupChange: (Boolean) -> Unit,
+    onShowBackupPassword: () -> Unit,
     onRefresh: () -> Unit,
     onRestore: (DriveBackupFile) -> Unit,
     onExportFile: () -> Unit,
@@ -823,7 +859,7 @@ private fun BackupRestoreSection(
     }
     SettingsGroup(
         title = "Backup",
-        caption = BackupPrompt.caption(state.backupStale),
+        caption = state.backupCaption,
     ) {
         GroupedList {
             BackupStampRow(
@@ -941,6 +977,15 @@ private fun BackupRestoreSection(
                 enabled = !state.isBusy,
             )
         } else {
+            // Deliberately not a nested if-expression inside the row: the paused case is the
+            // one that has to read clearly, and it is the one a nag would bury.
+            val autoBackupSubtitle = if (state.autoBackupNeedsSignIn) {
+                "Paused — sign in to Drive again"
+            } else if (state.autoBackupEnabled) {
+                "Each finished workout goes to Drive"
+            } else {
+                "Off. Backups happen only when you tap."
+            }
             GroupedList {
                 InstrumentRow(
                     title = "Signed in",
@@ -948,6 +993,29 @@ private fun BackupRestoreSection(
                     onClick = if (state.isBusy) null else onSignOut,
                     trailing = { DangerAction("Sign out", enabled = !state.isBusy) },
                 )
+                InstrumentRow(
+                    title = "Back up after each workout",
+                    subtitle = autoBackupSubtitle,
+                    modifier = Modifier.testTag(SettingsTags.AUTO_BACKUP),
+                    checked = state.autoBackupEnabled,
+                    onCheckedChange = if (state.isBusy) null else onAutoBackupChange,
+                    trailing = {
+                        InstrumentSwitch(
+                            checked = state.autoBackupEnabled,
+                            onCheckedChange = null,
+                        )
+                    },
+                )
+                if (state.autoBackupEnabled) {
+                    // Arming stopped the app ever asking for the password again. Without a way
+                    // back to it, a forgotten password seals every Drive backup permanently.
+                    InstrumentRow(
+                        title = "Show backup password",
+                        subtitle = "Asks for your screen lock first",
+                        modifier = Modifier.testTag(SettingsTags.SHOW_BACKUP_PASSWORD),
+                        onClick = if (state.isBusy) null else onShowBackupPassword,
+                    )
+                }
             }
             SecondaryGymButton(
                 text = "Create backup now",
@@ -1223,12 +1291,60 @@ private fun AboutSection() {
     }
 }
 
+/**
+ * Shows the stored backup password once, after the lock screen has said yes.
+ *
+ * Deliberately plain: no copy button, because the clipboard on Android is readable by other
+ * apps and persists after this dialog is gone. Read it and write it down.
+ */
+@Composable
+private fun RevealedPasswordDialog(
+    password: String,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Backup password",
+                style = InstrumentType.title,
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                Text(
+                    text = password,
+                    style = InstrumentType.title,
+                    color = Volt,
+                )
+                Text(
+                    text = "This opens every backup Temper has written to Drive, on any " +
+                        "phone. Keep it somewhere that is not this phone.",
+                    style = InstrumentType.body,
+                    color = TextSecondary,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = "Done",
+                    style = InstrumentType.bodyStrong,
+                    color = Volt,
+                )
+            }
+        },
+    )
+}
+
 @Composable
 private fun ProtectBackupDialog(
     drive: Boolean,
     onConfirm: (String, String) -> Boolean,
-    onAdvanced: () -> Unit,
+    /** Null hides the plaintext escape. Arming automatic backup must not offer one. */
+    onAdvanced: (() -> Unit)?,
     onDismiss: () -> Unit,
+    arming: Boolean = false,
 ) {
     // remember, not rememberSaveable: a saveable field serializes the plaintext
     // password into the Activity's saved-state Bundle, which the OS persists
@@ -1243,15 +1359,30 @@ private fun ProtectBackupDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                if (drive) "Protect this Drive backup?" else "Protect this backup?",
+                if (arming) {
+                    "Remember your backup password?"
+                } else if (drive) {
+                    "Protect this Drive backup?"
+                } else {
+                    "Protect this backup?"
+                },
                 style = InstrumentType.title,
             )
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
                 Text(
-                    "The file opens on another phone only with this password. " +
-                        "It is not stored on this device.",
+                    if (arming) {
+                        "A backup taken while you are not looking still has to be encrypted, " +
+                            "so this password is kept on this phone, sealed by Android's " +
+                            "keystore. The copies in Drive stay encrypted either way.\n\n" +
+                            "Save it somewhere outside this phone now. Temper will not ask " +
+                            "for it again, and without it every backup in Drive stays sealed " +
+                            "for good — including on a new phone."
+                    } else {
+                        "The file opens on another phone only with this password. " +
+                            "It is not stored on this device."
+                    },
                     style = InstrumentType.body,
                     color = TextSecondary,
                 )
@@ -1293,12 +1424,18 @@ private fun ProtectBackupDialog(
                     textStyle = InstrumentType.body,
                 )
                 invalid?.let { Text(it, style = InstrumentType.caption, color = Danger) }
-                TextButton(onClick = onAdvanced) {
-                    Text(
-                        if (drive) "Upload without a password" else "Export without a password",
-                        style = InstrumentType.caption,
-                        color = TextSecondary,
-                    )
+                onAdvanced?.let { advanced ->
+                    TextButton(onClick = advanced) {
+                        Text(
+                            if (drive) {
+                                "Upload without a password"
+                            } else {
+                                "Export without a password"
+                            },
+                            style = InstrumentType.caption,
+                            color = TextSecondary,
+                        )
+                    }
                 }
             }
         },
@@ -1314,7 +1451,13 @@ private fun ProtectBackupDialog(
                 },
             ) {
                 Text(
-                    if (drive) "Upload protected backup" else "Save protected file",
+                    if (arming) {
+                        "Turn on automatic backup"
+                    } else if (drive) {
+                        "Upload protected backup"
+                    } else {
+                        "Save protected file"
+                    },
                     style = InstrumentType.bodyStrong,
                     color = Volt,
                 )
@@ -1376,15 +1519,6 @@ private fun UnlockBackupDialog(
     )
 }
 
-private fun Context.findActivity(): Activity {
-    var current: Context = this
-    while (current is ContextWrapper) {
-        if (current is Activity) return current
-        current = current.baseContext
-    }
-    error("Settings must run in an Activity")
-}
-
 private val SPINNER_SIZE = 20.dp
 private val SPINNER_STROKE = 2.dp
 private val DISPLAY_LABEL_WIDTH = 56.dp
@@ -1396,4 +1530,6 @@ object SettingsTags {
     const val DISPLAY = "settings-display"
     const val BODYWEIGHT = "settings-bodyweight"
     const val REDACT_LOGS = "settings-redact-logs"
+    const val AUTO_BACKUP = "settings-auto-backup"
+    const val SHOW_BACKUP_PASSWORD = "settings-show-backup-password"
 }

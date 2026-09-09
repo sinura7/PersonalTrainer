@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.logging.AppLog
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -30,6 +31,8 @@ class ReminderActionReceiver : BroadcastReceiver() {
                     planner = app.container.plannerRepository,
                     cancelNotification = { id -> ReminderNotifications.cancel(context, id) },
                 )
+            } catch (error: CancellationException) {
+                throw error
             } catch (error: Exception) {
                 AppLog.w(TAG, "Reminder action failed", error)
             } finally {

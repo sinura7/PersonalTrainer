@@ -47,6 +47,20 @@ private val Context.userSettingsDataStore: DataStore<Preferences> by preferences
     name = "user_settings",
 )
 
+/**
+ * The automatic-backup decision inputs, read in one snapshot.
+ *
+ * Lives here rather than in `domain/` because it is a preferences shape, and because the
+ * pure rule that consumes it ([com.sinura.personaltrainer.domain.AutoBackupPolicy]) takes
+ * plain parameters — which keeps that rule testable in the no-Android lane.
+ */
+data class AutoBackupSettings(
+    val enabled: Boolean,
+    /** Base64 IV + ciphertext. Opened by the sealer; never a passphrase in the clear. */
+    val sealedPassphrase: String?,
+    val lastBackedUpSessionId: String?,
+)
+
 class PreferencesRepository(
     context: Context,
     /**
@@ -400,6 +414,17 @@ class PreferencesRepository(
 
     val lastBackupName: Flow<String?> = pref { prefs -> prefs[LAST_BACKUP_NAME] }
 
+    /**
+     * The last backup that was read back out of Drive, decrypted and found to carry the history
+     * that was written. Device-local and deliberately absent from the backup document: a
+     * verification is a statement about THIS phone's copy, and restoring one onto a new phone
+     * would import a reassurance that had never been earned there.
+     */
+    val lastVerifiedBackupAt: Flow<Long?> = pref { prefs -> prefs[LAST_VERIFIED_BACKUP_AT] }
+
+    val lastVerifiedBackupName: Flow<String?> =
+        pref { prefs -> prefs[LAST_VERIFIED_BACKUP_NAME] }
+
     suspend fun setDriveAccountEmail(email: String?) {
         dataStore.edit { prefs ->
             if (email.isNullOrBlank()) {
@@ -409,6 +434,72 @@ class PreferencesRepository(
             }
         }
     }
+
+    /**
+     * Automatic backup after a finished workout. Device-local, all four keys: none of them
+     * appears in [com.sinura.personaltrainer.data.backup.BackupPreferences], which is a
+     * hand-listed set rather than a sweep, so they are excluded by construction. That is
+     * deliberate — AUTO_BACKUP_SECRET is ciphertext under a non-exportable Keystore key, so
+     * restoring it onto another phone, or onto this one after a reinstall, would write a
+     * blob nothing can open over a passphrase the owner had just entered.
+     */
+    val autoBackupEnabled: Flow<Boolean> = pref { prefs -> prefs[AUTO_BACKUP_ENABLED] ?: false }
+
+    /** Set when an unattended copy found the Drive grant lapsed. Settings surfaces it. */
+    val autoBackupNeedsSignIn: Flow<Boolean> =
+        pref { prefs -> prefs[AUTO_BACKUP_NEEDS_SIGN_IN] ?: false }
+
+    /**
+     * One snapshot, read once. Separate `.first()` calls each re-collect and can observe
+     * different write generations, so a toggle flipped as a workout ends could be seen as
+     * enabled with no secret — the same reason [storedOnboardingAnswers] takes one snapshot.
+     */
+    suspend fun autoBackupSettings(): AutoBackupSettings {
+        val prefs = safePreferences.first()
+        return AutoBackupSettings(
+            enabled = prefs[AUTO_BACKUP_ENABLED] ?: false,
+            sealedPassphrase = prefs[AUTO_BACKUP_SECRET]?.takeIf { it.isNotBlank() },
+            lastBackedUpSessionId = prefs[AUTO_BACKUP_LAST_SESSION]?.takeIf { it.isNotBlank() },
+        )
+    }
+
+    /** Arming is one write so a crash cannot leave the toggle on with no secret behind it. */
+    suspend fun armAutoBackup(sealedPassphrase: String) {
+        dataStore.edit { prefs ->
+            prefs[AUTO_BACKUP_ENABLED] = true
+            prefs[AUTO_BACKUP_SECRET] = sealedPassphrase
+            prefs.remove(AUTO_BACKUP_NEEDS_SIGN_IN)
+        }
+    }
+
+    /** Turning it off forgets the passphrase too: an unopenable secret helps nobody. */
+    suspend fun disarmAutoBackup() {
+        dataStore.edit { prefs ->
+            prefs.remove(AUTO_BACKUP_ENABLED)
+            prefs.remove(AUTO_BACKUP_SECRET)
+            prefs.remove(AUTO_BACKUP_NEEDS_SIGN_IN)
+            prefs.remove(AUTO_BACKUP_LAST_SESSION)
+        }
+    }
+
+    suspend fun setAutoBackupNeedsSignIn(needsSignIn: Boolean) {
+        dataStore.edit { prefs ->
+            if (needsSignIn) {
+                prefs[AUTO_BACKUP_NEEDS_SIGN_IN] = true
+            } else {
+                prefs.remove(AUTO_BACKUP_NEEDS_SIGN_IN)
+            }
+        }
+    }
+
+    /** Written only after an upload returns, so a failed copy is retried rather than skipped. */
+    suspend fun setAutoBackupLastSession(sessionId: String) {
+        dataStore.edit { prefs -> prefs[AUTO_BACKUP_LAST_SESSION] = sessionId }
+    }
+
+    /** One-shot, for the account-change guard, which must read before it writes. */
+    suspend fun driveAccountEmailOnce(): String? =
+        safePreferences.first()[DRIVE_ACCOUNT]?.takeIf { it.isNotBlank() }
 
     suspend fun driveFolderId(): String? = safePreferences.first()[DRIVE_FOLDER_ID]
 
@@ -834,10 +925,28 @@ class PreferencesRepository(
         }
     }
 
+    /** Written only after the file has come back out of Drive intact. */
+    suspend fun setLastVerifiedBackup(fileName: String, atMillis: Long) {
+        dataStore.edit { prefs ->
+            prefs[LAST_VERIFIED_BACKUP_NAME] = fileName
+            prefs[LAST_VERIFIED_BACKUP_AT] = atMillis
+        }
+    }
+
+    /**
+     * Signing out of Drive also disarms automatic backup — without a grant it cannot run, and
+     * leaving the toggle on would promise a copy that never happens. The sealed passphrase
+     * goes with it: keeping a secret for a feature that is off is a liability, not a
+     * convenience, and re-arming re-asks for it.
+     */
     suspend fun clearDriveSession() {
         dataStore.edit { prefs ->
             prefs.remove(DRIVE_ACCOUNT)
             prefs.remove(DRIVE_FOLDER_ID)
+            prefs.remove(AUTO_BACKUP_ENABLED)
+            prefs.remove(AUTO_BACKUP_SECRET)
+            prefs.remove(AUTO_BACKUP_NEEDS_SIGN_IN)
+            prefs.remove(AUTO_BACKUP_LAST_SESSION)
         }
     }
 
@@ -887,8 +996,14 @@ class PreferencesRepository(
         val REST_ALARM_ELIGIBLE = booleanPreferencesKey("rest_alarm_eligible")
         val DRIVE_ACCOUNT = stringPreferencesKey("drive_account_email")
         val DRIVE_FOLDER_ID = stringPreferencesKey("drive_folder_id")
+        val AUTO_BACKUP_ENABLED = booleanPreferencesKey("auto_backup_enabled")
+        val AUTO_BACKUP_SECRET = stringPreferencesKey("auto_backup_secret")
+        val AUTO_BACKUP_LAST_SESSION = stringPreferencesKey("auto_backup_last_session_id")
+        val AUTO_BACKUP_NEEDS_SIGN_IN = booleanPreferencesKey("auto_backup_needs_sign_in")
         val LAST_BACKUP_AT = longPreferencesKey("last_backup_at")
         val LAST_BACKUP_NAME = stringPreferencesKey("last_backup_name")
+        val LAST_VERIFIED_BACKUP_AT = longPreferencesKey("last_verified_backup_at")
+        val LAST_VERIFIED_BACKUP_NAME = stringPreferencesKey("last_verified_backup_name")
         val LAST_RESTORE_AT = longPreferencesKey("last_restore_at")
         val LAST_RESTORE_NAME = stringPreferencesKey("last_restore_name")
         val RESTORE_RECOVERY_NOTE = stringPreferencesKey("restore_recovery_note")

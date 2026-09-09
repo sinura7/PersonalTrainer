@@ -111,13 +111,45 @@ stable key, but only once four `DEBUG_KEYSTORE_*` secrets and the
 Until then every drop is marked THROWAWAY SIGNER and installs beside the
 app on the phone rather than over it.
 
-**The live test 22 Obtainium drop never published.** Hosted
-`debug-live.yml` died in seconds with no runner. Obtainium still offers
-`debug-live-2026-09-03` (live **20** — live 21 also never published).
-The Cursor APK at versionCode 22 is the phone install. Do not bump 22.
-Do not `gh release create`. `#125` (AGP 9.3.2) and `#126` (play-services-auth
-22.0.0) were closed unmerged on 2026-09-08 and both are now in the
-`.github/dependabot.yml` ignore list, so they will not be re-opened.
+**The Obtainium lane is automatic again.** Hosted `debug-live.yml` had
+died in seconds with no runner since 2026-09-05, which stranded live 21
+and live 22. That was never a billing problem worth paying to solve:
+Actions is free and unmetered on a public repository, and the account had
+simply exhausted its private-repo minutes. The repository was made public
+on 2026-09-08 after a scan of all 72 commits found no keystore, private
+key, API key or token in any of them — the only matches were `printf`
+lines reading GitHub secrets and a placeholder in `SETUP.md`.
+
+`debugLiveCode` moves 22 -> 23 for live test 23, the first drop carrying
+app code since the Cursor build. Push a `debug-live/<suffix>` branch to
+cut a drop: the workflow derives the tag from the branch name and mints
+the pre-release with the Actions token. That spelling is what a cloud
+session needs — the git proxy 403s tag refs, and the session type refuses
+the Releases API outright ("Creating, editing, or deleting releases is not
+permitted for this session type"), so neither a tag push nor
+`gh release create` is reachable from here. The branch push is.
+
+**R05 is closed as of live test 25.** The four `DEBUG_KEYSTORE_*` secrets
+and the `DEBUG_CERT_SHA256` variable were set on 2026-09-09, so
+`debug-live.yml` restores one stable keystore and every drop from 25 on
+updates a Temper Debug in place instead of installing beside it. The
+certificate is `B2:6E:A6:4C:...:E9:12:C3:36`; the workflow fails the drop
+if a build is signed by anything else. The one-time cost of the switch is
+on the phone, not in the repository: a Temper Debug installed from an
+earlier throwaway-signed drop must be backed up, uninstalled and
+reinstalled once, per SETUP.md section 6. Dependabot
+refuses now on the ignore list, all
+closed unmerged: `#125` (AGP 9.3.2), `#126` (play-services-auth 22.0.0),
+`#174` (coroutines 1.11.0 — `kotlinx-coroutines-android` was unnamed, so
+the kotlin group bundled it with core/test), and `#176` (android-all
+17- jar; J3 stays on `15-robolectric-13954326-i7`). `#178` named those
+holes, and also ignores `org.robolectric:robolectric` major/minor so
+API-36-and-up Robolectric does not sneak in on Java 17. Leave `#173` (setup-gradle 6.3.0; Actions is not the test lane),
+`#175` (Robolectric 4.16.1 patch), and `#180` (AGP **8.9.2 → 8.9.3**,
+a patch of the signed compileSdk-36 pair — not the 9.x refuse). None
+of those merge as a drive-by: each needs a JVM-gated packet and a
+ledger update, and AGP 8.9.3 also moves the `aapt2-8.9.2-*` pins in
+`tools/check-supply-chain.py`.
 
 **R16 residue.** Production-screen tests exist for History, the activity
 composer, live cardio, the activity receipt and Home. Settings, onboarding,

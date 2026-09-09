@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.testutil.TestSetInput
+import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -57,7 +58,7 @@ class WorkoutSummaryViewModelTest {
     @Test
     fun missingSessionResolvesMissingInsteadOfSpinning() = runBlocking {
         val vm = createViewModel("missing")
-        val state = vm.uiState.first { !it.isLoading }
+        val state = vm.uiState.awaitFirst { !it.isLoading }
 
         assertTrue(state.missing)
         assertFalse(state.isLoading)
@@ -74,7 +75,7 @@ class WorkoutSummaryViewModelTest {
         )
         val vm = createViewModel(fixture.session.id)
 
-        val state = vm.uiState.first { !it.isLoading }
+        val state = vm.uiState.awaitFirst { !it.isLoading }
         assertFalse(state.missing)
         assertTrue(state.summary.hasWork)
         assertEquals("Summary lower", state.summary.title)
@@ -92,7 +93,7 @@ class WorkoutSummaryViewModelTest {
         )
         val vm = createViewModel(fixture.session.id)
 
-        val state = vm.uiState.first { !it.isLoading }
+        val state = vm.uiState.awaitFirst { !it.isLoading }
         assertFalse(state.missing)
         assertFalse(state.summary.hasWork)
         assertEquals(0, state.summary.workingSets)
@@ -101,7 +102,7 @@ class WorkoutSummaryViewModelTest {
     @Test
     fun blankSessionIdResolvesMissingInsteadOfSpinning() = runBlocking {
         val vm = createViewModel("")
-        val state = vm.uiState.first { !it.isLoading }
+        val state = vm.uiState.awaitFirst { !it.isLoading }
 
         assertTrue(state.missing)
         assertFalse(state.isLoading)
@@ -115,7 +116,7 @@ class WorkoutSummaryViewModelTest {
             finish = true,
         )
         val vm = createViewModel(fixture.session.id)
-        val before = vm.uiState.first { !it.isLoading }.summary
+        val before = vm.uiState.awaitFirst { !it.isLoading }.summary
 
         val set = fixture.session.sets.single()
         deps.workoutRepository.updateSet(set.id, 110.0, 5, null, false)

@@ -15,6 +15,66 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 9 Sep 2026 — W3: `SettingsViewModelTest`'s four waits go through
+> `awaitFirst` now that `#188` has landed; `unbounded_waits` 4 → 0. Every
+> ViewModel wait in the suite has a ceiling and names what it last saw.
+>
+> 9 Sep 2026 — I: the hosted emulator lane boots the Nexus 5X profile the
+> goldens were recorded on (411 dp at 420 dpi, the `temper-tests-api29`
+> device); it had been booting a 320 px default. Still red, and now
+> honestly so — five of eighty need an emulator in front of someone:
+> `FoundationGoldenTest` (0.43% of pixels in `[84,664..858,1321]`, the
+> figure region, SwiftShader vs the recording GPU), `ExactAlarmCapability`
+> `apiBelow31SchedulesExact` (`FAILED` where API 29 must give `EXACT`),
+> `ProductionScreensPass.historyAt360Font2` (`Records` unreachable), and
+> both `ActiveWorkoutJourney` journeys (`Top set 202.5 kg × 5`, `Set 1`
+> not displayed). The lane stays non-blocking until it is green ten runs
+> in a row on `trunk`. No app code; no drop.
+>
+> 9 Sep 2026 — C: `tools/check-cancellation.py` fails preflight when a
+> `catch (Exception)` that can see a suspension has no `CancellationException`
+> clause ahead of it. 32 such sites (every ViewModel `launch`, the app's
+> start-up imports, two receivers, Drive sign-out, the foundation reset)
+> now rethrow cancellation; `cancellation_swallow` 32 → 0. No drop.
+>
+> 9 Sep 2026 — D: Body says what the figure was built from — a facts line
+> under the map ("3 sessions this week · last finished yesterday"), **Show
+> this month** in one tap when Day or Week is empty, and the Front / Back
+> chips in their own strip under the figure (`DESIGN_AUDIT` B-05 closed).
+> Live test 28 (`debugLiveCode` 28), drop `debug-live/2026-09-09-7`.
+>
+> 9 Sep 2026 — E: Golf cool-down pack (`golf-cooldown`, Mobility: couch
+> stretch, incline pigeon, calf stretch, elephant walk, dead bug). After a
+> round, where the Golf warm-up is before one. Live test 27
+> (`debugLiveCode` 27), drop `debug-live/2026-09-09-6` — the `-5` cut died
+> on the `#188` / `#190` compile break that `#196` fixed.
+>
+> 9 Sep 2026 — W2: every ViewModel test wait goes through
+> `Flow.awaitFirst` (sharedTest `TestWaits.kt`): `withTimeout(FLOW_MS)`
+> and, on giving up, the last value the flow showed. 203 sites in 16
+> classes; `unbounded_waits` 207 → 4 (`SettingsViewModelTest`, owned by
+> `#188`, follows). No app code; no drop.
+>
+> 9 Sep 2026 — W: `tools/check-unbounded-waits.py` fails preflight when a
+> `*ViewModelTest.kt` waits on a ViewModel flow with no `withTimeout`
+> around it — the shape that wedged CI twice on 9 Sep. Ratcheted at 207
+> (`unbounded_waits`); `test_unbounded_waits.py` is its fixture proof.
+> No app code; no drop.
+>
+> 9 Sep 2026 — `#189`: the 31-minute CI hang was a ViewModel error race
+> (every action wrote null into one shared error flow on success), not a
+> deadlock. `util/ErrorSlot`: a success clears only its own family, and
+> only refusals older than its own start. `tools/hang-watchdog.sh` wraps the
+> CI unit-test step and thread-dumps a wedged worker from outside the JVM.
+> B2 follows: the same slot in the eight remaining ViewModels
+> (`HistoryViewModel` waits for `#181`). No app-visible change; no drop.
+> `DESIGN_AUDIT` W-14/W-15 were already closed in code and are marked so.
+>
+> 8 Sep 2026 — Dependabot `#174` (coroutines 1.11.0) and `#176`
+> (android-all-instrumented 17) closed unmerged. `#178` named
+> `kotlinx-coroutines-android` and the J3 API-35 jar on the ignore
+> list. Live test 22 is still the phone APK; Obtainium is still 20.
+>
 > 5 Sep 2026 — Live test 21 (`debugLiveCode` 21) on `trunk`: C–J4
 > plus lint publisher. Obtainium attach waits on a hosted runner;
 > sideload Temper Debug until a `debug-live-*` pre-release exists.
