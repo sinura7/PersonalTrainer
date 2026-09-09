@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.settings
 
 import android.app.Activity
 import android.app.Application
+import android.app.KeyguardManager
 import android.content.Intent
 import android.content.IntentSender
 import android.net.Uri
@@ -289,6 +290,85 @@ class SettingsViewModel @JvmOverloads constructor(
      */
     private val _pendingResolution = MutableStateFlow<IntentSender?>(null)
     val pendingResolution: StateFlow<IntentSender?> = _pendingResolution.asStateFlow()
+
+    /** The lock-screen challenge to launch before the backup password is shown. */
+    private val _pendingPasswordReveal = MutableStateFlow<Intent?>(null)
+    val pendingPasswordReveal: StateFlow<Intent?> = _pendingPasswordReveal.asStateFlow()
+
+    /**
+     * The backup password, in the clear, while the reveal dialog is up.
+     *
+     * Held as a String because Compose can only draw one, which means it cannot be wiped the
+     * way [heldPassword] is — so it exists for as long as the dialog and no longer, and is
+     * never put in saved state. That is the same reason [ProtectBackupDialog] uses `remember`
+     * rather than `rememberSaveable` for what is typed into it.
+     */
+    private val _revealedPassword = MutableStateFlow<String?>(null)
+    val revealedPassword: StateFlow<String?> = _revealedPassword.asStateFlow()
+
+    /**
+     * Asks for the lock screen, then shows the stored backup password.
+     *
+     * Exists because arming automatic backup stopped the app ever asking for the password
+     * again, which quietly removed the rehearsal that used to keep it in memory. The Drive
+     * files are useless without it, so there has to be a way back to it.
+     *
+     * Refuses outright with no screen lock: the password opens every backup this phone ever
+     * wrote, and showing it on a device anyone can pick up and swipe into is not a trade worth
+     * making silently.
+     */
+    fun beginRevealBackupPassword() {
+        val keyguard = getApplication<Application>().getSystemService(KeyguardManager::class.java)
+        if (keyguard == null || !keyguard.isDeviceSecure) {
+            error.value = "Set a screen lock on this phone first. " +
+                "The backup password opens every backup Temper has written."
+            return
+        }
+        @Suppress("DEPRECATION")
+        val challenge = keyguard.createConfirmDeviceCredentialIntent(
+            "Show backup password",
+            "Confirm it is you before Temper shows the password.",
+        )
+        if (challenge == null) {
+            error.value = "This phone would not ask for your screen lock. Password not shown."
+            return
+        }
+        _pendingPasswordReveal.value = challenge
+    }
+
+    fun onPasswordRevealLaunched() {
+        _pendingPasswordReveal.value = null
+    }
+
+    /** Opens the sealed blob only after the lock screen said yes. */
+    fun onPasswordRevealAuthenticated(authenticated: Boolean) {
+        _pendingPasswordReveal.value = null
+        if (!authenticated) return
+        viewModelScope.launch {
+            val sealed = container.preferencesRepository.autoBackupSettings().sealedPassphrase
+            if (sealed == null) {
+                error.value = "No backup password is stored on this phone."
+                return@launch
+            }
+            val chars = container.backupPassphraseSealer.open(sealed)
+            if (chars == null) {
+                AppLog.e(TAG, "Sealed backup passphrase would not open for display")
+                error.value = "This phone can no longer open the stored password. " +
+                    "Turn automatic backup off and on again to set a new one — and keep any " +
+                    "existing Drive backups, which still need the old password."
+                return@launch
+            }
+            try {
+                _revealedPassword.value = String(chars)
+            } finally {
+                chars.fill('\u0000')
+            }
+        }
+    }
+
+    fun dismissRevealedPassword() {
+        _revealedPassword.value = null
+    }
 
     fun onResolutionLaunched() {
         _pendingResolution.value = null

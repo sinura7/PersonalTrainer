@@ -141,6 +141,68 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun aFailedLockScreenRevealsNothing() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first() }
+
+        viewModel!!.setAutoBackupEnabled(true)
+        viewModel!!.submitAutoBackupPassphrase("correct horse", "correct horse")
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first { it.autoBackupEnabled } }
+
+        viewModel!!.onPasswordRevealAuthenticated(false)
+
+        assertNull(viewModel!!.revealedPassword.value)
+    }
+
+    @Test
+    fun aPassedLockScreenShowsTheStoredPassword() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first() }
+
+        viewModel!!.setAutoBackupEnabled(true)
+        viewModel!!.submitAutoBackupPassphrase("correct horse", "correct horse")
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first { it.autoBackupEnabled } }
+
+        viewModel!!.onPasswordRevealAuthenticated(true)
+
+        // This is the whole point of the row: arming stopped the app asking again, so the
+        // sealed copy has to be readable back or a forgotten password seals Drive for good.
+        val shown = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.revealedPassword.first { it != null }
+        }
+        assertEquals("correct horse", shown)
+
+        viewModel!!.dismissRevealedPassword()
+        assertNull(viewModel!!.revealedPassword.value)
+    }
+
+    @Test
+    fun revealingWithNothingStoredSaysSoInsteadOfShowingBlank() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.backupState.first() }
+
+        viewModel!!.onPasswordRevealAuthenticated(true)
+
+        assertNull(viewModel!!.revealedPassword.value)
+        val failed = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.backupState.first { it.error != null }
+        }
+        assertTrue(failed.error!!.contains("No backup password"))
+    }
+
+    @Test
     fun turningItOffForgetsThePassphrase() = runBlocking {
         deps = FakeAppDependencies(
             context = ApplicationProvider.getApplicationContext(),
