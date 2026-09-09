@@ -77,12 +77,26 @@ Backup/restore talks to Drive with the `drive.file` scope. You must create an An
 
 ### OAuth consent screen
 
-1. APIs & Services → OAuth consent screen.
-2. User type: **External**.
-3. App name: `Temper`. Support email: your Gmail.
-4. Scopes: add `https://www.googleapis.com/auth/drive.file` (or finish the wizard and add it under Data Access).
-5. Test users: add the Google account you will sign in with on the phone.
-6. Publishing status can stay in **Testing** for personal use.
+Google reorganised this area into **Google Auth Platform**; older guides
+(and earlier versions of this file) call it APIs & Services → OAuth consent
+screen. The settings below are now split across the Branding, Audience, and
+Data Access tabs.
+
+1. Google Auth Platform (formerly APIs & Services → OAuth consent screen).
+2. User type: **External** — under the **Audience** tab.
+3. App name: `Temper`. Support email: your Gmail. Under **Branding**.
+4. Scopes: add `https://www.googleapis.com/auth/drive.file` under **Data Access**.
+5. Test users: under **Audience**, add the Google account you will sign in with
+   on the phone. Do this *before* the first sign-in attempt.
+6. Then **publish the app** (Audience → Publish app).
+
+Step 6 is not optional housekeeping. While the app sits in **Testing**, Google
+expires the grant on a short cycle — about a week — and because the app holds no
+refresh token (see below) that means the consent sheet returns roughly weekly,
+forever. `drive.file` is not a restricted scope, so publishing needs no
+verification submission and no security assessment. Publishing an External app
+with one non-sensitive scope and one user is the supported way to stop the
+re-consent loop.
 
 ### Android OAuth client
 
@@ -100,17 +114,53 @@ two clients.
 Repeat for the other package if you use both.
 
 No `google-services.json` is required. The app does not embed a client secret.
+An Android OAuth client is matched by package name plus signing SHA-1 at Google's
+end, so there is nothing to paste into the APK and nothing to get wrong in code.
+
+### What the app stores, and what it does not
+
+The app keeps **no refresh token and no access token on disk**. Only your account
+email and the Drive folder id are persisted. Every Drive action re-runs
+authorization, which normally returns a token with no visible prompt once the
+grant is recorded. Two consequences worth knowing before you debug anything:
+
+- "Signed in" in Settings is a remembered email address, not a live session. It
+  can survive a grant that Google has since expired.
+- If a consent sheet appears more often than once, that is the Testing-status
+  expiry above, not a bug in the app.
 
 ### SHA-1 fingerprints
 
 **Temper Debug** (the `debug-live-*` pre-release Obtainium installs): the signer
 is the debug distribution keystore from §6, not any machine's
-`~/.android/debug.keystore`. Read the SHA-1 straight off the APK that was
-installed:
+`~/.android/debug.keystore`, and not anything in a fresh clone —
+`debug-signing/` is gitignored, and `DEBUG_KEYSTORE_BASE64` is write-only.
+Read the SHA-1 off the APK that was installed:
 
 ```bash
-keytool -printcert -jarfile PersonalTrainer-<version>-debug.apk
+apksigner verify --print-certs PersonalTrainer-<version>-debug.apk
 ```
+
+`apksigner` ships in `$ANDROID_HOME/build-tools/<version>/`. Use it, not
+`keytool -printcert -jarfile`: AGP signs with APK Signature Scheme v2/v3 and no
+v1 JAR signature, so the `keytool` form prints **nothing at all** for these APKs
+— silently, with a zero exit. That is a wasted afternoon, not an error message.
+
+Cross-check the `SHA-256` line against the `DEBUG_CERT_SHA256` repository
+variable (§6) before registering: if they differ, the APK you have was signed by
+a throwaway runner key and its SHA-1 is worthless.
+
+The current stable debug distribution signer, measured from
+`debug-live-2026-09-09-3` (versionCode 25, the first drop on the stable key):
+
+```
+SHA-1:   7A:78:2C:6F:2F:FE:6C:6B:49:29:52:A4:6B:B7:09:2C:38:04:C8:39
+SHA-256: B2:6E:A6:4C:9E:3E:2C:C4:40:63:DE:E3:D1:89:2E:85:57:CE:A2:D2:5E:71:DE:05:AB:CD:75:4D:E9:12:C3:36
+```
+
+That is a certificate digest, not a secret — it is derivable by anyone holding
+the public APK. It is recorded here so the Cloud Console client can be rebuilt
+without re-deriving it, and it changes only if the debug keystore is replaced.
 
 A local `assembleDebug` without `debug-keystore.properties` is signed by that
 machine's default debug keystore instead (`./gradlew signingReport`, `SHA1` under
@@ -134,6 +184,36 @@ keytool -list -v \
 Copy the SHA-1 as hex with colons, for example `A1:B2:C3:...`.
 
 If Drive sign-in says it is not configured, the installed APK’s SHA-1 is missing from Cloud Console.
+
+### If sign-in does not work
+
+Read the symptom, not the guess. Each row below has one likely cause.
+
+| What the phone says | What it means | Fix |
+|---|---|---|
+| "Google Drive sign-in isn’t configured for this install…" | `DEVELOPER_ERROR`. The package name or SHA-1 in Cloud Console does not match the installed APK. The message names the package to register. | §4 Android OAuth client, with the SHA-1 read off the installed APK |
+| Signed in, but the row reads the literal words **"Google Drive"** instead of your address | The token worked; the Drive About read did not. Usually the Drive API is not enabled. | Enable **Google Drive API** (§4) |
+| "Drive access was denied." on Create backup | Drive returned 403. Most often the Drive API is off, not a scope problem. | Enable **Google Drive API** (§4) |
+| "No Google account is available to this app." | `SIGN_IN_REQUIRED`. There is no usable Google account on the device. | Android Settings → Accounts → add your Google account |
+| "Google sign-in was cancelled." without you cancelling | The consent closed without granting, or the 5-minute wait elapsed. | Retry; if it repeats, check the two rows above |
+| "Connect to the internet to use Google Drive." | The pre-authorization network check refused before any Google UI. | Get on Wi-Fi |
+
+Failures are logged under the tags `PT/DriveAuth` and `PT/SettingsVM`:
+
+```bash
+adb logcat -s PT/DriveAuth PT/SettingsVM
+```
+
+That is the fastest way to tell a configuration problem from a cancelled tap.
+Message text is redacted by default, but the exception is always logged in full
+and the Play Services `ApiException` carries the status code — `10` is
+`DEVELOPER_ERROR`, `4` is `SIGN_IN_REQUIRED`, `7` is `NETWORK_ERROR`. For the
+free-text messages too, turn off Settings → Log → **Redact messages** first; it
+re-arms on the next app start.
+
+The full phone check — ten steps, about ten minutes, with a pass/fail at each —
+is [docs/DRIVE_SIGNIN_CHECK.md](docs/DRIVE_SIGNIN_CHECK.md). Run it once after
+setting up Cloud Console.
 
 ## 5. GitHub Release + Obtainium
 
@@ -268,7 +348,10 @@ This is not Play. `versionCode` stays at 1 until a signed public artifact is cut
    Gym-floor Temper: signed `PersonalTrainer-<version>.apk`.
 2. Allow installs from Obtainium when Android asks.
 3. Open Settings → About and confirm the version.
-4. Optional: Settings → Backup & restore → Sign in with Google, then Create backup now.
+4. Optional: Settings → Google Drive → Sign in with Google, then Create backup now.
+5. Optional: turn on **Back up after each workout** in the same section. It asks
+   for the backup password once and keeps it sealed on the phone; every finished
+   workout then goes to Drive as the usual protected envelope, with no prompt.
 
 Core training (routines, logging, history, units, library) does not need Google or a network. Backup/restore replaces local data from a Drive JSON file you created earlier.
 
