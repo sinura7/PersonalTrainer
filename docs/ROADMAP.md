@@ -19,6 +19,18 @@
 > `awaitFirst` now that `#188` has landed; `unbounded_waits` 4 → 0. Every
 > ViewModel wait in the suite has a ceiling and names what it last saw.
 >
+> 9 Sep 2026 — I: the hosted emulator lane boots the Nexus 5X profile the
+> goldens were recorded on (411 dp at 420 dpi, the `temper-tests-api29`
+> device); it had been booting a 320 px default. Still red, and now
+> honestly so — five of eighty need an emulator in front of someone:
+> `FoundationGoldenTest` (0.43% of pixels in `[84,664..858,1321]`, the
+> figure region, SwiftShader vs the recording GPU), `ExactAlarmCapability`
+> `apiBelow31SchedulesExact` (`FAILED` where API 29 must give `EXACT`),
+> `ProductionScreensPass.historyAt360Font2` (`Records` unreachable), and
+> both `ActiveWorkoutJourney` journeys (`Top set 202.5 kg × 5`, `Set 1`
+> not displayed). The lane stays non-blocking until it is green ten runs
+> in a row on `trunk`. No app code; no drop.
+>
 > 9 Sep 2026 — C: `tools/check-cancellation.py` fails preflight when a
 > `catch (Exception)` that can see a suspension has no `CancellationException`
 > clause ahead of it. 32 such sites (every ViewModel `launch`, the app's
