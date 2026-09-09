@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 9 Sep 2026 — W3: `SettingsViewModelTest`'s four waits go through
+> `awaitFirst` now that `#188` has landed; `unbounded_waits` 4 → 0. Every
+> ViewModel wait in the suite has a ceiling and names what it last saw.
+>
 > 9 Sep 2026 — C: `tools/check-cancellation.py` fails preflight when a
 > `catch (Exception)` that can see a suspension has no `CancellationException`
 > clause ahead of it. 32 such sites (every ViewModel `launch`, the app's
