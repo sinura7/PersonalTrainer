@@ -83,6 +83,51 @@ class HistoryViewModelTest {
         assertEquals(live.id, blocked!!.inProgressSessionId)
         assertEquals("Legs", blocked.inProgressName)
         assertNull(viewModel!!.navigateToSession.value)
+        assertNull(viewModel!!.error.value)
+    }
+
+    @Test
+    fun repeatMissingSessionSurfacesFailedWithoutNavigating() = runBlocking {
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.repeatSession("missing")
+
+        val message = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.error.first { it == "That session is no longer available." }
+        }
+        assertEquals("That session is no longer available.", message)
+        assertNull(viewModel!!.navigateToSession.value)
+        assertNull(viewModel!!.blockedRepeat.value)
+        viewModel!!.onErrorShown()
+        assertNull(viewModel!!.error.value)
+    }
+
+    @Test
+    fun aSuccessfulRepeatClearsItsOwnEarlierRefusal() = runBlocking {
+        deps = FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        val finished = deps.workoutRepository.startFreeWorkout("Push")
+        deps.workoutRepository.finishSession(finished.id, notes = "")
+
+        viewModel = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.repeatSession("missing")
+        withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.error.first { it == "That session is no longer available." }
+        }
+
+        viewModel!!.repeatSession(finished.id)
+
+        val newId = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.navigateToSession.first { it != null }
+        }
+        assertEquals(newId, deps.workoutRepository.getInProgress()?.id)
+        assertNull(viewModel!!.error.value)
+        assertNull(viewModel!!.blockedRepeat.value)
     }
 
     @Test

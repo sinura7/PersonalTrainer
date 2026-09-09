@@ -31,6 +31,7 @@ import com.sinura.personaltrainer.domain.groupHistoryByMonth
 import com.sinura.personaltrainer.domain.standingRecords
 import com.sinura.personaltrainer.domain.toHistoryEntry
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.util.toCivilYearMonth
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -48,6 +49,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.YearMonth
 import java.util.concurrent.atomic.AtomicBoolean
+
+/** [ErrorSlot] families: a success may clear only its own family's refusal. */
+private const val ERR_REPEAT = "repeat"
 
 data class HistoryUiState(
     val isLoading: Boolean = true,
@@ -90,8 +94,9 @@ class HistoryViewModel @JvmOverloads constructor(
     private val _blockedRepeat = MutableStateFlow<RepeatOutcome.Blocked?>(null)
     val blockedRepeat: StateFlow<RepeatOutcome.Blocked?> = _blockedRepeat.asStateFlow()
 
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
+    private val errors = ErrorSlot()
+    val error: StateFlow<String?> =
+        errors.messages.stateIn(viewModelScope, SharingStarted.Eagerly, null)
     private val repeating = AtomicBoolean(false)
 
     private val historyRetry = MutableStateFlow(0)
@@ -282,19 +287,30 @@ class HistoryViewModel @JvmOverloads constructor(
 
     fun repeatSession(sessionId: String) {
         if (!repeating.compareAndSet(false, true)) return
+        val started = errors.mark()
         viewModelScope.launch {
             try {
                 runCatchingCancellable { container.workoutRepository.repeatSession(sessionId) }
                     .onSuccess { outcome ->
                         when (outcome) {
-                            is RepeatOutcome.Started -> _navigateToSession.value = outcome.sessionId
-                            is RepeatOutcome.Blocked -> _blockedRepeat.value = outcome
-                            is RepeatOutcome.Failed -> _error.value = outcome.message
+                            is RepeatOutcome.Started -> {
+                                errors.clearFrom(source = ERR_REPEAT, before = started)
+                                _navigateToSession.value = outcome.sessionId
+                            }
+                            is RepeatOutcome.Blocked -> {
+                                errors.clearFrom(source = ERR_REPEAT, before = started)
+                                _blockedRepeat.value = outcome
+                            }
+                            is RepeatOutcome.Failed ->
+                                errors.fail(source = ERR_REPEAT, message = outcome.message)
                         }
                     }
                     .onFailure { thrown ->
                         AppLog.w(TAG, "repeatSession failed", thrown)
-                        _error.value = "Could not repeat that workout. Try again."
+                        errors.fail(
+                            source = ERR_REPEAT,
+                            message = "Could not repeat that workout. Try again.",
+                        )
                     }
             } finally {
                 repeating.set(false)
@@ -317,7 +333,7 @@ class HistoryViewModel @JvmOverloads constructor(
     }
 
     fun onErrorShown() {
-        _error.value = null
+        errors.dismiss()
     }
 
     fun retryHistory() {
