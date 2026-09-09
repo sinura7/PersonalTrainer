@@ -15,6 +15,14 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 9 Sep 2026 — F: the multi-add picker writes as it goes. A tap in Add lifts
+> puts the lift on the routine (or on the custom week's day) immediately and a
+> second tap takes it back out; the numbers are the session's own order, and the
+> footer button is **Done**, not Add. Closing the sheet — scrim, back, a stray
+> tap — no longer empties a cart the owner built by hand. `LiftCart` keeps the
+> in-flight taps (`picked`/`settle`), `planConfirm` and `ExercisePickerEvent.Confirmed`
+> are gone. No schema change; no drop.
+>
 > 9 Sep 2026 — W3: `SettingsViewModelTest`'s four waits go through
 > `awaitFirst` now that `#188` has landed; `unbounded_waits` 4 → 0. Every
 > ViewModel wait in the suite has a ceiling and names what it last saw.

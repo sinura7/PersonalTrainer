@@ -18,6 +18,7 @@ import com.sinura.personaltrainer.domain.ExerciseOrdering
 import com.sinura.personaltrainer.domain.LibraryGrouping
 import com.sinura.personaltrainer.domain.LiftCart
 import com.sinura.personaltrainer.domain.MuscleGroups
+import com.sinura.personaltrainer.domain.PendingPick
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineEditorLoad
 import com.sinura.personaltrainer.domain.RoutineEditorPolicy
@@ -36,6 +37,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 private const val TAG = "PT/RoutineEditorVM"
 
@@ -64,9 +67,14 @@ data class RoutineEditorUiState(
     val catalog: List<Exercise> = emptyList(),
     /** Non-null while a swap sheet is open, naming the routine row being replaced. */
     val swapItemId: String? = null,
-    val pendingAddIds: List<String> = emptyList(),
+    /**
+     * What the picker draws as chosen, in session order: every lift the routine already
+     * holds, plus any tap whose write has not landed. It is a view of the routine, not a
+     * staging list in front of it — closing the sheet cannot lose a single one of them.
+     */
+    val pickedIds: List<String> = emptyList(),
     val error: String? = null,
-    /** True while Confirm is writing lifts. Add lifts is disabled so the picker cannot reopen. */
+    /** True while a tap from the picker is still being written. */
     val addingLifts: Boolean = false,
 ) {
     /**
@@ -110,8 +118,13 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     private val error = ErrorSlot()
     private val extraCatalog = MutableStateFlow<List<Exercise>>(emptyList())
     private val swapItemId = MutableStateFlow<String?>(null)
-    private val pendingAddIds = MutableStateFlow<List<String>>(emptyList())
-    private val confirmInFlight = MutableStateFlow(false)
+    private val pendingPicks = MutableStateFlow<List<PendingPick>>(emptyList())
+
+    /**
+     * Picker writes run one at a time, in tap order. Two taps on the same row are an add
+     * and a remove, and the remove cannot find a row the add has not finished writing.
+     */
+    private val pickWrites = Mutex()
     private val inFlight = ConcurrentHashMap.newKeySet<Job>()
     private var leaving = false
 
@@ -141,6 +154,11 @@ class RoutineEditorViewModel @JvmOverloads constructor(
 
     init {
         hydrate()
+        // The routine is the cart, so every emission of it settles the taps it now carries.
+        // A pick is held for exactly as long as the write behind it is in flight.
+        viewModelScope.launch {
+            routineFlow.collect { routine -> settlePicks(committedIds(routine)) }
+        }
     }
 
     /**
@@ -203,22 +221,22 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         combine(routineFlow, name, notes, searchQuery, resultsFlow) { routine, currentName, currentNotes, query, results ->
             EditorCore(routine, currentName, currentNotes, query, results)
         },
-        combine(showPicker, error.messages, load, confirmInFlight) { picker, err, loadState, adding ->
-            EditorFlags(picker, err, loadState.phase, adding)
+        combine(showPicker, error.messages, load) { picker, err, loadState ->
+            EditorFlags(picker, err, loadState.phase)
         },
         combine(
             combine(container.exerciseRepository.observeAll(), extraCatalog) { catalog, extra ->
                 catalog to extra
             },
             swapItemId,
-            pendingAddIds,
+            pendingPicks,
         ) { sources, swapTarget, pending ->
             val (incoming, extra) = sources
             CatalogExtras(
                 catalog = LiftCart.mergeSources(incoming, extra),
                 extra = extra,
                 swapItemId = swapTarget,
-                pendingAddIds = pending,
+                pending = pending,
             )
         },
     ) { core, extras, catalogExtras ->
@@ -238,9 +256,12 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             showExercisePicker = extras.showPicker,
             catalog = catalogExtras.catalog,
             swapItemId = catalogExtras.swapItemId,
-            pendingAddIds = catalogExtras.pendingAddIds,
+            pickedIds = LiftCart.picked(
+                committed = committedIds(core.routine),
+                pending = catalogExtras.pending,
+            ),
             error = extras.error,
-            addingLifts = extras.addingLifts,
+            addingLifts = catalogExtras.pending.isNotEmpty(),
         )
     }.stateIn(
         scope = viewModelScope,
@@ -401,6 +422,9 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     fun leave() {
         if (leaving) return
         leaving = true
+        // The sheet goes with the screen. Its lifts are already written, so there is
+        // nothing to keep it open for, and a picker left standing would outlive the pop.
+        showPicker.value = false
         viewModelScope.launch {
             joinWrites()
             flushStagedTargets()
@@ -417,6 +441,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     fun saveAndLeave() {
         if (leaving) return
         leaving = true
+        showPicker.value = false
         viewModelScope.launch {
             joinWrites()
             flushStagedTargets()
@@ -473,88 +498,105 @@ class RoutineEditorViewModel @JvmOverloads constructor(
 
     fun setPickerVisible(visible: Boolean) {
         if (missing) return
-        if (visible && (confirmInFlight.value || leaving)) return
+        if (visible && leaving) return
         showPicker.value = visible
-        if (!visible && !confirmInFlight.value) {
-            searchQuery.value = ""
-            pendingAddIds.value = emptyList()
-        }
+        // The typed query is the only thing closing the sheet throws away. The lifts are
+        // already on the routine, which is the whole point: a tap outside the sheet used to
+        // empty a cart the owner had just built by hand, and the list started again.
+        if (!visible) searchQuery.value = ""
     }
 
-    fun togglePendingAdd(exercise: Exercise) {
-        if (confirmInFlight.value || leaving) return
-        pendingAddIds.value = LiftCart.toggle(pendingAddIds.value, exercise.id)
-    }
-
-    fun confirmPendingAdd() {
-        val started = error.mark()
-        if (confirmInFlight.value || leaving) return
-        val selected = LiftCart.sanitize(pendingAddIds.value)
-        if (selected.isEmpty()) return
-        val snapshot = uiState.value
-        val plan = LiftCart.planConfirm(
-            order = selected,
-            sources = LiftCart.mergeSources(
-                LiftCart.mergeSources(snapshot.catalog, extraCatalog.value),
-                snapshot.searchResults,
+    /**
+     * A tap in the picker, written straight through to the routine.
+     *
+     * The sheet used to stage taps behind a Confirm, so the scrim, the back gesture and a
+     * mis-swipe each threw away work the user had already done. There is nothing left to
+     * throw away: the first tap adds the lift, a second tap on the same row takes it back
+     * out, and the numbers the rows carry are the session's own order.
+     */
+    fun togglePicked(exercise: Exercise) {
+        if (leaving) return
+        commitPick(
+            exercise = exercise,
+            adding = LiftCart.addsOnTap(
+                committed = committedIds(routineFlow.value),
+                pending = pendingPicks.value,
+                id = exercise.id,
             ),
-            already = routineFlow.value?.exercises.orEmpty().map { it.exercise.id }.toSet(),
         )
-        if (plan.blocked) {
-            error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.ADD_LIFT_FAILED)
+    }
+
+    /**
+     * Hold the tap's intent, then write it. The intent is held first so the row answers the
+     * finger on the same frame — Room's flow is a database round trip behind it.
+     */
+    private fun commitPick(exercise: Exercise, adding: Boolean) {
+        if (leaving) return
+        pendingPicks.value = LiftCart.record(pendingPicks.value, exercise.id, adding)
+        launchWrite { pickWrites.withLock { writePick(exercise, adding) } }
+    }
+
+    private suspend fun writePick(exercise: Exercise, adding: Boolean) {
+        val started = error.mark()
+        val source = if (adding) ERR_ADD_LIFT else ERR_REMOVE_LIFT
+        val id = ensureRoutineId() ?: run {
+            pendingPicks.value = LiftCart.forget(pendingPicks.value, exercise.id)
             return
         }
-        pendingAddIds.value = emptyList()
-        if (plan.nothingNew) {
-            showPicker.value = false
-            searchQuery.value = ""
-            error.clearFrom(source = ERR_ADD_LIFT, before = started)
-            error.clearFrom(source = ERR_SAVE, before = started)
-            return
-        }
-        confirmInFlight.value = true
-        showPicker.value = false
-        searchQuery.value = ""
-        launchWrite {
-            try {
-                val id = ensureRoutineId() ?: run {
-                    restorePicker(selected)
-                    return@launchWrite
-                }
-                val remaining = plan.toAdd.toMutableList()
-                for (exercise in plan.toAdd) {
-                    val defaults = AddDefaults.forExercise(exercise)
-                    try {
-                        container.routineRepository.addExercise(
-                            routineId = id,
-                            exercise = exercise,
-                            targetSets = defaults.sets,
-                            targetReps = defaults.reps,
-                            targetWeightKg = null,
-                            restSeconds = defaults.restSeconds,
-                        )
-                        remaining.remove(exercise)
-                    } catch (thrown: CancellationException) {
-                        throw thrown
-                    } catch (thrown: Exception) {
-                        AppLog.w(TAG, "addExercise failed", thrown)
-                        restorePicker(remaining.map { it.id })
-                        error.fail(
-                            source = ERR_ADD_LIFT,
-                            message = SessionOrderCopy.ADD_LIFT_FAILED,
-                        )
-                        return@launchWrite
-                    }
-                }
-                extraCatalog.value = extraCatalog.value.filter { extra ->
-                    extra.id !in plan.toAdd.map { it.id }.toSet()
-                }
-                error.clearFrom(source = ERR_ADD_LIFT, before = started)
-                error.clearFrom(source = ERR_SAVE, before = started)
-            } finally {
-                confirmInFlight.value = false
+        try {
+            // Read the routine rather than trust the flow's last emission. This is the dedup
+            // that stops a double tap writing the same lift twice, and under this lock it has
+            // to see the write that finished a moment ago, not the state before it.
+            val row = storedRow(id, exercise.id)
+            if (adding && row == null) {
+                val defaults = AddDefaults.forExercise(exercise)
+                container.routineRepository.addExercise(
+                    routineId = id,
+                    exercise = exercise,
+                    targetSets = defaults.sets,
+                    targetReps = defaults.reps,
+                    targetWeightKg = null,
+                    restSeconds = defaults.restSeconds,
+                )
+            } else if (!adding && row != null) {
+                container.routineRepository.removeExercise(row.id, id)
+                stagedTargets.remove(row.id)
             }
+            // Settle here as well as on the routine's own emissions: a tap the store already
+            // agreed with writes nothing, so there may be no emission to settle it, and a
+            // pick left standing would keep the editor looking busy forever.
+            settlePicks(storedIds(id))
+            error.clearFrom(source = source, before = started)
+            error.clearFrom(source = ERR_SAVE, before = started)
+        } catch (thrown: CancellationException) {
+            throw thrown
+        } catch (thrown: Exception) {
+            AppLog.w(TAG, "writePick failed", thrown)
+            pendingPicks.value = LiftCart.forget(pendingPicks.value, exercise.id)
+            error.fail(
+                source = source,
+                message = if (adding) {
+                    SessionOrderCopy.ADD_LIFT_FAILED
+                } else {
+                    SessionOrderCopy.REMOVE_LIFT_FAILED
+                },
+            )
         }
+    }
+
+    private suspend fun storedRow(routineId: String, exerciseId: String) =
+        container.routineRepository.getById(routineId)
+            ?.exercises
+            ?.firstOrNull { it.exercise.id == exerciseId }
+
+    private suspend fun storedIds(routineId: String): List<String> =
+        committedIds(container.routineRepository.getById(routineId))
+
+    private fun committedIds(routine: Routine?): List<String> =
+        routine?.exercises.orEmpty().map { it.exercise.id }
+
+    private fun settlePicks(committed: List<String>) {
+        pendingPicks.value = LiftCart.settle(committed, pendingPicks.value)
     }
 
     fun onSearchQuery(value: String) {
@@ -628,8 +670,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                             extraCatalog.value,
                             listOf(result.exercise),
                         )
-                        if (showPicker.value && !confirmInFlight.value) {
-                            togglePendingAdd(result.exercise)
+                        if (showPicker.value) {
+                            commitPick(exercise = result.exercise, adding = true)
                         }
                         error.clearFrom(source = ERR_ADD_LIFT, before = started)
                         error.clearFrom(source = ERR_SAVE, before = started)
@@ -732,11 +774,6 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         }
     }
 
-    private fun restorePicker(remaining: List<String>) {
-        pendingAddIds.value = remaining
-        if (!leaving) showPicker.value = true
-    }
-
     private suspend fun ensureRoutineId(): String? {
         if (missing) {
             error.fail(source = ERR_ROUTINE, message = "This routine is no longer available.")
@@ -819,14 +856,13 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         val catalog: List<Exercise>,
         val extra: List<Exercise>,
         val swapItemId: String?,
-        val pendingAddIds: List<String>,
+        val pending: List<PendingPick>,
     )
 
     private data class EditorFlags(
         val showPicker: Boolean,
         val error: String?,
         val phase: EditorPhase,
-        val addingLifts: Boolean,
     )
 
     private companion object {

@@ -15,24 +15,73 @@ class LiftCartTest {
         isCustom = false,
     )
     private val row = squat.copy(id = "row", name = "Row", muscleGroup = "Back")
-    private val bench = squat.copy(id = "bench", name = "Bench", muscleGroup = "Chest")
 
     @Test
-    fun toggleAppendsThenRemovesWithoutShufflingTheRest() {
-        val afterSquat = LiftCart.toggle(emptyList(), "squat")
-        val afterRow = LiftCart.toggle(afterSquat, "row")
-        val afterBench = LiftCart.toggle(afterRow, "bench")
-        assertEquals(listOf("squat", "row", "bench"), afterBench)
-        assertEquals(listOf("squat", "bench"), LiftCart.toggle(afterBench, "row"))
-        assertEquals(afterRow, LiftCart.toggle(afterBench, "bench"))
+    fun pickedIsTheStoredSessionPlusTheTapsStillInFlight() {
+        val stored = listOf("squat", "row")
+        assertEquals(stored, LiftCart.picked(stored, emptyList()))
+        assertEquals(
+            listOf("squat", "row", "bench"),
+            LiftCart.picked(stored, listOf(PendingPick(id = "bench", adding = true))),
+        )
+        // A tap taking a lift out drops it from the numbering before the write lands, so
+        // the row stops looking chosen on the same frame the finger leaves it.
+        assertEquals(
+            listOf("row"),
+            LiftCart.picked(stored, listOf(PendingPick(id = "squat", adding = false))),
+        )
+        // An add for a lift the store already holds keeps its stored position, not a second.
+        assertEquals(stored, LiftCart.picked(stored, listOf(PendingPick(id = "row", adding = true))))
+    }
+
+    @Test
+    fun addsOnTapAnswersAgainstStoreAndFlight() {
+        val stored = listOf("squat")
+        assertFalse(LiftCart.addsOnTap(stored, emptyList(), "squat"))
+        assertTrue(LiftCart.addsOnTap(stored, emptyList(), "row"))
+        // The second tap on a row whose add has not landed yet must remove, not add again.
+        assertFalse(LiftCart.addsOnTap(stored, listOf(PendingPick(id = "row", adding = true)), "row"))
+        assertTrue(LiftCart.addsOnTap(stored, listOf(PendingPick(id = "squat", adding = false)), "squat"))
+    }
+
+    @Test
+    fun recordReplacesTheIntentHeldForTheSameLift() {
+        val once = LiftCart.record(pending = emptyList(), id = "squat", adding = true)
+        assertEquals(listOf(PendingPick(id = "squat", adding = true)), once)
+        val flipped = LiftCart.record(pending = once, id = " squat ", adding = false)
+        assertEquals(listOf(PendingPick(id = "squat", adding = false)), flipped)
+        val two = LiftCart.record(pending = flipped, id = "row", adding = true)
+        assertEquals(listOf("squat", "row"), two.map { it.id })
+        assertEquals(two, LiftCart.record(pending = two, id = "   ", adding = true))
+    }
+
+    @Test
+    fun settleDropsOnlyTheTapsTheStoreAgreesWith() {
+        val pending = listOf(
+            PendingPick(id = "squat", adding = true),
+            PendingPick(id = "row", adding = false),
+            PendingPick(id = "bench", adding = true),
+        )
+        val settled = LiftCart.settle(listOf("squat", "row"), pending)
+        assertEquals(listOf("row", "bench"), settled.map { it.id })
+        assertTrue(LiftCart.settle(listOf("squat"), listOf(PendingPick("squat", true))).isEmpty())
+        assertTrue(LiftCart.settle(emptyList(), listOf(PendingPick("squat", false))).isEmpty())
+    }
+
+    @Test
+    fun forgetDropsOneLiftsTap() {
+        val pending = listOf(PendingPick("squat", true), PendingPick("row", true))
+        assertEquals(listOf("row"), LiftCart.forget(pending, " squat ").map { it.id })
+        assertEquals(pending, LiftCart.forget(pending, "bench"))
     }
 
     @Test
     fun blankIdsAndDuplicatesAreIgnored() {
-        assertEquals(emptyList<String>(), LiftCart.toggle(emptyList(), "  "))
         assertEquals(listOf("squat"), LiftCart.sanitize(listOf(" squat ", "", "squat", " ")))
-        assertEquals(listOf("squat", "row"), LiftCart.toggle(listOf("squat", "squat"), "row"))
-        assertEquals(listOf("squat"), LiftCart.toggle(listOf("squat", "squat"), "  "))
+        assertEquals(
+            listOf("squat"),
+            LiftCart.picked(listOf(" squat ", "squat", " "), emptyList()),
+        )
     }
 
     @Test
@@ -51,34 +100,6 @@ class LiftCartTest {
         val created = squat.copy(id = "new", name = "Good morning")
         val merged = LiftCart.mergeSources(listOf(squat, row), listOf(squat, created))
         assertEquals(listOf("squat", "row", "new"), merged.map { it.id })
-    }
-
-    @Test
-    fun planConfirmPreservesOrderSkipsAlreadyAndBlocksMissing() {
-        val sources = listOf(squat, row, bench)
-        val ok = LiftCart.planConfirm(
-            order = listOf("row", "squat", "bench"),
-            sources = sources,
-            already = setOf("squat"),
-        )
-        assertFalse(ok.blocked)
-        assertEquals(listOf("row", "bench"), ok.toAdd.map { it.id })
-
-        val allKnown = LiftCart.planConfirm(
-            order = listOf("squat"),
-            sources = sources,
-            already = setOf("squat"),
-        )
-        assertTrue(allKnown.nothingNew)
-
-        val missing = LiftCart.planConfirm(
-            order = listOf("row", "ghost"),
-            sources = sources,
-            already = emptySet(),
-        )
-        assertTrue(missing.blocked)
-        assertEquals(listOf("ghost"), missing.missingIds)
-        assertTrue(missing.toAdd.isEmpty())
     }
 
     @Test
