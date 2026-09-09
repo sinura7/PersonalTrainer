@@ -173,8 +173,8 @@ nothing to measure on. Section 5 of the convergence record is the plan.
 after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
 `claude/file-visibility-check-jraqc2` is an unmerged Claude vehicle
 (UX + stub compiler); do not start a second edit of those paths from
-`trunk`. `claude/android-verify-my59sw` is the leftover `#189`/`#190`
-vehicle sitting on `trunk`; delete it.
+`trunk`. `claude/android-verify-my59sw` (the `#189`/`#190` vehicle)
+was deleted after `#190` landed on `trunk`.
 
 ## Rules that bind this work
 
