@@ -812,6 +812,27 @@ class ActiveWorkoutViewModelTest {
         )
     }
 
+    @Test
+    fun aRefusalSurvivesALogSetStillInFlight() = runBlocking {
+        val fixture = seedWorkout(targetSets = 1)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitFound()
+        vm.setWeight(100.0)
+        // Deliberately not settled: the race under test is logSet's tail landing after the
+        // refusal below. Before ErrorSlot that tail's success-path `error = null` erased the
+        // refusal before this collector saw it, and the wait ran out its 30 seconds.
+        vm.logSet()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        vm.awaitState { it.session?.sets?.size == 1 }
+
+        vm.removeSelectedLift()
+
+        val state = vm.awaitState { it.error != null }
+        assertTrue(state.error.orEmpty().contains("set", ignoreCase = true))
+        vm.awaitState { !it.logging }
+        assertEquals(1, deps.workoutRepository.getSession(fixture.session.id)!!.exercises.size)
+    }
+
     private fun createViewModel(
         sessionId: String,
         handle: SavedStateHandle = handleFor(sessionId),
