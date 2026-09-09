@@ -326,7 +326,10 @@ This is not Play. `versionCode` stays at 1 until a signed public artifact is cut
    Gym-floor Temper: signed `PersonalTrainer-<version>.apk`.
 2. Allow installs from Obtainium when Android asks.
 3. Open Settings → About and confirm the version.
-4. Optional: Settings → Backup & restore → Sign in with Google, then Create backup now.
+4. Optional: Settings → Google Drive → Sign in with Google, then Create backup now.
+5. Optional: turn on **Back up after each workout** in the same section. It asks
+   for the backup password once and keeps it sealed on the phone; every finished
+   workout then goes to Drive as the usual protected envelope, with no prompt.
 
 Core training (routines, logging, history, units, library) does not need Google or a network. Backup/restore replaces local data from a Drive JSON file you created earlier.
 

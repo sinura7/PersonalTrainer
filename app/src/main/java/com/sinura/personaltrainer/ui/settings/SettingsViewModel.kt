@@ -70,6 +70,12 @@ data class BackupUiState(
     val backupStale: Boolean = true,
     val safetySnapshots: List<SafetySnapshotMeta> = emptyList(),
     val pendingProtect: BackupProtectKind? = null,
+    /** The toggle is asking for a passphrase to seal before arming automatic backup. */
+    val pendingAutoBackupArm: Boolean = false,
+    /** Automatic backup after a finished workout is armed. */
+    val autoBackupEnabled: Boolean = false,
+    /** An unattended copy found the Drive grant lapsed and stopped rather than prompting. */
+    val autoBackupNeedsSignIn: Boolean = false,
     val pendingUnlock: Boolean = false,
     val pendingPlaintextWarning: Boolean = false,
     val launchExportPicker: Boolean = false,
@@ -302,7 +308,18 @@ class SettingsViewModel @JvmOverloads constructor(
             combine(restorePending, container.preferencesRepository.restoreRecoveryNote) { pending, note ->
                 RecoveryUi(pendingSource = pending, note = note)
             },
-        ) { flags, gate, recovery -> flags.copy(dialogs = gate, recovery = recovery) },
+            container.preferencesRepository.autoBackupEnabled,
+            container.preferencesRepository.autoBackupNeedsSignIn,
+            // Folded in here rather than into the outer combine, which is already at the
+            // five-flow ceiling of the typed combine overloads.
+        ) { flags, gate, recovery, autoOn, needsSignIn ->
+            flags.copy(
+                dialogs = gate,
+                recovery = recovery,
+                autoBackupEnabled = autoOn,
+                autoBackupNeedsSignIn = needsSignIn,
+            )
+        },
         backups,
         combine(
             container.workoutRepository.observeInProgress(),
@@ -326,6 +343,9 @@ class SettingsViewModel @JvmOverloads constructor(
             backupStale = BackupPrompt.isStale(meta.lastAt, System.currentTimeMillis()),
             safetySnapshots = snaps,
             pendingProtect = flags.dialogs.protect,
+            pendingAutoBackupArm = flags.dialogs.armAutoBackup,
+            autoBackupEnabled = flags.autoBackupEnabled,
+            autoBackupNeedsSignIn = flags.autoBackupNeedsSignIn,
             pendingUnlock = flags.dialogs.unlock,
             pendingPlaintextWarning = flags.dialogs.plaintextWarning,
             launchExportPicker = flags.dialogs.launchExportPicker,
@@ -456,6 +476,57 @@ class SettingsViewModel @JvmOverloads constructor(
 
     fun beginDriveBackup() {
         dialogs.value = BackupDialogs(protect = BackupProtectKind.DRIVE_BACKUP)
+    }
+
+    /**
+     * Turning automatic backup on. Asks for the passphrase once; turning it off forgets it.
+     *
+     * The toggle is the only place the passphrase is ever sealed. There is deliberately no
+     * plaintext escape here: an unattended copy that quietly wrote a readable file would
+     * reverse the signed default in ADR-009 §9 without anyone being asked.
+     */
+    fun setAutoBackupEnabled(enabled: Boolean) {
+        if (enabled) {
+            dialogs.value = BackupDialogs(armAutoBackup = true)
+        } else {
+            runBackupAction("Turning off automatic backup…") {
+                container.preferencesRepository.disarmAutoBackup()
+                status.value = "Automatic backup is off. Create backup now still works."
+            }
+        }
+    }
+
+    fun cancelAutoBackupArm() {
+        dialogs.value = BackupDialogs()
+    }
+
+    /**
+     * Seals the typed passphrase and arms automatic backup. Returns false, leaving the dialog
+     * up, when the passphrase is refused or the phone would not seal it.
+     */
+    fun submitAutoBackupPassphrase(password: String, confirm: String): Boolean {
+        val reason = BackupEnvelope.validateNewPassword(password, confirm)
+        if (reason != null) {
+            error.value = reason
+            return false
+        }
+        val chars = password.toCharArray()
+        val sealed = try {
+            container.backupPassphraseSealer.seal(chars)
+        } finally {
+            chars.fill('\u0000')
+        }
+        if (sealed == null) {
+            error.value = "This phone would not store the backup password. " +
+                "Automatic backup stays off; Create backup now still works."
+            return false
+        }
+        dialogs.value = BackupDialogs()
+        runBackupAction("Turning on automatic backup…") {
+            container.preferencesRepository.armAutoBackup(sealed)
+            status.value = "Automatic backup is on. Each finished workout goes to Drive."
+        }
+        return true
     }
 
     fun beginPlaintextExport() {
@@ -973,6 +1044,8 @@ class SettingsViewModel @JvmOverloads constructor(
         val pendingPreview: RestorePreviewUi?,
         val dialogs: BackupDialogs = BackupDialogs(),
         val recovery: RecoveryUi = RecoveryUi(),
+        val autoBackupEnabled: Boolean = false,
+        val autoBackupNeedsSignIn: Boolean = false,
     )
 
     private data class RecoveryUi(
@@ -982,6 +1055,9 @@ class SettingsViewModel @JvmOverloads constructor(
 
     private data class BackupDialogs(
         val protect: BackupProtectKind? = null,
+        /** Arming automatic backup. A separate flag, not a fourth [BackupProtectKind]: this
+         *  one seals a passphrase instead of writing a file, and must never offer plaintext. */
+        val armAutoBackup: Boolean = false,
         val unlock: Boolean = false,
         val plaintextWarning: Boolean = false,
         val launchExportPicker: Boolean = false,

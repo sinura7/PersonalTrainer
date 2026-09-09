@@ -40,6 +40,13 @@ password. Optional Google Drive backup uses `drive.file` scope for files the
 app created. A restore previews authored counts and asks before replacing
 local data.
 
+Drive backup can be set to run after each finished workout. It is off until
+you turn it on, it always writes the same password-protected envelope, and it
+never writes an unprotected one. Turning it on keeps your backup password on
+that phone, sealed by an Android Keystore key that cannot be exported; turning
+it off, or signing out of Drive, deletes that sealed copy. It is never included
+in an export, so it cannot travel to another phone.
+
 Tokens and keys never enter an export. Sign-out of Drive, when used, leaves
 local history on the phone.
 

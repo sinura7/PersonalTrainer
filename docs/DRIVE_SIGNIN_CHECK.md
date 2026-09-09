@@ -162,10 +162,24 @@ pass/fail per step, and the answers to steps 8 and the bonus. Then point
 [P4.5 evidence](foundation-program/evidence/P4.5-drive-auth.md) at it. That closes
 the last open limitation on this surface.
 
-## What still is not true after a full pass
+## Then arm it
 
-A green run means sign-in works and a backup reaches your Drive. It does not mean
-your data is safe automatically. Nothing in the app writes to Drive on its own —
-the only Drive uploads are the three buttons in Settings, and the only nudge is a
-caption after 14 days without a backup. Until that changes, "my data is saved"
-depends on you tapping *Create backup now*.
+A green run means sign-in works and a backup reaches your Drive on demand. The
+step that makes it happen without you is Settings → Google Drive → **Back up
+after each workout**. It asks for your backup password once, and every finished
+workout then uploads the same protected envelope with no prompt.
+
+Two things worth checking once, right after you turn it on:
+
+1. Finish a workout — even a one-set one — and watch the summary screen. A quiet
+   *Backed up to Drive.* line should appear under the notes.
+2. Open drive.google.com and confirm a new `personal-trainer-backup-*.json`
+   landed in `PersonalTrainer Backups` with today's timestamp.
+
+If the line instead reads *Automatic backup paused — sign in to Drive again*, the
+Google grant lapsed rather than anything breaking. Sign in again in Settings; if
+it keeps lapsing weekly, the Cloud Console app is still in **Testing** — publish
+it (SETUP.md §4).
+
+A failed automatic copy never costs you the workout. It is saved on the phone
+either way, and the caption says so.

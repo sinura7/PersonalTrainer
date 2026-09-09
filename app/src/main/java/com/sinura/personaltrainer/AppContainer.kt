@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import com.sinura.personaltrainer.data.backup.DriveAuthClient
 import com.sinura.personaltrainer.data.backup.DriveRestClient
 import com.sinura.personaltrainer.data.backup.NetworkChecker
+import com.sinura.personaltrainer.data.security.BackupPassphraseSealer
+import com.sinura.personaltrainer.data.security.KeystoreBackupPassphraseSealer
 import com.sinura.personaltrainer.data.backup.RestoreJournalStore
 import com.sinura.personaltrainer.activity.ConfirmActivity
 import com.sinura.personaltrainer.activity.DiscardActivity
@@ -182,6 +184,9 @@ class AppContainer(context: Context) : AppDependencies {
         startTrainingDay = startTrainingDay,
         startLiveCardio = startLiveCardio,
     )
+    override val backupPassphraseSealer: BackupPassphraseSealer =
+        KeystoreBackupPassphraseSealer()
+
     override val backupRepository: BackupRepository = BackupRepository(
         localBackupRepository = LocalBackupRepository(
             database = database,
