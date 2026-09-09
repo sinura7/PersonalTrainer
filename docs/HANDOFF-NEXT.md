@@ -143,12 +143,12 @@ API-36-and-up Robolectric does not sneak in on Java 17. `#175`
 `check-sdk-target.py` pins Robolectric at exactly `4.16`; AGP 8.9.3
 needs the plugin, the `aapt2-8.9.2-*` ledger entries, and
 `tools/check-supply-chain.py` in one packet when a fix in 8.9.3 is
-needed. Leave `#173` (setup-gradle 6.3.0). Claude is rebasing it
-onto `trunk` after `#199` (Node 20→24 warning). Do not start a
-second `ci.yml` edit from `trunk`. Actions is not the test lane.
-The hosted emulator lane is on `trunk` (`#199`): Nexus 5X profile,
-still red — five of eighty named in ROADMAP. Do not take those
-five as this packet. `#200` is on `trunk`: 42 of 64 stale P1 rows
+needed. `#173` is on `trunk` (setup-gradle 6.3.0, Node 20→24
+warning). Actions is still not the test lane. Do not start a
+second workflow edit from `trunk` unless that packet is the
+work. The hosted emulator lane is on `trunk` (`#199`): Nexus 5X
+profile, still red — five of eighty named in ROADMAP. Do not take
+those five as this packet. `#200` is on `trunk`: 42 of 64 stale P1 rows
 in `DESIGN_AUDIT` now cite the file that closed them; 21 still
 open (last-5s tick family, Body first-launch, walkthrough rows,
 chip progress/rest badge, E-04/E-12, N-01, T-16, S-02/B-03/I-01).
@@ -175,8 +175,8 @@ backdated strength activity counts toward PRs and movers, not only
 totals and Records. Exercise detail, the log-time PR badge, and activity
 edits are still later steps
 ([`architecture/completed-training-convergence.md`](architecture/completed-training-convergence.md)).
-Open `#181` is rebased on `trunk` after `#200` (`DESIGN_AUDIT` P1
-re-read). History's three error sites use `ErrorSlot` on this packet.
+Open `#181` is rebased on `trunk` after `#173` (setup-gradle 6.3.0).
+History's three error sites use `ErrorSlot` on this packet.
 `HistoryViewModelTest` stays at 0 unbounded waits. `check-cancellation.py`
 is 0 on this packet. Do not bump `debugLiveCode` (still 28 until
 `#201` lands). Live 28 is `debug-live/2026-09-09-7`. `#201` is the
@@ -192,13 +192,13 @@ nothing to measure on. Section 5 of the convergence record is the plan.
 after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
 `claude/file-visibility-check-jraqc2` is an unmerged Claude vehicle
 (UX + stub compiler); do not start a second edit of those paths from
-`trunk`. `#200` is on `trunk`; `claude/android-verify-my59sw` is leftover
+`trunk`. `#173` is on `trunk`. `claude/android-verify-my59sw` is leftover
 and Claude reuses it — do **not** delete that head (deleting it after
 `#191` briefly removed `#192`). Open `#201` owns
-`claude/ecstatic-galileo-pw9iub` — do **not** delete that head. Leave
-`#173`. Do not start a second `ci.yml`, `DESIGN_AUDIT.md`, or picker
-edit from `trunk`. Do not take the five hosted-emulator failures or the
-remaining DESIGN_AUDIT P1 rows as this packet. `#196`'s vehicle
+`claude/ecstatic-galileo-pw9iub` — do **not** delete that head. Do not
+start a second picker or `DESIGN_AUDIT.md` edit from `trunk`. Do not
+take the five hosted-emulator failures or the remaining DESIGN_AUDIT
+P1 rows as this packet. `#196`'s vehicle
 `claude/google-signin-integration-xijk5e` was deleted after merge.
 `debugLiveCode` on trunk is 28; `#201` bumps it to 29. Do not bump it
 on `#181`. `unbounded_waits` on trunk is 0.
