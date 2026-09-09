@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 9 Sep 2026 — E: Golf cool-down pack (`golf-cooldown`, Mobility: couch
+> stretch, incline pigeon, calf stretch, elephant walk, dead bug). After a
+> round, where the Golf warm-up is before one. Live test 27
+> (`debugLiveCode` 27), drop `debug-live/2026-09-09-5`.
+>
 > 9 Sep 2026 — W2: every ViewModel test wait goes through
 > `Flow.awaitFirst` (sharedTest `TestWaits.kt`): `withTimeout(FLOW_MS)`
 > and, on giving up, the last value the flow showed. 203 sites in 16

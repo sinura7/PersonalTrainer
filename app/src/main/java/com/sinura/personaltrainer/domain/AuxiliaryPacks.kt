@@ -7,8 +7,8 @@ package com.sinura.personaltrainer.domain
  * older catalog still yields a shorter pack rather than a crash.
  *
  * Warm-ups prepare a session. Mobility packs are the longevity extras
- * (stretch, holds, core). Each pack is its own day block — not spliced
- * into the pinned workout.
+ * (stretch, holds, core) and the golf cool-down. Each pack is its own day
+ * block — not spliced into the pinned workout.
  */
 data class AuxiliaryLift(
     val exerciseId: String,
@@ -41,6 +41,25 @@ object AuxiliaryPacks {
             AuxiliaryLift("ex-hyper-pro-woodchop", 2, 8, 20),
             AuxiliaryLift("ex-hyper-pro-external-rotator", 2, 8, 20),
             AuxiliaryLift("ex-hyper-pro-face-pull", 2, 10, 20),
+        ),
+    )
+
+    /**
+     * After a round, not before one: the warm-up above readies rotation, this
+     * unloads the hips and calves that carried eighteen holes and finishes with
+     * a brace so the back is not left to settle on its own.
+     */
+    val GolfCooldown = AuxiliaryPack(
+        id = "golf-cooldown",
+        title = "Golf cool-down",
+        caption = "About ten minutes. Hips, calves, a walk-out and a brace. After a round.",
+        kind = AuxiliaryKind.MOBILITY,
+        lifts = listOf(
+            AuxiliaryLift("ex-hyper-pro-couch-stretch", 1, 8, 20),
+            AuxiliaryLift("ex-hyper-pro-incline-pigeon", 1, 8, 20),
+            AuxiliaryLift("ex-hyper-pro-calf-stretch", 1, 8, 20),
+            AuxiliaryLift("ex-hyper-pro-elephant-walk", 1, 10, 20),
+            AuxiliaryLift("ex-dead-bug", 2, 8, 20),
         ),
     )
 
@@ -146,7 +165,7 @@ object AuxiliaryPacks {
 
     val all: List<AuxiliaryPack> = listOf(
         Golf, LowerBody, UpperBody, Shoulder,
-        Stretch, LowerBack, Hips, Holds, Core,
+        GolfCooldown, Stretch, LowerBack, Hips, Holds, Core,
     )
 
     val warmups: List<AuxiliaryPack> = all.filter { it.kind == AuxiliaryKind.WARMUP }
