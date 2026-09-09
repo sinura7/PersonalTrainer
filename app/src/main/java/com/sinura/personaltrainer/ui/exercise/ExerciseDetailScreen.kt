@@ -299,9 +299,10 @@ fun ExerciseDetailScreen(
                                 unit = unit,
                                 loadClass = LoadClass.of(state.exercise?.loadType),
                                 onClick = {
-                                    when (summary.kind) {
-                                        HistoryKind.WORKOUT -> onOpenSession(summary.sessionId)
-                                        HistoryKind.ACTIVITY -> onOpenActivity(summary.sessionId)
+                                    if (summary.kind == HistoryKind.ACTIVITY) {
+                                        onOpenActivity(summary.sessionId)
+                                    } else {
+                                        onOpenSession(summary.sessionId)
                                     }
                                 },
                             )
