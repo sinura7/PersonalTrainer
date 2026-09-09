@@ -41,6 +41,22 @@ class BodyViewportTest {
         assertTrue(!bodyMap.contains("PANEL_HEIGHT"))
     }
 
+    @Test
+    fun viewSwitchSitsUnderTheFigureNotOverIt() {
+        // DESIGN_AUDIT B-05. The chips floated over the panel's top-left corner and read
+        // as part of the drawing; they now share a strip under it with the facts line.
+        val bodyMap = readOwned("ui/progress/BodyMap.kt")
+        val panelAt = bodyMap.indexOf(".height(panelHeight)")
+        val chipsAt = bodyMap.indexOf("BodyTags.VIEW_FRONT else BodyTags.VIEW_BACK")
+        val factsAt = bodyMap.indexOf("BodyTags.FACTS")
+        assertTrue("figure panel must still be composed", panelAt >= 0)
+        assertTrue("view chips must still be composed", chipsAt >= 0)
+        assertTrue("facts line must be composed", factsAt >= 0)
+        assertTrue("view chips must sit under the figure panel", chipsAt > panelAt)
+        assertTrue("facts line shares the chips' strip", factsAt > chipsAt)
+        assertTrue("nothing floats over the figure any more", !bodyMap.contains("Alignment.TopStart"))
+    }
+
     private fun readOwned(relative: String): String {
         val roots = listOf(
             File("app/src/main/java/com/sinura/personaltrainer"),

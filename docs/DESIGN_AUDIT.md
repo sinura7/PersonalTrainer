@@ -419,7 +419,7 @@ This is the second most important design surface after Active Workout. Today it 
 | B-02 | Empty until history — the tab is a dead end on first launch | P1 |
 | B-03 | Recommendations can still read generic. They should name **lifts you already have** with pictures **— Naming closed 21 Aug 2026 (Phase 5): every muscle-targeted card resolves one lift the owner already has, preferring routines over recent history and filtered by the equipment they say they own, and taps through to that lift. Pictures remain open (Phase 8).** | P1 |
 | B-04 | Home dots + this tab tell the same story twice | P2 |
-| B-05 | Front/back toggle is easy to miss | P2 |
+| B-05 | Front/back toggle is easy to miss **— Closed 9 Sep 2026: the Front / Back chips sit in their own strip under the figure, beside a facts line that says what the figure was built from ("3 sessions this week · last finished yesterday"); an empty Day or Week offers **Show this month** in one tap.** | P2 |
 
 ### 6.9 Schedule
 
