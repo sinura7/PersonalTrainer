@@ -145,6 +145,7 @@ python3 tools/check-annotation-targets.py                  # annotations still o
 python3 tools/check-required-args.py                       # every required parameter supplied
 python3 tools/check-import-hygiene.py                      # no duplicate imports; `by` delegates importable
 python3 tools/check-doc-authority.py                       # current-voice docs, FND map, relative links
+python3 tools/check-unbounded-waits.py                     # ViewModel waits in tests have a withTimeout
 tools/syntax-check.sh app/src/main/java                    # parse-level diagnostics only
 ```
 

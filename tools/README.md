@@ -241,6 +241,28 @@ is 1024×1024 so the panel is not upscaling 768. Heat stays 768.
 python3 tools/check-still-pack.py
 ```
 
+## `check-unbounded-waits.py`
+
+A `first { }` on a ViewModel flow in a `*ViewModelTest.kt` must sit inside a
+`withTimeout(...)`. Written after two wedged CI runs on 9 Sep 2026: the value a
+test waited for was written and overwritten before its collector ran, and under
+`runBlocking` nothing ends that wait but the job's own thirty-minute timeout.
+A wedge uploads no report; a `TimeoutCancellationException` names the state that
+never came.
+
+```bash
+python3 tools/check-unbounded-waits.py            # app/src/test/java against app/src/main/java
+```
+
+Which properties are ViewModel flows is read from main sources (`StateFlow<>`,
+`stateIn`, `asStateFlow`; plain `Flow<>` / `SharedFlow<>` too), and the receiver has
+to be a name the test binds to a `*ViewModel`, an inline `createViewModel(...)`, or the
+implicit receiver of a `fun FooViewModel.helper()`. A bare `first()` on a `StateFlow`
+is the current value and is not counted. Repository and store waits (`deps.…`) are out
+of scope. A helper named `awaitState` is bounded by the `withTimeout` in its body, not
+by its name. Ratcheted in `checker-baselines.toml` (`unbounded_waits`);
+`test_unbounded_waits.py` is its fixture proof.
+
 ## `test_policy_move.py`
 
 J4 remainder. Fixture proofs for the sixteen source-reading policy tests that
