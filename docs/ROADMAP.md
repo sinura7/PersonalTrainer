@@ -63,6 +63,10 @@
 > (`debugLiveCode` 27), drop `debug-live/2026-09-09-6` — the `-5` cut died
 > on the `#188` / `#190` compile break that `#196` fixed.
 >
+> 9 Sep 2026 — `#194` / `#188`: verified backup drop. A finished
+> backup can be opened, a silent Drive account switch is refused, and
+> the sealed password can be shown. `debugLiveCode` 27.
+>
 > 9 Sep 2026 — W2: every ViewModel test wait goes through
 > `Flow.awaitFirst` (sharedTest `TestWaits.kt`): `withTimeout(FLOW_MS)`
 > and, on giving up, the last value the flow showed. 203 sites in 16
