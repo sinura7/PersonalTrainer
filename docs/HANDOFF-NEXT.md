@@ -147,10 +147,12 @@ onto `trunk` after `#199` (Node 20→24 warning). Do not start a
 second `ci.yml` edit from `trunk`. Actions is not the test lane.
 The hosted emulator lane is on `trunk` (`#199`): Nexus 5X profile,
 still red — five of eighty named in ROADMAP. Do not take those
-five as this packet. Open `#200` owns `docs/DESIGN_AUDIT.md` (42
-of 64 stale P1 rows closed with file evidence; 21 still open).
-ROADMAP last-merge-wins with `#181`; do **not** stack R18 onto
-`#200`. Do not start a second `DESIGN_AUDIT.md` edit from `trunk`.
+five as this packet. `#200` is on `trunk`: 42 of 64 stale P1 rows
+in `DESIGN_AUDIT` now cite the file that closed them; 21 still
+open (last-5s tick family, Body first-launch, walkthrough rows,
+chip progress/rest badge, E-04/E-12, N-01, T-16, S-02/B-03/I-01).
+Do not take those 21 as this packet. Do not start a second
+`DESIGN_AUDIT.md` edit from `trunk` while `#181` is open.
 
 **R16 residue.** Production-screen tests exist for History, the activity
 composer, live cardio, the activity receipt and Home. Settings, onboarding,
@@ -165,8 +167,8 @@ backdated strength activity counts toward PRs and movers, not only
 totals and Records. Exercise detail, the log-time PR badge, and activity
 edits are still later steps
 ([`architecture/completed-training-convergence.md`](architecture/completed-training-convergence.md)).
-Open `#181` is rebased on `trunk` after `#199` (Nexus 5X emulator
-profile). History's three error sites use `ErrorSlot` on this packet.
+Open `#181` is rebased on `trunk` after `#200` (`DESIGN_AUDIT` P1
+re-read). History's three error sites use `ErrorSlot` on this packet.
 `HistoryViewModelTest` stays at 0 unbounded waits. `check-cancellation.py`
 is 0 on this packet. Do not bump `debugLiveCode` (still 28). Live 28 is
 `debug-live/2026-09-09-7`.
@@ -181,12 +183,12 @@ nothing to measure on. Section 5 of the convergence record is the plan.
 after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
 `claude/file-visibility-check-jraqc2` is an unmerged Claude vehicle
 (UX + stub compiler); do not start a second edit of those paths from
-`trunk`. `#199` is on `trunk`. Open `#200` (DESIGN_AUDIT P1
-re-read) owns `claude/android-verify-my59sw` — do **not** delete
-that head (deleting it after `#191` briefly removed `#192`). Leave
-`#173`. Do not start a second `ci.yml` or `DESIGN_AUDIT.md` edit
-from `trunk`. Do not take the five hosted-emulator failures as
-this packet. `#196`'s vehicle
+`trunk`. `#200` is on `trunk`; `claude/android-verify-my59sw` is leftover
+and Claude reuses it — do **not** delete that head (deleting it after
+`#191` briefly removed `#192`). Leave `#173`. Do not start a second
+`ci.yml` or `DESIGN_AUDIT.md` edit from `trunk`. Do not take the five
+hosted-emulator failures or the remaining DESIGN_AUDIT P1 rows as this
+packet. `#196`'s vehicle
 `claude/google-signin-integration-xijk5e` was deleted after merge.
 `debugLiveCode` on trunk is 28; do not bump it on `#181`.
 `unbounded_waits` on trunk is 0.
