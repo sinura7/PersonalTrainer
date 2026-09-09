@@ -103,6 +103,9 @@ private const val TAG = "PT/SettingsVM"
 private const val ERR_BACKUP = "backup"
 private const val ERR_PROTECT = "protect"
 
+/** Showing the stored backup password back. Its refusals are nobody else's to clear. */
+private const val ERR_REVEAL = "reveal"
+
 class SettingsViewModel @JvmOverloads constructor(
     application: Application,
     container: AppDependencies = application.appContainer(),
@@ -325,8 +328,11 @@ class SettingsViewModel @JvmOverloads constructor(
     fun beginRevealBackupPassword() {
         val keyguard = getApplication<Application>().getSystemService(KeyguardManager::class.java)
         if (keyguard == null || !keyguard.isDeviceSecure) {
-            error.value = "Set a screen lock on this phone first. " +
-                "The backup password opens every backup Temper has written."
+            error.fail(
+                source = ERR_REVEAL,
+                message = "Set a screen lock on this phone first. " +
+                    "The backup password opens every backup Temper has written.",
+            )
             return
         }
         @Suppress("DEPRECATION")
@@ -335,7 +341,10 @@ class SettingsViewModel @JvmOverloads constructor(
             "Confirm it is you before Temper shows the password.",
         )
         if (challenge == null) {
-            error.value = "This phone would not ask for your screen lock. Password not shown."
+            error.fail(
+                source = ERR_REVEAL,
+                message = "This phone would not ask for your screen lock. Password not shown.",
+            )
             return
         }
         _pendingPasswordReveal.value = challenge
@@ -352,15 +361,21 @@ class SettingsViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             val sealed = container.preferencesRepository.autoBackupSettings().sealedPassphrase
             if (sealed == null) {
-                error.value = "No backup password is stored on this phone."
+                error.fail(
+                    source = ERR_REVEAL,
+                    message = "No backup password is stored on this phone.",
+                )
                 return@launch
             }
             val chars = container.backupPassphraseSealer.open(sealed)
             if (chars == null) {
                 AppLog.e(TAG, "Sealed backup passphrase would not open for display")
-                error.value = "This phone can no longer open the stored password. " +
-                    "Turn automatic backup off and on again to set a new one — and keep any " +
-                    "existing Drive backups, which still need the old password."
+                error.fail(
+                    source = ERR_REVEAL,
+                    message = "This phone can no longer open the stored password. " +
+                        "Turn automatic backup off and on again to set a new one — and keep " +
+                        "any existing Drive backups, which still need the old password.",
+                )
                 return@launch
             }
             try {
