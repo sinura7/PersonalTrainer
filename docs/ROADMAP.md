@@ -56,6 +56,7 @@
 > this month** in one tap when Day or Week is empty, and the Front / Back
 > chips in their own strip under the figure (`DESIGN_AUDIT` B-05 closed).
 > Live test 28 (`debugLiveCode` 28), drop `debug-live/2026-09-09-7`.
+> `#181` does not bump it.
 >
 > 9 Sep 2026 — E: Golf cool-down pack (`golf-cooldown`, Mobility: couch
 > stretch, incline pigeon, calf stretch, elephant walk, dead bug). After a
