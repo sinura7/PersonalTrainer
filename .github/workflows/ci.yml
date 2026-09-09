@@ -54,8 +54,8 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      # The same static gate preflight runs locally (17 checkers + named-args +
-      # syntax). PT_STATIC_ONLY skips its JVM test step — Gradle runs the full
+      # The same static gate preflight runs locally (19 checkers, 3 fixture proofs,
+      # named-args, syntax). PT_STATIC_ONLY skips its JVM test step — Gradle runs the full
       # suite next — so the checker list lives in exactly one place.
       - name: Static checks (tools/preflight.sh)
         run: PT_STATIC_ONLY=1 sh tools/preflight.sh

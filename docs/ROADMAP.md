@@ -15,6 +15,12 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 9 Sep 2026 — W: `tools/check-unbounded-waits.py` fails preflight when a
+> `*ViewModelTest.kt` waits on a ViewModel flow with no `withTimeout`
+> around it — the shape that wedged CI twice on 9 Sep. Ratcheted at 207
+> (`unbounded_waits`); `test_unbounded_waits.py` is its fixture proof.
+> No app code; no drop.
+>
 > 9 Sep 2026 — `#189`: the 31-minute CI hang was a ViewModel error race
 > (every action wrote null into one shared error flow on success), not a
 > deadlock. `util/ErrorSlot`: a success clears only its own family, and
