@@ -411,7 +411,11 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
-    fun selectingRpeAfterAWorkingSetFillsTheDraft() = runBlocking {
+    fun selectingRpeOffersTheRecWithoutTouchingTheWells() = runBlocking {
+        // Choosing an RPE used to fill the wells from the recommendation it unlocks, so a
+        // load and a rep count the lifter had typed were replaced by numbers they had not
+        // asked for. The recommendation is still raised — it sits above Log with its own
+        // Use — but only that tap moves it into the wells.
         val fixture = seedWorkout()
         val vm = createViewModel(fixture.session.id)
         vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
@@ -423,10 +427,66 @@ class ActiveWorkoutViewModelTest {
         vm.skipRest()
         withTimeout(TestWaits.FLOW_MS) { vm.microRec.first { it != null && !it.previewOnly } }
 
+        // The numbers for the next set, dialled in by hand before the effort is rated.
+        vm.setWeight(95.0)
+        vm.setReps(8)
+        vm.awaitState { it.draft.weightKg == 95.0 && it.draft.reps == 8 }
+
         vm.setRpe(6)
-        val draft = vm.awaitState { it.draft.rpe == 6 && it.draft.weightKg == 102.5 }.draft
-        assertEquals(5, draft.reps)
+
+        val draft = vm.awaitState { it.draft.rpe == 6 }.draft
+        assertEquals(95.0, draft.weightKg, 0.0001)
+        assertEquals(8, draft.reps)
+        // Offered, not applied: the rec the RPE unlocks is on screen with Use showing.
+        val rec = checkNotNull(
+            withTimeout(TestWaits.FLOW_MS) { vm.microRec.first { it != null && it.showApply } },
+        )
+        assertEquals(102.5, rec.nextWeightKg, 0.0001)
         assertEquals(1, deps.workoutRepository.getSession(fixture.session.id)!!.sets.size)
+    }
+
+    @Test
+    fun usingTheOfferedRecIsWhatMovesItIntoTheWells() = runBlocking {
+        val fixture = seedWorkout()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
+        vm.setWeight(100.0)
+        vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.awaitState { it.session?.sets?.size == 1 }
+        vm.skipRest()
+        vm.setRpe(6)
+        withTimeout(TestWaits.FLOW_MS) { vm.microRec.first { it != null && it.showApply } }
+
+        vm.applyMicroRec()
+
+        val draft = vm.awaitState { it.draft.weightKg == 102.5 }.draft
+        assertEquals(102.5, draft.weightKg, 0.0001)
+    }
+
+    @Test
+    fun askingForAnExtraSetLeavesTheWellsAsTheyAre() = runBlocking {
+        // Same rule as the RPE chip: arming an extra set raises a recommendation for it, and
+        // the lifter takes it with Use. It does not reach in and retype the wells.
+        val fixture = seedWorkout(targetSets = 1)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
+        vm.setWeight(100.0)
+        vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.awaitState { it.session?.sets?.size == 1 }
+        vm.setWeight(80.0)
+        vm.setReps(12)
+        vm.awaitState { it.draft.weightKg == 80.0 && it.draft.reps == 12 }
+
+        vm.requestExtraSet()
+
+        val draft = vm.awaitState { it.draft.weightKg == 80.0 && it.draft.reps == 12 }.draft
+        assertEquals(80.0, draft.weightKg, 0.0001)
+        assertEquals(12, draft.reps)
+        assertTrue(vm.extraSetRequested.value)
     }
 
     @Test
