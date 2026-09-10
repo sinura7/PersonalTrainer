@@ -97,6 +97,14 @@ jobs:
           } > debug-keystore.properties
           echo "stable=true" >> "$GITHUB_OUTPUT"
 
+      # Before anything is built: is this commit allowed to become a drop at all?
+      # The ratchet compares the tree's debugLiveCode against every debug-live-*
+      # tag's. Two packets that both bumped to the same number are caught here,
+      # with the number to use in the message, rather than by a phone that is
+      # never offered the update.
+      - name: Drop ratchet (tools/check-debug-live-code.py)
+        run: python3 tools/check-debug-live-code.py
+
       - name: Static checks (tools/preflight.sh)
         run: PT_STATIC_ONLY=1 sh tools/preflight.sh
 
@@ -175,26 +183,63 @@ jobs:
         run: |
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then
             tag="$GITHUB_REF_NAME"
-            verify="--verify-tag"
           else
-            # Branch spelling: debug-live/<suffix> releases as debug-live-<suffix>,
-            # tagged at this commit by the release itself.
+            # Branch spelling: debug-live/<suffix> releases as debug-live-<suffix>.
             tag="debug-live-${GITHUB_REF_NAME#debug-live/}"
-            verify="--target $GITHUB_SHA"
           fi
           if [ "$STABLE_SIGNER" = "true" ]; then
             notes="Temper Debug drop, signed with the stable debug distribution key. Pull Obtainium on Temper Debug (include pre-releases)."
           else
             notes="**THROWAWAY SIGNER** — the DEBUG_KEYSTORE_* secrets are not configured, so this APK is signed by a key the runner generated and cannot update an existing Temper Debug install. Set the secrets per SETUP.md §6, or back up, uninstall and reinstall."
           fi
-          if gh release view "$tag" >/dev/null 2>&1; then
-            echo "Release $tag already exists — uploading without overwriting."
-            gh release upload "$tag" "$APK" || \
-              echo "Asset already present on $tag; leaving the existing one untouched."
+
+          taken() {
+            echo "$1" >&2
+            echo "" >&2
+            echo "The APK this run built has NOT been released, and nothing was" >&2
+            echo "overwritten. Cut the drop again under a free name:" >&2
+            echo "" >&2
+            echo "  python3 tools/debug-drop-plan.py" >&2
+            echo "  git push origin <sha>:refs/heads/debug-live/<the suffix it prints>" >&2
+            exit 1
+          }
+
+          # A drop is claimed, not assumed.
+          #
+          # This replaces an upload-if-the-release-exists path that swallowed its
+          # own failure. On 10 Sep 2026 a run built #218, found
+          # debug-live-2026-09-10-6 already published from #217, could not attach
+          # an asset of the same name, printed a line about leaving the existing
+          # one untouched, and went green — a drop that carried the previous
+          # packet's APK under this packet's name. A publish that cannot publish
+          # now fails the job.
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            # The tag is the trigger, so it exists by definition; the release is
+            # what must not.
+            if gh release view "$tag" >/dev/null 2>&1; then
+              taken "$tag is already released — refusing to publish over it."
+            fi
           else
-            gh release create "$tag" "$APK" \
-              --title "Temper Debug — $tag" \
-              --prerelease \
-              --notes "$notes" \
-              $verify
+            # Creating a ref is atomic: GitHub refuses one that exists. Two runs
+            # racing for a name cannot both win, and a branch pushed forward onto
+            # a spent name stops here instead of landing on someone else's release.
+            if ! gh api -X POST "repos/$GITHUB_REPOSITORY/git/refs" \
+                   -f ref="refs/tags/$tag" \
+                   -f sha="$GITHUB_SHA" >/dev/null 2>claim.err; then
+              if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" >/dev/null 2>&1; then
+                taken "$tag is already taken — refusing to publish over it."
+              fi
+              echo "Claiming $tag failed and the tag does not exist:" >&2
+              cat claim.err >&2
+              exit 1
+            fi
           fi
+
+          # --verify-tag, always: the tag is either the trigger or the one just
+          # claimed at this commit, so the release cannot be built around a name
+          # that points somewhere else.
+          gh release create "$tag" "$APK" \
+            --title "Temper Debug — $tag" \
+            --prerelease \
+            --notes "$notes" \
+            --verify-tag

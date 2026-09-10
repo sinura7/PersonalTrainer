@@ -15,6 +15,23 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 10 Sep 2026 — I: a drop is claimed, not assumed. Two packets merging nine
+> minutes apart both bumped `debugLiveCode` to 35 and both cut a drop;
+> `debug-live-2026-09-10-6` and `-7` therefore carry the same number, which is
+> the one thing Obtainium refuses to offer as an update. The `-6` run built
+> `#218`, found the release already there, could not attach an asset of the
+> same name, said so and went green — a drop that shipped the previous
+> packet's APK under this packet's name. Now: the publish step claims the tag
+> through `git/refs`, which is atomic and 422s on a name already taken, so a
+> race is a red run that publishes nothing rather than a green one that
+> publishes the wrong thing; `tools/debug_drop.py` holds the rules, with
+> `check-debug-live-code.py` gating the drop (not preflight — after a drop the
+> tree equals the tag and every unrelated PR would go red) and
+> `debug-drop-plan.py` naming the free suffix and the number to use;
+> `test_debug_drop.py` replays the incident. `SETUP.md` and the owner loop
+> stop telling sessions to pick either by hand. Live test 36
+> (`debugLiveCode` 36), drop `debug-live/2026-09-10-8`.
+>
 > 10 Sep 2026 — H: the app offers, it does not retype. Choosing an RPE
 > filled the entry wells from the recommendation it unlocks, so a load and
 > a rep count the lifter had just typed were replaced by numbers they had

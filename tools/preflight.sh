@@ -158,6 +158,7 @@ for c in "check-internal-imports.py app/src/main/java" \
          "check-cancellation.py" \
          "test_policy_move.py" \
          "test_checker_skips.py" \
+         "test_debug_drop.py" \
          "test_unbounded_waits.py" \
          "test_cancellation.py"; do
     step "$c"
