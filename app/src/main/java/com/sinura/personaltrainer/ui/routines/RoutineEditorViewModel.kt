@@ -414,15 +414,27 @@ class RoutineEditorViewModel @JvmOverloads constructor(
      * The typed VALUES stay staged: they are still what the owner asked for and Save still owes
      * them a write. Only the rule goes. An entry that held nothing but a rule is dropped
      * outright, so it cannot make an untouched editor look dirty on the way out.
+     *
+     * **The weight is put back to what is stored.** Every other box reads null as "leave this
+     * one alone", so dropping the rule cannot hurt them. Weight is the exception: null there
+     * means "no target", a destructive instruction, and it is also what an unreadable box
+     * hands over. While the rule stands the two are told apart — the commit refuses the card
+     * outright — and the instant the rule is dropped they are not. Typing `-50` over a 100 kg
+     * target and folding the card shut wiped the 100 kg and let Save report success, because
+     * by then nothing on the entry remembered that the null had never been an answer. Storing
+     * the stored value is also what the owner sees if they reopen the card, since the boxes
+     * re-read the routine; the screen and the staged state now say the same thing.
      */
     fun forgetTargetRule(itemId: String) {
         var cleared = false
+        val storedWeightKg = routineFlow.value?.exercises
+            ?.firstOrNull { it.id == itemId }?.targetWeightKg
         stagedTargets.computeIfPresent(itemId) { _, staged ->
             if (staged.invalidReason == null) {
                 staged
             } else {
                 cleared = true
-                val kept = staged.copy(invalidReason = null)
+                val kept = staged.copy(invalidReason = null, targetWeightKg = storedWeightKg)
                 if (kept.targetSets == null && kept.targetReps == null &&
                     kept.targetWeightKg == null && kept.restSeconds == null
                 ) {

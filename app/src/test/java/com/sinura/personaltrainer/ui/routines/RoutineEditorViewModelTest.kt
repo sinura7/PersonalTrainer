@@ -1005,6 +1005,76 @@ class RoutineEditorViewModelTest {
         val stored = checkNotNull(deps.routineRepository.getById(fixture.routine.id)).exercises.single()
         assertEquals(4, stored.targetSets)
         assertEquals(5, stored.targetReps)
+        // The box that could not be read issued no instruction. This assertion is the whole
+        // point of the test and its absence cost a stored target: without it the wipe below
+        // was invisible, because sets and reps are safe on their own.
+        assertEquals(100.0, checkNotNull(stored.targetWeightKg), 0.0001)
+    }
+
+    /**
+     * The defect this class exists to prevent, stated as its own test.
+     *
+     * A weight box that cannot be read stages null, and null in the weight column is not
+     * "unknown" — it is the instruction to clear the stored target. While the card's rule
+     * stands the commit refuses the card outright and the two never meet. Folding the card
+     * shut drops the rule, and for one release that left the null behind with nothing to say
+     * it had never been an answer: Save carried it out, the 100 kg target went, and the editor
+     * popped reporting success. The owner typed `-50`, changed their mind, and lost a number
+     * they never touched.
+     */
+    @Test
+    fun aWeightBoxThatCouldNotBeReadNeverClearsTheStoredTarget() = runBlocking {
+        val fixture = seedTestWorkout(deps, targetSets = 3, targetReps = 5, targetWeightKg = 100.0)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val itemId = fixture.routine.exercises.single().id
+        val vm = createViewModel(fixture.routine.id)
+        vm.uiState.awaitFirst { it.routine != null }
+
+        // Exactly what the card stages for "-50" in the weight box: no weight, and the rule
+        // that says why. Every other box still reads its stored value.
+        vm.stageTargets(
+            itemId = itemId,
+            targetSets = 3,
+            targetReps = 5,
+            targetWeightKg = null,
+            restSeconds = 90,
+            invalidReason = NumericEntry.WEIGHT_NEGATIVE,
+        )
+        // The card is folded shut — a tap on its header, or on another lift's.
+        vm.forgetTargetRule(itemId)
+        vm.saveAndLeave()
+        vm.exitRequested.awaitFirst { it }
+
+        val stored = checkNotNull(deps.routineRepository.getById(fixture.routine.id)).exercises.single()
+        assertEquals(100.0, checkNotNull(stored.targetWeightKg), 0.0001)
+        assertNull(vm.uiState.value.error)
+    }
+
+    /**
+     * The other half of the same rule: a weight box the owner really did clear still clears the
+     * target. The fix above must not buy safety by making the weight unclearable.
+     */
+    @Test
+    fun aWeightBoxTheOwnerClearedStillClearsTheStoredTarget() = runBlocking {
+        val fixture = seedTestWorkout(deps, targetSets = 3, targetReps = 5, targetWeightKg = 100.0)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val itemId = fixture.routine.exercises.single().id
+        val vm = createViewModel(fixture.routine.id)
+        vm.uiState.awaitFirst { it.routine != null }
+
+        // An empty weight box reads cleanly. There is no rule, so nothing is ever forgotten.
+        vm.stageTargets(
+            itemId = itemId,
+            targetSets = 3,
+            targetReps = 5,
+            targetWeightKg = null,
+            restSeconds = 90,
+            invalidReason = null,
+        )
+        vm.saveAndLeave()
+        vm.exitRequested.awaitFirst { it }
+
+        assertNull(checkNotNull(deps.routineRepository.getById(fixture.routine.id)).exercises.single().targetWeightKg)
     }
 
     /**

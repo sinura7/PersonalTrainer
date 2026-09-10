@@ -488,7 +488,15 @@ internal fun CompactTargetFields(
     val entry = TargetEntry.read(setsText, repsText, restText, weightText, unit)
     val stage = {
         val read = TargetEntry.read(setsText, repsText, restText, weightText, unit)
-        onStageTargets(read.typedSets, read.typedReps, read.typedRest, read.typedWeightKg, read.firstError)
+        // `weightToStage`, not `typedWeightKg`: a null weight is an instruction to clear the
+        // stored target, and an unreadable box must never issue it. See TargetEntry.
+        onStageTargets(
+            read.typedSets,
+            read.typedReps,
+            read.typedRest,
+            read.weightToStage(targetWeightKg),
+            read.firstError,
+        )
     }
     // The box text is saved state; what was staged from it is not. After the process is
     // reclaimed the card is rebuilt showing whatever was typed and nothing upstream knows, so
