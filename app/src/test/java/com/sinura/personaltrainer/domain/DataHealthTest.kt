@@ -49,6 +49,8 @@ class DataHealthTest {
             DataHealthCopy.SETTINGS_BODY,
             DataHealthCopy.START_UNAVAILABLE,
             DataHealthCopy.RESTORE_UNAVAILABLE,
+            DataHealthCopy.SESSION_TITLE,
+            DataHealthCopy.SESSION_BODY,
         )
         lines.forEach { line ->
             assertFalse(line.contains("continue anyway", ignoreCase = true))

@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.ActivityDetailCopy
 import com.sinura.personaltrainer.domain.ActivitySession
+import com.sinura.personaltrainer.domain.CompletedTrainingDetailLoad
 import com.sinura.personaltrainer.domain.cardioMinutes
 import com.sinura.personaltrainer.domain.strengthWork
 import com.sinura.personaltrainer.logging.AppLog
@@ -64,26 +65,28 @@ class ActivityDetailViewModel @JvmOverloads constructor(
         loading?.cancel()
         _uiState.value = ActivityDetailUiState()
         loading = viewModelScope.launch {
-            runCatchingCancellable {
-                val session = container.activityRepository.get(activityId)
-                if (session == null) {
-                    _uiState.value = ActivityDetailUiState(isLoading = false, missing = true)
-                    return@runCatchingCancellable
-                }
-                val work = session.strengthWork()
-                val cardioMinutes = session.cardioMinutes()
-                _uiState.value = ActivityDetailUiState(
-                    isLoading = false,
-                    session = session,
-                    strengthSetCount = session.strengthSetCount(),
-                    cardioMinutes = cardioMinutes,
-                    volumeKg = work.volumeKg,
-                    durationMinutes = ActivityDetailCopy.receiptDurationMinutes(session, cardioMinutes),
-                )
-            }.onFailure { thrown ->
-                AppLog.e(TAG, "Loading activity detail failed", thrown)
+            val result = runCatchingCancellable { container.activityRepository.get(activityId) }
+            val load = CompletedTrainingDetailLoad.fromResult(result)
+            if (load.failed) {
+                AppLog.e(TAG, "Loading activity detail failed", result.exceptionOrNull())
                 _uiState.value = ActivityDetailUiState(isLoading = false, failed = true)
+                return@launch
             }
+            if (load.missing) {
+                _uiState.value = ActivityDetailUiState(isLoading = false, missing = true)
+                return@launch
+            }
+            val session = checkNotNull(load.value)
+            val work = session.strengthWork()
+            val cardioMinutes = session.cardioMinutes()
+            _uiState.value = ActivityDetailUiState(
+                isLoading = false,
+                session = session,
+                strengthSetCount = session.strengthSetCount(),
+                cardioMinutes = cardioMinutes,
+                volumeKg = work.volumeKg,
+                durationMinutes = ActivityDetailCopy.receiptDurationMinutes(session, cardioMinutes),
+            )
         }
     }
 
