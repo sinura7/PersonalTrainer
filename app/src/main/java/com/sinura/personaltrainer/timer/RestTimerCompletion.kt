@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.first
  * The one place rest completion happens.
  *
  * Three independent paths can notice that rest is over — the wakeup alarm (the reliable one,
- * screen off), the service's 250ms tick (screen on), and same-boot rehydration of an expired
+ * screen off), the service's deadline runnable (screen on), and same-boot rehydration of an expired
  * rest — and all of them funnel here. [completeOnce] claims by timer id: whichever matching,
  * due attempt arrives first wins and the others are no-ops.
  */

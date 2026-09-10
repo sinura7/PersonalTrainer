@@ -48,6 +48,8 @@ class RestTimerService : Service() {
     private val completeRunnable = Runnable { handleDeadline() }
     private val tickRunnable = Runnable { handleTick() }
     private var pendingTick = 0
+    private var tickedEndsAt = Long.MIN_VALUE
+    private var tickedSecond = 0
     private var tickPlayer: RestTickPlayer? = null
 
     /** Last seen; the collector below keeps it current. Read by the tick, on the main thread. */
@@ -70,6 +72,11 @@ class RestTimerService : Service() {
                 if (snap.running) {
                     sawRunning = true
                     stopped = false
+                    // A ±15 s from the app or the shade changes the deadline here first;
+                    // the ACTION_SYNC that follows the disk write can be tens of
+                    // milliseconds behind it. Re-anchor the ticks from the store, not
+                    // the intent, so a -15 s that lands on five ticks five now.
+                    if (startedForeground && !completing) scheduleTick(snap)
                 } else if (sawRunning) {
                     stopNow()
                 }
@@ -165,9 +172,13 @@ class RestTimerService : Service() {
     private fun scheduleTick(state: RestTimerSnapshot) {
         handler.removeCallbacks(tickRunnable)
         val now = SystemClock.elapsedRealtime()
-        val next = RestTick.nextTick(state.endsAtElapsedRealtime, now) ?: return
+        val ticked = tickedSecond.takeIf { state.endsAtElapsedRealtime == tickedEndsAt }
+        val next = RestTick.nextTick(state.endsAtElapsedRealtime, now, ticked) ?: return
         pendingTick = next
-        handler.postDelayed(tickRunnable, RestTick.tickAt(state.endsAtElapsedRealtime, next) - now)
+        handler.postDelayed(
+            tickRunnable,
+            (RestTick.tickAt(state.endsAtElapsedRealtime, next) - now).coerceAtLeast(0L),
+        )
     }
 
     /**
@@ -183,6 +194,8 @@ class RestTimerService : Service() {
             scheduleTick(state)
             return
         }
+        tickedEndsAt = state.endsAtElapsedRealtime
+        tickedSecond = second
         val player = tickPlayer
         val ticked = RestTimerAlerts.tick(this, tickPreferences) { player?.play() }
         if (ticked) tickObserver?.invoke(second)

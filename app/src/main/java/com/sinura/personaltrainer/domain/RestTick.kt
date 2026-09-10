@@ -23,14 +23,19 @@ object RestTick {
         endsAtElapsedRealtime - second * MILLIS_PER_SECOND
 
     /**
-     * The next boundary strictly after [nowElapsedRealtime], as the second
-     * it announces — 5 first, 1 last — or null once the rest is past its
-     * last tick. Strictly after, so a runnable that fires exactly on its
-     * boundary asks for the one below it, never itself again.
+     * The next boundary at or after [nowElapsedRealtime], as the second it
+     * announces — 5 first, 1 last — or null once the rest is past its last
+     * tick. A boundary that is exactly now counts: a -15 s that lands the
+     * countdown on five must tick five now, not wait for four.
+     *
+     * [ticked] is the second this deadline last announced, so a runnable
+     * that fired exactly on its boundary asks for the one below it and
+     * never itself again. Null for a deadline nothing has ticked for yet.
      */
-    fun nextTick(endsAtElapsedRealtime: Long, nowElapsedRealtime: Long): Int? =
+    fun nextTick(endsAtElapsedRealtime: Long, nowElapsedRealtime: Long, ticked: Int? = null): Int? =
         (FIRST downTo 1).firstOrNull { second ->
-            tickAt(endsAtElapsedRealtime, second) > nowElapsedRealtime
+            (ticked == null || second < ticked) &&
+                tickAt(endsAtElapsedRealtime, second) >= nowElapsedRealtime
         }
 
     /**

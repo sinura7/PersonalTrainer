@@ -767,9 +767,9 @@ private fun RestTimerPrefsSection(
     var showCustom by rememberSaveable { mutableStateOf(false) }
     SettingsGroup(
         title = "Rest timer",
-        caption = "The cue plays when rest ends, screen on or off. The last five seconds tick " +
-            "while the phone is awake. Default rest is used after a working set if the " +
-            "lift has none and you haven't picked a preset.",
+        caption = "The cue plays when rest ends. The last five seconds tick while the phone " +
+            "is awake. Default rest is used after a working set if the lift has none and " +
+            "you haven't picked a preset.",
     ) {
         if (offerExactAlarmAccess) {
             GymNoticeBanner(
