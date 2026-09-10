@@ -318,6 +318,24 @@ class SettingsViewModelTest {
         assertFalse(viewModel!!.offerExactAlarmAccess.value)
     }
 
+    /** The third rest toggle writes the device-local key and counts as configuring rest. */
+    @Test
+    fun tickToggleWritesThePreferenceAndMarksExactAlarmPromptEligible() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+
+        assertTrue(viewModel!!.restTimerPreferences.first().tickEnabled)
+        assertFalse(deps.preferencesRepository.restAlarmEligible.first())
+        viewModel!!.setRestTickEnabled(false)
+        withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.restTimerPreferences.first { !it.tickEnabled }
+        }
+        assertTrue(deps.preferencesRepository.restAlarmEligible.first())
+    }
+
     @Test
     fun bestEffortAndEligibleOffersExactAlarmSettings() = runBlocking {
         deps = FakeAppDependencies(
