@@ -38,10 +38,24 @@ sh tools/hang-watchdog.sh ./gradlew testDebugUnitTest assembleDebug
 then CI on the pull request, then a squash merge. The emulator lane is read
 directly on each pull request rather than through its check.
 
-Not verified, and it matters: **nothing here has been on a phone.** Six
-drops are waiting — `debug-live/2026-09-10` (30) through
-`debug-live/2026-09-10-6` (35). Install **35 only**: every earlier one is
-the same two features with fewer of the review's fixes folded in.
+Not verified, and it matters: **nothing here has been on a phone.**
+
+**Install the `debug-live-2026-09-10-8` pre-release, version 36.** It is the
+newest, it carries every packet through #220, and everything merged after it
+is docs and tests with no app change. Every earlier drop is the same
+features with fewer of the review's fixes folded in.
+
+An earlier version of this file said "install 35", which was wrong twice
+over. Two different builds carry `debugLiveCode` 35 — tag
+`debug-live-2026-09-10-6` is #217 (the silent tick) and
+`debug-live-2026-09-10-7` is #218 (the RPE entry-well fix) — because two
+sessions bumped the counter to 35 independently. Obtainium keys its update
+offer on that number, so whichever 35 is installed, the other can never be
+offered as an update. **If a version-35 build is already on the phone,
+install 36 over it** and the ambiguity is gone; nothing needs uninstalling,
+because 36 is a higher number than both. Drop-branch names are not release
+names: the branch `debug-live/2026-09-10-6` points at #218, whose tag is
+`-7`. Trust the tag, and the version, not the branch.
 
 ## What the phone check is
 
@@ -59,6 +73,9 @@ One install, four things:
 5. Turn **Last five seconds** off, start a rest, swipe the app away with a
    few seconds left: the last five seconds stay quiet and the cue still
    plays at zero.
+6. Type a weight and reps by hand, then rate the effort: the wells keep what
+   was typed and the recommendation waits above **Log** with its own **Use**
+   (#218, which is why 36 and not 35).
 
 ## One thing waiting on the owner
 

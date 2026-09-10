@@ -40,7 +40,8 @@
 > recommendation exactly as before: it sits above Log with its own **Use**,
 > and only that tap moves it into the wells (`applyIntentRecToDraft` is
 > gone; `applyMicroRec` was always the consented path). Live test 35
-> (`debugLiveCode` 35), drop `debug-live/2026-09-10-6`.
+> (`debugLiveCode` 35), tag `debug-live-2026-09-10-7` — **not** `-6`, which
+> is the other build that also carries 35; see the collision note below.
 >
 > 10 Sep 2026 — G: the entry wells belong to the next set. Logging one took
 > a snapshot of weight and reps at the tap and wrote it back over the wells
@@ -51,6 +52,21 @@
 > was written keeps the tapped values. Typed reps stop being a delta
 > measured against a well that may have moved: `setReps` takes the number.
 > Live test 34 (`debugLiveCode` 34), drop `debug-live/2026-09-10-5`.
+>
+> 10 Sep 2026 — **Two builds ship as version 35.** `#217` and `#218` each
+> bumped `debugLiveCode` to 35 from branches cut before the other merged,
+> and git resolves that silently because the two edits never touch the same
+> line context. The tags disagree with the branch names as a result: tag
+> `debug-live-2026-09-10-6` is `#217` (45acbb8) while the *branch* of that
+> name points at `#218` (83aeebe), whose tag is `-7`. Both APKs install as
+> `1.0.0+debug.35`, so Obtainium will never offer one as an update to the
+> other. Not repaired by renaming anything — the fix is forward: drop 36
+> (`debug-live-2026-09-10-8`, `#220`) is higher than both and carries both,
+> so it supersedes the pair. The phone instruction now names version 36 and
+> the tag, never a branch. `#220` had already added the publish-time
+> tag-claim guard that refuses a drop whose name is taken; what it does not
+> yet catch is two branches choosing the same *code*, which is the case
+> here. A version-code claim check against merged tags is the follow-up.
 >
 > 10 Sep 2026 — ADR-024: the deterministic hosted job may gate `trunk`;
 > the emulator may not. ADR-002 §6 refused hosted runners as the test lane
@@ -84,7 +100,7 @@
 > the sticky restart posting the next boundary while the container is
 > cold. The field is null until the first emission, and a tick that finds
 > it null makes no sound and still schedules the next one. Live test 35
-> (`debugLiveCode` 35), drop `debug-live/2026-09-10-6`.
+> (`debugLiveCode` 35), tag `debug-live-2026-09-10-6`.
 >
 > 10 Sep 2026 — Day board follow-ups, from the same six-reviewer pass over
 > #205: a tappable block reads as a button again (`Role.Button`, which
