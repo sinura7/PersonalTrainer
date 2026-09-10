@@ -26,6 +26,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -380,7 +381,12 @@ class CustomWeekViewModelTest {
             weightKg = 80.0,
             invalidReason = NumericEntry.REPS_WHOLE_RULE,
         )
-        val staged = vm.uiState.awaitFirst { it.selectedLifts.singleOrNull()?.targetSets == 4 }
+        // Read, do not wait: a card carrying a rule stages NOTHING, so waiting for targetSets
+        // to become 4 would hang until awaitFirst gave up. That is the point of the fix — the
+        // sets box reads 4 on screen and the week still holds what it held, and Confirm is
+        // what refuses. stageTargets is synchronous under an unconfined dispatcher.
+        val staged = vm.uiState.value
+        assertNotEquals(4, staged.selectedLifts.single().targetSets)
         assertTrue(staged.canConfirm)
         assertNull(staged.error)
 
