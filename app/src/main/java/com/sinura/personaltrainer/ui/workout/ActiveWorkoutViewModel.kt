@@ -27,7 +27,6 @@ import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SessionEditRules
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SetMicroRec
-import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
@@ -643,7 +642,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 
     fun requestExtraSet() {
         wantAnotherSet.value = true
-        applyIntentRecToDraft()
         persistDraft()
     }
 
@@ -678,9 +676,17 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         persistDraft()
     }
 
+    /**
+     * Record how hard that set was. It does not touch the load or the reps.
+     *
+     * Choosing an RPE used to fill the wells from the recommendation it unlocks, which meant
+     * a weight and a rep count the lifter had already typed were replaced by a number they
+     * had not asked for — the app editing their entry in the act of being told about it. The
+     * recommendation still appears the moment the RPE is set; it sits above the Log button
+     * with its own **Use**, and only that tap moves it into the wells.
+     */
     fun setRpe(rpe: Int?) {
         draft.value = draft.value.copy(rpe = rpe)
-        if (rpe != null) applyIntentRecToDraft()
         persistDraft()
     }
 
@@ -1167,38 +1173,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             rpe = rec.nextRpe,
         )
         persistDraft()
-    }
-
-    /**
-     * Fills the wells from last working + selected RPE (or an extra-set rec).
-     * Skips the opener: there is no this-session basis yet, and auto-applying
-     * after a log stays a won’t.
-     */
-    private fun applyIntentRecToDraft() {
-        if (editingSetId.value != null) return
-        val current = session.value ?: return
-        val exerciseId = selectedExerciseId.value ?: return
-        val working = current.sets.count { it.exerciseId == exerciseId && !it.isWarmup }
-        if (working <= 0) return
-        val rec = workoutMicroRec(
-            session = current,
-            selectedExerciseId = exerciseId,
-            draft = draft.value,
-            hint = hint.value,
-            editingSetId = editingSetId.value,
-            lighterWeek = lighterWeek.value,
-            unit = cachedWeightUnit,
-            wantAnotherSet = wantAnotherSet.value,
-            nowMs = time.nowMillis(),
-            todayEpochDay = todayEpochDay(),
-        ) ?: return
-        if (!rec.showApply || rec.previewOnly || rec.reasonCode == SetMicroRecCalculator.LIFT_DONE) {
-            return
-        }
-        draft.value = draft.value.copy(
-            weightKg = rec.nextWeightKg.coerceAtLeast(0.0),
-            reps = rec.nextReps.coerceAtLeast(1),
-        )
     }
 
     /**
