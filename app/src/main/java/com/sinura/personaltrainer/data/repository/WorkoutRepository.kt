@@ -718,8 +718,12 @@ class WorkoutRepository(
      * session is the same class of permanent annoyance the set edits exist to fix.
      */
     suspend fun updateSessionNotes(sessionId: String, notes: String) {
-        val current = workoutDao.getSession(sessionId)?.session ?: return
-        workoutDao.updateSession(current.copy(notes = notes.trim()))
+        // One column, written where it sits. This read the whole row and wrote it back, so a
+        // Finish that landed between the read and the write was undone by a row that still
+        // remembered the session as running — see WorkoutDao.updateSessionNotes. A row that is
+        // no longer there matches nothing and the statement is a no-op, which is what the
+        // early return did.
+        workoutDao.updateSessionNotes(id = sessionId, notes = notes.trim())
     }
 
     suspend fun finishSession(sessionId: String, notes: String) {

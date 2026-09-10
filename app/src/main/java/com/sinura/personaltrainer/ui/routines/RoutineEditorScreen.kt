@@ -51,7 +51,6 @@ import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenHeader
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
-import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
@@ -147,15 +146,23 @@ fun RoutineEditorScreen(
             verticalArrangement = Arrangement.spacedBy(Metrics.space1),
         ) {
             item(key = "name") {
-                RoutineTitleField(
-                    name = state.name,
-                    onNameChange = viewModel::onNameChange,
-                    // A name complaint belongs under the name, not in the screen's error slot.
-                    error = state.error?.takeIf { it.contains("name", ignoreCase = true) },
-                )
+                RoutineTitleField(name = state.name, onNameChange = viewModel::onNameChange)
             }
+            // Every complaint this screen can raise goes to the banner, which owns the only
+            // dismiss on the screen.
+            //
+            // This used to route by matching the substring "name" and put the match under the
+            // ROUTINE's title field instead. Nothing in the view model raises a complaint about
+            // the routine's name, so the match had no true case to serve — but "That name is
+            // already in your library" and "Lift name is required." are both about a LIFT being
+            // created in the picker, and both matched. Closing the sheet left them printed under
+            // the routine's own title, saying the routine was a duplicate, with no dismiss on
+            // them at all: the banner that owns `dismissError` had been suppressed by the same
+            // match. It cleared only when an add succeeded or the screen was left.
+            //
+            // If a routine-name complaint is ever added it gets a typed field on the state and
+            // is routed by the family that raised it. A message is not a place.
             state.error
-                ?.takeUnless { it.contains("name", ignoreCase = true) }
                 ?.takeUnless { state.showExercisePicker }
                 ?.let { message -> item(key = "error") { GymErrorBanner(message, onDismiss = viewModel::dismissError) } }
 
@@ -383,7 +390,6 @@ private fun RoutineSaveDock(
 private fun RoutineTitleField(
     name: String,
     onNameChange: (String) -> Unit,
-    error: String?,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
         BasicTextField(
@@ -409,9 +415,6 @@ private fun RoutineTitleField(
             },
         )
         HairlineDivider(startIndent = 0.dp)
-        if (error != null) {
-            Text(error, style = InstrumentType.caption, color = Danger)
-        }
     }
 }
 
