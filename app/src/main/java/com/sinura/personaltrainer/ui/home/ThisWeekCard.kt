@@ -27,6 +27,7 @@ import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.WeekTwoCopy
+import com.sinura.personaltrainer.domain.featuredSession
 import com.sinura.personaltrainer.domain.sessionLifts
 import com.sinura.personaltrainer.domain.sessionMinutes
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
@@ -128,7 +129,7 @@ fun ThisWeekCard(
         else -> "No plan yet"
     }
 
-    val featuredRoutineId = (trainingToday ?: nextDay)?.routineId
+    val featuredRoutineId = featuredSession(trainingToday, nextDay)?.routineId
 
     // No onClick. A whole-card tap that navigated, with a filled Start button inside it, was a
     // mis-tap trap on the most-pressed control in the app; Phase 6b removed the argument and

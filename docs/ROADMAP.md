@@ -23,7 +23,17 @@
 > two per-set flags (warm-up, RPE) on the draft as it stands; the row that
 > was written keeps the tapped values. Typed reps stop being a delta
 > measured against a well that may have moved: `setReps` takes the number.
-> Live test 33 (`debugLiveCode` 33), drop `debug-live/2026-09-10-4`.
+> Live test 34 (`debugLiveCode` 34), drop `debug-live/2026-09-10-5`.
+>
+> 10 Sep 2026 — Day board follow-ups, from the same six-reviewer pass over
+> #205: a tappable block reads as a button again (`Role.Button`, which
+> `Card(onClick)` does not set and `InstrumentRow` did); Skip and Up / Down
+> are drawn inside the block they act on, through a `controls` slot; an
+> auxiliary pack's meta line is its own caption, as the confirm already
+> shows, not a second estimate; quiet ink follows
+> `DailyAgenda.canOpenStart`, so a session skipped on an earlier day reads
+> settled; the order line may take two lines at 360 dp. Live test 33
+> (`debugLiveCode` 33), drop `debug-live/2026-09-10-4`.
 >
 > 10 Sep 2026 — Tick follow-ups, from a six-reviewer pass over #206: the
 > ticks re-anchor from every running snapshot the service collects, not
