@@ -191,8 +191,9 @@ strength activity counts toward that lift's PRs and session list, not
 only Records. The log-time PR badge and activity edits are still later
 steps
 ([`architecture/completed-training-convergence.md`](architecture/completed-training-convergence.md)).
-`#181` (step one) is on `trunk`. `#214` is on `trunk` (`debugLiveCode`
-34). Do not bump 34. Live 33 remains `debug-live/2026-09-10-4`.
+`#181` (step one) is on `trunk`. `#214` and `#215` are on `trunk`
+(`debugLiveCode` 34). Do not bump 34. Live 33 remains
+`debug-live/2026-09-10-4`.
 
 **R17 measurement.** The History catalog is shared and the revision keys are
 in place, but the full-history read behind the horizon readout was left alone
