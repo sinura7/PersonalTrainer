@@ -17,7 +17,7 @@
 >
 > 10 Sep 2026 — Live 37: `#202` is on `trunk` (the lift page reads both
 > stores). Obtainium still offers 36 until the number rises. This packet
-> is that rise. Open `#225` is Drive refusal copy and does not ride this
+> is that rise. `#225` is on `trunk` (Drive refusal copy) and rides this
 > drop. Live test 37 (`debugLiveCode` 37); the suffix is
 > `python3 tools/debug-drop-plan.py` after merge, not a name typed here.
 >

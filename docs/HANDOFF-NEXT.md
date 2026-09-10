@@ -31,16 +31,15 @@ forgives one level of rasteriser rounding, capped at 256 pixels.
 `trunk`; the emulator may not. The setting is the owner's.
 
 `#202` is on `trunk`: R18 step two, the lift page reads both stores. This
-packet is the Obtainium drop so that page is offered: 36 → **37**. Open
-`#225` is Drive refusal copy (`DriveHttp` / `DriveErrorCopy`); it does
-not overlap this packet except ROADMAP (last merge wins) and does not
-ride this drop. Do not start R18 step three from `trunk` while this
-drop PR is open (this file). Do not start a second edit of the drop
-tools, `debug-live.yml`, `SETUP.md`, the owner loop,
-`GoldenImageAssert`, `FoundationGoldenTest`, `DEVELOPMENT.md`, or the
-ADRs from `trunk`. Do not delete `claude/android-verify-my59sw`
-(`#225` is on it) or `claude/ecstatic-galileo-pw9iub`. An agent does
-not switch branch protection on.
+packet is the Obtainium drop so that page is offered: 36 → **37**.
+`#225` is on `trunk`: Drive refusal copy (`DriveHttp` / `DriveErrorCopy`).
+It rides 37 because it landed before the drop is cut. Do not start R18
+step three from `trunk` while this drop PR is open (this file). Do not
+start a second edit of the drop tools, `debug-live.yml`, `SETUP.md`,
+the owner loop, `GoldenImageAssert`, `FoundationGoldenTest`,
+`DEVELOPMENT.md`, or the ADRs from `trunk`. Do not delete
+`claude/android-verify-my59sw` or `claude/ecstatic-galileo-pw9iub`.
+An agent does not switch branch protection on.
 
 **The hosted emulator lane is green: 80 tests, 0 failed** on `trunk`
 before `#222`; that packet adds three comparator unit tests (expected
@@ -169,6 +168,6 @@ second build is never offered by Obtainium. That is the predicted cost of
 breaking the rule, not bad luck. It happened again the same day: `#217`
 and `#218` both claimed 35; `-6` and `-7` both carry that number.
 Obtainium still offers 35 until 36 is installed. `#220` shipped 36 as
-`debug-live-2026-09-10-8`. `#221`–`#224` and `#202` are on `trunk`.
-This packet is 37. Open `#225` is Drive copy and does not ride it.
+`debug-live-2026-09-10-8`. `#221`–`#225` and `#202` are on `trunk`.
+This packet is 37; Drive copy rides it.
 
