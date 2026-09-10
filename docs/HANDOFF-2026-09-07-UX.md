@@ -343,6 +343,82 @@ call sites became fully named); `lambda_arity_declined` is 62 here against trunk
 extra being a fully-qualified call this batch adds. Both count sites a checker declines to
 judge, not defects; the defect counts are 0.
 
+## 6.5 The audit at head: seven fixes, one of them data loss — 10 September
+
+The batch was merged to trunk green — CI run **1253**, both jobs including the emulator — and
+then audited. Seven adversarial lenses read the code **at head**, not at the commit the earlier
+audit had read, and every finding was attacked by three independent skeptics before it counted.
+Fifteen findings were raised, **four were refuted and discarded**, eleven survived. The
+important number is not eleven; it is one.
+
+### The one that mattered
+
+**A weight box that could not be read cleared the stored target, and Save reported success.**
+Type `-50` over a 100 kg target, fold the card shut, press Save: the 100 kg is gone.
+
+Weight is the one target column where an empty value is an instruction — it means *no target*.
+Sets, reps and rest all read empty as *leave this alone*, so `RoutineEditorPolicy.targetsToPersist`
+falls back to storage for them and takes the weight at face value. `TargetEntry.typedWeightKg`
+returns null for an unreadable box exactly as it does for a deliberately emptied one, and the
+only thing separating them was the staged `invalidReason`. While that rule stands the commit
+refuses the card outright, so the two never meet. `forgetTargetRule` — the fix in `fb7615f` for
+a folded card stranding its complaint — stripped the rule and kept the null. From that instant
+nothing remembered it had never been an answer.
+
+**Four of the seven lenses found it independently, and none of the nine skeptics could refute
+any of them.** One reproduced it against the real in-memory database.
+
+Fixed twice over, because it loses stored data: `TargetEntry.weightToStage(stored)` stages the
+stored value for an unreadable box, and `forgetTargetRule` puts the weight back to what the
+routine holds — the seam where "unreadable" silently becomes "deliberate", and also what the
+owner sees if they reopen the card, since the boxes re-read the routine.
+
+**Why 1,965 tests did not see it.** `foldingACardAwayKeepsTheValuesItStagedAndDropsOnlyTheRule`
+walked this exact path — the fixture stores 100 kg — and asserted only sets and reps. The
+assertion that would have caught it was simply absent. Tests find what someone thought to ask.
+
+### The rest
+
+| Severity | What | Where |
+|---|---|---|
+| Blocking | Unreadable weight box clears the stored target | `RoutineEditorViewModel`, `TargetEntry` |
+| Major | A lift's refusal printed under the ROUTINE's name, undismissably | `RoutineEditorScreen` |
+| Major | `writePick` marked after the mutex, so a queued tap's success erased the previous tap's failure | `RoutineEditorViewModel` |
+| Major | `applySuggestedWeight` did not mirror the draft, so the tap was lost to process death | `ActiveWorkoutViewModel` |
+| Major | A notes write carried five other columns, un-finishing a session the summary had called complete | `WorkoutRepository`, `WorkoutDao` |
+| Minor | The dock's refusal outlived the box it was about, with no dismiss | `RoutineEditorViewModel` |
+| Minor | A rotation on the summary started a second concurrent Drive upload | `WorkoutSummaryViewModel` |
+| Minor | "Nothing was changed" after a read fault when writes had landed | **already fixed on trunk by #229** |
+
+Every fix carries a test that fails without it, and the negative control was actually run.
+**Two of the four major tests did not fail on the first attempt** and were rewritten until they
+did — the `writePick` one needed a gated DAO, because under `UnconfinedTestDispatcher` two
+sequential taps never share the queue the defect lives in, and the notes one needed a
+repository-level assertion, because the DAO tests alone would pass again if the read-modify-write
+were ever restored.
+
+**One fix has no test and it is named rather than papered over:** the auto-backup in-flight
+guard. `BackupRepository` is a final class with no interface, so nothing can stand in for a
+Drive upload, and the guard's in-flight window cannot be opened without adding a seam to
+production code that a two-line fix does not otherwise need.
+
+### What this says about the gate
+
+The gate was green — static, 1,965 unit tests, `assembleDebug`, `lintDebug`, and a full CI run
+including the emulator — over a defect that silently deletes a stored number. The gate proves
+the code runs. It does not prove the code is right. That is the second time in this program the
+thing which found the real defect was not the gate; the first was a compile lane finding a
+branch that did not build (§6.1). **The audit belongs before a merge, not after it.**
+
+### One test failure, recorded rather than dismissed
+
+`aSecondTapTakesTheLiftBackOut` failed once in a full-suite run, then passed in isolation, in
+its class, in the three-class subset with `--rerun-tasks`, and in four consecutive full-suite
+runs. It is not skipped, weakened or quarantined. Trunk's **#230** identifies this as the known
+intermittent 30-second wedge in `RoutineEditorViewModelTest` — "several reproductions and taught
+us nothing each time" — and adds `stalledThreads()` so the next occurrence names the thread that
+was parked. It is an open issue with diagnosis now in place, not a one-off and not mine.
+
 ## 7. Delivery state
 
 Everything is committed on `claude/file-visibility-check-jraqc2` and **pushed to origin with the owner's authorization on 7 September**. Nothing has been merged, tagged, published or deployed; no production configuration, credential or user data was touched.
@@ -377,27 +453,31 @@ Still owed by a device, not by CI: the eight production captures in §8, and `co
 
 ## 8. Next actions, in order
 
-1. **Owner:** a decision on D16, and the merge itself. Merge the branch **head** — `0cc5013`
-   does not compile and `76ef74f` is where trunk was brought in. CI is green on the blocking
-   job at the head (§6.2), so the gate this list used to be waiting on is satisfied.
-2. **Device (Temper Debug):** the eight production captures this batch owes — routine editor
+**Batch A is merged and on trunk.** Trunk carries it at `3b3aa33`, and the audit's eleven
+surviving findings are worked: seven fixed here, one already fixed on trunk by #229, and three
+that were about the retired compile lane and closed with it (§6.4, §6.5). CI is green on the
+merge and on the fixes.
+
+1. **Device (Temper Debug):** the eight production captures this batch owes — routine editor
    Save failure and Back prompt at 360 dp / font 2.0 with the keyboard open; summary "not
    found", "saved, summary unavailable", "unavailable" and a push-up-only receipt; composer
-   Add set refusal; live cardio Finish refusal; setup reopened after `adb shell am kill`. Now
-   the only thing CI cannot stand in for.
-3. **The audit's surviving findings.** Ten adversarial lenses ran on 10 September. The one
-   blocking finding is fixed (`fb7615f`) and four checker holes are closed (`f528299`). The
-   rest are recorded but **not yet worked**, and several are worth taking seriously — among
-   them: a typed weight is rounded to display precision before storage, so UX06's "exactly
-   what was written or refused" does not hold at the second decimal; an unreadable weight box
-   clears the custom week's stored target rather than leaving it; a refused Save names a rule
-   without naming the lift or moving focus to it; and the summary's three-tile row clips its
-   own labels at 360 dp. Triage these before Batch B.
-4. **Batch B (main gym journey):** UX01–UX03, UX08, UX12, UX22, UX24/UX25 per the master
-   sequencing. UX12 and UX24 cannot start without device bounds.
-5. **UX23 residue:** the four read-fault-vs-missing screens (SessionDetail, ActiveWorkout,
+   Add set refusal; live cardio Finish refusal; setup reopened after `adb shell am kill`.
+   **The only thing CI cannot stand in for**, and the only item on this list that needs the
+   owner's hands.
+2. **Batch B (main gym journey):** UX01–UX03, UX08, UX12, UX22, UX24/UX25 per the master
+   sequencing. UX12 and UX24 cannot start without device bounds from item 1.
+3. **UX23 residue:** the four read-fault-vs-missing screens (SessionDetail, ActiveWorkout,
    RestTimer, ExerciseDetail) need health-carrying flows, the R10 shape; the rest is copy and
    banner placement.
+4. **Audit before merge, not after** (§6.5). A green gate did not see a defect that deletes a
+   stored number; seven independent lenses with adversarial refutation found it four times
+   over. Run the audit on a batch before it goes to trunk.
+5. **A seam for `BackupRepository`,** if the auto-backup path is worked again. It is a final
+   class, which is why the one fix in §6.5 ships without a test.
 6. **The gate before every push:** `./gradlew testDebugUnitTest assembleDebug lintDebug`.
    The compile lane is retired (§6.4); the real build replaced it, and the owner's standing
    instruction is that the real gate runs before a push, not a static approximation of it.
+
+**Owner decision still open: D16** — the UX04 work appended a paragraph to ADR-021 item 7
+describing what Save now guarantees. It does not reverse the decision, but it edits a signed
+record. Stay in ADR-021, or move to the UX decision register?
