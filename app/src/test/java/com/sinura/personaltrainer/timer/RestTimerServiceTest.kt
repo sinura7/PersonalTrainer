@@ -7,6 +7,7 @@ import android.os.SystemClock
 import java.time.Duration
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.PersonalTrainerApp
+import com.sinura.personaltrainer.domain.RestTimerPreferences
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -237,11 +238,14 @@ class RestTimerServiceTest {
             // The service reads the toggle off DataStore on another thread; give
             // that read a bounded chance to land before the clock moves.
             val giveUpAt = System.nanoTime() + PREFS_WAIT_NANOS
-            while (service.tickPreferences.tickEnabled && System.nanoTime() < giveUpAt) {
+            while (service.tickPreferences?.tickEnabled != false && System.nanoTime() < giveUpAt) {
                 Thread.sleep(10)
                 looper.idle()
             }
-            assertFalse("tick preference never reached the service", service.tickPreferences.tickEnabled)
+            assertFalse(
+                "tick preference never reached the service",
+                service.tickPreferences?.tickEnabled ?: true,
+            )
 
             looper.idleFor(Duration.ofSeconds(89))
             assertEquals(emptyList<Int>(), ticks)
@@ -251,6 +255,36 @@ class RestTimerServiceTest {
             // every later rest in this JVM.
             runBlocking { app.container.preferencesRepository.setRestTickEnabled(true) }
         }
+    }
+
+    /**
+     * The service used to start from RestTimerPreferences.DEFAULT — everything
+     * on — so a boundary that fell before DataStore's first emission ticked
+     * against whatever the owner had actually chosen. A tick with no
+     * preferences yet stays silent and keeps counting.
+     */
+    @Test
+    fun aTickBeforeThePreferencesLandStaysSilentAndKeepsCounting() {
+        val ticks = mutableListOf<Int>()
+        RestTimerService.tickObserver = { ticks += it }
+        val store = app.container.restTimerStore
+        store.start(30, "session-1", nowElapsedRealtime = SystemClock.elapsedRealtime())
+
+        val intent = Intent(app, RestTimerService::class.java)
+            .setAction(RestTimerService.ACTION_SYNC)
+        val controller = Robolectric.buildService(RestTimerService::class.java, intent)
+        val service = controller.create().startCommand(0, 1).get()
+        val looper = shadowOf(Looper.getMainLooper())
+        looper.idle()
+
+        service.tickPreferences = null
+        looper.idleFor(Duration.ofSeconds(26))
+        assertEquals(emptyList<Int>(), ticks)
+
+        service.tickPreferences = RestTimerPreferences.DEFAULT
+        looper.idleFor(Duration.ofSeconds(3))
+        assertEquals(listOf(3, 2, 1), ticks)
+        controller.destroy()
     }
 
     private companion object {

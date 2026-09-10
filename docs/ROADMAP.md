@@ -25,6 +25,16 @@
 > measured against a well that may have moved: `setReps` takes the number.
 > Live test 34 (`debugLiveCode` 34), drop `debug-live/2026-09-10-5`.
 >
+> 10 Sep 2026 — A tick with no preferences yet stays silent. The service
+> seeded `tickPreferences` with the defaults — everything on — until
+> DataStore's first emission, so a boundary that fell before that read
+> landed ticked against the defaults rather than the owner's choice; the
+> way to see it is a rest with seconds left when the process is killed,
+> the sticky restart posting the next boundary while the container is
+> cold. The field is null until the first emission, and a tick that finds
+> it null makes no sound and still schedules the next one. Live test 35
+> (`debugLiveCode` 35), drop `debug-live/2026-09-10-6`.
+>
 > 10 Sep 2026 — Day board follow-ups, from the same six-reviewer pass over
 > #205: a tappable block reads as a button again (`Role.Button`, which
 > `Card(onClick)` does not set and `InstrumentRow` did); Skip and Up / Down
