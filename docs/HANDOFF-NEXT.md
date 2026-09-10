@@ -99,7 +99,7 @@ No emulator is possible in that environment: no `/dev/kvm`, no `vmx`/`svm`.
    hosted runners as the test lane. Do not weaken
    `gradle/verification-metadata.xml`.
 
-4. Live test 31 is the current drop (`debugLiveCode` 31, `#206` on
+4. Live test 32 is the current drop (`debugLiveCode` 32, `#212` on
    `trunk`). Do not bump it on this packet. Obtainium, not Studio;
    gym-floor Temper stays on the signed APK.
 
@@ -114,9 +114,9 @@ on 2026-09-08 after a scan of all 72 commits found no keystore, private
 key, API key or token in any of them — the only matches were `printf`
 lines reading GitHub secrets and a placeholder in `SETUP.md`.
 
-`debugLiveCode` on `trunk` is 31 (`#206`). The Obtainium drop that
-follows that merge is `debug-live/2026-09-10-2`. Live 30 remains
-`debug-live/2026-09-10`. Do not bump 31 on this packet.
+`debugLiveCode` on `trunk` is 32 (`#212`). The Obtainium drop that
+follows that merge is `debug-live/2026-09-10-3`. Live 31 remains
+`debug-live/2026-09-10-2`. Do not bump 32 on this packet.
 A Temper Debug from a throwaway-signed drop must still be
 backed up, uninstalled, and reinstalled once onto 25+ (stable signer).
 Gym-floor Temper stays on the signed APK.
@@ -152,9 +152,11 @@ in `DESIGN_AUDIT` now cite the file that closed them; 21 still
 open (last-5s tick family, Body first-launch, walkthrough rows,
 chip progress/rest badge, E-04/E-12, N-01, T-16, S-02/B-03/I-01).
 Do not take those 21 as this packet. `#201` (write-through multi-add
-picker, live 29), `#205` (Home day board, live 30), and `#206`
-(last-five-seconds rest tick, live 31, drop `debug-live/2026-09-10-2`)
-are on `trunk`. Do **not** bump 31 here.
+picker, live 29), `#205` (Home day board, live 30), `#206`
+(last-five-seconds rest tick, live 31, drop `debug-live/2026-09-10-2`),
+and `#212` (tick follow-ups: re-anchor from the store, a boundary at
+now ticks now, live 32, drop `debug-live/2026-09-10-3`)
+are on `trunk`. Do **not** bump 32 here.
 Do not start a second edit of Home, `DayBlock`, rest timer, Settings,
 `DESIGN_AUDIT.md`, `ExercisePickerSheet`, `LiftCart`,
 `RoutineEditorViewModel`, `CustomWeekViewModel`, or
@@ -181,8 +183,8 @@ strength activity counts toward that lift's PRs and session list, not
 only Records. The log-time PR badge and activity edits are still later
 steps
 ([`architecture/completed-training-convergence.md`](architecture/completed-training-convergence.md)).
-`#181` (step one) is on `trunk`. `#206` is on `trunk` (`debugLiveCode`
-31). Do not bump 31. Live 30 remains `debug-live/2026-09-10`.
+`#181` (step one) is on `trunk`. `#212` is on `trunk` (`debugLiveCode`
+32). Do not bump 32. Live 31 remains `debug-live/2026-09-10-2`.
 
 **R17 measurement.** The History catalog is shared and the revision keys are
 in place, but the full-history read behind the horizon readout was left alone
@@ -196,9 +198,9 @@ after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
 (UX + stub compiler); do not start a second edit of those paths from
 `trunk`. `#173` is on `trunk`. `claude/android-verify-my59sw` is leftover
 and Claude reuses it — do **not** delete that head (deleting it after
-`#191` briefly removed `#192`). `#204` through `#211` reused
+`#191` briefly removed `#192`). `#204` through `#212` reused
 `claude/android-verify-my59sw` — do **not** delete that head. `#204`
-through `#211` are on `trunk`. `#201`/`#203`'s vehicle
+through `#212` are on `trunk`. `#201`/`#203`'s vehicle
 `claude/ecstatic-galileo-pw9iub` is leftover — do **not** delete that
 head. `#203` is on `trunk`. Do not start a second picker, rest-timer,
 `DESIGN_AUDIT.md`, emulator-lane instrumented test, golden PNG, or
@@ -206,7 +208,7 @@ head. `#203` is on `trunk`. Do not start a second picker, rest-timer,
 the four hosted-emulator failures; the lane is still non-blocking.
 Do not take ten green trunk runs as this packet. `#196`'s vehicle
 `claude/google-signin-integration-xijk5e` was deleted after merge.
-`debugLiveCode` on trunk is 31. Do not bump it on this packet.
+`debugLiveCode` on trunk is 32. Do not bump it on this packet.
 `unbounded_waits` on trunk is 0. `#181`'s vehicle
 `cursor/r18-horizon-reviews-a14c` was deleted after merge.
 

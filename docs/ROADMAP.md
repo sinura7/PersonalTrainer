@@ -83,7 +83,7 @@
 > 9 Sep 2026 — R18 step two: exercise detail bests and history read
 > `CompletedTrainingRepository.observeExerciseSets` (both stores). A
 > backdated strength day counts as a PR on that lift, not only in
-> Records. `#206` is on `trunk` (live 31); this packet inherits 31 and
+> Records. `#212` is on `trunk` (live 32); this packet inherits 32 and
 > does not bump it.
 >
 > 9 Sep 2026 — F: the multi-add picker writes as it goes. A tap in Add lifts
