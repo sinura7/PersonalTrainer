@@ -42,10 +42,14 @@ open. Do not start a second edit of the drop tools, `debug-live.yml`,
 `claude/file-visibility-check-jraqc2` was merged to `trunk` after
 the drop (`659ed5c` / `a39917b`); it is not in 37. `#229` is on
 `trunk`: Back on the routine editor. It does not overlap this packet
-and does not ride 37. Do not start a second edit of
+and does not ride 37. Open `#230` is a timed-out wait naming the
+thread (`TestWaits.awaitFirst`, `RoutineEditorViewModelTest`). Test
+only; we read `awaitFirst` and do not edit it. Do not start a second
+edit of `TestWaits.kt` from `trunk`. Do not start a second edit of
 `RoutineEditorViewModel` from `trunk`. Do not delete
-`claude/android-verify-my59sw` or `claude/ecstatic-galileo-pw9iub`.
-An agent does not switch branch protection on.
+`claude/android-verify-my59sw` (`#230` is on it) or
+`claude/ecstatic-galileo-pw9iub`. An agent does not switch branch
+protection on.
 
 **The hosted emulator lane is green: 80 tests, 0 failed** on `trunk`
 before `#222`; that packet adds three comparator unit tests (expected
@@ -171,5 +175,6 @@ and `#218` both claimed 35; `-6` and `-7` both carry that number.
 Obtainium still offers 35 until 36 is installed. `#220` shipped 36 as
 `debug-live-2026-09-10-8`. `#226` shipped 37 as
 `debug-live-2026-09-10-9`. This packet inherits 37. `#229` is on
-`trunk` and does not ride 37.
+`trunk` and does not ride 37. Open `#230` is test diagnostics and
+does not ride this packet.
 
