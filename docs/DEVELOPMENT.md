@@ -71,6 +71,34 @@ let release and that old debug coexist, so if you already have release on
 the phone you only gain the new debug icon beside it. Do not uninstall
 release to "make room." There is nothing to make room for.
 
+## The Android SDK in a Claude Code on the web session
+
+`.claude/hooks/session-start.sh` installs the Android SDK at the start of every web session,
+so `./gradlew testDebugUnitTest assembleDebug` — the merge gate — runs there like anywhere
+else. It installs `platform-tools`, `platforms;android-36` (the project's `compileSdk`) and
+`build-tools;35.0.0` (what AGP 8.9.2 actually resolves to) into `$ANDROID_SDK_ROOT`, default
+`/opt/android-sdk`, and exports `ANDROID_HOME`/`ANDROID_SDK_ROOT` through `$CLAUDE_ENV_FILE`.
+
+It exists because for most of this repo's life that was impossible: Google's Maven was refused
+at the CONNECT in those environments, Gradle could not resolve the Android Gradle Plugin, and
+the project could not configure — which is the whole reason `tools/compile-check.sh` was built.
+On 10 September 2026 `dl.google.com` began answering, and the real build turned out to work:
+`assembleDebug` in 5m24s, `testDebugUnitTest` 1,946 tests.
+
+**The hook is allowed to do nothing.** Egress policy is not ours to depend on. If Google's
+servers are refused it prints why, names the offline lanes, and exits 0 — a session that cannot
+reach Google is still a working session, and the static gate plus `tools/compile-check.sh` are
+what it uses. It is also idempotent: a cached container that already has the SDK is a no-op, and
+it only runs when `CLAUDE_CODE_REMOTE=true`, so a developer machine keeps its own SDK.
+
+It runs **synchronously**, so the session does not start until the SDK is there. That costs
+about four minutes on a cold container and removes the race where a build is attempted before
+its toolchain exists. Switching it to async (`{"async": true}` as the first line) would trade
+that guarantee for a faster start.
+
+Where the real build is available, prefer it. `tools/compile-check.sh` substitutes a nearby
+Compose build and 1,520 lines of hand-written stubs; `assembleDebug` substitutes nothing.
+
 ## Project layout
 
 ```
