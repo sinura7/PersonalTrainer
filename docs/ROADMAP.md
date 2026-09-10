@@ -15,6 +15,22 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 10 Sep 2026 — F: Home's day board. Each of today's sessions is its own
+> bordered block — the title, the first four catalog stills, the numbered
+> order, `2 lifts · about 13 min` — with Start (leftover: Do it today) in
+> Volt ink on the foot. The whole block is the tap, into the same ADR-021
+> confirm, under the same test tag; Skip and reorder sit under it as
+> before, and Add keeps its own row under Today. Still open and the
+> empty-agenda leftover card draw the same head (`DayBlockHead`), so a
+> session looks the same on every Home surface. Aux packs needed no new
+> plumbing: `AuxiliaryBlocks` already mints them as routines, so their
+> stills resolve like any routine's. Done and moved blocks go quiet in
+> ink; the stills stay (ADR-022: identity, not state). The words are
+> `DayBlockCopy`, pure and tested; the confirm's count line reads the same
+> function. No ADR: the behaviour is ADR-021 as it stands, only the
+> drawing changed. Live test 30 (`debugLiveCode` 30), drop
+> `debug-live/2026-09-10`.
+>
 > 10 Sep 2026 — Lane: the emulator job says why it failed. Its script is
 > `tools/ci-instrumented.sh`, which dumps the device log before the runner
 > tears the emulator down (the runner executes each `script:` line as its
