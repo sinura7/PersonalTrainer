@@ -471,16 +471,16 @@ internal fun CompactTargetFields(
     val repsFocus = remember { FocusRequester() }
     val restFocus = remember { FocusRequester() }
     val weightFocus = remember { FocusRequester() }
+    // What each box reads when it shows the STORED target and nothing else. Held as values so
+    // the restore hook below can ask the only question that matters: is the text on screen
+    // still what the routine holds, or did the owner type something the routine does not?
+    val storedWeightText = targetWeightKg?.let { kg ->
+        WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(kg, unit))
+    }.orEmpty()
     var setsText by rememberSaveable(rowKey) { mutableStateOf(sets.toString()) }
     var repsText by rememberSaveable(rowKey) { mutableStateOf(reps.toString()) }
     var restText by rememberSaveable(rowKey) { mutableStateOf(restSeconds.toString()) }
-    var weightText by rememberSaveable(rowKey) {
-        mutableStateOf(
-            targetWeightKg?.let { kg ->
-                WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(kg, unit))
-            }.orEmpty(),
-        )
-    }
+    var weightText by rememberSaveable(rowKey) { mutableStateOf(storedWeightText) }
     // The four boxes, read as typed. An empty box means "leave this one alone"; a box that
     // cannot be stored as written is a complaint under that box and a rejection staged with the
     // card, so the commit refuses it and Save and Back count it as unsaved (UX06). The text is
@@ -490,13 +490,23 @@ internal fun CompactTargetFields(
         val read = TargetEntry.read(setsText, repsText, restText, weightText, unit)
         onStageTargets(read.typedSets, read.typedReps, read.typedRest, read.typedWeightKg, read.firstError)
     }
-    // The box text is saved state; the staged rejection is not. After the process is reclaimed
-    // the card is rebuilt showing "8.5" and its rule, and nothing upstream knows — so Save or
-    // Confirm would walk past a card the owner can plainly see is wrong. Re-register it once
-    // on restore. ONLY when it cannot be read: staging a readable card here would mark an
-    // untouched editor dirty and make Back ask about changes nobody made.
-    LaunchedEffect(rowKey, entry.hasError) {
-        if (entry.hasError) stage()
+    // The box text is saved state; what was staged from it is not. After the process is
+    // reclaimed the card is rebuilt showing whatever was typed and nothing upstream knows, so
+    // Save walks past it — refusing a card the owner can see is wrong when the text cannot be
+    // read, and worse when it CAN: typing "8" into reps, losing the process before the box
+    // loses focus, and pressing Save popped the editor claiming success while the routine
+    // still held 5. Both are the same omission and both are re-registered here.
+    //
+    // The condition is "the text is not what the routine holds", not "the text is broken",
+    // because that is exactly what a pending edit is. A card showing its stored numbers stages
+    // nothing, so an untouched editor is never marked dirty and Back never asks about changes
+    // nobody made — which is the trap a blanket re-stage would fall into.
+    val differsFromStored = setsText != sets.toString() ||
+        repsText != reps.toString() ||
+        restText != restSeconds.toString() ||
+        weightText != storedWeightText
+    LaunchedEffect(rowKey, entry.hasError, differsFromStored) {
+        if (entry.hasError || differsFromStored) stage()
     }
     Column(
         modifier = Modifier.padding(start = Metrics.space3, end = Metrics.space3, bottom = Metrics.space3),

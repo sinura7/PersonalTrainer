@@ -1008,6 +1008,36 @@ class RoutineEditorViewModelTest {
     }
 
     /**
+     * A valid target typed but not yet committed, then the process reclaimed. The card is
+     * rebuilt from saved state showing "8", so Save owes that write — it used to pop claiming
+     * success while the routine still held 5, because only an UNREADABLE box re-registered
+     * itself on restore. This is what the card's restore hook stages; the ViewModel half is
+     * that a staged value survives to the exit flush and is written.
+     */
+    @Test
+    fun aValidTargetRestoredAfterProcessDeathIsStillWrittenBySave() = runBlocking {
+        val fixture = seedTestWorkout(deps, targetSets = 3, targetReps = 5)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val itemId = fixture.routine.exercises.single().id
+        val vm = createViewModel(fixture.routine.id)
+        vm.uiState.awaitFirst { it.routine != null }
+
+        // What SessionLiftEditor's restore hook re-stages when the box text differs from the
+        // stored numbers: the typed reps, no rule.
+        vm.stageTargets(
+            itemId = itemId,
+            targetSets = 3,
+            targetReps = 8,
+            targetWeightKg = null,
+            restSeconds = 60,
+        )
+
+        vm.saveAndLeave()
+        vm.exitRequested.awaitFirst { it }
+        assertEquals(8, checkNotNull(deps.routineRepository.getById(fixture.routine.id)).exercises.single().targetReps)
+    }
+
+    /**
      * A read that throws on the way out used to leave the editor deaf: `leaving` stayed true
      * and nothing could pop it. It is now one more unsaved outcome, and leave-anyway still exits.
      */
