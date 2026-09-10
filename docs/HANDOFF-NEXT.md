@@ -157,12 +157,20 @@ picker, live 29), `#205` (Home day board, live 30), `#206`
 and `#212` (tick follow-ups: re-anchor from the store, a boundary at
 now ticks now, live 32, drop `debug-live/2026-09-10-3`)
 are on `trunk`. Do **not** bump 32 here.
-Do not start a second edit of Home, `DayBlock`, rest timer, Settings,
-`DESIGN_AUDIT.md`, `ExercisePickerSheet`, `LiftCart`,
-`RoutineEditorViewModel`, `CustomWeekViewModel`, or
-`app/build.gradle.kts` from `trunk`.
+Open `#213` (day-board follow-ups, live 33, drop `debug-live/2026-09-10-4`,
+vehicle `claude/android-verify-my59sw`) overlaps this packet on ROADMAP
+only. Independent Kotlin. Open `#214` (log wells belong to the next set)
+overlaps this packet on ROADMAP only; it is **dirty against `trunk`**
+(cut from live 31, claims drop `debug-live/2026-09-10-3` which `#212`
+already took) and must rebase before merge. Do not start a second edit
+of Home, `DayBlock`, `DailyAgendaCard`, `ThisWeekCard`, `PlanDayScreen`,
+`ActiveWorkoutScreen`, `ActiveWorkoutViewModel`, `SetEntryPanel`,
+`RepsStepper`, rest timer, Settings, `DESIGN_AUDIT.md`,
+`ExercisePickerSheet`, `LiftCart`, `RoutineEditorViewModel`,
+`CustomWeekViewModel`, or `app/build.gradle.kts` from `trunk`.
 Do not delete `claude/ecstatic-galileo-pw9iub` or
-`claude/android-verify-my59sw` (Claude reuses those heads).
+`claude/android-verify-my59sw` (Claude reuses those heads; they are the
+vehicles for `#214` and `#213`).
 `#203` (`CLAUDE.md` response contract) is on `trunk`. Replies follow
 that file. Do not start a second edit of `CLAUDE.md` or
 `owner-conversation.mdc` from `trunk`. `#204` (emulator job prints
@@ -199,12 +207,13 @@ after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
 `trunk`. `#173` is on `trunk`. `claude/android-verify-my59sw` is leftover
 and Claude reuses it — do **not** delete that head (deleting it after
 `#191` briefly removed `#192`). `#204` through `#212` reused
-`claude/android-verify-my59sw` — do **not** delete that head. `#204`
-through `#212` are on `trunk`. `#201`/`#203`'s vehicle
-`claude/ecstatic-galileo-pw9iub` is leftover — do **not** delete that
+`claude/android-verify-my59sw` — do **not** delete that head; open
+`#213` reuses it again. `#204` through `#212` are on `trunk`. Open
+`#214` reuses `claude/ecstatic-galileo-pw9iub` — do **not** delete that
 head. `#203` is on `trunk`. Do not start a second picker, rest-timer,
-`DESIGN_AUDIT.md`, emulator-lane instrumented test, golden PNG, or
-`tools/ci-instrumented.sh` edit from `trunk`. `#207`–`#211` closed
+Home day-board, live-workout wells, `DESIGN_AUDIT.md`, emulator-lane
+instrumented test, golden PNG, or `tools/ci-instrumented.sh` edit from
+`trunk`. `#207`–`#211` closed
 the four hosted-emulator failures; the lane is still non-blocking.
 Do not take ten green trunk runs as this packet. `#196`'s vehicle
 `claude/google-signin-integration-xijk5e` was deleted after merge.
