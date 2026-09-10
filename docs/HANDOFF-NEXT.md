@@ -157,6 +157,9 @@ Do **not** bump 29 here. Do not start a second edit of
 `ExercisePickerSheet`, `LiftCart`, `RoutineEditorViewModel`, or
 `CustomWeekViewModel` from `trunk`. Do not delete
 `claude/ecstatic-galileo-pw9iub` (Claude reuses that head).
+`#203` (`CLAUDE.md` response contract) is on `trunk`. Replies follow
+that file. Do not start a second edit of `CLAUDE.md` or
+`owner-conversation.mdc` from `trunk`.
 
 **R16 residue.** Production-screen tests exist for History, the activity
 composer, live cardio, the activity receipt and Home. Settings, onboarding,
@@ -186,9 +189,9 @@ after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
 (UX + stub compiler); do not start a second edit of those paths from
 `trunk`. `#173` is on `trunk`. `claude/android-verify-my59sw` is leftover
 and Claude reuses it — do **not** delete that head (deleting it after
-`#191` briefly removed `#192`). `#201`'s vehicle
+`#191` briefly removed `#192`). `#201`/`#203`'s vehicle
 `claude/ecstatic-galileo-pw9iub` is leftover — do **not** delete that
-head. Do not start a second picker or `DESIGN_AUDIT.md` edit from
+head. `#203` is on `trunk`. Do not start a second picker or `DESIGN_AUDIT.md` edit from
 `trunk`. Do not take the five hosted-emulator failures or the remaining
 DESIGN_AUDIT P1 rows as this packet. `#196`'s vehicle
 `claude/google-signin-integration-xijk5e` was deleted after merge.
