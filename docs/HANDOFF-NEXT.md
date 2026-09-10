@@ -196,17 +196,17 @@ after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
 (UX + stub compiler); do not start a second edit of those paths from
 `trunk`. `#173` is on `trunk`. `claude/android-verify-my59sw` is leftover
 and Claude reuses it — do **not** delete that head (deleting it after
-`#191` briefly removed `#192`). `#204`/`#205`/`#206`/`#207`/`#208`/`#209`/`#210` reused
+`#191` briefly removed `#192`). `#204` through `#211` reused
 `claude/android-verify-my59sw` — do **not** delete that head. `#204`
-through `#210` are on `trunk`. `#201`/`#203`'s vehicle
+through `#211` are on `trunk`. `#201`/`#203`'s vehicle
 `claude/ecstatic-galileo-pw9iub` is leftover — do **not** delete that
 head. `#203` is on `trunk`. Do not start a second picker, rest-timer,
-`DESIGN_AUDIT.md`, emulator-lane instrumented test, or
-`tools/ci-instrumented.sh` edit from `trunk`. `#207`–`#209` closed
-three emulator races; `#210` prints golden PNGs into the job log.
-Do not take the remaining golden mismatch as this packet. `#196`'s
-vehicle `claude/google-signin-integration-xijk5e` was deleted after
-merge. `debugLiveCode` on trunk is 31. Do not bump it on this packet.
+`DESIGN_AUDIT.md`, emulator-lane instrumented test, golden PNG, or
+`tools/ci-instrumented.sh` edit from `trunk`. `#207`–`#211` closed
+the four hosted-emulator failures; the lane is still non-blocking.
+Do not take ten green trunk runs as this packet. `#196`'s vehicle
+`claude/google-signin-integration-xijk5e` was deleted after merge.
+`debugLiveCode` on trunk is 31. Do not bump it on this packet.
 `unbounded_waits` on trunk is 0. `#181`'s vehicle
 `cursor/r18-horizon-reviews-a14c` was deleted after merge.
 
