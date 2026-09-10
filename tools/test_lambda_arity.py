@@ -97,7 +97,15 @@ def main() -> int:
             (root / "Decls.kt").write_text(DECLS, encoding="utf-8")
             (root / "Case.kt").write_text("package t\n" + body, encoding="utf-8")
             code, out = run(root)
-            got = int(out.strip().rsplit("\n", 1)[-1].split()[0])
+            # The summary line by name, not by position: the checker also prints a declined
+            # count and a ratchet line after it, and "last line" quietly meant those instead.
+            summary = next(
+                (ln for ln in out.splitlines() if "arity mismatch(es)" in ln), None
+            )
+            if summary is None:
+                failures.append(f"FAIL {name}: no summary line in\n{out}")
+                continue
+            got = int(summary.split()[0])
             if got != want:
                 failures.append(f"FAIL {name}: expected {want}, got {got}\n{out}")
             elif (code != 0) != (want > 0):

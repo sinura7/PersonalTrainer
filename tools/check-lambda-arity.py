@@ -33,7 +33,8 @@ A lambda with no `->` is accepted against arity 0 or 1: Kotlin gives it the impl
 import os, re, sys, collections
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from kotlin_source import kotlin_files, strip_comments_and_strings  # noqa: E402
+from kotlin_source import kotlin_files, kotlin_files_in, strip_comments_and_strings  # noqa: E402
+from checker_baseline import load as load_baselines, report as report_baseline  # noqa: E402
 
 # Every root given is both indexed and judged, and one invocation must cover all of them:
 # a test source set alone cannot see the declaration it calls, so run it as
@@ -183,7 +184,7 @@ def visibility_scope(src, start, path):
     return path if PRIVATE_RE.search(src[max(0, start - 80):start]) else None
 
 
-files = [f for root in ROOTS if os.path.isdir(root) for f in kotlin_files(root)]
+files = kotlin_files_in(ROOTS)
 clean = {p: strip_comments_and_strings(open(p, encoding="utf-8").read()) for p in files}
 
 # name -> list of (scope, {param name: arity or None})
@@ -213,6 +214,30 @@ for path, src in clean.items():
             record(m.group(1), visibility_scope(src, m.start(), path), src[op + 1:cl])
 
 problems = []
+# Every site this checker declines to judge, so the gap is measured rather than assumed
+# clean. The repo's convention: a checker that skips reports how much, and the count is
+# ratcheted so the skipped set cannot quietly grow.
+skipped_unreadable = 0   # the lambda header does not parse as a parameter list
+skipped_untyped = 0      # some visible declaration is not a plain function type
+skipped_qualified = 0    # a fully-qualified call, e.g. `a.b.C.f(onX = { ... })`
+
+# A fully-qualified call is invisible to the call-site regex below, whose negative
+# lookbehind excludes a leading dot so that `vm.method(...)` is not judged against a
+# same-named top-level declaration. Count the ones that carry a named lambda argument, so
+# the blind spot has a number instead of a silence.
+for path, src in clean.items():
+    for m in re.finditer(r"[\w.]+\.([A-Za-z]\w*)\s*\(", src):
+        name = m.group(1)
+        if name not in decls:
+            continue
+        op = src.index("(", m.end() - 1)
+        cl = balanced(src, op)
+        if cl < 0:
+            continue
+        if any(re.match(r"^\s*([a-z]\w*)\s*=(?!=)\s*\{", chunk)
+               for chunk in top_level_split(src[op + 1:cl])):
+            skipped_qualified += 1
+
 for path, src in clean.items():
     for m in re.finditer(r"(?<![\w.])([A-Za-z]\w*)\s*\(", src):
         name = m.group(1)
@@ -239,11 +264,13 @@ for path, src in clean.items():
                 continue
             got = lambda_arity(chunk[lb + 1:rb])
             if got is None:
+                skipped_unreadable += 1
                 continue
             # Every overload that declares this parameter must disagree before it is a
             # finding: one matching declaration is a legal call.
             wanted = [t[arg] for t in visible if arg in t and t[arg] is not None]
             if not wanted or len(wanted) != sum(1 for t in visible if arg in t):
+                skipped_untyped += 1
                 continue  # some visible declaration is not a plain function type
             if any(w == got or (got == 1 and w == 0 and _top_level_arrow(chunk[lb + 1:rb]) is None) for w in wanted):
                 continue
@@ -255,4 +282,13 @@ for path, line, name, arg, got, wanted in sorted(problems):
     want = wanted[0] if len(wanted) == 1 else wanted
     print(f"{path}:{line}  {name}(..., {arg} = {{ … }})  lambda takes {got}, declaration takes {want}")
 print(f"\n{len(problems)} arity mismatch(es) across {len(files)} files")
-sys.exit(1 if problems else 0)
+skipped = skipped_unreadable + skipped_untyped + skipped_qualified
+print(
+    f"{skipped} call site(s) declined: {skipped_unreadable} unreadable lambda header, "
+    f"{skipped_untyped} non-plain function type, {skipped_qualified} fully qualified"
+)
+baselines = load_baselines()
+complaint = report_baseline("skips", "lambda_arity_declined", skipped, baselines)
+if complaint:
+    print(complaint)
+sys.exit(1 if problems or complaint else 0)

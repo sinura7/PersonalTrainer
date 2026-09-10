@@ -173,8 +173,21 @@ summary() {
     step "$label"
     out="$("$@")" || fail "$label crashed"
     printf '%s\n' "$out" | tail -1
-    printf '%s\n' "$out" | grep -qF "$want" || { printf '%s\n' "$out"; fail "$label"; }
+    # The count must START a line, not merely appear in one. `grep -F "0 mismatch(es)"`
+    # is satisfied by "10 mismatch(es) across 680 files", so this gate reported clean at
+    # 10, 20, 30 ... findings for all three checkers below — a false green that had been
+    # sitting in the shared gate. awk's index()==1 is a literal prefix test, so there is
+    # no regex to escape and no metacharacter in "(es)" to get wrong. Every checker here
+    # prints its count at the start of a line; tools/test_summary_gate.sh proves both
+    # directions.
+    printf '%s\n' "$out" | awk -v want="$want" 'index($0, want) == 1 { hit = 1 } END { exit !hit }' \
+        || { printf '%s\n' "$out"; fail "$label"; }
 }
+# The gate below is only worth its exit code if it actually fails on a finding. It did not
+# until 10 Sep 2026; this proves both directions before any of it is trusted.
+step "test_summary_gate.sh"
+sh tools/test_summary_gate.sh || fail "test_summary_gate.sh"
+
 # One run over every source set, not one per set. A root scanned alone is a false clean:
 # nothing outside it is in the declaration index, so every call into another source set is
 # skipped — which for app/src/test and app/src/androidTest is most of them.

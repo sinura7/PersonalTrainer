@@ -8,6 +8,13 @@ state_members = 2
 required_args_mixed = 178
 required_args_lambda = 46
 when_exhaustive = 47
+# Call sites check-lambda-arity declines rather than guesses at: a lambda header that does
+# not parse as a parameter list, a declaration whose parameter is not a plain function type
+# (a receiver type `T.(A) -> R` among them), and a fully-qualified call, which the call-site
+# regex cannot see because its lookbehind excludes a leading dot — the price of not judging
+# `vm.method(...)` against a same-named top-level declaration. Ratchet down; a rise means a
+# new blind spot, not new code.
+lambda_arity_declined = 62
 # ViewModel-flow `first { }` waits in *ViewModelTest.kt with no withTimeout around
 # them. Each is a wedge, not a failure, when the value it waits for is overwritten
 # (9 Sep 2026, twice). Ratchet down class by class.

@@ -183,6 +183,35 @@ in an androidTest file, each produce exactly one finding, and neither did before
 `check-required-args` also revealed one mixed-argument call in an instrumented test, now fully
 named, so its skip ratchet holds at 178 across 662 files instead of 624.
 
+### What an audit of these checkers found
+
+An adversarial audit on 10 September 2026 read the checkers themselves. Four holes were
+real, and all four are closed:
+
+**The summary gate passed at ten findings.** `preflight.sh` judges three checkers on their
+summary line rather than an exit code, with `grep -F "0 mismatch(es)"`. That is satisfied by
+`"10 mismatch(es) across 680 files"` — so `check-named-args`, `check-when-exhaustive` and
+`check-unused-imports` reported clean at 10, 20, 30 … findings. The gate now uses awk's
+`index($0, want) == 1`, a literal prefix test, and `tools/test_summary_gate.sh` proves both
+directions before preflight trusts any of it. Nothing had ever watched that gate fail, which
+is the same reason every other checker here exists.
+
+**Widening `check-internal-imports` lost strictness in the other direction.** One pooled
+index across all five roots is what lets an androidTest file's import of a main declaration
+resolve — but it also let a MAIN file import something only `app/src/test` declares. The
+index now records which root each declaration came from, and a main import is checked against
+main alone. Negative-controlled both ways.
+
+**A misspelled root read as clean.** `kotlin_files_in` skipped a directory that was not
+there, so a typo produced "0 findings across 0 files" — indistinguishable from success. It
+now refuses, and the three widened checkers all route through it.
+
+**`check-lambda-arity` declined sites silently.** It now reports them: 62 at HEAD — 43 where
+a declaration's parameter is not a plain function type, 19 fully-qualified calls, 0 unreadable
+lambda headers — ratcheted as `lambda_arity_declined`. The fully-qualified blind spot is the
+price of the call-site regex's lookbehind, which exists so `vm.method(...)` is not judged
+against a same-named top-level declaration; it is now a number rather than a silence.
+
 ## `check-required-args.py`
 
 The inverse of `check-named-args.py`: did the call supply everything the declaration requires?

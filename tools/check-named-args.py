@@ -8,7 +8,7 @@ a call passing a parameter name the declaration does not have.
 import os, re, sys, collections
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from kotlin_source import kotlin_files, strip_comments_and_strings  # noqa: E402
+from kotlin_source import kotlin_files, kotlin_files_in, strip_comments_and_strings  # noqa: E402
 
 # Every root given is indexed AND scanned together. A root on its own is a false clean:
 # nothing outside it is in the declaration index, so `if name not in decls: continue` skips
@@ -65,7 +65,7 @@ def top_level_split(text):
 def param_names(text):
     return [m.group(1) for m in (PARAM_RE.match(p.strip()) for p in top_level_split(text)) if m]
 
-files = [f for root in ROOTS if os.path.isdir(root) for f in kotlin_files(root)]
+files = kotlin_files_in(ROOTS)
 
 clean = {p: strip_comments_and_strings(open(p, encoding="utf-8").read()) for p in files}
 decls = collections.defaultdict(list)
