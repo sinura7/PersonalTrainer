@@ -67,8 +67,11 @@ all on the Volt button's rounded corners:
 ```
 
 The first run passed and the second failed. SwiftShader's edge-coverage
-rounding is not reproducible run to run, so an exact comparator will flake
-on this golden roughly half the time and the lane can never reach the ten
-consecutive green runs the CI header sets as the bar for making the job
-blocking. **Open decision for the owner** — see `docs/ROADMAP.md`. Nothing
-has been loosened in the meantime.
+rounding is not reproducible run to run, so an exact comparator flakes on
+this golden roughly half the time.
+
+**Decided, 10 September 2026:** the comparator now treats a difference of at
+most one level per channel as the same colour, capped at 256 such pixels, and
+is otherwise exact. See [VISUAL_TESTING](../VISUAL_TESTING.md) for the rule
+and the table of what still fails. The recolour documented above would fail
+under it on 6,954 pixels; the seventeen would not.
