@@ -21,6 +21,8 @@ test counts are what ran *then*, not what runs now.
 | JVM lane: `tools/run-domain-tests.sh <jars>` | `domain/`, `util/`, `logging/`, the named workout/timer/diagnostics files and the backup codec, compiled with `kotlinc` against stubs | same | every commit |
 | Gradle unit: `./gradlew testDebugUnitTest` | The whole JVM suite including Robolectric (Room in memory, ViewModels) | SDK machine, or `ci.yml` on a push | merge into `trunk` |
 | Build + lint: `./gradlew assembleDebug lintDebug` | The APK compiles; no new lint issues past `app/lint-baseline.xml` | same | merge into `trunk` |
+| Instrumented sources: `./gradlew compileDebugAndroidTestKotlin` | The device tests still compile — a test-only change never reaches a device from here, and a broken one would sit unnoticed until an emulator run | same | merge into `trunk` (`ci.yml` runs it) |
+| Hosted emulator: `instrumented-smoke` in `ci.yml` | The eighty instrumented tests on API 29 (Nexus 5X profile), printing their own failure bodies and logcat | GitHub-hosted runner | **nothing** — read the job, not the check (ADR-002 §6) |
 | Device journeys: `connectedDebugAndroidTest` on `com.sinura.personaltrainer.debug` | Room migrations, restore, the workout journey, screen passes and goldens | emulator (`temper-tests-api29` profile) | gym-floor `v*` release |
 | Phone: Obtainium **Temper Debug** pre-release | The owner's walk-through on the real phone | the phone | gym-floor `v*` release |
 
@@ -240,7 +242,8 @@ If you add a file to `data/backup/` that has no Android imports, add it to the l
 
 Three workflows exist and are maintained: `ci.yml` (the static gate —
 twenty checkers today; its comment still says 17 — unit tests, blocking
-lint, a debug APK artifact),
+lint, a debug APK artifact, the instrumented-sources compile, and the
+non-blocking hosted emulator lane),
 `release.yml` (tag `v*`, with `tools/check-version-code.py --tag-release`
 against the previous `v*` tag — first `v*` may equal 1; there is no `v*`
 tag yet so the file floor stays 1), and `debug-live.yml` (tag
@@ -254,6 +257,24 @@ merge gate**: the executable gate is `tools/preflight.sh` plus a
 Gradle-capable machine (`./gradlew testDebugUnitTest assembleDebug`).
 Obtainium on the phone gates the gym-floor release, not the merge —
 see the lanes table at the top of this file.
+
+### `trunk` carries no branch protection
+
+There is no required check on `trunk`, and no "require branches to be up
+to date" rule. That is a choice, not an oversight: the merge gate is
+`tools/preflight.sh` plus a Gradle-capable machine, and
+[ADR-002](architecture/ADR-002-execution-protocol.md) §6 — on the
+permanent-refusal list in
+[architecture/README.md](architecture/README.md) — says GitHub-hosted
+runners are not this project's test lane. Making *Tests, lint, debug
+build* a required check would hand a hosted runner the power to block a
+merge, which is exactly what that refusal forbids.
+
+So it is not a settings toggle plus a line here: it is an amendment to
+ADR-002, signed, or it stays as it is. What holds the line today is the
+owner loop — one packet, gate green locally, squash-merge — and a
+squash landing on a base its CI never built is caught by reading the
+lane on the merged commit.
 
 A runner **is** assigned and the lanes do run. This paragraph used to
 say the account had none and that every run "dies in seconds before
