@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.home
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -8,6 +9,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.DayBlockCopy
 import com.sinura.personaltrainer.domain.Exercise
@@ -40,7 +44,12 @@ import com.sinura.personaltrainer.ui.theme.Volt
  *
  * Same test tag and the same tap as the row, so the instrumented pass and
  * the confirm behind it are untouched. [action] and [onOpen] travel
- * together: the block is tappable exactly when it names a Start.
+ * together: the block is tappable exactly when it names a Start, and then
+ * it reads as a button, as the row did.
+ *
+ * [controls] are the block's own — Skip, Up / Down — drawn inside its
+ * border under the foot, so a control between two blocks never has to be
+ * guessed to belong to the one above it.
  */
 @Composable
 fun DayBlock(
@@ -50,9 +59,11 @@ fun DayBlock(
     action: String?,
     onOpen: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    controls: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     val status = lines.status
-    GymCard(modifier = modifier, onClick = onOpen) {
+    val surface = if (onOpen != null) modifier.semantics { role = Role.Button } else modifier
+    GymCard(modifier = surface, onClick = onOpen) {
         DayBlockHead(title = title, lines = lines, exercises = exercises)
         if (status != null || action != null) {
             Row(
@@ -83,6 +94,7 @@ fun DayBlock(
                 }
             }
         }
+        controls?.invoke(this)
     }
 }
 
@@ -117,11 +129,13 @@ fun DayBlockHead(
         }
     }
     lines.names?.let { names ->
+        // Two lines: four full lift names do not fit one line at 360 dp, and the
+        // stills above only say which lifts, not in what order.
         Text(
             names,
             style = InstrumentType.body,
             color = meta,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
     }

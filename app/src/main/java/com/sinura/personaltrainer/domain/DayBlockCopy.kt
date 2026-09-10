@@ -14,7 +14,7 @@ package com.sinura.personaltrainer.domain
  * word at the foot, beside Start when it can still be started.
  */
 object DayBlockCopy {
-    /** Stills across a block: four 40 dp squares fit a 360 dp phone with its gutters. */
+    /** How many of the session's lifts a block names and pictures; the meta line carries the rest. */
     const val STILL_LIMIT = 4
 
     data class Lines(
@@ -28,24 +28,34 @@ object DayBlockCopy {
         /** Done / Skipped / Moved / Missed. Null while the block reads as planned. */
         val status: String?,
         /**
-         * Done and moved cannot be started from this block, ever, so their
-         * ink goes quiet. Skipped and missed can (`DailyAgenda.canOpenStart`),
-         * so they keep full ink beside their status word.
+         * A block that cannot be started from where it sits goes quiet in
+         * ink: done, moved, or skipped on an earlier day. The caller decides
+         * with `DailyAgenda.canOpenStart`, so the ink and the missing Start
+         * can never disagree.
          */
         val settled: Boolean = false,
     )
 
+    /**
+     * @param caption what an auxiliary pack says about itself. The start
+     * confirm shows the caption in place of the count line, so the block
+     * does too — a pack that says "About ten minutes" must not sit over a
+     * second, different estimate.
+     * @param startable `DailyAgenda.canOpenStart` for this block.
+     */
     fun lines(
         names: List<String>,
         status: OccurrenceStatus,
         modality: ScheduleModality = ScheduleModality.STRENGTH,
         minutes: Int? = null,
+        caption: String? = null,
+        startable: Boolean = true,
     ): Lines {
-        val settled = status == OccurrenceStatus.DONE || status == OccurrenceStatus.MOVED
+        val settled = !startable
         if (names.isNotEmpty()) {
             return Lines(
                 names = names(names),
-                meta = meta(names.size, minutes),
+                meta = caption?.takeIf { it.isNotBlank() } ?: meta(names.size, minutes),
                 status = status(status),
                 settled = settled,
             )
