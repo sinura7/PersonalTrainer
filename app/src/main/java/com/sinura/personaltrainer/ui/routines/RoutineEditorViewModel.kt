@@ -624,7 +624,16 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             val outcome = runCatchingCancellable {
                 joinWrites()
                 val targets = flushStagedTargets()
-                discardEmptyStub()
+                // Housekeeping, not a save, and [leaveAnyway] already states the rule this
+                // broke: an empty routine left behind is a nuisance, an editor that cannot be
+                // left is not. `discardEmptyStub` guards its own delete for exactly that
+                // reason, but the count read in front of the delete sat outside the guard, so
+                // a transient Room read fault at Back time became "Some changes are not saved"
+                // over a Back that then refused to pop — with nothing actually unsaved.
+                // Only the cleanup is relaxed: `flushStagedTargets` and `persistDetailsOnExit`
+                // below are real writes and must still hold the screen when they fail.
+                runCatchingCancellable { discardEmptyStub() }
+                    .onFailure { AppLog.w(TAG, "Leaving could not check for an empty stub", it) }
                 val details = persistDetailsOnExit()
                 RoutineEditorPolicy.exitOutcome(details, targets)
             }.getOrElse { thrown ->
