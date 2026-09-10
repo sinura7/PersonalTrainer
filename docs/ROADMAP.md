@@ -15,6 +15,16 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 10 Sep 2026 — H: the app offers, it does not retype. Choosing an RPE
+> filled the entry wells from the recommendation it unlocks, so a load and
+> a rep count the lifter had just typed were replaced by numbers they had
+> not asked for — the app editing their entry in the act of being told
+> about it. Asking for an extra set did the same. Both raise the
+> recommendation exactly as before: it sits above Log with its own **Use**,
+> and only that tap moves it into the wells (`applyIntentRecToDraft` is
+> gone; `applyMicroRec` was always the consented path). Live test 35
+> (`debugLiveCode` 35), drop `debug-live/2026-09-10-6`.
+>
 > 10 Sep 2026 — G: the entry wells belong to the next set. Logging one took
 > a snapshot of weight and reps at the tap and wrote it back over the wells
 > when Room returned, so a load nudged or a rep count typed in the tens of
