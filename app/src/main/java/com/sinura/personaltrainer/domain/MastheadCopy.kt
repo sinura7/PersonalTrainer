@@ -121,11 +121,26 @@ fun leftoverLiftNames(
 fun sessionLiftNames(
     routineId: String?,
     routines: List<Routine>,
-): List<String> {
+): List<String> = sessionLifts(routineId, routines).map { it.name }
+
+/** The lifts themselves, in session order — the day board draws their stills. */
+fun sessionLifts(
+    routineId: String?,
+    routines: List<Routine>,
+): List<Exercise> {
     val id = routineId ?: return emptyList()
     return routines.firstOrNull { it.id == id }
         ?.exercises.orEmpty()
-        .map { it.exercise.name }
+        .map { it.exercise }
+}
+
+/** The start confirm's estimate, for the block that opens it. Null when there is no routine. */
+fun sessionMinutes(
+    routineId: String?,
+    routines: List<Routine>,
+): Int? {
+    val id = routineId ?: return null
+    return routines.firstOrNull { it.id == id }?.let { estimatedSessionMinutes(it) }
 }
 
 /**

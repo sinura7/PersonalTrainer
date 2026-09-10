@@ -103,6 +103,45 @@ class RestSoundAssetTest {
     }
 }
 
+/**
+ * Last five seconds is the off switch; Sound and Vibration then gate the
+ * click and the pulse exactly as they gate the cue.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class)
+class RestTickAlertTest {
+    @Test
+    fun tickOffClicksNothingEvenWithSoundOn() {
+        var clicks = 0
+        val ticked = RestTimerAlerts.tick(
+            ApplicationProvider.getApplicationContext<Context>(),
+            RestTimerPreferences(soundEnabled = true, vibrationEnabled = true, tickEnabled = false),
+        ) { clicks += 1 }
+        assertEquals(false, ticked)
+        assertEquals(0, clicks)
+    }
+
+    @Test
+    fun soundOffKeepsTheClickQuietButTheTickStillHappens() {
+        var clicks = 0
+        val ticked = RestTimerAlerts.tick(
+            ApplicationProvider.getApplicationContext<Context>(),
+            RestTimerPreferences(soundEnabled = false, vibrationEnabled = true),
+        ) { clicks += 1 }
+        assertEquals(true, ticked)
+        assertEquals(0, clicks)
+    }
+
+    @Test
+    fun soundOnClicksOncePerTickAndAThrowingClickIsSwallowed() {
+        var clicks = 0
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        RestTimerAlerts.tick(context, RestTimerPreferences(vibrationEnabled = false)) { clicks += 1 }
+        assertEquals(1, clicks)
+        RestTimerAlerts.tick(context, RestTimerPreferences()) { throw IllegalStateException("no pool") }
+    }
+}
+
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class)
 class RestTimerAlertsCreateTest {

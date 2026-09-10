@@ -60,7 +60,7 @@ object HomeToday {
                     names.forEachIndexed { index, name -> add("${index + 1} $name") }
                     if (pack?.caption == null) {
                         add("")
-                        add(liftCountLine(names.size, routine?.let { estimatedSessionMinutes(it) }))
+                        add(DayBlockCopy.meta(names.size, routine?.let { estimatedSessionMinutes(it) }))
                     }
                 }
                 modality == ScheduleModality.STRENGTH -> add(SessionOrderCopy.EMPTY_PREVIEW)
@@ -109,7 +109,7 @@ object HomeToday {
             if (names.isNotEmpty()) {
                 names.forEachIndexed { index, name -> add("${index + 1} $name") }
                 add("")
-                add(liftCountLine(names.size, routine?.let { estimatedSessionMinutes(it) }))
+                add(DayBlockCopy.meta(names.size, routine?.let { estimatedSessionMinutes(it) }))
             } else {
                 add(SessionOrderCopy.EMPTY_PREVIEW)
             }
@@ -169,11 +169,6 @@ object HomeToday {
         if (ScheduleKind.isAux(item.rule?.templateId)) return false
         val modality = item.rule?.modality ?: ScheduleModality.STRENGTH
         return modality == ScheduleModality.STRENGTH || modality == ScheduleModality.MIXED
-    }
-
-    private fun liftCountLine(count: Int, minutes: Int?): String {
-        val lifts = if (count == 1) "1 lift" else "$count lifts"
-        return if (minutes != null) "$lifts · about $minutes min" else lifts
     }
 }
 

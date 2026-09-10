@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.ext.junit.rules.ActivityScenarioRule
@@ -166,7 +167,9 @@ class ActiveWorkoutJourneyInstrumentedTest {
             WeightUnit.KG,
         )
         compose.onNodeWithContentDescription("Total volume $volumeLabel").assertIsDisplayed()
-        compose.onNodeWithText("Top set $setLine").assertIsDisplayed()
+        // The lift breakdown is the fourth item of the summary's list: composed, but below
+        // the fold of a 731 dp screen. Bring it up before asking whether it is drawn.
+        compose.onNodeWithText("Top set $setLine").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Done").assertIsDisplayed()
 
         val finished = runBlocking(Dispatchers.IO) {
