@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -27,9 +28,28 @@ def main() -> int:
         default=None,
         help="YYYY-MM-DD to plan for (defaults to today, UTC — the clock GitHub tags in)",
     )
+    parser.add_argument(
+        "--no-fetch",
+        action="store_true",
+        help="Do not refresh tags first (tests pass a fixture with no remote)",
+    )
     args = parser.parse_args()
     repo = Path(args.root)
     today = args.today or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    # Tags are the whole answer, and a clone only knows the ones it has fetched.
+    # A drop cut minutes ago from another session is invisible until then, so this
+    # would cheerfully name a suffix that is already taken. The workflow's own
+    # checkout fetches everything; a laptop does not.
+    if not args.no_fetch:
+        fetched = subprocess.run(
+            ["git", "-C", str(repo), "fetch", "origin", "--tags", "--quiet"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if fetched.returncode != 0:
+            print("debug-drop: could not refresh tags; this view may be stale")
 
     # The suffix is only half of it. A free name carrying a code that has already
     # shipped is a drop the phone will never be offered, so both are printed and
