@@ -211,6 +211,11 @@ fun ActiveWorkoutScreen(
         state.selectedExerciseId,
     )
     val showNext = liftComplete && nextExerciseId != null && state.editingSetId == null
+    // Resolved from the session the screen already holds; the dock names the lift the tap moves
+    // to rather than saying only "Next".
+    val nextExerciseName = nextExerciseId
+        ?.let { id -> session?.exercises?.firstOrNull { it.exercise.id == id }?.exercise?.name }
+        .orEmpty()
     // Keyed on the session, not recomputed per frame: the header below it redraws every second
     // as the elapsed clock ticks, and this walks every set of the workout.
     val sessionWork = remember(session) { session?.work() ?: SetWork.NONE }
@@ -329,6 +334,7 @@ fun ActiveWorkoutScreen(
                     loadClass = LoadClass.of(selected?.exercise?.loadType),
                     unit = unit,
                     showNext = showNext,
+                    nextExerciseName = nextExerciseName,
                     onLog = {
                         Haptics.commit(view)
                         viewModel.logSet()
@@ -706,6 +712,8 @@ private fun LogBar(
     loadClass: LoadClass,
     unit: WeightUnit,
     showNext: Boolean,
+    /** Only read when [showNext] is true; blank falls back to the bare word. */
+    nextExerciseName: String,
     onLog: () -> Unit,
     onNext: () -> Unit,
     onCancelEdit: () -> Unit,
@@ -740,7 +748,7 @@ private fun LogBar(
             PrimaryGymButton(
                 text = when {
                     editing -> "Save $draftLabel"
-                    nextAct -> "Next"
+                    nextAct -> WorkoutCopy.nextLift(nextExerciseName)
                     else -> "Log $draftLabel"
                 },
                 onClick = if (nextAct) onNext else onLog,
@@ -750,6 +758,8 @@ private fun LogBar(
                 ),
                 height = Metrics.commit,
                 hapticFeedback = nextAct || editing,
+                // The drawn label may run out of room; what is spoken never does.
+                contentDescription = if (nextAct) WorkoutCopy.nextSpoken(nextExerciseName) else null,
             )
         },
     )

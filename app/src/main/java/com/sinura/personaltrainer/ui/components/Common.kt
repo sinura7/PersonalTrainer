@@ -1285,6 +1285,15 @@ fun PrimaryGymButton(
     enabled: Boolean = true,
     height: Dp = Metrics.control,
     hapticFeedback: Boolean = true,
+    /**
+     * What a screen reader says, when that must differ from what the button draws.
+     *
+     * [text] is allowed two lines and then ellipsises, so a label carrying a name the user
+     * chose — a lift called "Bulgarian split squat, left" — can be cut on screen. Null, the
+     * default, leaves the drawn text as the spoken text and every existing caller unchanged;
+     * a value replaces the spoken text only, and must therefore say the whole thing.
+     */
+    contentDescription: String? = null,
 ) {
     val view = LocalView.current
     Button(
@@ -1295,7 +1304,17 @@ fun PrimaryGymButton(
         enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = height),
+            .heightIn(min = height)
+            .then(
+                if (contentDescription == null) {
+                    Modifier
+                } else {
+                    // On the Button, not on its Text: `mergeDescendants` on the button's own
+                    // semantics is what a screen reader reads, so a description set inside
+                    // would be merged WITH the drawn text rather than instead of it.
+                    Modifier.semantics { this.contentDescription = contentDescription }
+                },
+            ),
         shape = RoundedCornerShape(Radius.md),
         colors = ButtonDefaults.buttonColors(
             containerColor = Volt,

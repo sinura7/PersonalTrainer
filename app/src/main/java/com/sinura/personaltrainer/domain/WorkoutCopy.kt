@@ -54,4 +54,35 @@ object WorkoutCopy {
             }
         }
     }
+
+    /**
+     * The commit button when this lift is done and another one follows.
+     *
+     * It used to read **"Next"**, and "Next" alone does not say what the tap commits. The
+     * button in that slot has said `Log 60 kg × 5` a moment earlier and will say
+     * `Save 60 kg × 5` while an edit is open, so the one state that moves the lifter to a
+     * different exercise was also the one state that named nothing. Standing at a rack with a
+     * phone at arm's length, "Next" could as easily mean the next set.
+     *
+     * The name goes on a second line rather than into the same sentence: `PrimaryGymButton`
+     * already allows two lines, so `Next\nBench Press` uses the room the button has instead of
+     * pushing a long name into an ellipsis. [nextSpoken] is what a screen reader gets, and it
+     * is never abbreviated — a name too long to draw is still a name that must be heard.
+     *
+     * A blank name falls back to the bare word, because a button reading `Next\n` with nothing
+     * under it is worse than the ambiguity it was meant to fix.
+     */
+    fun nextLift(nextExerciseName: String): String {
+        val name = nextExerciseName.trim()
+        return if (name.isEmpty()) NEXT else "$NEXT\n$name"
+    }
+
+    /** The same action, said in full for a screen reader. Never truncated. */
+    fun nextSpoken(nextExerciseName: String): String {
+        val name = nextExerciseName.trim()
+        return if (name.isEmpty()) NEXT else "$NEXT lift: $name"
+    }
+
+    /** The bare word, kept in one place so the label and the spoken form cannot drift apart. */
+    const val NEXT = "Next"
 }

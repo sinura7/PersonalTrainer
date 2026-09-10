@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WorkoutCopyTest {
@@ -80,5 +81,48 @@ class WorkoutCopyTest {
                 liveWeightLabel = "102.5 kg",
             ),
         )
+    }
+
+    /**
+     * "Next" alone did not say what the tap commits.
+     *
+     * The same button says `Log 60 kg × 5` a moment earlier and `Save 60 kg × 5` while an edit
+     * is open, so the one state that moves the lifter to a DIFFERENT exercise was the one state
+     * that named nothing — and at arm's length on a rack, "Next" reads just as easily as the
+     * next set.
+     */
+    @Test
+    fun theCommitButtonNamesTheLiftItMovesTo() {
+        assertEquals("Next\nBench Press", WorkoutCopy.nextLift("Bench Press"))
+        assertEquals("Next lift: Bench Press", WorkoutCopy.nextSpoken("Bench Press"))
+    }
+
+    /**
+     * The spoken form is never abbreviated. The drawn label has two lines and then ellipsises,
+     * so a name the owner chose can be cut on screen; a name too long to draw is still a name
+     * that has to be heard in full.
+     */
+    @Test
+    fun aLongNameIsSpokenWhole() {
+        val long = "Bulgarian split squat, left leg, deficit"
+        assertEquals("Next\n$long", WorkoutCopy.nextLift(long))
+        assertEquals("Next lift: $long", WorkoutCopy.nextSpoken(long))
+        assertTrue(WorkoutCopy.nextSpoken(long).contains(long))
+    }
+
+    /** A button reading "Next" with an empty line under it is worse than the ambiguity. */
+    @Test
+    fun aNameThatIsNotThereFallsBackToTheBareWord() {
+        for (blank in listOf("", "   ", "\n")) {
+            assertEquals(WorkoutCopy.NEXT, WorkoutCopy.nextLift(blank))
+            assertEquals(WorkoutCopy.NEXT, WorkoutCopy.nextSpoken(blank))
+        }
+    }
+
+    /** Surrounding whitespace on a stored name must not become a blank second line. */
+    @Test
+    fun aNameIsTrimmedBeforeItIsDrawnOrSpoken() {
+        assertEquals("Next\nRow", WorkoutCopy.nextLift("  Row  "))
+        assertEquals("Next lift: Row", WorkoutCopy.nextSpoken("  Row  "))
     }
 }
