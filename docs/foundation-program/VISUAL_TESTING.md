@@ -41,11 +41,19 @@ the supported Compose capture API.
 
 The committed baseline is
 `app/src/androidTest/assets/goldens/foundation-state-gallery-api29.png`,
-recorded on 10 September 2026 from the lane's own capture
-([evidence](evidence/golden-rerecord-2026-09-10.md)). The lane is the
-renderer that runs on every pull request, so it is the reference; a desk
-emulator with another GPU can differ from it by a few levels on tracked
-small caps and rounded corners.
+recorded on 10 September 2026 from the lane's own capture for the
+`TextTertiary` contrast fix in packet F3 (`6787b17`), which the previous
+baseline predated ([evidence](evidence/golden-rerecord-2026-09-10.md)). The
+lane is the renderer that runs on every pull request, so it is the
+reference; a desk emulator with another GPU can differ from it by a few
+levels on tracked small caps and rounded corners.
+
+**A colour token change is a golden change.** `TextTertiary` moved on
+3 September and nothing re-recorded this PNG, so the lane spent a week
+reporting a 0.433 % mismatch that read like a renderer artefact and was
+actually the app's own shipped ink. When a packet moves a token in
+`ui/theme/Color.kt` or `Type.kt`, re-record in the same packet and name it
+here.
 
 ### Re-record from the lane
 

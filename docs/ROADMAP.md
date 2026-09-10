@@ -43,13 +43,31 @@
 > `Records` where the kicker draws `RECORDS` (#208); the workout journey
 > asserted the summary's lift breakdown without scrolling to it (#209);
 > and the golden's 7,091-pixel diff, printed from the lane as base64
-> (#210), turned out to be the two `PRIMARY` / `SECONDARY` kickers and
-> the Volt button's corners at no more than 39 of 255 on any channel —
-> renderer anti-aliasing, so the baseline is re-recorded from the lane's
-> own capture, with the comparator still exact
+> (#210), so the baseline is re-recorded from the lane's own capture with
+> the comparator still exact
 > (`docs/foundation-program/evidence/golden-rerecord-2026-09-10.md`).
-> The lane is now the reference renderer, and the bar for making the job
-> blocking — ten green trunk runs — starts counting.
+> The lane is now the reference renderer.
+>
+> 10 Sep 2026 — Correction to that entry, from the review pass: the
+> golden's diff was **not** renderer anti-aliasing. 7,074 of the 7,091
+> pixels are the two cards' `PRIMARY` / `SECONDARY` labels, which packet
+> F3 (`6787b17`, 3 Sep) recoloured from `#5F6B73` to `#7F8B93` for
+> contrast — 3,934 of them exactly that pair, the rest its blends — and
+> the golden, committed 2 Sep, was never re-recorded for it. The lane had
+> been comparing shipped ink against a stale screenshot for a week. Only
+> the last 17 pixels, on the Volt button's corners, are the renderer.
+> VISUAL_TESTING now says a colour-token change is a golden change.
+>
+> **Open, needs the owner:** those 17 pixels are not stable run to run.
+> Two runs of the same commit (#212) differed by exactly them, each by one
+> level in one channel, and the golden passed once and failed once. With
+> an exact comparator the lane cannot reach the ten consecutive green runs
+> the CI header sets as the bar for making the job blocking. The options
+> are to keep the comparator exact and accept a coin-flip golden, or to
+> treat a difference of at most one level per channel as equal under a
+> tight cap on how many pixels may differ, documented as a rounding
+> allowance rather than a tolerance. Nothing is loosened until it is
+> decided.
 >
 > 10 Sep 2026 — Tick: the last five seconds of rest tick. `RestTick` says
 > where the boundaries fall; `RestTimerService` posts one runnable per
