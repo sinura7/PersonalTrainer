@@ -9,10 +9,17 @@ enum class ExercisePickerMode {
     SINGLE_ADD,
     /** Same movement, different kit. */
     SWAP,
-    /** Routine / custom-week multi-add with a confirm. */
+    /**
+     * Routine / custom-week multi-add. Every tap is written where it lands, so the
+     * footer button closes the sheet rather than committing anything.
+     */
     MULTI_ADD,
 }
 
+/**
+ * [selectedOrder] is the session as it stands — in multi-add it is what the routine or
+ * the day already holds, so the numbered rows survive the sheet being closed.
+ */
 data class ExercisePickerState(
     val query: String,
     val results: List<Exercise>,
@@ -42,8 +49,8 @@ sealed class ExercisePickerEvent {
     data class QueryChanged(val query: String) : ExercisePickerEvent()
     data class Selected(val exercise: Exercise) : ExercisePickerEvent()
     data class Created(val name: String, val muscleGroup: String) : ExercisePickerEvent()
+    /** A tap in [ExercisePickerMode.MULTI_ADD]: adds the lift, or takes it back out. */
     data class Toggled(val exercise: Exercise) : ExercisePickerEvent()
-    data object Confirmed : ExercisePickerEvent()
     data object Dismissed : ExercisePickerEvent()
     data object ErrorDismissed : ExercisePickerEvent()
 }

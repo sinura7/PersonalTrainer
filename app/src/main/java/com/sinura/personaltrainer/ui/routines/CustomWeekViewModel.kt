@@ -51,11 +51,17 @@ data class CustomWeekUiState(
     val searchResults: List<Exercise> = emptyList(),
     val catalog: List<Exercise> = emptyList(),
     val showPicker: Boolean = false,
-    val pendingAddIds: List<String> = emptyList(),
     val applying: Boolean = false,
     val error: String? = null,
 ) {
     val selectedLifts: List<CustomWeekLift> get() = days[selectedDay].orEmpty()
+
+    /**
+     * What the picker draws as chosen, in session order. It is the selected day itself:
+     * a tap puts the lift on the day as it happens, so there is no separate list to lose
+     * when the sheet closes.
+     */
+    val pickedIds: List<String> get() = selectedLifts.map { it.exercise.id }
     val canConfirm: Boolean get() = CustomWeekPolicy.canConfirm(days)
     val trainingDays: Int get() = days.count { it.value.isNotEmpty() }
 }
@@ -77,7 +83,6 @@ class CustomWeekViewModel @JvmOverloads constructor(
     private val preferredDays = MutableStateFlow<Set<Weekday>>(emptySet())
     private val searchQuery = MutableStateFlow("")
     private val showPicker = MutableStateFlow(false)
-    private val pendingAddIds = MutableStateFlow<List<String>>(emptyList())
     private val applying = MutableStateFlow(false)
     private val error = ErrorSlot()
     private val catalog = MutableStateFlow<List<Exercise>>(emptyList())
@@ -100,8 +105,8 @@ class CustomWeekViewModel @JvmOverloads constructor(
         combine(selectedDay, days, weekStart, preferredDays, searchQuery) { day, draft, start, preferred, query ->
             WeekCore(day, draft, start, preferred, query)
         },
-        combine(resultsFlow, showPicker, pendingAddIds, applying, error.messages) { results, picker, pending, busy, err ->
-            WeekExtras(results, picker, pending, busy, err)
+        combine(resultsFlow, showPicker, applying, error.messages) { results, picker, busy, err ->
+            WeekExtras(results, picker, busy, err)
         },
         catalog,
         extraCatalog,
@@ -119,7 +124,6 @@ class CustomWeekViewModel @JvmOverloads constructor(
             ),
             catalog = LiftCart.mergeSources(lifts, extra),
             showPicker = extras.showPicker,
-            pendingAddIds = extras.pendingAddIds,
             applying = extras.applying,
             error = extras.error,
         )
@@ -185,49 +189,44 @@ class CustomWeekViewModel @JvmOverloads constructor(
     fun setPickerVisible(visible: Boolean) {
         if (visible && applying.value) return
         showPicker.value = visible
-        if (!visible) {
-            searchQuery.value = ""
-            pendingAddIds.value = emptyList()
-        }
+        // Only the typed query. The lifts are on the day already — losing a cart to a tap
+        // outside the sheet is exactly what this screen no longer does.
+        if (!visible) searchQuery.value = ""
     }
 
     fun onSearchQuery(value: String) {
         searchQuery.value = value
     }
 
-    fun togglePendingAdd(exercise: Exercise) {
+    /**
+     * A tap in the picker, written straight on to the selected day.
+     *
+     * There is no Confirm to lose any more: the first tap puts the lift on the day, a
+     * second tap on the same row takes it off, and the numbers on the rows are the order
+     * the day will be lifted in.
+     */
+    fun togglePicked(exercise: Exercise) {
         if (applying.value) return
-        pendingAddIds.value = LiftCart.toggle(pendingAddIds.value, exercise.id)
-    }
-
-    fun confirmPendingAdd() {
-        if (applying.value) return
-        val selected = LiftCart.sanitize(pendingAddIds.value)
-        if (selected.isEmpty()) return
         val day = selectedDay.value
-        val plan = LiftCart.planConfirm(
-            order = selected,
-            sources = LiftCart.mergeSources(
-                LiftCart.mergeSources(catalog.value, extraCatalog.value),
-                uiState.value.searchResults,
-            ),
-            already = days.value[day].orEmpty().map { it.exercise.id }.toSet(),
-        )
-        if (plan.blocked) {
-            error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.ADD_LIFT_FAILED)
-            return
+        val existing = days.value[day].orEmpty()
+        val stored = existing.firstOrNull { it.exercise.id == exercise.id }
+        val next = if (stored != null) {
+            existing.filterNot { it.id == stored.id }
+        } else {
+            CustomWeekPolicy.addLifts(existing, listOf(exercise)) { UUID.randomUUID().toString() }
         }
-        pendingAddIds.value = emptyList()
-        if (plan.toAdd.isNotEmpty()) {
-            days.value = days.value + (day to CustomWeekPolicy.addLifts(days.value[day].orEmpty(), plan.toAdd) { UUID.randomUUID().toString() })
-        }
-        extraCatalog.value = extraCatalog.value.filter { extra ->
-            extra.id !in plan.toAdd.map { it.id }.toSet()
-        }
-        showPicker.value = false
-        searchQuery.value = ""
+        days.value = days.value + (day to next)
         error.clearFrom(source = ERR_ADD_LIFT)
         persistDraft()
+    }
+
+    /** A lift created inside the picker joins the day; it is never a tap that removes one. */
+    private fun addPicked(exercise: Exercise) {
+        if (applying.value) return
+        val day = selectedDay.value
+        val existing = days.value[day].orEmpty()
+        if (existing.any { it.exercise.id == exercise.id }) return
+        togglePicked(exercise)
     }
 
     fun createAndSelect(name: String, muscleGroup: String) {
@@ -250,7 +249,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
                         )
                         catalog.value = LiftCart.mergeSources(catalog.value, extraCatalog.value)
                         if (showPicker.value) {
-                            togglePendingAdd(result.exercise)
+                            addPicked(result.exercise)
                         }
                     }
                 }
@@ -342,7 +341,6 @@ class CustomWeekViewModel @JvmOverloads constructor(
     private data class WeekExtras(
         val results: List<Exercise>,
         val showPicker: Boolean,
-        val pendingAddIds: List<String>,
         val applying: Boolean,
         val error: String?,
     )

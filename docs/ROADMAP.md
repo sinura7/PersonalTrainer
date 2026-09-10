@@ -18,7 +18,21 @@
 > 9 Sep 2026 — R18 step two: exercise detail bests and history read
 > `CompletedTrainingRepository.observeExerciseSets` (both stores). A
 > backdated strength day counts as a PR on that lift, not only in
-> Records. `#201` is the live-29 drop; this packet does not bump 28.
+> Records. `#201` is on `trunk` (live 29); this packet inherits 29 and
+> does not bump it.
+>
+> 9 Sep 2026 — F: the multi-add picker writes as it goes. A tap in Add lifts
+> puts the lift on the routine (or on the custom week's day) immediately and a
+> second tap takes it back out; the numbers are the session's own order, and the
+> footer button is **Done**, not Add. Closing the sheet — scrim, back, a stray
+> tap — no longer empties a cart the owner built by hand. `LiftCart` keeps the
+> in-flight taps (`picked`/`settle`), `planConfirm` and `ExercisePickerEvent.Confirmed`
+> are gone. With it: a target typed into a card while that card's previous
+> commit is still in Room is no longer dropped by the commit's tail
+> (`stagedTargets` is a `ConcurrentHashMap`, removed by compare-and-remove) —
+> the lost update that made `stagedTargetsCommitWhenTheyDifferAndRejectZeroSets`
+> time out on a two-core runner. No schema change. Live test 29
+> (`debugLiveCode` 29), drop `debug-live/2026-09-09-8`.
 >
 > 9 Sep 2026 — `#175` (Robolectric 4.16.1) and `#180` (AGP 8.9.3)
 > closed unmerged. Robolectric stays pinned at `4.16`; 8.9.3 waits for

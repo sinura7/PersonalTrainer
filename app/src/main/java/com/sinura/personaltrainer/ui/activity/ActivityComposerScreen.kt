@@ -350,7 +350,6 @@ private fun StrengthAdder(
                     is ExercisePickerEvent.Created ->
                         onCreate(event.name, event.muscleGroup)
                     is ExercisePickerEvent.Toggled,
-                    ExercisePickerEvent.Confirmed,
                     ExercisePickerEvent.ErrorDismissed,
                     -> Unit
                     ExercisePickerEvent.Dismissed -> {

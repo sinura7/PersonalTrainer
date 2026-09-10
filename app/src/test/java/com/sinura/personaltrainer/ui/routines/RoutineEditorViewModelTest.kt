@@ -255,6 +255,43 @@ class RoutineEditorViewModelTest {
     }
 
     @Test
+    fun aTargetTypedDuringASlowCommitSurvivesToTheExitWrite() = runBlocking {
+        // The commit that is already in the DAO must not take the next typed value down with
+        // it. Dropping the staged value by key alone did exactly that: the write that landed
+        // was the older one, the card went on showing a number the routine did not hold, and
+        // the exit flush had nothing left to save. It also swallowed the refusal in
+        // stagedTargetsCommitWhenTheyDifferAndRejectZeroSets whenever the removal happened to
+        // land after the second stageTargets — which is how it failed on a two-core runner.
+        val fixture = seedTestWorkout(deps, targetSets = 3, targetReps = 5)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val itemId = fixture.routine.exercises.single().id
+        val gate = CompletableDeferred<Unit>()
+        val vm = createViewModel(fixture.routine.id, delayedAdd(gate))
+        try {
+            vm.awaitState { it.routine != null }
+            vm.stageTargets(itemId, targetSets = 4, targetReps = 6, targetWeightKg = 110.0, restSeconds = 120)
+            vm.commitTargets(itemId)
+            vm.stageTargets(itemId, targetSets = 5, targetReps = 8, targetWeightKg = 120.0, restSeconds = 150)
+            gate.complete(Unit)
+
+            // leave() joins the write before it flushes, so the drop has certainly happened
+            // by the time the flush looks for something to save.
+            vm.leave()
+            vm.awaitExit()
+
+            val stored = checkNotNull(deps.routineRepository.getById(fixture.routine.id))
+                .exercises
+                .single()
+            assertEquals(5, stored.targetSets)
+            assertEquals(8, stored.targetReps)
+            assertEquals(150, stored.restSeconds)
+            assertEquals(120.0, stored.targetWeightKg)
+        } finally {
+            if (!gate.isCompleted) gate.complete(Unit)
+        }
+    }
+
+    @Test
     fun aTargetsRefusalSurvivesThePreviousCommitsSuccess() = runBlocking {
         val fixture = seedTestWorkout(deps, targetSets = 3, targetReps = 5)
         deps.workoutRepository.discardSession(fixture.session.id)
@@ -352,134 +389,168 @@ class RoutineEditorViewModelTest {
         vm.createAndSelect("Good morning", "Hamstrings")
 
         awaitList("exerciseRepository", deps.exerciseRepository.observeAll()) { list -> list.any { it.name == "Good morning" } }
-        assertTrue(vm.uiState.value.pendingAddIds.isEmpty())
+        assertTrue(vm.uiState.value.pickedIds.isEmpty())
         assertFalse(vm.uiState.value.showExercisePicker)
+        assertTrue(deps.routineRepository.observeAll().first().isEmpty())
     }
 
     @Test
-    fun confirmPendingAddWritesSelectedLiftsAndClosesThePicker() = runBlocking {
+    fun aTapWritesTheLiftStraightOnToTheRoutine() = runBlocking {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val row = insertTestExercise(deps, "row", "Row")
         val vm = createViewModel("new")
-        vm.awaitState { it.catalog.isNotEmpty() }
+        vm.awaitState { it.catalog.size >= 2 }
 
         vm.setPickerVisible(true)
-        vm.togglePendingAdd(squat)
-        vm.togglePendingAdd(row)
-        vm.togglePendingAdd(row)
-        assertEquals(listOf(squat.id), vm.awaitState { it.pendingAddIds == listOf(squat.id) }.pendingAddIds)
-        vm.togglePendingAdd(row)
-        vm.awaitState { it.pendingAddIds == listOf(squat.id, row.id) }
-        vm.confirmPendingAdd()
+        vm.togglePicked(squat)
+        awaitRoutine { it.exercises.size == 1 }
+        vm.togglePicked(row)
 
         val saved = awaitRoutine { it.exercises.size == 2 }
         assertEquals(listOf(squat.id, row.id), saved.exercises.map { it.exercise.id })
-        val closed = vm.awaitState { !it.showExercisePicker && it.pendingAddIds.isEmpty() }
-        assertFalse(closed.showExercisePicker)
-        assertTrue(closed.pendingAddIds.isEmpty())
+        // The sheet stays open on the lifts it has written: adding two is two taps, not
+        // two taps and a Confirm, and the numbers on the rows are the routine's own order.
+        val state = vm.awaitState { it.pickedIds == listOf(squat.id, row.id) }
+        assertTrue(state.showExercisePicker)
     }
 
     @Test
-    fun confirmPendingAddWritesLiftsInReverseTapOrder() = runBlocking {
+    fun closingThePickerKeepsEveryLiftAlreadyTapped() = runBlocking {
+        // The defect this replaced: a tap outside the sheet emptied the cart, and a list
+        // the owner had built by hand had to be built again from the first lift.
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val row = insertTestExercise(deps, "row", "Row")
         val vm = createViewModel("new")
-        // Both lifts, not merely one. confirmPendingAdd resolves every selected id against
-        // uiState.catalog, and LiftCart.planConfirm returns blocked and writes nothing if one
-        // is missing (LiftCart:66-68) — leaving the routine empty and the size == 2 wait below
-        // unable to come true. isNotEmpty() is satisfied by the first of the two emissions.
         vm.awaitState { it.catalog.size >= 2 }
 
-        vm.togglePendingAdd(row)
-        vm.togglePendingAdd(squat)
-        vm.confirmPendingAdd()
+        vm.setPickerVisible(true)
+        vm.togglePicked(squat)
+        vm.togglePicked(row)
+        awaitRoutine { it.exercises.size == 2 }
+        vm.setPickerVisible(false)
+
+        val closed = vm.awaitState { !it.showExercisePicker && it.routine?.exercises?.size == 2 }
+        assertEquals(listOf(squat.id, row.id), closed.pickedIds)
+        vm.setPickerVisible(true)
+        val reopened = vm.awaitState { it.showExercisePicker }
+        assertEquals(listOf(squat.id, row.id), reopened.pickedIds)
+    }
+
+    @Test
+    fun aSecondTapTakesTheLiftBackOut() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
+        val vm = createViewModel("new")
+        vm.awaitState { it.catalog.size >= 2 }
+
+        vm.setPickerVisible(true)
+        vm.togglePicked(squat)
+        vm.togglePicked(row)
+        awaitRoutine { it.exercises.size == 2 }
+        vm.togglePicked(squat)
+
+        val saved = awaitRoutine { it.exercises.size == 1 }
+        assertEquals(listOf(row.id), saved.exercises.map { it.exercise.id })
+        assertEquals(listOf(row.id), vm.awaitState { it.pickedIds == listOf(row.id) }.pickedIds)
+    }
+
+    @Test
+    fun tapOrderIsTheOrderTheRoutineKeeps() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
+        val vm = createViewModel("new")
+        vm.awaitState { it.catalog.size >= 2 }
+
+        vm.togglePicked(row)
+        awaitRoutine { it.exercises.size == 1 }
+        vm.togglePicked(squat)
 
         val saved = awaitRoutine { it.exercises.size == 2 }
         assertEquals(listOf(row.id, squat.id), saved.exercises.map { it.exercise.id })
     }
 
     @Test
-    fun confirmPendingAddDoesNotDuplicateOnASecondTap() = runBlocking {
-        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+    fun aRoutineOpensThePickerWithItsOwnLiftsAlreadyChosen() = runBlocking {
+        val fixture = seedTestWorkout(deps, exerciseId = "squat", exerciseName = "Squat")
+        deps.workoutRepository.discardSession(fixture.session.id)
         val row = insertTestExercise(deps, "row", "Row")
-        val vm = createViewModel("new")
-        // Both lifts — see confirmPendingAddWritesLiftsInReverseTapOrder above.
-        vm.awaitState { it.catalog.size >= 2 }
-        vm.togglePendingAdd(squat)
-        vm.togglePendingAdd(row)
-        vm.confirmPendingAdd()
-        vm.confirmPendingAdd()
-
-        val saved = awaitRoutine { it.exercises.size == 2 }
-        assertEquals(listOf(squat.id, row.id), saved.exercises.map { it.exercise.id })
-    }
-
-    @Test
-    fun confirmPendingAddKeepsTheCartWhenALiftIsMissingFromTheCatalog() = runBlocking {
-        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
-        val vm = createViewModel("new")
-        vm.awaitState { it.catalog.isNotEmpty() }
-        vm.setPickerVisible(true)
-        vm.togglePendingAdd(squat.copy(id = "ghost", name = "Ghost"))
-        vm.confirmPendingAdd()
-
-        // The refusal and the kept cart are separate writes, so wait for the emission that
-        // carries both. Waiting on the error alone read an in-between state where the cart
-        // was momentarily empty — 2 of 30 runs, as `expected:<[ghost]> but was:<[]>`.
-        val state = vm.awaitState { it.error != null && it.pendingAddIds == listOf("ghost") }
-        assertTrue(state.showExercisePicker)
-        assertEquals(listOf("ghost"), state.pendingAddIds)
-        assertTrue(deps.routineRepository.observeAll().first().isEmpty())
-    }
-
-    @Test
-    fun confirmPendingAddSkipsLiftsAlreadyOnTheRoutine() = runBlocking {
-        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
-        val row = insertTestExercise(deps, "row", "Row")
-        val vm = createViewModel("new")
-        // Both lifts, not merely one. confirmPendingAdd resolves the selected ids against
-        // uiState.catalog (:463-469), and LiftCart.planConfirm (:66-68) returns blocked --
-        // writing nothing at all, not even the ids it could resolve -- as soon as one is
-        // missing. Catch the emission carrying only squat and the row toggled below is
-        // unresolvable, the second confirm writes nothing, and the size == 2 wait at the
-        // end can never come true. Two other tests in this file were tightened for exactly
-        // this in b29aade; this one was missed and it failed on trunk.
-        vm.awaitState { it.catalog.size >= 2 }
-        vm.togglePendingAdd(squat)
-        vm.confirmPendingAdd()
-        awaitRoutine { it.exercises.size == 1 }
-        // Two conditions, because two things must be true before the second confirm is even
-        // legal. confirmPendingAdd dedups against routineFlow.value
-        // (RoutineEditorViewModel:470) -- the view model's own copy, not the repository that
-        // awaitRoutine polls -- so the routine has to have landed there. And :460 returns
-        // immediately while confirmInFlight is set, which the finally at :516 clears only
-        // after the write returns; Room can emit the saved routine before that runs. Wait on
-        // the routine alone and the second confirm is a no-op against a view model still
-        // refusing confirms, which is how this failed on trunk. addingLifts is that flag.
-        vm.awaitState { it.routine?.exercises?.size == 1 && !it.addingLifts }
+        val vm = createViewModel(fixture.routine.id)
+        vm.awaitState { it.routine?.exercises?.size == 1 && it.catalog.size >= 2 }
 
         vm.setPickerVisible(true)
-        vm.togglePendingAdd(squat)
-        vm.togglePendingAdd(row)
-        vm.confirmPendingAdd()
+        assertEquals(listOf("squat"), vm.uiState.value.pickedIds)
 
+        // Numbered from the routine, so the second tap continues the session rather than
+        // starting a second count of its own.
+        vm.togglePicked(row)
         val saved = awaitRoutine { it.exercises.size == 2 }
-        assertEquals(listOf(squat.id, row.id), saved.exercises.map { it.exercise.id })
+        assertEquals(listOf("squat", row.id), saved.exercises.map { it.exercise.id })
     }
 
     @Test
-    fun confirmPendingAddWritesALiftCreatedInThePicker() = runBlocking {
+    fun tapsWhileAWriteIsInFlightRunInTapOrder() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val bench = insertTestExercise(deps, "bench", "Bench", muscleGroup = "Chest")
+        val gate = CompletableDeferred<Unit>()
+        val vm = createViewModel("new", delayedAdd(gate))
+        try {
+            vm.awaitState { it.catalog.size >= 2 }
+            vm.setPickerVisible(true)
+            vm.togglePicked(squat)
+            // The row answers the finger before Room does. Without that the second tap
+            // would read a routine without the squat on it and add it a second time.
+            val busy = vm.awaitState { it.pickedIds == listOf(squat.id) }
+            assertTrue(busy.addingLifts)
+            assertTrue(busy.routine?.exercises.orEmpty().isEmpty())
+
+            vm.togglePicked(squat)
+            vm.togglePicked(bench)
+            gate.complete(Unit)
+
+            // Three taps, one lift: the squat went on and came off again while its own
+            // write was still queued, and the bench that followed it landed after both.
+            val saved = awaitRoutine { routine ->
+                routine.exercises.map { it.exercise.id } == listOf(bench.id)
+            }
+            assertEquals(listOf(bench.id), saved.exercises.map { it.exercise.id })
+        } finally {
+            if (!gate.isCompleted) gate.complete(Unit)
+        }
+    }
+
+    @Test
+    fun aFailedTapSaysSoAndLeavesNothingChosen() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val gate = CompletableDeferred<Unit>()
+        val vm = createViewModel("new", failingAdd(gate))
+        try {
+            vm.awaitState { it.catalog.isNotEmpty() }
+            vm.setPickerVisible(true)
+            vm.togglePicked(squat)
+            gate.complete(Unit)
+
+            val refused = vm.awaitState { it.error == SessionOrderCopy.ADD_LIFT_FAILED }
+            // The pick is dropped with the write: a row still numbered after a failure is a
+            // lift the owner believes is on the routine and is not.
+            assertTrue(refused.pickedIds.isEmpty())
+            assertTrue(refused.showExercisePicker)
+        } finally {
+            if (!gate.isCompleted) gate.complete(Unit)
+        }
+    }
+
+    @Test
+    fun createAndSelectWritesTheNewLiftStraightOnToTheRoutine() = runBlocking {
         val vm = createViewModel("new")
         vm.awaitState { !it.isLoading }
         vm.setPickerVisible(true)
         vm.createAndSelect("Good morning", "Hamstrings")
-        vm.awaitState { it.pendingAddIds.isNotEmpty() }
-        vm.confirmPendingAdd()
 
         val saved = awaitRoutine { it.exercises.size == 1 }
         assertEquals("Good morning", saved.exercises.single().exercise.name)
         assertTrue(saved.exercises.single().exercise.isCustom)
-        assertFalse(vm.uiState.value.showExercisePicker)
+        // The sheet stays open. Creating a lift is one more tap in a list being built.
+        assertTrue(vm.awaitState { it.pickedIds.size == 1 }.showExercisePicker)
     }
 
     @Test
@@ -505,7 +576,7 @@ class RoutineEditorViewModelTest {
         vm.awaitState { !it.isLoading }
         vm.setPickerVisible(true)
         vm.createAndSelect("Good morning", "Hamstrings")
-        val state = vm.awaitState { it.pendingAddIds.isNotEmpty() }
+        val state = vm.awaitState { it.pickedIds.isNotEmpty() }
         assertTrue(state.searchResults.any { it.name == "Good morning" })
     }
 
@@ -532,16 +603,15 @@ class RoutineEditorViewModelTest {
     }
 
     @Test
-    fun leaveWaitsForConfirmSoANewRoutineIsNotDeletedMidAdd() = runBlocking {
+    fun leaveWaitsForATappedLiftSoANewRoutineIsNotDeletedMidAdd() = runBlocking {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val row = insertTestExercise(deps, "row", "Row")
         val gate = CompletableDeferred<Unit>()
         val vm = createViewModel("new", delayedAdd(gate))
         try {
             vm.awaitState { it.catalog.size >= 2 }
-            vm.togglePendingAdd(squat)
-            vm.togglePendingAdd(row)
-            vm.confirmPendingAdd()
+            vm.togglePicked(squat)
+            vm.togglePicked(row)
             vm.leave()
             dispatcher.scheduler.runCurrent()
             assertFalse(vm.exitRequested.value)
@@ -556,21 +626,25 @@ class RoutineEditorViewModelTest {
     }
 
     @Test
-    fun addingLiftsBlocksReopeningThePickerUntilConfirmFinishes() = runBlocking {
+    fun thePickerStaysUsableWhileATapIsStillBeingWritten() = runBlocking {
+        // It used to be shut for the length of the confirm write. Nothing waits on a write
+        // now: the next lift can be tapped while the last one is still landing.
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val gate = CompletableDeferred<Unit>()
         val vm = createViewModel("new", delayedAdd(gate))
         try {
             vm.awaitState { it.catalog.isNotEmpty() }
-            vm.togglePendingAdd(squat)
-            vm.confirmPendingAdd()
-            val busy = vm.awaitState { it.addingLifts }
-            assertTrue(busy.addingLifts)
             vm.setPickerVisible(true)
-            assertFalse(vm.uiState.value.showExercisePicker)
+            vm.togglePicked(squat)
+            val busy = vm.awaitState { it.addingLifts }
+            assertTrue(busy.showExercisePicker)
+            vm.setPickerVisible(false)
+            vm.setPickerVisible(true)
+            assertTrue(vm.uiState.value.showExercisePicker)
+
             gate.complete(Unit)
             val done = vm.awaitState { !it.addingLifts && it.routine?.exercises?.size == 1 }
-            assertFalse(done.addingLifts)
+            assertEquals(listOf(squat.id), done.pickedIds)
         } finally {
             if (!gate.isCompleted) gate.complete(Unit)
         }
@@ -583,8 +657,7 @@ class RoutineEditorViewModelTest {
         val vm = createViewModel("new", delayedDelete(gate))
         try {
             vm.awaitState { it.catalog.isNotEmpty() }
-            vm.togglePendingAdd(squat)
-            vm.confirmPendingAdd()
+            vm.togglePicked(squat)
             val created = awaitRoutine { it.exercises.size == 1 }
             vm.removeExercise(created.exercises.single().id)
             vm.leave()
@@ -622,15 +695,14 @@ class RoutineEditorViewModelTest {
     }
 
     @Test
-    fun aFailedConfirmDoesNotReopenThePickerAfterLeave() = runBlocking {
+    fun aFailedTapDoesNotReopenThePickerAfterLeave() = runBlocking {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val gate = CompletableDeferred<Unit>()
         val vm = createViewModel("new", failingAdd(gate))
         try {
             vm.awaitState { it.catalog.isNotEmpty() }
             vm.setPickerVisible(true)
-            vm.togglePendingAdd(squat)
-            vm.confirmPendingAdd()
+            vm.togglePicked(squat)
             vm.leave()
             dispatcher.scheduler.runCurrent()
             assertFalse(vm.exitRequested.value)
@@ -651,8 +723,7 @@ class RoutineEditorViewModelTest {
         first.awaitState { it.catalog.size >= 2 }
         first.onNameChange("Push")
         first.setPickerVisible(true)
-        first.togglePendingAdd(squat)
-        first.confirmPendingAdd()
+        first.togglePicked(squat)
         val created = awaitRoutine { it.exercises.size == 1 }
         first.awaitState { it.routine?.exercises?.size == 1 && !it.addingLifts }
         first.clearAndJoinForTest()
@@ -661,8 +732,7 @@ class RoutineEditorViewModelTest {
         val restored = createViewModel("new", savedStateHandle = handle)
         restored.awaitState { !it.isLoading && it.name == "Push" }
         restored.setPickerVisible(true)
-        restored.togglePendingAdd(row)
-        restored.confirmPendingAdd()
+        restored.togglePicked(row)
         restored.awaitState { it.routine?.exercises?.size == 2 && !it.addingLifts }
 
         val routines = deps.routineRepository.observeAll().first()
@@ -806,10 +876,27 @@ class RoutineEditorViewModelTest {
         }
     }
 
-    private suspend fun awaitRoutine(predicate: (Routine) -> Boolean): Routine =
-        withTimeout(TestWaits.FLOW_MS) {
-            deps.routineRepository.observeAll().first { list ->
-                list.singleOrNull()?.let(predicate) == true
-            }.single()
+    /**
+     * The routine wait, bounded and reporting like its three siblings. A bare
+     * `TimeoutCancellationException` here named neither the routine nor the count: the
+     * predicate only runs on a single-routine list, so a database holding none or two never
+     * matches it and the failure looked identical to a value that was merely wrong.
+     */
+    private suspend fun awaitRoutine(predicate: (Routine) -> Boolean): Routine {
+        var last: List<Routine>? = null
+        return try {
+            withTimeout(TestWaits.FLOW_MS) {
+                deps.routineRepository.observeAll().first { list ->
+                    last = list
+                    list.singleOrNull()?.let(predicate) == true
+                }.single()
+            }
+        } catch (timedOut: TimeoutCancellationException) {
+            throw AssertionError(
+                "awaitRoutine gave up; last routine list was $last; " +
+                    "uiState was ${viewModel?.uiState?.value}",
+                timedOut,
+            )
         }
+    }
 }

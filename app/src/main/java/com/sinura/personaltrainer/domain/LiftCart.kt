@@ -6,6 +6,11 @@ package com.sinura.personaltrainer.domain
  * A [Set] can say which lifts are chosen. It cannot say which was first. The
  * routine stores that as [RoutineExercise.sortOrder], and Home and Plan read
  * the same order, so the picker has to keep it.
+ *
+ * The cart is now a view of what is already stored rather than a staging area in
+ * front of it: a tap writes the lift through to the routine or the week's day, and
+ * the numbers count the session as it stands. See [picked] for the two lists that
+ * make it, and [PendingPick] for the gap between them.
  */
 object LiftCart {
     fun sanitize(order: List<String>): List<String> {
@@ -15,13 +20,6 @@ object LiftCart {
             if (trimmed.isNotEmpty()) seen += trimmed
         }
         return seen.toList()
-    }
-
-    fun toggle(order: List<String>, id: String): List<String> {
-        val clean = sanitize(order)
-        val trimmed = id.trim()
-        if (trimmed.isEmpty()) return clean
-        return if (trimmed in clean) clean.filter { it != trimmed } else clean + trimmed
     }
 
     fun cartNumber(order: List<String>, id: String): Int? {
@@ -56,27 +54,54 @@ object LiftCart {
         return sanitize(order).mapNotNull { byId[it] }
     }
 
-    fun planConfirm(
-        order: List<String>,
-        sources: List<Exercise>,
-        already: Set<String>,
-    ): CartConfirm {
-        val selected = sanitize(order)
-        val byId = sources.associateBy { it.id }
-        val missingIds = selected.filter { it !in byId }
-        if (missingIds.isNotEmpty()) {
-            return CartConfirm(selected = selected, toAdd = emptyList(), missingIds = missingIds)
-        }
-        val toAdd = selected.mapNotNull { byId[it] }.filter { it.id !in already }
-        return CartConfirm(selected = selected, toAdd = toAdd, missingIds = emptyList())
+    /**
+     * The order the picker draws: the lifts the session already holds, plus the taps
+     * whose write has not landed yet, minus the taps that are taking one back out.
+     *
+     * [committed] is the truth — the routine's rows, or the day's — and [pending] only
+     * covers the moment between a finger leaving the screen and the store catching up.
+     * Without it a tap would show nothing for a frame or two and the second tap on the
+     * same row would add the lift twice.
+     */
+    fun picked(committed: List<String>, pending: List<PendingPick>): List<String> {
+        val dropping = pending.filterNot { it.adding }.map { it.id }.toSet()
+        val adding = pending.filter { it.adding }.map { it.id }
+        return sanitize(sanitize(committed).filterNot { it in dropping } + adding)
     }
+
+    /** True when the next tap on [id] should add it, false when it should take it out. */
+    fun addsOnTap(committed: List<String>, pending: List<PendingPick>, id: String): Boolean =
+        id.trim() !in picked(committed, pending)
+
+    /** Records a tap, replacing whatever intent was held for the same lift. */
+    fun record(pending: List<PendingPick>, id: String, adding: Boolean): List<PendingPick> {
+        val trimmed = id.trim()
+        if (trimmed.isEmpty()) return pending
+        return pending.filterNot { it.id == trimmed } + PendingPick(trimmed, adding)
+    }
+
+    /**
+     * Drops the taps the store now agrees with, and only those.
+     *
+     * A tap whose write has landed is indistinguishable from one that never happened, so
+     * holding it any longer would be holding a second opinion about the same lift. A tap
+     * still in flight — or one flipped by a second tap while the first was writing — does
+     * not match, and stays.
+     */
+    fun settle(committed: List<String>, pending: List<PendingPick>): List<PendingPick> {
+        val stored = sanitize(committed).toSet()
+        return pending.filter { (it.id in stored) != it.adding }
+    }
+
+    /** Forgets one lift's tap: the write failed, so the store's answer is the only one. */
+    fun forget(pending: List<PendingPick>, id: String): List<PendingPick> =
+        pending.filterNot { it.id == id.trim() }
 }
 
-data class CartConfirm(
-    val selected: List<String>,
-    val toAdd: List<Exercise>,
-    val missingIds: List<String>,
-) {
-    val blocked: Boolean get() = missingIds.isNotEmpty()
-    val nothingNew: Boolean get() = !blocked && toAdd.isEmpty()
-}
+/**
+ * One tap that has been made but not yet stored.
+ *
+ * [adding] is what the tap meant, not what is stored: false is a lift being taken back
+ * out of the session, which is the same list and the same wait as putting one in.
+ */
+data class PendingPick(val id: String, val adding: Boolean)
