@@ -160,10 +160,9 @@ now ticks now, live 32, drop `debug-live/2026-09-10-3`),
 and `#214` (log wells belong to the next set, live 34, drop
 `debug-live/2026-09-10-5`)
 are on `trunk`. Do **not** bump 34 here.
-Open `#215` (golden record: F3's contrast, not the renderer) is docs only — ROADMAP,
-`VISUAL_TESTING.md`, and the re-record evidence note. Overlaps this
-packet on ROADMAP only. Do not take its open comparator question as
-this packet. Do not start a
+`#215` (golden record: F3's contrast, not the renderer) is on `trunk`.
+The 17-pixel comparator question it left is an owner decision, not this
+packet. Do not start a
 second edit of Home, `DayBlock`, `DailyAgendaCard`, `ThisWeekCard`,
 `PlanDayScreen`, `ActiveWorkoutScreen`, `ActiveWorkoutViewModel`,
 `SetEntryPanel`, `RepsStepper`, rest timer, Settings, `DESIGN_AUDIT.md`,
@@ -171,8 +170,7 @@ second edit of Home, `DayBlock`, `DailyAgendaCard`, `ThisWeekCard`,
 `CustomWeekViewModel`, `VISUAL_TESTING.md`, the golden evidence note, or
 `app/build.gradle.kts` from `trunk`.
 Do not delete `claude/ecstatic-galileo-pw9iub` or
-`claude/android-verify-my59sw` (Claude reuses those heads; `#215` still
-owns the latter).
+`claude/android-verify-my59sw` (Claude reuses those heads).
 `#203` (`CLAUDE.md` response contract) is on `trunk`. Replies follow
 that file. Do not start a second edit of `CLAUDE.md` or
 `owner-conversation.mdc` from `trunk`. `#204` (emulator job prints
@@ -208,10 +206,10 @@ after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
 (UX + stub compiler); do not start a second edit of those paths from
 `trunk`. `#173` is on `trunk`. `claude/android-verify-my59sw` is leftover
 and Claude reuses it — do **not** delete that head (deleting it after
-`#191` briefly removed `#192`). `#204` through `#213` reused
-`claude/android-verify-my59sw` — do **not** delete that head; open
-`#215` reuses it again. `#204` through `#214` are on `trunk`.
-`#214`'s vehicle `claude/ecstatic-galileo-pw9iub` is leftover — do **not**
+`#191` briefly removed `#192`). `#204` through `#215` reused
+`claude/android-verify-my59sw` — do **not** delete that head. `#204`
+through `#215` are on `trunk`. `#214`'s vehicle
+`claude/ecstatic-galileo-pw9iub` is leftover — do **not**
 delete that head. `#203` is on `trunk`. Do not start a second picker,
 rest-timer, Home day-board, live-workout wells, golden record,
 `DESIGN_AUDIT.md`, emulator-lane instrumented test, golden PNG, or
