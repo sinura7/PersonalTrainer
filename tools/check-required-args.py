@@ -66,7 +66,16 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from checker_baseline import load as load_baselines, report as report_baseline  # noqa: E402
 from kotlin_source import kotlin_files, strip_comments_and_strings  # noqa: E402
 
-ROOTS = sys.argv[1:] or ["app/src/main/java", "app/src/test/java"]
+ROOTS = sys.argv[1:] or [
+    "app/src/main/java",
+    "app/src/test/java",
+    # androidTest and debug were outside every checker until 7 September 2026, and that
+    # is where the second stale caller of the SessionLiftStrip arity defect sat unseen.
+    # A source set nothing looks at is a source set that breaks the build.
+    "app/src/androidTest/java",
+    "app/src/debug/java",
+    "app/src/sharedTest/java",
+]
 
 FUN_RE = re.compile(r"\bfun\s*(?:<[^>]*>\s*)?(?:[A-Za-z_][\w.]*(?:<[^>]*>)?\??\.)?([A-Za-z_]\w*)\s*\(")
 CLASS_RE = re.compile(

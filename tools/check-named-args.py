@@ -8,9 +8,15 @@ a call passing a parameter name the declaration does not have.
 import os, re, sys, collections
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from kotlin_source import kotlin_files, strip_comments_and_strings  # noqa: E402
+from kotlin_source import kotlin_files, kotlin_files_in, strip_comments_and_strings  # noqa: E402
 
-ROOT = sys.argv[1] if len(sys.argv) > 1 else "app/src/main/java"
+# Every root given is indexed AND scanned together. A root on its own is a false clean:
+# nothing outside it is in the declaration index, so `if name not in decls: continue` skips
+# every call into another source set — which for app/src/androidTest is nearly all of them.
+# Private declarations stay confined to their own file; separately, a main call is judged
+# only against main declarations, so mixing roots does not blur either scope.
+MAIN_ROOT = "app/src/main/java"
+ROOTS = sys.argv[1:] or ["app/src/main/java"]
 
 
 PARAM_MODS = r"(?:@\w+(?:\([^)]*\))?\s+|vararg\s+|crossinline\s+|noinline\s+|private\s+|internal\s+|public\s+|protected\s+|override\s+|val\s+|var\s+)*"
@@ -61,7 +67,7 @@ def top_level_split(text):
 def param_names(text):
     return [m.group(1) for m in (PARAM_RE.match(p.strip()) for p in top_level_split(text)) if m]
 
-files = kotlin_files(ROOT)
+files = kotlin_files_in(ROOTS)
 
 clean = {p: strip_comments_and_strings(open(p, encoding="utf-8").read()) for p in files}
 decls = collections.defaultdict(list)
@@ -84,18 +90,25 @@ for path, src in clean.items():
     for m in re.finditer(r"\bfun\s*(?:<[^>]*>\s*)?(?:[A-Za-z_][\w.]*(?:<[^>]*>)?\??\.)?([A-Za-z_]\w*)\s*\(", src):
         op = src.index("(", m.end() - 1); cl = balanced(src, op)
         if cl > 0:
-            decls[m.group(1)].append((visibility_scope(src, m.start(), path), set(param_names(src[op+1:cl]))))
+            decls[m.group(1)].append((visibility_scope(src, m.start(), path), set(param_names(src[op+1:cl])), path.startswith(MAIN_ROOT)))
     for m in re.finditer(r"\b(?:data\s+|value\s+|enum\s+)?class\s+([A-Za-z_]\w*)\s*(?:<[^>]*>\s*)?(?:@\w+\s*)?\(", src):
         op = src.index("(", m.end() - 1); cl = balanced(src, op)
         if cl > 0:
-            decls[m.group(1)].append((visibility_scope(src, m.start(), path), set(param_names(src[op+1:cl]))))
+            decls[m.group(1)].append((visibility_scope(src, m.start(), path), set(param_names(src[op+1:cl])), path.startswith(MAIN_ROOT)))
 
 problems = []
 for path, src in clean.items():
     for m in re.finditer(r"(?<![\w.])([A-Za-z]\w*)\s*\(", src):
         name = m.group(1)
         if name not in decls: continue
-        visible = [params for scope, params in decls[name] if scope is None or scope == path]
+        # Main cannot see a test/androidTest/debug declaration; a same-named one there must
+        # not excuse a broken main call. The comment above covers `private`, which is a
+        # different axis entirely.
+        from_main = path.startswith(MAIN_ROOT)
+        visible = [
+            params for scope, params, decl_in_main in decls[name]
+            if (scope is None or scope == path) and (decl_in_main or not from_main)
+        ]
         if not visible: continue
         op = src.index("(", m.end() - 1); cl = balanced(src, op)
         if cl < 0: continue

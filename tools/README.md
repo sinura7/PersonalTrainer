@@ -15,8 +15,8 @@ still breaks the build: a call passing a parameter name the function does not ha
 usual result of renaming a parameter and missing a caller.
 
 ```bash
-python3 tools/check-named-args.py app/src/main/java
-python3 tools/check-named-args.py app/src/test/java
+python3 tools/check-named-args.py app/src/main/java app/src/test/java \
+    app/src/androidTest/java app/src/debug/java app/src/sharedTest/java
 ```
 
 Exits quietly with `0 mismatch(es)` when clean. Nothing to install.
@@ -116,6 +116,107 @@ view model always declares `val uiState: StateFlow<SomethingUiState>`. The scree
 view model, the view model names the state type. A file mentioning no view model or several is
 skipped rather than guessed at, and the four members every data class gets for free (`copy`,
 `equals`, `hashCode`, `toString`) are never reported.
+
+## `check-lambda-arity.py`
+
+The third question about a call: not *does this name exist* and not *did you pass everything*,
+but *does the lambda you passed take the number of parameters the declaration wants*.
+
+```bash
+python3 tools/check-lambda-arity.py app/src/main/java app/src/test/java \
+    app/src/androidTest/java app/src/debug/java app/src/sharedTest/java
+```
+
+Pass EVERY source root in one invocation. A test root alone cannot see the declaration it
+calls, so running it by itself reports a false clean.
+
+On 7 September 2026 a branch was pushed that did not compile. `SessionLiftStrip.onStageTargets`
+grew from five parameters to six to carry the rule a rejected box broke; one of its three call
+sites was updated. Twenty static checkers, a 1202-test JVM lane and three independent reviewers
+passed it. Neither `check-named-args` nor `check-required-args` could see it — the argument was
+named, the name existed, and every required parameter was supplied. What was wrong was inside
+the value. And a review that reads the diff cannot find a caller that broke *because it did not
+change*: both stale call sites are in files the diff never touched.
+
+`./gradlew compileDebugKotlin` catches this properly, with the real compiler against the real
+dependencies, and is what the merge gate runs. This is the cheap half: it stays in the preflight
+because it costs a second and needs no SDK, so a stale caller is named before a build is ever
+started. It knows nothing about types; counting parameters needs no type system.
+
+Conservative in the same way as its two siblings, and for the same reason — a false RED gets a
+checker switched off. Only **named** arguments are judged, because a trailing lambda would need
+overload resolution to know which parameter it fills. A site is skipped, not guessed at, unless
+both sides are unambiguous: every visible declaration of that call name must declare the
+parameter as a plain function type (`(A, B) -> R`, optionally `suspend`, nullable or
+parenthesised), and the argument must be a literal lambda whose header parses as a parameter
+list. A receiver type (`T.(A) -> R`) is never judged: its lambda takes one fewer parameter than
+the parentheses show. A lambda with no `->` is accepted against arity 0 or 1 — Kotlin gives it
+the implicit `it` — and reported against 2 or more, which is what Kotlin does too.
+
+`tools/test_lambda_arity.py` runs the checker over fifteen fixtures, including the exact defect
+above, the fix for it, and every shape that must stay quiet: a `when` inside the body, a nested
+lambda, a destructured parameter, a function reference, a trailing lambda, a commented-out call.
+
+### Three source sets nothing was reading
+
+The same day, `check-required-args.py`, `check-missing-imports.py`, `check-named-args.py` and
+`check-internal-imports.py` were widened to read `app/src/androidTest/java`, `app/src/debug/java` and
+`app/src/sharedTest/java` as well as main and test. Until then nothing looked at those three at
+all — which is how the second stale caller of the arity defect sat unseen in an instrumented
+test while `assembleDebug` was red.
+
+`check-named-args.py` had a second, quieter hole: it took ONE root, and a root scanned alone is
+a false clean. Its index holds only that root's declarations, so `if name not in decls: continue`
+skipped every call into another source set — which for `app/src/test` was most of them, and the
+preflight had been running it on test alone since it was written. It now takes every root in one
+invocation and reports across all 662 files.
+
+`check-internal-imports.py` had the mirror-image problem: run on `app/src/androidTest` alone it
+reports **146** unresolved names, every one of them a correct import into main. That is why it
+was main-only, and why nothing had ever checked the imports of the instrumented tests. It now
+indexes and scans every root together and reports 0.
+
+`check-missing-imports.py` treats every root after the first as a **satellite**: it sees main
+and itself, and not the other satellites, because androidTest cannot see a unit test's private
+helper any more than main can. Both widenings were negative-controlled rather than assumed —
+dropping a required argument from an androidTest call, and using an unimported project symbol
+in an androidTest file, each produce exactly one finding, and neither did before. Widening
+`check-required-args` also revealed one mixed-argument call in an instrumented test, now fully
+named, so its skip ratchet holds at 178 across 662 files instead of 624.
+
+### What an audit of these checkers found
+
+An adversarial audit on 10 September 2026 read the checkers themselves. The holes below were
+real, and all are closed:
+
+**The summary gate passed at ten findings.** `preflight.sh` judges three checkers on their
+summary line rather than an exit code, with `grep -F "0 mismatch(es)"`. That is satisfied by
+`"10 mismatch(es) across 680 files"` — so `check-named-args`, `check-when-exhaustive` and
+`check-unused-imports` reported clean at 10, 20, 30 … findings. The gate now uses awk's
+`index($0, want) == 1`, a literal prefix test, and `tools/test_summary_gate.sh` proves both
+directions before preflight trusts any of it. Nothing had ever watched that gate fail, which
+is the same reason every other checker here exists.
+
+**Widening lost strictness in the other direction, in all three checkers.** One pooled index
+across all five roots is what lets an androidTest file's import of a main declaration resolve
+— but it also let a MAIN file be judged against a declaration only a test source set has.
+`check-internal-imports` accepted `import ...testutil.awaitFirst` in a production file;
+`check-lambda-arity` and `check-named-args` let a same-named androidTest declaration *excuse a
+broken main call*, which is the opposite of what a comment in `check-named-args` claimed. All
+three now record which root each declaration came from and judge a main file against main
+alone. Demonstrated rather than reasoned about: a two-parameter androidTest `ProbeWidget` made
+a main call passing a two-parameter lambda to main's one-parameter `ProbeWidget` report clean;
+it is now reported with its line.
+
+**A misspelled root read as clean.** `kotlin_files_in` skipped a directory that was not
+there, so a typo produced "0 findings across 0 files" — indistinguishable from success. It
+now refuses, and the three widened checkers all route through it.
+
+**`check-lambda-arity` declined sites silently.** It now reports them: 62 at HEAD — 43 where
+a declaration's parameter is not a plain function type, 19 fully-qualified calls, 0 unreadable
+lambda headers — ratcheted as `lambda_arity_declined`. The fully-qualified blind spot is the
+price of the call-site regex's lookbehind, which exists so `vm.method(...)` is not judged
+against a same-named top-level declaration; it is now a number rather than a silence.
 
 ## `check-required-args.py`
 

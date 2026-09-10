@@ -63,7 +63,17 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from kotlin_source import kotlin_files, strip_comments_and_strings  # noqa: E402
 
 MAIN_ROOT = sys.argv[1] if len(sys.argv) > 1 else "app/src/main/java"
-TEST_ROOT = sys.argv[2] if len(sys.argv) > 2 else "app/src/test/java"
+# Every root after the first is a satellite: it sees main and itself, and NOT the other
+# satellites — androidTest cannot see a unit test's helper any more than main can. Each is
+# therefore indexed and scanned on its own. androidTest and debug were outside every checker
+# until 7 September 2026, which is how the second stale caller of the SessionLiftStrip arity
+# defect sat unseen in androidTest while the build was red.
+SATELLITE_ROOTS = sys.argv[2:] or [
+    "app/src/test/java",
+    "app/src/androidTest/java",
+    "app/src/debug/java",
+    "app/src/sharedTest/java",
+]
 PACKAGE_PREFIX = "com.sinura.personaltrainer"
 
 PACKAGE_RE = re.compile(r"^\s*package\s+([\w.]+)", re.M)
@@ -305,27 +315,30 @@ def scan(files, index, external, private):
 
 def main():
     main_files = kotlin_files(MAIN_ROOT) if os.path.isdir(MAIN_ROOT) else []
-    test_files = kotlin_files(TEST_ROOT) if os.path.isdir(TEST_ROOT) else []
-    if not main_files and not test_files:
-        print(f"No Kotlin sources under {MAIN_ROOT} or {TEST_ROOT}", file=sys.stderr)
+    satellites = [
+        (root, kotlin_files(root))
+        for root in SATELLITE_ROOTS
+        if os.path.isdir(root)
+    ]
+    satellites = [(root, files) for root, files in satellites if files]
+    if not main_files and not satellites:
+        roots = ", ".join([MAIN_ROOT] + SATELLITE_ROOTS)
+        print(f"No Kotlin sources under {roots}", file=sys.stderr)
         return 0
 
     main_index = index_declarations(main_files)
-    # Test code sees both source sets; main code sees only itself.
-    test_index = dict(main_index)
-    for name, packages in index_declarations(test_files).items():
-        test_index.setdefault(name, set()).update(packages)
-
-    external = index_external(main_files + test_files)
-    # Main cannot see test privates and vice versa, for the same reason the declaration
-    # index is split: a private helper in a test file is not a symbol main code lost.
+    external = index_external(main_files + [f for _, files in satellites for f in files])
+    # Main cannot see a satellite's privates and vice versa, for the same reason the
+    # declaration index is split: a private helper in a test file is not a symbol main lost.
     main_private = index_private(main_files)
-    test_private = index_private(test_files)
 
-    findings = (
-        scan(main_files, main_index, external, main_private)
-        + scan(test_files, test_index, external, test_private)
-    )
+    findings = scan(main_files, main_index, external, main_private)
+    for _, files in satellites:
+        # A satellite sees main and itself. Not the other satellites.
+        index = dict(main_index)
+        for name, packages in index_declarations(files).items():
+            index.setdefault(name, set()).update(packages)
+        findings += scan(files, index, external, index_private(files))
 
     for path, name, options in findings:
         verb = "is private elsewhere" if options[0].startswith("private in ") \
