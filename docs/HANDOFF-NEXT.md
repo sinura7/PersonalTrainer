@@ -43,9 +43,17 @@ open. Do not start a second edit of the drop tools, `debug-live.yml`,
 the drop (`659ed5c` / `a39917b`); it is not in 37. `#229` is on
 `trunk`: Back on the routine editor. It does not overlap this packet
 and does not ride 37. `#230` is on `trunk`: a timed-out wait names
-the thread. Test only; it rides the next drop, not 37. Do not start
-a second edit of `TestWaits.kt` or `RoutineEditorViewModel` from
-`trunk`. Do not delete `claude/android-verify-my59sw` or
+the thread. Test only; it rides the next drop, not 37. More leftover
+UX is on `trunk` after that (`c8c1549` / `17fc2ff` / `20ad3cf`): a
+one-column notes write, an editor mark at the tap, Use-chip persist.
+Not in 37. This packet folded it; the notes-column edit sat in
+`WorkoutRepository.kt` next to `observeSessionHealth`, different
+method. Open `#231` is the 600 dp mount harness
+(`ProductionScreensPassInstrumentedTest.kt` only). Instrumented tests;
+independent of this packet. Do not start a second edit of that
+file, `TestWaits.kt`, `RoutineEditorViewModel`, or
+`WorkoutRepository.kt` from `trunk`. Do not delete
+`claude/android-verify-my59sw` (`#231` is on it) or
 `claude/ecstatic-galileo-pw9iub`. An agent does not switch branch
 protection on.
 
@@ -71,9 +79,9 @@ Not verified, and it matters: **nothing here has been on a phone.**
 
 **Install the `debug-live-2026-09-10-9` pre-release, version 37.** It is
 the newest Obtainium offer and carries the lift page, Drive’s own
-refusal sentence, and the preflight gate. `trunk` also has a later
-merge (`claude/file-visibility-check-jraqc2`, `659ed5c`) that 37 does
-not carry. Nothing to uninstall over 36.
+refusal sentence, and the preflight gate. `trunk` has later leftover
+UX merges (`claude/file-visibility-check-jraqc2`) that 37 does not
+carry. Nothing to uninstall over 36.
 
 An earlier version of this file said "install 35", which was wrong twice
 over. Two different builds carry `debugLiveCode` 35 — tag
@@ -144,10 +152,10 @@ Biggest first, and the first two are the owner's, not a session's:
   activities are never logged live.
 - **R17 measurement** is blocked on a fixture generator and a benchmark
   module nobody has built, not on the owner's history growing. About a day.
-- **The 600 dp screen passes never run at 600 dp**: `mount` sizes a Box
-  inside a `fillMaxSize` parent, so the width is coerced to the 411 dp
-  screen. `Modifier.requiredWidth` fixes it and may surface real tablet
-  bugs, which is why it is its own packet.
+- **The 600 dp screen passes** are open `#231`, not this packet: `mount`
+  now sets density so the named width is the viewport. Instrumented
+  only. Do not start a second edit of
+  `ProductionScreensPassInstrumentedTest.kt` from `trunk`.
 - **`required_args_mixed = 180`** is the largest debt family in
   `tools/checker-baselines.toml`. Take `required_args_lambda = 46` first as
   the proof that the ratchet-down loop works.
@@ -173,5 +181,6 @@ and `#218` both claimed 35; `-6` and `-7` both carry that number.
 Obtainium still offers 35 until 36 is installed. `#220` shipped 36 as
 `debug-live-2026-09-10-8`. `#226` shipped 37 as
 `debug-live-2026-09-10-9`. This packet inherits 37. `#229` and `#230`
-are on `trunk` and do not ride 37.
+are on `trunk` and do not ride 37. Open `#231` is the 600 dp
+harness and does not ride this packet.
 
