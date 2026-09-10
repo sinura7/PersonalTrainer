@@ -207,6 +207,7 @@ fun RoutineEditorScreen(
                             viewModel.stageTargets(id, sets, reps, kg, rest, invalid)
                         },
                         onCommitTargets = { id -> viewModel.commitTargets(id) },
+                        onForgetTargetRule = { id -> viewModel.forgetTargetRule(id) },
                     )
                 }
             }

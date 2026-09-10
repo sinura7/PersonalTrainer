@@ -404,6 +404,39 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     }
 
     /**
+     * The card's boxes went away, so the rule one of them broke goes with them.
+     *
+     * A rejection is a statement about text the owner can see and fix. Once the boxes are
+     * discarded — the card folded shut, and reopening it re-reads the stored numbers — holding
+     * the rejection refuses Save for a box that now shows a perfectly good value, with nothing
+     * on screen to correct. That is the dead end a removed card used to leave behind.
+     *
+     * The typed VALUES stay staged: they are still what the owner asked for and Save still owes
+     * them a write. Only the rule goes. An entry that held nothing but a rule is dropped
+     * outright, so it cannot make an untouched editor look dirty on the way out.
+     */
+    fun forgetTargetRule(itemId: String) {
+        var cleared = false
+        stagedTargets.computeIfPresent(itemId) { _, staged ->
+            if (staged.invalidReason == null) {
+                staged
+            } else {
+                cleared = true
+                val kept = staged.copy(invalidReason = null)
+                if (kept.targetSets == null && kept.targetReps == null &&
+                    kept.targetWeightKg == null && kept.restSeconds == null
+                ) {
+                    null
+                } else {
+                    kept
+                }
+            }
+        }
+        // No `before` mark: the box is gone, so the complaint is stale whenever it was raised.
+        if (cleared) error.clearFrom(source = ERR_TARGET_RULE)
+    }
+
+    /**
      * Write one card's staged targets if they differ from what is stored.
      *
      * The focus-change commit. What it says goes in the screen's error slot, the same place

@@ -377,7 +377,12 @@ class CustomWeekViewModel @JvmOverloads constructor(
      * in the picker — takes its rule with it: leaving the entry behind would block Confirm on
      * a rule with no box left to fix, a dead end with no way out of it.
      */
-    private fun forgetTargetRule(itemId: String) {
+    /**
+     * The card's boxes went away — folded shut, or the lift tapped off the day — so the rule
+     * one of them broke goes with them. Holding it would refuse Confirm for a box that is no
+     * longer on screen, with nothing to correct.
+     */
+    fun forgetTargetRule(itemId: String) {
         if (invalidTargets.remove(itemId) == null) return
         moveTargetRuleBanner()
     }

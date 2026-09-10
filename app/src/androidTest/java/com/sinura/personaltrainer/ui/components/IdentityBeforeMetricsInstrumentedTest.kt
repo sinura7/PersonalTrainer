@@ -123,6 +123,7 @@ class IdentityBeforeMetricsInstrumentedTest {
                                 onRemove = {},
                                 onStageTargets = { _, _, _, _, _, _ -> },
                                 onCommitTargets = {},
+                                onForgetTargetRule = {},
                             )
                         }
                     }

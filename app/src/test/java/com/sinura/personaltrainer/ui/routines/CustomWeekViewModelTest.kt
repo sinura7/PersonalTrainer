@@ -543,6 +543,68 @@ class CustomWeekViewModelTest {
         assertEquals(row.id, routines.single().exercises.single().exercise.id)
     }
 
+    @Test
+    fun foldingAnUnreadableCardAwayTakesItsComplaintWithIt() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val vm = createViewModel()
+        vm.uiState.awaitFirst { it.catalog.any { exercise -> exercise.id == squat.id } }
+        vm.togglePicked(squat)
+        val lift = vm.uiState.awaitFirst { it.selectedLifts.size == 1 }.selectedLifts.single()
+
+        vm.stageTargets(
+            lift.id,
+            sets = null,
+            reps = 6,
+            rest = 150,
+            weightKg = 80.0,
+            invalidReason = NumericEntry.SETS_RULE,
+        )
+        vm.confirm()
+        vm.uiState.awaitFirst { it.error == NumericEntry.SETS_RULE }
+
+        // Folding the card shut discards its box text — reopening reads the stored numbers
+        // back. Keeping the rule would refuse Confirm for a box that now reads "3", with
+        // nothing on screen to fix. This is what SessionLiftEditor's DisposableEffect calls.
+        vm.forgetTargetRule(lift.id)
+        assertNull(vm.uiState.awaitFirst { it.error == null }.error)
+
+        vm.confirm()
+        vm.finished.awaitFirst { it }
+        assertEquals(squat.id, deps.routineRepository.observeAll().first().single().exercises.single().exercise.id)
+    }
+
+    @Test
+    fun foldingOneCardAwayDoesNotForgetAnotherStillUnreadable() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
+        val vm = createViewModel()
+        vm.uiState.awaitFirst { it.catalog.size >= 2 }
+        vm.togglePicked(squat)
+        vm.togglePicked(row)
+        val lifts = vm.uiState.awaitFirst { it.selectedLifts.size == 2 }.selectedLifts
+
+        vm.stageTargets(
+            lifts.first().id,
+            sets = null, reps = 6, rest = 150, weightKg = 80.0,
+            invalidReason = NumericEntry.SETS_RULE,
+        )
+        vm.stageTargets(
+            lifts.last().id,
+            sets = 4, reps = null, rest = 150, weightKg = 80.0,
+            invalidReason = NumericEntry.REPS_WHOLE_RULE,
+        )
+
+        vm.forgetTargetRule(lifts.first().id)
+
+        vm.confirm()
+        assertEquals(
+            NumericEntry.REPS_WHOLE_RULE,
+            vm.uiState.awaitFirst { it.error == NumericEntry.REPS_WHOLE_RULE }.error,
+        )
+        assertFalse(vm.finished.value)
+        assertTrue(deps.routineRepository.observeAll().first().isEmpty())
+    }
+
     private fun createViewModel(
         handle: SavedStateHandle = SavedStateHandle(),
     ): CustomWeekViewModel =

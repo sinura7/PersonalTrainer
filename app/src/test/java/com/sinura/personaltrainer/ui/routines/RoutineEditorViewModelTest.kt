@@ -939,6 +939,75 @@ class RoutineEditorViewModelTest {
     }
 
     /**
+     * Folding a card shut discards its four boxes; reopening reads the stored numbers back.
+     * A rejection held past that refuses Save for a box showing a perfectly good value, with
+     * nothing on screen to correct — the dead end a removed card used to leave behind. The
+     * card's own DisposableEffect calls [RoutineEditorViewModel.forgetTargetRule] at exactly
+     * that moment.
+     */
+    @Test
+    fun foldingAnUnreadableCardAwayLetsSaveThroughAgain() = runBlocking {
+        val fixture = seedTestWorkout(deps, targetSets = 3, targetReps = 5)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val itemId = fixture.routine.exercises.single().id
+        val vm = createViewModel(fixture.routine.id)
+        vm.uiState.awaitFirst { it.routine != null }
+
+        vm.stageTargets(
+            itemId = itemId,
+            targetSets = 3,
+            targetReps = null,
+            targetWeightKg = null,
+            restSeconds = 60,
+            invalidReason = NumericEntry.REPS_WHOLE_RULE,
+        )
+        vm.commitTargets(itemId)
+        vm.uiState.awaitFirst { it.error == NumericEntry.REPS_WHOLE_RULE }
+
+        vm.saveAndLeave()
+        vm.uiState.awaitFirst { it.saveError == NumericEntry.REPS_WHOLE_RULE && !it.saving }
+        assertFalse(vm.exitRequested.value)
+
+        vm.forgetTargetRule(itemId)
+        assertNull(vm.uiState.awaitFirst { it.error == null }.error)
+
+        // Save leaves, and the stored reps are untouched: nothing was ever readable to write.
+        vm.saveAndLeave()
+        vm.exitRequested.awaitFirst { it }
+        assertEquals(5, checkNotNull(deps.routineRepository.getById(fixture.routine.id)).exercises.single().targetReps)
+    }
+
+    /**
+     * Only the rule goes when the boxes do. A value the owner typed and the routine can hold is
+     * still owed a write, so folding the card must not quietly drop it.
+     */
+    @Test
+    fun foldingACardAwayKeepsTheValuesItStagedAndDropsOnlyTheRule() = runBlocking {
+        val fixture = seedTestWorkout(deps, targetSets = 3, targetReps = 5)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val itemId = fixture.routine.exercises.single().id
+        val vm = createViewModel(fixture.routine.id)
+        vm.uiState.awaitFirst { it.routine != null }
+
+        // Sets read cleanly as 4; the weight box holds something the routine cannot store.
+        vm.stageTargets(
+            itemId = itemId,
+            targetSets = 4,
+            targetReps = 5,
+            targetWeightKg = null,
+            restSeconds = 60,
+            invalidReason = NumericEntry.WEIGHT_NEGATIVE,
+        )
+        vm.forgetTargetRule(itemId)
+
+        vm.saveAndLeave()
+        vm.exitRequested.awaitFirst { it }
+        val stored = checkNotNull(deps.routineRepository.getById(fixture.routine.id)).exercises.single()
+        assertEquals(4, stored.targetSets)
+        assertEquals(5, stored.targetReps)
+    }
+
+    /**
      * A read that throws on the way out used to leave the editor deaf: `leaving` stayed true
      * and nothing could pop it. It is now one more unsaved outcome, and leave-anyway still exits.
      */

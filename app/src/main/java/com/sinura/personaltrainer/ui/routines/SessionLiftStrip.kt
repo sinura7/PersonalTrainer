@@ -21,6 +21,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -117,6 +118,11 @@ fun SessionLiftStrip(
     onRemove: (String) -> Unit,
     onStageTargets: (String, Int?, Int?, Int?, Double?, String?) -> Unit,
     onCommitTargets: (String) -> Unit,
+    /**
+     * The card folded shut, taking its four boxes and their text with it. Whatever rule
+     * those boxes broke is no longer on screen to fix, so it must not go on refusing.
+     */
+    onForgetTargetRule: (String) -> Unit,
     modifier: Modifier = Modifier,
     canSwap: (String) -> Boolean = { false },
     onSwap: (String) -> Unit = {},
@@ -161,6 +167,7 @@ fun SessionLiftStrip(
                 onMoveLater = { onMoveLater(item.id) },
                 onRemove = { onRemove(item.id) },
                 onSwap = { onSwap(item.id) },
+                onForgetTargetRule = onForgetTargetRule,
                 onStageTargets = { sets, reps, rest, kg, invalid ->
                     onStageTargets(item.id, sets, reps, rest, kg, invalid)
                 },
@@ -197,6 +204,7 @@ private fun SessionLiftCard(
     onSwap: () -> Unit,
     onStageTargets: (Int?, Int?, Int?, Double?, String?) -> Unit,
     onCommitTargets: () -> Unit,
+    onForgetTargetRule: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val unit = LocalWeightUnit.current
@@ -309,6 +317,7 @@ private fun SessionLiftCard(
                 onSwap = onSwap,
                 onStageTargets = onStageTargets,
                 onCommitTargets = onCommitTargets,
+                onForgetTargetRule = onForgetTargetRule,
             )
         }
     }
@@ -328,6 +337,7 @@ private fun SessionLiftEditor(
     onSwap: () -> Unit,
     onStageTargets: (Int?, Int?, Int?, Double?, String?) -> Unit,
     onCommitTargets: () -> Unit,
+    onForgetTargetRule: (String) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -339,6 +349,24 @@ private fun SessionLiftEditor(
             modifier = Modifier.padding(horizontal = Metrics.space3),
         )
         key("${item.id}:${item.exercise.id}") {
+            // Tied to the SAME key as the boxes themselves, so it fires exactly when their
+            // text is discarded — the card folded shut, the lift removed, or this slot reused
+            // for a different lift after a reorder. Reopening re-reads the STORED numbers, so
+            // a rejection staged from text that no longer exists would refuse Save for a box
+            // showing its stored value: a dead end with nothing on screen to correct, the same
+            // shape 1801821 fixed for a removed card.
+            //
+            // A configuration change disposes too, but there `rememberSaveable` restores the
+            // typed text and CompactTargetFields re-registers the rejection on its next
+            // composition, so clearing here is self-correcting for rotation.
+            //
+            // The id is captured in a local rather than read through the lambda at dispose
+            // time: after a reorder this slot's `item` is already the NEW lift, and forgetting
+            // that one would clear a complaint the owner can still see.
+            val forgettingId = item.id
+            DisposableEffect(forgettingId) {
+                onDispose { onForgetTargetRule(forgettingId) }
+            }
             CompactTargetFields(
                 rowKey = "${item.id}:${item.exercise.id}",
                 sets = item.sets,

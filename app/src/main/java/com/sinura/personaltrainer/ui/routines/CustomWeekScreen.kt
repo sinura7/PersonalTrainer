@@ -202,6 +202,7 @@ fun CustomWeekScreen(
                                 viewModel.stageTargets(id, sets, reps, rest, kg, invalid)
                             },
                             onCommitTargets = { },
+                            onForgetTargetRule = { id -> viewModel.forgetTargetRule(id) },
                         )
                     }
                     item {
