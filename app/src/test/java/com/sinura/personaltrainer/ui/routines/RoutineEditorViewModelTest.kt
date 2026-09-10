@@ -20,6 +20,7 @@ import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
+import com.sinura.personaltrainer.testutil.stalledThreads
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -1381,14 +1382,20 @@ class RoutineEditorViewModelTest {
     ): RoutineEditorUiState = try {
         withTimeout(TestWaits.FLOW_MS) { uiState.first(predicate) }
     } catch (timedOut: TimeoutCancellationException) {
-        throw AssertionError("awaitState gave up; last uiState was ${uiState.value}", timedOut)
+        throw AssertionError(
+            "awaitState gave up; last uiState was ${uiState.value}\n${stalledThreads()}",
+            timedOut,
+        )
     }
 
     private suspend fun RoutineEditorViewModel.awaitExit() {
         try {
             withTimeout(TestWaits.FLOW_MS) { exitRequested.first { it } }
         } catch (timedOut: TimeoutCancellationException) {
-            throw AssertionError("awaitExit gave up; last uiState was ${uiState.value}", timedOut)
+            throw AssertionError(
+                "awaitExit gave up; last uiState was ${uiState.value}\n${stalledThreads()}",
+                timedOut,
+            )
         }
     }
 
@@ -1407,7 +1414,8 @@ class RoutineEditorViewModelTest {
             withTimeout(TestWaits.FLOW_MS) { flow.first { list -> last = list; predicate(list) } }
         } catch (timedOut: TimeoutCancellationException) {
             throw AssertionError(
-                "awaitList($what) gave up; last list was $last; uiState was ${viewModel?.uiState?.value}",
+                "awaitList($what) gave up; last list was $last; " +
+                    "uiState was ${viewModel?.uiState?.value}\n${stalledThreads()}",
                 timedOut,
             )
         }
@@ -1430,7 +1438,7 @@ class RoutineEditorViewModelTest {
             }
         } catch (timedOut: TimeoutCancellationException) {
             throw AssertionError(
-                "awaitRoutine gave up; last routine list was $last; " +
+                "awaitRoutine gave up; last routine list was $last; ${stalledThreads()}\n" +
                     "uiState was ${viewModel?.uiState?.value}",
                 timedOut,
             )

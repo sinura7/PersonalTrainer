@@ -53,10 +53,58 @@ suspend fun <T> Flow<T>.awaitFirst(predicate: (T) -> Boolean): T {
     } catch (timedOut: TimeoutCancellationException) {
         val seen = if (last === NOTHING_YET) "no value was ever emitted" else "last value was $last"
         throw AssertionError(
-            "awaitFirst gave up after ${TestWaits.FLOW_MS} ms; $seen",
+            "awaitFirst gave up after ${TestWaits.FLOW_MS} ms; $seen\n${stalledThreads()}",
             timedOut,
         )
     }
 }
+
+/**
+ * Every thread that could be holding a wait up, rendered for a failure message.
+ *
+ * Read once, from a catch block, after the ceiling has already been hit — so it cannot
+ * perturb the race it describes. That is the same reasoning that lets these waits read
+ * `uiState.value` on the way out, and it is exactly what a `println` inside the code under
+ * test cannot claim: probes added to `RoutineEditorViewModel.leave()` on 10 Sep 2026 made a
+ * two-in-four wedge vanish for eight consecutive runs. A wait that has already lost has
+ * nothing left to disturb.
+ *
+ * The wedge this exists for is a stall, not a thrown read: it was seen in
+ * `leaveAnywayStillDiscardsAnEmptyStubCreatedThisSession`, whose exit catches every
+ * exception and then sets its flag unconditionally, so no throw can produce it. What is
+ * still unknown is which thread is parked and why — in particular whether Room's
+ * single-slot `TransactionExecutor` is BLOCKED on a connection or sitting IDLE in
+ * `getTask` with work still queued, which is a leaked slot and a different fault entirely.
+ *
+ * Filtered to the frames that can answer that, because an unfiltered dump of a Robolectric
+ * JVM is fifty threads of noise. A thread is kept when its name or any frame names the app,
+ * Room, SQLite or coroutines; the state and the top frames of each are what distinguish
+ * parked-and-waiting from parked-and-stuck.
+ */
+fun stalledThreads(): String {
+    val interesting = Regex(
+        "personaltrainer|androidx\\.room|sqlite|kotlinx\\.coroutines|room-txn|room-query",
+        RegexOption.IGNORE_CASE,
+    )
+    val threads = Thread.getAllStackTraces()
+        .filterKeys { it != Thread.currentThread() }
+        .filter { (thread, stack) ->
+            interesting.containsMatchIn(thread.name) ||
+                stack.any { interesting.containsMatchIn(it.className) }
+        }
+        .toSortedMap(compareBy { it.name })
+    if (threads.isEmpty()) return "no app, Room, SQLite or coroutine thread was alive to blame"
+    return buildString {
+        append("threads that could be holding this up (${threads.size}):")
+        threads.forEach { (thread, stack) ->
+            append("\n  \"${thread.name}\" ${thread.state}")
+            stack.take(FRAMES_PER_THREAD).forEach { append("\n      at $it") }
+            if (stack.size > FRAMES_PER_THREAD) append("\n      ... ${stack.size - FRAMES_PER_THREAD} more")
+        }
+    }
+}
+
+/** Deep enough to name the park site and who called it; short enough to read in a CI log. */
+private const val FRAMES_PER_THREAD = 12
 
 private val NOTHING_YET = Any()
