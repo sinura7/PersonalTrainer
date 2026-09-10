@@ -15,6 +15,16 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 10 Sep 2026 — G: the entry wells belong to the next set. Logging one took
+> a snapshot of weight and reps at the tap and wrote it back over the wells
+> when Room returned, so a load nudged or a rep count typed in the tens of
+> milliseconds the write takes was taken back by the log's own tail — the
+> owner's "sometimes it resets one or the other". The tail now clears the
+> two per-set flags (warm-up, RPE) on the draft as it stands; the row that
+> was written keeps the tapped values. Typed reps stop being a delta
+> measured against a well that may have moved: `setReps` takes the number.
+> Live test 32 (`debugLiveCode` 32), drop `debug-live/2026-09-10-3`.
+>
 > 10 Sep 2026 — Lane fixes: the hosted emulator pass is meant to be green.
 > Four failures, one pull request each, none skipped or loosened: the
 > exact-alarm test read `lastAlarmSchedule` before the IO-scope arm had
