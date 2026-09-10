@@ -52,6 +52,18 @@
 > measured against a well that may have moved: `setReps` takes the number.
 > Live test 34 (`debugLiveCode` 34), drop `debug-live/2026-09-10-5`.
 >
+> 10 Sep 2026 — The golden comparator gets a rounding allowance, and the
+> open question above is answered. One level on one channel is SwiftShader's
+> edge coverage, not a change: two runs of the same commit differed by
+> seventeen such pixels on the Volt button's corners and the golden passed
+> once and failed once. `GoldenImageAssert` now reads a difference of at most
+> one level per channel as the same colour, capped at 256 such pixels, and is
+> otherwise exact — two levels fail on the first pixel, and a surface nudged
+> by one level fails on the budget. Three tests pin it. It is an allowance,
+> not a tolerance: F3's recolour, the thing the last golden actually caught,
+> fails under it on 6,954 pixels. Neither constant may be raised to make a
+> golden pass. Test-only; no app change and no drop.
+>
 > 10 Sep 2026 — A tick with no preferences yet stays silent. The service
 > seeded `tickPreferences` with the defaults — everything on — until
 > DataStore's first emission, so a boundary that fell before that read

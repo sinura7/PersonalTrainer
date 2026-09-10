@@ -9,11 +9,20 @@ import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 import java.io.FileInputStream
 import java.util.Locale
+import kotlin.math.abs
 import org.junit.Assert.fail
 
 data class PixelDiff(
+    /** Pixels whose colour moved further than the rounding allowance. A change. */
     val differentPixels: Int,
+    /**
+     * Pixels that moved by at most [GoldenImageAssert.ROUNDING_LEVELS] on every
+     * channel. Rasteriser rounding, unless there are more than
+     * [GoldenImageAssert.ROUNDING_BUDGET] of them.
+     */
+    val roundingPixels: Int,
     val totalPixels: Int,
+    /** Over every pixel that moved at all, rounding included. Where to look. */
     val left: Int,
     val top: Int,
     val right: Int,
@@ -21,6 +30,10 @@ data class PixelDiff(
 ) {
     val ratio: Double
         get() = if (totalPixels == 0) 0.0 else differentPixels.toDouble() / totalPixels
+
+    /** True when the two images are the same drawing, rounding aside. */
+    val matches: Boolean
+        get() = differentPixels == 0 && roundingPixels <= GoldenImageAssert.ROUNDING_BUDGET
 }
 
 /**
@@ -39,6 +52,35 @@ data class PixelDiff(
 object GoldenImageAssert {
     private const val AssetFolder = "goldens"
 
+    /**
+     * Per-channel difference the comparator reads as the same colour.
+     *
+     * The emulator this golden is recorded on has no GPU: it draws with
+     * SwiftShader, whose edge coverage on a rounded corner is not reproducible
+     * between runs. Two runs of one commit differed by seventeen pixels, each by
+     * exactly one level on one channel, all on the Volt button's corners; the
+     * golden passed on the first and failed on the second. One level is that
+     * rounding and nothing else.
+     *
+     * This is a rounding allowance, not a tolerance. Two levels fail. A colour
+     * that actually moved fails on the first pixel: `TextTertiary`'s contrast fix
+     * (F3, `6787b17`) moved thirty-two levels across 7,074 pixels, and
+     * [FoundationGoldenTest.deliberateTokenChangeProducesSmallLocatedDiff] pins a
+     * deliberate token change at over a thousand pixels — three orders of
+     * magnitude above what is forgiven here.
+     */
+    const val ROUNDING_LEVELS = 1
+
+    /**
+     * How many one-level pixels are rounding before they are a change.
+     *
+     * A whole surface nudged by one level is a real edit and must fail, so the
+     * allowance is capped rather than unlimited. Seventeen is what the renderer
+     * actually produces; this is fifteen times that, and still 0.016% of the
+     * capture.
+     */
+    const val ROUNDING_BUDGET = 256
+
     fun assertMatches(name: String, actualImage: ImageBitmap) {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val actual = actualImage.asAndroidBitmap()
@@ -55,14 +97,20 @@ object GoldenImageAssert {
         }
 
         val diff = compare(expected, actual)
-        if (diff.differentPixels == 0) return
+        if (diff.matches) return
 
         val actualPath = writeArtifact(name, "actual", actual)
         val diffPath = writeArtifact(name, "diff", diffBitmap(expected, actual))
+        val rounding = if (diff.roundingPixels == 0) {
+            ""
+        } else {
+            " ${diff.roundingPixels} pixel(s) within the ${ROUNDING_LEVELS}-level " +
+                "rounding allowance (budget $ROUNDING_BUDGET)."
+        }
         fail(
             "Golden $name changed: ${diff.differentPixels}/${diff.totalPixels} " +
                 "pixels (${String.format(Locale.US, "%.3f", diff.ratio * 100)}%), " +
-                "bounds=[${diff.left},${diff.top}..${diff.right},${diff.bottom}]. " +
+                "bounds=[${diff.left},${diff.top}..${diff.right},${diff.bottom}].$rounding " +
                 "actual=$actualPath diff=$diffPath",
         )
     }
@@ -85,13 +133,18 @@ object GoldenImageAssert {
         actual.getPixels(actualPixels, 0, width, 0, 0, width, height)
 
         var count = 0
+        var rounding = 0
+        var moved = 0
         var left = width
         var top = height
         var right = -1
         var bottom = -1
         for (index in expectedPixels.indices) {
-            if (expectedPixels[index] == actualPixels[index]) continue
-            count++
+            val before = expectedPixels[index]
+            val after = actualPixels[index]
+            if (before == after) continue
+            if (withinRounding(before, after)) rounding++ else count++
+            moved++
             val x = index % width
             val y = index / width
             left = minOf(left, x)
@@ -101,12 +154,23 @@ object GoldenImageAssert {
         }
         return PixelDiff(
             differentPixels = count,
+            roundingPixels = rounding,
             totalPixels = expectedPixels.size,
-            left = if (count == 0) -1 else left,
-            top = if (count == 0) -1 else top,
+            left = if (moved == 0) -1 else left,
+            top = if (moved == 0) -1 else top,
             right = right,
             bottom = bottom,
         )
+    }
+
+    /** True when no channel of the two packed ARGB pixels moved past the allowance. */
+    private fun withinRounding(before: Int, after: Int): Boolean {
+        for (shift in intArrayOf(24, 16, 8, 0)) {
+            val a = (before ushr shift) and 0xFF
+            val b = (after ushr shift) and 0xFF
+            if (abs(a - b) > ROUNDING_LEVELS) return false
+        }
+        return true
     }
 
     private fun diffBitmap(expected: Bitmap, actual: Bitmap): Bitmap {

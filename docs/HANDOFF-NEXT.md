@@ -60,16 +60,7 @@ One install, four things:
    few seconds left: the last five seconds stay quiet and the cue still
    plays at zero.
 
-## The two open questions
-
-**The golden's comparator.** `FoundationGoldenTest` demands an exact pixel
-match. The lane's rasteriser is not bit-stable: two runs of the same commit
-(#212) differed by 17 pixels, each by one level in one channel, on the Volt
-button's rounded corners, and the golden passed once and failed once. Either
-allow at most one level per channel under a tight cap on how many pixels may
-differ — a rounding allowance, documented, with the comparator otherwise
-exact — or keep it exact and accept a golden that flickers. Evidence:
-`foundation-program/evidence/golden-rerecord-2026-09-10.md`.
+## The open question
 
 **Branch protection.** The owner asked for *Tests, lint, debug build* as a
 required check on `trunk`. That makes a GitHub-hosted runner able to block a
