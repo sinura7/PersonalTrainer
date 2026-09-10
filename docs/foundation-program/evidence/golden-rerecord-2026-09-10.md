@@ -5,7 +5,13 @@
 (`.github/workflows/ci.yml`, job *Instrumented smoke*, run 34430419245),
 printed base64 by `tools/ci-instrumented.sh` and decoded with `base64 -d`.
 
-## Why
+> **Corrected 10 September 2026.** The first version of this note attributed
+> the whole 0.433 % to renderer anti-aliasing. That was wrong, and the
+> correction is below: all but 17 of those pixels are a **deliberate colour
+> change from packet F3** that the golden was never re-recorded for. The
+> re-record was still the right action; the reason on the record was not.
+
+## Why the golden failed
 
 `FoundationGoldenTest.galleryMatchesCommittedApi29Golden` failed on every
 hosted run since the profile was matched (#199) with the same numbers:
@@ -14,38 +20,55 @@ hosted run since the profile was matched (#199) with the same numbers:
 7091/1635795 pixels (0.433%), bounds=[84,664..858,1321]
 ```
 
-The previous baseline was recorded on a developer machine's emulator. The
-lane runs the same API 29 x86_64 image on the Nexus 5X profile (1080 × 1920,
-420 dpi, 360 × 800 dp golden viewport) but under GitHub's `ubuntu-latest`
-runner with `reactivecircus/android-emulator-runner` v2.38.0, whose GPU is
-SwiftShader.
+## What the diff actually is
 
-## What the diff is
+The previous baseline was committed on **2 September 2026** (`0063de6`).
+On **3 September** packet F3 (`6787b17`, *"F3: make gym captions readable
+and split disabled ink"*) raised `TextTertiary` from `#5F6B73` to `#7F8B93`
+because the old grey was 3.2:1 under every unit label. `MetricCluster`
+draws its `PRIMARY` / `SECONDARY` labels with
+`Kicker(label, color = TextTertiary)` (`ui/components/GymSurfaces.kt`), and
+the gallery has two of those cards. The golden was never re-recorded for
+that change, so every run since has been comparing new ink against an old
+screenshot.
 
-Compared pixel by pixel here (pure-Python PNG decode, no tolerance):
+Decoded both PNGs and compared them pixel by pixel here (pure-Python PNG
+decode, no tolerance):
 
-| Where | Pixels | What is drawn there |
+| Region | Pixels | What it is |
 |---|---|---|
-| y 650–700, x 50–250 and 650–900 | 3,537 | the `PRIMARY` / `SECONDARY` kickers of the Loading card |
-| y 1100–1150, same columns | 3,370 | the `PRIMARY` / `SECONDARY` kickers of the Empty card |
-| y 1150–1320, x 80–110 and 830–860 | 184 | the rounded corners of the Volt *Start activity* button |
+| The two label bands (y 640–705 and 1095–1160) | **7,074** | the `PRIMARY` / `SECONDARY` labels — 3,934 of them exactly `#5F6B73` → `#7F8B93`, the remaining 3,140 anti-aliased blends of that same pair |
+| The Volt button's rounded corners (y > 1160) | **17** | renderer edge coverage, ±1 level on one channel |
 
-Largest per-channel difference on any pixel: **39 of 255**. No pixel
-differs by more; no region outside the kickers and the button corners
-differs at all. The kicker is `InstrumentType.kicker`, 11 sp tracked
-uppercase (`Kicker` in `ui/components/GymSurfaces.kt`); tracked small caps
-and a 16 dp corner are exactly where two rasterisers disagree by a few
-levels. No component drawn in the gallery changed between the two
-recordings (`git log` on `ui/preview/`, `ui/components/GymSurfaces.kt`,
-`ui/theme/`).
+So 99.8 % of the diff is F3's intended contrast fix, and the label text is
+now the colour the app actually ships. Font hinting and geometry are ruled
+out: every other text line and every card corner in the capture is
+pixel-identical, and the capture is the same 945 × 1731 as before.
 
 ## Decision
 
-The lane is the renderer that runs on every pull request, so its capture
-is the baseline. The comparator stays exact (zero differing pixels); no
-tolerance was added. A developer emulator with a different GPU may now
-show the same 0.433 % in reverse; re-record from the lane, not from the
-desk.
+Re-recorded from the lane's own capture, byte for byte, naming F3
+(`6787b17`) as the intended visual change per this document's own rule that
+an accepted PNG must name it. The comparator stays exact — zero differing
+pixels, no tolerance added.
 
-Evidence kept: the lane's `foundation-state-gallery-api29-diff.png`
-(magenta over the changed pixels) is reproducible from the run above.
+The lane is also now the reference renderer: it is what runs on every pull
+request, so a desk emulator with another GPU can differ from it by a level
+or two on tracked small caps and rounded corners.
+
+## Residual: the lane is not bit-stable
+
+Two runs of the *same* commit (#212, runs 34431444016 and 34431566851)
+disagreed by **17 pixels**, each off by exactly one level in one channel,
+all on the Volt button's rounded corners:
+
+```
+17/1635795 pixels (0.001%), bounds=[84,1183..850,1321]
+```
+
+The first run passed and the second failed. SwiftShader's edge-coverage
+rounding is not reproducible run to run, so an exact comparator will flake
+on this golden roughly half the time and the lane can never reach the ten
+consecutive green runs the CI header sets as the bar for making the job
+blocking. **Open decision for the owner** — see `docs/ROADMAP.md`. Nothing
+has been loosened in the meantime.
