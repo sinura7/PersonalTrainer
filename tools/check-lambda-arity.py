@@ -40,6 +40,7 @@ from checker_baseline import load as load_baselines, report as report_baseline  
 # a test source set alone cannot see the declaration it calls, so run it as
 #   check-lambda-arity.py app/src/main/java app/src/test/java app/src/androidTest/java ...
 # The second stale caller of the defect that prompted this checker was in androidTest.
+MAIN_ROOT = "app/src/main/java"
 ROOTS = sys.argv[1:] or ["app/src/main/java"]
 
 PARAM_MODS = (
@@ -191,14 +192,14 @@ clean = {p: strip_comments_and_strings(open(p, encoding="utf-8").read()) for p i
 decls = collections.defaultdict(list)
 
 
-def record(name, scope, param_text):
+def record(name, scope, param_text, in_main):
     table = {}
     for chunk in top_level_split(param_text):
         m = PARAM_RE.match(chunk.strip())
         if m:
             table[m.group(1)] = function_type_arity(m.group(2))
     if table:
-        decls[name].append((scope, table))
+        decls[name].append((scope, table, in_main))
 
 
 for path, src in clean.items():
@@ -206,12 +207,12 @@ for path, src in clean.items():
         op = src.index("(", m.end() - 1)
         cl = balanced(src, op)
         if cl > 0:
-            record(m.group(1), visibility_scope(src, m.start(), path), src[op + 1:cl])
+            record(m.group(1), visibility_scope(src, m.start(), path), src[op + 1:cl], path.startswith(MAIN_ROOT))
     for m in re.finditer(r"\b(?:data\s+|value\s+|enum\s+)?class\s+([A-Za-z_]\w*)\s*(?:<[^>]*>\s*)?(?:@\w+\s*)?\(", src):
         op = src.index("(", m.end() - 1)
         cl = balanced(src, op)
         if cl > 0:
-            record(m.group(1), visibility_scope(src, m.start(), path), src[op + 1:cl])
+            record(m.group(1), visibility_scope(src, m.start(), path), src[op + 1:cl], path.startswith(MAIN_ROOT))
 
 problems = []
 # Every site this checker declines to judge, so the gap is measured rather than assumed
@@ -243,7 +244,15 @@ for path, src in clean.items():
         name = m.group(1)
         if name not in decls:
             continue
-        visible = [t for scope, t in decls[name] if scope is None or scope == path]
+        # Main code cannot see a test, androidTest or debug declaration. Without this, a
+        # same-named declaration in another source set silently excuses a broken main call —
+        # demonstrated, not theorised: a two-parameter androidTest `ProbeWidget` made a main
+        # call passing a two-parameter lambda to main's one-parameter `ProbeWidget` report 0.
+        from_main = path.startswith(MAIN_ROOT)
+        visible = [
+            t for scope, t, decl_in_main in decls[name]
+            if (scope is None or scope == path) and (decl_in_main or not from_main)
+        ]
         if not visible:
             continue
         op = src.index("(", m.end() - 1)

@@ -13,7 +13,9 @@ from kotlin_source import kotlin_files, kotlin_files_in, strip_comments_and_stri
 # Every root given is indexed AND scanned together. A root on its own is a false clean:
 # nothing outside it is in the declaration index, so `if name not in decls: continue` skips
 # every call into another source set — which for app/src/androidTest is nearly all of them.
-# Private declarations stay confined to their own file, so mixing roots does not blur scopes.
+# Private declarations stay confined to their own file; separately, a main call is judged
+# only against main declarations, so mixing roots does not blur either scope.
+MAIN_ROOT = "app/src/main/java"
 ROOTS = sys.argv[1:] or ["app/src/main/java"]
 
 
@@ -88,18 +90,25 @@ for path, src in clean.items():
     for m in re.finditer(r"\bfun\s*(?:<[^>]*>\s*)?(?:[A-Za-z_][\w.]*(?:<[^>]*>)?\??\.)?([A-Za-z_]\w*)\s*\(", src):
         op = src.index("(", m.end() - 1); cl = balanced(src, op)
         if cl > 0:
-            decls[m.group(1)].append((visibility_scope(src, m.start(), path), set(param_names(src[op+1:cl]))))
+            decls[m.group(1)].append((visibility_scope(src, m.start(), path), set(param_names(src[op+1:cl])), path.startswith(MAIN_ROOT)))
     for m in re.finditer(r"\b(?:data\s+|value\s+|enum\s+)?class\s+([A-Za-z_]\w*)\s*(?:<[^>]*>\s*)?(?:@\w+\s*)?\(", src):
         op = src.index("(", m.end() - 1); cl = balanced(src, op)
         if cl > 0:
-            decls[m.group(1)].append((visibility_scope(src, m.start(), path), set(param_names(src[op+1:cl]))))
+            decls[m.group(1)].append((visibility_scope(src, m.start(), path), set(param_names(src[op+1:cl])), path.startswith(MAIN_ROOT)))
 
 problems = []
 for path, src in clean.items():
     for m in re.finditer(r"(?<![\w.])([A-Za-z]\w*)\s*\(", src):
         name = m.group(1)
         if name not in decls: continue
-        visible = [params for scope, params in decls[name] if scope is None or scope == path]
+        # Main cannot see a test/androidTest/debug declaration; a same-named one there must
+        # not excuse a broken main call. The comment above covers `private`, which is a
+        # different axis entirely.
+        from_main = path.startswith(MAIN_ROOT)
+        visible = [
+            params for scope, params, decl_in_main in decls[name]
+            if (scope is None or scope == path) and (decl_in_main or not from_main)
+        ]
         if not visible: continue
         op = src.index("(", m.end() - 1); cl = balanced(src, op)
         if cl < 0: continue

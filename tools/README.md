@@ -185,8 +185,8 @@ named, so its skip ratchet holds at 178 across 662 files instead of 624.
 
 ### What an audit of these checkers found
 
-An adversarial audit on 10 September 2026 read the checkers themselves. Four holes were
-real, and all four are closed:
+An adversarial audit on 10 September 2026 read the checkers themselves. The holes below were
+real, and all are closed:
 
 **The summary gate passed at ten findings.** `preflight.sh` judges three checkers on their
 summary line rather than an exit code, with `grep -F "0 mismatch(es)"`. That is satisfied by
@@ -196,11 +196,16 @@ summary line rather than an exit code, with `grep -F "0 mismatch(es)"`. That is 
 directions before preflight trusts any of it. Nothing had ever watched that gate fail, which
 is the same reason every other checker here exists.
 
-**Widening `check-internal-imports` lost strictness in the other direction.** One pooled
-index across all five roots is what lets an androidTest file's import of a main declaration
-resolve — but it also let a MAIN file import something only `app/src/test` declares. The
-index now records which root each declaration came from, and a main import is checked against
-main alone. Negative-controlled both ways.
+**Widening lost strictness in the other direction, in all three checkers.** One pooled index
+across all five roots is what lets an androidTest file's import of a main declaration resolve
+— but it also let a MAIN file be judged against a declaration only a test source set has.
+`check-internal-imports` accepted `import ...testutil.awaitFirst` in a production file;
+`check-lambda-arity` and `check-named-args` let a same-named androidTest declaration *excuse a
+broken main call*, which is the opposite of what a comment in `check-named-args` claimed. All
+three now record which root each declaration came from and judge a main file against main
+alone. Demonstrated rather than reasoned about: a two-parameter androidTest `ProbeWidget` made
+a main call passing a two-parameter lambda to main's one-parameter `ProbeWidget` report clean;
+it is now reported with its line.
 
 **A misspelled root read as clean.** `kotlin_files_in` skipped a directory that was not
 there, so a typo produced "0 findings across 0 files" — indistinguishable from success. It
