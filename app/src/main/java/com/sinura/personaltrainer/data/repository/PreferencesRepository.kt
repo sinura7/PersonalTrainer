@@ -305,6 +305,7 @@ class PreferencesRepository(
         RestTimerPreferences(
             soundEnabled = prefs[REST_SOUND] ?: true,
             vibrationEnabled = prefs[REST_VIBRATE] ?: true,
+            tickEnabled = prefs[REST_TICK] ?: true,
             defaultRestSeconds = prefs[REST_DEFAULT] ?: RestTimerPreferences.DEFAULT_SECONDS,
             lastPresetSeconds = prefs[REST_LAST_PRESET],
         ).sanitized()
@@ -368,6 +369,18 @@ class PreferencesRepository(
     suspend fun setRestVibrationEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[REST_VIBRATE] = enabled
+            prefs[REST_ALARM_ELIGIBLE] = true
+        }
+    }
+
+    /**
+     * Device-local on purpose: [setRestTimerPreferences] and the restore
+     * path leave this key alone, so a backup from another phone cannot
+     * switch the ticks on or off here.
+     */
+    suspend fun setRestTickEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[REST_TICK] = enabled
             prefs[REST_ALARM_ELIGIBLE] = true
         }
     }
@@ -991,6 +1004,7 @@ class PreferencesRepository(
         val WEEK_START = stringPreferencesKey("week_start")
         val REST_SOUND = booleanPreferencesKey("rest_sound")
         val REST_VIBRATE = booleanPreferencesKey("rest_vibrate")
+        val REST_TICK = booleanPreferencesKey("rest_tick")
         val REST_DEFAULT = intPreferencesKey("rest_default_seconds")
         val REST_LAST_PRESET = intPreferencesKey("rest_last_preset_seconds")
         val REST_ALARM_ELIGIBLE = booleanPreferencesKey("rest_alarm_eligible")

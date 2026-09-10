@@ -15,6 +15,20 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 10 Sep 2026 — Tick: the last five seconds of rest tick. `RestTick` says
+> where the boundaries fall; `RestTimerService` posts one runnable per
+> boundary and re-asks on every sync, so a ±15 s moves the ticks with the
+> deadline and an old tick is never sounded against a new one (`isDue`).
+> Each tick is a click (`res/raw/rest_tick.wav`, written by
+> `tools/build-rest-tick.py`, kept loaded in a `SoundPool` on the alarm
+> stream) and a 40 ms pulse, under the existing Sound and Vibration
+> toggles and a new **Last five seconds** toggle. The toggle is
+> device-local — not in the backup document, not restored — like the last
+> preset. Reach is the countdown's: process alive, CPU awake; in doze the
+> alarm path's completion cue is the whole alert, and the Settings caption
+> says so. Closes R-04, T-02, T-05, T-17, N-02 and G-10. Live test 31
+> (`debugLiveCode` 31), drop `debug-live/2026-09-10-2`.
+>
 > 10 Sep 2026 — F: Home's day board. Each of today's sessions is its own
 > bordered block — the title, the first four catalog stills, the numbered
 > order, `2 lifts · about 13 min` — with Start (leftover: Do it today) in

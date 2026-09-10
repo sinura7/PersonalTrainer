@@ -3,6 +3,12 @@ package com.sinura.personaltrainer.domain
 data class RestTimerPreferences(
     val soundEnabled: Boolean = true,
     val vibrationEnabled: Boolean = true,
+    /**
+     * The last five seconds tick ([RestTick]). Device-local: not in the
+     * backup document and not restored, like the last preset — a cue
+     * preference belongs to the phone in the gym, not the archive.
+     */
+    val tickEnabled: Boolean = true,
     val defaultRestSeconds: Int = DEFAULT_SECONDS,
     val lastPresetSeconds: Int? = null,
 ) {

@@ -561,6 +561,12 @@ class SettingsViewModel @JvmOverloads constructor(
         }
     }
 
+    fun setRestTickEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            container.preferencesRepository.setRestTickEnabled(enabled)
+        }
+    }
+
     fun setDefaultRestSeconds(seconds: Int) {
         viewModelScope.launch {
             container.preferencesRepository.setDefaultRestSeconds(seconds)

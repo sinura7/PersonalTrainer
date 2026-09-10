@@ -71,6 +71,7 @@ import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.OneFilledVolt
 import com.sinura.personaltrainer.domain.PlanSetupCopy
+import com.sinura.personaltrainer.domain.RestTick
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
@@ -289,6 +290,7 @@ fun SettingsScreen(
                     },
                     onSound = viewModel::setRestSoundEnabled,
                     onVibrate = viewModel::setRestVibrationEnabled,
+                    onTick = viewModel::setRestTickEnabled,
                     onDefaultRest = viewModel::setDefaultRestSeconds,
                     onCustomDefault = viewModel::setDefaultRestCustom,
                 )
@@ -758,13 +760,15 @@ private fun RestTimerPrefsSection(
     onAllowPreciseRestAlerts: () -> Unit,
     onSound: (Boolean) -> Unit,
     onVibrate: (Boolean) -> Unit,
+    onTick: (Boolean) -> Unit,
     onDefaultRest: (Int) -> Unit,
     onCustomDefault: (String) -> Boolean,
 ) {
     var showCustom by rememberSaveable { mutableStateOf(false) }
     SettingsGroup(
         title = "Rest timer",
-        caption = "The cue plays when rest ends. Default rest is used after a working set if the " +
+        caption = "The cue plays when rest ends, screen on or off. The last five seconds tick " +
+            "while the phone is awake. Default rest is used after a working set if the " +
             "lift has none and you haven't picked a preset.",
     ) {
         if (offerExactAlarmAccess) {
@@ -789,6 +793,14 @@ private fun RestTimerPrefsSection(
                 checked = preferences.vibrationEnabled,
                 onCheckedChange = onVibrate,
                 trailing = { InstrumentSwitch(checked = preferences.vibrationEnabled, onCheckedChange = null) },
+            )
+            HairlineDivider()
+            InstrumentRow(
+                title = RestTick.TITLE,
+                subtitle = RestTick.CAPTION,
+                checked = preferences.tickEnabled,
+                onCheckedChange = onTick,
+                trailing = { InstrumentSwitch(checked = preferences.tickEnabled, onCheckedChange = null) },
             )
             HairlineDivider()
             Column(
