@@ -34,7 +34,7 @@ object AccessibilityMatrix {
             title = "Home",
             states = requiredStates,
             voltAction = "Start a workout (freestyle). Planned rows confirm, then start.",
-            talkBackNotes = "Settings is a tab. Home week strip picks the day. Planned rows open a start confirm, and a row skipped today still opens one. A settled row reads its state before the order. The filled Volt is Start a workout. Leftovers confirm as Do it today and can Skip. Day blocks have no clocks; Up / Down rearranges them. Add sits under Today and asks just-today vs every this weekday. This week, Library, Goals and the ready-to-progress list stay off this screen.",
+            talkBackNotes = "Settings is a tab. Home week strip picks the day. Planned rows open a start confirm, and a row skipped today still opens one. A day block is one button: title, order and count, then its state or Start on the foot; Skip and Up / Down sit inside it. The filled Volt is Start a workout. Leftovers confirm as Do it today and can Skip. Day blocks have no clocks; Up / Down rearranges them. Add sits under Today and asks just-today vs every this weekday. This week, Library, Goals and the ready-to-progress list stay off this screen.",
             automatedEvidence = true,
         ),
         PagePass(

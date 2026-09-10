@@ -23,6 +23,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.AgendaItem
+import com.sinura.personaltrainer.domain.AuxiliaryPacks
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.HomeToday
@@ -305,54 +306,63 @@ private fun AgendaRow(
     } else {
         item.title
     }
+    val openable = DailyAgenda.canOpenStart(item, todayEpochDay)
+    val pack = ScheduleKind.auxPackId(item.rule?.templateId)?.let { AuxiliaryPacks.byId(it) }
     val lines = DayBlockCopy.lines(
         names = lifts.map { it.name },
         status = item.occurrence.status,
         modality = item.rule?.modality ?: ScheduleModality.STRENGTH,
         minutes = sessionMinutes(routineId, routines),
+        caption = pack?.caption,
+        startable = openable,
     )
-    val canStart = DailyAgenda.canOpenStart(item, todayEpochDay) && !sessionLive
+    val canStart = openable && !sessionLive
     val leftover = MoveToToday.isLeftover(item.occurrence, todayEpochDay)
-    Column {
-        DayBlock(
-            title = title,
-            lines = lines,
-            exercises = lifts,
-            action = when {
-                !canStart -> null
-                leftover -> MoveToToday.DO_IT_TODAY
-                else -> SessionOrderCopy.START_ROW
-            },
-            onOpen = if (canStart) onOpen else null,
-            modifier = Modifier.testTag(HomeTags.agendaRow(item.occurrence.id)),
-        )
-        if (onSkip != null && leftover && !sessionLive) {
-            TextButton(
-                onClick = onSkip,
-                contentPadding = PaddingValues(0.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = Metrics.touchMin)
-                    .testTag(HomeTags.skipRow(item.occurrence.id))
-                    .semantics { contentDescription = "${MoveToToday.SKIP} ${item.title}" },
-            ) {
-                Text(
-                    MoveToToday.SKIP,
-                    style = InstrumentType.bodyStrong,
-                    color = TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+    val showSkip = onSkip != null && leftover && !sessionLive
+    DayBlock(
+        title = title,
+        lines = lines,
+        exercises = lifts,
+        action = when {
+            !canStart -> null
+            leftover -> MoveToToday.DO_IT_TODAY
+            else -> SessionOrderCopy.START_ROW
+        },
+        onOpen = if (canStart) onOpen else null,
+        modifier = Modifier.testTag(HomeTags.agendaRow(item.occurrence.id)),
+        controls = if (!showSkip && !showReorder) {
+            null
+        } else {
+            {
+                if (showSkip && onSkip != null) {
+                    TextButton(
+                        onClick = onSkip,
+                        contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = Metrics.touchMin)
+                            .testTag(HomeTags.skipRow(item.occurrence.id))
+                            .semantics { contentDescription = "${MoveToToday.SKIP} ${item.title}" },
+                    ) {
+                        Text(
+                            MoveToToday.SKIP,
+                            style = InstrumentType.bodyStrong,
+                            color = TextSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                if (showReorder) {
+                    com.sinura.personaltrainer.ui.plan.ReorderRow(
+                        title = item.title,
+                        occurrenceId = item.occurrence.id,
+                        index = index,
+                        lastIndex = lastIndex,
+                        onMove = onMove,
+                    )
+                }
             }
-        }
-        if (showReorder) {
-            com.sinura.personaltrainer.ui.plan.ReorderRow(
-                title = item.title,
-                occurrenceId = item.occurrence.id,
-                index = index,
-                lastIndex = lastIndex,
-                onMove = onMove,
-            )
-        }
-    }
+        },
+    )
 }
