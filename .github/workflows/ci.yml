@@ -184,7 +184,41 @@ jobs:
           # 945×1731, two screens too short to reach their rows).
           profile: Nexus 5X
           disable-animations: true
-          script: ./gradlew connectedDebugAndroidTest --stacktrace
+          # The runner tears the emulator down as soon as the script returns, so
+          # the script itself dumps logcat on failure; see the file's header
+          # for why it is a file and not an inline `||`.
+          script: ./tools/ci-instrumented.sh
+
+      # The assertion text — Compose semantics trees, the golden diff figures,
+      # the caught exception — lives in the JUnit XML, not in Gradle's stdout.
+      # Print it so a failure can be diagnosed from the job log; the report
+      # artifact is not reachable from every network.
+      - name: Print instrumented failures
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+          root = Path('app/build/outputs/androidTest-results')
+          files = sorted(root.rglob('*.xml')) if root.exists() else []
+          if not files:
+              print('No instrumented result XML under', root)
+          failures = 0
+          for path in files:
+              for case in ET.parse(path).getroot().iter('testcase'):
+                  for kind in ('failure', 'error'):
+                      for node in case.findall(kind):
+                          failures += 1
+                          name = f"{case.get('classname')}.{case.get('name')}"
+                          print(f'::group::{kind.upper()} {name}')
+                          print(node.get('message') or '')
+                          lines = (node.text or '').splitlines()
+                          print('\n'.join(lines[:400]))
+                          if len(lines) > 400:
+                              print(f'... {len(lines) - 400} more lines in the report artifact')
+                          print('::endgroup::')
+          print(f'{failures} failing test(s) across {len(files)} result file(s)')
+          PY
 
       - name: Upload instrumented reports
         if: always()

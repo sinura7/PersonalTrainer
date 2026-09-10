@@ -15,6 +15,15 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 10 Sep 2026 — Lane: the emulator job says why it failed. Its script is
+> `tools/ci-instrumented.sh`, which dumps the device log before the runner
+> tears the emulator down (the runner executes each `script:` line as its
+> own `sh -c`, so the fallback could not be inline), and a
+> `Print instrumented failures` step prints every failure body from the
+> JUnit XML — the semantics trees, the golden diff figures, the caught
+> exception — into the job log, where they can be read from any network.
+> Still non-blocking; the bar for the gate is unchanged. CI only.
+>
 > 9 Sep 2026 — F: the multi-add picker writes as it goes. A tap in Add lifts
 > puts the lift on the routine (or on the custom week's day) immediately and a
 > second tap takes it back out; the numbers are the session's own order, and the
