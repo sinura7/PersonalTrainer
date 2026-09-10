@@ -25,22 +25,20 @@ Obtainium will not offer it. #219 rewrote this file. `#220` is on
 `trunk`: a drop is claimed, not assumed. `debug-live-2026-09-10-8`
 shipped 36 from `#220` (`8cf0623`) — the RPE rule and the drop lock,
 not the lift page. `#221` is on `trunk`: the drop planner fetches tags
-before it answers.
+before it answers. `#222` is on `trunk`: the golden comparator
+forgives one level of rasteriser rounding, capped at 256 pixels.
 
 Open `#202` is R18 step two (exercise detail reads both stores). It
 inherits 36 and does not bump it. After it lands, the next drop is 37.
 Do not start step three from `trunk` while `#202` is open. Do not start
-a second edit of the drop tools, `debug-live.yml`, `SETUP.md`, or the
-owner loop from `trunk`. Do not delete `claude/android-verify-my59sw`
-or `claude/ecstatic-galileo-pw9iub`.
+a second edit of the drop tools, `debug-live.yml`, `SETUP.md`, the owner
+loop, `GoldenImageAssert`, or `FoundationGoldenTest` from `trunk`. Do
+not delete `claude/android-verify-my59sw` or
+`claude/ecstatic-galileo-pw9iub`.
 
-Open `#222` (the golden comparator forgives one level of rasteriser
-rounding) answers the comparator question. Overlap with `#202` is
-HANDOFF and ROADMAP. Do not start a second edit of `GoldenImageAssert`
-or `FoundationGoldenTest` from `trunk`.
-
-**The hosted emulator lane is green: 80 tests, 0 failed.** It has never
-been green before. It is still `continue-on-error` and must stay that way —
+**The hosted emulator lane is green: 80 tests, 0 failed** on `trunk`
+before `#222`; that packet adds three comparator unit tests (expected
+83). It is still `continue-on-error` and must stay that way —
 see the CI note below.
 
 ## What is verified, and how
@@ -138,6 +136,6 @@ second build is never offered by Obtainium. That is the predicted cost of
 breaking the rule, not bad luck. It happened again the same day: `#217`
 and `#218` both claimed 35; `-6` and `-7` both carry that number.
 Obtainium still offers 35 until 36 is installed. `#220` shipped 36 as
-`debug-live-2026-09-10-8`. `#221` is on `trunk`. The next drop after
-`#202` is 37.
+`debug-live-2026-09-10-8`. `#221` and `#222` are on `trunk`. The next
+drop after `#202` is 37.
 
