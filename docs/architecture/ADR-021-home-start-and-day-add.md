@@ -2,6 +2,8 @@
 
 - **Status:** Accepted
 - **Date:** 1 September 2026
+- **Amended:** 10 September 2026 — §7 says what "Save keeps the program"
+  means when a write does not land (UX04 batch A, owner decision D16)
 - **Supersedes:** [ADR-018](ADR-018-home-start-confirm.md) §4 only the
   reading that Home's filled Volt **names** the next planned block;
   [ADR-020](ADR-020-warmup-extras.md) §3 only the reading that Home's
@@ -90,6 +92,9 @@ authorize that work.
    targets, and leaves. Back still discards an empty stub created
    this session. Lifts, reorder, and targets still write through as
    they land. No schema bump. No catalog seed. No sixth tab.
+   *Amended 10 September 2026 by the UX04 batch (owner decision D16).
+   The decision is unchanged; this says what it means when a write
+   does not land, which §7 as accepted left open.*
    Save is truthful: it leaves only when every write it is
    responsible for landed. A failed or refused write keeps the
    editor open and says so beside the dock; Back with such a write
