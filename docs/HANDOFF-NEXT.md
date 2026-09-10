@@ -6,7 +6,7 @@ the rest timer's last five seconds.
 
 ## Where the code stands
 
-`debugLiveCode` is **35**; `appVersionCode` is **1** and stays there until
+`debugLiveCode` is **36**; `appVersionCode` is **1** and stays there until
 a real public artifact is cut (FOUNDATION_PROGRAM P12.3). Room is frozen at
 v4, the backup document and envelope formats are untouched, and no
 identifier is ever rewritten. Those three hold for every future packet.
@@ -21,15 +21,15 @@ the golden's record corrected (#215); and the lane's own tests hardened
 (#216). #214, from another session, moved the entry wells onto the next
 set. #218 stopped the RPE chip and the extra-set button from retyping
 the wells; it landed at live 35, the same number #217 already used, so
-Obtainium will not offer it. #219 rewrote this file.
+Obtainium will not offer it. #219 rewrote this file. `#220` is on
+`trunk`: a drop is claimed, not assumed, and live is 36. No 36 drop has
+been cut yet (`debug-live-2026-09-10-8` is still free).
 
 Open `#202` is R18 step two (exercise detail reads both stores). It
-inherits 35 and does not bump it. Do not start step three from `trunk`
-while `#202` is open.
-
-Open `#220` (a drop is claimed, not assumed) bumps to 36 and claims
-`debug-live/2026-09-10-8`. Overlap with `#202` is ROADMAP only. Do not
-start a second edit of `app/build.gradle.kts`, `debug-live.yml`,
+inherits 36 and does not bump it. Do not start step three from `trunk`
+while `#202` is open. Do not cut the 36 drop until `#202` is on `trunk`,
+so one Obtainium tap carries the lift page as well. Do not start a
+second edit of `app/build.gradle.kts`, `debug-live.yml`,
 `tools/preflight.sh`, `SETUP.md`, or the owner loop from `trunk`. Do not
 delete `claude/android-verify-my59sw` or `claude/ecstatic-galileo-pw9iub`.
 
@@ -53,8 +53,8 @@ directly on each pull request rather than through its check.
 Not verified, and it matters: **nothing here has been on a phone.**
 Drops `debug-live-2026-09-10` (30) through `-7` are waiting; `-6` and
 `-7` both carry 35, so Obtainium will not offer `-7` as an update.
-Install **35 only** among what is already published. `#220` is the 36
-drop after `#202` lands.
+Install **35 only** among what is already published. `#220` is on
+`trunk` at 36; do not cut that drop until `#202` lands.
 
 ## What the phone check is
 
@@ -140,6 +140,7 @@ One packet open at a time, on a branch, squash-merged
 second build is never offered by Obtainium. That is the predicted cost of
 breaking the rule, not bad luck. It happened again the same day: `#217`
 and `#218` both claimed 35; `-6` and `-7` both carry that number.
-Obtainium still offers 35. Open `#220` is the 36 drop after `#202`
-lands; it also stops a taken name from publishing over an existing one.
+Obtainium still offers 35. `#220` is on `trunk` at 36. Do not cut that
+drop until `#202` lands; then `python3 tools/debug-drop-plan.py` names
+the suffix.
 
