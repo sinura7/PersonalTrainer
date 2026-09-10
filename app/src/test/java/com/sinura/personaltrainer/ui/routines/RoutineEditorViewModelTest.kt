@@ -1009,6 +1009,46 @@ class RoutineEditorViewModelTest {
     }
 
     /**
+     * Fixing the box the dock complained about clears the dock.
+     *
+     * A refused Save hands the card's two families over to the dock caption, which is right —
+     * it is said once, where Save was pressed. The hand-off was one-way: the caption has no
+     * dismiss and only the NEXT Save or Back reset it, so correcting the box and letting it
+     * commit left the refusal in red beside an enabled Save, over a box Room already agreed
+     * with. The caption only went when the owner pressed Save again, which is the one thing it
+     * was discouraging them from doing.
+     */
+    @Test
+    fun fixingTheBoxTheDockComplainedAboutClearsTheDock() = runBlocking {
+        val fixture = seedTestWorkout(deps, targetSets = 3, targetReps = 5)
+        deps.workoutRepository.discardSession(fixture.session.id)
+        val itemId = fixture.routine.exercises.single().id
+        val vm = createViewModel(fixture.routine.id)
+        vm.uiState.awaitFirst { it.routine != null }
+
+        vm.stageTargets(
+            itemId = itemId,
+            targetSets = 3,
+            targetReps = null,
+            targetWeightKg = null,
+            restSeconds = 60,
+            invalidReason = NumericEntry.REPS_WHOLE_RULE,
+        )
+        vm.saveAndLeave()
+        vm.uiState.awaitFirst { it.saveError == NumericEntry.REPS_WHOLE_RULE && !it.saving }
+        assertFalse(vm.exitRequested.value)
+
+        // The owner corrects the reps box and moves focus off it, which commits.
+        vm.stageTargets(itemId = itemId, targetSets = 3, targetReps = 8, targetWeightKg = null, restSeconds = 60)
+        vm.commitTargets(itemId)
+
+        val settled = vm.uiState.awaitFirst { it.saveError == null }
+        assertNull("the card was answered, so the dock's copy of its complaint goes too", settled.saveError)
+        assertNull(settled.error)
+        assertEquals(8, checkNotNull(deps.routineRepository.getById(fixture.routine.id)).exercises.single().targetReps)
+    }
+
+    /**
      * Folding a card shut discards its four boxes; reopening reads the stored numbers back.
      * A rejection held past that refuses Save for a box showing a perfectly good value, with
      * nothing on screen to correct — the dead end a removed card used to leave behind. The

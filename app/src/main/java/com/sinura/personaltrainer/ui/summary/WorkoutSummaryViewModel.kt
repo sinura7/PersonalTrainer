@@ -63,6 +63,9 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
     private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
 
     private val _uiState = MutableStateFlow(WorkoutSummaryUiState(sessionId = sessionId))
+
+    /** The automatic backup in flight, so a recreated screen cannot start a second one. */
+    private var autoBackupJob: Job? = null
     val uiState: StateFlow<WorkoutSummaryUiState> = _uiState.asStateFlow()
 
     private var loading: Job? = null
@@ -163,7 +166,19 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
      * the very workout being celebrated.
      */
     fun maybeAutoBackup(activity: Activity) {
-        viewModelScope.launch {
+        // The persisted guard below closes only when the upload FINISHES, so for the whole of
+        // a long upload it is still open. This screen calls in from `LaunchedEffect(Unit)`, and
+        // MainActivity declares no `configChanges`, so a rotation — or a dark/light switch, or
+        // a font-size change — destroys the composition and re-runs the effect while this view
+        // model survives on its nav entry. That started a SECOND concurrent snapshot, encrypt
+        // and upload of the same session.
+        //
+        // Skipping, not restarting: `activity` is wanted only by `rememberAuthorizedSession`
+        // at the top of the upload, so a run already past that point does not need the new
+        // one, and cancelling a live upload to start again could leave a half-written file in
+        // Drive.
+        if (autoBackupJob?.isActive == true) return
+        autoBackupJob = viewModelScope.launch {
             val settings = container.preferencesRepository.autoBackupSettings()
             val sealed = settings.sealedPassphrase
             val armed = AutoBackupPolicy.shouldBackUp(

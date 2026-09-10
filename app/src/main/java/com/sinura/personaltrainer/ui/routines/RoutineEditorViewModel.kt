@@ -40,6 +40,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -469,6 +470,15 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 RoutineWriteOutcome.Stored, RoutineWriteOutcome.NothingToWrite -> {
                     error.clearFrom(source = ERR_TARGETS, before = started)
                     error.clearFrom(source = ERR_TARGET_RULE, before = started)
+                    // And the dock's copy of the same complaint. A refused Save hands these two
+                    // families over to the dock caption (see saveAndLeave), which made the
+                    // hand-off one-way: the caption had no dismiss and only the NEXT Save or
+                    // Back reset it, so setting Sets to "0", pressing Save, then correcting the
+                    // box to "4" left "Enter a whole number of sets, at least 1." in red beside
+                    // an enabled Save, over a box reading 4 that Room already agreed with.
+                    // Answering the card answers the caption; only the Back prompt, which is a
+                    // question still waiting on the owner, survives.
+                    clearDockRefusal()
                 }
                 is RoutineWriteOutcome.Rejected ->
                     error.fail(source = commit.source, message = outcome.reason)
@@ -729,6 +739,18 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         // nothing to keep it open for, and a picker left standing would outlive the pop.
         showPicker.value = false
         exitState.value = ExitState(saving = true)
+    }
+
+    /**
+     * Drop the dock's refusal, keeping the Back prompt.
+     *
+     * The caption reports one Save attempt; the prompt is a question the owner has not yet
+     * answered, and clearing that would take the choice away rather than resolve it.
+     */
+    private fun clearDockRefusal() {
+        exitState.update { current ->
+            if (current.saveError == null) current else current.copy(saveError = null)
+        }
     }
 
     /** The attempt is over and the screen is not popping: re-arm every edit method. */
