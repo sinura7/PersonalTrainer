@@ -38,6 +38,10 @@ The foundation program is larger than those jobs. It still has one developer.
 6. **GitHub-hosted runners are not the project test lane.** A red X on a
    hosted workflow is noise. Do not open a CI-billing packet. Do not ask the
    owner to grant Actions scopes so an agent can read workflow logs.
+   *Amended 10 September 2026 by [ADR-024](ADR-024-hosted-jvm-check.md) for
+   one named job: the deterministic `Tests, lint, debug build` job may be a
+   required check on `trunk`. The emulator lane may not, and the local gate
+   in decision 5 is unchanged and still comes first.*
 7. Phone evidence may remain a milestone blocker after the branch is cleaned
    up. Do not leave “code complete, branch pending phone” work open.
 8. Independent review, adversarial audit, and post-merge trunk verification
@@ -54,7 +58,8 @@ The foundation program is larger than those jobs. It still has one developer.
 ## Consequences
 
 - Parallel feature work is rejected even when it looks independent.
-- Hosted CI may keep existing YAML. It is not a gate and not a reason to stop.
+- Hosted CI may keep existing YAML. It is not a gate and not a reason to stop
+  — except for the one job [ADR-024](ADR-024-hosted-jvm-check.md) names.
 - Phase 10 (KMP) and Phase 11 (sync) do not start because they would be
   interesting. They start only when their ADRs’ start gates are true.
 - An agent that tells the owner to pull `trunk` in Studio is wrong.

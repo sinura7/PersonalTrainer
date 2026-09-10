@@ -52,6 +52,7 @@ No ADR may leave a schema, scheduling, privacy, or entitlement choice as TBD.
 | [ADR-021](ADR-021-home-start-and-day-add.md) | Home start, day add, skip leftover, editor Save | Row starts planned; Volt is Start a workout; + under Today; skip Still open |
 | [ADR-022](ADR-022-keyed-catalog-stills.md) | Keyed catalog stills | One WebP per built-in lift; `imageKey` written at catalog v7 |
 | [ADR-023](ADR-023-palette-and-reduced-motion.md) | Palette collisions stay; reduced motion finishes the gate | F14 / G6; amends ADR-005 §5 |
+| [ADR-024](ADR-024-hosted-jvm-check.md) | The deterministic hosted job may gate `trunk`; the emulator may not | Amends ADR-002 §6 for one named job; the local gate is unchanged |
 
 ## Supporting records
 
@@ -77,5 +78,8 @@ These are not superseded by the foundation program:
 - A sixth tab, or Library as a tab, without a new signed decision ([ADR-006](ADR-006-information-architecture.md), [ADR-014](ADR-014-settings-tab.md), [ADR-016](ADR-016-settings-home-trim.md), [ADR-017](ADR-017-home-week-board.md), [ADR-018](ADR-018-home-start-confirm.md), [ADR-019](ADR-019-move-to-today.md), [ADR-020](ADR-020-warmup-extras.md), [ADR-021](ADR-021-home-start-and-day-add.md), [ADR-022](ADR-022-keyed-catalog-stills.md), [ADR-023](ADR-023-palette-and-reduced-motion.md))
 - An LLM or chat coach that authors loads, plans, or records ([ADR-008](ADR-008-deterministic-rules.md))
 - Package or Drive-folder rename
-- GitHub-hosted runners as the project test lane ([ADR-002](ADR-002-execution-protocol.md))
+- GitHub-hosted runners as the project test lane ([ADR-002](ADR-002-execution-protocol.md)),
+  with one named exception: the deterministic *Tests, lint, debug build* job may be a
+  required check on `trunk` ([ADR-024](ADR-024-hosted-jvm-check.md)). The emulator lane
+  may not, ever, without a new signed decision.
 - Subscription-gating the local core ([ADR-004](ADR-004-offline-core-and-entitlements.md))
