@@ -39,6 +39,10 @@ or the ADRs from `trunk`. Do not delete `claude/android-verify-my59sw`
 or `claude/ecstatic-galileo-pw9iub`. An agent does not switch branch
 protection on.
 
+Open `#224` (install 36, not 35) overlaps `#202` on HANDOFF and
+ROADMAP. It corrects the phone instruction on `trunk`. Do not start a
+second rewrite of that section from `trunk`.
+
 **The hosted emulator lane is green: 80 tests, 0 failed** on `trunk`
 before `#222`; that packet adds three comparator unit tests (expected
 83). It is still `continue-on-error` and must stay that way —
