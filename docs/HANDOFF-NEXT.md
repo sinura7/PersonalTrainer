@@ -154,7 +154,7 @@ chip progress/rest badge, E-04/E-12, N-01, T-16, S-02/B-03/I-01).
 Do not take those 21 as this packet. `#201` (write-through multi-add
 picker, live 29), `#205` (Home day board, live 30), `#206`
 (last-five-seconds rest tick, live 31, drop `debug-live/2026-09-10-2`),
-and `#212` (tick follow-ups: re-anchor from the store, a boundary at
+`#212` (tick follow-ups: re-anchor from the store, a boundary at
 now ticks now, live 32, drop `debug-live/2026-09-10-3`),
 and `#213` (day-board follow-ups, live 33, drop `debug-live/2026-09-10-4`)
 are on `trunk`. Do **not** bump 33 here.
