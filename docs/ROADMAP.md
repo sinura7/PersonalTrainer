@@ -141,9 +141,10 @@
 > 9 Sep 2026 — R18 step two: exercise detail bests and history read
 > `CompletedTrainingRepository.observeExerciseSets` (both stores). A
 > backdated strength day counts as a PR on that lift, not only in
-> Records. `#217`, `#218`, and `#219` are on `trunk` (`#217`/`#218`
-> both live 35, so Obtainium will not offer `#218` as a new drop;
-> `#219` is docs). This packet inherits 35 and does not bump it.
+> Records. `#217`–`#219` are on `trunk` (`#217`/`#218` both live 35;
+> `#219` is docs). Open `#220` bumps to 36 / `debug-live/2026-09-10-8`
+> and owns the drop tools; overlap with this packet is ROADMAP only.
+> This packet inherits 35 and does not bump it.
 >
 > 9 Sep 2026 — F: the multi-add picker writes as it goes. A tap in Add lifts
 > puts the lift on the routine (or on the custom week's day) immediately and a

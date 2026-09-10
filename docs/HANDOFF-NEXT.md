@@ -25,8 +25,13 @@ Obtainium will not offer it. #219 rewrote this file.
 
 Open `#202` is R18 step two (exercise detail reads both stores). It
 inherits 35 and does not bump it. Do not start step three from `trunk`
-while `#202` is open. Do not delete `claude/android-verify-my59sw` or
-`claude/ecstatic-galileo-pw9iub`.
+while `#202` is open.
+
+Open `#220` (a drop is claimed, not assumed) bumps to 36 and claims
+`debug-live/2026-09-10-8`. Overlap with `#202` is ROADMAP only. Do not
+start a second edit of `app/build.gradle.kts`, `debug-live.yml`,
+`tools/preflight.sh`, `SETUP.md`, or the owner loop from `trunk`. Do not
+delete `claude/android-verify-my59sw` or `claude/ecstatic-galileo-pw9iub`.
 
 **The hosted emulator lane is green: 80 tests, 0 failed.** It has never
 been green before. It is still `continue-on-error` and must stay that way —
@@ -45,10 +50,11 @@ sh tools/hang-watchdog.sh ./gradlew testDebugUnitTest assembleDebug
 then CI on the pull request, then a squash merge. The emulator lane is read
 directly on each pull request rather than through its check.
 
-Not verified, and it matters: **nothing here has been on a phone.** Six
-drops are waiting — `debug-live/2026-09-10` (30) through
-`debug-live/2026-09-10-6` (35). Install **35 only**: every earlier one is
-the same two features with fewer of the review's fixes folded in.
+Not verified, and it matters: **nothing here has been on a phone.**
+Drops `debug-live-2026-09-10` (30) through `-7` are waiting; `-6` and
+`-7` both carry 35, so Obtainium will not offer `-7` as an update.
+Install **35 only** among what is already published. `#220` is the 36
+drop after `#202` lands.
 
 ## What the phone check is
 
@@ -133,6 +139,7 @@ One packet open at a time, on a branch, squash-merged
 `debugLiveCode` to 33 independently — git merges that silently and the
 second build is never offered by Obtainium. That is the predicted cost of
 breaking the rule, not bad luck. It happened again the same day: `#217`
-and `#218` both claimed 35; Obtainium still offers `debug-live-2026-09-10-6`
-(`#217`). The next drop is 36 after `#202` lands.
+and `#218` both claimed 35; `-6` and `-7` both carry that number.
+Obtainium still offers 35. Open `#220` is the 36 drop after `#202`
+lands; it also stops a taken name from publishing over an existing one.
 
