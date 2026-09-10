@@ -27,19 +27,17 @@ shipped 36 from `#220` (`8cf0623`) — the RPE rule and the drop lock,
 not the lift page. `#221` is on `trunk`: the drop planner fetches tags
 before it answers. `#222` is on `trunk`: the golden comparator
 forgives one level of rasteriser rounding, capped at 256 pixels.
+`#223` is on `trunk`: ADR-024, the deterministic hosted job may gate
+`trunk`; the emulator may not. The setting is the owner's.
 
 Open `#202` is R18 step two (exercise detail reads both stores). It
 inherits 36 and does not bump it. After it lands, the next drop is 37.
 Do not start step three from `trunk` while `#202` is open. Do not start
 a second edit of the drop tools, `debug-live.yml`, `SETUP.md`, the owner
-loop, `GoldenImageAssert`, or `FoundationGoldenTest` from `trunk`. Do
-not delete `claude/android-verify-my59sw` or
-`claude/ecstatic-galileo-pw9iub`.
-
-Open `#223` (ADR-024: the deterministic hosted job may gate `trunk`)
-overlaps `#202` on HANDOFF and ROADMAP. Do not start a second edit of
-`DEVELOPMENT.md`, `ADR-002`, or `architecture/README.md` from `trunk`.
-The setting itself is the owner's; an agent does not switch it on.
+loop, `GoldenImageAssert`, `FoundationGoldenTest`, `DEVELOPMENT.md`,
+or the ADRs from `trunk`. Do not delete `claude/android-verify-my59sw`
+or `claude/ecstatic-galileo-pw9iub`. An agent does not switch branch
+protection on.
 
 **The hosted emulator lane is green: 80 tests, 0 failed** on `trunk`
 before `#222`; that packet adds three comparator unit tests (expected
@@ -144,6 +142,6 @@ second build is never offered by Obtainium. That is the predicted cost of
 breaking the rule, not bad luck. It happened again the same day: `#217`
 and `#218` both claimed 35; `-6` and `-7` both carry that number.
 Obtainium still offers 35 until 36 is installed. `#220` shipped 36 as
-`debug-live-2026-09-10-8`. `#221` and `#222` are on `trunk`. The next
+`debug-live-2026-09-10-8`. `#221`–`#223` are on `trunk`. The next
 drop after `#202` is 37.
 
