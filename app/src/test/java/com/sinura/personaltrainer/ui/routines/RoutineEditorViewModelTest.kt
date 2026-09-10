@@ -188,6 +188,36 @@ class RoutineEditorViewModelTest {
         assertFalse(vm.exitRequested.value)
     }
 
+    /**
+     * Binning an untouched stub is housekeeping, and [RoutineEditorViewModel.leaveAnyway]
+     * already states the rule: an empty routine left behind is a nuisance, an editor that
+     * cannot be left is not. `discardEmptyStub` guards its own delete for that reason, but the
+     * count read in front of the delete sat outside the guard — so a transient Room fault at
+     * Back time raised "Some changes are not saved" over a Back that then refused to pop, with
+     * nothing unsaved at all. Only that first read fails here; the details compare behind it
+     * succeeds, so a genuine save failure is not what is being waved through.
+     */
+    @Test
+    fun aFailedStubCheckOnBackDoesNotClaimUnsavedChanges() = runBlocking {
+        val exercise = insertTestExercise(deps, "row", "Row")
+        val gate = FailureGate(shouldFail = false)
+        val vm = createViewModel(
+            "new",
+            container = withRoutineDao(FailNextGetByIdDao(deps.database.routineDao(), gate)),
+        )
+        vm.awaitState { !it.isLoading }
+        vm.addExercise(exercise, 3, 8, null, 90)
+        val created = awaitRoutine { it.exercises.size == 1 }
+        vm.removeExercise(created.exercises.single().id)
+        awaitRoutine { it.exercises.isEmpty() }
+
+        gate.shouldFail = true
+        vm.leave()
+
+        vm.awaitExit()
+        assertNull(vm.uiState.value.unsavedOnBack)
+    }
+
     @Test
     fun leavePersistsRenamedNotesOnAnExistingRoutine() = runBlocking {
         val fixture = seedTestWorkout(deps)
@@ -1126,10 +1156,14 @@ class RoutineEditorViewModelTest {
         assertEquals(RoutineSaveCopy.EXIT_READ_FAILED, blocked.saveError)
         assertFalse(vm.exitRequested.value)
 
+        // Back names what actually failed. The stub check is housekeeping and is now guarded,
+        // so the only thing still owed here is the rename — and the prompt says so, where it
+        // used to fall back to "could not check what still needs saving". saveAndLeave above
+        // still reports the vaguer sentence: its count read is a precondition, not cleanup.
         vm.leave()
         val prompted = vm.uiState.awaitFirst { it.unsavedOnBack != null && !it.saving }
-        assertEquals(RoutineSaveCopy.EXIT_READ_FAILED, prompted.unsavedOnBack?.message)
-        assertEquals(listOf(RoutineSaveCopy.UNKNOWN_ITEMS), prompted.unsavedOnBack?.items)
+        assertEquals(RoutineSaveCopy.DETAILS_FAILED, prompted.unsavedOnBack?.message)
+        assertEquals(listOf(RoutineSaveCopy.DETAILS_ITEM), prompted.unsavedOnBack?.items)
 
         vm.leaveAnyway()
         vm.exitRequested.awaitFirst { it }
@@ -1312,6 +1346,24 @@ class RoutineEditorViewModelTest {
     ) : RoutineDao by delegate {
         override suspend fun getById(id: String): RoutineWithExercises? {
             if (gate.shouldFail) error("boom: Room could not read routine $id")
+            return delegate.getById(id)
+        }
+    }
+
+    /**
+     * Fails exactly the next [RoutineDao.getById] and then steps aside. The exit path reads the
+     * routine twice — once to decide whether an untouched stub should be binned, once to compare
+     * the typed name and notes — and only the first of those is housekeeping.
+     */
+    private class FailNextGetByIdDao(
+        private val delegate: RoutineDao,
+        private val gate: FailureGate,
+    ) : RoutineDao by delegate {
+        override suspend fun getById(id: String): RoutineWithExercises? {
+            if (gate.shouldFail) {
+                gate.shouldFail = false
+                error("boom: Room could not read routine $id")
+            }
             return delegate.getById(id)
         }
     }
