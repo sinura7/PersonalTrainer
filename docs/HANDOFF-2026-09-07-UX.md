@@ -237,6 +237,68 @@ Four holes in the checkers themselves are fixed in `f528299`, the worst being th
 `"10 mismatch(es)"` satisfies: the shared gate had been reporting clean at 10, 20, 30 …
 findings. `tools/test_summary_gate.sh` now proves both directions before preflight trusts it.
 
+## 6.3 The premise changed: Google's Maven is reachable and the real build runs here
+
+Set out to audit `tools/compile-check.sh`. Found something that matters more than any of its
+findings: **`dl.google.com` now answers.**
+
+    $ curl -o /dev/null -w "%{http_code}" \
+        https://dl.google.com/dl/android/maven2/androidx/activity/activity/1.12.4/activity-1.12.4.pom
+    200
+
+Earlier in this same session it refused with a 403 at the CONNECT, and every mirror with it —
+that refusal is the entire reason the compile lane exists. It is no longer true. Whether the
+egress policy changed or the container came back with a different one, the observation is
+what it is, and it should be re-checked at the start of any session that plans to rely on it.
+
+What followed, in order, all of it executed:
+
+| Step | Result |
+|---|---|
+| `./gradlew projects` | **BUILD SUCCESSFUL** — AGP 8.9.2 resolved from Google's Maven and the project configured |
+| `./gradlew assembleDebug` (no SDK yet) | failed with **"SDK location not found"** — a missing toolchain, not an unresolvable dependency |
+| Android command-line tools, then `sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"` | installed to `/opt/android-sdk`, licences accepted |
+| `./gradlew assembleDebug` | **BUILD SUCCESSFUL in 5m 24s** — `PersonalTrainer-1.0.0-debug.apk`, 17,905,677 bytes |
+| `./gradlew testDebugUnitTest` | **1,946 tests, 1 failure** |
+
+The one failure, `RoutineEditorViewModelTest.leaveDiscardsAnEmptyStubCreatedThisSession`, is
+`awaitExit gave up` — a wait that timed out under the full parallel suite. It passes on its
+own (`--tests '*leaveDiscardsAnEmptyStubCreatedThisSession'`, BUILD SUCCESSFUL in 26s) and it
+passes in CI on this commit, so it is the load flake this repo already raised `TestWaits`'
+ceiling for, not a defect. Note the JDK differs from CI's: Temurin 17 there, OpenJDK 21 here.
+
+### What this changes
+
+Every "written, not executed" in §4 and in the acceptance matrix was a statement about this
+environment, and this environment can now execute them. The merge gate is runnable locally,
+which is the thing this record has said was out of reach since the first version.
+
+The compile lane's job changes with it. It was built as a *substitute* for a build that could
+not run; it is now, at best, **fast local feedback** — about four minutes against Gradle's
+five and a half cold, and less than that warm. Its ~3,000 lines of shell and hand-written
+stubs carry documented soundness caveats that the real toolchain does not have. It should not
+be trusted over `assembleDebug` on any question where the two disagree.
+
+One caveat against retiring it outright: the SDK at `/opt/android-sdk` was installed by hand
+in this session and a fresh container will not have it. Until that bootstrap is scripted, the
+lane is still the only thing that works on a cold start.
+
+### The audit itself
+
+Eight lenses, three skeptics per material finding. **One confirmed false green out of ten
+material findings; nine refuted.** For 1,520 lines of hand-written stubs standing in for
+Room, DataStore, WorkManager, lifecycle, Play Services, navigation and the Android-only parts
+of Compose, that is a good result.
+
+The survivor: `tools/compose-stubs/activity.kt:17` declares
+`open class ComponentActivity : android.app.Activity()` with no members, so an Activity
+override binds to AOSP's Java signatures, which carry no nullability annotation and therefore
+present as Kotlin platform types. The real `androidx.activity.ComponentActivity` is Kotlin and
+re-declares those callbacks non-null. So `override fun onNewIntent(intent: Intent?)` would
+type-check here and fail under Gradle with "overrides nothing". Latent, not live —
+`MainActivity.kt:76` and `RestLockActivity.kt:106` both write the non-null form today — and
+the stub's own header claims the opposite is checked. Thirteen further findings are minor.
+
 ## 7. Delivery state
 
 Everything is committed on `claude/file-visibility-check-jraqc2` and **pushed to origin with the owner's authorization on 7 September**. Nothing has been merged, tagged, published or deployed; no production configuration, credential or user data was touched.
