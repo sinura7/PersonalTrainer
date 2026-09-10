@@ -15,6 +15,17 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 10 Sep 2026 — Tick follow-ups, from a six-reviewer pass over #206: the
+> ticks re-anchor from every running snapshot the service collects, not
+> only from the `ACTION_SYNC` that trails the disk write, so a -15 s that
+> lands the countdown on five ticks five at once (`RestTick.nextTick`
+> counts a boundary at exactly now, with a `ticked` guard against a
+> runnable asking for itself). Preflight proves `rest_tick.wav` is byte-
+> identical to its generator; the backup threat model names `REST_TICK`
+> among the exclusions and a round-trip test shows a restore leaves the
+> toggle alone; the Settings caption claims only what the code gives.
+> Live test 32 (`debugLiveCode` 32), drop `debug-live/2026-09-10-3`.
+>
 > 10 Sep 2026 — Lane fixes: the hosted emulator pass is meant to be green.
 > Four failures, one pull request each, none skipped or loosened: the
 > exact-alarm test read `lastAlarmSchedule` before the IO-scope arm had

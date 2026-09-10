@@ -313,6 +313,22 @@ class BackupV2RoundTripTest {
         assertTrue(preferences.onboardingComplete.first())
     }
 
+    /**
+     * The tick toggle is this phone's, like the last preset: a document from
+     * another phone, which has no field for it, must not switch it back on.
+     */
+    @Test
+    fun aRestoreLeavesTheTickToggleAlone() = runBlocking {
+        preferences.setRestTickEnabled(false)
+        maintenance.seedCatalog()
+        seedUserData()
+        val json = BackupJson.encode(local.createSnapshot())
+        restore(json)
+        assertFalse(preferences.restTimerPreferences.first().tickEnabled)
+        restore(V1_FIXTURE)
+        assertFalse(preferences.restTimerPreferences.first().tickEnabled)
+    }
+
     @Test
     fun hasLocalDataCountsScheduleSlots() = runBlocking {
         assertEquals(0, local.authoredInventory().scheduleSlots)

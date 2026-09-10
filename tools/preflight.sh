@@ -165,6 +165,16 @@ for c in "check-internal-imports.py app/src/main/java" \
     python3 tools/$c || fail "$c"
 done
 
+# --- generated assets must match their generators -----------------------------
+# rest_tick.wav is written by tools/build-rest-tick.py; a hand-edited or stale
+# file would ship a different click from the one the script documents.
+step "rest-tick asset matches tools/build-rest-tick.py"
+tick_tmp="$(mktemp)"
+python3 tools/build-rest-tick.py "$tick_tmp" >/dev/null || fail "build-rest-tick.py"
+cmp -s "$tick_tmp" app/src/main/res/raw/rest_tick.wav || fail "rest_tick.wav drifted from tools/build-rest-tick.py"
+rm -f "$tick_tmp"
+echo "rest_tick.wav: byte-identical to the generator's output"
+
 # --- static checks that always exit 0: judged on their summary line -----------
 summary() {
     label="$1"; want="$2"; shift 2
