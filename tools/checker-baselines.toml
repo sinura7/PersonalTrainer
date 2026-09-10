@@ -5,7 +5,10 @@
 # RestTimerController.kt: `state.` is the store snapshot, not a screen UiState.
 # InstrumentSwitch.kt: no typed uiState ViewModel (G4).
 state_members = 2
-required_args_mixed = 180
+# 180 -> 181 on 10 Sep 2026, when the checkers began reading androidTest, debug and
+# sharedTest. This counts calls the checker DECLINES to judge, not defects: the defect
+# count is separate and is 0. One more blind spot became visible; none was created.
+required_args_mixed = 181
 required_args_lambda = 46
 when_exhaustive = 47
 # ViewModel-flow `first { }` waits in *ViewModelTest.kt with no withTimeout around
@@ -15,6 +18,13 @@ unbounded_waits = 0
 # `catch (Exception)` inside a suspend fun or a coroutine builder's lambda with no
 # CancellationException clause ahead of it: it eats the cancellation and carries on.
 cancellation_swallow = 0
+# Call sites check-lambda-arity declines rather than guesses at: a lambda header that does
+# not parse as a parameter list, a declaration whose parameter is not a plain function type
+# (a receiver type `T.(A) -> R` among them), and a fully-qualified call, which the call-site
+# regex cannot see because its lookbehind excludes a leading dot — the price of not judging
+# `vm.method(...)` against a same-named top-level declaration. Ratchet down; a rise means a
+# new blind spot, not new code.
+lambda_arity_declined = 61
 
 [tokens]
 # Ratched 2026-09-05 so live test 21 / further packets have a green

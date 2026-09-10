@@ -22,9 +22,20 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from kotlin_source import kotlin_files, strip_comments_and_strings  # noqa: E402
+from kotlin_source import kotlin_files, kotlin_files_in, strip_comments_and_strings  # noqa: E402
 
-ROOT = sys.argv[1] if len(sys.argv) > 1 else "app/src/main/java"
+# Every root given is indexed AND scanned together. A root scanned alone reports every
+# import into another source set as unresolved — app/src/androidTest alone produces 146 such
+# false positives — which is why this was main-only, and why nothing checked the imports of
+# the instrumented tests at all.
+MAIN_ROOT = "app/src/main/java"
+ROOTS = sys.argv[1:] or [
+    "app/src/main/java",
+    "app/src/test/java",
+    "app/src/androidTest/java",
+    "app/src/debug/java",
+    "app/src/sharedTest/java",
+]
 PREFIX = "com.sinura.personaltrainer."
 
 # Objects whose members are the design vocabulary. Restricted to a known list so a local
@@ -80,7 +91,13 @@ def main() -> int:
     type_members: dict[str, set[str]] = {}
     sources: list[tuple[str, str]] = []
 
-    for path in kotlin_files(ROOT):
+    # Pooling every root into one index is what lets an androidTest file's import of a main
+    # declaration resolve. It also, on its own, lets a MAIN file import something only
+    # app/src/test declares — which the compiler would reject and which the old main-only
+    # scan caught. So the root each declaration came from is recorded, and a main import is
+    # checked against main alone.
+    main_names: dict[str, set[str]] = {}
+    for path in kotlin_files_in(ROOTS):
         raw = open(path, encoding="utf-8").read()
         src = strip_comments_and_strings(raw)
         sources.append((path, src))
@@ -90,8 +107,11 @@ def main() -> int:
             continue
         package = match.group(1)
         names = by_package.setdefault(package, set())
+        in_main = path.startswith(MAIN_ROOT)
         for decl in TOP_DECL_RE.finditer(src):
             names.add(decl.group(1))
+            if in_main:
+                main_names.setdefault(package, set()).add(decl.group(1))
         # `import a.b.SomeEnum.ENTRY` is legal Kotlin and resolves to a member of the type,
         # not to a top-level declaration, so the import pass below needs the entries indexed.
         for enum in ENUM_BODY_RE.finditer(src):
@@ -116,8 +136,18 @@ def main() -> int:
             if not fqn.startswith(PREFIX) or fqn.endswith(".*") or fqn in GENERATED:
                 continue
             package, _, name = fqn.rpartition(".")
-            known = by_package.get(package)
+            # Main code cannot see a test or debug declaration. Judging it against the pooled
+            # index would let `import ...testutil.FakeClock` in a production file pass, which
+            # the compiler rejects and the old main-only scan caught.
+            visible = main_names if path.startswith(MAIN_ROOT) else by_package
+            known = visible.get(package)
             if known is not None and name in known:
+                continue
+            if path.startswith(MAIN_ROOT) and by_package.get(package, set()) >= {name}:
+                problems.append(
+                    f"{path}: import {fqn} — '{name}' is declared only outside app/src/main, "
+                    f"so production code cannot see it"
+                )
                 continue
             # Not a top-level name. It may be a member import — `package.Type.MEMBER` — which
             # is how enum entries and object members are pulled in. Resolve against the type.

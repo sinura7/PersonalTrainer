@@ -17,7 +17,7 @@ test counts are what ran *then*, not what runs now.
 
 | Lane | What it proves | Where it runs | Gate for |
 |---|---|---|---|
-| Static gate: `PT_STATIC_ONLY=1 tools/preflight.sh` | Twenty source checkers, ratchets in `tools/checker-baselines.toml`, syntax check | Any machine with Python 3.11+ (`tomllib`) and Java 17 (no SDK) | every commit |
+| Static gate: `PT_STATIC_ONLY=1 tools/preflight.sh` | Twenty-one source checkers, ratchets in `tools/checker-baselines.toml`, syntax check | Any machine with Python 3.11+ (`tomllib`) and Java 17 (no SDK) | every commit |
 | JVM lane: `tools/run-domain-tests.sh <jars>` | `domain/`, `util/`, `logging/`, the named workout/timer/diagnostics files and the backup codec, compiled with `kotlinc` against stubs | same | every commit |
 | Gradle unit: `./gradlew testDebugUnitTest` | The whole JVM suite including Robolectric (Room in memory, ViewModels) | SDK machine, or `ci.yml` on a push | merge into `trunk` |
 | Build + lint: `./gradlew assembleDebug lintDebug` | The APK compiles; no new lint issues past `app/lint-baseline.xml` | same | merge into `trunk` |
@@ -136,16 +136,21 @@ The individual checks in `tools/` cover the gap when you cannot build — they a
 pre-flight, not a substitute for `./gradlew assembleDebug`:
 
 ```bash
-python3 tools/check-named-args.py app/src/main/java        # named args vs. declarations
+python3 tools/check-named-args.py app/src/main/java \
+    app/src/test/java app/src/androidTest/java \
+    app/src/debug/java app/src/sharedTest/java             # named args vs. declarations
 python3 tools/check-when-exhaustive.py app/src/main/java   # sealed/enum when coverage
 python3 tools/check-unused-imports.py app/src/main/java    # dead imports
-python3 tools/check-internal-imports.py app/src/main/java  # in-project names actually exist
-python3 tools/check-missing-imports.py                     # names used but never imported
+python3 tools/check-internal-imports.py                    # in-project names actually exist (all five source sets)
+python3 tools/check-missing-imports.py                     # names used but never imported (all five source sets)
 python3 tools/check-design-tokens.py app/src/main/java     # no raw colours/radii/elevation
 python3 tools/check-screen-wiring.py app/src/main/java     # every callback is actually called
 python3 tools/check-state-members.py app/src/main/java     # state.foo exists on that UiState
 python3 tools/check-annotation-targets.py                  # annotations still on a declaration
-python3 tools/check-required-args.py                       # every required parameter supplied
+python3 tools/check-required-args.py                       # every required parameter supplied (all five source sets)
+python3 tools/check-lambda-arity.py app/src/main/java \
+    app/src/test/java app/src/androidTest/java \
+    app/src/debug/java app/src/sharedTest/java             # lambda parameters vs. the declared function type
 python3 tools/check-import-hygiene.py                      # no duplicate imports; `by` delegates importable
 python3 tools/check-doc-authority.py                       # current-voice docs, FND map, relative links
 python3 tools/check-unbounded-waits.py                     # ViewModel waits in tests have a withTimeout

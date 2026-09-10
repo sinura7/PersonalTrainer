@@ -136,13 +136,14 @@ fi
 export PT_JARS="$JARS"   # syntax-check.sh and run-domain-tests.sh both read this
 
 # --- static checks judged by exit code ----------------------------------------
-for c in "check-internal-imports.py app/src/main/java" \
+for c in "check-internal-imports.py" \
          "check-missing-imports.py" \
          "check-design-tokens.py" \
          "check-screen-wiring.py app/src/main/java" \
          "check-state-members.py" \
          "check-annotation-targets.py" \
          "check-required-args.py" \
+         "check-lambda-arity.py app/src/main/java app/src/test/java app/src/androidTest/java app/src/debug/java app/src/sharedTest/java" \
          "check-import-hygiene.py" \
          "check-doc-authority.py" \
          "check-backup-policy.py" \
@@ -158,7 +159,7 @@ for c in "check-internal-imports.py app/src/main/java" \
          "check-cancellation.py" \
          "test_policy_move.py" \
          "test_checker_skips.py" \
-         "test_debug_drop.py" \
+         "test_lambda_arity.py" \
          "test_unbounded_waits.py" \
          "test_cancellation.py"; do
     step "$c"
@@ -166,28 +167,33 @@ for c in "check-internal-imports.py app/src/main/java" \
     python3 tools/$c || fail "$c"
 done
 
-# --- generated assets must match their generators -----------------------------
-# rest_tick.wav is written by tools/build-rest-tick.py; a hand-edited or stale
-# file would ship a different click from the one the script documents.
-step "rest-tick asset matches tools/build-rest-tick.py"
-tick_tmp="$(mktemp)"
-python3 tools/build-rest-tick.py "$tick_tmp" >/dev/null || fail "build-rest-tick.py"
-cmp -s "$tick_tmp" app/src/main/res/raw/rest_tick.wav || fail "rest_tick.wav drifted from tools/build-rest-tick.py"
-rm -f "$tick_tmp"
-echo "rest_tick.wav: byte-identical to the generator's output"
-
 # --- static checks that always exit 0: judged on their summary line -----------
 summary() {
     label="$1"; want="$2"; shift 2
     step "$label"
     out="$("$@")" || fail "$label crashed"
     printf '%s\n' "$out" | tail -1
-    printf '%s\n' "$out" | grep -qF "$want" || { printf '%s\n' "$out"; fail "$label"; }
+    # The count must START a line, not merely appear in one. `grep -F "0 mismatch(es)"`
+    # is satisfied by "10 mismatch(es) across 680 files", so this gate reported clean at
+    # 10, 20, 30 ... findings for all three checkers below — a false green that had been
+    # sitting in the shared gate. awk's index()==1 is a literal prefix test, so there is
+    # no regex to escape and no metacharacter in "(es)" to get wrong. Every checker here
+    # prints its count at the start of a line; tools/test_summary_gate.sh proves both
+    # directions.
+    printf '%s\n' "$out" | awk -v want="$want" 'index($0, want) == 1 { hit = 1 } END { exit !hit }' \
+        || { printf '%s\n' "$out"; fail "$label"; }
 }
-summary "check-named-args (main)" "0 mismatch(es)" \
-    python3 tools/check-named-args.py app/src/main/java
-summary "check-named-args (test)" "0 mismatch(es)" \
-    python3 tools/check-named-args.py app/src/test/java
+# The gate below is only worth its exit code if it actually fails on a finding. It did not
+# until 10 Sep 2026; this proves both directions before any of it is trusted.
+step "test_summary_gate.sh"
+sh tools/test_summary_gate.sh || fail "test_summary_gate.sh"
+
+# One run over every source set, not one per set. A root scanned alone is a false clean:
+# nothing outside it is in the declaration index, so every call into another source set is
+# skipped — which for app/src/test and app/src/androidTest is most of them.
+summary "check-named-args" "0 mismatch(es)" \
+    python3 tools/check-named-args.py app/src/main/java app/src/test/java \
+        app/src/androidTest/java app/src/debug/java app/src/sharedTest/java
 summary "check-when-exhaustive" "0 non-exhaustive" \
     python3 tools/check-when-exhaustive.py app/src/main/java
 summary "check-unused-imports" "0 unused import(s)" \

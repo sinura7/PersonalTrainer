@@ -1,5 +1,6 @@
 """Shared Kotlin source handling for the static checks in this directory."""
 import os
+import sys
 
 
 def strip_comments_and_strings(src: str) -> str:
@@ -102,10 +103,22 @@ def kotlin_files(root: str) -> list:
 
 
 def kotlin_files_in(roots: list[str]) -> list:
+    """Every .kt under every root, refusing a root that is not there.
+
+    A checker that silently skips a missing directory reports "0 findings across 0 files"
+    and reads exactly like a clean run. Every multi-root checker here hard-codes its default
+    list, so a path that does not resolve is a typo or a moved source set, never a normal
+    state — and the one thing it must not do is look like success.
+    """
+    missing = [root for root in roots if not os.path.isdir(root)]
+    if missing:
+        raise SystemExit(
+            f"{os.path.basename(sys.argv[0])}: no such source root: {', '.join(missing)}\n"
+            "A missing root would be scanned as zero files and reported as clean."
+        )
     found = []
     for root in roots:
-        if os.path.isdir(root):
-            found.extend(kotlin_files(root))
+        found.extend(kotlin_files(root))
     return found
 
 
