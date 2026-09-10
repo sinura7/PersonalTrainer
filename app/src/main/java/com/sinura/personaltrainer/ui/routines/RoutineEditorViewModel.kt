@@ -816,11 +816,19 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     private fun commitPick(exercise: Exercise, adding: Boolean) {
         if (leaving) return
         pendingPicks.value = LiftCart.record(pendingPicks.value, exercise.id, adding)
-        launchWrite { pickWrites.withLock { writePick(exercise, adding) } }
+        // The mark belongs to the TAP, so it is taken here — before `launchWrite`, and before
+        // `pickWrites.withLock` can park this tap behind another one. Taken inside `writePick`
+        // it was a mark on the moment the lock was won, which is a different moment entirely:
+        // tap A, then tap B; A takes the lock, fails, and raises "Could not add that lift";
+        // B then wins the lock, marks AFTER that refusal was raised, succeeds, and clears it
+        // as though it were stale. The rows have no busy guard, so two fast taps is the
+        // ordinary case, not the exotic one. A refusal raised while a tap waited its turn is
+        // newer than the tap and must survive it.
+        val started = error.mark()
+        launchWrite { pickWrites.withLock { writePick(exercise, adding, started) } }
     }
 
-    private suspend fun writePick(exercise: Exercise, adding: Boolean) {
-        val started = error.mark()
+    private suspend fun writePick(exercise: Exercise, adding: Boolean, started: Long) {
         val source = if (adding) ERR_ADD_LIFT else ERR_REMOVE_LIFT
         val id = ensureRoutineId() ?: run {
             pendingPicks.value = LiftCart.forget(pendingPicks.value, exercise.id)

@@ -136,6 +136,21 @@ interface WorkoutDao {
     @Update
     suspend fun updateSession(session: WorkoutSessionEntity)
 
+    /**
+     * Writes the notes column and nothing else.
+     *
+     * [updateSession] rewrites the whole row from an entity the caller read moments earlier,
+     * which makes every one of its columns a hostage to whatever else wrote in between. Notes
+     * and Finish are the pair that meet: type a note, close the sheet and tap Finish inside the
+     * 400 ms debounce, and the notes write — holding a row it read while the session was still
+     * running — puts `finishedAt = null` back over the finish that landed in between. The
+     * session un-finishes, and the summary is already claiming it is done.
+     *
+     * A one-column UPDATE cannot lose that race because it never carries the other columns.
+     */
+    @Query("UPDATE workout_sessions SET notes = :notes WHERE id = :id")
+    suspend fun updateSessionNotes(id: String, notes: String)
+
     @Query("DELETE FROM workout_sessions WHERE id = :id")
     suspend fun deleteSession(id: String)
 

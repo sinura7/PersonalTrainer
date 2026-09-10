@@ -309,6 +309,42 @@ class ActiveWorkoutViewModelTest {
         assertNull(deps.workoutRepository.getSession(fixture.session.id))
     }
 
+    /**
+     * Tapping Use on the progression strip must survive the process being reclaimed.
+     *
+     * Every other draft mutator on this class mirrors what it wrote, and nothing else
+     * re-persists on its own: the session collector only persists on a Room emission, and
+     * tapping a chip changes no row. `applySuggestedWeight` was the one that did not, so the
+     * well read 82.5 while both mirrors still held the 70 the lifter had nudged it to — and a
+     * phone reclaimed during the rest handed back the 70.
+     */
+    @Test
+    fun tappingUseOnTheProgressionStripIsMirroredToTheDraft() = runBlocking {
+        val fixture = seedWorkout(priorWeightKg = 80.0)
+        val vm = createViewModel(fixture.session.id)
+        val suggested = vm.awaitState {
+            val hinted = it.hint?.suggestedWeightKg ?: return@awaitState false
+            it.loadState == SessionLoadState.FOUND && it.draft.weightKg == hinted
+        }.hint!!.suggestedWeightKg!!
+
+        // The lifter nudges the well well away from the suggestion. That much was always
+        // mirrored, which is what made the loss look like the app forgetting the LAST tap.
+        vm.setWeight(70.0)
+        vm.awaitState { it.draft.weightKg == 70.0 }
+        assertEquals(70.0, checkNotNull(deps.workoutDraftCache.get(fixture.session.id)).weightKg, 0.0001)
+
+        // Then changes their mind and takes the suggestion.
+        vm.applySuggestedWeight()
+        vm.awaitState { it.draft.weightKg == suggested }
+
+        assertEquals(
+            "the tap must reach the cache the recovery reads, not just the well on screen",
+            suggested,
+            checkNotNull(deps.workoutDraftCache.get(fixture.session.id)).weightKg,
+            0.0001,
+        )
+    }
+
     @Test
     fun applyMicroRecFillsDraftAndDoesNotLog() = runBlocking {
         val fixture = seedWorkout()

@@ -1146,9 +1146,20 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         }
     }
 
+    /**
+     * Copies the progression's suggested load into the weight well. Does not log.
+     *
+     * `persistDraft()` is not optional here, and its absence was a real loss: every other
+     * mutator on this class mirrors the draft, and nothing else re-persists on its own — the
+     * session collector only persists on a Room emission, and tapping a chip changes no row.
+     * Nudge the well down to 70 kg, change your mind and tap Use to take the suggested 82.5,
+     * then pocket the phone for the rest; if Android reclaims the process, recovery hands back
+     * the 70 that was mirrored and the tap is gone.
+     */
     fun applySuggestedWeight() {
         val suggested = hint.value?.suggestedWeightKg ?: return
         draft.value = draft.value.copy(weightKg = suggested)
+        persistDraft()
     }
 
     /** Fills the wells from one working set of the last session. Does not log. */

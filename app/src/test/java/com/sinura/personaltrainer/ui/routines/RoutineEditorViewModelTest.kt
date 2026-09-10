@@ -471,6 +471,45 @@ class RoutineEditorViewModelTest {
         assertEquals(listOf(squat.id, row.id), reopened.pickedIds)
     }
 
+    /**
+     * A refusal raised while a second tap was queued must outlive that tap's success.
+     *
+     * `writePick` runs under `pickWrites`, so a second tap parks on the mutex. It used to take
+     * its [ErrorSlot] mark inside `writePick` — i.e. the moment it WON the lock, which is after
+     * the first tap has already failed and raised. `clearFrom(before = thatMark)` then read the
+     * fresh refusal as stale and wiped it. The rows have no busy guard, so two fast taps is the
+     * ordinary case; the lifter saw the second lift appear and never learned the first had not.
+     *
+     * Both taps are adds, so both are ERR_ADD_LIFT: the family rule cannot save this one, and
+     * only the mark's position can. The mark now belongs to the tap.
+     */
+    @Test
+    fun aRefusalRaisedWhileASecondTapWaitedSurvivesThatTapsSuccess() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
+        val gate = CompletableDeferred<Unit>()
+        val container = withRoutineDao(GateThenFailFirstAddDao(deps.database.routineDao(), gate))
+        val vm = createViewModel("new", container = container)
+        vm.awaitState { it.catalog.size >= 2 }
+
+        vm.setPickerVisible(true)
+        // The first tap suspends inside `pickWrites`, so the second parks on the mutex behind
+        // it — which is the whole situation. Both taps are made before either write finishes.
+        vm.togglePicked(squat)
+        vm.togglePicked(row)
+        gate.complete(Unit)
+
+        // The second lift lands; the first was refused.
+        awaitRoutine { it.exercises.size == 1 }
+        val settled = vm.awaitState { !it.addingLifts && it.routine?.exercises?.size == 1 }
+        assertEquals(listOf(row.id), settled.routine!!.exercises.map { it.exercise.id })
+        assertEquals(
+            "the refused tap must still be on screen after the queued tap succeeded",
+            SessionOrderCopy.ADD_LIFT_FAILED,
+            settled.error,
+        )
+    }
+
     @Test
     fun aSecondTapTakesTheLiftBackOut() = runBlocking {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
@@ -1336,6 +1375,31 @@ class RoutineEditorViewModelTest {
         override suspend fun upsertRoutineExercise(item: RoutineExerciseEntity) {
             gate.await()
             error("boom: add blocked")
+        }
+    }
+
+    /**
+     * Holds the FIRST add open on [gate] and then refuses it; later adds go straight through.
+     *
+     * The gate is what makes the race real under [UnconfinedTestDispatcher], which runs a
+     * launched coroutine eagerly: without it the first tap finishes before the second is even
+     * made, and the two never share the queue the defect lives in. Suspended inside
+     * `pickWrites`, the first tap parks the second on the mutex, which is the phone's ordinary
+     * case — two fast taps on rows that have no busy guard.
+     */
+    private class GateThenFailFirstAddDao(
+        private val delegate: RoutineDao,
+        private val gate: CompletableDeferred<Unit>,
+    ) : RoutineDao by delegate {
+        private var seen = 0
+
+        override suspend fun upsertRoutineExercise(item: RoutineExerciseEntity) {
+            seen += 1
+            if (seen == 1) {
+                gate.await()
+                error("boom: the first add is refused")
+            }
+            delegate.upsertRoutineExercise(item)
         }
     }
 
