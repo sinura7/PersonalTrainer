@@ -60,14 +60,17 @@ One install, four things:
    few seconds left: the last five seconds stay quiet and the cue still
    plays at zero.
 
-## The open question
+## One thing waiting on the owner
 
-**Branch protection.** The owner asked for *Tests, lint, debug build* as a
-required check on `trunk`. That makes a GitHub-hosted runner able to block a
-merge, which [ADR-002](architecture/ADR-002-execution-protocol.md) §6 refuses
-permanently. It needs a signed amendment, not a settings toggle. Same
-question, same shape, as the emulator lane's `continue-on-error`: see
-[DEVELOPMENT.md](DEVELOPMENT.md)'s CI section.
+**Branch protection is decided but not switched on.**
+[ADR-024](architecture/ADR-024-hosted-jvm-check.md) amends
+[ADR-002](architecture/ADR-002-execution-protocol.md) §6 for one named job:
+*Tests, lint, debug build* may be a required check on `trunk`, the emulator
+lane may never be, and the local gate is unchanged and still comes first.
+What remains is the repository setting, which only the owner can change —
+the required check plus "require branches to be up to date". Until then
+`trunk` carries no protection. An agent cannot set it and must not ask for
+the scope to.
 
 ## What is actually left
 
