@@ -71,4 +71,46 @@ class TargetEntryTest {
         assertEquals(225.0, WeightConverter.kgToLbs(entry.typedWeightKg!!), 0.5)
         assertTrue(TargetEntry.read("3", "5", "60", "1.2.3", WeightUnit.LBS).hasError)
     }
+
+    /**
+     * A box that cannot be read issues no instruction — the rule the routine editor lost.
+     *
+     * Weight is the one column where null carries a meaning of its own: it clears the stored
+     * target. [TargetEntry.typedWeightKg] hands back null for an unreadable box exactly as it
+     * does for a deliberately emptied one, so a caller that takes it at face value turns "-50"
+     * into "no target". [TargetEntry.weightToStage] is the accessor that keeps them apart.
+     */
+    @Test
+    fun anUnreadableWeightBoxStagesTheStoredTargetRatherThanClearingIt() {
+        for (unreadable in listOf("-50", "6o", "1.2.3", "1,000", "62.555")) {
+            val entry = TargetEntry.read("3", "5", "90", unreadable, WeightUnit.KG)
+            assertTrue(unreadable, entry.weightUnreadable)
+            assertNull(unreadable, entry.typedWeightKg)
+            assertEquals(unreadable, 100.0, entry.weightToStage(100.0)!!, 0.0001)
+        }
+    }
+
+    /** A weight the owner really did clear still clears the target; so does a typed zero. */
+    @Test
+    fun aClearedOrZeroWeightBoxStillClearsTheStoredTarget() {
+        for (cleared in listOf("", "  ", "0")) {
+            val entry = TargetEntry.read("3", "5", "90", cleared, WeightUnit.KG)
+            assertFalse(cleared, entry.weightUnreadable)
+            assertNull(cleared, entry.weightToStage(100.0))
+        }
+    }
+
+    /** A weight that reads cleanly is staged as typed, whatever is stored. */
+    @Test
+    fun aReadableWeightIsStagedAsTyped() {
+        val entry = TargetEntry.read("3", "5", "90", "62.5", WeightUnit.KG)
+        assertEquals(62.5, entry.weightToStage(100.0)!!, 0.0001)
+        assertEquals(62.5, entry.weightToStage(null)!!, 0.0001)
+    }
+
+    /** With no target stored, an unreadable box still writes nothing — null compares equal. */
+    @Test
+    fun anUnreadableWeightBoxOnACardWithNoTargetStagesNothing() {
+        assertNull(TargetEntry.read("3", "5", "90", "-50", WeightUnit.KG).weightToStage(null))
+    }
 }

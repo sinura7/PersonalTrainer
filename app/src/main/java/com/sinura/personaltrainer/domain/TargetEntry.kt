@@ -39,8 +39,35 @@ data class TargetEntry(
      * The weight to stage. A cleared weight box is a real answer ("no target"), which is why
      * blank maps to null here rather than to "keep the stored one"; a typed zero means the
      * same thing, as it always has on this card.
+     *
+     * Null from an UNREADABLE box means something else entirely, and the two must never be
+     * confused — see [weightToStage], which is what callers should use.
      */
     val typedWeightKg: Double? get() = weightKg.valueOrNull?.takeIf { it > 0.0 }
+
+    /** True when the weight box holds text that cannot be read as a weight at all. */
+    val weightUnreadable: Boolean get() = weightKg is NumericEntry.Typed.Invalid
+
+    /**
+     * The weight to stage against a card whose stored target is [storedWeightKg].
+     *
+     * Weight is the one box where null carries a meaning: it clears the stored target. Sets,
+     * reps and rest fall back to what is stored when their box is empty, so a null from them
+     * is harmless — but a null weight is a destructive instruction, and [typedWeightKg] hands
+     * back null for an unreadable box exactly as it does for a deliberately emptied one.
+     *
+     * That collapse cost a stored target. Typing `-50` over a 100 kg weight and then folding
+     * the card shut discarded the boxes and, with them, the rejection that said the text could
+     * not be read — leaving a staged null that Save carried out as "the owner wants no target
+     * here". The 100 kg went, and Save reported success, because by then nothing on the entry
+     * remembered that the null had never been an answer.
+     *
+     * A box that cannot be read is not an instruction. It stages the stored value, which is
+     * the only honest reading of "we do not know what they meant", and which downstream
+     * compares equal to storage and writes nothing.
+     */
+    fun weightToStage(storedWeightKg: Double?): Double? =
+        if (weightUnreadable) storedWeightKg else typedWeightKg
 
     companion object {
         fun read(
