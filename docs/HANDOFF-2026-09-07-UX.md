@@ -163,19 +163,85 @@ and exits 1, while the branch head exits 0. The lane's own `--self-test` confirm
 
 **The offline guard.** The lane is the strong check but it is not free, so the defect class also got a cheap one: `tools/check-lambda-arity.py` counts the parameters of a lambda passed as a named argument and compares them with the declared function type. It is in `preflight.sh` and needs no network. Against a tree archived at `0cc5013` it reports **both** stale call sites, with exact lines; over the branch head it reports 0 across 662 files. `tools/test_lambda_arity.py` holds fifteen fixtures — the defect, its fix, and every shape that must stay quiet — so the guard itself is tested rather than assumed.
 
-**Three source sets nothing was reading.** Chasing the second stale caller turned up the more general fault: `app/src/androidTest`, `app/src/debug` and `app/src/sharedTest` were outside every checker in the repo. No tool had ever opened the file the defect sat in. Two checkers had a quieter version of the same fault — they took a single root, and a root scanned alone is a false clean, because nothing outside it is in the declaration index. `check-named-args.py` was being run on `app/src/test` alone, where nearly every call targets main and was therefore skipped rather than checked; `check-internal-imports.py` reports 146 correct imports as unresolved when pointed at `androidTest` alone, which is why it had never been pointed there. Four checkers now read all five source sets in one invocation: `check-named-args`, `check-required-args`, `check-missing-imports` and `check-internal-imports`. The gate went from 624 files to 662.
+**The source sets no call-resolving checker read.** Chasing the second stale caller turned up the more general fault — though the first version of this paragraph overstated it, and an audit on 10 September caught that. Precisely, at `156cc40`: `app/src/sharedTest/java` was read by nothing at all; `app/src/debug/java` was already read by `check-design-tokens` and `check-state-members`; and `app/src/androidTest/java` was read by `check-doc-authority`, but only to scan Kotlin comments for stale Room-schema claims. **No checker that resolves a call site, an import or an argument read any of the three.** That is the fault that mattered, and it is why nothing could see a five-parameter lambda handed to a six-parameter callback in an instrumented test. Two checkers had a quieter version of the same fault — they took a single root, and a root scanned alone is a false clean, because nothing outside it is in the declaration index. `check-named-args.py` was being run on `app/src/test` alone, where nearly every call targets main and was therefore skipped rather than checked; `check-internal-imports.py` reports 146 correct imports as unresolved when pointed at `androidTest` alone, which is why it had never been pointed there. Four checkers now read all five source sets in one invocation: `check-named-args`, `check-required-args`, `check-missing-imports` and `check-internal-imports`. The gate went from 624 files to 662.
 
 Each widening was negative-controlled rather than assumed. In an instrumented test file: an invented named argument, a dropped required argument, an unimported project symbol and an import of a name that does not exist each produce exactly one finding, and none of them did before.
 
-**What a green from the lane does not mean.** It is not `assembleDebug`. It substitutes a nearby Compose build (1.8.2 for the app's 1.11.4/Material3 1.4.0), so a member added or removed between those versions is invisible to it: where 1.8 accepts something 1.11 removed, the lane is green and the merge gate is red. It runs no KSP, so Room's `@Query` SQL and the generated DAOs are unchecked. Robolectric's framework jar is an AOSP build and types `getSystemService` as nullable where `compileSdk` 36 does not, which is why six timer tests compile in a separate pass — they are not dropped, and the lane fails if that exclusion ever goes stale. `app/src/androidTest` (23 files) is compiled by no stage: the second stale caller lived there, `assembleDebug` does not build it either, and it is `check-lambda-arity.py` that guards it rather than a compiler. The desktop-only strip's keep-list is the residual risk — six facades kept because Android Compose has the same API, any of which could still carry a desktop-only overload. Stubs are hand-written to be no more permissive than the real API, which is a promise rather than a proof. `tools/compile-check.sh --explain` prints the full ledger.
+**What a green from the lane does not mean.** It is not `assembleDebug` — and as of 10 September that is measurable rather than rhetorical: see §6.2, where CI ran the real thing. The lane's verdict and Gradle's agreed on this branch, which is evidence for the lane but not proof of it. It substitutes a nearby Compose build (1.8.2 for the app's 1.11.4/Material3 1.4.0), so a member added or removed between those versions is invisible to it: where 1.8 accepts something 1.11 removed, the lane is green and the merge gate is red. It runs no KSP, so Room's `@Query` SQL and the generated DAOs are unchecked. Robolectric's framework jar is an AOSP build and types `getSystemService` as nullable where `compileSdk` 36 does not, which is why six timer tests compile in a separate pass — they are not dropped, and the lane fails if that exclusion ever goes stale. `app/src/androidTest` (23 files) is compiled by no stage: the second stale caller lived there, `assembleDebug` does not build it either, and it is `check-lambda-arity.py` that guards it rather than a compiler. The desktop-only strip's keep-list is the residual risk — six facades kept because Android Compose has the same API, any of which could still carry a desktop-only overload. Stubs are hand-written to be no more permissive than the real API, which is a promise rather than a proof. `tools/compile-check.sh --explain` prints the full ledger.
 
 What it does catch is the whole ViewModel-to-screen and ViewModel-to-test boundary: a state type or a callback arity that changed on one side and not the other. That is the class of defect that reached the branch, and it is the class nothing else here could see.
+
+## 6.2 The merge, and the first real build — 10 September
+
+Two claims in the sections above were wrong, and both mattered.
+
+**"CI has had no runner since 5 September" was false.** Trunk's CI runs on 9 and 10 September
+are green three-to-eight-minute builds. The runner works. This branch's ten failures on
+7 September were the earlier outage, which has since been fixed, and `ci.yml` runs on
+`claude/**` branches *deliberately* — its own comment says why: work is pushed from
+environments with no Android SDK, so the branch build is the only thing that ever compiles it.
+The gate this record kept describing as unobtainable was one push away the whole time.
+
+**The branch no longer merged.** It was cut at `156cc40`; trunk had moved 31 commits. Twelve
+files conflicted, and not cosmetically: `ErrorSlot` (#190) had landed across eleven ViewModels
+including all five this batch rewrote, the picker had become write-as-you-go under a Mutex with
+an atomic compare-and-remove on the very `stagedTargets` map UX04 rebuilt (#201), and 32
+catches had been guarded against swallowing a cancellation (#197). Everything §4 records was
+verified against a base that no longer existed in trunk.
+
+The merge is `76ef74f`, resolved by one rule — take trunk's machinery, re-express this batch's
+behaviour on it. `ErrorSlot` is a properly built version of what this branch hand-rolled:
+`RoutineSaveCopy.TARGET_RULES` compared message text to decide whether a complaint was its own
+to clear, where `ErrorSlot` answers with a source family and a monotonic mark and fixes a race
+the string comparison cannot see. `TARGET_RULES` is deleted; nothing referenced it.
+
+Three defects surfaced that no check on the old base could have found: 56 unbounded test waits
+(trunk added `check-unbounded-waits.py` after two such waits wedged CI for a full thirty-minute
+job — every wait in this batch's four ViewModel tests was the bare form it forbids), the new
+custom-week tests calling `togglePendingAdd`/`confirmPendingAdd` which #201 deleted, and a
+`StartActivityForResult` stub missing from `compile-check.sh` because #188 began using it.
+
+### What CI actually said
+
+Run **1124** on `76ef74f`, the blocking job, every step green:
+
+| Step | Result |
+|---|---|
+| `PT_STATIC_ONLY=1 sh tools/preflight.sh` | pass |
+| `./gradlew testDebugUnitTest` | pass — **the first execution of this batch's Robolectric tests** |
+| `./gradlew lintDebug` (warningsAsErrors) | pass |
+| `./gradlew assembleDebug` | pass |
+| `./gradlew assembleDebugAndroidTest` | pass — the androidTest source set the compile lane cannot reach |
+
+The non-blocking emulator job was red, and the comparison is the point. Trunk at `d77ca8c` —
+the exact commit merged — fails **four** instrumented tests. Attempt 1 on this branch failed
+**five**; attempt 2 failed **four**, the same four. The fifth,
+`ActiveWorkoutJourneyInstrumentedTest.leaveResume_finishFromBar_rotateSummary_andRepairUndo`,
+passed on the re-run. It asserts on `SessionDetailScreen.kt`, which this branch never touched
+and which uses none of its additions, so there was no causal path to find; one re-run was spent
+to establish that rather than assume it. **No instrumented failure on this branch is this
+branch's.** One of the four, `ExactAlarmCapabilityInstrumentedTest`, has an open fix on trunk
+already ([#207](https://github.com/sinura7/PersonalTrainer/pull/207)).
+
+### What the audit found afterwards
+
+Ten adversarial lenses were run over the branch, each finding attacked by three independent
+skeptics before it survived. The one blocking defect was real and is fixed in `fb7615f`: a
+folded-away lift card discards its box text (`SessionLiftEditor` is composed only
+`if (selected)`) but the ViewModel kept the staged rejection, so Save refused and named a rule
+for a box that had gone back to its stored value — the third dead end of the shape already
+fixed for a removed card and a restored one. Two lenses found it independently.
+
+Four holes in the checkers themselves are fixed in `f528299`, the worst being that
+`preflight.sh` judged three checkers with `grep -F "0 mismatch(es)"`, which
+`"10 mismatch(es)"` satisfies: the shared gate had been reporting clean at 10, 20, 30 …
+findings. `tools/test_summary_gate.sh` now proves both directions before preflight trusts it.
 
 ## 7. Delivery state
 
 Everything is committed on `claude/file-visibility-check-jraqc2` and **pushed to origin with the owner's authorization on 7 September**. Nothing has been merged, tagged, published or deployed; no production configuration, credential or user data was touched.
 
-**The branch was not mergeable as first pushed.** `0cc5013` did not compile (§6.1). It is fixed in the commits below, and the fix is verified by a compiler, not by reading. The branch is seventeen commits on `156cc40`:
+**The branch was not mergeable as first pushed, twice over.** `0cc5013` did not compile (§6.1), and the branch had also fallen 31 commits behind trunk and stopped merging (§6.2). Both are fixed, and both fixes are verified by a compiler and by CI rather than by reading. The branch is **eighteen commits of its own** on `156cc40`, plus trunk's 31 brought in by the merge — 49 in all:
 
 | Commit | Subject |
 |---|---|
@@ -193,16 +259,43 @@ Everything is committed on `claude/file-visibility-check-jraqc2` and **pushed to
 | `9bb971d` | `check-named-args` took one root, and one root is a false clean |
 | `d7552de` | `check-internal-imports` reads every source set now, not just main |
 | `776f511` | A real compiler for the Android side |
-| (this commit) | This record corrected with §6.1, the gate table, the matrix and D19 |
+| `0b68842` | This record corrected with §6.1 |
+| `76ef74f` | **Merge trunk**: the batch's semantics, on trunk's machinery (§6.2) |
+| `fb7615f` | A folded-away card takes its complaint with it — the audit's one blocking finding |
+| `f528299` | Four holes an audit found in the checkers themselves |
+| (this commit) | This record corrected again: §6.2, the counts below, and the CI claim |
 
-CI run 852 on the push ended in three seconds with no runner assigned (`runner_id: 0`), the same account-level condition recorded in the 6 September handoff; it is not a verdict on this branch. On a machine with the Android SDK the full gate is `./gradlew testDebugUnitTest assembleDebug lintDebug`, which executes the Robolectric tests written here; `connectedDebugAndroidTest` on the `temper-tests-api29` profile renders the new states.
+**CI has run this branch, and the blocking job is green.** The claim that no runner had been available since 5 September — repeated in earlier versions of this section — was false by 9 September; §6.2 has the detail and run **1124** has the result: static gate, `testDebugUnitTest`, `lintDebug`, `assembleDebug` and `assembleDebugAndroidTest` all pass on `76ef74f`. The Robolectric tests written for this batch have now executed. The non-blocking emulator job is red with the same four failures trunk has at the same commit, none of them this branch's.
+
+Still owed by a device, not by CI: the eight production captures in §8, and `connectedDebugAndroidTest` on the `temper-tests-api29` profile rendering the new states.
 
 ## 8. Next actions, in order
 
-1. **Owner:** a decision on D16; the merge itself, once the Gradle gate below has run somewhere. Merging `0cc5013` would have broken trunk's build; merge the branch head, not that commit.
-2. **SDK machine or CI with a runner:** `./gradlew testDebugUnitTest assembleDebug` — the 19 Robolectric tests written here are the regression proof for UX04, UX05, UX06 and UX07 and have never run, and `assembleDebug` is the only authority on the compile question §6.1 raised.
-3. **Device (Temper Debug):** the eight production captures this batch owes — routine editor Save failure and Back prompt at 360 dp / font 2.0 with the keyboard open; summary "not found", "saved, summary unavailable", "unavailable" and a push-up-only receipt; composer Add set refusal; live cardio Finish refusal; setup reopened after `adb shell am kill`.
-4. **Batch B (main gym journey):** UX01–UX03, UX08, UX12, UX22, UX24/UX25 per the master sequencing. UX12 and UX24 cannot start without device bounds.
-5. **UX23 residue:** the four read-fault-vs-missing screens (SessionDetail, ActiveWorkout, RestTimer, ExerciseDetail) need health-carrying flows, the R10 shape; the rest is copy and banner placement.
-6. **The compile lane:** run `tools/compile-check.sh` before any push that changes a shared signature, and once on an SDK machine alongside `assembleDebug` to measure how far the two verdicts agree — that comparison is the only thing that can calibrate how much a green here is worth. It is deliberately outside `preflight.sh` (§6.1).
-7. **The one uncovered source set:** `app/src/androidTest` (23 files) is compiled by nothing. Adding a stage needs the `androidx.compose.ui.test` matcher surface and `androidx.test.ext.junit`; it was judged not worth a stub thicket that could produce false reds, and `check-lambda-arity.py` guards the defect class that reached the branch. Revisit if a second instrumented-test break gets through.
+1. **Owner:** a decision on D16, and the merge itself. Merge the branch **head** — `0cc5013`
+   does not compile and `76ef74f` is where trunk was brought in. CI is green on the blocking
+   job at the head (§6.2), so the gate this list used to be waiting on is satisfied.
+2. **Device (Temper Debug):** the eight production captures this batch owes — routine editor
+   Save failure and Back prompt at 360 dp / font 2.0 with the keyboard open; summary "not
+   found", "saved, summary unavailable", "unavailable" and a push-up-only receipt; composer
+   Add set refusal; live cardio Finish refusal; setup reopened after `adb shell am kill`. Now
+   the only thing CI cannot stand in for.
+3. **The audit's surviving findings.** Ten adversarial lenses ran on 10 September. The one
+   blocking finding is fixed (`fb7615f`) and four checker holes are closed (`f528299`). The
+   rest are recorded but **not yet worked**, and several are worth taking seriously — among
+   them: a typed weight is rounded to display precision before storage, so UX06's "exactly
+   what was written or refused" does not hold at the second decimal; an unreadable weight box
+   clears the custom week's stored target rather than leaving it; a refused Save names a rule
+   without naming the lift or moving focus to it; and the summary's three-tile row clips its
+   own labels at 360 dp. Triage these before Batch B.
+4. **Batch B (main gym journey):** UX01–UX03, UX08, UX12, UX22, UX24/UX25 per the master
+   sequencing. UX12 and UX24 cannot start without device bounds.
+5. **UX23 residue:** the four read-fault-vs-missing screens (SessionDetail, ActiveWorkout,
+   RestTimer, ExerciseDetail) need health-carrying flows, the R10 shape; the rest is copy and
+   banner placement.
+6. **The compile lane:** run `tools/compile-check.sh` before any push that changes a shared
+   signature. Its verdict and Gradle's now agree on one commit (§6.2) — that is one data
+   point, not a calibration; keep comparing.
+7. **The one uncovered source set:** `app/src/androidTest` is compiled by no lane stage.
+   CI's `assembleDebugAndroidTest` does compile it, so the gap is a local-feedback gap rather
+   than a correctness one; `check-lambda-arity.py` guards the defect class that reached the
+   branch. Revisit if a second instrumented-test break gets past both.

@@ -260,7 +260,7 @@
         "F08"
       ],
       "evidenceClass": "Source-supported defect — confirmed at HEAD 156cc40 by an adversarial re-read; fixed on this branch",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)"
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1."
     },
     {
       "id": "UX05",
@@ -310,7 +310,7 @@
         "F08"
       ],
       "evidenceClass": "Source-supported defect — confirmed at HEAD 156cc40; fixed on this branch",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)"
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1."
     },
     {
       "id": "UX06",
@@ -363,7 +363,7 @@
         "F10"
       ],
       "evidenceClass": "Source-supported defect — confirmed at HEAD 156cc40 (composer, live cardio, routine targets, custom rest); NumberEntryDialog callers were already reject-on-parse",
-      "candidateCommit": "a71225e (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888, b6250f4, a71225e). 0cc5013 did not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1."
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1."
     },
     {
       "id": "UX07",
@@ -414,7 +414,7 @@
         "F08"
       ],
       "evidenceClass": "Partly existing capability (R09 SavedStateComposerDraft at 28f485f) plus a real save-in-progress gap fixed here",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)"
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1."
     },
     {
       "id": "UX08",
@@ -1201,7 +1201,7 @@
         "F11"
       ],
       "evidenceClass": "Cross-cutting contract — partially addressed; audit list carried in this backlog",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)",
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1.",
       "audit": {
         "method": "Adversarial read-only sweep of every Screen/ViewModel/copy object at 156cc40 (one agent, structured output); classes: exception-mapped-to-missing, saved-claimed-without-evidence, opaque-wording, missing-vs-empty-vs-unavailable-conflated, error-far-from-action",
         "addressedInThisBatch": [
@@ -2094,7 +2094,7 @@
       "requirement": "Inject details-write failure after editing a name: Save remains on screen, preserves text and offers retry.",
       "status": "Written, not executed (Robolectric: RoutineEditorViewModelTest)",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)",
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
     },
     {
@@ -2108,7 +2108,7 @@
       "requirement": "Inject one staged-target failure: no blanket success/exit; retry persists the intended value once.",
       "status": "Written, not executed (Robolectric: RoutineEditorViewModelTest)",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)",
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
     },
     {
@@ -2122,7 +2122,7 @@
       "requirement": "Back after successful edits remains consistent with existing autosave; empty new stubs retain their documented cleanup.",
       "status": "Written, not executed (Robolectric: RoutineEditorViewModelTest, existing + new)",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)",
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
     },
     {
@@ -2136,7 +2136,7 @@
       "requirement": "Process recreation during failure retains sufficient draft state; reopening shows the accepted persisted result.",
       "status": "Implemented (SavedStateHandle keeps name/notes); Robolectric processDeathKeepsNameAndDoesNotMintASecondRoutine written, not executed; device check pending",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)",
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
     },
     {
@@ -2150,7 +2150,7 @@
       "requirement": "Missing ID, deleted/restored-over row, computation failure after confirmed save and valid no-work data each render distinct truthful states.",
       "status": "Written, not executed (Robolectric: WorkoutSummaryViewModelTest — missing id, missing row, read fault, summary fault, no-work); device render pending",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)",
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
     },
     {
@@ -2164,7 +2164,7 @@
       "requirement": "Retrying summary never creates or re-finishes a workout.",
       "status": "Written, not executed (Robolectric: aSummaryThatWillNotComputeIsSavedButUnavailableNotMissing asserts one row, same finish stamp, no live session)",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)",
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
     },
     {
@@ -2178,7 +2178,7 @@
       "requirement": "A bodyweight-only workout does not appear worthless because its load-volume is zero.",
       "status": "Executed (JVM lane: WorkoutSummaryBuilderTest.aBodyweightOnlySessionHeadlinesItsRepsNotZeroKilograms); Robolectric written; device render pending",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)",
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
     },
     {
@@ -2192,7 +2192,7 @@
       "requirement": "Back and Done exit once and do not return to an already-finished live session.",
       "status": "Not executed — navigation unchanged (popUpTo Home on finish; Back is Done); emulator check pending",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)",
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
     },
     {
@@ -2205,7 +2205,7 @@
       "requirement": "8.5 reps is rejected rather than saved as 85; -50 kg is rejected rather than saved as 50.",
       "status": "Executed (JVM lane: NumericEntryTest, ComposerCopyTest, TargetEntryTest); production-screen paste/keyboard pass pending",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)",
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
     },
     {
@@ -2218,7 +2218,7 @@
       "requirement": "1.2.3 and 8e2 do not become different accepted values; 62,5 and 62.5 behave equivalently under the supported decimal policy.",
       "status": "Executed (JVM lane: NumericEntryTest.ambiguousTextNeverBecomesADifferentAcceptedValue, blank/62,5 == 62.5)",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)",
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
     },
     {
@@ -2231,7 +2231,7 @@
       "requirement": "Existing valid values survive unit conversion/round trips without drift beyond specified display precision.",
       "status": "Executed (JVM lane: storedWeightsSurviveADisplayRoundTripWithinDisplayPrecision — ±0.05 kg / ±0.25 lb)",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)",
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
     },
     {
@@ -2244,7 +2244,7 @@
       "requirement": "All shared filter callers are covered, including composer, live cardio and routine targets.",
       "status": "Executed for the domain rules; caller wiring changed in composer, live cardio, custom rest, routine card — Compose-level check pending (no SDK here)",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)",
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
     },
     {
@@ -2258,7 +2258,7 @@
       "requirement": "Build a multi-row mixed draft, background, recreate the process and restore: date, rows, order and values survive.",
       "status": "Already covered at HEAD by R09 (SavedStateComposerDraft); Robolectric processRecreationRestoresTheTypedDraft written, not executed",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)",
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
     },
     {
@@ -2272,7 +2272,7 @@
       "requirement": "Cancel/Back during delayed accepted save neither creates a duplicate nor tells the user committed work was discarded.",
       "status": "Written, not executed (Robolectric: cancelWhileSavingIsRefusedAndTheSaveStillLandsOnce)",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)",
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
     },
     {
@@ -2286,7 +2286,7 @@
       "requirement": "Failed save preserves the draft; successful save clears only that draft.",
       "status": "Written, not executed (Robolectric: anAcceptedSaveClearsTheDraft, save() keeps draft on Rejected/thrown)",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)",
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
     },
     {
@@ -2300,7 +2300,7 @@
       "requirement": "Onboarding draft restoration does not overwrite the saved current plan or create a new one without acceptance.",
       "status": "Written, not executed (Robolectric: processRecreationRestoresTheStepAndAnswersWithoutWritingAPlan)",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)",
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
     },
     {
@@ -2881,7 +2881,7 @@
       "requirement": "Injected initial/later load failures, invalid fields and post-commit side-effect failures produce the defined states.",
       "status": "Partially: summary read/compute faults, composer save faults, finish outcomes distinguished; injected load faults on other screens remain open (see UX23 residue)",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)",
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
     },
     {
@@ -2895,7 +2895,7 @@
       "requirement": "Users can locate the error and retry at the point of action without losing authored data.",
       "status": "Implemented for the composer (error above Save, field errors inline); device/IME check pending",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)",
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
     },
     {
@@ -2909,7 +2909,7 @@
       "requirement": "Missing, empty and unavailable never share a misleading generic success or start-new-workout remedy.",
       "status": "Implemented for summary, finish and History stale wording; remaining conflations listed in UX23 residue",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
-      "candidateCommit": "8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)",
+      "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
     },
     {

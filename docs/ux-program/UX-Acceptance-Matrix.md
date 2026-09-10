@@ -1,8 +1,8 @@
 # Temper UX acceptance matrix — updated 7 September 2026
 
-Baseline for this update: `156cc400a0bc7974209e494e4e4cf0525b29bb7d` on `claude/file-visibility-check-jraqc2` (trunk `28f485f` carries R01–R19). Candidate commit: `8967888 (branch claude/file-visibility-check-jraqc2; code commits 55301ae, c856c01, 5375672, e5d2956, 8967888)`.
+Baseline for this update: `156cc400a0bc7974209e494e4e4cf0525b29bb7d` on `claude/file-visibility-check-jraqc2` (trunk `28f485f` carries R01–R19). Candidate commit: `f528299` on `claude/file-visibility-check-jraqc2`, merged with trunk `d77ca8c` at `76ef74f`. Earlier versions of this line named `8967888`, a commit the same branch documents as not compiling; do not read acceptance against it.
 
-**Status vocabulary.** *Executed (JVM lane)* — a JUnit test ran on this host and passed. *Written, not executed* — a Robolectric or instrumented test exists on the branch but no Android SDK, Gradle, emulator or device was available here. *Implemented, device check pending* — behaviour changed; only a device can close it. *Not executed* — untouched. Nothing below is marked passed from source reading alone.
+**Status vocabulary.** *Executed (JVM lane)* — a JUnit test ran on this host and passed. *Written, not executed* — a Robolectric or instrumented test exists on the branch but no Android SDK, Gradle, emulator or device was available here. **As of 10 September CI runs `testDebugUnitTest` on this branch and it passes, so a row still marked this way is stale rather than blocked — see handoff §6.2.** *Implemented, device check pending* — behaviour changed; only a device can close it. *Not executed* — untouched. Nothing below is marked passed from source reading alone.
 
 ### UX01 — Clarify Home's planned versus freestyle actions
 
