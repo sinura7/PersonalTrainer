@@ -37,14 +37,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.AddDefaults
-import com.sinura.personaltrainer.domain.SetCopy
-import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.DayLabel
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
+import com.sinura.personaltrainer.domain.HistoryKind
+import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.PersonalRecord
 import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.PersonalRecords
+import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.toWeightLabel
@@ -100,6 +101,7 @@ import kotlin.math.abs
 fun ExerciseDetailScreen(
     onBack: () -> Unit,
     onOpenSession: (String) -> Unit,
+    onOpenActivity: (String) -> Unit,
     viewModel: ExerciseDetailViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -296,7 +298,13 @@ fun ExerciseDetailScreen(
                                 summary = summary,
                                 unit = unit,
                                 loadClass = LoadClass.of(state.exercise?.loadType),
-                                onClick = { onOpenSession(summary.sessionId) },
+                                onClick = {
+                                    if (summary.kind == HistoryKind.ACTIVITY) {
+                                        onOpenActivity(summary.sessionId)
+                                    } else {
+                                        onOpenSession(summary.sessionId)
+                                    }
+                                },
                             )
                         }
                     }

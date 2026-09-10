@@ -9,12 +9,12 @@ import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
 import com.sinura.personaltrainer.data.mapper.toDomain
+import com.sinura.personaltrainer.data.mapper.toExerciseSetEntry
+import com.sinura.personaltrainer.data.mapper.toRecordSet
 import com.sinura.personaltrainer.data.mapper.toSummary
-import com.sinura.personaltrainer.data.local.dao.ExerciseSetRow
 import com.sinura.personaltrainer.data.local.dao.FinishedWorkingSetRow
 import com.sinura.personaltrainer.data.local.entity.ExerciseRecordPriorsRow
 import com.sinura.personaltrainer.data.local.entity.FinishedWorkGeneration
-import com.sinura.personaltrainer.data.mapper.toRecordSet
 import com.sinura.personaltrainer.domain.RecordSet
 import com.sinura.personaltrainer.data.local.entity.SessionSummaryRow
 import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
@@ -24,6 +24,7 @@ import com.sinura.personaltrainer.domain.ExerciseSessionSummary
 import com.sinura.personaltrainer.domain.ExerciseSetEntry
 import com.sinura.personaltrainer.domain.ExerciseSetRecord
 import com.sinura.personaltrainer.domain.FinishedSessionEdits
+import com.sinura.personaltrainer.domain.HistoryKind
 import com.sinura.personaltrainer.domain.IncrementTable
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LoadType
@@ -855,7 +856,7 @@ class WorkoutRepository(
      */
     fun observeExerciseSets(exerciseId: String): Flow<List<ExerciseSetEntry>> =
         workoutDao.observeFinishedWorkingSets(exerciseId)
-            .map { rows -> rows.map { it.toEntry() } }
+            .map { rows -> rows.map { row -> row.toExerciseSetEntry(kind = HistoryKind.WORKOUT) } }
             .observeHealth("the history for this exercise")
             .presentValues()
 
@@ -965,18 +966,6 @@ class WorkoutRepository(
         val rpe: Int?,
         val isWarmup: Boolean,
         val completedAt: Long,
-    )
-
-    private fun ExerciseSetRow.toEntry(): ExerciseSetEntry = ExerciseSetEntry(
-        record = ExerciseSetRecord(
-            setId = setId,
-            sessionId = sessionId,
-            weightKg = weightKg,
-            reps = reps,
-            completedAt = completedAt,
-        ),
-        sessionName = sessionName,
-        sessionPerformedAtMs = sessionDate,
     )
 
     suspend fun readyForProgression(

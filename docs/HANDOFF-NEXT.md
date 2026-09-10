@@ -6,7 +6,7 @@ the rest timer's last five seconds.
 
 ## Where the code stands
 
-`debugLiveCode` is **35**; `appVersionCode` is **1** and stays there until
+`debugLiveCode` is **36**; `appVersionCode` is **1** and stays there until
 a real public artifact is cut (FOUNDATION_PROGRAM P12.3). Room is frozen at
 v4, the backup document and envelope formats are untouched, and no
 identifier is ever rewritten. Those three hold for every future packet.
@@ -19,10 +19,29 @@ Start on the foot (#205, #213); the **last five seconds tick** (#206,
 since it was first pointed at the right profile (#207, #208, #209, #211);
 the golden's record corrected (#215); and the lane's own tests hardened
 (#216). #214, from another session, moved the entry wells onto the next
-set.
+set. #218 stopped the RPE chip and the extra-set button from retyping
+the wells; it landed at live 35, the same number #217 already used, so
+Obtainium will not offer it. #219 rewrote this file. `#220` is on
+`trunk`: a drop is claimed, not assumed. `debug-live-2026-09-10-8`
+shipped 36 from `#220` (`8cf0623`) — the RPE rule and the drop lock,
+not the lift page. `#221` is on `trunk`: the drop planner fetches tags
+before it answers. `#222` is on `trunk`: the golden comparator
+forgives one level of rasteriser rounding, capped at 256 pixels.
+`#223` is on `trunk`: ADR-024, the deterministic hosted job may gate
+`trunk`; the emulator may not. The setting is the owner's.
 
-**The hosted emulator lane is green: 80 tests, 0 failed.** It has never
-been green before. It is still `continue-on-error` and must stay that way —
+Open `#202` is R18 step two (exercise detail reads both stores). It
+inherits 36 and does not bump it. After it lands, the next drop is 37.
+Do not start step three from `trunk` while `#202` is open. Do not start
+a second edit of the drop tools, `debug-live.yml`, `SETUP.md`, the owner
+loop, `GoldenImageAssert`, `FoundationGoldenTest`, `DEVELOPMENT.md`,
+or the ADRs from `trunk`. Do not delete `claude/android-verify-my59sw`
+or `claude/ecstatic-galileo-pw9iub`. An agent does not switch branch
+protection on. `#224` is on `trunk`: install 36, not 35.
+
+**The hosted emulator lane is green: 80 tests, 0 failed** on `trunk`
+before `#222`; that packet adds three comparator unit tests (expected
+83). It is still `continue-on-error` and must stay that way —
 see the CI note below.
 
 ## What is verified, and how
@@ -42,8 +61,10 @@ Not verified, and it matters: **nothing here has been on a phone.**
 
 **Install the `debug-live-2026-09-10-8` pre-release, version 36.** It is the
 newest, it carries every packet through #220, and everything merged after it
-is docs and tests with no app change. Every earlier drop is the same
-features with fewer of the review's fixes folded in.
+on `trunk` is docs and tests with no app change. Open `#202` is the
+remaining Kotlin: the lift page. After it lands, the next drop is 37.
+Every earlier drop is the same features with fewer of the review's fixes
+folded in.
 
 An earlier version of this file said "install 35", which was wrong twice
 over. Two different builds carry `debugLiveCode` 35 — tag
@@ -59,7 +80,7 @@ names: the branch `debug-live/2026-09-10-6` points at #218, whose tag is
 
 ## What the phone check is
 
-One install, four things:
+One install, six things:
 
 1. Home shows one bordered block per session, up to four lift pictures,
    the numbered order, and Start (or **Do it today**) on the foot. Tapping
@@ -102,13 +123,14 @@ Biggest first, and the first two are the owner's, not a session's:
 - **Twenty-one DESIGN_AUDIT P1 rows** still genuinely open. Cheapest that
   pays: N-01, a cue preview button in Settings. Biggest felt: B-02, Body's
   first-launch emptiness.
-- **R18 convergence steps 3 and 4** — one shared detail-ViewModel shape, and
-  the activity-edit capability split — plus the five use-case extractions
-  and the seven-row parity table in
-  `architecture/completed-training-convergence.md`. Step 3 first: two detail
-  screens that can disagree about *missing* versus *failed* is the bug that
-  record exists to prevent. The log-time PR badge is **not** on this list:
-  it is a signed product fact, because activities are never logged live.
+- **R18 step two is open `#202`.** After it lands: **steps 3 and 4** —
+  one shared detail-ViewModel shape, and the activity-edit capability
+  split — plus the five use-case extractions and the seven-row parity
+  table in `architecture/completed-training-convergence.md`. Step 3
+  first: two detail screens that can disagree about *missing* versus
+  *failed* is the bug that record exists to prevent. The log-time PR
+  badge is **not** on this list: it is a signed product fact, because
+  activities are never logged live.
 - **R17 measurement** is blocked on a fixture generator and a benchmark
   module nobody has built, not on the owner's history growing. About a day.
 - **The 600 dp screen passes never run at 600 dp**: `mount` sizes a Box
@@ -135,5 +157,9 @@ One packet open at a time, on a branch, squash-merged
 10 September three pull requests were open at once and two of them bumped
 `debugLiveCode` to 33 independently — git merges that silently and the
 second build is never offered by Obtainium. That is the predicted cost of
-breaking the rule, not bad luck.
+breaking the rule, not bad luck. It happened again the same day: `#217`
+and `#218` both claimed 35; `-6` and `-7` both carry that number.
+Obtainium still offers 35 until 36 is installed. `#220` shipped 36 as
+`debug-live-2026-09-10-8`. `#221`–`#224` are on `trunk`. The next
+drop after `#202` is 37.
 

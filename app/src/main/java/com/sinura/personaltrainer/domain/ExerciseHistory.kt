@@ -27,6 +27,7 @@ data class ExerciseSessionSummary(
     val estimatedOneRepMaxKg: Double?,
     /** Every working set of this exercise in the session, in the order logged. */
     val sets: List<ExerciseSetRecord>,
+    val kind: HistoryKind = HistoryKind.WORKOUT,
 ) {
     /**
      * The two numbers as one value, so the screen renders whichever this lift is measured in
@@ -71,6 +72,7 @@ data class ExerciseSetEntry(
     val record: ExerciseSetRecord,
     val sessionName: String?,
     val sessionPerformedAtMs: Long,
+    val kind: HistoryKind = HistoryKind.WORKOUT,
 )
 
 /**
@@ -208,6 +210,7 @@ object ExerciseHistoryBuilder {
                     .maxOrNull()
             },
             sets = records,
+            kind = group.first().kind,
         )
     }
 

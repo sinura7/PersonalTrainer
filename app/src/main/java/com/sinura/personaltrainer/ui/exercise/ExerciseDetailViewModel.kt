@@ -110,7 +110,7 @@ class ExerciseDetailViewModel @JvmOverloads constructor(
 
     val uiState: StateFlow<ExerciseDetailUiState> = combine(
         container.exerciseRepository.observeById(exerciseId).onEach { resolved.value = true },
-        container.workoutRepository.observeExerciseSets(exerciseId),
+        container.completedTrainingRepository.observeExerciseSets(exerciseId),
         container.preferencesRepository.schedulePreferences,
         resolved,
         combine(container.routineRepository.observeAll(), notice) { routines, message ->

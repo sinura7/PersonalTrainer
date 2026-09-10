@@ -195,6 +195,13 @@
 > exception — into the job log, where they can be read from any network.
 > Still non-blocking; the bar for the gate is unchanged. CI only.
 >
+> 9 Sep 2026 — R18 step two: exercise detail bests and history read
+> `CompletedTrainingRepository.observeExerciseSets` (both stores). A
+> backdated strength day counts as a PR on that lift, not only in
+> Records. `#217`–`#224` are on `trunk`. `#220` shipped live 36 as
+> `debug-live-2026-09-10-8`. This packet inherits 36 and does not bump
+> it; the lift page needs 37 after this packet lands.
+>
 > 9 Sep 2026 — F: the multi-add picker writes as it goes. A tap in Add lifts
 > puts the lift on the routine (or on the custom week's day) immediately and a
 > second tap takes it back out; the numbers are the session's own order, and the

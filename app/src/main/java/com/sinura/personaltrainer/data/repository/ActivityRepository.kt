@@ -6,6 +6,7 @@ import com.sinura.personaltrainer.data.backup.RestoreJournal
 import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.mapper.toDomain
+import com.sinura.personaltrainer.data.mapper.toExerciseSetEntry
 import com.sinura.personaltrainer.data.mapper.toRecordSet
 import com.sinura.personaltrainer.data.mapper.toSummary
 import com.sinura.personaltrainer.domain.ActivityBlock
@@ -19,6 +20,8 @@ import com.sinura.personaltrainer.domain.ActivityTemplate
 import com.sinura.personaltrainer.domain.ActivityWrite
 import com.sinura.personaltrainer.domain.CapturedCivilTime
 import com.sinura.personaltrainer.domain.DataHealth
+import com.sinura.personaltrainer.domain.ExerciseSetEntry
+import com.sinura.personaltrainer.domain.HistoryKind
 import com.sinura.personaltrainer.domain.IdPort
 import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.RecordSet
@@ -92,6 +95,17 @@ class ActivityRepository(
         dao.observeCompletedStrengthSetRecords()
             .map { rows -> rows.mapNotNull { it.toRecordSet() } }
             .observeHealth("activity records")
+
+    /**
+     * Finished working sets of one lift from the activity store. Exercise detail
+     * unions this with the strength session query through
+     * [CompletedTrainingRepository.observeExerciseSets].
+     */
+    fun observeExerciseSets(exerciseId: String): Flow<List<ExerciseSetEntry>> =
+        dao.observeFinishedWorkingSets(exerciseId)
+            .map { rows -> rows.map { row -> row.toExerciseSetEntry(kind = HistoryKind.ACTIVITY) } }
+            .observeHealth("the activity history for this exercise")
+            .presentValues()
 
     fun observeCompletedGraphsSince(minPerformedAtMs: Long): Flow<List<ActivitySession>> =
         dao.observeCompletedGraphsSince(minPerformedAtMs).map { rows -> rows.map { it.toDomain() } }
