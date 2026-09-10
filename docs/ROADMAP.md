@@ -52,6 +52,18 @@
 > measured against a well that may have moved: `setReps` takes the number.
 > Live test 34 (`debugLiveCode` 34), drop `debug-live/2026-09-10-5`.
 >
+> 10 Sep 2026 — ADR-024: the deterministic hosted job may gate `trunk`;
+> the emulator may not. ADR-002 §6 refused hosted runners as the test lane
+> outright, and every clause of it described a moment that has passed — the
+> account had no working runner, runs died before checkout, and a red mark
+> genuinely was noise because nothing had run. Today that job runs the same
+> three things the local gate runs and was green on nine packets in a row,
+> and its two reds were both real. So the refusal keeps one named exception,
+> and draws the line at the emulator lane, whose golden passed and failed on
+> the same commit the same day. The local gate is unchanged and still comes
+> first; a red on the required job is never routed around. The setting
+> itself is the owner's to enable. Docs only.
+>
 > 10 Sep 2026 — The golden comparator gets a rounding allowance, and the
 > open question above is answered. One level on one channel is SwiftShader's
 > edge coverage, not a change: two runs of the same commit differed by

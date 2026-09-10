@@ -22,7 +22,8 @@ test counts are what ran *then*, not what runs now.
 | Gradle unit: `./gradlew testDebugUnitTest` | The whole JVM suite including Robolectric (Room in memory, ViewModels) | SDK machine, or `ci.yml` on a push | merge into `trunk` |
 | Build + lint: `./gradlew assembleDebug lintDebug` | The APK compiles; no new lint issues past `app/lint-baseline.xml` | same | merge into `trunk` |
 | Instrumented sources: `./gradlew compileDebugAndroidTestKotlin` | The device tests still compile — a test-only change never reaches a device from here, and a broken one would sit unnoticed until an emulator run | same | merge into `trunk` (`ci.yml` runs it) |
-| Hosted emulator: `instrumented-smoke` in `ci.yml` | The eighty instrumented tests on API 29 (Nexus 5X profile), printing their own failure bodies and logcat | GitHub-hosted runner | **nothing** — read the job, not the check (ADR-002 §6) |
+| Hosted `ci.yml`: *Tests, lint, debug build* | The same static gate, unit suite, lint and debug build the local gate runs, on every push and pull request | GitHub-hosted runner | may be a required check on `trunk` ([ADR-024](architecture/ADR-024-hosted-jvm-check.md)); the owner enables it |
+| Hosted emulator: `instrumented-smoke` in `ci.yml` | The instrumented tests on API 29 (Nexus 5X profile), printing their own failure bodies and logcat | GitHub-hosted runner | **nothing** — read the job, not the check (ADR-002 §6, ADR-024) |
 | Device journeys: `connectedDebugAndroidTest` on `com.sinura.personaltrainer.debug` | Room migrations, restore, the workout journey, screen passes and goldens | emulator (`temper-tests-api29` profile) | gym-floor `v*` release |
 | Phone: Obtainium **Temper Debug** pre-release | The owner's walk-through on the real phone | the phone | gym-floor `v*` release |
 
@@ -258,23 +259,32 @@ Gradle-capable machine (`./gradlew testDebugUnitTest assembleDebug`).
 Obtainium on the phone gates the gym-floor release, not the merge —
 see the lanes table at the top of this file.
 
-### `trunk` carries no branch protection
+### Branch protection on `trunk`
 
-There is no required check on `trunk`, and no "require branches to be up
-to date" rule. That is a choice, not an oversight: the merge gate is
-`tools/preflight.sh` plus a Gradle-capable machine, and
-[ADR-002](architecture/ADR-002-execution-protocol.md) §6 — on the
+**The rule permits it; the switch is the owner's.**
+[ADR-024](architecture/ADR-024-hosted-jvm-check.md) allows the **Tests,
+lint, debug build** check to be required on `trunk`, together with
+"require branches to be up to date before merging", so that a squash
+cannot land on a base whose CI never built it. Enabling it is a
+repository setting only the owner can change; until they do, `trunk` has
+no protection and the owner loop is the whole of the line. An agent
+cannot set it and must not ask for the scope to.
+
+That took a signed decision, not a settings toggle.
+[ADR-002](architecture/ADR-002-execution-protocol.md) §6 says
+GitHub-hosted runners are not this project's test lane, and it is on the
 permanent-refusal list in
-[architecture/README.md](architecture/README.md) — says GitHub-hosted
-runners are not this project's test lane. Making *Tests, lint, debug
-build* a required check would hand a hosted runner the power to block a
-merge, which is exactly what that refusal forbids.
+[architecture/README.md](architecture/README.md); a required check is a
+gate, so the rule had to be amended first.
+[ADR-024](architecture/ADR-024-hosted-jvm-check.md) does that for **one
+named job** and states the boundary: the deterministic job may gate,
+the emulator lane may not and keeps `continue-on-error`.
 
-So it is not a settings toggle plus a line here: it is an amendment to
-ADR-002, signed, or it stays as it is. What holds the line today is the
-owner loop — one packet, gate green locally, squash-merge — and a
-squash landing on a base its CI never built is caught by reading the
-lane on the merged commit.
+Two things did not change. The local gate is still first — a packet is
+ready for review when `tools/preflight.sh` and the Gradle pair are green
+on a real machine, not when CI is. And a red on the required job is never
+routed around: not by disabling the rule, not by an override, not by
+skipping a test.
 
 A runner **is** assigned and the lanes do run. This paragraph used to
 say the account had none and that every run "dies in seconds before
