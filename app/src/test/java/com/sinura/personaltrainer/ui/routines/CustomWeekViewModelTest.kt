@@ -605,6 +605,50 @@ class CustomWeekViewModelTest {
         assertTrue(deps.routineRepository.observeAll().first().isEmpty())
     }
 
+    @Test
+    fun anUnreadableWeightBoxDoesNotWipeTheStoredTarget() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val vm = createViewModel()
+        vm.uiState.awaitFirst { it.catalog.any { exercise -> exercise.id == squat.id } }
+        vm.togglePicked(squat)
+        val lift = vm.uiState.awaitFirst { it.selectedLifts.size == 1 }.selectedLifts.single()
+
+        vm.stageTargets(lift.id, sets = 4, reps = 6, rest = 150, weightKg = 100.0)
+        vm.uiState.awaitFirst { it.selectedLifts.singleOrNull()?.targetWeightKg == 100.0 }
+
+        // The weight box now reads "-50". TargetEntry cannot store that, so it stages a null
+        // weight and the rule it broke — and a null weight is also how a CLEARED box says
+        // "no target", so the week used to read the refusal as a deletion and wipe the 100.
+        vm.stageTargets(
+            lift.id,
+            sets = 4,
+            reps = 6,
+            rest = 150,
+            weightKg = null,
+            invalidReason = NumericEntry.WEIGHT_NEGATIVE,
+        )
+        // Read, do not wait: the point of the fix is that NOTHING changes here, so any
+        // predicate that could pass would be a tautology. stageTargets is synchronous and the
+        // dispatcher is unconfined, so the current value is the settled one.
+        val held = vm.uiState.value.selectedLifts.single()
+        assertEquals(100.0, held.targetWeightKg)
+        assertEquals(4, held.targetSets)
+        assertEquals(6, held.targetReps)
+
+        // And it is still refused, so nothing is written past it either.
+        vm.confirm()
+        assertEquals(
+            NumericEntry.WEIGHT_NEGATIVE,
+            vm.uiState.awaitFirst { it.error == NumericEntry.WEIGHT_NEGATIVE }.error,
+        )
+        assertFalse(vm.finished.value)
+
+        // Clearing the box for real IS a deletion, and must still be honoured.
+        vm.stageTargets(lift.id, sets = 4, reps = 6, rest = 150, weightKg = null)
+        assertNull(vm.uiState.awaitFirst { it.selectedLifts.singleOrNull()?.targetWeightKg == null }
+            .selectedLifts.single().targetWeightKg)
+    }
+
     private fun createViewModel(
         handle: SavedStateHandle = SavedStateHandle(),
     ): CustomWeekViewModel =
