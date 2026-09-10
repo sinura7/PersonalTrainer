@@ -55,7 +55,7 @@ These are not optional polish. They are part of the product.
 | **R-01** | Adding a lift shows the **exercise image beside the name** so the picker looks physical, not like a contacts list | `ExercisePickerSheet` is `ListItem` + text only. `Exercise` has no image field | ✅ 9 Sep 2026 — picker rows carry `ExerciseThumb` (`ExercisePickerSheet.kt`), the 40 dp keyed still of ADR-022 |
 | **R-02** | **Library contains images** for every built-in lift; custom lifts can attach or inherit a placeholder | Library cards are title + muscle chip + buttons | ✅ 9 Sep 2026 — 129 keyed WebP stills in `drawable-nodpi`, held by `tools/check-still-pack.py`; customs inherit the family pose (ADR-022) |
 | **R-03** | Rest timer plays a **completion sound** that means “next set starts now” | Generic system notification ringtone via `RestTimerAlerts`, skipped if ringer is silent | ✅ 9 Sep 2026 — bundled `res/raw/rest_done.ogg` through `RestSound`, played on the alarm stream (`RestTimerAlerts.CUE_ATTRIBUTES`, `USAGE_ALARM`) |
-| **R-04** | **Last 5 seconds tick** as a warning | Not implemented. No in-app or service tick | P1 |
+| **R-04** | **Last 5 seconds tick** as a warning | Not implemented. No in-app or service tick | ✅ 10 Sep 2026 — `RestTick` (5, 4, 3, 2, 1) posted by `RestTimerService` per boundary; a click (`res/raw/rest_tick.wav` through `RestTickPlayer`, alarm stream) and a 40 ms pulse (`RestTimerAlerts.tick`); Settings **Last five seconds** toggle. Phone awake only; doze keeps the completion cue |
 | **R-05** | Rest timer **hovering popup on the phone home screen** so remaining time is visible without opening the app | Foreground notification + chronometer only. No overlay / bubble / widget **— Superseded — see §10.2 banner; the notification + last-5s ticks are the home-screen presence.** | ✅ 9 Sep 2026 — superseded — no launcher overlay; see §10.2 banner |
 | **R-06** | Rest timer **must not go negative** | Domain clock clamps to `0`. System notification `Chronometer` countdown can overshoot after `setWhen` is in the past. Users see negatives | **P0** |
 | **R-07** | **Delete a routine, then create one, must not crash** | Editor auto-inserts `"Untitled routine"` on `routine/new`, `leave()` deletes the empty stub, ViewModel can keep a deleted id. Reported crash on recreate | **P0** |
@@ -248,7 +248,7 @@ These apply to every screen.
 | G-07 | Destructive actions confirm with the object name and consequence | Mostly done. Finish vs discard vs keep is still easy to mis-tap (discard is the confirm button) | ✅ 9 Sep 2026 — `LeaveWorkoutDialog` / `LeaveCardioDialog` keep Keep primary and Discard in danger ink; Library asks `Delete ${exercise.name}?` |
 | G-08 | Offline is the default; network is backup only | True. Do not regress | — |
 | G-09 | Units are a setting, not a fake toggle in the header | Home “Units · kg” looks like it flips units; it opens Settings | ✅ 9 Sep 2026 — weight unit is a Settings row (`SettingsScreen`, `viewModel.weightUnit`); nothing in a header toggles it |
-| G-10 | Sounds have meaning: tick = hurry up, tone = stand up | One generic notification sound | P1 |
+| G-10 | Sounds have meaning: tick = hurry up, tone = stand up | One generic notification sound | ✅ 10 Sep 2026 — tick = `rest_tick.wav` on 5–1 (`RestTick`), tone = `rest_done.ogg` at zero (`RestSound`); two sounds, two meanings |
 | G-11 | Keep-screen-on during an active session is correct | Done. Do not extend it to Home | — |
 | G-12 | Bottom bar hides on Active Workout / Editor / Settings — good. Returning to a tab must restore scroll | `saveState` is on; verify Library search/filter survive | P2 |
 
@@ -345,10 +345,10 @@ Images on the lift switcher. Rest becomes a full-screen-feeling card only while 
 | ID | Issue | Priority |
 |---|---|---|
 | T-01 | Completion sound is the **default notification ringtone** — not a gym cue **— Closed 9 Sep 2026: bundled `rest_done.ogg` cue (`RestSound`), not the ringtone** | P1 |
-| T-02 | No last-5-second tick (R-04) | P1 |
+| T-02 | No last-5-second tick (R-04) **— Closed 10 Sep 2026: `RestTick` + `RestTimerService.scheduleTick`, one runnable per boundary, re-asked on ±15 s** | P1 |
 | T-03 | No distinct “stand up” stinger separate from the shade notification **— Closed 9 Sep 2026: the cue is its own `MediaPlayer` on `USAGE_ALARM` (`RestTimerAlerts`), separate from the shade notification** | P1 |
 | T-04 | Silent ringer skips sound entirely. Offer a workout override (media/alarm stream) with an explicit setting, default off **— Closed 9 Sep 2026: by decision: the cue rides the alarm stream, which a silent ringer does not mute; sound has its own toggle (`setRestSoundEnabled`) rather than a media override** | P1 |
-| T-05 | Vibration is only on complete. Add tick pulses on 5–1 | P1 |
+| T-05 | Vibration is only on complete. Add tick pulses on 5–1 **— Closed 10 Sep 2026: `RestTimerAlerts.tick` — a 40 ms `createOneShot` pulse per tick under the Vibration toggle** | P1 |
 | T-06 | Notification Chronometer can go negative (A-03) | P0 |
 | T-07 | No overlay / bubble on the launcher (R-05). See §8 **— Superseded — see §10.2 banner.** **— Closed 9 Sep 2026: superseded — see §10.2 banner** | P1 |
 | T-08 | Home rest card and in-workout card can disagree for a frame (different collectors) | P2 |
@@ -360,7 +360,7 @@ Images on the lift switcher. Rest becomes a full-screen-feeling card only while 
 | T-14 | Done notification copy “Back to the bar.” is good. Channel still uses the generic sound | P2 |
 | T-15 | `-15` / `+15` / Skip on the notification are unlabeled icon-less text. Fine. Keep them  | — |
 | T-16 | Samsung battery Unrestricted is documented in SETUP. In-app, first rest should mention “Allow unrestricted battery or the clock dies” | P1 |
-| T-17 | No in-app tick audio while the activity is visible (service only alerts on complete) | P1 |
+| T-17 | No in-app tick audio while the activity is visible (service only alerts on complete) **— Closed 10 Sep 2026: the service ticks whenever rest runs with the process alive, in-app and in the shade alike (`RestTickPlayer`, alarm stream)** | P1 |
 
 ### 6.5 Routines list
 
@@ -447,7 +447,7 @@ This is the second most important design surface after Active Workout. Today it 
 | ID | Issue | Priority |
 |---|---|---|
 | N-01 | Rest sound/vibrate toggles exist; no preview button (“play complete cue”) | P1 |
-| N-02 | No last-5s tick toggle (will need one) | P1 |
+| N-02 | No last-5s tick toggle (will need one) **— Closed 10 Sep 2026: **Last five seconds** row under Rest timer (`RestTick.TITLE`, `setRestTickEnabled`), device-local, not in the backup document** | P1 |
 | N-03 | No overlay permission row (will need one) **— Superseded — no overlay permission row will be added; see §10.2 banner.** **— Closed 9 Sep 2026: superseded — see §10.2 banner** | P1 |
 | N-04 | Backup is solid conceptually. Restore needs a brutal confirm (it already should; verify copy) **— Closed 9 Sep 2026: restore previews (`RestorePreview`), confirms (`confirmRestore`) and refuses while a session is live (`BackupRepository.refuseIfLive`)** | P1 |
 | N-05 | Units explanation is clear. Good. Keep it | — |
