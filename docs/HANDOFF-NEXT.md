@@ -99,7 +99,7 @@ No emulator is possible in that environment: no `/dev/kvm`, no `vmx`/`svm`.
    hosted runners as the test lane. Do not weaken
    `gradle/verification-metadata.xml`.
 
-4. Live test 29 is the current drop (`debugLiveCode` 29, `#201` on
+4. Live test 30 is the current drop (`debugLiveCode` 30, `#205` on
    `trunk`). Do not bump it on this packet. Obtainium, not Studio;
    gym-floor Temper stays on the signed APK.
 
@@ -114,9 +114,9 @@ on 2026-09-08 after a scan of all 72 commits found no keystore, private
 key, API key or token in any of them — the only matches were `printf`
 lines reading GitHub secrets and a placeholder in `SETUP.md`.
 
-`debugLiveCode` on `trunk` is 29 (`#201`). The Obtainium drop that
-follows that merge is `debug-live/2026-09-09-8`. Live 28 remains
-`debug-live/2026-09-09-7`. Do not bump 29 on this packet.
+`debugLiveCode` on `trunk` is 30 (`#205`). The Obtainium drop that
+follows that merge is `debug-live/2026-09-10`. Live 29 remains
+`debug-live/2026-09-09-8`. Do not bump 30 on this packet.
 A Temper Debug from a throwaway-signed drop must still be
 backed up, uninstalled, and reinstalled once onto 25+ (stable signer).
 Gym-floor Temper stays on the signed APK.
@@ -152,11 +152,13 @@ in `DESIGN_AUDIT` now cite the file that closed them; 21 still
 open (last-5s tick family, Body first-launch, walkthrough rows,
 chip progress/rest badge, E-04/E-12, N-01, T-16, S-02/B-03/I-01).
 Do not take those 21 as this packet. `#201` (write-through multi-add
-picker, live 29, drop `debug-live/2026-09-09-8`) is on `trunk`.
-Do **not** bump 29 here. Do not start a second edit of
-`ExercisePickerSheet`, `LiftCart`, `RoutineEditorViewModel`, or
-`CustomWeekViewModel` from `trunk`. Do not delete
-`claude/ecstatic-galileo-pw9iub` (Claude reuses that head).
+picker, live 29) and `#205` (Home day board, live 30, drop
+`debug-live/2026-09-10`) are on `trunk`. Do **not** bump 30 here.
+Do not start a second edit of Home, `DayBlock`, `DayBlockCopy`,
+`ExercisePickerSheet`, `LiftCart`, `RoutineEditorViewModel`,
+`CustomWeekViewModel`, or `app/build.gradle.kts` from `trunk`.
+Do not delete `claude/ecstatic-galileo-pw9iub` or
+`claude/android-verify-my59sw` (Claude reuses those heads).
 `#203` (`CLAUDE.md` response contract) is on `trunk`. Replies follow
 that file. Do not start a second edit of `CLAUDE.md` or
 `owner-conversation.mdc` from `trunk`. `#204` (emulator job prints
@@ -177,8 +179,8 @@ strength activity counts toward that lift's PRs and session list, not
 only Records. The log-time PR badge and activity edits are still later
 steps
 ([`architecture/completed-training-convergence.md`](architecture/completed-training-convergence.md)).
-`#181` (step one) is on `trunk`. `#201` is on `trunk` (`debugLiveCode`
-29). Do not bump 29. Live 28 remains `debug-live/2026-09-09-7`.
+`#181` (step one) is on `trunk`. `#205` is on `trunk` (`debugLiveCode`
+30). Do not bump 30. Live 29 remains `debug-live/2026-09-09-8`.
 
 **R17 measurement.** The History catalog is shared and the revision keys are
 in place, but the full-history read behind the horizon readout was left alone
@@ -200,7 +202,7 @@ head. `#203` is on `trunk`. Do not start a second picker or `DESIGN_AUDIT.md` ed
 `trunk`. Do not take the five hosted-emulator failures or the remaining
 DESIGN_AUDIT P1 rows as this packet. `#196`'s vehicle
 `claude/google-signin-integration-xijk5e` was deleted after merge.
-`debugLiveCode` on trunk is 29. Do not bump it on this packet.
+`debugLiveCode` on trunk is 30. Do not bump it on this packet.
 `unbounded_waits` on trunk is 0. `#181`'s vehicle
 `cursor/r18-horizon-reviews-a14c` was deleted after merge.
 
