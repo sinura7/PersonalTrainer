@@ -729,7 +729,7 @@ Carried forward deliberately, with the phase that will address them.
 | RPE is stored and backed up but read by nothing | ~~5~~ fixed 21 Aug — two top sets at RPE 9+ hold the load |
 | Planner assigns focus to days already in the past | ~~4~~ fixed 21 Aug — proposals only for open days ≥ today |
 | `arrangeKinds` can still produce back-to-back same-family days | ~~4~~ fixed 21 Aug — guarded rotation replaces the swap |
-| Toolchain ~20 months stale; release unminified | later (platform) |
+| ~~Toolchain ~20 months stale; release unminified~~ | ~~later (platform)~~ · **done** — Phase 4 took AGP 8.9.2 / Kotlin 2.0.21 (`gradle/libs.versions.toml`) and release is minified (`app/build.gradle.kts`) |
 | Exercise imagery and the equipment field it needs | ~~3 (field)~~ / ~~7 (catalog)~~ / ~~8 (imagery)~~ — all done 21 Aug |
 | ~~Rest-timer sound design; plate calculator; font-scale-2.0 pass~~ | ~~Job 5 / P2–P4~~ done 22 Aug — cue, plates, type-in, 2.0 layout |
 | ~~No scheduled auto-backup (manual + prompted only)~~ | ~~Job 5 / P5~~ done 22 Aug — 14-day caption nag, not WorkManager |
