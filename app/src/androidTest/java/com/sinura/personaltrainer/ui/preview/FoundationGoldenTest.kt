@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.preview
 
+import android.graphics.Bitmap
 import android.os.Build
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -13,6 +14,7 @@ import com.sinura.personaltrainer.testutil.GoldenImageAssert
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.Warn
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Rule
@@ -62,6 +64,48 @@ class FoundationGoldenTest {
         }
         compose.onNodeWithText("Reduced motion").assertIsDisplayed()
     }
+
+    /**
+     * The rounding allowance: one level on one channel is the rasteriser, not a
+     * change. Seventeen such pixels on the Volt button's corners are what made
+     * this golden pass and fail on the same commit.
+     */
+    @Test
+    fun oneLevelOfRasteriserRoundingIsNotAChange() {
+        val before = solid(4, 4, 0xFF204060.toInt())
+        val after = solid(4, 4, 0xFF204060.toInt()).apply { setPixel(1, 1, 0xFF204061.toInt()) }
+        val diff = GoldenImageAssert.compare(before, after)
+        assertEquals(0, diff.differentPixels)
+        assertEquals(1, diff.roundingPixels)
+        assertTrue("one level is rounding", diff.matches)
+    }
+
+    /** An allowance, not a tolerance: the second level is a change. */
+    @Test
+    fun twoLevelsIsAChange() {
+        val before = solid(4, 4, 0xFF204060.toInt())
+        val after = solid(4, 4, 0xFF204060.toInt()).apply { setPixel(1, 1, 0xFF204062.toInt()) }
+        val diff = GoldenImageAssert.compare(before, after)
+        assertEquals(1, diff.differentPixels)
+        assertEquals(0, diff.roundingPixels)
+        assertFalse("two levels is a change", diff.matches)
+    }
+
+    /** A whole surface nudged one level is an edit, so the allowance is capped. */
+    @Test
+    fun awholeSurfaceNudgedOneLevelExceedsTheAllowance() {
+        val edge = 32
+        val before = solid(edge, edge, 0xFF204060.toInt())
+        val after = solid(edge, edge, 0xFF204061.toInt())
+        val diff = GoldenImageAssert.compare(before, after)
+        assertEquals(0, diff.differentPixels)
+        assertEquals(edge * edge, diff.roundingPixels)
+        assertTrue("over budget", diff.roundingPixels > GoldenImageAssert.ROUNDING_BUDGET)
+        assertFalse("a surface-wide nudge is a change", diff.matches)
+    }
+
+    private fun solid(width: Int, height: Int, color: Int): Bitmap =
+        Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply { eraseColor(color) }
 
     private fun setGallery(accent: () -> androidx.compose.ui.graphics.Color = { Volt }) {
         GoldenCapture.mount(compose) {
