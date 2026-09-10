@@ -17,5 +17,16 @@ if [ "$status" -ne 0 ]; then
   echo '::group::logcat (last 400 matching lines)'
   adb logcat -d | grep -E 'PT/|TestRunner|AndroidJUnitRunner|Exception|Error' | tail -n 400
   echo '::endgroup::'
+  # A golden mismatch writes the actual and diff PNGs to the device. The
+  # report artifact is not reachable from every network, so they ride the
+  # log as base64 too: decode with `base64 -d` to see, or to re-record.
+  for png in $(adb shell 'ls /sdcard/Download/*.png 2>/dev/null'); do
+    name=$(basename "$png")
+    if adb pull "$png" "$name" >/dev/null 2>&1; then
+      echo "::group::png $name ($(wc -c < "$name") bytes, base64)"
+      base64 "$name"
+      echo '::endgroup::'
+    fi
+  done
 fi
 exit "$status"
