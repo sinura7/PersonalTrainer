@@ -37,11 +37,7 @@ a second edit of the drop tools, `debug-live.yml`, `SETUP.md`, the owner
 loop, `GoldenImageAssert`, `FoundationGoldenTest`, `DEVELOPMENT.md`,
 or the ADRs from `trunk`. Do not delete `claude/android-verify-my59sw`
 or `claude/ecstatic-galileo-pw9iub`. An agent does not switch branch
-protection on.
-
-Open `#224` (install 36, not 35) overlaps `#202` on HANDOFF and
-ROADMAP. It corrects the phone instruction on `trunk`. Do not start a
-second rewrite of that section from `trunk`.
+protection on. `#224` is on `trunk`: install 36, not 35.
 
 **The hosted emulator lane is green: 80 tests, 0 failed** on `trunk`
 before `#222`; that packet adds three comparator unit tests (expected
@@ -62,14 +58,29 @@ then CI on the pull request, then a squash merge. The emulator lane is read
 directly on each pull request rather than through its check.
 
 Not verified, and it matters: **nothing here has been on a phone.**
-Drops through `debug-live-2026-09-10-8` (36) are published. `-6` and
-`-7` both carry 35. Install **36** (`debug-live-2026-09-10-8`) for the
-RPE rule and the drop lock. The lift page is `#202` and needs 37 after
-that packet lands.
+
+**Install the `debug-live-2026-09-10-8` pre-release, version 36.** It is the
+newest, it carries every packet through #220, and everything merged after it
+on `trunk` is docs and tests with no app change. Open `#202` is the
+remaining Kotlin: the lift page. After it lands, the next drop is 37.
+Every earlier drop is the same features with fewer of the review's fixes
+folded in.
+
+An earlier version of this file said "install 35", which was wrong twice
+over. Two different builds carry `debugLiveCode` 35 — tag
+`debug-live-2026-09-10-6` is #217 (the silent tick) and
+`debug-live-2026-09-10-7` is #218 (the RPE entry-well fix) — because two
+sessions bumped the counter to 35 independently. Obtainium keys its update
+offer on that number, so whichever 35 is installed, the other can never be
+offered as an update. **If a version-35 build is already on the phone,
+install 36 over it** and the ambiguity is gone; nothing needs uninstalling,
+because 36 is a higher number than both. Drop-branch names are not release
+names: the branch `debug-live/2026-09-10-6` points at #218, whose tag is
+`-7`. Trust the tag, and the version, not the branch.
 
 ## What the phone check is
 
-One install, four things:
+One install, six things:
 
 1. Home shows one bordered block per session, up to four lift pictures,
    the numbered order, and Start (or **Do it today**) on the foot. Tapping
@@ -83,6 +94,9 @@ One install, four things:
 5. Turn **Last five seconds** off, start a rest, swipe the app away with a
    few seconds left: the last five seconds stay quiet and the cue still
    plays at zero.
+6. Type a weight and reps by hand, then rate the effort: the wells keep what
+   was typed and the recommendation waits above **Log** with its own **Use**
+   (#218, which is why 36 and not 35).
 
 ## One thing waiting on the owner
 
@@ -146,6 +160,6 @@ second build is never offered by Obtainium. That is the predicted cost of
 breaking the rule, not bad luck. It happened again the same day: `#217`
 and `#218` both claimed 35; `-6` and `-7` both carry that number.
 Obtainium still offers 35 until 36 is installed. `#220` shipped 36 as
-`debug-live-2026-09-10-8`. `#221`–`#223` are on `trunk`. The next
+`debug-live-2026-09-10-8`. `#221`–`#224` are on `trunk`. The next
 drop after `#202` is 37.
 
