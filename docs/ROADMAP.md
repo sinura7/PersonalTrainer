@@ -23,6 +23,7 @@
 > two per-set flags (warm-up, RPE) on the draft as it stands; the row that
 > was written keeps the tapped values. Typed reps stop being a delta
 > measured against a well that may have moved: `setReps` takes the number.
+> Live test 33 (`debugLiveCode` 33), drop `debug-live/2026-09-10-4`.
 >
 > 10 Sep 2026 — Tick follow-ups, from a six-reviewer pass over #206: the
 > ticks re-anchor from every running snapshot the service collects, not
