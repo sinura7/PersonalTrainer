@@ -34,12 +34,31 @@ the supported Compose capture API.
 | Display | 1080 × 1920 |
 | Density | 420 dpi |
 | Acceleration | software (`-accel off`) |
+| Renderer | SwiftShader — the hosted lane (`ubuntu-latest`, `reactivecircus/android-emulator-runner` v2.38.0, `profile: Nexus 5X`) |
 | App | `com.sinura.personaltrainer.debug` |
 | Golden viewport | 360 × 800 dp |
 | Theme | Instrument dark |
 
 The committed baseline is
-`app/src/androidTest/assets/goldens/foundation-state-gallery-api29.png`.
+`app/src/androidTest/assets/goldens/foundation-state-gallery-api29.png`,
+recorded on 10 September 2026 from the lane's own capture
+([evidence](evidence/golden-rerecord-2026-09-10.md)). The lane is the
+renderer that runs on every pull request, so it is the reference; a desk
+emulator with another GPU can differ from it by a few levels on tracked
+small caps and rounded corners.
+
+### Re-record from the lane
+
+When a golden mismatch is a reviewed, intended change, take the new
+baseline from the failing run rather than a desk emulator:
+
+1. Open the *Instrumented smoke* job log; `tools/ci-instrumented.sh` prints
+   every PNG the harness wrote to the device's Download folder as a
+   base64 log group named `png <file>`.
+2. Copy the `foundation-state-gallery-api29-actual.png` group's body and
+   decode it: `base64 -d > app/src/androidTest/assets/goldens/foundation-state-gallery-api29.png`.
+3. Read the `-diff.png` group the same way, and write what changed and why
+   into `evidence/`.
 
 ## Commands
 
