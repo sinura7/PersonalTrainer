@@ -163,8 +163,11 @@ are on `trunk`. Do **not** bump 34 here.
 `#215` (golden record: F3's contrast, not the renderer) is on `trunk`.
 The 17-pixel comparator question it left is an owner decision, not this
 packet. `#216` (lane hardening: scroll the list, prove the arm, keep the
-PNGs) is on `trunk`. Do not start a second edit of `ci.yml`,
-`tools/ci-instrumented.sh`, or those androidTest files from `trunk`.
+PNGs) is on `trunk`. Open `#217` (a tick with no preferences yet stays
+silent, live 35, drop `debug-live/2026-09-10-6`) overlaps this packet on
+ROADMAP only. Independent Kotlin (`RestTimerService`). Do not start a
+second edit of the rest timer, `ci.yml`, `tools/ci-instrumented.sh`,
+or those androidTest files from `trunk`.
 Actions is still not the test lane; do not take ten green trunk runs as
 a merge gate.
 Do not start a second edit of Home, `DayBlock`, `DailyAgendaCard`, `ThisWeekCard`,
@@ -212,8 +215,8 @@ after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
 `trunk`. `#173` is on `trunk`. `claude/android-verify-my59sw` is leftover
 and Claude reuses it — do **not** delete that head (deleting it after
 `#191` briefly removed `#192`). `#204` through `#216` reused
-`claude/android-verify-my59sw` — do **not** delete that head. `#204`
-through `#216` are on `trunk`. `#214`'s vehicle
+`claude/android-verify-my59sw` — do **not** delete that head; open
+`#217` reuses it again. `#204` through `#216` are on `trunk`. `#214`'s vehicle
 `claude/ecstatic-galileo-pw9iub` is leftover — do **not**
 delete that head. `#203` is on `trunk`. Do not start a second picker,
 rest-timer, Home day-board, live-workout wells, golden record,
