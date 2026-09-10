@@ -454,6 +454,7 @@ fun ActiveWorkoutScreen(
                                         onRemove = { confirmRemoveLift = true },
                                         onWeightKgChange = viewModel::setWeight,
                                         onRepsAdjust = viewModel::adjustReps,
+                                        onRepsChange = viewModel::setReps,
                                         onApplyLastTime = viewModel::applyLastTimeSet,
                                         onWarmup = viewModel::setWarmup,
                                         onRpe = viewModel::setRpe,
@@ -850,6 +851,7 @@ private data class WorkoutLiftCardEvents(
     val onRemove: () -> Unit,
     val onWeightKgChange: (Double) -> Unit,
     val onRepsAdjust: (Int) -> Unit,
+    val onRepsChange: (Int) -> Unit,
     val onApplyLastTime: (Double, Int) -> Unit,
     val onWarmup: (Boolean) -> Unit,
     val onRpe: (Int?) -> Unit,
@@ -886,6 +888,7 @@ private fun WorkoutLiftCard(
     val onRemove = events.onRemove
     val onWeightKgChange = events.onWeightKgChange
     val onRepsAdjust = events.onRepsAdjust
+    val onRepsChange = events.onRepsChange
     val onApplyLastTime = events.onApplyLastTime
     val onWarmup = events.onWarmup
     val onRpe = events.onRpe
@@ -1011,6 +1014,7 @@ private fun WorkoutLiftCard(
                     reps = draftReps,
                     onWeightKgChange = onWeightKgChange,
                     onRepsAdjust = onRepsAdjust,
+                    onRepsChange = onRepsChange,
                     unit = unit,
                     loadClass = LoadClass.of(lift.exercise.loadType),
                     plated = lift.exercise.equipment == EquipmentType.BARBELL,
