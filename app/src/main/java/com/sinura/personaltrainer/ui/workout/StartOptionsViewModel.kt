@@ -178,6 +178,25 @@ class StartOptionsViewModel @JvmOverloads constructor(
         _navigateToComposer.value = null
     }
 
+    /**
+     * Nothing may be left pointing somewhere once the sheet is gone.
+     *
+     * This view model is scoped to the Activity, not to the sheet — [StartOptionsSheet] takes it
+     * with `viewModel()` from a composable hosted outside the NavHost — so a value left in one of
+     * these three flows outlives the close and fires on the NEXT open, before the user has chosen
+     * anything. That is how a dead "Mixed session" tap became a jump to the composer the next time
+     * the sheet was opened, including while a session was live.
+     *
+     * Safe to call on every dismiss: each of the three [LaunchedEffect]s clears its own flow
+     * BEFORE it calls `onDismiss`, so a navigation that is genuinely under way has already let go
+     * of its flow by the time this runs. Only an abandoned one is left to clear.
+     */
+    fun clearPendingNavigation() {
+        _navigateToSession.value = null
+        _navigateToCardio.value = null
+        _navigateToComposer.value = null
+    }
+
     fun dismissError() {
         error.dismiss()
     }

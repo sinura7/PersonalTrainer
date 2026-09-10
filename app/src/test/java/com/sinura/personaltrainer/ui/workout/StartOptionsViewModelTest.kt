@@ -345,6 +345,51 @@ class StartOptionsViewModelTest {
         assertEquals(id, deps.cardioTimerPersistence.load()?.sessionId)
     }
 
+    /**
+     * Nothing the sheet staged may outlive the sheet.
+     *
+     * This view model is scoped to the Activity rather than to the sheet, so a value left in one
+     * of the three navigation flows survives a close and fires on the NEXT open — before the user
+     * has chosen anything, and including while a session is live, which is the one state the
+     * sheet promises will start nothing. That is not hypothetical: the "Mixed session" row used to
+     * call onDismiss() and then openComposer("mixed"), and the only reader of that flow is a
+     * LaunchedEffect inside the sheet the dismiss had just removed. The tap opened nothing, and
+     * the flow kept "mixed" until the next open spent it.
+     */
+    @Test
+    fun aPendingNavigationDoesNotSurviveTheSheetClosing() = runBlocking {
+        deps = graph()
+        val vm = createViewModel()
+        vm.uiState.awaitFirst { !it.isLoading }
+
+        vm.openComposer("mixed")
+        assertEquals("mixed", vm.navigateToComposer.value)
+
+        // What the sheet's onDispose does.
+        vm.clearPendingNavigation()
+
+        assertNull(vm.navigateToComposer.value)
+        assertNull(vm.navigateToSession.value)
+        assertNull(vm.navigateToCardio.value)
+    }
+
+    /**
+     * The flow itself is not the defect and must keep working: StartOccurrenceOutcome.OpenComposer
+     * sets it while the sheet is still composed, which is what it is for.
+     */
+    @Test
+    fun aComposerNavigationRaisedWhileTheSheetIsOpenIsStillDelivered() = runBlocking {
+        deps = graph()
+        val vm = createViewModel()
+        vm.uiState.awaitFirst { !it.isLoading }
+
+        vm.openComposer("mixed")
+
+        assertEquals("mixed", checkNotNull(vm.navigateToComposer.awaitFirst { it != null }))
+        vm.onComposerNavigationHandled()
+        assertNull(vm.navigateToComposer.value)
+    }
+
     private fun createViewModel(): StartOptionsViewModel =
         StartOptionsViewModel(
             ApplicationProvider.getApplicationContext<Application>(),

@@ -14,6 +14,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -87,6 +88,11 @@ fun StartOptionsSheet(
     val inProgress = state.inProgress
     val liveActivity = state.liveActivity
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
+
+    // The sheet is going away; nothing it staged may outlive it. See clearPendingNavigation.
+    DisposableEffect(Unit) {
+        onDispose { viewModel.clearPendingNavigation() }
+    }
 
     LaunchedEffect(navigateToSession) {
         val target = navigateToSession ?: return@LaunchedEffect
@@ -213,8 +219,22 @@ fun StartOptionsSheet(
                     onLogPast()
                 },
                 onLogMixed = {
+                    // Straight to the host, exactly like its two neighbours above and below.
+                    //
+                    // It used to call onDismiss() and THEN viewModel.openComposer("mixed"), and
+                    // the only reader of that flow is a LaunchedEffect in this composable — which
+                    // the dismiss had just taken out of composition. So the effect never ran: the
+                    // tap closed the sheet and opened nothing, and because the effect is also what
+                    // calls onComposerNavigationHandled(), the flow kept "mixed" forever. The view
+                    // model is scoped to the Activity, not to the sheet, so the NEXT open of the
+                    // sheet fired that stale value on its first composition and jumped to the
+                    // composer before the user had chosen anything — including while a session was
+                    // live, which is the one state this sheet promises will start nothing.
+                    //
+                    // The flow itself stays: StartOccurrenceOutcome.OpenComposer sets it while the
+                    // sheet is still composed, which is what it is for.
                     onDismiss()
-                    viewModel.openComposer("mixed")
+                    onLogMixed()
                 },
                 onLogCardio = {
                     onDismiss()
