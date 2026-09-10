@@ -34,12 +34,13 @@ object SessionOrderCopy {
     const val COMPOSE_LATER = "Name a new session and set the lifts."
     const val REMOVE_SESSION = "Stops this session on this weekday. Logged work stays."
 
-    const val PICKER_HINT = "Tap in the order you'll lift. 1 is first."
+    /** Says the two things a tap does now: it counts, and it is already saved. */
+    const val PICKER_HINT = "Tap in the order you'll lift. 1 is first, and each tap is saved."
     const val TAP_TO_SET = "Tap a lift to set sets, reps, rest and load."
     const val EMPTY_EDITOR_BODY =
-        "Tap lifts in the order you'll do them. Add puts them on this day."
+        "Tap lifts in the order you'll do them. Each tap adds one to this routine."
     const val EMPTY_WEEK_BODY =
-        "Tap lifts in the order you'll do them, then move to the next day."
+        "Tap lifts in the order you'll do them. Each tap adds one to this day."
     const val EDIT_LIFTS_SUBTITLE = "Tap a card for sets, reps, rest and load."
     const val AGENDA_SEPARATE =
         "Each session stays its own. Finish one, then start the next."

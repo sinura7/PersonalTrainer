@@ -90,6 +90,10 @@ import com.sinura.personaltrainer.ui.theme.VoltDim
  * Creating is not chrome any more: it appears as a single row above the results, only when
  * what has been typed matches nothing. The muscle chips sit on that row — not a permanent
  * field at the top — because a blank group used to become "Other" and never heat a plate.
+ *
+ * Multi-add writes as it goes. Every tap lands on the routine or the day immediately, and
+ * the cart is a numbered view of that session rather than a staging list held by the sheet:
+ * the scrim, the back gesture and a mis-swipe cost the typed query and nothing else.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -294,14 +298,15 @@ fun ExercisePickerSheet(
                         onDismiss = { onEvent(ExercisePickerEvent.ErrorDismissed) },
                     )
                 }
+                // Done, not Add: the lifts went on the routine as they were tapped. This
+                // button is the way out of the sheet, and it says what is already saved.
                 PrimaryGymButton(
                     text = when (cart.size) {
-                        0 -> "Add"
-                        1 -> "Add 1 lift"
-                        else -> "Add ${cart.size} lifts"
+                        0 -> "Done"
+                        1 -> "Done · 1 lift"
+                        else -> "Done · ${cart.size} lifts"
                     },
-                    onClick = { onEvent(ExercisePickerEvent.Confirmed) },
-                    enabled = cart.isNotEmpty(),
+                    onClick = { onEvent(ExercisePickerEvent.Dismissed) },
                     modifier = Modifier.padding(
                         horizontal = Metrics.gutter,
                         vertical = Metrics.space3,

@@ -111,7 +111,12 @@ class SessionOrderCopyTest {
         )
         assertEquals(
             SessionOrderCopy.EMPTY_EDITOR_BODY,
-            "Tap lifts in the order you'll do them. Add puts them on this day.",
+            "Tap lifts in the order you'll do them. Each tap adds one to this routine.",
+        )
+        // The picker writes as it goes, and the hint is where the owner is told so.
+        assertEquals(
+            SessionOrderCopy.PICKER_HINT,
+            "Tap in the order you'll lift. 1 is first, and each tap is saved.",
         )
     }
 
