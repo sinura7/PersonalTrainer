@@ -15,6 +15,21 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 10 Sep 2026 — Lane fixes: the hosted emulator pass is meant to be green.
+> Four failures, one pull request each, none skipped or loosened: the
+> exact-alarm test read `lastAlarmSchedule` before the IO-scope arm had
+> run (it waits, bounded, now — #207); the History pass looked for
+> `Records` where the kicker draws `RECORDS` (#208); the workout journey
+> asserted the summary's lift breakdown without scrolling to it (#209);
+> and the golden's 7,091-pixel diff, printed from the lane as base64
+> (#210), turned out to be the two `PRIMARY` / `SECONDARY` kickers and
+> the Volt button's corners at no more than 39 of 255 on any channel —
+> renderer anti-aliasing, so the baseline is re-recorded from the lane's
+> own capture, with the comparator still exact
+> (`docs/foundation-program/evidence/golden-rerecord-2026-09-10.md`).
+> The lane is now the reference renderer, and the bar for making the job
+> blocking — ten green trunk runs — starts counting.
+>
 > 10 Sep 2026 — Tick: the last five seconds of rest tick. `RestTick` says
 > where the boundaries fall; `RestTimerService` posts one runnable per
 > boundary and re-asks on every sync, so a ±15 s moves the ticks with the
