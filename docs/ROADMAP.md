@@ -15,6 +15,12 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 10 Sep 2026 — Live 37: `#202` is on `trunk` (the lift page reads both
+> stores). Obtainium still offers 36 until the number rises. This packet
+> is that rise. Open `#225` is Drive refusal copy and does not ride this
+> drop. Live test 37 (`debugLiveCode` 37); the suffix is
+> `python3 tools/debug-drop-plan.py` after merge, not a name typed here.
+>
 > 10 Sep 2026 — I: a drop is claimed, not assumed. Two packets merging nine
 > minutes apart both bumped `debugLiveCode` to 35 and both cut a drop;
 > `debug-live-2026-09-10-6` and `-7` therefore carry the same number, which is

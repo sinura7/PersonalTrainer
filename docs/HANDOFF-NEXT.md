@@ -6,7 +6,7 @@ the rest timer's last five seconds.
 
 ## Where the code stands
 
-`debugLiveCode` is **36**; `appVersionCode` is **1** and stays there until
+`debugLiveCode` is **37**; `appVersionCode` is **1** and stays there until
 a real public artifact is cut (FOUNDATION_PROGRAM P12.3). Room is frozen at
 v4, the backup document and envelope formats are untouched, and no
 identifier is ever rewritten. Those three hold for every future packet.
@@ -30,14 +30,17 @@ forgives one level of rasteriser rounding, capped at 256 pixels.
 `#223` is on `trunk`: ADR-024, the deterministic hosted job may gate
 `trunk`; the emulator may not. The setting is the owner's.
 
-Open `#202` is R18 step two (exercise detail reads both stores). It
-inherits 36 and does not bump it. After it lands, the next drop is 37.
-Do not start step three from `trunk` while `#202` is open. Do not start
-a second edit of the drop tools, `debug-live.yml`, `SETUP.md`, the owner
-loop, `GoldenImageAssert`, `FoundationGoldenTest`, `DEVELOPMENT.md`,
-or the ADRs from `trunk`. Do not delete `claude/android-verify-my59sw`
-or `claude/ecstatic-galileo-pw9iub`. An agent does not switch branch
-protection on. `#224` is on `trunk`: install 36, not 35.
+`#202` is on `trunk`: R18 step two, the lift page reads both stores. This
+packet is the Obtainium drop so that page is offered: 36 → **37**. Open
+`#225` is Drive refusal copy (`DriveHttp` / `DriveErrorCopy`); it does
+not overlap this packet except ROADMAP (last merge wins) and does not
+ride this drop. Do not start R18 step three from `trunk` while this
+drop PR is open (this file). Do not start a second edit of the drop
+tools, `debug-live.yml`, `SETUP.md`, the owner loop,
+`GoldenImageAssert`, `FoundationGoldenTest`, `DEVELOPMENT.md`, or the
+ADRs from `trunk`. Do not delete `claude/android-verify-my59sw`
+(`#225` is on it) or `claude/ecstatic-galileo-pw9iub`. An agent does
+not switch branch protection on.
 
 **The hosted emulator lane is green: 80 tests, 0 failed** on `trunk`
 before `#222`; that packet adds three comparator unit tests (expected
@@ -59,12 +62,13 @@ directly on each pull request rather than through its check.
 
 Not verified, and it matters: **nothing here has been on a phone.**
 
-**Install the `debug-live-2026-09-10-8` pre-release, version 36.** It is the
-newest, it carries every packet through #220, and everything merged after it
-on `trunk` is docs and tests with no app change. Open `#202` is the
-remaining Kotlin: the lift page. After it lands, the next drop is 37.
-Every earlier drop is the same features with fewer of the review's fixes
-folded in.
+**Install version 37 after this drop publishes.** Until then the phone
+still has 36 (`debug-live-2026-09-10-8`), which does not carry the lift
+page. After this packet is on `trunk`, name the suffix with
+`python3 tools/debug-drop-plan.py` and push the command it prints —
+do not type the tag by hand. Obtainium offers 37 over 36; nothing
+needs uninstalling. Every earlier drop is the same features with fewer
+of the review's fixes folded in.
 
 An earlier version of this file said "install 35", which was wrong twice
 over. Two different builds carry `debugLiveCode` 35 — tag
@@ -80,7 +84,7 @@ names: the branch `debug-live/2026-09-10-6` points at #218, whose tag is
 
 ## What the phone check is
 
-One install, six things:
+One install, seven things:
 
 1. Home shows one bordered block per session, up to four lift pictures,
    the numbered order, and Start (or **Do it today**) on the foot. Tapping
@@ -97,6 +101,10 @@ One install, six things:
 6. Type a weight and reps by hand, then rate the effort: the wells keep what
    was typed and the recommendation waits above **Log** with its own **Use**
    (#218, which is why 36 and not 35).
+7. Open a lift trained both as a planned session and as a backdated
+   strength day. Both appear on that lift's page. Tapping the activity
+   row opens the activity, not the live-session screen (#202, which is
+   why 37 and not 36).
 
 ## One thing waiting on the owner
 
@@ -123,14 +131,15 @@ Biggest first, and the first two are the owner's, not a session's:
 - **Twenty-one DESIGN_AUDIT P1 rows** still genuinely open. Cheapest that
   pays: N-01, a cue preview button in Settings. Biggest felt: B-02, Body's
   first-launch emptiness.
-- **R18 step two is open `#202`.** After it lands: **steps 3 and 4** —
-  one shared detail-ViewModel shape, and the activity-edit capability
-  split — plus the five use-case extractions and the seven-row parity
-  table in `architecture/completed-training-convergence.md`. Step 3
-  first: two detail screens that can disagree about *missing* versus
-  *failed* is the bug that record exists to prevent. The log-time PR
-  badge is **not** on this list: it is a signed product fact, because
-  activities are never logged live.
+- **R18 step two is on `trunk` (`#202`).** Next, after this 37 drop:
+  **steps 3 and 4** — one shared detail-ViewModel shape, and the
+  activity-edit capability split — plus the five use-case extractions
+  and the seven-row parity table in
+  `architecture/completed-training-convergence.md`. Step 3 first: two
+  detail screens that can disagree about *missing* versus *failed* is
+  the bug that record exists to prevent. The log-time PR badge is
+  **not** on this list: it is a signed product fact, because activities
+  are never logged live.
 - **R17 measurement** is blocked on a fixture generator and a benchmark
   module nobody has built, not on the owner's history growing. About a day.
 - **The 600 dp screen passes never run at 600 dp**: `mount` sizes a Box
@@ -160,6 +169,6 @@ second build is never offered by Obtainium. That is the predicted cost of
 breaking the rule, not bad luck. It happened again the same day: `#217`
 and `#218` both claimed 35; `-6` and `-7` both carry that number.
 Obtainium still offers 35 until 36 is installed. `#220` shipped 36 as
-`debug-live-2026-09-10-8`. `#221`–`#224` are on `trunk`. The next
-drop after `#202` is 37.
+`debug-live-2026-09-10-8`. `#221`–`#224` and `#202` are on `trunk`.
+This packet is 37. Open `#225` is Drive copy and does not ride it.
 
