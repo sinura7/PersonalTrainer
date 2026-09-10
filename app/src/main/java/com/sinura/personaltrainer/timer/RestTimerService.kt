@@ -48,10 +48,22 @@ class RestTimerService : Service() {
     private val completeRunnable = Runnable { handleDeadline() }
     private val tickRunnable = Runnable { handleTick() }
     private var pendingTick = 0
+    private var tickedEndsAt = Long.MIN_VALUE
+    private var tickedSecond = 0
     private var tickPlayer: RestTickPlayer? = null
 
-    /** Last seen; the collector below keeps it current. Read by the tick, on the main thread. */
-    internal var tickPreferences: RestTimerPreferences = RestTimerPreferences.DEFAULT
+    /**
+     * Last seen; the collector below keeps it current. Read by the tick, on the
+     * main thread.
+     *
+     * Null until DataStore's first emission, and a tick that finds it null stays
+     * silent (it still reschedules). Seeding it with the defaults meant everything
+     * on: after a sticky restart with four seconds left, the ticks could sound
+     * against a toggle the owner had turned off, because the read had not landed
+     * yet. A missed tick is the right failure mode for a cue preference; a tick
+     * against "off" is not.
+     */
+    internal var tickPreferences: RestTimerPreferences? = null
     private var completing = false
     private var startedForeground = false
     private var lastShownEndsAt = Long.MIN_VALUE
@@ -70,6 +82,11 @@ class RestTimerService : Service() {
                 if (snap.running) {
                     sawRunning = true
                     stopped = false
+                    // A ±15 s from the app or the shade changes the deadline here first;
+                    // the ACTION_SYNC that follows the disk write can be tens of
+                    // milliseconds behind it. Re-anchor the ticks from the store, not
+                    // the intent, so a -15 s that lands on five ticks five now.
+                    if (startedForeground && !completing) scheduleTick(snap)
                 } else if (sawRunning) {
                     stopNow()
                 }
@@ -165,9 +182,13 @@ class RestTimerService : Service() {
     private fun scheduleTick(state: RestTimerSnapshot) {
         handler.removeCallbacks(tickRunnable)
         val now = SystemClock.elapsedRealtime()
-        val next = RestTick.nextTick(state.endsAtElapsedRealtime, now) ?: return
+        val ticked = tickedSecond.takeIf { state.endsAtElapsedRealtime == tickedEndsAt }
+        val next = RestTick.nextTick(state.endsAtElapsedRealtime, now, ticked) ?: return
         pendingTick = next
-        handler.postDelayed(tickRunnable, RestTick.tickAt(state.endsAtElapsedRealtime, next) - now)
+        handler.postDelayed(
+            tickRunnable,
+            (RestTick.tickAt(state.endsAtElapsedRealtime, next) - now).coerceAtLeast(0L),
+        )
     }
 
     /**
@@ -183,9 +204,15 @@ class RestTimerService : Service() {
             scheduleTick(state)
             return
         }
-        val player = tickPlayer
-        val ticked = RestTimerAlerts.tick(this, tickPreferences) { player?.play() }
-        if (ticked) tickObserver?.invoke(second)
+        tickedEndsAt = state.endsAtElapsedRealtime
+        tickedSecond = second
+        val preferences = tickPreferences
+        if (preferences != null) {
+            val player = tickPlayer
+            if (RestTimerAlerts.tick(this, preferences) { player?.play() }) {
+                tickObserver?.invoke(second)
+            }
+        }
         scheduleTick(state)
     }
 

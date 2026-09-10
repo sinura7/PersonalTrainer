@@ -147,8 +147,10 @@ class ProductionScreensPassInstrumentedTest {
         compose.waitUntil(15_000) {
             viewModel.uiState.value.records.any { it.valueKg == 120.0 }
         }
-        scrollPageTo(hasText("Records"))
-        compose.onNodeWithText("Records").assertIsDisplayed()
+        // The header is a GymSectionHeader, whose Kicker uppercases at the call site
+        // (ADR-005: tracked caps, never tracked mixed case), so the drawn text is RECORDS.
+        scrollPageTo(hasText("Records", ignoreCase = true))
+        compose.onNodeWithText("Records", ignoreCase = true).assertIsDisplayed()
 
         scrollPageTo(hasTestTag(SessionLogTags.ROW))
         compose.onAllNodesWithTag(SessionLogTags.ROW).onFirst().assertIsDisplayed()

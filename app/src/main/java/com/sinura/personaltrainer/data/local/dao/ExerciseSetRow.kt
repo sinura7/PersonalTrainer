@@ -2,9 +2,10 @@ package com.sinura.personaltrainer.data.local.dao
 
 /**
  * One finished working set joined to its session's identity, as read by
- * [WorkoutDao.observeFinishedWorkingSets].
+ * [WorkoutDao.observeFinishedWorkingSets] and the activity sibling
+ * [ActivityDao.observeFinishedWorkingSets].
  *
- * Column names here must match the `AS` aliases in that query; Room maps by name.
+ * Column names here must match the `AS` aliases in those queries; Room maps by name.
  */
 data class ExerciseSetRow(
     val setId: String,

@@ -278,6 +278,7 @@ private fun SessionBlocks(
                         index = index,
                         lastIndex = occurrences.lastIndex,
                         onMove = onMove,
+                        modifier = Modifier.padding(horizontal = Metrics.space4),
                     )
                 }
             }
@@ -292,9 +293,12 @@ internal fun ReorderRow(
     index: Int,
     lastIndex: Int,
     onMove: (String, Int) -> Unit,
+    // Plain Modifier, per lint's ModifierParameter rule: the list-row inset is the
+    // caller's, so a block that already has card padding does not pay it twice.
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = Modifier.padding(horizontal = Metrics.space4),
+        modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
     ) {
         if (index > 0) {

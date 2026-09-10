@@ -16,13 +16,18 @@ class RestTickTest {
     }
 
     @Test
-    fun theNextTickIsTheFirstBoundaryStrictlyAhead() {
+    fun theNextTickIsTheFirstBoundaryAtOrAhead() {
         assertEquals(5, RestTick.nextTick(endsAt, nowElapsedRealtime = 10_000L))
         assertEquals(5, RestTick.nextTick(endsAt, nowElapsedRealtime = 94_999L))
-        // Exactly on the five-second boundary: that tick is firing now, so ask for four.
-        assertEquals(4, RestTick.nextTick(endsAt, nowElapsedRealtime = 95_000L))
+        // Exactly on the five-second boundary with nothing ticked yet — a -15 s that
+        // landed on five — ticks five now.
+        assertEquals(5, RestTick.nextTick(endsAt, nowElapsedRealtime = 95_000L))
+        // The runnable that just announced five, firing on its own boundary, asks for four.
+        assertEquals(4, RestTick.nextTick(endsAt, nowElapsedRealtime = 95_000L, ticked = 5))
         assertEquals(1, RestTick.nextTick(endsAt, nowElapsedRealtime = 98_500L))
-        assertNull(RestTick.nextTick(endsAt, nowElapsedRealtime = 99_000L))
+        assertEquals(1, RestTick.nextTick(endsAt, nowElapsedRealtime = 99_000L))
+        assertNull(RestTick.nextTick(endsAt, nowElapsedRealtime = 99_000L, ticked = 1))
+        assertNull(RestTick.nextTick(endsAt, nowElapsedRealtime = 99_001L))
         assertNull(RestTick.nextTick(endsAt, nowElapsedRealtime = 120_000L))
     }
 
@@ -30,9 +35,11 @@ class RestTickTest {
     fun walkingTheBoundariesTicksFiveFourThreeTwoOneAndStops() {
         val seen = mutableListOf<Int>()
         var now = 0L
+        var ticked: Int? = null
         while (true) {
-            val next = RestTick.nextTick(endsAt, now) ?: break
+            val next = RestTick.nextTick(endsAt, now, ticked) ?: break
             now = RestTick.tickAt(endsAt, next)
+            ticked = next
             seen += next
         }
         assertEquals(listOf(5, 4, 3, 2, 1), seen)

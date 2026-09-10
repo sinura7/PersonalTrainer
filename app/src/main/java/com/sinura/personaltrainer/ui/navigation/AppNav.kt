@@ -679,6 +679,11 @@ fun PersonalTrainerNav(
                                 launchSingleTop = true
                             }
                         },
+                        onOpenActivity = { activityId ->
+                            navController.navigate(Route.ActivityDetail.create(activityId)) {
+                                launchSingleTop = true
+                            }
+                        },
                     )
                 }
             }

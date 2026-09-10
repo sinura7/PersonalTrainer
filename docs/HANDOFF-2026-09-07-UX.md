@@ -299,6 +299,50 @@ type-check here and fail under Gradle with "overrides nothing". Latent, not live
 `MainActivity.kt:76` and `RestLockActivity.kt:106` both write the non-null form today — and
 the stub's own header claims the opposite is checked. Thirteen further findings are minor.
 
+## 6.4 The compile lane is retired — 10 September
+
+The owner took this branch's checker work onto trunk directly as **#227** ("The gate was blind
+in three source sets and green at ten findings"), and that commit says plainly what it did not
+take: *"The source branch's `tools/compile-check.sh` and its hand-written stubs are deliberately
+not carried: their premise was that Gradle could not run in this environment, and it can."*
+
+That is right, and this merge honours it. `tools/compile-check.sh`, `tools/compile-stubs/`,
+`tools/compose-stubs/` and `tools/test-stubs/` — about 1,500 lines of substitute library
+declarations and a 1,495-line driver — are **deleted here**. The lane existed to answer one
+question, "does the Android side type-check", using nearby real builds because the real one was
+impossible. `./gradlew assembleDebug` answers that question exactly, with no substitutions and
+no soundness ledger to read before trusting a green. Keeping both would mean maintaining stubs
+against a compiler nobody consults.
+
+What survives it is the part that was never about substitution: `tools/check-lambda-arity.py`,
+the four widened checkers, and `tools/test_summary_gate.sh` — all now on trunk via #227. They
+stay in the preflight because they cost a second and need no SDK, so a stale caller is named
+before a build is started. They do not stand in for the build.
+
+The audit's one confirmed false green (§6.3, the empty `ComponentActivity` stub) dies with the
+lane rather than being fixed in it. The other thirteen minor findings were all findings *about*
+the lane; they are closed by the same deletion. The audit of the batch's own behaviour, and its
+findings, are unaffected — those were about `app/src`, not about `tools/`.
+
+**What replaces it as the pre-push check** is the owner's standing instruction of 10 September:
+`./gradlew testDebugUnitTest assembleDebug lintDebug`, run in full before every push.
+
+**Executed on the merged tree**, before this commit was pushed and before trunk was touched:
+
+```
+preflight (static only)                     OK — 31 steps, every ratchet at or below baseline
+./gradlew testDebugUnitTest assembleDebug lintDebug   BUILD SUCCESSFUL in 4m 44s
+  testDebugUnitTest   1,965 tests, 0 failures, 0 errors, 0 skipped
+  assembleDebug       PersonalTrainer-1.0.0-debug.apk, 17,905,677 bytes
+  lintDebug           0 issues
+```
+
+The one unit-test failure seen on 10 September did not recur; it passed in isolation and in CI
+then, and the full run is clean now. `required_args_mixed` ratcheted 181 -> 178 (three mixed
+call sites became fully named); `lambda_arity_declined` is 62 here against trunk's 61, the one
+extra being a fully-qualified call this batch adds. Both count sites a checker declines to
+judge, not defects; the defect counts are 0.
+
 ## 7. Delivery state
 
 Everything is committed on `claude/file-visibility-check-jraqc2` and **pushed to origin with the owner's authorization on 7 September**. Nothing has been merged, tagged, published or deployed; no production configuration, credential or user data was touched.
@@ -354,10 +398,6 @@ Still owed by a device, not by CI: the eight production captures in §8, and `co
 5. **UX23 residue:** the four read-fault-vs-missing screens (SessionDetail, ActiveWorkout,
    RestTimer, ExerciseDetail) need health-carrying flows, the R10 shape; the rest is copy and
    banner placement.
-6. **The compile lane:** run `tools/compile-check.sh` before any push that changes a shared
-   signature. Its verdict and Gradle's now agree on one commit (§6.2) — that is one data
-   point, not a calibration; keep comparing.
-7. **The one uncovered source set:** `app/src/androidTest` is compiled by no lane stage.
-   CI's `assembleDebugAndroidTest` does compile it, so the gap is a local-feedback gap rather
-   than a correctness one; `check-lambda-arity.py` guards the defect class that reached the
-   branch. Revisit if a second instrumented-test break gets past both.
+6. **The gate before every push:** `./gradlew testDebugUnitTest assembleDebug lintDebug`.
+   The compile lane is retired (§6.4); the real build replaced it, and the owner's standing
+   instruction is that the real gate runs before a push, not a static approximation of it.

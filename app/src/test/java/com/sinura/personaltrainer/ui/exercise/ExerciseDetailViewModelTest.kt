@@ -5,11 +5,22 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.domain.ActivityDraft
+import com.sinura.personaltrainer.domain.ActivityOrigin
+import com.sinura.personaltrainer.domain.ActivityStatus
+import com.sinura.personaltrainer.domain.ActivityWrite
+import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.HistoryKind
+import com.sinura.personaltrainer.domain.LoadType
+import com.sinura.personaltrainer.domain.PersonalRecordKind
+import com.sinura.personaltrainer.domain.StrengthBlock
+import com.sinura.personaltrainer.domain.StrengthSet
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
+import com.sinura.personaltrainer.util.JvmTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -107,6 +118,39 @@ class ExerciseDetailViewModelTest {
     }
 
     @Test
+    fun aBackdatedStrengthActivityCountsTowardHistoryAndRecords() = runBlocking {
+        val fixture = seedTestWorkout(
+            deps,
+            loggedSets = listOf(TestSetInput(100.0, 5)),
+            finish = true,
+        )
+        val now = JvmTime.captureNow()
+        val write = deps.confirmActivity(
+            ActivityDraft(
+                status = ActivityStatus.COMPLETED,
+                origin = ActivityOrigin.BACKDATED,
+                title = "Make-up squat",
+                performedStart = now,
+                performedEnd = now,
+                blocks = listOf(backdatedSquat(fixture.exercise.id, now.instantMillis + 1_000L)),
+            ),
+            now,
+        )
+        assertTrue(write is ActivityWrite.Accepted)
+
+        val vm = createViewModel(fixture.exercise.id)
+        val state = vm.uiState.awaitFirst { it.history.sessions.size >= 2 }
+        assertEquals(2, state.history.sessions.size)
+        assertTrue(state.history.sessions.any { it.kind == HistoryKind.ACTIVITY })
+        assertTrue(state.history.sessions.any { it.kind == HistoryKind.WORKOUT })
+        assertEquals(
+            110.0,
+            state.history.records.getValue(PersonalRecordKind.WEIGHT).value,
+            0.0001,
+        )
+    }
+
+    @Test
     fun addToRoutineAlreadyHoldingNoticesWithoutWriting() = runBlocking {
         val fixture = seedTestWorkout(deps)
         deps.workoutRepository.discardSession(fixture.session.id)
@@ -158,4 +202,25 @@ class ExerciseDetailViewModelTest {
             savedStateHandle = SavedStateHandle(mapOf("exerciseId" to exerciseId)),
             container = deps,
         ).also { viewModel = it }
+
+    private fun backdatedSquat(exerciseId: String, completedAtMs: Long) = StrengthBlock(
+        id = "blk-1",
+        sortOrder = 0,
+        exerciseId = exerciseId,
+        exerciseName = "Test squat",
+        loadType = LoadType.EXTERNAL,
+        equipment = EquipmentType.BARBELL,
+        muscles = emptyList(),
+        sets = listOf(
+            StrengthSet(
+                id = "set-act-1",
+                setNumber = 1,
+                weightKg = 110.0,
+                reps = 5,
+                rpe = null,
+                isWarmup = false,
+                completedAtMs = completedAtMs,
+            ),
+        ),
+    )
 }

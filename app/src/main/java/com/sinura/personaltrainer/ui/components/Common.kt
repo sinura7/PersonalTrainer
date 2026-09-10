@@ -295,6 +295,7 @@ fun SetEntryPanel(
     reps: Int,
     onWeightKgChange: (Double) -> Unit,
     onRepsAdjust: (Int) -> Unit,
+    onRepsChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
     unit: WeightUnit = LocalWeightUnit.current,
     loadClass: LoadClass = LoadClass.LOADED,
@@ -320,6 +321,7 @@ fun SetEntryPanel(
             RepsStepper(
                 value = reps,
                 onAdjust = onRepsAdjust,
+                onRepsChange = onRepsChange,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -341,6 +343,7 @@ fun SetEntryPanel(
             RepsStepper(
                 value = reps,
                 onAdjust = onRepsAdjust,
+                onRepsChange = onRepsChange,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -402,6 +405,7 @@ fun WeightStepper(
 fun RepsStepper(
     value: Int,
     onAdjust: (Int) -> Unit,
+    onRepsChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var typing by rememberSaveable { mutableStateOf(false) }
@@ -427,10 +431,11 @@ fun RepsStepper(
             decimal = false,
             helper = "A whole number, 1 to ${NumericEntry.MAX_REPS}.",
             parse = { NumericEntry.parseReps(it) },
-            // The caller only knows how to nudge, so a typed target becomes the delta that
-            // reaches it. Keeping one write path means the draft-persist and validation that
-            // hang off onAdjust cannot be bypassed by typing.
-            onConfirm = { onAdjust(it - value) },
+            // The number itself, not the distance to it. A typed count used to be sent as
+            // `it - value`, a delta measured against the well as it was when the keypad
+            // opened; if that well had moved by the time Confirm was pressed, the delta
+            // landed somewhere else entirely.
+            onConfirm = { onRepsChange(it) },
             onDismiss = { typing = false },
         )
     }

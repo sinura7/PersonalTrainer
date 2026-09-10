@@ -1,216 +1,178 @@
 # Start here
 
-The first thing a new session on this repository should read. Written
-2026-09-07 at the end of the session that landed the nineteen-finding
-engineering handoff.
+The first thing a new session on this repository should read. Rewritten
+2026-09-10, at the end of the session that shipped the Home day board and
+the rest timer's last five seconds.
 
 ## Where the code stands
 
-`trunk` carries pull requests #168, #169, and #170: every item R01
-through R19 from the 2026-09-06 engineering handoff, plus a Claude
-Code Android setup script. [`HANDOFF-2026-09-06.md`](HANDOFF-2026-09-06.md)
-is the full account. `debugLiveCode` is 28.
+`debugLiveCode` is **37**; `appVersionCode` is **1** and stays there until
+a real public artifact is cut (FOUNDATION_PROGRAM P12.3). Room is frozen at
+v4, the backup document and envelope formats are untouched, and no
+identifier is ever rewritten. Those three hold for every future packet.
 
-Nothing about the app's data was changed. Room stays frozen at v4, the backup
-document and envelope formats are untouched, and no identifier is ever
-rewritten. Those three constraints hold for future work too.
+Landed on 10 September, in order: the emulator lane learned to print its
+own failures (#204, #210); the **Home day board** — every session today
+drawn as its own bordered block with its stills, the numbered order and
+Start on the foot (#205, #213); the **last five seconds tick** (#206,
+#212, #217); the four instrumented failures that had made the lane red
+since it was first pointed at the right profile (#207, #208, #209, #211);
+the golden's record corrected (#215); and the lane's own tests hardened
+(#216). #214, from another session, moved the entry wells onto the next
+set. #218 stopped the RPE chip and the extra-set button from retyping
+the wells; it landed at live 35, the same number #217 already used, so
+Obtainium will not offer it. #219 rewrote this file. `#220` is on
+`trunk`: a drop is claimed, not assumed. `debug-live-2026-09-10-8`
+shipped 36 from `#220` (`8cf0623`) — the RPE rule and the drop lock,
+not the lift page. `#221` is on `trunk`: the drop planner fetches tags
+before it answers. `#222` is on `trunk`: the golden comparator
+forgives one level of rasteriser rounding, capped at 256 pixels.
+`#223` is on `trunk`: ADR-024, the deterministic hosted job may gate
+`trunk`; the emulator may not. The setting is the owner's.
 
-## What has and has not been verified
+`#202` is on `trunk`: R18 step two, the lift page reads both stores. This
+packet is the Obtainium drop so that page is offered: 36 → **37**.
+`#225` is on `trunk`: Drive refusal copy (`DriveHttp` / `DriveErrorCopy`).
+It rides 37 because it landed before the drop is cut. Open `#227` is
+the preflight gate (three source sets, a false green at ten findings,
+lambda arity). Tools and docs only — `DEVELOPMENT.md`, `tools/preflight.sh`,
+the checkers. No path overlap with this drop. It does not ride 37. Do
+not start a second edit of those tools, `debug-live.yml`, `SETUP.md`,
+the owner loop, `GoldenImageAssert`, `FoundationGoldenTest`,
+`DEVELOPMENT.md`, or the ADRs from `trunk`. Do not start R18 step
+three from `trunk` while this drop PR is open (this file). Do not
+delete `claude/android-verify-my59sw` (`#227` is on it) or
+`claude/ecstatic-galileo-pw9iub`. An agent does not switch branch
+protection on.
 
-Claude Code's no-SDK session ran the static gate and the domain JVM lane
-on every commit of #168:
+**The hosted emulator lane is green: 80 tests, 0 failed** on `trunk`
+before `#222`; that packet adds three comparator unit tests (expected
+83). It is still `continue-on-error` and must stay that way —
+see the CI note below.
+
+## What is verified, and how
+
+Every packet above went through the same gate, run in this container:
 
 ```bash
-PT_STATIC_ONLY=1 PT_JARS=build/test-jars sh tools/preflight.sh
-#  -> preflight: OK (static only)
-#     ratchets: required_args_mixed 180, required_args_lambda 46,
-#     when_exhaustive 47, state_members 2, all at baseline
-
-PT_JARS=build/test-jars sh tools/run-domain-tests.sh build/test-jars
-#  -> Running 170 test classes... / OK (1175 tests)
+PT_STATIC_ONLY=1 sh tools/preflight.sh        # 30 steps: 26 checks, 4 fixture proofs
+sh tools/hang-watchdog.sh ./gradlew testDebugUnitTest assembleDebug
+#  -> ~1900 tests, 0 failures; PersonalTrainer-1.0.0-debug.apk
 ```
 
-Cursor then ran the Gradle lanes that session could not, on `28f485f`
-(the #168 squash; #169/#170 are docs and a Claude setup script):
+then CI on the pull request, then a squash merge. The emulator lane is read
+directly on each pull request rather than through its check.
 
-```bash
-./gradlew testDebugUnitTest lintDebug assembleDebug
-#  -> 1818 tests, 0 failures; lintDebug green;
-#     PersonalTrainer-1.0.0-debug.apk versionCode 22
-```
+Not verified, and it matters: **nothing here has been on a phone.**
 
-The instrumented production-screen tests (R16) and every device /
-emulator lane still have not run. See
-[`CLOUD-ENVIRONMENT.md`](CLOUD-ENVIRONMENT.md) for Claude Code's
-environment; Cursor already has an SDK.
+**Install version 37 after this drop publishes.** Until then the phone
+still has 36 (`debug-live-2026-09-10-8`), which does not carry the lift
+page. After this packet is on `trunk`, name the suffix with
+`python3 tools/debug-drop-plan.py` and push the command it prints —
+do not type the tag by hand. Obtainium offers 37 over 36; nothing
+needs uninstalling. Every earlier drop is the same features with fewer
+of the review's fixes folded in.
 
-### Reproduced in a cloud session, 2026-09-08
+An earlier version of this file said "install 35", which was wrong twice
+over. Two different builds carry `debugLiveCode` 35 — tag
+`debug-live-2026-09-10-6` is #217 (the silent tick) and
+`debug-live-2026-09-10-7` is #218 (the RPE entry-well fix) — because two
+sessions bumped the counter to 35 independently. Obtainium keys its update
+offer on that number, so whichever 35 is installed, the other can never be
+offered as an update. **If a version-35 build is already on the phone,
+install 36 over it** and the ambiguity is gone; nothing needs uninstalling,
+because 36 is a higher number than both. Drop-branch names are not release
+names: the branch `debug-live/2026-09-10-6` points at #218, whose tag is
+`-7`. Trust the tag, and the version, not the branch.
 
-The first Claude Code cloud session with the Android SDK actually present
-(`/opt/android-sdk-setup.log` dated 2026-09-07) re-ran every lane on
-`4a90551` from a cold container. All green, nothing fixed, no source
-changed:
+## What the phone check is
 
-```bash
-PT_STATIC_ONLY=1 PT_JARS=build/test-jars sh tools/preflight.sh
-#  -> preflight: OK; all 19 ratchets at baseline
-PT_JARS=build/test-jars sh tools/run-domain-tests.sh build/test-jars
-#  -> 170 test classes, OK (1175 tests)
-./gradlew compileDebugKotlin   #  -> BUILD SUCCESSFUL, 0 errors
-./gradlew testDebugUnitTest    #  -> 1818 tests, 0 failures, 279 classes
-./gradlew lintDebug            #  -> BUILD SUCCESSFUL
-./gradlew assembleDebug        #  -> PersonalTrainer-1.0.0-debug.apk, code 22
-```
+One install, seven things:
 
-This confirms Cursor's numbers on independent hardware. Two things the
-run surfaced that are worth carrying forward:
+1. Home shows one bordered block per session, up to four lift pictures,
+   the numbered order, and Start (or **Do it today**) on the foot. Tapping
+   the block opens the same confirm as before.
+2. A Golf warm-up or cool-down block shows the pack's own sentence, not a
+   second time estimate.
+3. Start a rest, press **-15 s** so the countdown lands on five: a tick and
+   a pulse on 5, 4, 3, 2, 1, then the cue. Turn **Last five seconds** off
+   in Settings and the last five seconds go quiet while the cue still plays.
+4. With TalkBack on, a planned block announces as a **button**.
+5. Turn **Last five seconds** off, start a rest, swipe the app away with a
+   few seconds left: the last five seconds stay quiet and the cue still
+   plays at zero.
+6. Type a weight and reps by hand, then rate the effort: the wells keep what
+   was typed and the recommendation waits above **Log** with its own **Use**
+   (#218, which is why 36 and not 35).
+7. Open a lift trained both as a planned session and as a backdated
+   strength day. Both appear on that lift's page. Tapping the activity
+   row opens the activity, not the live-session screen (#202, which is
+   why 37 and not 36).
 
-1. **`compileDebugAndroidTestKotlin` is covered by no lane.** It was run
-   here for the first time and passes. The androidTest sources are where
-   the three 2026-09-07 self-test defects lived (`onAllNodes` imported as
-   a top-level function; the uninferable `sidecarFromHealth` generic), and
-   nothing in the merge gate compiles them. It costs about ten seconds on
-   a warm cache. Consider adding it beside `testDebugUnitTest`.
-2. **A cold container silently downgrades the static gate.** With an empty
-   Gradle cache `tools/preflight.sh` cannot find `kotlin-compiler-embeddable`,
-   so the syntax check prints `WARNING — syntax check skipped` and the JVM
-   lane falls back to `./gradlew testDebugUnitTest`, yet the script still
-   exits `preflight: OK`. Run any Gradle task first, or read the log rather
-   than the exit code.
+## One thing waiting on the owner
 
-The APK built here is signed by AGP's throwaway debug key (R05 is still
-open), so it installs beside rather than over an existing Temper Debug.
-No emulator is possible in that environment: no `/dev/kvm`, no `vmx`/`svm`.
+**Branch protection is decided but not switched on.**
+[ADR-024](architecture/ADR-024-hosted-jvm-check.md) amends
+[ADR-002](architecture/ADR-002-execution-protocol.md) §6 for one named job:
+*Tests, lint, debug build* may be a required check on `trunk`, the emulator
+lane may never be, and the local gate is unchanged and still comes first.
+What remains is the repository setting, which only the owner can change —
+the required check plus "require branches to be up to date". Until then
+`trunk` carries no protection. An agent cannot set it and must not ask for
+the scope to.
 
-## First actions
+## What is actually left
 
-1. Confirm what the environment actually has:
+Biggest first, and the first two are the owner's, not a session's:
 
-   ```bash
-   cat /opt/android-sdk-setup.log 2>/dev/null || echo "setup script did not run"
-   echo "ANDROID_HOME=${ANDROID_HOME:-unset}"
-   ```
+- **The physical TalkBack pass** — 0 of 20 pages signed. It is the only
+  thing holding the Android Public Candidate milestone
+  (FOUNDATION_PROGRAM P9.7). A phone session with the screen reader on,
+  walking `AccessibilityMatrix`.
+- **The whole-app phase audit** owed at the close of Phase 9. Same eleven
+  screens, same phone; do the two in one sitting.
+- **Twenty-one DESIGN_AUDIT P1 rows** still genuinely open. Cheapest that
+  pays: N-01, a cue preview button in Settings. Biggest felt: B-02, Body's
+  first-launch emptiness.
+- **R18 step two is on `trunk` (`#202`).** Next, after this 37 drop:
+  **steps 3 and 4** — one shared detail-ViewModel shape, and the
+  activity-edit capability split — plus the five use-case extractions
+  and the seven-row parity table in
+  `architecture/completed-training-convergence.md`. Step 3 first: two
+  detail screens that can disagree about *missing* versus *failed* is
+  the bug that record exists to prevent. The log-time PR badge is
+  **not** on this list: it is a signed product fact, because activities
+  are never logged live.
+- **R17 measurement** is blocked on a fixture generator and a benchmark
+  module nobody has built, not on the owner's history growing. About a day.
+- **The 600 dp screen passes never run at 600 dp**: `mount` sizes a Box
+  inside a `fillMaxSize` parent, so the width is coerced to the 411 dp
+  screen. `Modifier.requiredWidth` fixes it and may surface real tablet
+  bugs, which is why it is its own packet.
+- **`required_args_mixed = 180`** is the largest debt family in
+  `tools/checker-baselines.toml`. Take `required_args_lambda = 46` first as
+  the proof that the ratchet-down loop works.
+- **A cold container silently downgrades the static gate** and still exits
+  OK when no compiler jar is present. Make the skip non-zero unless
+  `PT_ALLOW_NO_COMPILER=1`.
+- **Packets G and H for Home** are held until the owner has the board on the
+  phone, and have no written scope. Do not guess at them.
 
-2. Run the two lanes above. They are the known-good baseline; if either
-   regresses, that is this session's first problem, not a new feature.
+Deliberately parked, so nobody re-opens them: Phase 10 (iOS/KMP) and Phase
+11 (encrypted sync) are gated and correctly not started; AGP 8.9.3 is
+refused until a named fix needs it; `versionCode` stays 1.
 
-3. If the session changes Kotlin, re-run the Cursor JVM gate
-   (`testDebugUnitTest` + `lintDebug` + `assembleDebug`). Do not treat
-   hosted runners as the test lane. Do not weaken
-   `gradle/verification-metadata.xml`.
+## Process
 
-4. Live test 28 is the current drop (`debugLiveCode` 28). Do not bump
-   it again until the next drop. Obtainium, not Studio; gym-floor
-   Temper stays on the signed APK.
+One packet open at a time, on a branch, squash-merged
+([ADR-002](architecture/ADR-002-execution-protocol.md) decision 1). On
+10 September three pull requests were open at once and two of them bumped
+`debugLiveCode` to 33 independently — git merges that silently and the
+second build is never offered by Obtainium. That is the predicted cost of
+breaking the rule, not bad luck. It happened again the same day: `#217`
+and `#218` both claimed 35; `-6` and `-7` both carry that number.
+Obtainium still offers 35 until 36 is installed. `#220` shipped 36 as
+`debug-live-2026-09-10-8`. `#221`–`#225` and `#202` are on `trunk`.
+This packet is 37; Drive copy rides it. Open `#227` is the gate;
+it does not ride this drop.
 
-## What is outstanding
-
-**The Obtainium lane is automatic again.** Hosted `debug-live.yml` had
-died in seconds with no runner since 2026-09-05, which stranded live 21
-and live 22. That was never a billing problem worth paying to solve:
-Actions is free and unmetered on a public repository, and the account had
-simply exhausted its private-repo minutes. The repository was made public
-on 2026-09-08 after a scan of all 72 commits found no keystore, private
-key, API key or token in any of them — the only matches were `printf`
-lines reading GitHub secrets and a placeholder in `SETUP.md`.
-
-`debugLiveCode` is 28 (`#195` / `#197`). The Obtainium drop is
-`debug-live/2026-09-09-7` (Body facts line plus the cancellation
-checker). Live 27 remains `debug-live/2026-09-09-6`. Do not bump 28
-on `#181`. Open `#201` is the 29 drop (`debug-live/2026-09-09-8`).
-A Temper Debug from a throwaway-signed drop must still be
-backed up, uninstalled, and reinstalled once onto 25+ (stable signer).
-Gym-floor Temper stays on the signed APK.
-
-**R05 is closed as of live test 25.** The four `DEBUG_KEYSTORE_*` secrets
-and the `DEBUG_CERT_SHA256` variable were set on 2026-09-09, so
-`debug-live.yml` restores one stable keystore and every drop from 25 on
-updates a Temper Debug in place instead of installing beside it. The
-certificate is `B2:6E:A6:4C:...:E9:12:C3:36`; the workflow fails the drop
-if a build is signed by anything else. The one-time cost of the switch is
-on the phone, not in the repository: a Temper Debug installed from an
-earlier throwaway-signed drop must be backed up, uninstalled and
-reinstalled once, per SETUP.md section 6. Dependabot
-refuses now on the ignore list, all
-closed unmerged: `#125` (AGP 9.3.2), `#126` (play-services-auth 22.0.0),
-`#174` (coroutines 1.11.0 — `kotlinx-coroutines-android` was unnamed, so
-the kotlin group bundled it with core/test), and `#176` (android-all
-17- jar; J3 stays on `15-robolectric-13954326-i7`). `#178` named those
-holes, and also ignores `org.robolectric:robolectric` major/minor so
-API-36-and-up Robolectric does not sneak in on Java 17. `#175`
-(Robolectric 4.16.1) and `#180` (AGP 8.9.2 → 8.9.3) closed unmerged
-2026-09-09, same shape as `#174`/`#176`. Do not reopen as drive-bys:
-`check-sdk-target.py` pins Robolectric at exactly `4.16`; AGP 8.9.3
-needs the plugin, the `aapt2-8.9.2-*` ledger entries, and
-`tools/check-supply-chain.py` in one packet when a fix in 8.9.3 is
-needed. `#173` is on `trunk` (setup-gradle 6.3.0, Node 20→24
-warning). Actions is still not the test lane. Do not start a
-second workflow edit from `trunk` unless that packet is the
-work. The hosted emulator lane is on `trunk` (`#199`): Nexus 5X
-profile, still red — five of eighty named in ROADMAP. Do not take
-those five as this packet. `#200` is on `trunk`: 42 of 64 stale P1 rows
-in `DESIGN_AUDIT` now cite the file that closed them; 21 still
-open (last-5s tick family, Body first-launch, walkthrough rows,
-chip progress/rest badge, E-04/E-12, N-01, T-16, S-02/B-03/I-01).
-Do not take those 21 as this packet. Do not start a second
-`DESIGN_AUDIT.md` edit from `trunk` while `#181` is open. Open
-`#201` (write-through multi-add picker, `debugLiveCode` 28 → 29,
-drop `debug-live/2026-09-09-8`) overlaps `#181` on ROADMAP only.
-Independent. Merge in either order. Do **not** bump 28 on `#181`;
-inherit 29 after `#201` lands. Do not start a second edit of
-`ExercisePickerSheet`, `LiftCart`, `RoutineEditorViewModel`, or
-`CustomWeekViewModel` from `trunk`. Do not delete
-`claude/ecstatic-galileo-pw9iub`.
-
-**R16 residue.** Production-screen tests exist for History, the activity
-composer, live cardio, the activity receipt and Home. Settings, onboarding,
-the routine editor, custom week, summary, session detail's delete dialog,
-exercise detail and Library still have only isolated-control coverage, and
-`AccessibilityMatrix` claims automated evidence for all of them, which
-overstates it.
-
-**R18 step one.** Horizon readout and past-block reviews (and Plan's
-completed-block review) read `CompletedTraining` from both stores, so a
-backdated strength activity counts toward PRs and movers, not only
-totals and Records. Exercise detail, the log-time PR badge, and activity
-edits are still later steps
-([`architecture/completed-training-convergence.md`](architecture/completed-training-convergence.md)).
-Open `#181` is rebased on `trunk` after `#173` (setup-gradle 6.3.0).
-History's three error sites use `ErrorSlot` on this packet.
-`HistoryViewModelTest` stays at 0 unbounded waits. `check-cancellation.py`
-is 0 on this packet. Do not bump `debugLiveCode` (still 28 until
-`#201` lands). Live 28 is `debug-live/2026-09-09-7`. `#201` is the
-29 drop.
-
-**R17 measurement.** The History catalog is shared and the revision keys are
-in place, but the full-history read behind the horizon readout was left alone
-deliberately: the finding asks for a measured before and after, and there was
-nothing to measure on. Section 5 of the convergence record is the plan.
-
-**Leftover heads.** `claude/read-zip-files-suok0y`,
-`debug-live/2026-09-07`, and `claude/cloud-android-env` were deleted
-after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
-`claude/file-visibility-check-jraqc2` is an unmerged Claude vehicle
-(UX + stub compiler); do not start a second edit of those paths from
-`trunk`. `#173` is on `trunk`. `claude/android-verify-my59sw` is leftover
-and Claude reuses it — do **not** delete that head (deleting it after
-`#191` briefly removed `#192`). Open `#201` owns
-`claude/ecstatic-galileo-pw9iub` — do **not** delete that head. Do not
-start a second picker or `DESIGN_AUDIT.md` edit from `trunk`. Do not
-take the five hosted-emulator failures or the remaining DESIGN_AUDIT
-P1 rows as this packet. `#196`'s vehicle
-`claude/google-signin-integration-xijk5e` was deleted after merge.
-`debugLiveCode` on trunk is 28; `#201` bumps it to 29. Do not bump it
-on `#181`. `unbounded_waits` on trunk is 0.
-
-## Rules that bind this work
-
-`.cursor/rules/owner-loop.mdc` is the process authority and
-`docs/architecture/` is the decision set. In short: `trunk` is the only
-standing line, work happens on a throwaway branch, it lands by squash merge,
-and the branch is deleted. The JVM gate merges a packet; the phone gates a
-gym-floor release. Do not treat hosted runners as the test lane.
-
-Every commit ends with the co-author and session trailers the session's own
-instructions specify. Ratchets live in `tools/checker-baselines.toml` and may
-fall but never rise.

@@ -34,7 +34,7 @@ session" is the live `WorkoutSession`; the other three are
 | Past-block reviews | yes | yes | n/a | yes | `BlockReviewBuilder.build` over `CompletedTraining` from both stores |
 | Lifetime Records (History) | yes | yes | n/a | yes | `standingRecords` over both record-set queries (R08) |
 | PR badge at log time | yes | **no** (no live logging) | n/a | **no** | `WorkoutRepository.recordsBrokenBy` |
-| Exercise detail bests and history | yes | **no** | n/a | **no** | `observeFinishedWorkingSets(exerciseId)` reads `set_logs` only |
+| Exercise detail bests and history | yes | yes | n/a | yes | `CompletedTrainingRepository.observeExerciseSets` unions `set_logs` and `activity_strength_sets` |
 | Body heat and coach insights | yes | yes | n/a | yes | `TrainingInsightsSource` merges both (32-day window) |
 | Home last session tile | yes | yes | yes | yes | merged summaries |
 | Detail screen | Session detail | Activity detail | Activity detail | Activity detail | two screens, two view models |
@@ -85,11 +85,11 @@ What moves onto it, in order, each behind a parity test from §4:
    `ExerciseSetRecord`; `RecordSet` carries the same plus class). This
    closes the largest drift row and removes the last `sessionsBetween`
    full-graph read from History — the R17 measurement target.
-2. **Exercise detail.** `observeFinishedWorkingSets(exerciseId)` gains a
+2. **Exercise detail.** `observeFinishedWorkingSets(exerciseId)` has a
    sibling over `activity_strength_sets`; the detail screen reads the
-   union through the contract. The PR badge at log time stays strength
-   only (activities are not logged live), which is a product fact, not
-   drift.
+   union through `CompletedTrainingRepository.observeExerciseSets`. The
+   PR badge at log time stays strength only (activities are not logged
+   live), which is a product fact, not drift.
 3. **Detail screens.** Keep two composables; give them one
    `CompletedTrainingDetailViewModel` shape (load, `missing`, `failed`,
    retry) so the R10 semantics cannot diverge again.

@@ -9,8 +9,12 @@ import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.ext.junit.rules.ActivityScenarioRule
@@ -166,6 +170,12 @@ class ActiveWorkoutJourneyInstrumentedTest {
             WeightUnit.KG,
         )
         compose.onNodeWithContentDescription("Total volume $volumeLabel").assertIsDisplayed()
+        // The lift breakdown is the fourth item of the summary's list, below the fold of a
+        // 731 dp screen. Scroll the LIST to it rather than the node: a node's own
+        // performScrollTo needs it already composed, and a taller receipt (two record kinds,
+        // or stacked tiles at a large font scale) pushes it outside the composed range.
+        compose.onAllNodes(hasScrollAction()).onFirst()
+            .performScrollToNode(hasText("Top set $setLine", substring = true))
         compose.onNodeWithText("Top set $setLine").assertIsDisplayed()
         compose.onNodeWithText("Done").assertIsDisplayed()
 
@@ -280,6 +290,15 @@ class ActiveWorkoutJourneyInstrumentedTest {
         assertEquals(original.id, restored.id)
         assertEquals(original.completedAt, restored.completedAt)
         assertEquals(100.0, restored.weightKg, 0.0001)
+        // The set list is what Undo puts back, and the three waits above are on the
+        // database, not on the screen. Wait for the row to exist, then scroll the list to
+        // it: on the 731 dp profile it lands below the fold whenever the detail's header
+        // and metrics push it there, which is why this assertion failed on one run of a
+        // commit it passed on twice.
+        compose.waitUntil(10_000) {
+            compose.onAllNodesWithText("Set 1").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onAllNodes(hasScrollAction()).onFirst().performScrollToNode(hasText("Set 1"))
         compose.onNodeWithText("Set 1").assertIsDisplayed()
     }
 

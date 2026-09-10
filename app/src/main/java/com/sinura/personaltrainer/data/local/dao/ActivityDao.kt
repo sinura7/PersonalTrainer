@@ -102,6 +102,32 @@ interface ActivityDao {
     )
     fun observeCompletedStrengthSetRecords(): Flow<List<RecordSetRow>>
 
+    /**
+     * Finished working sets of one lift, same projection as
+     * [WorkoutDao.observeFinishedWorkingSets]. Exercise detail reads both
+     * through [com.sinura.personaltrainer.data.repository.CompletedTrainingRepository].
+     */
+    @Query(
+        """
+        SELECT st.id AS setId,
+               s.id AS sessionId,
+               s.title AS sessionName,
+               s.performedStartInstantMs AS sessionDate,
+               st.weightKg AS weightKg,
+               st.reps AS reps,
+               st.completedAtMs AS completedAt
+        FROM activity_strength_sets st
+        JOIN activity_blocks b ON b.id = st.blockId
+        JOIN activity_sessions s ON s.id = b.sessionId
+        WHERE b.exerciseId = :exerciseId
+          AND st.isWarmup = 0
+          AND b.kind = 'STRENGTH'
+          AND s.status = 'COMPLETED'
+        ORDER BY st.completedAtMs ASC
+        """,
+    )
+    fun observeFinishedWorkingSets(exerciseId: String): Flow<List<ExerciseSetRow>>
+
     @Transaction
     @Query("SELECT * FROM activity_sessions WHERE performedStartLocalEpochDay = :localEpochDay ORDER BY performedStartInstantMs")
     suspend fun graphsOnLocalDate(localEpochDay: Long): List<ActivitySessionGraph>

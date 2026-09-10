@@ -1,9 +1,11 @@
 package com.sinura.personaltrainer.data.backup
 
-import com.google.gson.JsonParser
+import com.sinura.personaltrainer.logging.AppLog
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+
+private const val TAG = "PT/DriveHttp"
 
 /**
  * One authenticated Drive request, answered with its 2xx body.
@@ -67,13 +69,17 @@ class HttpUrlConnectionDriveHttp : DriveHttp {
                 }
                 .orEmpty()
             if (code == 401) {
-                throw BackupException("Google sign-in expired. Sign in again.")
+                throw BackupException(DriveErrorCopy.EXPIRED)
             }
             if (code == 403) {
-                throw BackupException("Drive access was denied.")
+                throw BackupException(DriveErrorCopy.DENIED)
             }
             if (code !in 200..299) {
-                throw BackupException(driveErrorMessage(code, text))
+                // Redacted by default, so this reaches logcat only when the owner has
+                // deliberately turned redaction off in Settings with adb attached. The
+                // sentence thrown below is what they get without it.
+                AppLog.e(TAG, "Drive $method $url -> $code: $text")
+                throw BackupException(DriveErrorCopy.message(code, text))
             }
             text
         } catch (error: BackupException) {
@@ -83,17 +89,5 @@ class HttpUrlConnectionDriveHttp : DriveHttp {
         } finally {
             connection.disconnect()
         }
-    }
-
-    private fun driveErrorMessage(code: Int, body: String): String {
-        val message = try {
-            JsonParser.parseString(body).asJsonObject
-                .getAsJsonObject("error")
-                ?.get("message")
-                ?.asString
-        } catch (_: Exception) {
-            null
-        }
-        return message?.ifBlank { null } ?: "Google Drive request failed ($code)."
     }
 }

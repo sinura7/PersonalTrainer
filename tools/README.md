@@ -138,9 +138,10 @@ named, the name existed, and every required parameter was supplied. What was wro
 the value. And a review that reads the diff cannot find a caller that broke *because it did not
 change*: both stale call sites are in files the diff never touched.
 
-`tools/compile-check.sh` catches this properly, with a real compiler, but it fetches about
-186 MB on first run and stays out of the preflight for that reason. This is the offline half.
-It knows nothing about types; counting parameters needs no type system.
+`./gradlew compileDebugKotlin` catches this properly, with the real compiler against the real
+dependencies, and is what the merge gate runs. This is the cheap half: it stays in the preflight
+because it costs a second and needs no SDK, so a stale caller is named before a build is ever
+started. It knows nothing about types; counting parameters needs no type system.
 
 Conservative in the same way as its two siblings, and for the same reason — a false RED gets a
 checker switched off. Only **named** arguments are judged, because a trailing lambda would need

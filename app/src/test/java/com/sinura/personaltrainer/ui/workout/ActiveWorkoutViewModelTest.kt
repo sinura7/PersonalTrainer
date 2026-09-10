@@ -3,9 +3,13 @@ package com.sinura.personaltrainer.ui.workout
 import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
+import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
+import com.sinura.personaltrainer.data.local.entity.SetLogEntity
+import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
@@ -14,6 +18,7 @@ import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
+import kotlinx.coroutines.CompletableDeferred
 import com.sinura.personaltrainer.workout.WorkoutDraft
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
@@ -206,6 +211,90 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun aWeightChangedWhileTheSetIsBeingWrittenSurvivesTheLog() = runBlocking {
+        // The wells belong to the NEXT set. Room's write is tens of milliseconds and a finger
+        // is faster, so the load dialled in for the set after this one used to be taken back
+        // by the log's own tail — the number the lifter had just chosen reverted to the one
+        // already logged, and only sometimes, which is what made it so hard to pin down.
+        val fixture = seedWorkout()
+        val gate = CompletableDeferred<Unit>()
+        val vm = createViewModel(fixture.session.id, container = gatedLogSet(gate))
+        try {
+            vm.awaitPrefilled()
+            vm.setWarmup(true)
+            vm.awaitState { it.draft.isWarmup }
+
+            vm.logSet()
+            // The gate holds the insert open, so this is the window a lifter acts in: the tap
+            // has happened, the row has not. Asserted, because a test that ran after the write
+            // would prove nothing at all. No database read here — it would queue behind the
+            // very transaction the gate is holding.
+            assertTrue(vm.uiState.value.logging)
+            // Between the tap and the row: the next set is going up ten kilos.
+            vm.setWeight(110.0)
+            vm.setReps(3)
+            gate.complete(Unit)
+
+            // The wait names the cleared warm-up as well as the finished write. `!logging`
+            // alone is also true of the snapshot from before the tap, and a conflated stateIn
+            // hands a new collector exactly that one first; the warm-up flag is what separates
+            // "the log has run its course" from "the log has not started".
+            val settled = vm.awaitState { !it.logging && !it.draft.isWarmup }
+            assertNull(settled.error)
+            assertEquals(110.0, settled.draft.weightKg, 0.0001)
+            assertEquals(3, settled.draft.reps)
+            // The set that was written is the one that was tapped, untouched by the change.
+            val persisted = awaitSession(fixture.session.id) { it.sets.size == 1 }
+            assertEquals(100.0, persisted.sets.single().weightKg, 0.0001)
+            assertEquals(5, persisted.sets.single().reps)
+        } finally {
+            if (!gate.isCompleted) gate.complete(Unit)
+        }
+    }
+
+    @Test
+    fun logClearsWarmupAndRpeWithoutTouchingTheNumbers() = runBlocking {
+        val fixture = seedWorkout()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.setWeight(60.0)
+        vm.setReps(12)
+        vm.setWarmup(true)
+        vm.awaitState { it.draft.isWarmup && it.draft.weightKg == 60.0 && it.draft.reps == 12 }
+
+        vm.logSetAndSettle()
+
+        // Warm-up and RPE are per-set and are spent by the log; the load and the reps stay,
+        // because the next set starts from what the last one was. Every field asserted is
+        // named in the wait — the pre-warm-up snapshot also has isWarmup false, and it is the
+        // one a fresh collector can be handed first.
+        val settled = vm.awaitState {
+            !it.logging && !it.draft.isWarmup && it.draft.weightKg == 60.0 && it.draft.reps == 12
+        }
+        assertNull(settled.draft.rpe)
+        assertEquals(60.0, settled.draft.weightKg, 0.0001)
+        assertEquals(12, settled.draft.reps)
+    }
+
+    @Test
+    fun aTypedRepCountIsTheCountNotADistanceFromTheOldOne() = runBlocking {
+        // setReps is what the keypad calls. It used to send a delta measured against the well
+        // as it was when the keypad opened, so a well that moved in between landed the typed
+        // number somewhere else entirely.
+        val fixture = seedWorkout()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+
+        vm.setReps(8)
+        assertEquals(8, vm.awaitState { it.draft.reps == 8 }.draft.reps)
+        vm.setReps(20)
+        assertEquals(20, vm.awaitState { it.draft.reps == 20 }.draft.reps)
+        // The floor still holds: a set is at least one rep.
+        vm.setReps(0)
+        assertEquals(1, vm.awaitState { it.draft.reps == 1 }.draft.reps)
+    }
+
+    @Test
     fun logSetWriteFailureSurfacesErrorInsteadOfPretendingSuccess() = runBlocking {
         val fixture = seedWorkout()
         val vm = createViewModel(fixture.session.id)
@@ -322,7 +411,11 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
-    fun selectingRpeAfterAWorkingSetFillsTheDraft() = runBlocking {
+    fun selectingRpeOffersTheRecWithoutTouchingTheWells() = runBlocking {
+        // Choosing an RPE used to fill the wells from the recommendation it unlocks, so a
+        // load and a rep count the lifter had typed were replaced by numbers they had not
+        // asked for. The recommendation is still raised — it sits above Log with its own
+        // Use — but only that tap moves it into the wells.
         val fixture = seedWorkout()
         val vm = createViewModel(fixture.session.id)
         vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
@@ -334,10 +427,66 @@ class ActiveWorkoutViewModelTest {
         vm.skipRest()
         withTimeout(TestWaits.FLOW_MS) { vm.microRec.first { it != null && !it.previewOnly } }
 
+        // The numbers for the next set, dialled in by hand before the effort is rated.
+        vm.setWeight(95.0)
+        vm.setReps(8)
+        vm.awaitState { it.draft.weightKg == 95.0 && it.draft.reps == 8 }
+
         vm.setRpe(6)
-        val draft = vm.awaitState { it.draft.rpe == 6 && it.draft.weightKg == 102.5 }.draft
-        assertEquals(5, draft.reps)
+
+        val draft = vm.awaitState { it.draft.rpe == 6 }.draft
+        assertEquals(95.0, draft.weightKg, 0.0001)
+        assertEquals(8, draft.reps)
+        // Offered, not applied: the rec the RPE unlocks is on screen with Use showing.
+        val rec = checkNotNull(
+            withTimeout(TestWaits.FLOW_MS) { vm.microRec.first { it != null && it.showApply } },
+        )
+        assertEquals(102.5, rec.nextWeightKg, 0.0001)
         assertEquals(1, deps.workoutRepository.getSession(fixture.session.id)!!.sets.size)
+    }
+
+    @Test
+    fun usingTheOfferedRecIsWhatMovesItIntoTheWells() = runBlocking {
+        val fixture = seedWorkout()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
+        vm.setWeight(100.0)
+        vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.awaitState { it.session?.sets?.size == 1 }
+        vm.skipRest()
+        vm.setRpe(6)
+        withTimeout(TestWaits.FLOW_MS) { vm.microRec.first { it != null && it.showApply } }
+
+        vm.applyMicroRec()
+
+        val draft = vm.awaitState { it.draft.weightKg == 102.5 }.draft
+        assertEquals(102.5, draft.weightKg, 0.0001)
+    }
+
+    @Test
+    fun askingForAnExtraSetLeavesTheWellsAsTheyAre() = runBlocking {
+        // Same rule as the RPE chip: arming an extra set raises a recommendation for it, and
+        // the lifter takes it with Use. It does not reach in and retype the wells.
+        val fixture = seedWorkout(targetSets = 1)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
+        vm.setWeight(100.0)
+        vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.awaitState { it.session?.sets?.size == 1 }
+        vm.setWeight(80.0)
+        vm.setReps(12)
+        vm.awaitState { it.draft.weightKg == 80.0 && it.draft.reps == 12 }
+
+        vm.requestExtraSet()
+
+        val draft = vm.awaitState { it.draft.weightKg == 80.0 && it.draft.reps == 12 }.draft
+        assertEquals(80.0, draft.weightKg, 0.0001)
+        assertEquals(12, draft.reps)
+        assertTrue(vm.extraSetRequested.value)
     }
 
     @Test
@@ -837,15 +986,52 @@ class ActiveWorkoutViewModelTest {
     private fun createViewModel(
         sessionId: String,
         handle: SavedStateHandle = handleFor(sessionId),
+        container: AppDependencies = deps,
     ): ActiveWorkoutViewModel =
         ActiveWorkoutViewModel(
             application = ApplicationProvider.getApplicationContext(),
             savedStateHandle = handle,
-            container = deps,
+            container = container,
         ).also(viewModels::add)
+
+    /**
+     * A copy of the graph whose set insert parks until the gate opens, so a test can act in
+     * the window a real lifter acts in: the seconds between the Log tap and the row landing.
+     */
+    private fun gatedLogSet(gate: CompletableDeferred<Unit>): AppDependencies {
+        val repo = WorkoutRepository(deps.database, GatedInsertDao(deps.database.workoutDao(), gate))
+        return object : AppDependencies by deps {
+            override val workoutRepository: WorkoutRepository = repo
+        }
+    }
+
+    private class GatedInsertDao(
+        private val delegate: WorkoutDao,
+        private val gate: CompletableDeferred<Unit>,
+    ) : WorkoutDao by delegate {
+        override suspend fun insertSet(set: SetLogEntity) {
+            gate.await()
+            delegate.insertSet(set)
+        }
+    }
 
     private suspend fun ActiveWorkoutViewModel.awaitFound(): ActiveWorkoutUiState =
         awaitState { it.loadState == SessionLoadState.FOUND }
+
+    /**
+     * FOUND is not settled. Prefill runs after the session resolves and replaces the whole
+     * draft with the suggestion, so a test that types on FOUND is typing into a well that is
+     * about to be overwritten — by the app, correctly, and not by the defect under test.
+     * [seedWorkout] with no prior session prefills the 100 kg target at 5 reps.
+     */
+    private suspend fun ActiveWorkoutViewModel.awaitPrefilled(
+        weightKg: Double = 100.0,
+        reps: Int = 5,
+    ): ActiveWorkoutUiState = awaitState {
+        it.loadState == SessionLoadState.FOUND &&
+            it.draft.weightKg == weightKg &&
+            it.draft.reps == reps
+    }
 
     /**
      * Log a set and wait for the whole action, not just for its row.

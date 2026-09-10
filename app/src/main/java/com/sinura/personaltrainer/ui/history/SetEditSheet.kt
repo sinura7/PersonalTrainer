@@ -97,6 +97,7 @@ fun SetEditSheet(
                 reps = reps,
                 onWeightKgChange = { weightKg = it },
                 onRepsAdjust = { delta -> reps = (reps + delta).coerceIn(1, NumericEntry.MAX_REPS) },
+                onRepsChange = { typed -> reps = typed.coerceIn(1, NumericEntry.MAX_REPS) },
                 loadClass = loadClass,
                 plated = plated,
             )

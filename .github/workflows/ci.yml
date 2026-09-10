@@ -133,11 +133,18 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
-  # Non-blocking by design. Written blind while CI had no runner (account
-  # billing); it runs now. continue-on-error stays until the lane has earned a
-  # gate — emulator jobs flake, and a red that blocks merges on a flake costs
-  # more than a red nobody reads. The bar: green on trunk ten runs in a row,
-  # then drop the flag. Until then, read the job, not the check.
+  # Non-blocking by design, and not one green run away from being a gate.
+  # ADR-002 decision 6 — on the permanent-refusal list in
+  # docs/architecture/README.md — says GitHub-hosted runners are not this
+  # project's test lane, so dropping continue-on-error would make a hosted
+  # runner able to block a merge and needs a signed ADR amending it, not a
+  # YAML edit. An earlier version of this comment promised the flag would
+  # come off after ten green trunk runs; that was an invitation to break a
+  # standing refusal by accident.
+  #
+  # What the lane is for: it runs the eighty instrumented tests nothing else
+  # here can run, and it prints its own failures (tools/ci-instrumented.sh).
+  # Read the job, not the check.
   instrumented-smoke:
     name: Instrumented smoke (non-blocking)
     runs-on: ubuntu-latest

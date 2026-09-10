@@ -15,6 +15,154 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 10 Sep 2026 — Live 37: `#202` is on `trunk` (the lift page reads both
+> stores). Obtainium still offers 36 until the number rises. This packet
+> is that rise. `#225` is on `trunk` (Drive refusal copy) and rides this
+> drop. Open `#227` is the preflight gate (tools/docs) and does not.
+> Live test 37 (`debugLiveCode` 37); the suffix is
+> `python3 tools/debug-drop-plan.py` after merge, not a name typed here.
+>
+> 10 Sep 2026 — I: a drop is claimed, not assumed. Two packets merging nine
+> minutes apart both bumped `debugLiveCode` to 35 and both cut a drop;
+> `debug-live-2026-09-10-6` and `-7` therefore carry the same number, which is
+> the one thing Obtainium refuses to offer as an update. The `-6` run built
+> `#218`, found the release already there, could not attach an asset of the
+> same name, said so and went green — a drop that shipped the previous
+> packet's APK under this packet's name. Now: the publish step claims the tag
+> through `git/refs`, which is atomic and 422s on a name already taken, so a
+> race is a red run that publishes nothing rather than a green one that
+> publishes the wrong thing; `tools/debug_drop.py` holds the rules, with
+> `check-debug-live-code.py` gating the drop (not preflight — after a drop the
+> tree equals the tag and every unrelated PR would go red) and
+> `debug-drop-plan.py` naming the free suffix and the number to use;
+> `test_debug_drop.py` replays the incident. `SETUP.md` and the owner loop
+> stop telling sessions to pick either by hand. Live test 36
+> (`debugLiveCode` 36), drop `debug-live/2026-09-10-8`.
+>
+> 10 Sep 2026 — H: the app offers, it does not retype. Choosing an RPE
+> filled the entry wells from the recommendation it unlocks, so a load and
+> a rep count the lifter had just typed were replaced by numbers they had
+> not asked for — the app editing their entry in the act of being told
+> about it. Asking for an extra set did the same. Both raise the
+> recommendation exactly as before: it sits above Log with its own **Use**,
+> and only that tap moves it into the wells (`applyIntentRecToDraft` is
+> gone; `applyMicroRec` was always the consented path). Live test 35
+> (`debugLiveCode` 35), tag `debug-live-2026-09-10-7` — **not** `-6`, which
+> is the other build that also carries 35; see the collision note below.
+>
+> 10 Sep 2026 — G: the entry wells belong to the next set. Logging one took
+> a snapshot of weight and reps at the tap and wrote it back over the wells
+> when Room returned, so a load nudged or a rep count typed in the tens of
+> milliseconds the write takes was taken back by the log's own tail — the
+> owner's "sometimes it resets one or the other". The tail now clears the
+> two per-set flags (warm-up, RPE) on the draft as it stands; the row that
+> was written keeps the tapped values. Typed reps stop being a delta
+> measured against a well that may have moved: `setReps` takes the number.
+> Live test 34 (`debugLiveCode` 34), drop `debug-live/2026-09-10-5`.
+>
+> 10 Sep 2026 — **Two builds ship as version 35.** `#217` and `#218` each
+> bumped `debugLiveCode` to 35 from branches cut before the other merged,
+> and git resolves that silently because the two edits never touch the same
+> line context. The tags disagree with the branch names as a result: tag
+> `debug-live-2026-09-10-6` is `#217` (45acbb8) while the *branch* of that
+> name points at `#218` (83aeebe), whose tag is `-7`. Both APKs install as
+> `1.0.0+debug.35`, so Obtainium will never offer one as an update to the
+> other. Not repaired by renaming anything — the fix is forward: drop 36
+> (`debug-live-2026-09-10-8`, `#220`) is higher than both and carries both,
+> so it supersedes the pair. The phone instruction now names version 36 and
+> the tag, never a branch. `#220` had already added the publish-time
+> tag-claim guard that refuses a drop whose name is taken; what it does not
+> yet catch is two branches choosing the same *code*, which is the case
+> here. A version-code claim check against merged tags is the follow-up.
+>
+> 10 Sep 2026 — ADR-024: the deterministic hosted job may gate `trunk`;
+> the emulator may not. ADR-002 §6 refused hosted runners as the test lane
+> outright, and every clause of it described a moment that has passed — the
+> account had no working runner, runs died before checkout, and a red mark
+> genuinely was noise because nothing had run. Today that job runs the same
+> three things the local gate runs and was green on nine packets in a row,
+> and its two reds were both real. So the refusal keeps one named exception,
+> and draws the line at the emulator lane, whose golden passed and failed on
+> the same commit the same day. The local gate is unchanged and still comes
+> first; a red on the required job is never routed around. The setting
+> itself is the owner's to enable. Docs only.
+>
+> 10 Sep 2026 — The golden comparator gets a rounding allowance, and the
+> open question above is answered. One level on one channel is SwiftShader's
+> edge coverage, not a change: two runs of the same commit differed by
+> seventeen such pixels on the Volt button's corners and the golden passed
+> once and failed once. `GoldenImageAssert` now reads a difference of at most
+> one level per channel as the same colour, capped at 256 such pixels, and is
+> otherwise exact — two levels fail on the first pixel, and a surface nudged
+> by one level fails on the budget. Three tests pin it. It is an allowance,
+> not a tolerance: F3's recolour, the thing the last golden actually caught,
+> fails under it on 6,954 pixels. Neither constant may be raised to make a
+> golden pass. Test-only; no app change and no drop.
+>
+> 10 Sep 2026 — A tick with no preferences yet stays silent. The service
+> seeded `tickPreferences` with the defaults — everything on — until
+> DataStore's first emission, so a boundary that fell before that read
+> landed ticked against the defaults rather than the owner's choice; the
+> way to see it is a rest with seconds left when the process is killed,
+> the sticky restart posting the next boundary while the container is
+> cold. The field is null until the first emission, and a tick that finds
+> it null makes no sound and still schedules the next one. Live test 35
+> (`debugLiveCode` 35), tag `debug-live-2026-09-10-6`.
+>
+> 10 Sep 2026 — Day board follow-ups, from the same six-reviewer pass over
+> #205: a tappable block reads as a button again (`Role.Button`, which
+> `Card(onClick)` does not set and `InstrumentRow` did); Skip and Up / Down
+> are drawn inside the block they act on, through a `controls` slot; an
+> auxiliary pack's meta line is its own caption, as the confirm already
+> shows, not a second estimate; quiet ink follows
+> `DailyAgenda.canOpenStart`, so a session skipped on an earlier day reads
+> settled; the order line may take two lines at 360 dp. Live test 33
+> (`debugLiveCode` 33), drop `debug-live/2026-09-10-4`.
+>
+> 10 Sep 2026 — Tick follow-ups, from a six-reviewer pass over #206: the
+> ticks re-anchor from every running snapshot the service collects, not
+> only from the `ACTION_SYNC` that trails the disk write, so a -15 s that
+> lands the countdown on five ticks five at once (`RestTick.nextTick`
+> counts a boundary at exactly now, with a `ticked` guard against a
+> runnable asking for itself). Preflight proves `rest_tick.wav` is byte-
+> identical to its generator; the backup threat model names `REST_TICK`
+> among the exclusions and a round-trip test shows a restore leaves the
+> toggle alone; the Settings caption claims only what the code gives.
+> Live test 32 (`debugLiveCode` 32), drop `debug-live/2026-09-10-3`.
+>
+> 10 Sep 2026 — Lane fixes: the hosted emulator pass is meant to be green.
+> Four failures, one pull request each, none skipped or loosened: the
+> exact-alarm test read `lastAlarmSchedule` before the IO-scope arm had
+> run (it waits, bounded, now — #207); the History pass looked for
+> `Records` where the kicker draws `RECORDS` (#208); the workout journey
+> asserted the summary's lift breakdown without scrolling to it (#209);
+> and the golden's 7,091-pixel diff, printed from the lane as base64
+> (#210), so the baseline is re-recorded from the lane's own capture with
+> the comparator still exact
+> (`docs/foundation-program/evidence/golden-rerecord-2026-09-10.md`).
+> The lane is now the reference renderer.
+>
+> 10 Sep 2026 — Correction to that entry, from the review pass: the
+> golden's diff was **not** renderer anti-aliasing. 7,074 of the 7,091
+> pixels are the two cards' `PRIMARY` / `SECONDARY` labels, which packet
+> F3 (`6787b17`, 3 Sep) recoloured from `#5F6B73` to `#7F8B93` for
+> contrast — 3,934 of them exactly that pair, the rest its blends — and
+> the golden, committed 2 Sep, was never re-recorded for it. The lane had
+> been comparing shipped ink against a stale screenshot for a week. Only
+> the last 17 pixels, on the Volt button's corners, are the renderer.
+> VISUAL_TESTING now says a colour-token change is a golden change.
+>
+> **Open, needs the owner:** those 17 pixels are not stable run to run.
+> Two runs of the same commit (#212) differed by exactly them, each by one
+> level in one channel, and the golden passed once and failed once. With
+> an exact comparator the lane cannot reach the ten consecutive green runs
+> the CI header sets as the bar for making the job blocking. The options
+> are to keep the comparator exact and accept a coin-flip golden, or to
+> treat a difference of at most one level per channel as equal under a
+> tight cap on how many pixels may differ, documented as a rounding
+> allowance rather than a tolerance. Nothing is loosened until it is
+> decided.
+>
 > 10 Sep 2026 — Tick: the last five seconds of rest tick. `RestTick` says
 > where the boundaries fall; `RestTimerService` posts one runnable per
 > boundary and re-asks on every sync, so a ±15 s moves the ticks with the
@@ -53,6 +201,13 @@
 > JUnit XML — the semantics trees, the golden diff figures, the caught
 > exception — into the job log, where they can be read from any network.
 > Still non-blocking; the bar for the gate is unchanged. CI only.
+>
+> 9 Sep 2026 — R18 step two: exercise detail bests and history read
+> `CompletedTrainingRepository.observeExerciseSets` (both stores). A
+> backdated strength day counts as a PR on that lift, not only in
+> Records. `#217`–`#224` are on `trunk`. `#220` shipped live 36 as
+> `debug-live-2026-09-10-8`. This packet inherits 36 and does not bump
+> it; the lift page needs 37 after this packet lands.
 >
 > 9 Sep 2026 — F: the multi-add picker writes as it goes. A tap in Add lifts
 > puts the lift on the routine (or on the custom week's day) immediately and a
@@ -638,7 +793,7 @@ Carried forward deliberately, with the phase that will address them.
 | RPE is stored and backed up but read by nothing | ~~5~~ fixed 21 Aug — two top sets at RPE 9+ hold the load |
 | Planner assigns focus to days already in the past | ~~4~~ fixed 21 Aug — proposals only for open days ≥ today |
 | `arrangeKinds` can still produce back-to-back same-family days | ~~4~~ fixed 21 Aug — guarded rotation replaces the swap |
-| Toolchain ~20 months stale; release unminified | later (platform) |
+| ~~Toolchain ~20 months stale; release unminified~~ | ~~later (platform)~~ · **done** — Phase 4 took AGP 8.9.2 / Kotlin 2.0.21 (`gradle/libs.versions.toml`) and release is minified (`app/build.gradle.kts`) |
 | Exercise imagery and the equipment field it needs | ~~3 (field)~~ / ~~7 (catalog)~~ / ~~8 (imagery)~~ — all done 21 Aug |
 | ~~Rest-timer sound design; plate calculator; font-scale-2.0 pass~~ | ~~Job 5 / P2–P4~~ done 22 Aug — cue, plates, type-in, 2.0 layout |
 | ~~No scheduled auto-backup (manual + prompted only)~~ | ~~Job 5 / P5~~ done 22 Aug — 14-day caption nag, not WorkManager |

@@ -274,13 +274,28 @@ New chrome is judged on **Temper Debug** (`com.sinura.personaltrainer.debug`)
 
 ### Temper Debug (live test)
 
+Two things identify a drop and both used to be typed from memory, so two
+packets finishing minutes apart could take the same one. Ask, do not guess:
+
+```
+python3 tools/debug-drop-plan.py
+```
+
+It prints whether `debugLiveCode` is high enough to be offered at all, the
+first free suffix for today, and the push that cuts the drop.
+
 1. After a packet is on `trunk` and the JVM gate is green, bump
    `debugLiveCode` in `app/build.gradle.kts` (Obtainium will not offer an
-   update if versionCode stays the same). Build `./gradlew assembleDebug`.
-2. Tag `debug-live-YYYY-MM-DD` on that commit. A second drop the same
-   day is `debug-live-YYYY-MM-DD-2`.
-3. Publish a **pre-release** named `Temper Debug — live test <debugLiveCode>`
-   and attach `PersonalTrainer-<version>-debug.apk`.
+   update if versionCode stays the same). It must be strictly above every
+   `debug-live-*` tag's — `tools/check-debug-live-code.py` is that rule, and
+   the drop refuses before building if it is not met.
+2. Push the merge commit to the branch the planner named:
+   `git push origin <sha>:refs/heads/debug-live/<suffix>`. A tag push works
+   too; the branch spelling exists because some sessions cannot push tags.
+3. `.github/workflows/debug-live.yml` does the rest — it runs the gate, builds
+   and signs the APK, **claims the tag atomically** and publishes the
+   pre-release. A name already taken fails the run and publishes nothing; it
+   never lands on an existing release.
 4. Obtainium: this repo URL, **include pre-releases**, prefer the asset
    whose name ends with `-debug.apk`. Pull down to refresh.
 

@@ -21,6 +21,9 @@ test counts are what ran *then*, not what runs now.
 | JVM lane: `tools/run-domain-tests.sh <jars>` | `domain/`, `util/`, `logging/`, the named workout/timer/diagnostics files and the backup codec, compiled with `kotlinc` against stubs | same | every commit |
 | Gradle unit: `./gradlew testDebugUnitTest` | The whole JVM suite including Robolectric (Room in memory, ViewModels) | SDK machine, or `ci.yml` on a push | merge into `trunk` |
 | Build + lint: `./gradlew assembleDebug lintDebug` | The APK compiles; no new lint issues past `app/lint-baseline.xml` | same | merge into `trunk` |
+| Instrumented sources: `./gradlew compileDebugAndroidTestKotlin` | The device tests still compile — a test-only change never reaches a device from here, and a broken one would sit unnoticed until an emulator run | same | merge into `trunk` (`ci.yml` runs it) |
+| Hosted `ci.yml`: *Tests, lint, debug build* | The same static gate, unit suite, lint and debug build the local gate runs, on every push and pull request | GitHub-hosted runner | may be a required check on `trunk` ([ADR-024](architecture/ADR-024-hosted-jvm-check.md)); the owner enables it |
+| Hosted emulator: `instrumented-smoke` in `ci.yml` | The instrumented tests on API 29 (Nexus 5X profile), printing their own failure bodies and logcat | GitHub-hosted runner | **nothing** — read the job, not the check (ADR-002 §6, ADR-024) |
 | Device journeys: `connectedDebugAndroidTest` on `com.sinura.personaltrainer.debug` | Room migrations, restore, the workout journey, screen passes and goldens | emulator (`temper-tests-api29` profile) | gym-floor `v*` release |
 | Phone: Obtainium **Temper Debug** pre-release | The owner's walk-through on the real phone | the phone | gym-floor `v*` release |
 
@@ -73,31 +76,43 @@ release to "make room." There is nothing to make room for.
 
 ## The Android SDK in a Claude Code on the web session
 
-`.claude/hooks/session-start.sh` installs the Android SDK at the start of every web session,
-so `./gradlew testDebugUnitTest assembleDebug` — the merge gate — runs there like anywhere
-else. It installs `platform-tools`, `platforms;android-36` (the project's `compileSdk`) and
-`build-tools;35.0.0` (what AGP 8.9.2 actually resolves to) into `$ANDROID_SDK_ROOT`, default
-`/opt/android-sdk`, and exports `ANDROID_HOME`/`ANDROID_SDK_ROOT` through `$CLAUDE_ENV_FILE`.
+For most of this repo's life the real build was impossible here: Google's Maven was refused
+at the CONNECT, Gradle could not resolve the Android Gradle Plugin, and the project could not
+configure. On 10 September 2026 `dl.google.com` began answering and the real build turned out
+to work — `assembleDebug` in 5m24s, `testDebugUnitTest` 1,946 tests — so `./gradlew
+testDebugUnitTest assembleDebug lintDebug`, the merge gate, is now the check to run before a
+push, not a static approximation of it.
 
-It exists because for most of this repo's life that was impossible: Google's Maven was refused
-at the CONNECT in those environments, Gradle could not resolve the Android Gradle Plugin, and
-the project could not configure — which is the whole reason `tools/compile-check.sh` was built.
-On 10 September 2026 `dl.google.com` began answering, and the real build turned out to work:
-`assembleDebug` in 5m24s, `testDebugUnitTest` 1,946 tests.
+Two things put the SDK on the machine, and they are not alternatives:
+
+**[`tools/cloud-setup-android.sh`](../tools/cloud-setup-android.sh) is the primary path.** It
+is the environment's *Setup script* at claude.ai/code, so it runs once per environment and the
+result is snapshotted — every session in that environment starts with the SDK already there and
+pays nothing. It needs `dl.google.com` and `maven.google.com` in the environment's Allowed
+domains. Read its header before editing it: it must exit 0 and finish inside five minutes or
+the snapshot is not cached.
+
+**`.claude/hooks/session-start.sh` is the per-session fallback.** An environment whose Setup
+script was never configured — or whose snapshot expired — would otherwise start with no SDK and
+no way to run the gate, which is exactly how this session began. The hook installs the same
+three packages (`platform-tools`, `platforms;android-36` for the project's `compileSdk`, and
+`build-tools;36.0.0`) into `$ANDROID_SDK_ROOT`, default `/opt/android-sdk`, and exports
+`ANDROID_HOME`/`ANDROID_SDK_ROOT` through `$CLAUDE_ENV_FILE`. Where the setup script has
+already run it finds the SDK present and does nothing, so the two never fight.
 
 **The hook is allowed to do nothing.** Egress policy is not ours to depend on. If Google's
 servers are refused it prints why, names the offline lanes, and exits 0 — a session that cannot
-reach Google is still a working session, and the static gate plus `tools/compile-check.sh` are
-what it uses. It is also idempotent: a cached container that already has the SDK is a no-op, and
-it only runs when `CLAUDE_CODE_REMOTE=true`, so a developer machine keeps its own SDK.
+reach Google is still a working session, and the static gate plus `tools/run-domain-tests.sh`
+are what it uses. It only runs when `CLAUDE_CODE_REMOTE=true`, so a developer machine keeps its
+own SDK.
 
 It runs **synchronously**, so the session does not start until the SDK is there. That costs
 about four minutes on a cold container and removes the race where a build is attempted before
 its toolchain exists. Switching it to async (`{"async": true}` as the first line) would trade
 that guarantee for a faster start.
 
-Where the real build is available, prefer it. `tools/compile-check.sh` substitutes a nearby
-Compose build and 1,520 lines of hand-written stubs; `assembleDebug` substitutes nothing.
+Where the real build is available, prefer it. A static checker reasons about text;
+`assembleDebug` substitutes nothing.
 
 ## Project layout
 
@@ -190,11 +205,11 @@ a colour that escaped the token layer, a screen that quietly stopped calling one
 callbacks, and a screen reading a state field its view model never exposed. See
 [tools/README.md](../tools/README.md).
 
-`tools/compile-check.sh` sits above all of them: it runs the real Kotlin 2.0.21 compiler over
-`app/src`, substituting real library declarations from Maven Central where Google's Maven is
-unreachable. It is not in the preflight, because its first run fetches about 186 MB. Run it
-before any push that changes a shared signature, and read `--explain` before trusting a green:
-it substitutes a nearby Compose build and runs no KSP, so it is not `assembleDebug`.
+`./gradlew compileDebugKotlin` sits above all of them: it is the real compiler against the
+real dependencies, and every checker above is only a cheap early warning for one class of
+thing it would have caught anyway. The checkers stay because they cost a second and need no
+SDK; they do not stand in for the build. Run the gate before any push that changes a shared
+signature.
 
 Every one of these was written from a real miss, because a check nobody has watched fail is a
 check nobody knows works. `check-missing-imports.py` came from `Surface1` shipping un-imported
@@ -279,7 +294,8 @@ If you add a file to `data/backup/` that has no Android imports, add it to the l
 
 Three workflows exist and are maintained: `ci.yml` (the static gate —
 twenty checkers today; its comment still says 17 — unit tests, blocking
-lint, a debug APK artifact),
+lint, a debug APK artifact, the instrumented-sources compile, and the
+non-blocking hosted emulator lane),
 `release.yml` (tag `v*`, with `tools/check-version-code.py --tag-release`
 against the previous `v*` tag — first `v*` may equal 1; there is no `v*`
 tag yet so the file floor stays 1), and `debug-live.yml` (tag
@@ -293,6 +309,33 @@ merge gate**: the executable gate is `tools/preflight.sh` plus a
 Gradle-capable machine (`./gradlew testDebugUnitTest assembleDebug`).
 Obtainium on the phone gates the gym-floor release, not the merge —
 see the lanes table at the top of this file.
+
+### Branch protection on `trunk`
+
+**The rule permits it; the switch is the owner's.**
+[ADR-024](architecture/ADR-024-hosted-jvm-check.md) allows the **Tests,
+lint, debug build** check to be required on `trunk`, together with
+"require branches to be up to date before merging", so that a squash
+cannot land on a base whose CI never built it. Enabling it is a
+repository setting only the owner can change; until they do, `trunk` has
+no protection and the owner loop is the whole of the line. An agent
+cannot set it and must not ask for the scope to.
+
+That took a signed decision, not a settings toggle.
+[ADR-002](architecture/ADR-002-execution-protocol.md) §6 says
+GitHub-hosted runners are not this project's test lane, and it is on the
+permanent-refusal list in
+[architecture/README.md](architecture/README.md); a required check is a
+gate, so the rule had to be amended first.
+[ADR-024](architecture/ADR-024-hosted-jvm-check.md) does that for **one
+named job** and states the boundary: the deterministic job may gate,
+the emulator lane may not and keeps `continue-on-error`.
+
+Two things did not change. The local gate is still first — a packet is
+ready for review when `tools/preflight.sh` and the Gradle pair are green
+on a real machine, not when CI is. And a red on the required job is never
+routed around: not by disabling the rule, not by an override, not by
+skipping a test.
 
 A runner **is** assigned and the lanes do run. This paragraph used to
 say the account had none and that every run "dies in seconds before
