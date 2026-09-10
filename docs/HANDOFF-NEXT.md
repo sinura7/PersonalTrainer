@@ -162,8 +162,12 @@ and `#214` (log wells belong to the next set, live 34, drop
 are on `trunk`. Do **not** bump 34 here.
 `#215` (golden record: F3's contrast, not the renderer) is on `trunk`.
 The 17-pixel comparator question it left is an owner decision, not this
-packet. Do not start a
-second edit of Home, `DayBlock`, `DailyAgendaCard`, `ThisWeekCard`,
+packet. Open `#216` (lane hardening: scroll the list, prove the arm, keep
+the PNGs) touches `ci.yml`, `tools/ci-instrumented.sh`, and two
+androidTest files. Overlap with this packet: none. Independent. Do not
+start a second edit of those paths from `trunk`. Actions is still not
+the test lane; do not take ten green trunk runs as a merge gate.
+Do not start a second edit of Home, `DayBlock`, `DailyAgendaCard`, `ThisWeekCard`,
 `PlanDayScreen`, `ActiveWorkoutScreen`, `ActiveWorkoutViewModel`,
 `SetEntryPanel`, `RepsStepper`, rest timer, Settings, `DESIGN_AUDIT.md`,
 `ExercisePickerSheet`, `LiftCart`, `RoutineEditorViewModel`,
@@ -208,8 +212,8 @@ after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
 `trunk`. `#173` is on `trunk`. `claude/android-verify-my59sw` is leftover
 and Claude reuses it — do **not** delete that head (deleting it after
 `#191` briefly removed `#192`). `#204` through `#215` reused
-`claude/android-verify-my59sw` — do **not** delete that head. `#204`
-through `#215` are on `trunk`. `#214`'s vehicle
+`claude/android-verify-my59sw` — do **not** delete that head; open
+`#216` reuses it again. `#204` through `#215` are on `trunk`. `#214`'s vehicle
 `claude/ecstatic-galileo-pw9iub` is leftover — do **not**
 delete that head. `#203` is on `trunk`. Do not start a second picker,
 rest-timer, Home day-board, live-workout wells, golden record,
