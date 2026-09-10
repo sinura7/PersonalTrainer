@@ -35,29 +35,50 @@ class DayBlockCopyTest {
     }
 
     /**
-     * Done and moved cannot be started from the block, so they go quiet.
-     * Skipped and missed still can (`DailyAgenda.canOpenStart`), so they
-     * keep their ink and say why the foot reads differently.
+     * The ink follows whether the block can be started from where it sits,
+     * which the caller knows (`DailyAgenda.canOpenStart`): done and moved
+     * never can; skipped can today and cannot on an earlier day. The
+     * status word is the status either way.
      */
     @Test
-    fun onlyDoneAndMovedSettleTheBlock() {
-        val done = DayBlockCopy.lines(listOf("Squat"), OccurrenceStatus.DONE)
+    fun theInkFollowsStartabilityAndTheWordFollowsTheStatus() {
+        val done = DayBlockCopy.lines(listOf("Squat"), OccurrenceStatus.DONE, startable = false)
         assertEquals("Done", done.status)
         assertTrue(done.settled)
         assertEquals("1 Squat", done.names)
         assertEquals("1 lift", done.meta)
 
-        val moved = DayBlockCopy.lines(listOf("Squat"), OccurrenceStatus.MOVED)
+        val moved = DayBlockCopy.lines(listOf("Squat"), OccurrenceStatus.MOVED, startable = false)
         assertEquals("Moved", moved.status)
         assertTrue(moved.settled)
 
-        val skipped = DayBlockCopy.lines(listOf("Squat"), OccurrenceStatus.SKIPPED)
-        assertEquals("Skipped", skipped.status)
-        assertFalse(skipped.settled)
+        val skippedToday = DayBlockCopy.lines(listOf("Squat"), OccurrenceStatus.SKIPPED, startable = true)
+        assertEquals("Skipped", skippedToday.status)
+        assertFalse(skippedToday.settled)
 
-        val missed = DayBlockCopy.lines(listOf("Squat"), OccurrenceStatus.MISSED)
+        val skippedEarlier = DayBlockCopy.lines(listOf("Squat"), OccurrenceStatus.SKIPPED, startable = false)
+        assertEquals("Skipped", skippedEarlier.status)
+        assertTrue(skippedEarlier.settled)
+
+        val missed = DayBlockCopy.lines(listOf("Squat"), OccurrenceStatus.MISSED, startable = true)
         assertEquals("Missed", missed.status)
         assertFalse(missed.settled)
+    }
+
+    /** A pack's caption is what the confirm shows instead of a count line, so the block agrees. */
+    @Test
+    fun aPackCaptionReplacesTheCountAndEstimate() {
+        val pack = DayBlockCopy.lines(
+            names = listOf("Elephant walk", "Woodchop"),
+            status = OccurrenceStatus.PLANNED,
+            minutes = 3,
+            caption = "About ten minutes. Hips, calves, a walk-out and a brace. After a round.",
+        )
+        assertEquals("About ten minutes. Hips, calves, a walk-out and a brace. After a round.", pack.meta)
+        assertEquals("1 Elephant walk · 2 Woodchop", pack.names)
+
+        val blank = DayBlockCopy.lines(listOf("Squat"), OccurrenceStatus.PLANNED, minutes = 3, caption = " ")
+        assertEquals("1 lift · about 3 min", blank.meta)
     }
 
     @Test
@@ -69,7 +90,7 @@ class DayBlockCopyTest {
         val cardio = DayBlockCopy.lines(emptyList(), OccurrenceStatus.PLANNED, ScheduleModality.CARDIO)
         assertEquals(SessionOrderCopy.READY, cardio.meta)
 
-        val doneCardio = DayBlockCopy.lines(emptyList(), OccurrenceStatus.DONE, ScheduleModality.CARDIO)
+        val doneCardio = DayBlockCopy.lines(emptyList(), OccurrenceStatus.DONE, ScheduleModality.CARDIO, startable = false)
         assertNull(doneCardio.meta)
         assertEquals("Done", doneCardio.status)
     }
