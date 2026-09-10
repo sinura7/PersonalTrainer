@@ -141,7 +141,8 @@
 > 9 Sep 2026 — R18 step two: exercise detail bests and history read
 > `CompletedTrainingRepository.observeExerciseSets` (both stores). A
 > backdated strength day counts as a PR on that lift, not only in
-> Records. `#217` is on `trunk` (live 35); this packet inherits 35 and
+> Records. `#217` and `#218` are on `trunk` (both live 35, so Obtainium
+> will not offer `#218` as a new drop). This packet inherits 35 and
 > does not bump it.
 >
 > 9 Sep 2026 — F: the multi-add picker writes as it goes. A tap in Add lifts
