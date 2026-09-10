@@ -18,6 +18,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.domain.DayBlockCopy
 import com.sinura.personaltrainer.domain.FreeStartRank
 import com.sinura.personaltrainer.domain.GetStartedCopy
 import com.sinura.personaltrainer.domain.HomeToday
@@ -26,6 +27,8 @@ import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.WeekTwoCopy
+import com.sinura.personaltrainer.domain.sessionLifts
+import com.sinura.personaltrainer.domain.sessionMinutes
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -61,7 +64,8 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
  *
  * @param lifts lift names of the session named above, in session order. Empty
  * when the day has no routine attached — a proposed focus rather than a pinned session.
- * [SessionOrderCopy.numberedPreview] truncates the line.
+ * Drawn as a [DayBlockHead], the same head as Home's agenda blocks, with the routine's
+ * stills when [routines] can resolve it.
  * @param reason one line on why it is worth doing, from [com.sinura.personaltrainer.domain
  * .nextSessionReason]. Null when there is nothing worth saying, which is not the same as "".
  * @param sessionLive when a workout is already running. The card still names the plan; it
@@ -124,24 +128,28 @@ fun ThisWeekCard(
         else -> "No plan yet"
     }
 
+    val featuredRoutineId = (trainingToday ?: nextDay)?.routineId
+
     // No onClick. A whole-card tap that navigated, with a filled Start button inside it, was a
     // mis-tap trap on the most-pressed control in the app; Phase 6b removed the argument and
     // left the parameter behind, which is the compile break this deletes.
     GymCard {
         Kicker(kicker, color = TextSecondary)
-        Text(
-            headline,
-            style = InstrumentType.title,
-            color = TextPrimary,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        if (hasPlan && lifts.isNotEmpty()) {
+        if (hasPlan) {
+            DayBlockHead(
+                title = headline,
+                lines = DayBlockCopy.preview(
+                    names = lifts,
+                    minutes = sessionMinutes(featuredRoutineId, routines),
+                ),
+                exercises = sessionLifts(featuredRoutineId, routines),
+            )
+        } else {
             Text(
-                SessionOrderCopy.numberedPreview(lifts),
-                style = InstrumentType.body,
-                color = TextSecondary,
-                maxLines = 1,
+                headline,
+                style = InstrumentType.title,
+                color = TextPrimary,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
         }
