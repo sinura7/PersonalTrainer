@@ -159,7 +159,10 @@ Do **not** bump 29 here. Do not start a second edit of
 `claude/ecstatic-galileo-pw9iub` (Claude reuses that head).
 `#203` (`CLAUDE.md` response contract) is on `trunk`. Replies follow
 that file. Do not start a second edit of `CLAUDE.md` or
-`owner-conversation.mdc` from `trunk`.
+`owner-conversation.mdc` from `trunk`. `#204` (emulator job prints
+failure bodies) is on `trunk`. Do not start a second edit of
+`.github/workflows/ci.yml` or `tools/ci-instrumented.sh`. Actions is
+still not the test lane.
 
 **R16 residue.** Production-screen tests exist for History, the activity
 composer, live cardio, the activity receipt and Home. Settings, onboarding,
@@ -189,7 +192,9 @@ after merge. Do not delete `claude/app-audit-optimization-xnqf5e`.
 (UX + stub compiler); do not start a second edit of those paths from
 `trunk`. `#173` is on `trunk`. `claude/android-verify-my59sw` is leftover
 and Claude reuses it — do **not** delete that head (deleting it after
-`#191` briefly removed `#192`). `#201`/`#203`'s vehicle
+`#191` briefly removed `#192`). `#204` reused
+`claude/android-verify-my59sw` — do **not** delete that head. `#204`
+is on `trunk`. `#201`/`#203`'s vehicle
 `claude/ecstatic-galileo-pw9iub` is leftover — do **not** delete that
 head. `#203` is on `trunk`. Do not start a second picker or `DESIGN_AUDIT.md` edit from
 `trunk`. Do not take the five hosted-emulator failures or the remaining

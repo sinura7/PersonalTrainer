@@ -15,6 +15,15 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 10 Sep 2026 — Lane: the emulator job says why it failed. Its script is
+> `tools/ci-instrumented.sh`, which dumps the device log before the runner
+> tears the emulator down (the runner executes each `script:` line as its
+> own `sh -c`, so the fallback could not be inline), and a
+> `Print instrumented failures` step prints every failure body from the
+> JUnit XML — the semantics trees, the golden diff figures, the caught
+> exception — into the job log, where they can be read from any network.
+> Still non-blocking; the bar for the gate is unchanged. CI only.
+>
 > 9 Sep 2026 — R18 step two: exercise detail bests and history read
 > `CompletedTrainingRepository.observeExerciseSets` (both stores). A
 > backdated strength day counts as a PR on that lift, not only in
