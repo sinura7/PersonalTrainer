@@ -48,14 +48,14 @@ UX is on `trunk` after that (`c8c1549` / `17fc2ff` / `20ad3cf`): a
 one-column notes write, an editor mark at the tap, Use-chip persist.
 Not in 37. This packet folded it; the notes-column edit sat in
 `WorkoutRepository.kt` next to `observeSessionHealth`, different
-method. Open `#231` is the 600 dp mount harness
-(`ProductionScreensPassInstrumentedTest.kt` only). Instrumented tests;
-independent of this packet. Do not start a second edit of that
-file, `TestWaits.kt`, `RoutineEditorViewModel`, or
-`WorkoutRepository.kt` from `trunk`. Do not delete
-`claude/android-verify-my59sw` (`#231` is on it) or
-`claude/ecstatic-galileo-pw9iub`. An agent does not switch branch
-protection on.
+method. `#231` is on `trunk`: the 600 dp mount harness
+(`ProductionScreensPassInstrumentedTest.kt`). Instrumented tests; it
+rides the next drop, not 37. D16 is on `trunk`: the ADR-021
+paragraph is marked the way this repo marks them. Do not start a
+second edit of that test, `TestWaits.kt`, `RoutineEditorViewModel`,
+`WorkoutRepository.kt`, or the ADRs from `trunk`. Do not delete
+`claude/android-verify-my59sw` or `claude/ecstatic-galileo-pw9iub`.
+An agent does not switch branch protection on.
 
 **The hosted emulator lane is green: 80 tests, 0 failed** on `trunk`
 before `#222`; that packet adds three comparator unit tests (expected
@@ -152,10 +152,9 @@ Biggest first, and the first two are the owner's, not a session's:
   activities are never logged live.
 - **R17 measurement** is blocked on a fixture generator and a benchmark
   module nobody has built, not on the owner's history growing. About a day.
-- **The 600 dp screen passes** are open `#231`, not this packet: `mount`
-  now sets density so the named width is the viewport. Instrumented
-  only. Do not start a second edit of
-  `ProductionScreensPassInstrumentedTest.kt` from `trunk`.
+- **The 600 dp screen passes** are on `trunk` (`#231`). `mount` sets
+  density so the named width is the viewport. Instrumented only; not
+  in 37. Not this packet.
 - **`required_args_mixed = 180`** is the largest debt family in
   `tools/checker-baselines.toml`. Take `required_args_lambda = 46` first as
   the proof that the ratchet-down loop works.
@@ -180,7 +179,6 @@ breaking the rule, not bad luck. It happened again the same day: `#217`
 and `#218` both claimed 35; `-6` and `-7` both carry that number.
 Obtainium still offers 35 until 36 is installed. `#220` shipped 36 as
 `debug-live-2026-09-10-8`. `#226` shipped 37 as
-`debug-live-2026-09-10-9`. This packet inherits 37. `#229` and `#230`
-are on `trunk` and do not ride 37. Open `#231` is the 600 dp
-harness and does not ride this packet.
+`debug-live-2026-09-10-9`. This packet inherits 37. `#229`, `#230`,
+and `#231` are on `trunk` and do not ride 37.
 
