@@ -20,6 +20,10 @@ Studio is not the install path. Do not sit idle waiting for a laptop.
 - Branch names: `cursor/<short-slug>-b87f`.
 - JVM (`./gradlew testDebugUnitTest` + `assembleDebug`) is the push
   gate. Run it here, on Cursor.
+- Before cutting a drop, run `python3 tools/debug-drop-plan.py` and use the
+  suffix and the number it gives you. Neither is yours to pick: another
+  packet merging while yours waited on CI may already hold them, and a drop
+  under a taken name now fails the run rather than publishing over it.
 - After merge, the phone gets **Temper Debug** from a GitHub
   pre-release. Tag `debug-live-YYYY-MM-DD` (or `-2` on a same-day
   drop). Attach `PersonalTrainer-*-debug.apk`. Obtainium is what the
