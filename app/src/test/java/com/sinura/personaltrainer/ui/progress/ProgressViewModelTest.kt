@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.testutil.FrozenTime
+import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.util.toCivilDate
 import java.time.LocalDate
 import java.time.ZoneId
@@ -57,7 +58,7 @@ class ProgressViewModelTest {
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
         deps.preferencesRepository.setHeatWindow(HeatWindow.CURRENT_MONTH)
         viewModel = ProgressViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        val state = viewModel!!.uiState.first { !it.isLoading }
+        val state = viewModel!!.uiState.awaitFirst { !it.isLoading }
         assertEquals(HeatWindow.CURRENT_MONTH, state.window)
     }
 

@@ -17,6 +17,8 @@ import com.sinura.personaltrainer.domain.StrengthBlock
 import com.sinura.personaltrainer.domain.StrengthSet
 import com.sinura.personaltrainer.testutil.ActivityReadGate
 import com.sinura.personaltrainer.testutil.FailingGetGraphDao
+import com.sinura.personaltrainer.testutil.TestWaits
+import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.util.JvmTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -60,7 +62,7 @@ class ActivityDetailViewModelTest {
 
     @Test
     fun missingActivityResolvesWithoutSpinner() = runBlocking {
-        val state = createViewModel("missing").uiState.first { !it.isLoading }
+        val state = createViewModel("missing").uiState.awaitFirst { !it.isLoading }
         assertTrue(state.missing)
         assertFalse(state.isLoading)
     }
@@ -133,13 +135,13 @@ class ActivityDetailViewModelTest {
         gate.shouldFail = true
 
         val vm = createViewModel(session.id)
-        val failed = withTimeout(5_000) { vm.uiState.first { !it.isLoading } }
+        val failed = withTimeout(TestWaits.FLOW_MS) { vm.uiState.first { !it.isLoading } }
         assertTrue(failed.failed)
         assertFalse("a read fault must not read as a deleted activity", failed.missing)
 
         gate.shouldFail = false
         vm.retry()
-        val loaded = withTimeout(5_000) { vm.uiState.first { !it.isLoading && !it.failed } }
+        val loaded = withTimeout(TestWaits.FLOW_MS) { vm.uiState.first { !it.isLoading && !it.failed } }
         assertEquals(session.id, loaded.session?.id)
         assertEquals(1, deps.activityRepository.all().size)
     }

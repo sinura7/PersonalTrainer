@@ -118,6 +118,35 @@ backup/restore stamps; rest-timer runtime state.
 - Token is memory-only and cleared on sign-out. Email is stored in
   DataStore so Settings can show who is signed in.
 
+### 4.3.1 Automatic backup after a finished workout (opt-in)
+
+Off by default. Armed from Settings → Google Drive → **Back up after each
+workout**, which asks for the backup password once.
+
+- The upload is the **same envelope** as a manual Drive backup. There is no
+  plaintext path here at all: with no password available the copy does not
+  happen, rather than happening unprotected.
+- The password is sealed with an **AES-256-GCM key held in the Android
+  Keystore** (`temper.auto-backup.passphrase`, not user-authentication bound)
+  and the IV + ciphertext are kept in DataStore. The key is non-exportable
+  and does not leave the device.
+- **This amends the P3.6 sentence "it is not stored on this device."** That
+  sentence still holds for every manual export and for a phone that never
+  arms this. Where it is armed, the sealed copy is a new at-rest item, and
+  §5 T1/T2 are the rows that own it — not T4/T5, whose exposure is unchanged
+  because the Drive payload is byte-for-byte the same protected envelope.
+- The trade is deliberate and narrow: the on-device Room database is not
+  encrypted at all, so anyone holding the unlocked phone could already read
+  the history. Sealing a password beside it does not widen that.
+- Signing out of Drive, or turning the toggle off, deletes the sealed copy
+  and the toggle together. Re-arming asks again.
+- The sealed copy is **not** in `BackupPreferences`, so it is never exported
+  and never restored. A blob moved to another phone could not be opened
+  there, and restoring one over a freshly entered password would break the
+  feature silently.
+- Authorization is attempted without a consent sheet. A lapsed grant pauses
+  automatic backup and says so in Settings; it never interrupts the phone.
+
 ### 4.4 Restore commit (shipping)
 
 Order today: refuse if a workout is live → decode → validate → authored
@@ -165,6 +194,9 @@ Current-voice documents may say:
 - Default export and Drive backup are a password-protected envelope.
   Plaintext is an advanced warned choice. Legacy plaintext files still
   import.
+- Automatic backup after a finished workout is opt-in, always protected,
+  and keeps the password sealed by the Android Keystore on that phone
+  only (§4.3.1).
 - Restore refuses while a workout is live.
 - A verified safety copy is required before restore teardown. Copies
   are listable from Settings. Failure aborts the restore.
@@ -178,6 +210,8 @@ They must not say:
 - The JSON is private. A password-protected file is readable by anyone
   who has the password. A plaintext file is readable by anyone who has
   the file.
+- Automatic backup is on by default, or that arming it changes what a
+  Drive copy is protected with. It does not: the envelope is identical.
 
 ## 7. Finding coverage
 

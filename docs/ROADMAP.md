@@ -15,6 +15,152 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 10 Sep 2026 — Tick: the last five seconds of rest tick. `RestTick` says
+> where the boundaries fall; `RestTimerService` posts one runnable per
+> boundary and re-asks on every sync, so a ±15 s moves the ticks with the
+> deadline and an old tick is never sounded against a new one (`isDue`).
+> Each tick is a click (`res/raw/rest_tick.wav`, written by
+> `tools/build-rest-tick.py`, kept loaded in a `SoundPool` on the alarm
+> stream) and a 40 ms pulse, under the existing Sound and Vibration
+> toggles and a new **Last five seconds** toggle. The toggle is
+> device-local — not in the backup document, not restored — like the last
+> preset. Reach is the countdown's: process alive, CPU awake; in doze the
+> alarm path's completion cue is the whole alert, and the Settings caption
+> says so. Closes R-04, T-02, T-05, T-17, N-02 and G-10. Live test 31
+> (`debugLiveCode` 31), drop `debug-live/2026-09-10-2`.
+>
+> 10 Sep 2026 — F: Home's day board. Each of today's sessions is its own
+> bordered block — the title, the first four catalog stills, the numbered
+> order, `2 lifts · about 13 min` — with Start (leftover: Do it today) in
+> Volt ink on the foot. The whole block is the tap, into the same ADR-021
+> confirm, under the same test tag; Skip and reorder sit under it as
+> before, and Add keeps its own row under Today. Still open and the
+> empty-agenda leftover card draw the same head (`DayBlockHead`), so a
+> session looks the same on every Home surface. Aux packs needed no new
+> plumbing: `AuxiliaryBlocks` already mints them as routines, so their
+> stills resolve like any routine's. Done and moved blocks go quiet in
+> ink; the stills stay (ADR-022: identity, not state). The words are
+> `DayBlockCopy`, pure and tested; the confirm's count line reads the same
+> function. No ADR: the behaviour is ADR-021 as it stands, only the
+> drawing changed. Live test 30 (`debugLiveCode` 30), drop
+> `debug-live/2026-09-10`.
+>
+> 10 Sep 2026 — Lane: the emulator job says why it failed. Its script is
+> `tools/ci-instrumented.sh`, which dumps the device log before the runner
+> tears the emulator down (the runner executes each `script:` line as its
+> own `sh -c`, so the fallback could not be inline), and a
+> `Print instrumented failures` step prints every failure body from the
+> JUnit XML — the semantics trees, the golden diff figures, the caught
+> exception — into the job log, where they can be read from any network.
+> Still non-blocking; the bar for the gate is unchanged. CI only.
+>
+> 9 Sep 2026 — F: the multi-add picker writes as it goes. A tap in Add lifts
+> puts the lift on the routine (or on the custom week's day) immediately and a
+> second tap takes it back out; the numbers are the session's own order, and the
+> footer button is **Done**, not Add. Closing the sheet — scrim, back, a stray
+> tap — no longer empties a cart the owner built by hand. `LiftCart` keeps the
+> in-flight taps (`picked`/`settle`), `planConfirm` and `ExercisePickerEvent.Confirmed`
+> are gone. With it: a target typed into a card while that card's previous
+> commit is still in Room is no longer dropped by the commit's tail
+> (`stagedTargets` is a `ConcurrentHashMap`, removed by compare-and-remove) —
+> the lost update that made `stagedTargetsCommitWhenTheyDifferAndRejectZeroSets`
+> time out on a two-core runner. No schema change. Live test 29
+> (`debugLiveCode` 29), drop `debug-live/2026-09-09-8`.
+>
+> 9 Sep 2026 — `#175` (Robolectric 4.16.1) and `#180` (AGP 8.9.3)
+> closed unmerged. Robolectric stays pinned at `4.16`; 8.9.3 waits for
+> aapt2 ledger + checker in one packet. `#173`, `#199` and `#200` are
+> on `trunk`. `#201` is the live-29 drop. `#181` does not bump 28.
+>
+> 9 Sep 2026 — W3: `SettingsViewModelTest`'s four waits go through
+> `awaitFirst` now that `#188` has landed; `unbounded_waits` 4 → 0. Every
+> ViewModel wait in the suite has a ceiling and names what it last saw.
+>
+> 9 Sep 2026 — J: `DESIGN_AUDIT` re-read against the code. 42 of the 64
+> rows still marked P1 were closed by shipped work (keyed stills on every
+> picker, chip and header; the bundled rest cue on the alarm stream; the
+> nine-tenths picker with the create row only on no match; equipment on
+> the lift; staged targets and persist-on-exit; Room v4 with the catalog
+> versioned; the overlay superseded) and now say so with file evidence;
+> two are partly closed. What is genuinely open: the last-5-second tick
+> (R-04, T-02, T-05, T-17, N-02, G-10), Body's first-launch emptiness
+> (B-02), routine-card and recommendation pictures (S-02, B-03, I-01),
+> editor target steppers and a load-type control (E-04, E-12), a cue
+> preview in Settings (N-01), the battery-restriction copy (T-16), and
+> the walkthrough rows (W-02, W-11, G-02, G-05, T-12, I-04) and the
+> chip's set progress and rest badge (W-06). Docs only.
+>
+> 9 Sep 2026 — I: the hosted emulator lane boots the Nexus 5X profile the
+> goldens were recorded on (411 dp at 420 dpi, the `temper-tests-api29`
+> device); it had been booting a 320 px default. Still red, and now
+> honestly so — five of eighty need an emulator in front of someone:
+> `FoundationGoldenTest` (0.43% of pixels in `[84,664..858,1321]`, the
+> figure region, SwiftShader vs the recording GPU), `ExactAlarmCapability`
+> `apiBelow31SchedulesExact` (`FAILED` where API 29 must give `EXACT`),
+> `ProductionScreensPass.historyAt360Font2` (`Records` unreachable), and
+> both `ActiveWorkoutJourney` journeys (`Top set 202.5 kg × 5`, `Set 1`
+> not displayed). The lane stays non-blocking until it is green ten runs
+> in a row on `trunk`. No app code; no drop.
+>
+> 9 Sep 2026 — C: `tools/check-cancellation.py` fails preflight when a
+> `catch (Exception)` that can see a suspension has no `CancellationException`
+> clause ahead of it. 32 such sites (every ViewModel `launch`, the app's
+> start-up imports, two receivers, Drive sign-out, the foundation reset)
+> now rethrow cancellation; `cancellation_swallow` 32 → 0. No drop.
+>
+> 9 Sep 2026 — D: Body says what the figure was built from — a facts line
+> under the map ("3 sessions this week · last finished yesterday"), **Show
+> this month** in one tap when Day or Week is empty, and the Front / Back
+> chips in their own strip under the figure (`DESIGN_AUDIT` B-05 closed).
+> Live test 28 (`debugLiveCode` 28), drop `debug-live/2026-09-09-7`.
+> `#181` does not bump it.
+>
+> 9 Sep 2026 — E: Golf cool-down pack (`golf-cooldown`, Mobility: couch
+> stretch, incline pigeon, calf stretch, elephant walk, dead bug). After a
+> round, where the Golf warm-up is before one. Live test 27
+> (`debugLiveCode` 27), drop `debug-live/2026-09-09-6` — the `-5` cut died
+> on the `#188` / `#190` compile break that `#196` fixed.
+>
+> 9 Sep 2026 — `#194` / `#188`: verified backup drop. A finished
+> backup can be opened, a silent Drive account switch is refused, and
+> the sealed password can be shown. `debugLiveCode` 27.
+>
+> 9 Sep 2026 — W2: every ViewModel test wait goes through
+> `Flow.awaitFirst` (sharedTest `TestWaits.kt`): `withTimeout(FLOW_MS)`
+> and, on giving up, the last value the flow showed. 203 sites in 16
+> classes; `unbounded_waits` 207 → 4 (`SettingsViewModelTest`, owned by
+> `#188`, follows). No app code; no drop.
+>
+> 9 Sep 2026 — W: `tools/check-unbounded-waits.py` fails preflight when a
+> `*ViewModelTest.kt` waits on a ViewModel flow with no `withTimeout`
+> around it — the shape that wedged CI twice on 9 Sep. Ratcheted at 207
+> (`unbounded_waits`); `test_unbounded_waits.py` is its fixture proof.
+> No app code; no drop.
+>
+> 9 Sep 2026 — `#190`: ErrorSlot in the eight remaining ViewModels
+> (StartOptions, ExerciseLibrary, ActivityComposer, CustomWeek,
+> Settings, Onboarding, LiveCardio, SessionDetail). History's three
+> sites ride `#181`, which owns that file. No drop.
+>
+> 9 Sep 2026 — `#189`: the 31-minute CI hang was a ViewModel error race
+> (every action wrote null into one shared error flow on success), not a
+> deadlock. `util/ErrorSlot`: a success clears only its own family, and
+> only refusals older than its own start. `tools/hang-watchdog.sh` wraps the
+> CI unit-test step and thread-dumps a wedged worker from outside the JVM.
+> B2 follows: the same slot in the eight remaining ViewModels
+> (`HistoryViewModel` waits for `#181`). No app-visible change; no drop.
+> `DESIGN_AUDIT` W-14/W-15 were already closed in code and are marked so.
+>
+> 8 Sep 2026 — R18 step one: History horizon and block reviews read
+> `CompletedTraining` from both stores. A backdated strength day counts
+> as a PR in the readout, not only in Records. `#184` (flow waits are
+> `TestWaits.FLOW_MS`) is on `trunk`.
+>
+> 8 Sep 2026 — Dependabot `#174` (coroutines 1.11.0) and `#176`
+> (android-all-instrumented 17) closed unmerged. `#178` named
+> `kotlinx-coroutines-android` and the J3 API-35 jar on the ignore
+> list. Live test 22 is still the phone APK; Obtainium is still 20.
+>
 > 5 Sep 2026 — Live test 21 (`debugLiveCode` 21) on `trunk`: C–J4
 > plus lint publisher. Obtainium attach waits on a hosted runner;
 > sideload Temper Debug until a `debug-live-*` pre-release exists.

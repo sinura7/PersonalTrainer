@@ -349,7 +349,7 @@ private fun StrengthAdder(
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(weightFocus)
-                .fieldError(weightError),
+                    .fieldError(weightError),
             )
             OutlinedTextField(
                 value = reps,
@@ -369,7 +369,7 @@ private fun StrengthAdder(
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(repsFocus)
-                .fieldError(repsError),
+                    .fieldError(repsError),
             )
             SecondaryGymButton(
                 text = ComposerCopy.ADD_SET,
@@ -420,9 +420,9 @@ private fun StrengthAdder(
                     }
                     is ExercisePickerEvent.Created ->
                         onCreate(event.name, event.muscleGroup)
-                    is ExercisePickerEvent.Toggled,
-                    ExercisePickerEvent.Confirmed,
-                    -> Unit
+                    // Multi-add taps are written as they land (#201), so SINGLE_ADD never
+                    // sees a Toggled; the arm is here only to keep the when exhaustive.
+                    is ExercisePickerEvent.Toggled -> Unit
                     ExercisePickerEvent.ErrorDismissed -> onPickerErrorDismissed()
                     ExercisePickerEvent.Dismissed -> {
                         pickerQuery = ""

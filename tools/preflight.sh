@@ -155,9 +155,13 @@ for c in "check-internal-imports.py" \
          "check-version-code.py" \
          "check-play-rehearsal.py" \
          "check-still-pack.py" \
+         "check-unbounded-waits.py" \
+         "check-cancellation.py" \
          "test_policy_move.py" \
          "test_checker_skips.py" \
-         "test_lambda_arity.py"; do
+         "test_lambda_arity.py" \
+         "test_unbounded_waits.py" \
+         "test_cancellation.py"; do
     step "$c"
     # shellcheck disable=SC2086
     python3 tools/$c || fail "$c"

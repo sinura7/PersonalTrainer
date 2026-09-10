@@ -17,6 +17,7 @@ import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.timer.BootSession
 import com.sinura.personaltrainer.timer.CardioElapsed
 import com.sinura.personaltrainer.timer.PersistedCardioTimer
+import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.util.recoverWith
 import com.sinura.personaltrainer.util.runCatchingCancellable
@@ -30,6 +31,10 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+/** [ErrorSlot] families: a success may clear only its own family's refusal. */
+private const val ERR_FINISH = "finish"
+private const val ERR_DISCARD = "discard"
 
 /**
  * [missing] is a successful read that found no live row: the session is gone. [failed] is a
@@ -77,8 +82,14 @@ class LiveCardioViewModel @JvmOverloads constructor(
     )
     private val indoor = MutableStateFlow(savedStateHandle.get<Boolean>(KEY_INDOOR) ?: false)
     private val distanceKm = MutableStateFlow(savedStateHandle.get<String>(KEY_DISTANCE).orEmpty())
+    /**
+     * The distance box's own complaint, kept separate from [error] on purpose (UX06).
+     * [ErrorSlot] holds ONE action failure at a time; a field rule is not an action failure —
+     * it belongs under its box, it is answered by retyping rather than by retrying, and it
+     * must not evict a Finish refusal the owner has not read yet.
+     */
     private val distanceError = MutableStateFlow<String?>(null)
-    private val error = MutableStateFlow<String?>(null)
+    private val error = ErrorSlot()
     private val finishing = MutableStateFlow(false)
 
     val uiState: StateFlow<LiveCardioUiState> = combine(
@@ -88,7 +99,7 @@ class LiveCardioViewModel @JvmOverloads constructor(
         combine(type, indoor, distanceKm) { cardioType, isIndoor, distance ->
             Triple(cardioType, isIndoor, distance)
         },
-        combine(error, finishing, distanceError) { err, busy, distanceProblem ->
+        combine(error.messages, finishing, distanceError) { err, busy, distanceProblem ->
             Flags(err, busy, distanceProblem)
         },
     ) { loaded, cardioTriple, flags ->
@@ -153,7 +164,10 @@ class LiveCardioViewModel @JvmOverloads constructor(
                     // Guessing a unit here would read "5" as miles or kilometres on a coin
                     // toss; refusing keeps the clock running and the typed text in place.
                     AppLog.w(TAG, "Reading the distance unit failed", thrown)
-                    error.value = "Could not finish that session. Try again."
+                    error.fail(
+                        source = ERR_FINISH,
+                        message = "Could not finish that session. Try again.",
+                    )
                     finishing.value = false
                     return@launch
                 }
@@ -190,23 +204,28 @@ class LiveCardioViewModel @JvmOverloads constructor(
                         forgetInputs()
                         _finishedId.value = write.session.id
                     }
-                    is ActivityWrite.Rejected -> error.value = write.reason
+                    is ActivityWrite.Rejected ->
+                        error.fail(source = ERR_FINISH, message = write.reason)
                 }
             }.onFailure { thrown ->
                 AppLog.w(TAG, "Finishing live cardio failed", thrown)
-                error.value = "Could not finish that session. Try again."
+                error.fail(
+                    source = ERR_FINISH,
+                    message = "Could not finish that session. Try again.",
+                )
             }
         }
     }
 
     fun discard() {
+        val started = error.mark()
         val id = session.value?.id ?: return
         viewModelScope.launch {
             runCatchingCancellable { container.discardActivity(id) }
                 .onSuccess {
                     clearTimerRow()
                     forgetInputs()
-                    error.value = null
+                    error.clearFrom(source = ERR_DISCARD, before = started)
                     missing.value = true
                     session.value = null
                 }
@@ -215,7 +234,10 @@ class LiveCardioViewModel @JvmOverloads constructor(
                     // the bar resurrects it — now with a wiped timer baseline — is
                     // the worse failure.
                     AppLog.w(TAG, "Discarding live cardio failed", thrown)
-                    error.value = "Could not discard that session. Try again."
+                    error.fail(
+                        source = ERR_DISCARD,
+                        message = "Could not discard that session. Try again.",
+                    )
                 }
         }
     }
@@ -225,7 +247,7 @@ class LiveCardioViewModel @JvmOverloads constructor(
     }
 
     fun dismissError() {
-        error.value = null
+        error.dismiss()
     }
 
     private suspend fun loadAndTick() {

@@ -17,6 +17,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.runBlocking
 import com.sinura.personaltrainer.data.backup.DriveAuthClient
+import com.sinura.personaltrainer.data.security.BackupPassphraseSealer
 import com.sinura.personaltrainer.data.backup.DriveRestClient
 import com.sinura.personaltrainer.data.backup.NetworkChecker
 import com.sinura.personaltrainer.data.backup.RestoreJournalStore
@@ -28,6 +29,7 @@ import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.repository.ActivityRepository
 import com.sinura.personaltrainer.data.repository.BackupRepository
+import com.sinura.personaltrainer.data.repository.CompletedTrainingRepository
 import com.sinura.personaltrainer.timer.CardioTimerPersistence
 import com.sinura.personaltrainer.timer.PersistedCardioTimer
 import com.sinura.personaltrainer.util.IdFactory
@@ -189,6 +191,8 @@ class FakeAppDependencies(
         },
         restoreBlocksStart = { backupRepository.restoreBlocksStart() },
     )
+    override val completedTrainingRepository: CompletedTrainingRepository =
+        CompletedTrainingRepository(workoutRepository, activityRepository, time)
     override val confirmActivity: ConfirmActivity =
         ConfirmActivity(activityRepository, IdFactory.Uuid, time)
     override val startLiveActivity: StartLiveActivity =
@@ -196,6 +200,7 @@ class FakeAppDependencies(
     override var discardActivity: DiscardActivity = DiscardActivity(activityRepository)
     override val finishActivity: FinishActivity = FinishActivity(activityRepository, time)
     override val cardioTimerPersistence: CardioTimerPersistence = InMemoryCardioTimerPersistence()
+    override val backupPassphraseSealer: BackupPassphraseSealer = InMemoryBackupPassphraseSealer()
     override val startLiveCardio: StartLiveCardio = StartLiveCardio(
         startLiveActivity = startLiveActivity,
         cardioTimerPersistence = cardioTimerPersistence,
@@ -378,5 +383,21 @@ private class InMemoryCardioTimerPersistence : CardioTimerPersistence {
     override fun clear(): Boolean {
         stored = null
         return true
+    }
+}
+
+/**
+ * Reversible, not secure — the JVM has no AndroidKeyStore. It exists so tests exercise the
+ * seal/open round trip and the wipe discipline; it deliberately does not model a Keystore
+ * that has forgotten its key. A test wanting that path passes a blob this cannot decode.
+ */
+private class InMemoryBackupPassphraseSealer : BackupPassphraseSealer {
+    override fun seal(passphrase: CharArray): String =
+        java.util.Base64.getEncoder().encodeToString(String(passphrase).toByteArray())
+
+    override fun open(sealed: String): CharArray? = try {
+        String(java.util.Base64.getDecoder().decode(sealed)).toCharArray()
+    } catch (_: IllegalArgumentException) {
+        null
     }
 }

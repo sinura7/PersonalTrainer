@@ -8,6 +8,8 @@ import com.sinura.personaltrainer.domain.RecommendationPriority
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.domain.TrainingRecommendation
+import com.sinura.personaltrainer.testutil.TestWaits
+import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.Dispatchers
@@ -15,6 +17,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.yield
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -70,7 +74,7 @@ class StartOptionsViewModelTest {
         deps.workoutRepository.discardSession(fixture.session.id)
         val vm = createViewModel()
 
-        val state = vm.uiState.first { !it.isLoading }
+        val state = vm.uiState.awaitFirst { !it.isLoading }
         assertEquals(listOf(fixture.routine.id), state.routines.map { it.id })
         assertNull(state.inProgress)
     }
@@ -79,7 +83,7 @@ class StartOptionsViewModelTest {
     fun emptyWeekHasNoTodayStart() = runBlocking {
         deps = graph()
         val vm = createViewModel()
-        val state = vm.uiState.first { !it.isLoading }
+        val state = vm.uiState.awaitFirst { !it.isLoading }
         assertNull(state.todayStart)
     }
 
@@ -89,11 +93,11 @@ class StartOptionsViewModelTest {
         val fixture = seedTestWorkout(deps)
         deps.workoutRepository.discardSession(fixture.session.id)
         val vm = createViewModel()
-        vm.uiState.first { !it.isLoading }
+        vm.uiState.awaitFirst { !it.isLoading }
 
         vm.startRoutine(fixture.routine.id)
 
-        val id = checkNotNull(vm.navigateToSession.first { it != null })
+        val id = checkNotNull(vm.navigateToSession.awaitFirst { it != null })
         val session = checkNotNull(deps.workoutRepository.getSession(id))
         assertEquals(fixture.routine.id, session.routineId)
         assertEquals(1, session.exercises.size)
@@ -105,19 +109,19 @@ class StartOptionsViewModelTest {
     fun missingAndEmptyRoutineSurfaceErrorsWithoutStarting() = runBlocking {
         deps = graph()
         val vm = createViewModel()
-        vm.uiState.first { !it.isLoading }
+        vm.uiState.awaitFirst { !it.isLoading }
 
         vm.startRoutine("missing")
         assertEquals(
             "That routine is no longer available.",
-            vm.uiState.first { it.error != null }.error,
+            vm.uiState.awaitFirst { it.error != null }.error,
         )
 
         val empty = deps.routineRepository.create("Empty")
         vm.startRoutine(empty.id)
         assertEquals(
             SessionOrderCopy.NEED_A_LIFT,
-            vm.uiState.first { it.error?.startsWith("Add at least") == true }.error,
+            vm.uiState.awaitFirst { it.error?.startsWith("Add at least") == true }.error,
         )
         assertNull(deps.workoutRepository.getInProgress())
         assertNull(vm.navigateToSession.value)
@@ -127,11 +131,11 @@ class StartOptionsViewModelTest {
     fun startFreeCreatesFreeWorkoutAndNavigates() = runBlocking {
         deps = graph()
         val vm = createViewModel()
-        vm.uiState.first { !it.isLoading }
+        vm.uiState.awaitFirst { !it.isLoading }
 
         vm.startFree()
 
-        val id = checkNotNull(vm.navigateToSession.first { it != null })
+        val id = checkNotNull(vm.navigateToSession.awaitFirst { it != null })
         val session = checkNotNull(deps.workoutRepository.getSession(id))
         assertEquals("Free workout", session.routineName)
         assertTrue(session.exercises.isEmpty())
@@ -156,11 +160,11 @@ class StartOptionsViewModelTest {
             ),
         )
         val vm = createViewModel()
-        vm.uiState.first { it.suggestion?.id == exercise.id }
+        vm.uiState.awaitFirst { it.suggestion?.id == exercise.id }
 
         vm.startSuggested()
 
-        val id = checkNotNull(vm.navigateToSession.first { it != null })
+        val id = checkNotNull(vm.navigateToSession.awaitFirst { it != null })
         val session = checkNotNull(deps.workoutRepository.getSession(id))
         assertEquals(exercise.id, session.exercises.single().exercise.id)
         assertTrue(session.exercises.single().targetSets > 0)
@@ -171,11 +175,11 @@ class StartOptionsViewModelTest {
         deps = graph()
         val fixture = seedTestWorkout(deps)
         val vm = createViewModel()
-        vm.uiState.first { it.inProgress?.id == fixture.session.id }
+        vm.uiState.awaitFirst { it.inProgress?.id == fixture.session.id }
 
         vm.startFree()
 
-        val state = vm.uiState.first { it.error != null }
+        val state = vm.uiState.awaitFirst { it.error != null }
         assertEquals("A workout is already in progress.", state.error)
         assertNull(vm.navigateToSession.value)
         assertEquals(fixture.session.id, deps.workoutRepository.getInProgress()?.id)
@@ -186,11 +190,11 @@ class StartOptionsViewModelTest {
         deps = graph()
         val fixture = seedTestWorkout(deps)
         val vm = createViewModel()
-        vm.uiState.first { it.inProgress?.id == fixture.session.id }
+        vm.uiState.awaitFirst { it.inProgress?.id == fixture.session.id }
 
         vm.startRoutine(fixture.routine.id)
 
-        val state = vm.uiState.first { it.error != null }
+        val state = vm.uiState.awaitFirst { it.error != null }
         assertEquals("A workout is already in progress.", state.error)
         assertNull(vm.navigateToSession.value)
         assertEquals(fixture.session.id, deps.workoutRepository.getInProgress()?.id)
@@ -216,11 +220,11 @@ class StartOptionsViewModelTest {
             ),
         )
         val vm = createViewModel()
-        vm.uiState.first { it.inProgress?.id == fixture.session.id && it.suggestion?.id == exercise.id }
+        vm.uiState.awaitFirst { it.inProgress?.id == fixture.session.id && it.suggestion?.id == exercise.id }
 
         vm.startSuggested()
 
-        val state = vm.uiState.first { it.error != null }
+        val state = vm.uiState.awaitFirst { it.error != null }
         assertEquals("A workout is already in progress.", state.error)
         assertNull(vm.navigateToSession.value)
         assertEquals(fixture.session.id, deps.workoutRepository.getInProgress()?.id)
@@ -235,7 +239,7 @@ class StartOptionsViewModelTest {
     fun startSuggestedWithNoLiftIsANoOp() = runBlocking {
         deps = graph()
         val vm = createViewModel()
-        vm.uiState.first { !it.isLoading }
+        vm.uiState.awaitFirst { !it.isLoading }
         assertNull(vm.uiState.value.suggestion)
 
         vm.startSuggested()
@@ -262,7 +266,7 @@ class StartOptionsViewModelTest {
         )
         deps.restTimerController.start(90, fixture.session.id)
         val vm = createViewModel()
-        vm.uiState.first { it.inProgress?.id == fixture.session.id }
+        vm.uiState.awaitFirst { it.inProgress?.id == fixture.session.id }
 
         vm.discardInProgress()
 
@@ -270,20 +274,20 @@ class StartOptionsViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
         assertFalse(deps.restTimerStore.current().running)
         assertNull(deps.workoutDraftCache.get(fixture.session.id))
-        assertNull(vm.uiState.first { it.inProgress == null }.error)
+        assertNull(vm.uiState.awaitFirst { it.inProgress == null }.error)
     }
 
     @Test
     fun startCardioFromEmptyWeekOpensLiveCardio() = runBlocking {
         deps = graph()
         val vm = createViewModel()
-        vm.uiState.first { !it.isLoading }
+        vm.uiState.awaitFirst { !it.isLoading }
         assertNull(vm.uiState.value.todayStart)
         assertTrue(deps.plannerRepository.observeOccurrences().first().isEmpty())
 
         vm.startCardio()
 
-        val id = checkNotNull(vm.navigateToCardio.first { it != null })
+        val id = checkNotNull(vm.navigateToCardio.awaitFirst { it != null })
         val live = checkNotNull(deps.activityRepository.getLive())
         assertEquals(id, live.id)
         assertEquals("Cardio", live.title)
@@ -294,16 +298,23 @@ class StartOptionsViewModelTest {
     fun discardLiveCardioClearsTimerAndRemovesRow() = runBlocking {
         deps = graph()
         val vm = createViewModel()
-        vm.uiState.first { !it.isLoading }
+        vm.uiState.awaitFirst { !it.isLoading }
         vm.startCardio()
-        val id = checkNotNull(vm.navigateToCardio.first { it != null })
-        vm.uiState.first { it.liveActivity?.id == id }
+        val id = checkNotNull(vm.navigateToCardio.awaitFirst { it != null })
+        vm.uiState.awaitFirst { it.liveActivity?.id == id }
         assertEquals(id, deps.cardioTimerPersistence.load()?.sessionId)
 
         vm.discardInProgress()
 
-        vm.uiState.first { it.liveActivity == null }
-        dispatcher.scheduler.advanceUntilIdle()
+        vm.uiState.awaitFirst { it.liveActivity == null }
+        // discardActivity suspends on Room; liveActivity can go null before the
+        // persistence clear that follows it. Wait for that write, not only idle.
+        withTimeout(TestWaits.FLOW_MS) {
+            while (deps.cardioTimerPersistence.load() != null) {
+                dispatcher.scheduler.advanceUntilIdle()
+                yield()
+            }
+        }
         assertNull(deps.activityRepository.getLive())
         assertNull(deps.cardioTimerPersistence.load())
         assertNull(vm.uiState.value.error)
@@ -313,10 +324,10 @@ class StartOptionsViewModelTest {
     fun discardLiveCardioFailureLeavesTimerAndRow() = runBlocking {
         deps = graph()
         val vm = createViewModel()
-        vm.uiState.first { !it.isLoading }
+        vm.uiState.awaitFirst { !it.isLoading }
         vm.startCardio()
-        val id = checkNotNull(vm.navigateToCardio.first { it != null })
-        vm.uiState.first { it.liveActivity?.id == id }
+        val id = checkNotNull(vm.navigateToCardio.awaitFirst { it != null })
+        vm.uiState.awaitFirst { it.liveActivity?.id == id }
         checkNotNull(deps.cardioTimerPersistence.load())
         deps.discardActivity = object : com.sinura.personaltrainer.activity.DiscardActivity(
             deps.activityRepository,
@@ -328,7 +339,7 @@ class StartOptionsViewModelTest {
 
         vm.discardInProgress()
 
-        val state = vm.uiState.first { it.error != null }
+        val state = vm.uiState.awaitFirst { it.error != null }
         assertEquals("Could not discard this session. Try again.", state.error)
         assertEquals(id, deps.activityRepository.getLive()?.id)
         assertEquals(id, deps.cardioTimerPersistence.load()?.sessionId)

@@ -11,6 +11,7 @@ import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +28,10 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
 
 private const val TAG = "PT/SessionDetailViewModel"
+
+/** [ErrorSlot] families: a success may clear only its own family's refusal. */
+private const val ERR_REPEAT = "repeat"
+private const val ERR_DETAIL = "detail"
 
 /** Long enough that a sentence is one write, short enough that leaving the screen is safe. */
 private const val NOTES_WRITE_DEBOUNCE_MS = 400L
@@ -66,8 +71,8 @@ class SessionDetailViewModel @JvmOverloads constructor(
     private var lastPersistedNotes: String? = null
     private var notesHydrated = false
 
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
+    private val errors = ErrorSlot()
+    val error: StateFlow<String?> = errors.messages
 
     private val _deleted = MutableStateFlow(false)
     val deleted: StateFlow<Boolean> = _deleted.asStateFlow()
@@ -225,7 +230,8 @@ class SessionDetailViewModel @JvmOverloads constructor(
                         when (outcome) {
                             is RepeatOutcome.Started -> _navigateToSession.value = outcome.sessionId
                             is RepeatOutcome.Blocked -> _blockedRepeat.value = outcome
-                            is RepeatOutcome.Failed -> _error.value = outcome.message
+                            is RepeatOutcome.Failed ->
+                                errors.fail(source = ERR_REPEAT, message = outcome.message)
                         }
                     }
                     .onFailure { report(it, "Could not repeat that workout. Try again.") }
@@ -250,12 +256,15 @@ class SessionDetailViewModel @JvmOverloads constructor(
     }
 
     fun onErrorShown() {
-        _error.value = null
+        errors.dismiss()
     }
 
     private fun report(thrown: Throwable, fallback: String) {
         AppLog.w(TAG, fallback, thrown)
-        _error.value = thrown.message?.takeIf { SetLogRules.isUserMessage(it) } ?: fallback
+        errors.fail(
+            source = ERR_DETAIL,
+            message = thrown.message?.takeIf { SetLogRules.isUserMessage(it) } ?: fallback,
+        )
     }
 
     /** The session row plus whether it has been read yet, so "loading" and "gone" stay distinct. */

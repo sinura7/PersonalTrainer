@@ -6,6 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.sinura.personaltrainer.data.local.FoundationGeneration
 import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.logging.AppLog
+import kotlinx.coroutines.CancellationException
 
 data class ResetAcknowledgements(
     val hasExternalExport: Boolean,
@@ -63,6 +64,8 @@ class FoundationReset(
 
         val temper = try {
             openTemper(context)
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
             AppLog.w(TAG, "Could not open TemperDatabase", error)
             return ResetResult.Failed("The new database could not be opened.")
@@ -80,6 +83,8 @@ class FoundationReset(
             if (!integrityOk(temper.openHelper.readableDatabase)) {
                 return ResetResult.Failed("The new database failed its integrity check.")
             }
+        } catch (error: CancellationException) {
+            throw error
         } catch (error: Exception) {
             AppLog.w(TAG, "Foundation reset failed before cutover", error)
             return ResetResult.Failed("The new database could not be prepared.")

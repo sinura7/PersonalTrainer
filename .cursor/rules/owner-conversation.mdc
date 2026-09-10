@@ -1,0 +1,19 @@
+---
+description: How replies to the owner are written — the response contract in CLAUDE.md
+alwaysApply: true
+---
+
+# Owner conversation
+
+Every reply follows the response contract in @CLAUDE.md. That file is the
+single source of truth for how conversations in this repository are written;
+this rule exists so Cursor loads it the way Claude Code does.
+
+In short: the owner is not a programmer. Every substantive reply carries, in
+order, **Goal** (what we are trying to achieve, restated every time), **What I
+did** (exact and technical, jargon glossed inline), **In plain terms** (the
+same story with no jargon), **What I recommend** (always a pick, never a bare
+menu), and **Next steps** (looking forward; any decision needed asked as one
+plain question on the last line). Say what you are about to do before a long
+piece of work. Say a failure plainly first. Short questions get short answers
+that still end with a recommendation and a next step.

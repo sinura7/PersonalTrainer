@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.logging.AppLog
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -23,6 +24,8 @@ class ReminderRebuildReceiver : BroadcastReceiver() {
         scope.launch {
             try {
                 app.container.plannerRepository.rebuildReminders()
+            } catch (error: CancellationException) {
+                throw error
             } catch (error: Exception) {
                 AppLog.w(TAG, "Reminder rebuild failed", error)
             } finally {

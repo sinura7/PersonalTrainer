@@ -6,6 +6,7 @@ import com.sinura.personaltrainer.activity.FinishActivity
 import com.sinura.personaltrainer.activity.StartLiveActivity
 import com.sinura.personaltrainer.data.repository.ActivityRepository
 import com.sinura.personaltrainer.data.repository.BackupRepository
+import com.sinura.personaltrainer.data.repository.CompletedTrainingRepository
 import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
 import com.sinura.personaltrainer.data.repository.OnboardingApplier
@@ -15,6 +16,7 @@ import com.sinura.personaltrainer.data.repository.GoalRepository
 import com.sinura.personaltrainer.data.repository.PlannerRepository
 import com.sinura.personaltrainer.data.repository.ScheduleRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
+import com.sinura.personaltrainer.data.security.BackupPassphraseSealer
 import com.sinura.personaltrainer.insights.TrainingInsightsPublisher
 import com.sinura.personaltrainer.timer.CardioTimerPersistence
 import com.sinura.personaltrainer.timer.RestTimerGateway
@@ -79,10 +81,14 @@ interface AppDependencies {
     val startOccurrence: StartOccurrence
     val backupRepository: BackupRepository
     val activityRepository: ActivityRepository
+    val completedTrainingRepository: CompletedTrainingRepository
     val confirmActivity: ConfirmActivity
     val startLiveActivity: StartLiveActivity
     val discardActivity: DiscardActivity
     val finishActivity: FinishActivity
     val cardioTimerPersistence: CardioTimerPersistence
     val pendingOccurrenceId: MutableStateFlow<String?>
+
+    /** Opens the stored backup passphrase so a finished workout can back itself up. */
+    val backupPassphraseSealer: BackupPassphraseSealer
 }

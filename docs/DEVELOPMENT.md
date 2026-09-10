@@ -150,6 +150,8 @@ python3 tools/check-lambda-arity.py app/src/main/java \
     app/src/debug/java app/src/sharedTest/java             # lambda parameters vs. the declared function type
 python3 tools/check-import-hygiene.py                      # no duplicate imports; `by` delegates importable
 python3 tools/check-doc-authority.py                       # current-voice docs, FND map, relative links
+python3 tools/check-unbounded-waits.py                     # ViewModel waits in tests have a withTimeout
+python3 tools/check-cancellation.py                        # no catch (Exception) can eat a cancellation
 tools/syntax-check.sh app/src/main/java                    # parse-level diagnostics only
 ```
 

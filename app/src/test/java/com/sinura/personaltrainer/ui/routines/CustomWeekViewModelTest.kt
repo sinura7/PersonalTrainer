@@ -12,6 +12,7 @@ import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.testutil.awaitFirst
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -69,7 +70,7 @@ class CustomWeekViewModelTest {
     @Test
     fun emptyWeekCannotConfirmAndConfirmIsANoOp() = runBlocking {
         val vm = createViewModel()
-        val state = vm.uiState.first { true }
+        val state = vm.uiState.awaitFirst { true }
         assertFalse(state.canConfirm)
         assertEquals(0, state.trainingDays)
 
@@ -84,21 +85,23 @@ class CustomWeekViewModelTest {
     fun addingALiftEnablesConfirmAndWritesThatDay() = runBlocking {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val vm = createViewModel()
-        vm.uiState.first { it.catalog.any { exercise -> exercise.id == squat.id } }
+        vm.uiState.awaitFirst { it.catalog.any { exercise -> exercise.id == squat.id } }
 
         vm.selectDay(Weekday.TUESDAY)
         vm.setPickerVisible(true)
-        vm.togglePendingAdd(squat)
-        vm.confirmPendingAdd()
+        vm.togglePicked(squat)
 
-        val staged = vm.uiState.first { it.canConfirm }
+        val staged = vm.uiState.awaitFirst { it.canConfirm }
         assertEquals(Weekday.TUESDAY, staged.selectedDay)
         assertEquals(1, staged.trainingDays)
         assertEquals(squat.id, staged.selectedLifts.single().exercise.id)
-        assertFalse(staged.showPicker)
+        // The sheet stays open on the day it is filling. The tap was the write.
+        assertTrue(staged.showPicker)
+        assertEquals(listOf(squat.id), staged.pickedIds)
+        vm.setPickerVisible(false)
 
         vm.confirm()
-        vm.finished.first { it }
+        vm.finished.awaitFirst { it }
         val routines = deps.routineRepository.observeAll().first()
         assertEquals(listOf("Tuesday"), routines.map { it.name })
         assertEquals(squat.id, routines.single().exercises.single().exercise.id)
@@ -106,88 +109,83 @@ class CustomWeekViewModelTest {
     }
 
     @Test
-    fun duplicateLiftOnTheSameDayIsIgnored() = runBlocking {
-        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
-        val vm = createViewModel()
-        vm.uiState.first { it.catalog.isNotEmpty() }
-        vm.togglePendingAdd(squat)
-        vm.confirmPendingAdd()
-        vm.uiState.first { it.selectedLifts.size == 1 }
-        vm.setPickerVisible(true)
-        vm.togglePendingAdd(squat)
-        vm.confirmPendingAdd()
-
-        assertEquals(1, vm.uiState.first { it.selectedLifts.size == 1 }.selectedLifts.size)
-    }
-
-    @Test
-    fun confirmPendingAddKeepsReverseTapOrderOnTheSelectedDay() = runBlocking {
+    fun aSecondTapTakesTheLiftOffTheDay() = runBlocking {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val row = insertTestExercise(deps, "row", "Row")
         val vm = createViewModel()
-        vm.uiState.first { it.catalog.size >= 2 }
+        vm.uiState.awaitFirst { it.catalog.size >= 2 }
+        vm.setPickerVisible(true)
+        vm.togglePicked(squat)
+        vm.togglePicked(row)
+        vm.uiState.awaitFirst { it.selectedLifts.size == 2 }
+
+        vm.togglePicked(squat)
+
+        val left = vm.uiState.awaitFirst { it.selectedLifts.size == 1 }
+        assertEquals(listOf(row.id), left.selectedLifts.map { it.exercise.id })
+        assertEquals(listOf(row.id), left.pickedIds)
+    }
+
+    @Test
+    fun tapOrderIsTheOrderTheDayKeeps() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
+        val vm = createViewModel()
+        vm.uiState.awaitFirst { it.catalog.size >= 2 }
 
         vm.selectDay(Weekday.THURSDAY)
-        vm.togglePendingAdd(row)
-        vm.togglePendingAdd(squat)
-        vm.confirmPendingAdd()
+        vm.togglePicked(row)
+        vm.togglePicked(squat)
 
         assertEquals(
             listOf(row.id, squat.id),
-            vm.uiState.first { it.selectedLifts.size == 2 }.selectedLifts.map { it.exercise.id },
+            vm.uiState.awaitFirst { it.selectedLifts.size == 2 }.selectedLifts.map { it.exercise.id },
         )
         assertEquals(Weekday.THURSDAY, vm.uiState.value.selectedDay)
     }
 
     @Test
-    fun confirmPendingAddKeepsTheCartWhenALiftIsMissingFromTheCatalog() = runBlocking {
+    fun closingThePickerKeepsEveryLiftAlreadyTapped() = runBlocking {
+        // The defect this replaced: a tap outside the sheet emptied the cart, and the day
+        // had to be built again from the first lift.
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
         val vm = createViewModel()
-        vm.uiState.first { it.catalog.isNotEmpty() }
+        vm.uiState.awaitFirst { it.catalog.size >= 2 }
         vm.setPickerVisible(true)
-        vm.togglePendingAdd(squat.copy(id = "ghost", name = "Ghost"))
-        vm.confirmPendingAdd()
+        vm.onSearchQuery("squ")
+        vm.togglePicked(squat)
+        vm.togglePicked(row)
+        vm.uiState.awaitFirst { it.selectedLifts.size == 2 }
 
-        // Not uiState.value. This state is shared through stateIn (:114), and the branch
-        // at :91 folds in resultsFlow (:77), which collects exerciseRepository.search and
-        // observeLastLogged. Wait for the combine emission the assertions describe.
-        val state = vm.uiState.first { it.error == SessionOrderCopy.ADD_LIFT_FAILED }
-        assertTrue(state.showPicker)
-        assertEquals(listOf("ghost"), state.pendingAddIds)
-        assertEquals(SessionOrderCopy.ADD_LIFT_FAILED, state.error)
-        assertTrue(state.selectedLifts.isEmpty())
+        vm.setPickerVisible(false)
+
+        val closed = vm.uiState.awaitFirst {
+            !it.showPicker && it.searchQuery.isEmpty() && it.selectedLifts.size == 2
+        }
+        assertEquals("", closed.searchQuery)
+        assertEquals(listOf(squat.id, row.id), closed.selectedLifts.map { it.exercise.id })
+        // Reopening starts where the day stands, numbered from 1. The search being empty is
+        // what tells the reopened sheet from the one that was never closed: both show the
+        // picker, and only the reopened one has had its query cleared.
+        vm.setPickerVisible(true)
+        assertEquals(
+            listOf(squat.id, row.id),
+            vm.uiState.awaitFirst { it.showPicker && it.searchQuery.isEmpty() }.pickedIds,
+        )
     }
 
     @Test
-    fun confirmPendingAddDoesNotDuplicateOnASecondTap() = runBlocking {
-        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
-        val vm = createViewModel()
-        vm.uiState.first { it.catalog.isNotEmpty() }
-        vm.togglePendingAdd(squat)
-        vm.confirmPendingAdd()
-        vm.confirmPendingAdd()
-
-        assertEquals(1, vm.uiState.first { it.selectedLifts.size == 1 }.selectedLifts.size)
-        assertFalse(vm.uiState.value.showPicker)
-    }
-
-    @Test
-    fun confirmPendingAddWritesALiftCreatedInThePicker() = runBlocking {
+    fun createAndSelectPutsTheNewLiftOnTheDay() = runBlocking {
         val vm = createViewModel()
         vm.setPickerVisible(true)
         vm.createAndSelect("Good morning", "Hamstrings")
-        vm.uiState.first { it.pendingAddIds.isNotEmpty() }
-        vm.confirmPendingAdd()
 
-        // Both fields, because they are written separately and combined. confirmPendingAdd
-        // sets days.value (CustomWeekViewModel:208) and showPicker.value five lines later at
-        // :213, and uiState combines those two MutableStateFlows at :91 — so there is an
-        // emission where the lift has landed and the picker is still open. Latching that one
-        // and then asserting on showPicker fails with the picker true and nothing wrong.
-        val staged = vm.uiState.first { it.selectedLifts.size == 1 && !it.showPicker }
+        val staged = vm.uiState.awaitFirst { it.selectedLifts.size == 1 }
         assertEquals("Good morning", staged.selectedLifts.single().exercise.name)
         assertTrue(staged.selectedLifts.single().exercise.isCustom)
-        assertFalse(staged.showPicker)
+        // Creating a lift is one more tap in a list being built, so the sheet stays open.
+        assertTrue(staged.showPicker)
     }
 
     @Test
@@ -201,7 +199,7 @@ class CustomWeekViewModelTest {
         )
         insertTestExercise(deps, "aa-bench", "AA Bench", muscleGroup = "Chest")
         val vm = createViewModel()
-        val state = vm.uiState.first {
+        val state = vm.uiState.awaitFirst {
             it.searchResults.size >= 2 && it.searchResults.first().name == "ZZ Squat"
         }
         assertEquals("ZZ Squat", state.searchResults.first().name)
@@ -212,7 +210,7 @@ class CustomWeekViewModelTest {
         val vm = createViewModel()
         vm.setPickerVisible(true)
         vm.createAndSelect("Good morning", "Hamstrings")
-        val state = vm.uiState.first { it.pendingAddIds.isNotEmpty() }
+        val state = vm.uiState.awaitFirst { it.pickedIds.isNotEmpty() }
         assertTrue(state.searchResults.any { it.name == "Good morning" })
     }
 
@@ -221,11 +219,10 @@ class CustomWeekViewModelTest {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val row = insertTestExercise(deps, "row", "Row")
         val vm = createViewModel()
-        vm.uiState.first { it.catalog.size >= 2 }
-        vm.togglePendingAdd(squat)
-        vm.togglePendingAdd(row)
-        vm.confirmPendingAdd()
-        val lifts = vm.uiState.first { it.selectedLifts.size == 2 }.selectedLifts
+        vm.uiState.awaitFirst { it.catalog.size >= 2 }
+        vm.togglePicked(squat)
+        vm.togglePicked(row)
+        val lifts = vm.uiState.awaitFirst { it.selectedLifts.size == 2 }.selectedLifts
         assertEquals(listOf(squat.id, row.id), lifts.map { it.exercise.id })
         val first = lifts.first()
         val second = lifts.last()
@@ -233,12 +230,12 @@ class CustomWeekViewModelTest {
         vm.moveLift(second.id, -1)
         assertEquals(
             listOf(second.exercise.id, first.exercise.id),
-            vm.uiState.first { it.selectedLifts.firstOrNull()?.exercise?.id == second.exercise.id }
+            vm.uiState.awaitFirst { it.selectedLifts.firstOrNull()?.exercise?.id == second.exercise.id }
                 .selectedLifts.map { it.exercise.id },
         )
 
         vm.stageTargets(second.id, sets = 4, reps = 6, rest = 150, weightKg = 80.0)
-        val staged = vm.uiState.first {
+        val staged = vm.uiState.awaitFirst {
             it.selectedLifts.any { lift -> lift.id == second.id && lift.targetSets == 4 }
         }.selectedLifts.first { it.id == second.id }
         assertEquals(4, staged.targetSets)
@@ -249,7 +246,7 @@ class CustomWeekViewModelTest {
         vm.removeLift(first.id)
         assertEquals(
             listOf(second.exercise.id),
-            vm.uiState.first { it.selectedLifts.size == 1 }.selectedLifts.map { it.exercise.id },
+            vm.uiState.awaitFirst { it.selectedLifts.size == 1 }.selectedLifts.map { it.exercise.id },
         )
         assertTrue(deps.routineRepository.observeAll().first().isEmpty())
     }
@@ -258,24 +255,23 @@ class CustomWeekViewModelTest {
     fun seedFromGuidedSelectsTheFirstPreferredDayAndHoldsTheWeightUnit() = runBlocking {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val vm = createViewModel()
-        vm.uiState.first { it.catalog.isNotEmpty() }
+        vm.uiState.awaitFirst { it.catalog.isNotEmpty() }
 
         vm.seedFromGuided(
             preferred = setOf(Weekday.WEDNESDAY, Weekday.FRIDAY),
             answers = null,
             unit = WeightUnit.KG,
         )
-        val seeded = vm.uiState.first {
+        val seeded = vm.uiState.awaitFirst {
             it.selectedDay == Weekday.WEDNESDAY &&
                 it.preferredDays == setOf(Weekday.WEDNESDAY, Weekday.FRIDAY)
         }
         assertEquals(Weekday.WEDNESDAY, seeded.selectedDay)
         assertEquals(setOf(Weekday.WEDNESDAY, Weekday.FRIDAY), seeded.preferredDays)
 
-        vm.togglePendingAdd(squat)
-        vm.confirmPendingAdd()
+        vm.togglePicked(squat)
         vm.confirm()
-        vm.finished.first { it }
+        vm.finished.awaitFirst { it }
         assertEquals(WeightUnit.KG, deps.preferencesRepository.weightUnit.first())
     }
 
@@ -283,14 +279,14 @@ class CustomWeekViewModelTest {
     fun createAndSelectDuplicateSurfacesTheSharedNameMessage() = runBlocking {
         insertTestExercise(deps, "existing", "Existing lift")
         val vm = createViewModel()
-        vm.uiState.first { it.catalog.isNotEmpty() }
+        vm.uiState.awaitFirst { it.catalog.isNotEmpty() }
 
         vm.createAndSelect("Existing lift", "Back")
         assertEquals(
             "That name is already in your library",
-            vm.uiState.first { it.error == "That name is already in your library" }.error,
+            vm.uiState.awaitFirst { it.error == "That name is already in your library" }.error,
         )
-        assertTrue(vm.uiState.value.pendingAddIds.isEmpty())
+        assertTrue(vm.uiState.value.pickedIds.isEmpty())
     }
 
     @Test
@@ -299,7 +295,7 @@ class CustomWeekViewModelTest {
         vm.createAndSelect("  ", "Back")
         assertEquals(
             SessionOrderCopy.LIFT_NAME_REQUIRED,
-            vm.uiState.first { it.error == SessionOrderCopy.LIFT_NAME_REQUIRED }.error,
+            vm.uiState.awaitFirst { it.error == SessionOrderCopy.LIFT_NAME_REQUIRED }.error,
         )
         assertTrue(deps.exerciseRepository.observeAll().first().isEmpty())
     }
@@ -312,25 +308,32 @@ class CustomWeekViewModelTest {
         vm.createAndSelect("Good morning", "Hamstrings")
 
         deps.exerciseRepository.observeAll().first { list -> list.any { it.name == "Good morning" } }
-        assertTrue(vm.uiState.value.pendingAddIds.isEmpty())
+        assertTrue(vm.uiState.value.pickedIds.isEmpty())
+        assertTrue(vm.uiState.value.selectedLifts.isEmpty())
         assertFalse(vm.uiState.value.showPicker)
     }
 
     @Test
-    fun dismissingThePickerClearsSearchAndPendingAdds() = runBlocking {
+    fun dismissingThePickerClearsTheSearchAndNothingElse() = runBlocking {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val vm = createViewModel()
-        vm.uiState.first { it.catalog.isNotEmpty() }
+        vm.uiState.awaitFirst { it.catalog.isNotEmpty() }
         vm.setPickerVisible(true)
         vm.onSearchQuery("squ")
-        vm.togglePendingAdd(squat)
+        vm.togglePicked(squat)
 
         vm.setPickerVisible(false)
 
-        val state = vm.uiState.value
-        assertFalse(state.showPicker)
+        // Every field this test goes on to assert is named in the predicate. `!showPicker`
+        // alone is also true of the snapshot from before the picker was ever opened — with
+        // no await between the open and the close, that stale value is what the collector
+        // sees first on a loaded runner, and the day it reports is still empty.
+        val state = vm.uiState.awaitFirst {
+            !it.showPicker && it.searchQuery.isEmpty() && it.pickedIds == listOf(squat.id)
+        }
         assertEquals("", state.searchQuery)
-        assertTrue(state.pendingAddIds.isEmpty())
+        assertEquals(listOf(squat.id), state.pickedIds)
+        assertEquals(squat.id, state.selectedLifts.single().exercise.id)
     }
 
     @Test
@@ -338,12 +341,11 @@ class CustomWeekViewModelTest {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val handle = SavedStateHandle()
         val first = createViewModel(handle)
-        first.uiState.first { it.catalog.any { exercise -> exercise.id == squat.id } }
+        first.uiState.awaitFirst { it.catalog.any { exercise -> exercise.id == squat.id } }
         first.selectDay(Weekday.TUESDAY)
         first.setPickerVisible(true)
-        first.togglePendingAdd(squat)
-        first.confirmPendingAdd()
-        first.uiState.first { it.canConfirm && it.selectedDay == Weekday.TUESDAY }
+        first.togglePicked(squat)
+        first.uiState.awaitFirst { it.canConfirm && it.selectedDay == Weekday.TUESDAY }
 
         keepAlive?.cancel()
         keepAlive = null
@@ -351,7 +353,7 @@ class CustomWeekViewModelTest {
         viewModel = null
 
         val restored = createViewModel(handle)
-        val state = restored.uiState.first {
+        val state = restored.uiState.awaitFirst {
             it.selectedDay == Weekday.TUESDAY && it.selectedLifts.isNotEmpty()
         }
         assertEquals(Weekday.TUESDAY, state.selectedDay)
@@ -364,10 +366,9 @@ class CustomWeekViewModelTest {
     fun aTargetBoxThatCannotBeReadBlocksConfirmWithItsRule() = runBlocking {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val vm = createViewModel()
-        vm.uiState.first { it.catalog.any { exercise -> exercise.id == squat.id } }
-        vm.togglePendingAdd(squat)
-        vm.confirmPendingAdd()
-        val lift = vm.uiState.first { it.selectedLifts.size == 1 }.selectedLifts.single()
+        vm.uiState.awaitFirst { it.catalog.any { exercise -> exercise.id == squat.id } }
+        vm.togglePicked(squat)
+        val lift = vm.uiState.awaitFirst { it.selectedLifts.size == 1 }.selectedLifts.single()
 
         // The reps box reads "8.5". Nothing is staged from it, so the lift keeps its stored
         // reps — which is exactly the mismatch that must not be written past.
@@ -379,7 +380,7 @@ class CustomWeekViewModelTest {
             weightKg = 80.0,
             invalidReason = NumericEntry.REPS_WHOLE_RULE,
         )
-        val staged = vm.uiState.first { it.selectedLifts.singleOrNull()?.targetSets == 4 }
+        val staged = vm.uiState.awaitFirst { it.selectedLifts.singleOrNull()?.targetSets == 4 }
         assertTrue(staged.canConfirm)
         assertNull(staged.error)
 
@@ -387,7 +388,7 @@ class CustomWeekViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
         assertEquals(
             NumericEntry.REPS_WHOLE_RULE,
-            vm.uiState.first { it.error == NumericEntry.REPS_WHOLE_RULE }.error,
+            vm.uiState.awaitFirst { it.error == NumericEntry.REPS_WHOLE_RULE }.error,
         )
         assertFalse(vm.finished.value)
         assertTrue(deps.routineRepository.observeAll().first().isEmpty())
@@ -395,11 +396,11 @@ class CustomWeekViewModelTest {
 
         // Fixing the box clears its complaint and lets the week through.
         vm.stageTargets(lift.id, sets = 4, reps = 6, rest = 150, weightKg = 80.0)
-        val fixed = vm.uiState.first { it.selectedLifts.singleOrNull()?.targetReps == 6 }
+        val fixed = vm.uiState.awaitFirst { it.selectedLifts.singleOrNull()?.targetReps == 6 }
         assertNull(fixed.error)
 
         vm.confirm()
-        vm.finished.first { it }
+        vm.finished.awaitFirst { it }
         val routines = deps.routineRepository.observeAll().first()
         assertEquals(6, routines.single().exercises.single().targetReps)
     }
@@ -409,11 +410,10 @@ class CustomWeekViewModelTest {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val row = insertTestExercise(deps, "row", "Row")
         val vm = createViewModel()
-        vm.uiState.first { it.catalog.size >= 2 }
-        vm.togglePendingAdd(squat)
-        vm.togglePendingAdd(row)
-        vm.confirmPendingAdd()
-        val lifts = vm.uiState.first { it.selectedLifts.size == 2 }.selectedLifts
+        vm.uiState.awaitFirst { it.catalog.size >= 2 }
+        vm.togglePicked(squat)
+        vm.togglePicked(row)
+        val lifts = vm.uiState.awaitFirst { it.selectedLifts.size == 2 }.selectedLifts
 
         vm.stageTargets(
             lifts.first().id,
@@ -436,7 +436,7 @@ class CustomWeekViewModelTest {
         vm.confirm()
         assertEquals(
             NumericEntry.WEIGHT_NEGATIVE,
-            vm.uiState.first { it.error == NumericEntry.WEIGHT_NEGATIVE }.error,
+            vm.uiState.awaitFirst { it.error == NumericEntry.WEIGHT_NEGATIVE }.error,
         )
         assertFalse(vm.finished.value)
         assertTrue(deps.routineRepository.observeAll().first().isEmpty())
@@ -447,11 +447,10 @@ class CustomWeekViewModelTest {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val row = insertTestExercise(deps, "row", "Row")
         val vm = createViewModel()
-        vm.uiState.first { it.catalog.size >= 2 }
-        vm.togglePendingAdd(squat)
-        vm.togglePendingAdd(row)
-        vm.confirmPendingAdd()
-        val lifts = vm.uiState.first { it.selectedLifts.size == 2 }.selectedLifts
+        vm.uiState.awaitFirst { it.catalog.size >= 2 }
+        vm.togglePicked(squat)
+        vm.togglePicked(row)
+        val lifts = vm.uiState.awaitFirst { it.selectedLifts.size == 2 }.selectedLifts
 
         vm.stageTargets(
             lifts.first().id,
@@ -472,7 +471,7 @@ class CustomWeekViewModelTest {
         vm.confirm()
         assertEquals(
             NumericEntry.SETS_RULE,
-            vm.uiState.first { it.error == NumericEntry.SETS_RULE }.error,
+            vm.uiState.awaitFirst { it.error == NumericEntry.SETS_RULE }.error,
         )
 
         // The banner names the sets box. Fixing the OTHER card must not read as "all clear".
@@ -482,15 +481,15 @@ class CustomWeekViewModelTest {
         vm.stageTargets(lifts.last().id, sets = 4, reps = 6, rest = 150, weightKg = 80.0)
         assertEquals(
             NumericEntry.SETS_RULE,
-            vm.uiState.first {
+            vm.uiState.awaitFirst {
                 it.selectedLifts.lastOrNull()?.targetReps == 6
             }.error,
         )
 
         vm.stageTargets(lifts.first().id, sets = 3, reps = 6, rest = 150, weightKg = 80.0)
-        assertNull(vm.uiState.first { it.error == null }.error)
+        assertNull(vm.uiState.awaitFirst { it.error == null }.error)
         vm.confirm()
-        vm.finished.first { it }
+        vm.finished.awaitFirst { it }
         assertEquals(2, deps.routineRepository.observeAll().first().single().exercises.size)
     }
 
@@ -498,18 +497,17 @@ class CustomWeekViewModelTest {
     fun fixingATargetBoxDoesNotDismissAnUnrelatedFailure() = runBlocking {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val vm = createViewModel()
-        vm.uiState.first { it.catalog.isNotEmpty() }
-        vm.togglePendingAdd(squat)
-        vm.confirmPendingAdd()
-        val lift = vm.uiState.first { it.selectedLifts.size == 1 }.selectedLifts.single()
+        vm.uiState.awaitFirst { it.catalog.isNotEmpty() }
+        vm.togglePicked(squat)
+        val lift = vm.uiState.awaitFirst { it.selectedLifts.size == 1 }.selectedLifts.single()
 
         vm.createAndSelect("  ", "Back")
-        vm.uiState.first { it.error == SessionOrderCopy.LIFT_NAME_REQUIRED }
+        vm.uiState.awaitFirst { it.error == SessionOrderCopy.LIFT_NAME_REQUIRED }
 
         vm.stageTargets(lift.id, sets = 4, reps = 6, rest = 150, weightKg = 80.0)
         assertEquals(
             SessionOrderCopy.LIFT_NAME_REQUIRED,
-            vm.uiState.first { it.selectedLifts.single().targetSets == 4 }.error,
+            vm.uiState.awaitFirst { it.selectedLifts.single().targetSets == 4 }.error,
         )
     }
 
@@ -518,11 +516,10 @@ class CustomWeekViewModelTest {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
         val row = insertTestExercise(deps, "row", "Row")
         val vm = createViewModel()
-        vm.uiState.first { it.catalog.size >= 2 }
-        vm.togglePendingAdd(squat)
-        vm.togglePendingAdd(row)
-        vm.confirmPendingAdd()
-        val lifts = vm.uiState.first { it.selectedLifts.size == 2 }.selectedLifts
+        vm.uiState.awaitFirst { it.catalog.size >= 2 }
+        vm.togglePicked(squat)
+        vm.togglePicked(row)
+        val lifts = vm.uiState.awaitFirst { it.selectedLifts.size == 2 }.selectedLifts
 
         vm.stageTargets(
             lifts.first().id,
@@ -533,15 +530,15 @@ class CustomWeekViewModelTest {
             invalidReason = NumericEntry.SETS_RULE,
         )
         vm.confirm()
-        vm.uiState.first { it.error == NumericEntry.SETS_RULE }
+        vm.uiState.awaitFirst { it.error == NumericEntry.SETS_RULE }
 
         // Deleting the card is a way of answering the complaint. Keeping the rule after the
         // box is gone would block Confirm forever with nothing left to fix.
         vm.removeLift(lifts.first().id)
-        assertNull(vm.uiState.first { it.selectedLifts.size == 1 }.error)
+        assertNull(vm.uiState.awaitFirst { it.selectedLifts.size == 1 }.error)
 
         vm.confirm()
-        vm.finished.first { it }
+        vm.finished.awaitFirst { it }
         val routines = deps.routineRepository.observeAll().first()
         assertEquals(row.id, routines.single().exercises.single().exercise.id)
     }

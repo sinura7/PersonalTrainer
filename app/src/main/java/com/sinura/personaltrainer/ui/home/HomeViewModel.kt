@@ -19,17 +19,13 @@ import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.BodyweightCheckIn
 import com.sinura.personaltrainer.domain.LighterWeek
-import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.ReminderCopy
 import com.sinura.personaltrainer.domain.Routine
-import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.domain.WeeklySchedulePlan
 import com.sinura.personaltrainer.domain.ActivitySession
 import com.sinura.personaltrainer.domain.WorkoutSession
-import com.sinura.personaltrainer.domain.latest
-import com.sinura.personaltrainer.domain.previousSameRoutine
 import com.sinura.personaltrainer.data.repository.AuxiliaryBlocks
 import com.sinura.personaltrainer.data.repository.DayBlocks
 import com.sinura.personaltrainer.data.repository.StartSessionOutcome
@@ -50,19 +46,6 @@ data class HomeUiState(
     val inProgress: WorkoutSession? = null,
     val liveActivity: ActivitySession? = null,
     val routines: List<Routine> = emptyList(),
-    /**
-     * The newest finished session from all-time summaries, not the
-     * 30-day heat graph. A workout older than the window must still
-     * answer "when did I last train".
-     */
-    val lastSession: SessionSummary? = null,
-    /**
-     * The previous finished session of [lastSession]'s routine, when that
-     * routine has been logged before. Home's last-session tile prints a
-     * signed delta against this; null means the numeral stands alone.
-     */
-    val previousSameRoutine: SessionSummary? = null,
-    val readyToProgress: List<ProgressionHint> = emptyList(),
     val recommendations: List<TrainingRecommendation> = emptyList(),
     val weekPlan: WeeklySchedulePlan? = null,
     /**
@@ -139,20 +122,17 @@ class HomeViewModel @JvmOverloads constructor(
         val weekOcc = occurrences.filter { it.localEpochDay in weekStart..(weekStart + 6) }
         val overdue = MissedWorkPolicy.overdue(weekOcc, today)
         val decision = decisions.firstOrNull { it.weekStartEpochDay == weekStart }
-        val lastSession = insights.summaries.latest()
         HomeUiState(
             isLoading = false,
             inProgress = inProgress,
             liveActivity = liveActivity,
             routines = insights.routines,
-            lastSession = lastSession,
-            previousSameRoutine = lastSession?.let { insights.summaries.previousSameRoutine(it) },
-            readyToProgress = insights.hints,
-            // Home already devotes a section to the ready-to-progress lifts, so the card that
-            // only says "some lifts are ready" is noise next to the list naming them.
-            recommendations = insights.recommendations.filterNot { rec ->
-                rec.id == "progression-ready" && insights.hints.isNotEmpty()
-            },
+            // The ready-to-progress list is off Home; that section was extra detail the
+            // first screen did not owe anyone, and it belongs with the body readout. The
+            // card that names the state without listing every lift was previously filtered
+            // out as noise beside that list. With the list gone it is the only signal left,
+            // so it stands.
+            recommendations = insights.recommendations,
             weekPlan = insights.weekPlan,
             loggedEpochDays = insights.summaries.map { it.localEpochDay }.toSet(),
             lighterWeek = LighterWeek.isCurrent(

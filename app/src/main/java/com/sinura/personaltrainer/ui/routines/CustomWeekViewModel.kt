@@ -16,11 +16,11 @@ import com.sinura.personaltrainer.domain.LiftCart
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.SchedulePreferences
-import com.sinura.personaltrainer.domain.RoutineSaveCopy
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
+import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.util.toLocalDate
@@ -38,6 +38,13 @@ import kotlinx.coroutines.launch
 
 private const val TAG = "PT/CustomWeekVM"
 
+/** [ErrorSlot] families: a success may clear only its own family's refusal. */
+private const val ERR_ADD_LIFT = "addLift"
+
+/** A target box holding text the week cannot hold. Raised by [CustomWeekViewModel.confirm]. */
+private const val ERR_TARGETS = "targets"
+private const val ERR_CONFIRM = "confirm"
+
 data class CustomWeekUiState(
     val selectedDay: Weekday = Weekday.MONDAY,
     val days: Map<Weekday, List<CustomWeekLift>> = emptyMap(),
@@ -47,11 +54,17 @@ data class CustomWeekUiState(
     val searchResults: List<Exercise> = emptyList(),
     val catalog: List<Exercise> = emptyList(),
     val showPicker: Boolean = false,
-    val pendingAddIds: List<String> = emptyList(),
     val applying: Boolean = false,
     val error: String? = null,
 ) {
     val selectedLifts: List<CustomWeekLift> get() = days[selectedDay].orEmpty()
+
+    /**
+     * What the picker draws as chosen, in session order. It is the selected day itself:
+     * a tap puts the lift on the day as it happens, so there is no separate list to lose
+     * when the sheet closes.
+     */
+    val pickedIds: List<String> get() = selectedLifts.map { it.exercise.id }
     val canConfirm: Boolean get() = CustomWeekPolicy.canConfirm(days)
     val trainingDays: Int get() = days.count { it.value.isNotEmpty() }
 }
@@ -73,9 +86,8 @@ class CustomWeekViewModel @JvmOverloads constructor(
     private val preferredDays = MutableStateFlow<Set<Weekday>>(emptySet())
     private val searchQuery = MutableStateFlow("")
     private val showPicker = MutableStateFlow(false)
-    private val pendingAddIds = MutableStateFlow<List<String>>(emptyList())
     private val applying = MutableStateFlow(false)
-    private val error = MutableStateFlow<String?>(null)
+    private val error = ErrorSlot()
 
     /**
      * Cards whose boxes cannot be read as written, by lift id, holding the rule each broke.
@@ -104,8 +116,8 @@ class CustomWeekViewModel @JvmOverloads constructor(
         combine(selectedDay, days, weekStart, preferredDays, searchQuery) { day, draft, start, preferred, query ->
             WeekCore(day, draft, start, preferred, query)
         },
-        combine(resultsFlow, showPicker, pendingAddIds, applying, error) { results, picker, pending, busy, err ->
-            WeekExtras(results, picker, pending, busy, err)
+        combine(resultsFlow, showPicker, applying, error.messages) { results, picker, busy, err ->
+            WeekExtras(results, picker, busy, err)
         },
         catalog,
         extraCatalog,
@@ -123,7 +135,6 @@ class CustomWeekViewModel @JvmOverloads constructor(
             ),
             catalog = LiftCart.mergeSources(lifts, extra),
             showPicker = extras.showPicker,
-            pendingAddIds = extras.pendingAddIds,
             applying = extras.applying,
             error = extras.error,
         )
@@ -189,64 +200,61 @@ class CustomWeekViewModel @JvmOverloads constructor(
     fun setPickerVisible(visible: Boolean) {
         if (visible && applying.value) return
         showPicker.value = visible
-        if (!visible) {
-            searchQuery.value = ""
-            pendingAddIds.value = emptyList()
-        }
+        // Only the typed query. The lifts are on the day already — losing a cart to a tap
+        // outside the sheet is exactly what this screen no longer does.
+        if (!visible) searchQuery.value = ""
     }
 
     fun onSearchQuery(value: String) {
         searchQuery.value = value
     }
 
-    fun togglePendingAdd(exercise: Exercise) {
+    /**
+     * A tap in the picker, written straight on to the selected day.
+     *
+     * There is no Confirm to lose any more: the first tap puts the lift on the day, a
+     * second tap on the same row takes it off, and the numbers on the rows are the order
+     * the day will be lifted in.
+     */
+    fun togglePicked(exercise: Exercise) {
         if (applying.value) return
-        pendingAddIds.value = LiftCart.toggle(pendingAddIds.value, exercise.id)
+        val day = selectedDay.value
+        val existing = days.value[day].orEmpty()
+        val stored = existing.firstOrNull { it.exercise.id == exercise.id }
+        val next = if (stored != null) {
+            // The tap takes the lift off the day, so the card and its complaint go together.
+            forgetTargetRule(stored.id)
+            existing.filterNot { it.id == stored.id }
+        } else {
+            CustomWeekPolicy.addLifts(existing, listOf(exercise)) { UUID.randomUUID().toString() }
+        }
+        days.value = days.value + (day to next)
+        error.clearFrom(source = ERR_ADD_LIFT)
+        persistDraft()
     }
 
-    fun confirmPendingAdd() {
+    /** A lift created inside the picker joins the day; it is never a tap that removes one. */
+    private fun addPicked(exercise: Exercise) {
         if (applying.value) return
-        val selected = LiftCart.sanitize(pendingAddIds.value)
-        if (selected.isEmpty()) return
         val day = selectedDay.value
-        val plan = LiftCart.planConfirm(
-            order = selected,
-            sources = LiftCart.mergeSources(
-                LiftCart.mergeSources(catalog.value, extraCatalog.value),
-                uiState.value.searchResults,
-            ),
-            already = days.value[day].orEmpty().map { it.exercise.id }.toSet(),
-        )
-        if (plan.blocked) {
-            error.value = SessionOrderCopy.ADD_LIFT_FAILED
-            return
-        }
-        pendingAddIds.value = emptyList()
-        if (plan.toAdd.isNotEmpty()) {
-            days.value = days.value + (day to CustomWeekPolicy.addLifts(days.value[day].orEmpty(), plan.toAdd) { UUID.randomUUID().toString() })
-        }
-        extraCatalog.value = extraCatalog.value.filter { extra ->
-            extra.id !in plan.toAdd.map { it.id }.toSet()
-        }
-        showPicker.value = false
-        searchQuery.value = ""
-        error.value = null
-        persistDraft()
+        val existing = days.value[day].orEmpty()
+        if (existing.any { it.exercise.id == exercise.id }) return
+        togglePicked(exercise)
     }
 
     fun createAndSelect(name: String, muscleGroup: String) {
         if (applying.value) return
         viewModelScope.launch {
             if (name.isBlank()) {
-                error.value = SessionOrderCopy.LIFT_NAME_REQUIRED
+                error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.LIFT_NAME_REQUIRED)
                 return@launch
             }
             runCatchingCancellable {
                 when (val result = container.exerciseRepository.createCustom(name, muscleGroup)) {
                     is SaveExerciseResult.DuplicateName ->
-                        error.value = DUPLICATE_NAME_MESSAGE
+                        error.fail(source = ERR_ADD_LIFT, message = DUPLICATE_NAME_MESSAGE)
                     is SaveExerciseResult.MissingMuscle ->
-                        error.value = MuscleGroups.MISSING_MESSAGE
+                        error.fail(source = ERR_ADD_LIFT, message = MuscleGroups.MISSING_MESSAGE)
                     is SaveExerciseResult.Saved -> {
                         extraCatalog.value = LiftCart.mergeSources(
                             extraCatalog.value,
@@ -254,13 +262,13 @@ class CustomWeekViewModel @JvmOverloads constructor(
                         )
                         catalog.value = LiftCart.mergeSources(catalog.value, extraCatalog.value)
                         if (showPicker.value) {
-                            togglePendingAdd(result.exercise)
+                            addPicked(result.exercise)
                         }
                     }
                 }
             }.onFailure {
                 AppLog.w(TAG, "createAndSelect failed", it)
-                error.value = SessionOrderCopy.CREATE_LIFT_FAILED
+                error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.CREATE_LIFT_FAILED)
             }
         }
     }
@@ -274,11 +282,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
 
     fun removeLift(itemId: String) {
         if (applying.value) return
-        // A removed card takes its complaint with it. Leaving the entry behind would block
-        // Confirm on a rule with no box left to fix — a dead end with no way out of it.
-        if (invalidTargets.remove(itemId) != null && error.value in RoutineSaveCopy.TARGET_RULES) {
-            error.value = invalidTargets.values.firstOrNull()
-        }
+        forgetTargetRule(itemId)
         val day = selectedDay.value
         days.value = days.value + (day to days.value[day].orEmpty().filterNot { it.id == itemId })
         persistDraft()
@@ -306,12 +310,9 @@ class CustomWeekViewModel @JvmOverloads constructor(
         if (invalidReason == null) {
             invalidTargets.remove(itemId)
             // The box was fixed, so its complaint must not outlive it — but fixing one card
-            // does not answer for another, so the banner moves to whatever is still unreadable
-            // rather than clearing outright. Only a target rule is replaced: an add-lift or
-            // create-lift failure is a different message and is not this box's to dismiss.
-            if (error.value in RoutineSaveCopy.TARGET_RULES) {
-                error.value = invalidTargets.values.firstOrNull()
-            }
+            // does not answer for another, so the banner moves to whatever is still
+            // unreadable rather than clearing outright.
+            moveTargetRuleBanner()
         } else {
             invalidTargets[itemId] = invalidReason
         }
@@ -323,11 +324,12 @@ class CustomWeekViewModel @JvmOverloads constructor(
     }
 
     fun confirm() {
+        val started = error.mark()
         if (applying.value || !CustomWeekPolicy.canConfirm(days.value)) return
         // A card still showing a value the week cannot hold is unfinished work, not a value to
         // walk past: applying would write the number underneath it instead. Say the rule and stay.
         invalidTargets.values.firstOrNull()?.let { rule ->
-            error.value = rule
+            error.fail(source = ERR_TARGETS, message = rule)
             return
         }
         applying.value = true
@@ -353,16 +355,49 @@ class CustomWeekViewModel @JvmOverloads constructor(
                             todayEpochDay(),
                         )
                     }.onFailure { AppLog.w(TAG, "Publishing the custom week to Home failed", it) }
-                    error.value = null
+                    error.clearFrom(source = ERR_CONFIRM, before = started)
+                    // Getting past the gate above means no box was unreadable at the tap, so
+                    // this success answers the rule an earlier Confirm raised as well. Anything
+                    // staged since the tap is newer information and survives the mark.
+                    error.clearFrom(source = ERR_TARGETS, before = started)
                     _finished.value = true
                 }
-                is ApplyPlanResult.Failed -> error.value = result.message
+                is ApplyPlanResult.Failed ->
+                    error.fail(source = ERR_CONFIRM, message = result.message)
             }
         }
     }
 
     fun dismissError() {
-        error.value = null
+        error.dismiss()
+    }
+
+    /**
+     * Forget one card's complaint. A card that has gone — removed from the day, or untapped
+     * in the picker — takes its rule with it: leaving the entry behind would block Confirm on
+     * a rule with no box left to fix, a dead end with no way out of it.
+     */
+    private fun forgetTargetRule(itemId: String) {
+        if (invalidTargets.remove(itemId) == null) return
+        moveTargetRuleBanner()
+    }
+
+    /**
+     * Point the banner at whatever is still unreadable, after [invalidTargets] changed.
+     *
+     * The refusal belongs to [ERR_TARGETS], so [ErrorSlot.clearFrom] answers that family and
+     * nothing else — where this used to ask whether the message text was one of the target
+     * rules. If the clear took, the banner was this family's and the next unreadable card
+     * takes it over. If it did not, an add-lift or create-lift failure is showing: a different
+     * message, and not this box's to dismiss, so it stays.
+     */
+    private fun moveTargetRuleBanner() {
+        val showing = error.message
+        error.clearFrom(source = ERR_TARGETS)
+        if (showing == null || error.message != null) return
+        invalidTargets.values.firstOrNull()?.let { rule ->
+            error.fail(source = ERR_TARGETS, message = rule)
+        }
     }
 
     private fun persistDraft() {
@@ -384,7 +419,6 @@ class CustomWeekViewModel @JvmOverloads constructor(
     private data class WeekExtras(
         val results: List<Exercise>,
         val showPicker: Boolean,
-        val pendingAddIds: List<String>,
         val applying: Boolean,
         val error: String?,
     )

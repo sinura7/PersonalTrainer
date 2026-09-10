@@ -8,9 +8,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.filterToOne
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -34,7 +36,6 @@ import com.sinura.personaltrainer.domain.ScheduleOccurrence
 import com.sinura.personaltrainer.domain.ScheduleRule
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SessionOrderCopy
-import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.WeekTwoCopy
 import com.sinura.personaltrainer.domain.Weekday
@@ -55,12 +56,6 @@ import org.junit.runner.RunWith
 class HomePassInstrumentedTest {
     @get:Rule
     val compose = createComposeRule()
-
-    @Test
-    fun lastSessionTilesStayNamedAt360Font1() = assertHomeAboveFold(fontScale = 1f)
-
-    @Test
-    fun lastSessionTilesStayNamedAt360Font2() = assertHomeAboveFold(fontScale = 2f)
 
     @Test
     fun mastheadHasNoSettingsGear() {
@@ -119,7 +114,7 @@ class HomePassInstrumentedTest {
         compose.onNodeWithText("Start Upper strength?").assertIsDisplayed()
         assertLiftLineVisible("1 Squat")
         assertLiftLineVisible("2 Row")
-        compose.onNodeWithText("2 lifts · about 13 min", substring = true).assertIsDisplayed()
+        assertConfirmLineVisible("2 lifts · about 13 min")
         org.junit.Assert.assertFalse(started)
         compose.onNodeWithTag(ConfirmActionTags.CONFIRM).performClick()
         org.junit.Assert.assertTrue(started)
@@ -402,7 +397,7 @@ class HomePassInstrumentedTest {
         compose.onNodeWithText("Start Push?").assertIsDisplayed()
         assertLiftLineVisible("1 Squat")
         assertLiftLineVisible("2 Row")
-        compose.onNodeWithText("2 lifts · about 13 min", substring = true).assertIsDisplayed()
+        assertConfirmLineVisible("2 lifts · about 13 min")
         org.junit.Assert.assertNull(started)
         compose.onNodeWithTag(ConfirmActionTags.CONFIRM).performClick()
         org.junit.Assert.assertEquals("occ-pm", started)
@@ -567,31 +562,22 @@ class HomePassInstrumentedTest {
      * Compose 1.11's [assertIsDisplayed] refuses a matcher that hits two
      * nodes, so presence of the line is the assertion.
      */
+    /**
+     * The confirm's own copy of a line. The day block under the dialog now says the same
+     * `2 lifts · about 13 min` on purpose (one `DayBlockCopy.meta` for both), so a bare text
+     * match finds two nodes; the assertion is about the dialog.
+     */
+    private fun assertConfirmLineVisible(line: String) {
+        compose.onAllNodesWithText(line, substring = true)
+            .filterToOne(hasAnyAncestor(isDialog()))
+            .assertIsDisplayed()
+    }
+
     private fun assertLiftLineVisible(line: String) {
         org.junit.Assert.assertTrue(
             "$line missing from confirm",
             compose.onAllNodesWithText(line, substring = true).fetchSemanticsNodes().isNotEmpty(),
         )
-    }
-
-    private fun assertHomeAboveFold(fontScale: Float) {
-        setConstrainedContent(fontScale) {
-            HomeStatRow(
-                lastSession = LAST_SESSION,
-                todayEpoch = TODAY,
-                unit = WeightUnit.KG,
-            )
-        }
-        compose.onNodeWithTag(HomeTags.LAST_SESSION).assertIsDisplayed()
-        compose.onNodeWithTag(HomeTags.LAST_SESSION)
-            .assertTextContains("8000", substring = true)
-        compose.onNodeWithTag(HomeTags.LAST_SESSION)
-            .assertContentDescriptionEquals("Last session, 8000 kg")
-        compose.onNodeWithTag(HomeTags.DAYS_SINCE).assertIsDisplayed()
-        compose.onNodeWithTag(HomeTags.DAYS_SINCE)
-            .assertTextContains("2", substring = true)
-        compose.onNodeWithTag(HomeTags.DAYS_SINCE)
-            .assertContentDescriptionEquals("Days since, 2")
     }
 
     private fun setConstrainedContent(fontScale: Float, content: @Composable () -> Unit) {
@@ -615,17 +601,6 @@ class HomePassInstrumentedTest {
 
     private companion object {
         const val TODAY = 20_000L
-        val LAST_SESSION = SessionSummary(
-            id = "s-last",
-            routineId = "r-push",
-            routineName = "Upper strength",
-            date = 1_700_000_000_000L,
-            finishedAt = 1_700_000_180_000L,
-            durationMinutes = 48,
-            workingSets = 16,
-            volumeKg = 8_000.0,
-            localEpochDay = TODAY - 2,
-        )
         val STRENGTH_ITEM = AgendaItem(
             occurrence = ScheduleOccurrence(
                 id = "occ-pm",

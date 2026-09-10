@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import com.sinura.personaltrainer.data.backup.DriveAuthClient
 import com.sinura.personaltrainer.data.backup.DriveRestClient
 import com.sinura.personaltrainer.data.backup.NetworkChecker
+import com.sinura.personaltrainer.data.security.BackupPassphraseSealer
+import com.sinura.personaltrainer.data.security.KeystoreBackupPassphraseSealer
 import com.sinura.personaltrainer.data.backup.RestoreJournalStore
 import com.sinura.personaltrainer.activity.ConfirmActivity
 import com.sinura.personaltrainer.activity.DiscardActivity
@@ -18,6 +20,7 @@ import com.sinura.personaltrainer.timer.SharedPrefsCardioTimerPersistence
 import com.sinura.personaltrainer.util.IdFactory
 import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.data.repository.BackupRepository
+import com.sinura.personaltrainer.data.repository.CompletedTrainingRepository
 import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
 import com.sinura.personaltrainer.data.repository.LocalBackupRepository
@@ -92,6 +95,8 @@ class AppContainer(context: Context) : AppDependencies {
         dbMaintenance,
         restoreBlocksStart = { backupRepository.restoreBlocksStart() },
     )
+    override val completedTrainingRepository: CompletedTrainingRepository =
+        CompletedTrainingRepository(workoutRepository, activityRepository, time)
     override val preferencesRepository: PreferencesRepository = PreferencesRepository(
         context,
         bodyweightDao = database.bodyweightDao(),
@@ -182,6 +187,9 @@ class AppContainer(context: Context) : AppDependencies {
         startTrainingDay = startTrainingDay,
         startLiveCardio = startLiveCardio,
     )
+    override val backupPassphraseSealer: BackupPassphraseSealer =
+        KeystoreBackupPassphraseSealer()
+
     override val backupRepository: BackupRepository = BackupRepository(
         localBackupRepository = LocalBackupRepository(
             database = database,

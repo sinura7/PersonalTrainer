@@ -1,5 +1,8 @@
 // androidx.activity.result.contract — declaration-only. See compose-stubs/README.md.
-// Only the four contracts this app registers are declared; a fifth is a visible RED.
+// Only the contracts this app registers are declared; one it does not is a visible RED.
+// StartActivityForResult was added when trunk's #188 (the lock-screen challenge before the
+// backup password) reached this lane — the missing declaration is exactly the RED the rule
+// above is meant to produce, rather than a silent pass.
 
 package androidx.activity.result.contract
 
@@ -19,6 +22,20 @@ class ActivityResultContracts private constructor() {
     class StartIntentSenderForResult : ActivityResultContract<IntentSenderRequest, ActivityResult>() {
         override fun createIntent(context: Context, input: IntentSenderRequest): Intent =
             TODO("compile-only stub")
+        override fun parseResult(resultCode: Int, intent: Intent?): ActivityResult =
+            TODO("compile-only stub")
+    }
+
+    /**
+     * I = the Intent to launch, O = the raw ActivityResult (resultCode + data).
+     *
+     * The real contract is `ActivityResultContract<Intent, ActivityResult>`; the input is the
+     * Intent itself, NOT an IntentSenderRequest, which is what separates it from
+     * [StartIntentSenderForResult] above. Declaring it with the wrong input type would let a
+     * swapped pair of launchers compile here and fail in the merge gate.
+     */
+    class StartActivityForResult : ActivityResultContract<Intent, ActivityResult>() {
+        override fun createIntent(context: Context, input: Intent): Intent = TODO("compile-only stub")
         override fun parseResult(resultCode: Int, intent: Intent?): ActivityResult =
             TODO("compile-only stub")
     }

@@ -274,18 +274,15 @@ class ProductionScreensPassInstrumentedTest {
     }
 
     @Test
-    fun homeAt412Font13NamesTheLastSessionAndAStart() {
+    fun homeAt412Font13OffersAStart() {
         val viewModel = HomeViewModel(app(), container).track()
         mount(widthDp = 412, fontScale = 1.3f) {
             HomeScreen(
                 onResumeWorkout = {},
                 onOpenPlan = {},
-                onOpenExercise = {},
                 viewModel = viewModel,
             )
         }
-        awaitTag(HomeTags.LAST_SESSION)
-        compose.onNodeWithTag(HomeTags.LAST_SESSION).assertIsDisplayed()
         val starts = listOf(
             HomeTags.START,
             HomeTags.FREE,

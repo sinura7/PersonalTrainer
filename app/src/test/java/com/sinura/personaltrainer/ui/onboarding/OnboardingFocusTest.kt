@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.TrainingFocus
+import com.sinura.personaltrainer.testutil.TestWaits
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -52,10 +53,10 @@ class OnboardingFocusTest {
     @Test
     fun guidedPathAsksFocusBeforeExperienceAndWritesNothingUntilApply() = runBlocking {
         viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
-        val focused = withTimeout(5_000) { viewModel!!.uiState.first { it.step == OnboardingStep.FOCUS } }
+        val focused = withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.step == OnboardingStep.FOCUS } }
         assertEquals(OnboardingStep.FOCUS, focused.step)
         viewModel!!.setFocus(TrainingFocus.CARDIO)
-        val next = withTimeout(5_000) {
+        val next = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.uiState.first {
                 it.step == OnboardingStep.DAYS_PER_WEEK && it.answers.focus == TrainingFocus.CARDIO
             }
@@ -70,7 +71,7 @@ class OnboardingFocusTest {
     fun cardioFocusPreviewDoesNotInventLifts() = runBlocking {
         viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
         viewModel!!.setFocus(TrainingFocus.CARDIO)
-        val preview = withTimeout(5_000) { viewModel!!.uiState.first { it.preview != null }.preview!! }
+        val preview = withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.preview != null }.preview!! }
         assertTrue(preview.routines.isEmpty())
         assertEquals(0, preview.trainingDayCount)
     }
@@ -80,6 +81,9 @@ class OnboardingFocusTest {
         val original = OnboardingAnswers(focus = TrainingFocus.BOTH)
         val restored = OnboardingAnswers.decodeDraft(OnboardingAnswers.encodeDraft(original))!!
         assertEquals(TrainingFocus.BOTH, restored.focus)
+        // An eight-field draft from before the kit field existed: drop the last field only.
+        val beforeKit = OnboardingAnswers.encodeDraft(OnboardingAnswers()).substringBeforeLast("|")
+        assertEquals(TrainingFocus.STRENGTH, OnboardingAnswers.decodeDraft(beforeKit)!!.focus)
         // A seven-part draft from before focus (and before kit) existed: drop the last two fields.
         val old = OnboardingAnswers.encodeDraft(OnboardingAnswers()).split("|").take(7).joinToString("|")
         assertEquals(TrainingFocus.STRENGTH, OnboardingAnswers.decodeDraft(old)!!.focus)
@@ -88,9 +92,9 @@ class OnboardingFocusTest {
     @Test
     fun cardioPathSkipsLiftOnlyQuestions() = runBlocking {
         viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
-        withTimeout(5_000) { viewModel!!.uiState.first { it.step == OnboardingStep.FOCUS } }
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.step == OnboardingStep.FOCUS } }
         viewModel!!.setFocus(TrainingFocus.CARDIO)
-        val days = withTimeout(5_000) {
+        val days = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.uiState.first { it.step == OnboardingStep.DAYS_PER_WEEK }
         }
         assertEquals(OnboardingStep.DAYS_PER_WEEK, days.step)
@@ -101,17 +105,17 @@ class OnboardingFocusTest {
             OnboardingStep.questionsFor(TrainingFocus.STRENGTH).size,
         )
         viewModel!!.back()
-        withTimeout(5_000) { viewModel!!.uiState.first { it.step == OnboardingStep.FOCUS } }
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.step == OnboardingStep.FOCUS } }
         assertEquals(OnboardingStep.FOCUS, viewModel!!.uiState.value.step)
     }
 
     @Test
     fun cardioPreviewDoesNotRaiseACatalogError() = runBlocking {
         viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
-        withTimeout(5_000) { viewModel!!.uiState.first { it.step == OnboardingStep.FOCUS } }
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.step == OnboardingStep.FOCUS } }
         viewModel!!.setFocus(TrainingFocus.CARDIO)
         repeat(4) { viewModel!!.next() }
-        val preview = withTimeout(5_000) {
+        val preview = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.uiState.first { it.step == OnboardingStep.PREVIEW }
         }
         assertEquals(OnboardingStep.PREVIEW, preview.step)

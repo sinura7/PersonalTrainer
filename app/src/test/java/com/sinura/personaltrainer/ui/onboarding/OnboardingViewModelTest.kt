@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingFocus
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.testutil.TestWaits
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -61,11 +62,11 @@ class OnboardingViewModelTest {
         assertNull(viewModel!!.uiState.value.preview)
 
         deps.dbMaintenance.seedCatalog()
-        val afterSeed = withTimeout(5_000) { viewModel!!.uiState.first { it.preview != null }.preview!! }
+        val afterSeed = withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.preview != null }.preview!! }
         assertEquals(OnboardingAnswers().daysPerWeek, afterSeed.trainingDayCount)
 
         viewModel!!.setDaysPerWeek(6)
-        assertEquals(6, withTimeout(5_000) { viewModel!!.uiState.first { it.preview?.trainingDayCount == 6 } }.preview!!.trainingDayCount)
+        assertEquals(6, withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.preview?.trainingDayCount == 6 } }.preview!!.trainingDayCount)
     }
 
     @Test
@@ -82,7 +83,7 @@ class OnboardingViewModelTest {
         // of throwing, so the fail-empty branch is locked by the constant, not by
         // breaking Room.
         viewModel!!.retryCatalog()
-        withTimeout(5_000) { viewModel!!.uiState.first { it.preview != null } }
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.preview != null } }
         assertNull(viewModel!!.uiState.value.error)
         assertEquals(
             "Couldn't load the lift catalog. Try again, or build your own.",
@@ -100,10 +101,10 @@ class OnboardingViewModelTest {
         deps.preferencesRepository.setOnboardingComplete(false)
         viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
 
-        withTimeout(5_000) { viewModel!!.uiState.first { it.existingProgram } }
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.existingProgram } }
         assertFalse(viewModel!!.back())
-        withTimeout(5_000) { viewModel!!.finished.first { it } }
-        withTimeout(5_000) { deps.preferencesRepository.onboardingComplete.first { it } }
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.finished.first { it } }
+        withTimeout(TestWaits.FLOW_MS) { deps.preferencesRepository.onboardingComplete.first { it } }
         Unit
     }
 
@@ -116,7 +117,7 @@ class OnboardingViewModelTest {
         viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
 
         assertFalse(viewModel!!.back())
-        withTimeout(5_000) { viewModel!!.uiState.first { !it.existingProgram } }
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { !it.existingProgram } }
         assertFalse(viewModel!!.finished.value)
         assertFalse(deps.preferencesRepository.onboardingComplete.first())
     }
@@ -130,17 +131,17 @@ class OnboardingViewModelTest {
         deps.dbMaintenance.seedCatalog()
         viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
 
-        withTimeout(5_000) { viewModel!!.uiState.first { it.preview != null } }
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.preview != null } }
         val storedBefore = deps.preferencesRepository.weightUnit.first()
         assertEquals(WeightUnit.LBS, storedBefore)
 
         viewModel!!.setWeightUnit(WeightUnit.KG)
-        withTimeout(5_000) { viewModel!!.uiState.first { it.weightUnit == WeightUnit.KG } }
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.weightUnit == WeightUnit.KG } }
         assertEquals(WeightUnit.LBS, deps.preferencesRepository.weightUnit.first())
 
         viewModel!!.applyPlan()
-        withTimeout(5_000) { viewModel!!.finished.first { it } }
-        withTimeout(5_000) { deps.preferencesRepository.weightUnit.first { it == WeightUnit.KG } }
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.finished.first { it } }
+        withTimeout(TestWaits.FLOW_MS) { deps.preferencesRepository.weightUnit.first { it == WeightUnit.KG } }
         assertFalse(deps.preferencesRepository.restAlarmEligible.first())
         Unit
     }

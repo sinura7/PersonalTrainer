@@ -263,7 +263,7 @@ fun CustomWeekScreen(
                 results = state.searchResults,
                 title = "Add lifts",
                 mode = ExercisePickerMode.MULTI_ADD,
-                selectedOrder = state.pendingAddIds,
+                selectedOrder = state.pickedIds,
                 catalog = state.catalog,
                 error = state.error,
             ),
@@ -273,8 +273,7 @@ fun CustomWeekScreen(
                     is ExercisePickerEvent.Selected -> Unit
                     is ExercisePickerEvent.Created ->
                         viewModel.createAndSelect(event.name, event.muscleGroup)
-                    is ExercisePickerEvent.Toggled -> viewModel.togglePendingAdd(event.exercise)
-                    ExercisePickerEvent.Confirmed -> viewModel.confirmPendingAdd()
+                    is ExercisePickerEvent.Toggled -> viewModel.togglePicked(event.exercise)
                     ExercisePickerEvent.Dismissed -> viewModel.setPickerVisible(false)
                     ExercisePickerEvent.ErrorDismissed -> viewModel.dismissError()
                 }

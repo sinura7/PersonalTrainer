@@ -19,6 +19,7 @@ import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.util.toLocalDate
@@ -33,6 +34,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 private const val TAG = "PT/OnboardingVM"
+
+/** [ErrorSlot] families: a success may clear only its own family's refusal. */
+private const val ERR_CATALOG = "catalog"
+private const val ERR_PLAN = "plan"
 
 internal const val CATALOG_MISSING_MESSAGE =
     "Couldn't load the lift catalog. Try again, or build your own."
@@ -120,7 +125,7 @@ class OnboardingViewModel @JvmOverloads constructor(
         savedStateHandle.get<String>(KEY_ANSWERS)?.let { OnboardingAnswers.decodeDraft(it) }
     private val answers = MutableStateFlow(restoredAnswers ?: OnboardingAnswers())
     private val applying = MutableStateFlow(false)
-    private val error = MutableStateFlow<String?>(null)
+    private val error = ErrorSlot()
     private val existingProgram = MutableStateFlow(false)
     private val catalog = MutableStateFlow<List<Exercise>>(emptyList())
 
@@ -149,7 +154,7 @@ class OnboardingViewModel @JvmOverloads constructor(
         answers,
         catalog,
         combine(
-            combine(applying, error, existingProgram, weekStart) { busy, err, existing, start ->
+            combine(applying, error.messages, existingProgram, weekStart) { busy, err, existing, start ->
                 Quad(busy, err, existing, start)
             },
             storedWeightUnit,
@@ -293,7 +298,7 @@ class OnboardingViewModel @JvmOverloads constructor(
      */
     fun retryCatalog() {
         viewModelScope.launch {
-            error.value = null
+            error.clearFrom(source = ERR_CATALOG)
             val seeded = runCatchingCancellable {
                 container.dbMaintenance.seedCatalog()
                 container.exerciseRepository.observeAll().first()
@@ -301,19 +306,19 @@ class OnboardingViewModel @JvmOverloads constructor(
             seeded.onSuccess { exercises ->
                 catalog.value = exercises
                 if (exercises.isEmpty() && answers.value.focus != TrainingFocus.CARDIO) {
-                    error.value = CATALOG_MISSING_MESSAGE
+                    error.fail(source = ERR_CATALOG, message = CATALOG_MISSING_MESSAGE)
                 }
             }.onFailure { thrown ->
                 AppLog.w(TAG, "Retrying the catalog seed failed", thrown)
                 if (answers.value.focus != TrainingFocus.CARDIO) {
-                    error.value = CATALOG_MISSING_MESSAGE
+                    error.fail(source = ERR_CATALOG, message = CATALOG_MISSING_MESSAGE)
                 }
             }
         }
     }
 
     fun dismissError() {
-        error.value = null
+        error.dismiss()
     }
 
     fun setFocus(value: TrainingFocus) = advance { it.copy(focus = value) }
@@ -354,6 +359,7 @@ class OnboardingViewModel @JvmOverloads constructor(
      * build the program twice.
      */
     fun applyPlan() {
+        val started = error.mark()
         if (applying.value) return
         val blueprint = uiState.value.preview ?: return
         applying.value = true
@@ -378,10 +384,10 @@ class OnboardingViewModel @JvmOverloads constructor(
                             todayEpochDay(),
                         )
                     }.onFailure { AppLog.w(TAG, "Publishing the plan to Home failed", it) }
-                    error.value = null
+                    error.clearFrom(source = ERR_PLAN, before = started)
                     _finished.value = true
                 }
-                is ApplyPlanResult.Failed -> error.value = result.message
+                is ApplyPlanResult.Failed -> error.fail(source = ERR_PLAN, message = result.message)
             }
         }
     }
@@ -389,7 +395,7 @@ class OnboardingViewModel @JvmOverloads constructor(
     private fun update(transform: (OnboardingAnswers) -> OnboardingAnswers) {
         answersDirty = true
         answers.value = transform(answers.value)
-        error.value = null
+        error.dismiss()
         rememberDraft()
     }
 

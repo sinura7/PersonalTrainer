@@ -12,7 +12,10 @@ import android.os.Looper
 import android.os.SystemClock
 import androidx.core.app.ServiceCompat
 import com.sinura.personaltrainer.PersonalTrainerApp
+import com.sinura.personaltrainer.domain.RestTick
+import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -33,11 +36,22 @@ import kotlinx.coroutines.launch
  * it has been, [stopNow] runs. The alarm path completes through
  * [RestTimerCompletion] with `fromService = true`, which used to skip
  * [ACTION_STOP] and leave this process posting a negative chronometer.
+ *
+ * It does own the last five seconds ([RestTick]): one posted runnable per
+ * boundary, re-asked on every sync, so a ±15 s moves the ticks with the
+ * deadline. Same reach as the countdown — this process alive, CPU awake.
+ * In doze the alarm path's completion cue is the whole alert.
  */
 class RestTimerService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val completeRunnable = Runnable { handleDeadline() }
+    private val tickRunnable = Runnable { handleTick() }
+    private var pendingTick = 0
+    private var tickPlayer: RestTickPlayer? = null
+
+    /** Last seen; the collector below keeps it current. Read by the tick, on the main thread. */
+    internal var tickPreferences: RestTimerPreferences = RestTimerPreferences.DEFAULT
     private var completing = false
     private var startedForeground = false
     private var lastShownEndsAt = Long.MIN_VALUE
@@ -59,6 +73,17 @@ class RestTimerService : Service() {
                 } else if (sawRunning) {
                     stopNow()
                 }
+            }
+        }
+        scope.launch {
+            try {
+                (application as PersonalTrainerApp).container.preferencesRepository
+                    .restTimerPreferences
+                    .collect { tickPreferences = it }
+            } catch (thrown: CancellationException) {
+                throw thrown
+            } catch (_: Exception) {
+                // The ticks keep the last preferences they saw. The cue does not depend on this.
             }
         }
     }
@@ -106,6 +131,9 @@ class RestTimerService : Service() {
 
     override fun onDestroy() {
         handler.removeCallbacks(completeRunnable)
+        handler.removeCallbacks(tickRunnable)
+        tickPlayer?.release()
+        tickPlayer = null
         scope.cancel()
         super.onDestroy()
     }
@@ -129,6 +157,36 @@ class RestTimerService : Service() {
         handler.removeCallbacks(completeRunnable)
         val delayMs = (state.endsAtElapsedRealtime - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
         handler.postDelayed(completeRunnable, delayMs)
+        // Loaded now, at the start of the rest, so the first tick is not the one that decodes.
+        if (tickPlayer == null) tickPlayer = RestTickPlayer(this)
+        scheduleTick(state)
+    }
+
+    private fun scheduleTick(state: RestTimerSnapshot) {
+        handler.removeCallbacks(tickRunnable)
+        val now = SystemClock.elapsedRealtime()
+        val next = RestTick.nextTick(state.endsAtElapsedRealtime, now) ?: return
+        pendingTick = next
+        handler.postDelayed(tickRunnable, RestTick.tickAt(state.endsAtElapsedRealtime, next) - now)
+    }
+
+    /**
+     * One boundary. Re-checked against the live snapshot: a ±15 s that
+     * landed between the post and the fire has already re-posted through
+     * [syncForeground], and a tick for the old deadline must not sound.
+     */
+    private fun handleTick() {
+        val state = controller.snapshot.value
+        if (!state.running || completing) return
+        val second = pendingTick
+        if (!RestTick.isDue(state.endsAtElapsedRealtime, second, SystemClock.elapsedRealtime())) {
+            scheduleTick(state)
+            return
+        }
+        val player = tickPlayer
+        val ticked = RestTimerAlerts.tick(this, tickPreferences) { player?.play() }
+        if (ticked) tickObserver?.invoke(second)
+        scheduleTick(state)
     }
 
     private fun ensureForegroundClaimed() {
@@ -194,6 +252,7 @@ class RestTimerService : Service() {
         if (completing) return
         completing = true
         handler.removeCallbacks(completeRunnable)
+        handler.removeCallbacks(tickRunnable)
         scope.launch {
             RestTimerCompletion.completeOnce(
                 context = applicationContext,
@@ -215,6 +274,7 @@ class RestTimerService : Service() {
         if (stopped) return
         stopped = true
         handler.removeCallbacks(completeRunnable)
+        handler.removeCallbacks(tickRunnable)
         completing = false
         lastShownEndsAt = Long.MIN_VALUE
         try {
@@ -227,6 +287,13 @@ class RestTimerService : Service() {
     }
 
     companion object {
+        /**
+         * Test seam: sees each second that ticked, after the alert. Null in
+         * production. Robolectric's clock is the only way to walk a rest
+         * through 5, 4, 3, 2, 1 without listening to a speaker.
+         */
+        internal var tickObserver: ((Int) -> Unit)? = null
+
         const val ACTION_SYNC = "com.sinura.personaltrainer.timer.SYNC"
         const val ACTION_STOP = "com.sinura.personaltrainer.timer.STOP"
         const val ACTION_SKIP = "com.sinura.personaltrainer.timer.SKIP"

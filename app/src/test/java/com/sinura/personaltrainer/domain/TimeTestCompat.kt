@@ -102,7 +102,12 @@ fun BlockReviewBuilder.build(
     unit: WeightUnit,
     zone: ZoneId,
     bodyweightLog: List<BodyweightEntry> = emptyList(),
-): BlockReview = build(block, sessions, unit, JvmTime, zone.id, bodyweightLog)
+): BlockReview = build(
+    block,
+    sessions.mapNotNull { it.toCompletedTraining(JvmTime, zone.id) },
+    unit,
+    bodyweightLog,
+)
 
 fun BlockReviewBuilder.overRange(
     startEpochDay: Long,
@@ -113,10 +118,8 @@ fun BlockReviewBuilder.overRange(
 ): HorizonProgress = overRange(
     startEpochDay,
     endExclusiveEpochDay,
-    sessions,
+    sessions.mapNotNull { it.toCompletedTraining(JvmTime, zone.id) },
     unit,
-    JvmTime,
-    zone.id,
 )
 
 fun WeekDerivation.derive(

@@ -15,7 +15,11 @@ import com.sinura.personaltrainer.domain.RestTimerPreferences
 
 object RestTimerAlerts {
     private val COMPLETE_PATTERN = longArrayOf(0, 140, 90, 140, 90, 320)
-    private val CUE_ATTRIBUTES = AudioAttributes.Builder()
+
+    /** One short pulse per tick — felt, not a second cue. */
+    private const val TICK_PULSE_MS = 40L
+
+    internal val CUE_ATTRIBUTES: AudioAttributes = AudioAttributes.Builder()
         .setUsage(AudioAttributes.USAGE_ALARM)
         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
         .build()
@@ -29,8 +33,38 @@ object RestTimerAlerts {
             playSound(context, createPlayer)
         }
         if (preferences.vibrationEnabled) {
-            vibrate(context)
+            vibrate(context, VibrationEffect.createWaveform(COMPLETE_PATTERN, -1))
         }
+    }
+
+    /**
+     * One of the last five seconds (R-04). The click is the caller's — the
+     * [RestTickPlayer] the service keeps loaded — so this stays the policy:
+     * Last five seconds is the off switch, and Sound and Vibration gate the
+     * two halves exactly as they gate the cue.
+     *
+     * @return whether the tick was on, whatever the two halves then did.
+     */
+    fun tick(
+        context: Context,
+        preferences: RestTimerPreferences,
+        click: () -> Unit,
+    ): Boolean {
+        if (!preferences.tickEnabled) return false
+        if (preferences.soundEnabled) {
+            try {
+                click()
+            } catch (_: Exception) {
+                // A click is optional. Never fail the timer.
+            }
+        }
+        if (preferences.vibrationEnabled) {
+            vibrate(
+                context,
+                VibrationEffect.createOneShot(TICK_PULSE_MS, VibrationEffect.DEFAULT_AMPLITUDE),
+            )
+        }
+        return true
     }
 
     private fun playSound(
@@ -89,10 +123,9 @@ object RestTimerAlerts {
         ringtone.play()
     }
 
-    private fun vibrate(context: Context) {
+    private fun vibrate(context: Context, effect: VibrationEffect) {
         try {
             val vibrator = vibrator(context) ?: return
-            val effect = VibrationEffect.createWaveform(COMPLETE_PATTERN, -1)
             if (Build.VERSION.SDK_INT >= 33) {
                 vibrator.vibrate(
                     effect,

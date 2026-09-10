@@ -33,10 +33,11 @@ import com.sinura.personaltrainer.domain.ScheduleKind
 import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.Weekday
-import com.sinura.personaltrainer.domain.sessionLiftNames
+import com.sinura.personaltrainer.domain.DayBlockCopy
+import com.sinura.personaltrainer.domain.sessionLifts
+import com.sinura.personaltrainer.domain.sessionMinutes
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.GroupedList
-import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
@@ -47,7 +48,6 @@ import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
-import com.sinura.personaltrainer.ui.theme.Volt
 
 /**
  * Today's occurrences — Home's only today-surface when the planner
@@ -56,6 +56,10 @@ import com.sinura.personaltrainer.ui.theme.Volt
  * Planned rows start that session (confirm). The filled Volt is
  * Start a workout (freestyle). Add sits under the last planned row.
  * Still open leftovers can skip (ADR-021).
+ *
+ * Each session is its own [DayBlock] — stills, order, estimate, Start on
+ * the foot — rather than a row in one grouped list: a day's sessions are
+ * separate things, and the block is the control (ADR-021 §1).
  */
 @Composable
 fun DailyAgendaCard(
@@ -150,9 +154,8 @@ fun DailyAgendaCard(
             )
         }
         if (items.isNotEmpty()) {
-            GroupedList {
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.cardGap)) {
                 items.forEachIndexed { index, item ->
-                    if (index > 0) HairlineDivider()
                     AgendaRow(
                         item = item,
                         routines = routines,
@@ -167,8 +170,9 @@ fun DailyAgendaCard(
                     )
                 }
                 if (canEditDay && !sessionLive && picker == DayPicker.NONE) {
-                    HairlineDivider()
-                    AddUnderTodayRow(onClick = { picking = DayPicker.KIND.name })
+                    GroupedList {
+                        AddUnderTodayRow(onClick = { picking = DayPicker.KIND.name })
+                    }
                 }
             }
         }
@@ -213,11 +217,11 @@ fun DailyAgendaCard(
                 style = InstrumentType.caption,
                 color = TextSecondary,
             )
-            GroupedList(
+            Column(
                 modifier = Modifier.testTag(HomeTags.STILL_OPEN),
+                verticalArrangement = Arrangement.spacedBy(Metrics.cardGap),
             ) {
                 stillOpen.forEachIndexed { index, item ->
-                    if (index > 0) HairlineDivider()
                     AgendaRow(
                         item = item,
                         routines = routines,
@@ -294,38 +298,33 @@ private fun AgendaRow(
     onOpen: () -> Unit,
     onSkip: (() -> Unit)? = null,
 ) {
-    val names = sessionLiftNames(item.rule?.routineId, routines)
+    val routineId = item.rule?.routineId
+    val lifts = sessionLifts(routineId, routines)
     val title = if (leftoverLabel) {
         "${Weekday.fromEpochDay(item.occurrence.localEpochDay).titleLabel()}  ·  ${item.title}"
     } else {
         item.title
     }
-    val subtitle = SessionOrderCopy.occurrenceLine(
-        item.occurrence.status,
-        names,
-        item.rule?.modality ?: ScheduleModality.STRENGTH,
+    val lines = DayBlockCopy.lines(
+        names = lifts.map { it.name },
+        status = item.occurrence.status,
+        modality = item.rule?.modality ?: ScheduleModality.STRENGTH,
+        minutes = sessionMinutes(routineId, routines),
     )
     val canStart = DailyAgenda.canOpenStart(item, todayEpochDay) && !sessionLive
     val leftover = MoveToToday.isLeftover(item.occurrence, todayEpochDay)
     Column {
-        InstrumentRow(
+        DayBlock(
             title = title,
-            subtitle = subtitle,
-            modifier = Modifier.testTag(HomeTags.agendaRow(item.occurrence.id)),
-            onClick = if (canStart) onOpen else null,
-            trailing = if (canStart) {
-                {
-                    Text(
-                        if (leftover) MoveToToday.DO_IT_TODAY else SessionOrderCopy.START_ROW,
-                        style = InstrumentType.bodyStrong,
-                        color = Volt,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            } else {
-                null
+            lines = lines,
+            exercises = lifts,
+            action = when {
+                !canStart -> null
+                leftover -> MoveToToday.DO_IT_TODAY
+                else -> SessionOrderCopy.START_ROW
             },
+            onOpen = if (canStart) onOpen else null,
+            modifier = Modifier.testTag(HomeTags.agendaRow(item.occurrence.id)),
         )
         if (onSkip != null && leftover && !sessionLive) {
             TextButton(

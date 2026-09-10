@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
@@ -17,6 +18,7 @@ import com.sinura.personaltrainer.domain.ExerciseOrdering
 import com.sinura.personaltrainer.domain.LibraryGrouping
 import com.sinura.personaltrainer.domain.LiftCart
 import com.sinura.personaltrainer.domain.MuscleGroups
+import com.sinura.personaltrainer.domain.PendingPick
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineEditorLoad
 import com.sinura.personaltrainer.domain.RoutineEditorPolicy
@@ -26,6 +28,7 @@ import com.sinura.personaltrainer.domain.RoutineTargetsOutcome
 import com.sinura.personaltrainer.domain.RoutineWriteOutcome
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -38,8 +41,27 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 private const val TAG = "PT/RoutineEditorVM"
+
+/** [ErrorSlot] families: a success may clear only its own family's refusal. */
+private const val ERR_LOAD = "load"
+private const val ERR_SWAP_LIFT = "swapLift"
+private const val ERR_SAVE = "save"
+private const val ERR_ADD_LIFT = "addLift"
+private const val ERR_TARGETS = "targets"
+
+/**
+ * A target box holding text the routine cannot store as written — "8.5" reps, "-50" rest.
+ * Its own family, not [ERR_TARGETS]: the write never happened, the complaint is the box's
+ * rule rather than the routine's, and only a commit of that same card may take it down.
+ */
+private const val ERR_TARGET_RULE = "targetRule"
+private const val ERR_REMOVE_LIFT = "removeLift"
+private const val ERR_REORDER = "reorder"
+private const val ERR_ROUTINE = "routine"
 
 data class RoutineEditorUiState(
     val isLoading: Boolean = true,
@@ -56,9 +78,14 @@ data class RoutineEditorUiState(
     val catalog: List<Exercise> = emptyList(),
     /** Non-null while a swap sheet is open, naming the routine row being replaced. */
     val swapItemId: String? = null,
-    val pendingAddIds: List<String> = emptyList(),
+    /**
+     * What the picker draws as chosen, in session order: every lift the routine already
+     * holds, plus any tap whose write has not landed. It is a view of the routine, not a
+     * staging list in front of it — closing the sheet cannot lose a single one of them.
+     */
+    val pickedIds: List<String> = emptyList(),
     val error: String? = null,
-    /** True while Confirm is writing lifts. Add lifts is disabled so the picker cannot reopen. */
+    /** True while a tap from the picker is still being written. */
     val addingLifts: Boolean = false,
     /**
      * True while Back or Save is landing the name, notes and staged targets. The dock reads
@@ -114,12 +141,17 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     private val notes = MutableStateFlow(savedStateHandle.get<String>(KEY_NOTES).orEmpty())
     private val searchQuery = MutableStateFlow("")
     private val showPicker = MutableStateFlow(false)
-    private val error = MutableStateFlow<String?>(null)
+    private val error = ErrorSlot()
     private val extraCatalog = MutableStateFlow<List<Exercise>>(emptyList())
     private val swapItemId = MutableStateFlow<String?>(null)
-    private val pendingAddIds = MutableStateFlow<List<String>>(emptyList())
-    private val confirmInFlight = MutableStateFlow(false)
+    private val pendingPicks = MutableStateFlow<List<PendingPick>>(emptyList())
     private val exitState = MutableStateFlow(ExitState())
+
+    /**
+     * Picker writes run one at a time, in tap order. Two taps on the same row are an add
+     * and a remove, and the remove cannot find a row the add has not finished writing.
+     */
+    private val pickWrites = Mutex()
     private val inFlight = ConcurrentHashMap.newKeySet<Job>()
 
     /**
@@ -155,6 +187,11 @@ class RoutineEditorViewModel @JvmOverloads constructor(
 
     init {
         hydrate()
+        // The routine is the cart, so every emission of it settles the taps it now carries.
+        // A pick is held for exactly as long as the write behind it is in flight.
+        viewModelScope.launch {
+            routineFlow.collect { routine -> settlePicks(committedIds(routine)) }
+        }
     }
 
     /**
@@ -191,7 +228,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     /** Re-read after a failed hydration. No-op unless the editor is actually in FAILED. */
     fun retryHydration() {
         if (load.value.phase != EditorPhase.FAILED) return
-        error.value = null
+        error.clearFrom(source = ERR_LOAD)
         applyLoad { it.onRetry() }
         hydrate()
     }
@@ -207,7 +244,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         if (after == before) return
         load.value = after
         if (after.phase == EditorPhase.MISSING && before.phase != EditorPhase.MISSING) {
-            error.value = "This routine is no longer available."
+            error.fail(source = ERR_LOAD, message = "This routine is no longer available.")
             routineId.value = null
             persistDraft()
         }
@@ -217,22 +254,22 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         combine(routineFlow, name, notes, searchQuery, resultsFlow) { routine, currentName, currentNotes, query, results ->
             EditorCore(routine, currentName, currentNotes, query, results)
         },
-        combine(showPicker, error, load, confirmInFlight, exitState) { picker, err, loadState, adding, exit ->
-            EditorFlags(picker, err, loadState.phase, adding, exit)
+        combine(showPicker, error.messages, load, exitState) { picker, err, loadState, exit ->
+            EditorFlags(picker, err, loadState.phase, exit)
         },
         combine(
             combine(container.exerciseRepository.observeAll(), extraCatalog) { catalog, extra ->
                 catalog to extra
             },
             swapItemId,
-            pendingAddIds,
+            pendingPicks,
         ) { sources, swapTarget, pending ->
             val (incoming, extra) = sources
             CatalogExtras(
                 catalog = LiftCart.mergeSources(incoming, extra),
                 extra = extra,
                 swapItemId = swapTarget,
-                pendingAddIds = pending,
+                pending = pending,
             )
         },
     ) { core, extras, catalogExtras ->
@@ -252,9 +289,12 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             showExercisePicker = extras.showPicker,
             catalog = catalogExtras.catalog,
             swapItemId = catalogExtras.swapItemId,
-            pendingAddIds = catalogExtras.pendingAddIds,
+            pickedIds = LiftCart.picked(
+                committed = committedIds(core.routine),
+                pending = catalogExtras.pending,
+            ),
             error = extras.error,
-            addingLifts = extras.addingLifts,
+            addingLifts = catalogExtras.pending.isNotEmpty(),
             saving = extras.exit.saving,
             saveError = extras.exit.saveError,
             unsavedOnBack = extras.exit.unsavedOnBack,
@@ -281,6 +321,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
      * from the rule the routine actually enforces.
      */
     fun swapExercise(replacement: Exercise) {
+        val started = error.mark()
         if (leaving) return
         val itemId = swapItemId.value ?: return
         val routineId = routineId.value ?: return
@@ -289,11 +330,15 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         launchWrite {
             runCatchingCancellable {
                 val message = container.routineRepository.swapExercise(routineId, itemId, replacement)
-                error.value = message
+                if (message != null) {
+                    error.fail(source = ERR_SWAP_LIFT, message = message)
+                } else {
+                    error.clearFrom(source = ERR_SWAP_LIFT, before = started)
+                }
                 if (message != null && dropped != null) stagedTargets[itemId] = dropped
             }.onFailure {
                 AppLog.w(TAG, "swapExercise failed", it)
-                error.value = "Could not swap that lift. Try again."
+                error.fail(source = ERR_SWAP_LIFT, message = "Could not swap that lift. Try again.")
                 if (dropped != null) stagedTargets[itemId] = dropped
             }
         }
@@ -310,18 +355,23 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     }
 
     fun dismissError() {
-        error.value = null
+        error.dismiss()
     }
 
     /**
      * The targets typed into one lift's card but not yet written.
      *
-     * A plain map, not a StateFlow: nothing renders from it. The card renders its own text
-     * fields and the stored prescription above them, and this exists only so that the values
-     * survive the trip from a field the finger has left to the write that follows. Every
-     * mutation runs on the main thread from a Compose callback, so it needs no synchronisation.
+     * Not a StateFlow: nothing renders from it. The card renders its own text fields and the
+     * stored prescription above them, and this exists only so that the values survive the trip
+     * from a field the finger has left to the write that follows.
+     *
+     * Concurrent, because the tails of the write coroutines are not all on the main thread. A
+     * continuation returning from Room resumes on whatever thread the dispatcher hands it —
+     * under an unconfined dispatcher that is Room's own query thread — while a Compose callback
+     * is free to stage the next keystroke at the same moment. A plain LinkedHashMap mutated
+     * from both is a data race, and the lost update it hides is the one [clearStaged] names.
      */
-    private val stagedTargets = mutableMapOf<String, StagedTargets>()
+    private val stagedTargets = ConcurrentHashMap<String, StagedTargets>()
 
     /**
      * Record what is currently in a card's four fields, without touching the database.
@@ -362,15 +412,25 @@ class RoutineEditorViewModel @JvmOverloads constructor(
      */
     fun commitTargets(itemId: String) {
         if (leaving) return
+        // Taken at the focus change, before anything suspends: a refusal raised after this
+        // point is newer than what this commit set out to answer and must survive it.
+        val started = error.mark()
         launchWrite {
-            val result = commitTargetsNow(itemId) ?: return@launchWrite
+            val commit = commitTargetsNow(itemId) ?: return@launchWrite
+            val result = commit.outcome
             when (val outcome = result.outcome) {
-                RoutineWriteOutcome.Stored -> error.value = null
-                // A box fixed back to its stored value lands here; the complaint it earned
-                // must not outlive the fix.
-                RoutineWriteOutcome.NothingToWrite -> clearTargetComplaint()
-                is RoutineWriteOutcome.Rejected -> error.value = outcome.reason
-                RoutineWriteOutcome.Failed -> error.value = RoutineSaveCopy.targetsFailed(result.liftName)
+                // A landed value, and a box fixed back to what is stored, both answer every
+                // complaint this card had earned — the write's and the box's own rule alike.
+                RoutineWriteOutcome.Stored, RoutineWriteOutcome.NothingToWrite -> {
+                    error.clearFrom(source = ERR_TARGETS, before = started)
+                    error.clearFrom(source = ERR_TARGET_RULE, before = started)
+                }
+                is RoutineWriteOutcome.Rejected ->
+                    error.fail(source = commit.source, message = outcome.reason)
+                RoutineWriteOutcome.Failed -> error.fail(
+                    source = ERR_TARGETS,
+                    message = RoutineSaveCopy.targetsFailed(result.liftName),
+                )
             }
         }
     }
@@ -382,7 +442,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
      * typed for is no longer in the routine, in which case the value is dropped because there
      * is nothing left to write it to.
      */
-    private suspend fun commitTargetsNow(itemId: String): RoutineTargetsOutcome? {
+    private suspend fun commitTargetsNow(itemId: String): TargetsCommit? {
         val staged = stagedTargets[itemId] ?: return null
         val stored = routineFlow.value?.exercises?.firstOrNull { it.id == itemId }
         if (stored == null) {
@@ -393,7 +453,13 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         // nothing is written, the value stays staged so Save and Back see it, and the card's
         // own rule is the reason.
         staged.invalidReason?.let { reason ->
-            return RoutineTargetsOutcome(stored.exercise.name, RoutineWriteOutcome.Rejected(reason))
+            return TargetsCommit(
+                outcome = RoutineTargetsOutcome(
+                    stored.exercise.name,
+                    RoutineWriteOutcome.Rejected(reason),
+                ),
+                source = ERR_TARGET_RULE,
+            )
         }
         val pending = RoutineEditorPolicy.targetsToPersist(
             typedSets = staged.targetSets,
@@ -407,8 +473,14 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         )
         if (pending == null) {
             // Identical to what is stored, so there is nothing to write and nothing to keep.
-            stagedTargets.remove(itemId)
-            return RoutineTargetsOutcome(stored.exercise.name, RoutineWriteOutcome.NothingToWrite)
+            clearStaged(itemId, staged)
+            return TargetsCommit(
+                outcome = RoutineTargetsOutcome(
+                    stored.exercise.name,
+                    RoutineWriteOutcome.NothingToWrite,
+                ),
+                source = ERR_TARGETS,
+            )
         }
         val outcome = writeTargets(
             itemId = itemId,
@@ -423,9 +495,29 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         // be dropped so the same complaint would not repeat on every focus change, but a card
         // still reading "0 sets" while Room keeps 3 has to stop Save and Back from walking past
         // it, and the only way the exit can know is if the value is still here to be refused.
-        // Repeating the complaint is the honest price; the error flow conflates equal values.
-        if (outcome is RoutineWriteOutcome.Stored) stagedTargets.remove(itemId)
-        return RoutineTargetsOutcome(stored.exercise.name, outcome)
+        // Repeating the complaint is the honest price; the slot's own mark keeps it truthful.
+        if (outcome is RoutineWriteOutcome.Stored) clearStaged(itemId, staged)
+        return TargetsCommit(
+            outcome = RoutineTargetsOutcome(stored.exercise.name, outcome),
+            source = ERR_TARGETS,
+        )
+    }
+
+    /**
+     * Drop the staged value this commit was working from, and only that one.
+     *
+     * A Room write is slow enough for the next value to be typed into the same card before
+     * it lands, and removing by key alone threw that newer value away: the write that had
+     * already gone out was the older one, the card kept showing a number the routine did not
+     * hold, and the exit flush had nothing left to save. Whatever is staged now is either
+     * this commit's own value — finished with — or one that has not been written yet.
+     *
+     * Compare-and-remove in one atomic step, because the staging and this removal can be on
+     * two threads: reading, comparing and then removing would let the newer value slip into
+     * the gap between the read and the remove, which is the very drop this exists to stop.
+     */
+    private fun clearStaged(itemId: String, committed: StagedTargets) {
+        stagedTargets.remove(itemId, committed)
     }
 
     /**
@@ -439,7 +531,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
      * past. The screen's error slot is left alone: the aggregate says it once, at the dock.
      */
     private suspend fun flushStagedTargets(): List<RoutineTargetsOutcome> =
-        stagedTargets.keys.toList().mapNotNull { commitTargetsNow(it) }
+        stagedTargets.keys.toList().mapNotNull { commitTargetsNow(it)?.outcome }
 
     /**
      * Set when this screen should be popped. Held as state for the same reason as forward
@@ -511,6 +603,9 @@ class RoutineEditorViewModel @JvmOverloads constructor(
      */
     fun saveAndLeave() {
         if (leaving) return
+        // The press itself, before anything suspends. Only refusals older than it may be
+        // taken over by the dock below; one raised while the attempt ran is newer news.
+        val started = error.mark()
         beginExit()
         viewModelScope.launch {
             val outcome = runCatchingCancellable {
@@ -519,7 +614,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 val id = routineId.value
                 val count = if (id == null) 0 else currentExerciseCount(id)
                 if (count <= 0) {
-                    error.value = SessionOrderCopy.NEED_A_LIFT
+                    error.fail(source = ERR_SAVE, message = SessionOrderCopy.NEED_A_LIFT)
                     stayOnScreen()
                     return@launch
                 }
@@ -537,9 +632,12 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             when (outcome) {
                 RoutineExitOutcome.Landed -> _exitRequested.value = true
                 is RoutineExitOutcome.Unsaved -> {
-                    // Said once. A focus-change commit may already have put the same rejection in
-                    // the screen's error slot; the dock is where Save was pressed, so it wins.
-                    if (error.value == outcome.message) error.value = null
+                    // Said once. The flush has just re-decided every staged target, so the two
+                    // families a card can complain in are the dock's to take over — but only
+                    // the complaints that were already showing when Save was pressed. One
+                    // raised since is a newer refusal from a card the owner has touched again.
+                    error.clearFrom(source = ERR_TARGETS, before = started)
+                    error.clearFrom(source = ERR_TARGET_RULE, before = started)
                     stayOnScreen(saveError = outcome.message)
                 }
             }
@@ -571,13 +669,11 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         }
     }
 
-    /** Drops a target-rule complaint from the error slot; leaves any other message alone. */
-    private fun clearTargetComplaint() {
-        if (error.value in RoutineSaveCopy.TARGET_RULES) error.value = null
-    }
-
     private fun beginExit() {
         leaving = true
+        // The sheet goes with the attempt. Its lifts are already written, so there is
+        // nothing to keep it open for, and a picker left standing would outlive the pop.
+        showPicker.value = false
         exitState.value = ExitState(saving = true)
     }
 
@@ -631,80 +727,105 @@ class RoutineEditorViewModel @JvmOverloads constructor(
 
     fun setPickerVisible(visible: Boolean) {
         if (missing) return
-        if (visible && (confirmInFlight.value || leaving)) return
+        if (visible && leaving) return
         showPicker.value = visible
-        if (!visible && !confirmInFlight.value) {
-            searchQuery.value = ""
-            pendingAddIds.value = emptyList()
-        }
+        // The typed query is the only thing closing the sheet throws away. The lifts are
+        // already on the routine, which is the whole point: a tap outside the sheet used to
+        // empty a cart the owner had just built by hand, and the list started again.
+        if (!visible) searchQuery.value = ""
     }
 
-    fun togglePendingAdd(exercise: Exercise) {
-        if (confirmInFlight.value || leaving) return
-        pendingAddIds.value = LiftCart.toggle(pendingAddIds.value, exercise.id)
-    }
-
-    fun confirmPendingAdd() {
-        if (confirmInFlight.value || leaving) return
-        val selected = LiftCart.sanitize(pendingAddIds.value)
-        if (selected.isEmpty()) return
-        val snapshot = uiState.value
-        val plan = LiftCart.planConfirm(
-            order = selected,
-            sources = LiftCart.mergeSources(
-                LiftCart.mergeSources(snapshot.catalog, extraCatalog.value),
-                snapshot.searchResults,
+    /**
+     * A tap in the picker, written straight through to the routine.
+     *
+     * The sheet used to stage taps behind a Confirm, so the scrim, the back gesture and a
+     * mis-swipe each threw away work the user had already done. There is nothing left to
+     * throw away: the first tap adds the lift, a second tap on the same row takes it back
+     * out, and the numbers the rows carry are the session's own order.
+     */
+    fun togglePicked(exercise: Exercise) {
+        if (leaving) return
+        commitPick(
+            exercise = exercise,
+            adding = LiftCart.addsOnTap(
+                committed = committedIds(routineFlow.value),
+                pending = pendingPicks.value,
+                id = exercise.id,
             ),
-            already = routineFlow.value?.exercises.orEmpty().map { it.exercise.id }.toSet(),
         )
-        if (plan.blocked) {
-            error.value = SessionOrderCopy.ADD_LIFT_FAILED
+    }
+
+    /**
+     * Hold the tap's intent, then write it. The intent is held first so the row answers the
+     * finger on the same frame — Room's flow is a database round trip behind it.
+     */
+    private fun commitPick(exercise: Exercise, adding: Boolean) {
+        if (leaving) return
+        pendingPicks.value = LiftCart.record(pendingPicks.value, exercise.id, adding)
+        launchWrite { pickWrites.withLock { writePick(exercise, adding) } }
+    }
+
+    private suspend fun writePick(exercise: Exercise, adding: Boolean) {
+        val started = error.mark()
+        val source = if (adding) ERR_ADD_LIFT else ERR_REMOVE_LIFT
+        val id = ensureRoutineId() ?: run {
+            pendingPicks.value = LiftCart.forget(pendingPicks.value, exercise.id)
             return
         }
-        pendingAddIds.value = emptyList()
-        if (plan.nothingNew) {
-            showPicker.value = false
-            searchQuery.value = ""
-            error.value = null
-            return
-        }
-        confirmInFlight.value = true
-        showPicker.value = false
-        searchQuery.value = ""
-        launchWrite {
-            try {
-                val id = ensureRoutineId() ?: run {
-                    restorePicker(selected)
-                    return@launchWrite
-                }
-                val remaining = plan.toAdd.toMutableList()
-                for (exercise in plan.toAdd) {
-                    val defaults = AddDefaults.forExercise(exercise)
-                    try {
-                        container.routineRepository.addExercise(
-                            routineId = id,
-                            exercise = exercise,
-                            targetSets = defaults.sets,
-                            targetReps = defaults.reps,
-                            targetWeightKg = null,
-                            restSeconds = defaults.restSeconds,
-                        )
-                        remaining.remove(exercise)
-                    } catch (thrown: Exception) {
-                        AppLog.w(TAG, "addExercise failed", thrown)
-                        restorePicker(remaining.map { it.id })
-                        error.value = SessionOrderCopy.ADD_LIFT_FAILED
-                        return@launchWrite
-                    }
-                }
-                extraCatalog.value = extraCatalog.value.filter { extra ->
-                    extra.id !in plan.toAdd.map { it.id }.toSet()
-                }
-                error.value = null
-            } finally {
-                confirmInFlight.value = false
+        try {
+            // Read the routine rather than trust the flow's last emission. This is the dedup
+            // that stops a double tap writing the same lift twice, and under this lock it has
+            // to see the write that finished a moment ago, not the state before it.
+            val row = storedRow(id, exercise.id)
+            if (adding && row == null) {
+                val defaults = AddDefaults.forExercise(exercise)
+                container.routineRepository.addExercise(
+                    routineId = id,
+                    exercise = exercise,
+                    targetSets = defaults.sets,
+                    targetReps = defaults.reps,
+                    targetWeightKg = null,
+                    restSeconds = defaults.restSeconds,
+                )
+            } else if (!adding && row != null) {
+                container.routineRepository.removeExercise(row.id, id)
+                stagedTargets.remove(row.id)
             }
+            // Settle here as well as on the routine's own emissions: a tap the store already
+            // agreed with writes nothing, so there may be no emission to settle it, and a
+            // pick left standing would keep the editor looking busy forever.
+            settlePicks(storedIds(id))
+            error.clearFrom(source = source, before = started)
+            error.clearFrom(source = ERR_SAVE, before = started)
+        } catch (thrown: CancellationException) {
+            throw thrown
+        } catch (thrown: Exception) {
+            AppLog.w(TAG, "writePick failed", thrown)
+            pendingPicks.value = LiftCart.forget(pendingPicks.value, exercise.id)
+            error.fail(
+                source = source,
+                message = if (adding) {
+                    SessionOrderCopy.ADD_LIFT_FAILED
+                } else {
+                    SessionOrderCopy.REMOVE_LIFT_FAILED
+                },
+            )
         }
+    }
+
+    private suspend fun storedRow(routineId: String, exerciseId: String) =
+        container.routineRepository.getById(routineId)
+            ?.exercises
+            ?.firstOrNull { it.exercise.id == exerciseId }
+
+    private suspend fun storedIds(routineId: String): List<String> =
+        committedIds(container.routineRepository.getById(routineId))
+
+    private fun committedIds(routine: Routine?): List<String> =
+        routine?.exercises.orEmpty().map { it.exercise.id }
+
+    private fun settlePicks(committed: List<String>) {
+        pendingPicks.value = LiftCart.settle(committed, pendingPicks.value)
     }
 
     fun onSearchQuery(value: String) {
@@ -718,8 +839,9 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         targetWeightKg: Double?,
         restSeconds: Int,
     ) {
+        val started = error.mark()
         if (missing) {
-            error.value = "This routine is no longer available."
+            error.fail(source = ERR_ADD_LIFT, message = "This routine is no longer available.")
             return
         }
         if (leaving) return
@@ -727,7 +849,10 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             val id = ensureRoutineId() ?: return@launchWrite
             val alreadyAdded = routineFlow.value?.exercises?.any { it.exercise.id == exercise.id } == true
             if (alreadyAdded) {
-                error.value = "${exercise.name} is already in this routine."
+                error.fail(
+                    source = ERR_ADD_LIFT,
+                    message = "${exercise.name} is already in this routine.",
+                )
                 if (!leaving) showPicker.value = false
                 return@launchWrite
             }
@@ -744,39 +869,48 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                     showPicker.value = false
                     searchQuery.value = ""
                 }
-                error.value = null
+                error.clearFrom(source = ERR_ADD_LIFT, before = started)
+                error.clearFrom(source = ERR_SAVE, before = started)
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "addExercise failed", thrown)
-                error.value = SessionOrderCopy.ADD_LIFT_FAILED
+                error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.ADD_LIFT_FAILED)
             }
         }
     }
 
     fun createAndSelect(name: String, muscleGroup: String) {
+        val started = error.mark()
         if (leaving) return
         if (name.isBlank()) {
-            error.value = SessionOrderCopy.LIFT_NAME_REQUIRED
+            error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.LIFT_NAME_REQUIRED)
             return
         }
         launchWrite {
             try {
                 when (val result = container.exerciseRepository.createCustom(name, muscleGroup)) {
-                    is SaveExerciseResult.DuplicateName -> error.value = DUPLICATE_NAME_MESSAGE
-                    is SaveExerciseResult.MissingMuscle -> error.value = MuscleGroups.MISSING_MESSAGE
+                    is SaveExerciseResult.DuplicateName ->
+                        error.fail(source = ERR_ADD_LIFT, message = DUPLICATE_NAME_MESSAGE)
+                    is SaveExerciseResult.MissingMuscle ->
+                        error.fail(source = ERR_ADD_LIFT, message = MuscleGroups.MISSING_MESSAGE)
                     is SaveExerciseResult.Saved -> {
                         extraCatalog.value = LiftCart.mergeSources(
                             extraCatalog.value,
                             listOf(result.exercise),
                         )
-                        if (showPicker.value && !confirmInFlight.value) {
-                            togglePendingAdd(result.exercise)
+                        if (showPicker.value) {
+                            commitPick(exercise = result.exercise, adding = true)
                         }
-                        error.value = null
+                        error.clearFrom(source = ERR_ADD_LIFT, before = started)
+                        error.clearFrom(source = ERR_SAVE, before = started)
                     }
                 }
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "createAndSelect failed", thrown)
-                error.value = SessionOrderCopy.CREATE_LIFT_FAILED
+                error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.CREATE_LIFT_FAILED)
             }
         }
     }
@@ -815,16 +949,19 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     }
 
     fun removeExercise(itemId: String) {
+        val started = error.mark()
         if (leaving) return
         launchWrite {
             val id = ensureRoutineId() ?: return@launchWrite
             try {
                 container.routineRepository.removeExercise(itemId, id)
                 stagedTargets.remove(itemId)
-                error.value = null
+                error.clearFrom(source = ERR_REMOVE_LIFT, before = started)
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "removeExercise failed", thrown)
-                error.value = SessionOrderCopy.REMOVE_LIFT_FAILED
+                error.fail(source = ERR_REMOVE_LIFT, message = SessionOrderCopy.REMOVE_LIFT_FAILED)
             }
         }
     }
@@ -835,9 +972,11 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             val id = ensureRoutineId() ?: return@launchWrite
             try {
                 container.routineRepository.moveExercise(id, itemId, direction)
+            } catch (thrown: CancellationException) {
+                throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "moveExercise failed", thrown)
-                error.value = SessionOrderCopy.REORDER_LIFT_FAILED
+                error.fail(source = ERR_REORDER, message = SessionOrderCopy.REORDER_LIFT_FAILED)
             }
         }
     }
@@ -862,14 +1001,9 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         }
     }
 
-    private fun restorePicker(remaining: List<String>) {
-        pendingAddIds.value = remaining
-        if (!leaving) showPicker.value = true
-    }
-
     private suspend fun ensureRoutineId(): String? {
         if (missing) {
-            error.value = "This routine is no longer available."
+            error.fail(source = ERR_ROUTINE, message = "This routine is no longer available.")
             return null
         }
         val current = routineId.value
@@ -891,9 +1025,11 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             routineId.value = created.id
             persistDraft()
             created.id
+        } catch (thrown: CancellationException) {
+            throw thrown
         } catch (thrown: Exception) {
             AppLog.w(TAG, "ensureRoutineId failed", thrown)
-            error.value = "Could not create this routine. Try again."
+            error.fail(source = ERR_ROUTINE, message = "Could not create this routine. Try again.")
             null
         }
     }
@@ -910,6 +1046,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         if (!RoutineEditorPolicy.shouldDiscardStub(createdThisSession, count)) return
         try {
             container.routineRepository.delete(id)
+        } catch (thrown: CancellationException) {
+            throw thrown
         } catch (thrown: Exception) {
             AppLog.w(TAG, "discardEmptyStub failed", thrown)
             // Keep navigating back; an empty stub can be deleted later.
@@ -946,15 +1084,25 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         val catalog: List<Exercise>,
         val extra: List<Exercise>,
         val swapItemId: String?,
-        val pendingAddIds: List<String>,
+        val pending: List<PendingPick>,
     )
 
     private data class EditorFlags(
         val showPicker: Boolean,
         val error: String?,
         val phase: EditorPhase,
-        val addingLifts: Boolean,
         val exit: ExitState,
+    )
+
+    /**
+     * One commit of a card's targets: what became of it, and which [ErrorSlot] family owns
+     * the complaint it earned. The family travels with the outcome so that the focus-change
+     * commit can raise a box's own rule under [ERR_TARGET_RULE] and the write's refusal under
+     * [ERR_TARGETS] without reading either message back to work out which it is.
+     */
+    private data class TargetsCommit(
+        val outcome: RoutineTargetsOutcome,
+        val source: String,
     )
 
     /**

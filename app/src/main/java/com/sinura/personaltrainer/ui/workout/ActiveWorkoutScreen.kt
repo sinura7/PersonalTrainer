@@ -55,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -66,6 +67,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.ui.components.TemperIcons
 import kotlin.math.roundToInt
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -187,6 +189,7 @@ fun ActiveWorkoutScreen(
     val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
     val personalRecord by viewModel.personalRecord.collectAsStateWithLifecycle()
     val deletedSet by viewModel.deletedSet.collectAsStateWithLifecycle()
+    val pendingAdvance by viewModel.pendingAdvance.collectAsStateWithLifecycle()
     var confirmLeave by rememberSaveable { mutableStateOf(false) }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     var notesOpen by rememberSaveable { mutableStateOf(false) }
@@ -259,7 +262,7 @@ fun ActiveWorkoutScreen(
     Scaffold(
         snackbarHost = {
             val errorBanner = state.error != null && !logBarVisible
-            if (errorBanner || deletedSet != null) {
+            if (errorBanner || deletedSet != null || pendingAdvance != null) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -268,6 +271,18 @@ fun ActiveWorkoutScreen(
                 ) {
                     if (errorBanner) {
                         GymErrorBanner(message = state.error!!)
+                    }
+                    // The dwell, the way out and the fade are the banner's own: it waits
+                    // Motion.STATUS_DWELL_MS, calls onDismissed only if the action was not
+                    // taken, and animates through instrumentTween, which snaps under reduced
+                    // motion. So the offer to move on is a banner, not a bespoke timer.
+                    pendingAdvance?.let { advance ->
+                        GymStatusBanner(
+                            message = "${advance.finishedName} done · next ${advance.nextName}",
+                            actionLabel = "Stay here",
+                            onAction = { viewModel.stayOnCurrentExercise() },
+                            onDismissed = { viewModel.advanceNow() },
+                        )
                     }
                     deletedSet?.let { removed ->
                         GymStatusBanner(
@@ -490,7 +505,6 @@ fun ActiveWorkoutScreen(
                     is ExercisePickerEvent.Created ->
                         viewModel.createAndAddExercise(event.name, event.muscleGroup)
                     is ExercisePickerEvent.Toggled -> Unit
-                    ExercisePickerEvent.Confirmed -> Unit
                     ExercisePickerEvent.Dismissed -> viewModel.setPickerVisible(false)
                     ExercisePickerEvent.ErrorDismissed -> viewModel.dismissError()
                 }
@@ -883,11 +897,19 @@ private fun WorkoutLiftCard(
     val targetSets = lift.targetSets
     val entryRequester = remember { BringIntoViewRequester() }
     var previousSetCount by remember(lift.id) { mutableIntStateOf(-1) }
-    LaunchedEffect(lift.id, loggedSets.size) {
+    // A card that has just become the selected one carries the entry wells with it, so the
+    // same requester that keeps a logged set on screen is what moves the loop to the next
+    // lift. bringIntoView animates, which is the difference between arriving at the next
+    // exercise and being teleported to it; the guard on `wasSelected` keeps first composition
+    // and resume from scrolling a session the lifter has not touched yet.
+    var wasSelected by remember(lift.id) { mutableStateOf(selected) }
+    LaunchedEffect(lift.id, loggedSets.size, selected) {
         val count = loggedSets.size
         val grew = LogLoopBringIntoView.shouldBringIntoView(previousSetCount, count)
         previousSetCount = count
-        if (grew) {
+        val becameSelected = selected && !wasSelected
+        wasSelected = selected
+        if (grew || becameSelected) {
             entryRequester.bringIntoView()
         }
     }
@@ -1282,6 +1304,19 @@ private fun LoggedSetsPanel(
     onAddSet: () -> Unit,
 ) {
     if (sets.isEmpty()) return
+    // Which row is showing its actions. The actions used to hang off `isLatest`, so the
+    // fourth set of a lift could be revised and the first three could not — the numbers were
+    // on screen, and the only way to correct a mistyped set 1 was to delete back to it.
+    // Selection is view state, not session state: it is deliberately not persisted, and a set
+    // that disappears under it (deleted here, or by a restore) releases it below.
+    var selectedSetId by rememberSaveable { mutableStateOf<String?>(null) }
+    val selected = selectedSetId?.takeIf { id -> sets.any { it.id == id } }
+    LaunchedEffect(sets, editingSetId) {
+        if (selectedSetId != null && sets.none { it.id == selectedSetId }) selectedSetId = null
+        // The edit sheet owns the row while it is open; leaving it selected underneath would
+        // offer Delete on the very set being saved.
+        if (editingSetId != null) selectedSetId = null
+    }
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
         GroupedList {
             sets.forEachIndexed { index, set ->
@@ -1290,9 +1325,19 @@ private fun LoggedSetsPanel(
                     set = set,
                     isLatest = set.id == latestSetId,
                     isEditing = editingSetId == set.id,
+                    isSelected = selected == set.id,
                     loadClass = loadClassOf(set),
-                    onEdit = { onEdit(set.id) },
-                    onDelete = { onDelete(set.id) },
+                    onSelect = {
+                        selectedSetId = if (selected == set.id) null else set.id
+                    },
+                    onEdit = {
+                        selectedSetId = null
+                        onEdit(set.id)
+                    },
+                    onDelete = {
+                        selectedSetId = null
+                        onDelete(set.id)
+                    },
                 )
             }
         }
@@ -1330,15 +1375,27 @@ private fun SetRow(
     set: SetLog,
     isLatest: Boolean,
     isEditing: Boolean,
+    isSelected: Boolean,
     loadClass: LoadClass,
+    onSelect: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val unit = LocalWeightUnit.current
+    val rowLabel = SetCopy.setLine(set.weightKg, set.reps, loadClass, unit)
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .clickable(enabled = !isEditing, onClick = onSelect)
+            .semantics {
+                selected = isSelected
+                contentDescription = if (isSelected) {
+                    "Set ${set.setNumber}, $rowLabel, selected. Revise or Remove."
+                } else {
+                    "Set ${set.setNumber}, $rowLabel. Tap to revise or remove."
+                }
+            }
             .then(
                 if (isEditing) {
                     Modifier.border(Metrics.emphasisBorder, Volt)
@@ -1389,14 +1446,40 @@ private fun SetRow(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        if (isLatest) {
-            TextButton(onClick = onEdit) {
-                Text("Edit", style = InstrumentType.bodyStrong, color = TextSecondary)
-            }
-            TextButton(onClick = onDelete) {
-                Text("Delete", style = InstrumentType.bodyStrong, color = Danger)
-            }
+        if (isSelected) {
+            SetRowAction(
+                icon = TemperIcons.Edit,
+                label = "Revise set ${set.setNumber}",
+                tint = TextSecondary,
+                onClick = onEdit,
+            )
+            SetRowAction(
+                icon = TemperIcons.Delete,
+                label = "Remove set ${set.setNumber}",
+                tint = Danger,
+                onClick = onDelete,
+            )
         }
+    }
+}
+
+/**
+ * One action on a selected set row.
+ *
+ * Symbols, not words: two labelled buttons on every row is most of the row's width at the
+ * font scales the log loop supports, and "Delete" set in Danger red next to "Edit" reads as
+ * a warning rather than a choice. The plate marks carry the meaning and the label goes to
+ * TalkBack, which is where a word is worth more than a glyph.
+ */
+@Composable
+private fun SetRowAction(
+    icon: ImageVector,
+    label: String,
+    tint: Color,
+    onClick: () -> Unit,
+) {
+    IconButton(onClick = onClick) {
+        Icon(icon, contentDescription = label, tint = tint)
     }
 }
 

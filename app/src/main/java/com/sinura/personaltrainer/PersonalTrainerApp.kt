@@ -17,6 +17,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.CancellationException
 
 class PersonalTrainerApp : Application() {
     // Without the handler, a single SQLite failure inside seeding reached the default
@@ -39,6 +40,8 @@ class PersonalTrainerApp : Application() {
         applicationScope.launch {
             try {
                 ensureCurrentWeekBlocking()
+            } catch (error: CancellationException) {
+                throw error
             } catch (error: Exception) {
                 AppLog.w(TAG, "Ensuring the current week failed", error)
             }
@@ -67,6 +70,8 @@ class PersonalTrainerApp : Application() {
                     deliveryId,
                     com.sinura.personaltrainer.domain.ReminderDeliveryStatus.STARTED,
                 )
+            } catch (error: CancellationException) {
+                throw error
             } catch (error: Exception) {
                 AppLog.w(TAG, "Marking a reminder delivery started failed", error)
             }
@@ -101,11 +106,15 @@ class PersonalTrainerApp : Application() {
         applicationScope.launch {
             try {
                 container.backupRepository.recoverInterruptedRestore()
+            } catch (error: CancellationException) {
+                throw error
             } catch (error: Exception) {
                 AppLog.e(TAG, "Finishing an interrupted restore failed", error)
             }
             try {
                 container.preferencesRepository.importEncodedHistoryIfNeeded()
+            } catch (error: CancellationException) {
+                throw error
             } catch (error: Exception) {
                 AppLog.e(TAG, "Importing encoded bodyweight and blocks failed", error)
             }
@@ -113,11 +122,15 @@ class PersonalTrainerApp : Application() {
                 PendingOccurrence.restore(container)
                 container.plannerRepository.importSlotsIfNeeded()
                 ensureCurrentWeekBlocking()
+            } catch (error: CancellationException) {
+                throw error
             } catch (error: Exception) {
                 AppLog.e(TAG, "Importing schedule rules failed", error)
             }
             try {
                 container.dbMaintenance.seedCatalog()
+            } catch (error: CancellationException) {
+                throw error
             } catch (error: Exception) {
                 // The catalog is a convenience; the app is fully usable without it.
                 AppLog.e(TAG, "Seeding the default exercise catalog failed", error)

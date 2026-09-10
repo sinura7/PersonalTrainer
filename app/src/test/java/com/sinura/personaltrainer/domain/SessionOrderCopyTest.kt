@@ -22,6 +22,42 @@ class SessionOrderCopyTest {
         )
     }
 
+    /**
+     * The order used to win outright, so DONE, SKIPPED and MOVED rows printed
+     * the same subtitle as a live planned one and the status words below were
+     * unreachable for any session that had lifts. On Home that made a finished
+     * day indistinguishable from a waiting one, with no explanation for why the
+     * row would not open.
+     */
+    @Test
+    fun settledStatusIsNamedInFrontOfTheOrder() {
+        val lifts = listOf("Squat", "Row")
+        assertEquals(
+            "Done · 1 Squat · 2 Row",
+            SessionOrderCopy.occurrenceLine(OccurrenceStatus.DONE, lifts),
+        )
+        assertEquals(
+            "Skipped · 1 Squat · 2 Row",
+            SessionOrderCopy.occurrenceLine(OccurrenceStatus.SKIPPED, lifts),
+        )
+        assertEquals(
+            "Moved · 1 Squat · 2 Row",
+            SessionOrderCopy.occurrenceLine(OccurrenceStatus.MOVED, lifts),
+        )
+        // Startable states carry no prefix: the row opens, so it needs no excuse.
+        assertEquals(
+            "1 Squat · 2 Row",
+            SessionOrderCopy.occurrenceLine(OccurrenceStatus.PLANNED, lifts),
+        )
+        assertEquals(
+            "1 Squat · 2 Row",
+            SessionOrderCopy.occurrenceLine(OccurrenceStatus.MISSED, lifts),
+        )
+        assertEquals("Done", SessionOrderCopy.settledLabel(OccurrenceStatus.DONE))
+        assertEquals(null, SessionOrderCopy.settledLabel(OccurrenceStatus.PLANNED))
+        assertEquals(null, SessionOrderCopy.settledLabel(OccurrenceStatus.MISSED))
+    }
+
     @Test
     fun occurrenceLinePrefersSessionOrderOverStatus() {
         assertEquals(
@@ -75,7 +111,12 @@ class SessionOrderCopyTest {
         )
         assertEquals(
             SessionOrderCopy.EMPTY_EDITOR_BODY,
-            "Tap lifts in the order you'll do them. Add puts them on this day.",
+            "Tap lifts in the order you'll do them. Each tap adds one to this routine.",
+        )
+        // The picker writes as it goes, and the hint is where the owner is told so.
+        assertEquals(
+            SessionOrderCopy.PICKER_HINT,
+            "Tap in the order you'll lift. 1 is first, and each tap is saved.",
         )
     }
 
