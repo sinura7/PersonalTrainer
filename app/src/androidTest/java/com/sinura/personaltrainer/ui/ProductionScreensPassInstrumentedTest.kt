@@ -1,12 +1,13 @@
 package com.sinura.personaltrainer.ui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasScrollAction
@@ -33,6 +34,7 @@ import com.sinura.personaltrainer.AppContainer
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.data.repository.SaveExerciseResult
+import com.sinura.personaltrainer.domain.AccessibilityMatrix
 import com.sinura.personaltrainer.domain.ActivityDraft
 import com.sinura.personaltrainer.domain.ActivityOrigin
 import com.sinura.personaltrainer.domain.ActivityStatus
@@ -71,7 +73,9 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -93,11 +97,15 @@ import org.junit.runner.RunWith
  * clears leftovers from an interrupted run. Physical TalkBack traversal stays a manual
  * gate: nothing here can hear an announcement.
  *
- * Widths beyond the emulator's own (411 dp on the `temper-tests-api29` profile) are
- * mounted in a box wider than the viewport, so those assertions use `assertExists` and
- * click actions rather than `assertIsDisplayed`, which would fail for a node clipped by
- * the physical screen rather than by the page.
+ * Width is set by density rather than by a box, because dp width IS pixels over density:
+ * see [mount]. Until 10 Sep 2026 this paragraph claimed the wider widths were "mounted in a
+ * box wider than the viewport", and they were not — `Modifier.size` is a preferred size, so
+ * the emulator's own 411 dp won and every 600 dp pass was a 411 dp pass under another name.
+ * [mountIsAsWideAsItSays] now proves each width before any screen is judged at it.
  */
+/** The only tag [mountIsAsWideAsItSays] needs: a box that fills whatever mount gave it. */
+private const val WIDTH_PROBE = "screens-pass-width-probe"
+
 @RunWith(AndroidJUnit4::class)
 class ProductionScreensPassInstrumentedTest {
     @get:Rule
@@ -176,6 +184,51 @@ class ProductionScreensPassInstrumentedTest {
         compose.onNodeWithTag(HistoryTags.READOUT).assertIsDisplayed()
         compose.onNodeWithTag(HistoryTags.ALL).performClick()
         compose.onNodeWithTag(HistoryTags.READOUT).assertIsDisplayed()
+    }
+
+    /**
+     * The harness before the screens: every other test here is only worth its name if the
+     * viewport really is the width the test says. It was not — `Modifier.size` was coerced by
+     * the emulator's own 411 dp, so both 600 dp passes had never once rendered at 600 dp and
+     * nothing said so. This asserts the width itself, for every entry in
+     * [AccessibilityMatrix.widthsDp], so the matrix cannot drift from what the lane renders.
+     *
+     * A dp is allowed either side: the density that makes 1080 px exactly 600 dp is 1.8, but
+     * 411 needs 2.62773…, and rounding a fractional density back to whole dp cannot land
+     * exactly on every width.
+     */
+    @Test
+    fun mountIsAsWideAsItSays() {
+        AccessibilityMatrix.widthsDp.forEach { widthDp ->
+            var measured = -1
+            mount(widthDp = widthDp, fontScale = 1f) {
+                BoxWithConstraints(Modifier.fillMaxSize()) {
+                    measured = maxWidth.value.roundToInt()
+                    Box(Modifier.fillMaxSize().testTag(WIDTH_PROBE))
+                }
+            }
+            awaitTag(WIDTH_PROBE)
+            assertTrue(
+                "mount(widthDp = $widthDp) gave a viewport $measured dp wide",
+                measured in (widthDp - 1)..(widthDp + 1),
+            )
+        }
+    }
+
+    /** The tallest width in the matrix must also leave a usable page, not a letterbox. */
+    @Test
+    fun theWidestMountStillHasHeightToScroll() {
+        var measuredHeight = -1
+        mount(widthDp = AccessibilityMatrix.widthsDp.max(), fontScale = 1f) {
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                measuredHeight = maxHeight.value.roundToInt()
+                Box(Modifier.fillMaxSize().testTag(WIDTH_PROBE))
+            }
+        }
+        awaitTag(WIDTH_PROBE)
+        // Widening by density lengthens the page too: a 411 dp / 731 dp screen shown as 600 dp
+        // is 1066 dp tall. The old box pinned height at 800 dp and was clipped to 731.
+        assertTrue("widest mount was only $measuredHeight dp tall", measuredHeight >= 600)
     }
 
     @Test
@@ -302,16 +355,39 @@ class ProductionScreensPassInstrumentedTest {
 
     private fun <T : AppViewModel> T.track(): T = also { viewModels += it }
 
+    /**
+     * A viewport that really is [widthDp] wide.
+     *
+     * This was `Box(Modifier.size(widthDp.dp, 800.dp))` inside a `fillMaxSize` parent, and
+     * `Modifier.size` is a *preferred* size: the incoming constraints win. On the lane's
+     * `temper-tests-api29` profile (411 dp) that silently clamped every wider pass to 411, so
+     * `historyAt600Font1StillNamesEveryChip` and `activityReceiptAt600Font1KeepsDoneNamed`
+     * were 411 dp passes wearing a 600 dp name, and `AccessibilityMatrix.widthsDp` named a
+     * width nothing had ever been rendered at.
+     *
+     * Density is the honest lever, because dp width is pixels over density: composing at
+     * `screenPx / widthDp` makes the window itself exactly [widthDp] wide, with nothing
+     * coerced and nothing clipped. `Modifier.requiredWidth` would also defeat the coercion,
+     * but it would hang 189 dp of a 600 dp page off the side of a 411 dp screen, where
+     * `assertIsDisplayed` is false and a screenshot shows the wrong half of the page.
+     *
+     * What this cannot fake is `LocalConfiguration.screenWidthDp`, which still reports the
+     * device. Nothing in `app/src/main` reads it — the only width-sensitive composable is
+     * `BodyMap`'s `BoxWithConstraints`, which reads constraints — so every width decision the
+     * app actually makes does see the width named here.
+     */
     private fun mount(widthDp: Int, fontScale: Float, content: @Composable () -> Unit) {
         compose.setContent {
-            val density = LocalDensity.current
-            PersonalTrainerTheme {
-                CompositionLocalProvider(
-                    LocalDensity provides Density(density.density, fontScale = fontScale),
-                    LocalWeightUnit provides WeightUnit.KG,
-                ) {
-                    Box(Modifier.fillMaxSize()) {
-                        Box(Modifier.size(widthDp.dp, 800.dp)) { content() }
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                PersonalTrainerTheme {
+                    CompositionLocalProvider(
+                        LocalDensity provides Density(
+                            density = constraints.maxWidth.toFloat() / widthDp,
+                            fontScale = fontScale,
+                        ),
+                        LocalWeightUnit provides WeightUnit.KG,
+                    ) {
+                        Box(Modifier.fillMaxSize()) { content() }
                     }
                 }
             }
