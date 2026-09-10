@@ -90,6 +90,12 @@ authorize that work.
    targets, and leaves. Back still discards an empty stub created
    this session. Lifts, reorder, and targets still write through as
    they land. No schema bump. No catalog seed. No sixth tab.
+   Save is truthful: it leaves only when every write it is
+   responsible for landed. A failed or refused write keeps the
+   editor open and says so beside the dock; Back with such a write
+   asks — **Try again** or **Leave without saving these** — and
+   says the write-through edits are already saved. A quiet caption
+   beside the dock explains the split once.
 
 ## Consequences
 

@@ -38,7 +38,14 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** [ErrorSlot] families: a success may clear only its own family's refusal. */
+/**
+ * [ErrorSlot] families: a success may clear only its own family's refusal.
+ *
+ * [ERR_DRAFT] and [ERR_SAVE] are raised into the form's slot; [ERR_CREATE_LIFT] into the
+ * picker sheet's own slot. Two slots, not one, because the two surfaces are on screen at
+ * the same time: a refusal from the sheet must not push the form's refusal off the screen
+ * above Save, and neither may clear the other.
+ */
 private const val ERR_DRAFT = "draft"
 private const val ERR_SAVE = "save"
 private const val ERR_CREATE_LIFT = "createLift"
@@ -66,7 +73,10 @@ data class ActivityComposerUiState(
     val strength: List<ComposerStrengthLine> = emptyList(),
     val cardio: List<ComposerCardioLine> = emptyList(),
     val catalog: List<Exercise> = emptyList(),
+    /** Form-level outcomes: a refused or failed save. Rendered above Save. */
     val error: String? = null,
+    /** The picker's Create row failed. Rendered inside the sheet that asked, and only there. */
+    val createError: String? = null,
     val saving: Boolean = false,
 ) {
     val canShiftLater: Boolean
@@ -107,15 +117,27 @@ class ActivityComposerViewModel @JvmOverloads constructor(
     private val strength = MutableStateFlow(draft.strength())
     private val cardio = MutableStateFlow(draft.cardio())
     private val catalog = MutableStateFlow<List<Exercise>>(emptyList())
+
+    /** Form-level refusals — [ERR_DRAFT], [ERR_SAVE]. Rendered above Save. */
     private val error = ErrorSlot()
+
+    /** The picker's Create row — [ERR_CREATE_LIFT]. Rendered inside the sheet that asked. */
+    private val createError = ErrorSlot()
+
     private val saving = MutableStateFlow(false)
 
     val uiState: StateFlow<ActivityComposerUiState> = combine(
         combine(mode, title, epochDay, catalog) { currentMode, name, day, lifts ->
             Quad(currentMode, name, day, lifts)
         },
-        combine(strength, cardio, error.messages, saving) { sets, cardioLines, err, busy ->
-            Flags(sets, cardioLines, err, busy)
+        combine(
+            strength,
+            cardio,
+            error.messages,
+            saving,
+            createError.messages,
+        ) { sets, cardioLines, err, busy, createProblem ->
+            Flags(sets, cardioLines, err, busy, createProblem)
         },
     ) { quad, flags ->
         ActivityComposerUiState(
@@ -127,6 +149,7 @@ class ActivityComposerViewModel @JvmOverloads constructor(
             cardio = flags.cardio,
             catalog = quad.catalog,
             error = flags.error,
+            createError = flags.createError,
             saving = flags.saving,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ActivityComposerUiState())
@@ -175,6 +198,10 @@ class ActivityComposerViewModel @JvmOverloads constructor(
         error.dismiss()
     }
 
+    fun dismissCreateError() {
+        createError.dismiss()
+    }
+
     fun setEpochDay(value: Long) {
         val today = clock.captureNow().localEpochDay
         epochDay.value = value.coerceAtMost(today)
@@ -220,10 +247,25 @@ class ActivityComposerViewModel @JvmOverloads constructor(
      * The owner chose to leave without saving. The nav entry goes with them, but the
      * draft is cleared explicitly so nothing about "leave" depends on how the back stack
      * happens to be torn down.
+     *
+     * Refused while a save is in flight. Until [confirmActivity] answers, the draft is the
+     * only record of what is being written; dropping it on a Cancel that raced the write
+     * would leave a saved session the screen just called discarded, or a lost one the
+     * screen just called saved. The dock disables Cancel for the same reason; this is the
+     * guard behind it.
      */
     fun discardDraft() {
+        if (saving.value) return
         draft.clear()
     }
+
+    /**
+     * Whether leaving is safe right now. Read from this ViewModel's own flag, not from the
+     * rendered state: [save] sets the flag synchronously, while the screen's collected state
+     * catches up a frame later, and a Back in that frame must not pop the entry — and with it
+     * the coroutine the write is riding on.
+     */
+    fun canLeave(): Boolean = !saving.value
 
     private fun rememberDraft() {
         draft.write(
@@ -276,26 +318,38 @@ class ActivityComposerViewModel @JvmOverloads constructor(
     }
 
     fun createExercise(name: String, muscleGroup: String) {
-        val started = error.mark()
+        val started = createError.mark()
         viewModelScope.launch {
             if (name.isBlank()) {
-                error.fail(source = ERR_CREATE_LIFT, message = "Give that lift a name.")
+                createError.fail(
+                    source = ERR_CREATE_LIFT,
+                    message = SessionOrderCopy.LIFT_NAME_REQUIRED,
+                )
                 return@launch
             }
             runCatchingCancellable {
                 when (val result = container.exerciseRepository.createCustom(name, muscleGroup)) {
                     is SaveExerciseResult.DuplicateName ->
-                        error.fail(source = ERR_CREATE_LIFT, message = DUPLICATE_NAME_MESSAGE)
+                        createError.fail(
+                            source = ERR_CREATE_LIFT,
+                            message = DUPLICATE_NAME_MESSAGE,
+                        )
                     is SaveExerciseResult.MissingMuscle ->
-                        error.fail(source = ERR_CREATE_LIFT, message = MuscleGroups.MISSING_MESSAGE)
+                        createError.fail(
+                            source = ERR_CREATE_LIFT,
+                            message = MuscleGroups.MISSING_MESSAGE,
+                        )
                     is SaveExerciseResult.Saved -> {
-                        error.clearFrom(source = ERR_CREATE_LIFT, before = started)
+                        createError.clearFrom(source = ERR_CREATE_LIFT, before = started)
                         _createdExercise.value = result.exercise
                     }
                 }
             }.onFailure { thrown ->
                 AppLog.w(TAG, "createExercise failed", thrown)
-                error.fail(source = ERR_CREATE_LIFT, message = SessionOrderCopy.CREATE_LIFT_FAILED)
+                createError.fail(
+                    source = ERR_CREATE_LIFT,
+                    message = SessionOrderCopy.CREATE_LIFT_FAILED,
+                )
             }
         }
     }
@@ -404,6 +458,7 @@ class ActivityComposerViewModel @JvmOverloads constructor(
         val cardio: List<ComposerCardioLine>,
         val error: String?,
         val saving: Boolean,
+        val createError: String?,
     )
 
     private companion object {

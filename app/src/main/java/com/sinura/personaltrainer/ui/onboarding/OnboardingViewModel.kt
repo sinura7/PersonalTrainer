@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.onboarding
 
 import android.app.Application
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
@@ -102,10 +103,27 @@ data class OnboardingUiState(
  */
 class OnboardingViewModel @JvmOverloads constructor(
     application: Application,
+    private val savedStateHandle: SavedStateHandle,
     container: AppDependencies = application.appContainer(),
 ) : AppViewModel(application, container) {
-    private val step = MutableStateFlow(OnboardingStep.FOCUS)
-    private val answers = MutableStateFlow(OnboardingAnswers())
+    /**
+     * The step and the answers are mirrored into [SavedStateHandle] on every change.
+     *
+     * Rotation kept this ViewModel; ordinary background reclaim did not, and setup then
+     * reopened on question one with every answer gone — seven taps of the lifter's own
+     * information lost to a phone call. The draft is a few enum names and a number, encoded
+     * with the same codec AppNav already uses to carry answers across the custom-week fork,
+     * so it is bounded by construction. Restoring it writes nothing: [applyPlan] is still
+     * the only method here that touches the database, and it still waits for the tap.
+     */
+    private val step = MutableStateFlow(
+        savedStateHandle.get<String>(KEY_STEP)
+            ?.let { raw -> OnboardingStep.entries.firstOrNull { it.name == raw } }
+            ?: OnboardingStep.FOCUS,
+    )
+    private val restoredAnswers: OnboardingAnswers? =
+        savedStateHandle.get<String>(KEY_ANSWERS)?.let { OnboardingAnswers.decodeDraft(it) }
+    private val answers = MutableStateFlow(restoredAnswers ?: OnboardingAnswers())
     private val applying = MutableStateFlow(false)
     private val error = ErrorSlot()
     private val existingProgram = MutableStateFlow(false)
@@ -120,9 +138,16 @@ class OnboardingViewModel @JvmOverloads constructor(
      */
     private val weekStart = MutableStateFlow(SchedulePreferences.DEFAULT_WEEK_START)
     private val storedWeightUnit = MutableStateFlow(WeightUnit.LBS)
-    private val pendingWeightUnit = MutableStateFlow<WeightUnit?>(null)
-    /** True once the user has answered a question this session. Init seed must not clobber that. */
-    private var answersDirty = false
+    private val pendingWeightUnit = MutableStateFlow<WeightUnit?>(
+        savedStateHandle.get<String>(KEY_WEIGHT_UNIT)
+            ?.let { raw -> WeightUnit.entries.firstOrNull { it.name == raw } },
+    )
+    /**
+     * True once the user has answered a question this session. Init seed must not clobber
+     * that — and a draft restored after process death counts as answered, or the seed from
+     * stored preferences would overwrite exactly what the restore just brought back.
+     */
+    private var answersDirty = restoredAnswers != null
 
     val uiState: StateFlow<OnboardingUiState> = combine(
         step,
@@ -228,6 +253,7 @@ class OnboardingViewModel @JvmOverloads constructor(
             return false
         }
         step.value = path[index - 1]
+        rememberDraft()
         return true
     }
 
@@ -251,6 +277,7 @@ class OnboardingViewModel @JvmOverloads constructor(
             else -> step.value
         }
         step.value = nextStep
+        rememberDraft()
         // Cardio preview does not need the lift catalog. Retrying the seed
         // here showed the catalog-missing banner over a valid cardio plan.
         if (step.value == OnboardingStep.PREVIEW &&
@@ -315,6 +342,7 @@ class OnboardingViewModel @JvmOverloads constructor(
 
     fun setWeightUnit(unit: WeightUnit) {
         pendingWeightUnit.value = unit
+        savedStateHandle[KEY_WEIGHT_UNIT] = unit.name
     }
 
     fun setGoal(value: TrainingGoal) = advance { it.copy(goal = value) }
@@ -368,6 +396,13 @@ class OnboardingViewModel @JvmOverloads constructor(
         answersDirty = true
         answers.value = transform(answers.value)
         error.dismiss()
+        rememberDraft()
+    }
+
+    /** Mirror the step and the answers so a recreated process reopens where setup left off. */
+    private fun rememberDraft() {
+        savedStateHandle[KEY_STEP] = step.value.name
+        savedStateHandle[KEY_ANSWERS] = OnboardingAnswers.encodeDraft(answers.value)
     }
 
     /** Answer and move on. Single-choice questions do not need a separate Next tap. */
@@ -382,6 +417,12 @@ class OnboardingViewModel @JvmOverloads constructor(
         val existingProgram: Boolean,
         val weekStart: Weekday,
     )
+
+    private companion object {
+        const val KEY_STEP = "onboarding.step"
+        const val KEY_ANSWERS = "onboarding.answers"
+        const val KEY_WEIGHT_UNIT = "onboarding.weightUnit"
+    }
 
     /**
      * The flags that ride alongside the answers. A named type rather than a Triple, because

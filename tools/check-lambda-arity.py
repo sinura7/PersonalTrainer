@@ -9,10 +9,11 @@ updated and two were not. Twenty static checkers, a 1202-test JVM lane and three
 independent reviewers all passed it, because none of them types a lambda and the two
 stale callers live in files the diff never touched.
 
-`tools/compile-check.sh` catches this properly — it runs the real compiler — but it
-downloads about 186 MB on first use and is deliberately outside `preflight.sh`. This
-checker is the offline half: it is regex over source, it knows nothing about types, and
-it answers exactly one question. Counting parameters needs no type system.
+`./gradlew compileDebugKotlin` catches this properly — the real compiler against the
+real dependencies — and is what the merge gate runs. This checker is the cheap half: it
+stays in `preflight.sh` because it costs a second and needs no SDK, so a stale caller is
+named before a build is ever started. It is regex over source, it knows nothing about
+types, and it answers exactly one question. Counting parameters needs no type system.
 
 SCOPE, AND WHY IT IS THIS NARROW
 --------------------------------

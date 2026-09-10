@@ -39,22 +39,49 @@ object ComposerCopy {
 
     fun weightFieldLabel(unit: WeightUnit): String = "Weight ${unit.suffix}"
 
-    fun parseWeightToKg(input: String, unit: WeightUnit): Double =
-        WeightConverter.parseDisplayToKg(input, unit, originalKg = null) ?: 0.0
-
-    fun parseDistanceKm(input: String): Double? =
-        parseDistanceToKm(input, DistanceUnit.KM)
-
-    fun parseDistanceToKm(input: String, unit: DistanceUnit): Double? {
-        val amount = NumericEntry.parseDecimal(input)?.takeIf { it > 0.0 } ?: return null
-        return when (unit) {
-            DistanceUnit.KM -> amount
-            DistanceUnit.MI -> amount * DistanceUnit.METERS_PER_MILE / 1_000.0
+    /**
+     * One Add set, judged as a whole so both boxes can complain at once.
+     *
+     * A blank weight is bodyweight — the field starts at 0 and the hint on every other weight
+     * field in the app says "leave empty for bodyweight only" — so blank reads as 0 kg. That is
+     * the only default here. Reps has none: a set with no rep count is not a set, and the old
+     * `toIntOrNull() ?: 0` fall-through handed the ViewModel a zero it then had to refuse with
+     * a banner at the top of a long list.
+     */
+    fun strengthEntry(weightText: String, repsText: String, unit: WeightUnit): StrengthEntry {
+        val weight = NumericEntry.typedWeightKg(weightText, unit)
+        // Uncapped, as this path always was: the 100-rep guard belongs to the live dialog's
+        // mis-tap case, not to writing up yesterday's 150 push-ups.
+        val reps = NumericEntry.typedWhole(input = repsText, min = 1, rule = NumericEntry.REPS_WHOLE_RULE)
+        val weightError = weight.messageOrNull
+        val repsError = reps.messageOrNull ?: if (reps is NumericEntry.Typed.Blank) NumericEntry.REPS_WHOLE_RULE else null
+        if (weightError != null || repsError != null) {
+            return StrengthEntry.RefusedSet(weightError = weightError, repsError = repsError)
         }
+        return StrengthEntry.ReadySet(
+            weightKg = weight.valueOrNull ?: 0.0,
+            reps = checkNotNull(reps.valueOrNull),
+        )
     }
 
-    fun parseDistanceToMeters(input: String, unit: DistanceUnit): Double? =
-        parseDistanceToKm(input, unit)?.times(1_000.0)
+    /**
+     * One Add cardio. Minutes is required and whole; distance is optional and, when typed,
+     * must read as a number in the display unit. Neither box is ever rewritten to make it fit.
+     */
+    fun cardioEntry(minutesText: String, distanceText: String, unit: DistanceUnit): CardioEntry {
+        val minutes = NumericEntry.typedWhole(input = minutesText, min = 1, rule = NumericEntry.MINUTES_RULE)
+        val distance = NumericEntry.typedDistanceKm(distanceText, unit)
+        val minutesError = minutes.messageOrNull
+            ?: if (minutes is NumericEntry.Typed.Blank) NumericEntry.MINUTES_RULE else null
+        val distanceError = distance.messageOrNull
+        if (minutesError != null || distanceError != null) {
+            return CardioEntry.RefusedCardio(minutesError = minutesError, distanceError = distanceError)
+        }
+        return CardioEntry.ReadyCardio(
+            minutes = checkNotNull(minutes.valueOrNull),
+            distanceKm = distance.valueOrNull,
+        )
+    }
 
     fun strengthLineSubtitle(reps: Int, weightKg: Double, unit: WeightUnit): String =
         "$reps reps · ${weightKg.toWeightLabel(unit)}"
@@ -96,4 +123,21 @@ object ComposerCopy {
             strengthCount > 0 ||
             cardioCount > 0 ||
             epochDay != todayEpochDay
+}
+
+/**
+ * What one Add set attempt amounted to. [RefusedSet] carries a message per box that broke a rule.
+ * The variants carry the entry's name so a `when` over them is unambiguous to read and to check.
+ */
+sealed interface StrengthEntry {
+    data class ReadySet(val weightKg: Double, val reps: Int) : StrengthEntry
+
+    data class RefusedSet(val weightError: String?, val repsError: String?) : StrengthEntry
+}
+
+/** What one Add cardio attempt amounted to. */
+sealed interface CardioEntry {
+    data class ReadyCardio(val minutes: Int, val distanceKm: Double?) : CardioEntry
+
+    data class RefusedCardio(val minutesError: String?, val distanceError: String?) : CardioEntry
 }

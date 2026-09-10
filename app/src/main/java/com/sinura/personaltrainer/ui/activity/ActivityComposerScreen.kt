@@ -29,11 +29,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.CardioCopy
+import com.sinura.personaltrainer.domain.CardioEntry
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CatalogMeta
 import com.sinura.personaltrainer.domain.CivilDate
@@ -45,9 +47,12 @@ import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
 import com.sinura.personaltrainer.domain.ExercisePickerState
 import com.sinura.personaltrainer.domain.NumericEntry
+import com.sinura.personaltrainer.domain.StrengthEntry
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
+import com.sinura.personaltrainer.ui.components.FieldComplaint
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
+import com.sinura.personaltrainer.ui.components.fieldError
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -56,8 +61,10 @@ import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.components.imeAction
 import com.sinura.personaltrainer.ui.theme.Danger
+import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.TextDisabled
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
@@ -79,12 +86,19 @@ fun ActivityComposerScreen(
         onSaved(id)
     }
 
-    val leave = {
-        if (state.isDirty) {
-            confirmLeave = true
-        } else {
-            viewModel.discardDraft()
-            onBack()
+    // While a save is in flight its outcome is unknown, so nothing here may discard the draft
+    // or pop the route: a popped entry takes the ViewModel — and the write it is waiting on —
+    // with it, and "Going back drops this draft" would then be said of work that may already
+    // be in Room. Cancel is disabled and Back is swallowed until the write answers; a save
+    // takes milliseconds, and the dock's "Saving…" is the whole of the wait.
+    val leave: () -> Unit = {
+        if (viewModel.canLeave()) {
+            if (state.isDirty) {
+                confirmLeave = true
+            } else {
+                viewModel.discardDraft()
+                onBack()
+            }
         }
     }
     BackHandler(onBack = leave)
@@ -92,11 +106,22 @@ fun ActivityComposerScreen(
     Scaffold(
         modifier = Modifier.imePadding(),
         bottomBar = {
-            ComposerSaveDock(
-                saving = state.saving,
-                onSave = viewModel::save,
-                onCancel = leave,
-            )
+            Column {
+                // Form-level outcomes sit where Save is pressed, not in a banner at the top of
+                // a list the thumb has long since scrolled past.
+                state.error?.let { message ->
+                    GymErrorBanner(
+                        message = message,
+                        modifier = Modifier.padding(horizontal = Metrics.gutter),
+                        onDismiss = viewModel::dismissError,
+                    )
+                }
+                ComposerSaveDock(
+                    saving = state.saving,
+                    onSave = viewModel::save,
+                    onCancel = leave,
+                )
+            }
         },
     ) { padding ->
         LazyColumn(
@@ -114,9 +139,6 @@ fun ActivityComposerScreen(
                     style = InstrumentType.body,
                     color = TextSecondary,
                 )
-            }
-            state.error?.let { message ->
-                item { GymErrorBanner(message, onDismiss = viewModel::dismissError) }
             }
             item {
                 OutlinedTextField(
@@ -173,6 +195,8 @@ fun ActivityComposerScreen(
                         onCreate = viewModel::createExercise,
                         created = createdExercise,
                         onCreatedHandled = viewModel::onCreatedExerciseHandled,
+                        pickerError = state.createError,
+                        onPickerErrorDismissed = viewModel::dismissCreateError,
                     )
                 }
             }
@@ -236,11 +260,18 @@ internal fun ComposerSaveDock(
             )
         },
         secondary = {
+            // Disabled, not hidden, while saving: the control stays where the thumb expects it
+            // and the disabled ink says why it will not fire.
             TextButton(
                 onClick = onCancel,
+                enabled = !saving,
                 modifier = Modifier.testTag(ComposerTags.CANCEL),
             ) {
-                Text(ComposerCopy.CANCEL, style = InstrumentType.bodyStrong, color = TextSecondary)
+                Text(
+                    ComposerCopy.CANCEL,
+                    style = InstrumentType.bodyStrong,
+                    color = if (saving) TextDisabled else TextSecondary,
+                )
             }
         },
     )
@@ -253,6 +284,9 @@ private fun StrengthAdder(
     onCreate: (String, String) -> Unit = { _, _ -> },
     created: Exercise? = null,
     onCreatedHandled: () -> Unit = {},
+    /** A Create-row failure, shown inside the sheet that asked — a banner behind a modal is invisible. */
+    pickerError: String? = null,
+    onPickerErrorDismissed: () -> Unit = {},
 ) {
     val unit = LocalWeightUnit.current
     var pickerOpen by rememberSaveable { mutableStateOf(false) }
@@ -260,6 +294,11 @@ private fun StrengthAdder(
     var pickedId by rememberSaveable { mutableStateOf(catalog.firstOrNull()?.id.orEmpty()) }
     var weight by rememberSaveable { mutableStateOf("0") }
     var reps by rememberSaveable { mutableStateOf("8") }
+    // Set by Add set when a box cannot be read as written; cleared by the next keystroke in
+    // that box. The text itself is never rewritten — see NumericEntry.
+    var weightError by rememberSaveable { mutableStateOf<String?>(null) }
+    var repsError by rememberSaveable { mutableStateOf<String?>(null) }
+    val view = LocalView.current
     LaunchedEffect(catalog) {
         if (pickedId.isEmpty()) {
             pickedId = catalog.firstOrNull()?.id.orEmpty()
@@ -293,9 +332,14 @@ private fun StrengthAdder(
             val repsFocus = remember { FocusRequester() }
             OutlinedTextField(
                 value = weight,
-                onValueChange = { weight = NumericEntry.filterDecimal(it) },
+                onValueChange = {
+                    weight = it
+                    weightError = null
+                },
                 label = { Text(ComposerCopy.weightFieldLabel(unit)) },
                 singleLine = true,
+                isError = weightError != null,
+                supportingText = complaintSlot(weightError),
                 textStyle = InstrumentType.numeralMd,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Decimal,
@@ -304,13 +348,19 @@ private fun StrengthAdder(
                 keyboardActions = KeyboardActions(onNext = { repsFocus.requestFocus() }),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .focusRequester(weightFocus),
+                    .focusRequester(weightFocus)
+                    .fieldError(weightError),
             )
             OutlinedTextField(
                 value = reps,
-                onValueChange = { reps = it.filter(Char::isDigit) },
+                onValueChange = {
+                    reps = it
+                    repsError = null
+                },
                 label = { Text(ComposerCopy.REPS) },
                 singleLine = true,
+                isError = repsError != null,
+                supportingText = complaintSlot(repsError),
                 textStyle = InstrumentType.numeralMd,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Number,
@@ -318,13 +368,33 @@ private fun StrengthAdder(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .focusRequester(repsFocus),
+                    .focusRequester(repsFocus)
+                    .fieldError(repsError),
             )
             SecondaryGymButton(
                 text = ComposerCopy.ADD_SET,
                 onClick = {
                     val lift = exercise ?: return@SecondaryGymButton
-                    onAdd(lift, ComposerCopy.parseWeightToKg(weight, unit), reps.toIntOrNull() ?: 0)
+                    when (val entry = ComposerCopy.strengthEntry(weight, reps, unit)) {
+                        is StrengthEntry.ReadySet -> {
+                            weightError = null
+                            repsError = null
+                            onAdd(lift, entry.weightKg, entry.reps)
+                        }
+                        is StrengthEntry.RefusedSet -> {
+                            // The text stays exactly as typed; the complaint goes under the
+                            // box that earned it and focus moves there, so the fix is one
+                            // keystroke away instead of a banner somewhere above.
+                            weightError = entry.weightError
+                            repsError = entry.repsError
+                            Haptics.reject(view)
+                            if (entry.weightError != null) {
+                                weightFocus.requestFocus()
+                            } else {
+                                repsFocus.requestFocus()
+                            }
+                        }
+                    }
                 },
                 modifier = Modifier.testTag(ComposerTags.ADD_SET),
             )
@@ -338,6 +408,7 @@ private fun StrengthAdder(
                 title = ComposerCopy.PICKER_TITLE,
                 mode = ExercisePickerMode.SINGLE_ADD,
                 catalog = catalog,
+                error = pickerError,
             ),
             onEvent = { event ->
                 when (event) {
@@ -349,9 +420,10 @@ private fun StrengthAdder(
                     }
                     is ExercisePickerEvent.Created ->
                         onCreate(event.name, event.muscleGroup)
-                    is ExercisePickerEvent.Toggled,
-                    ExercisePickerEvent.ErrorDismissed,
-                    -> Unit
+                    // Multi-add taps are written as they land (#201), so SINGLE_ADD never
+                    // sees a Toggled; the arm is here only to keep the when exhaustive.
+                    is ExercisePickerEvent.Toggled -> Unit
+                    ExercisePickerEvent.ErrorDismissed -> onPickerErrorDismissed()
                     ExercisePickerEvent.Dismissed -> {
                         pickerQuery = ""
                         pickerOpen = false
@@ -374,6 +446,9 @@ private fun CardioAdder(
     var indoor by rememberSaveable { mutableStateOf(false) }
     var minutes by rememberSaveable { mutableStateOf("30") }
     var distance by rememberSaveable { mutableStateOf("") }
+    var minutesError by rememberSaveable { mutableStateOf<String?>(null) }
+    var distanceError by rememberSaveable { mutableStateOf<String?>(null) }
+    val view = LocalView.current
     val cardioChain = NumericEntry.COMPOSER_CARDIO_CHAIN
     val minutesFocus = remember { FocusRequester() }
     val distanceFocus = remember { FocusRequester() }
@@ -409,9 +484,14 @@ private fun CardioAdder(
         }
         OutlinedTextField(
             value = minutes,
-            onValueChange = { minutes = it.filter(Char::isDigit) },
+            onValueChange = {
+                minutes = it
+                minutesError = null
+            },
             label = { Text(ComposerCopy.MINUTES) },
             singleLine = true,
+            isError = minutesError != null,
+            supportingText = complaintSlot(minutesError),
             textStyle = InstrumentType.numeralMd,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Number,
@@ -420,13 +500,19 @@ private fun CardioAdder(
             keyboardActions = KeyboardActions(onNext = { distanceFocus.requestFocus() }),
             modifier = Modifier
                 .fillMaxWidth()
-                .focusRequester(minutesFocus),
+                .focusRequester(minutesFocus)
+                .fieldError(minutesError),
         )
         OutlinedTextField(
             value = distance,
-            onValueChange = { distance = NumericEntry.filterDecimal(it) },
+            onValueChange = {
+                distance = it
+                distanceError = null
+            },
             label = { Text(CardioCopy.distanceLabel(distanceUnit)) },
             singleLine = true,
+            isError = distanceError != null,
+            supportingText = complaintSlot(distanceError),
             textStyle = InstrumentType.numeralMd,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Decimal,
@@ -434,22 +520,41 @@ private fun CardioAdder(
             ),
             modifier = Modifier
                 .fillMaxWidth()
-                .focusRequester(distanceFocus),
+                .focusRequester(distanceFocus)
+                .fieldError(distanceError),
         )
         SecondaryGymButton(
             text = ComposerCopy.ADD_CARDIO,
             onClick = {
-                onAdd(
-                    type,
-                    minutes.toIntOrNull() ?: 0,
-                    ComposerCopy.parseDistanceToKm(distance, distanceUnit),
-                    indoor,
-                )
+                when (val entry = ComposerCopy.cardioEntry(minutes, distance, distanceUnit)) {
+                    is CardioEntry.ReadyCardio -> {
+                        minutesError = null
+                        distanceError = null
+                        onAdd(type, entry.minutes, entry.distanceKm, indoor)
+                    }
+                    is CardioEntry.RefusedCardio -> {
+                        minutesError = entry.minutesError
+                        distanceError = entry.distanceError
+                        Haptics.reject(view)
+                        if (entry.minutesError != null) {
+                            minutesFocus.requestFocus()
+                        } else {
+                            distanceFocus.requestFocus()
+                        }
+                    }
+                }
             },
             modifier = Modifier.testTag(ComposerTags.ADD_CARDIO),
         )
     }
 }
+
+/**
+ * The complaint under a numeric box, or nothing. A slot rather than an always-present caption,
+ * so a clean form has no empty line reserved under every field.
+ */
+private fun complaintSlot(message: String?): (@Composable () -> Unit)? =
+    message?.let { text -> { FieldComplaint(text) } }
 
 @Composable
 private fun RemoveLineButton(

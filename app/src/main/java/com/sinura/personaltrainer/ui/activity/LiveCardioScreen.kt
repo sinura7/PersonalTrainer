@@ -36,7 +36,9 @@ import com.sinura.personaltrainer.domain.LiveSessionRules
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
+import com.sinura.personaltrainer.ui.components.FieldComplaint
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
+import com.sinura.personaltrainer.ui.components.fieldError
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -192,17 +194,27 @@ fun LiveCardioScreen(
                     onClick = { viewModel.setIndoor(false) },
                 )
             }
+            // The complaint under the box, as a slot: same shape as NumberEntryDialog's suffix.
+            val distanceComplaint: (@Composable () -> Unit)? = state.distanceError?.let { message ->
+                { FieldComplaint(message) }
+            }
             OutlinedTextField(
                 value = state.distanceKm,
-                onValueChange = { viewModel.setDistanceKm(NumericEntry.filterDecimal(it)) },
+                // Kept exactly as typed. Finish reads it and refuses, under this box, anything
+                // that is not a distance — rather than a filter quietly turning "-5" into "5".
+                onValueChange = { viewModel.setDistanceKm(it) },
                 label = { Text(CardioCopy.distanceLabel(distanceUnit)) },
                 singleLine = true,
+                isError = state.distanceError != null,
+                supportingText = distanceComplaint,
                 textStyle = InstrumentType.numeralMd,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Decimal,
                     imeAction = NumericEntry.LIVE_CARDIO_DISTANCE.imeAction(),
                 ),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fieldError(state.distanceError),
             )
         }
     }

@@ -6,6 +6,7 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.appContainer
+import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.LiveSessionRules
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.AppClock
@@ -229,9 +230,13 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
                         AppLog.w(TAG, "Finishing from the bar did not complete: nothing logged")
                         _actionError.value = "Log at least one set before finishing."
                     }
-                    else -> {
+                    FinishOutcome.SessionMissing -> {
+                        AppLog.w(TAG, "Finishing from the bar found no live row")
+                        _actionError.value = DataHealthCopy.FINISH_NOT_FOUND
+                    }
+                    is FinishOutcome.Failed -> {
                         AppLog.w(TAG, "Finishing from the bar did not complete: $outcome")
-                        _actionError.value = "Could not finish this workout. Try again."
+                        _actionError.value = DataHealthCopy.FINISH_FAILED
                     }
                 }
             }

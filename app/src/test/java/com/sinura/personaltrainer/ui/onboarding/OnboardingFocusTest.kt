@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.onboarding
 
 import android.app.Application
+import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
@@ -51,7 +52,7 @@ class OnboardingFocusTest {
 
     @Test
     fun guidedPathAsksFocusBeforeExperienceAndWritesNothingUntilApply() = runBlocking {
-        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
         val focused = withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.step == OnboardingStep.FOCUS } }
         assertEquals(OnboardingStep.FOCUS, focused.step)
         viewModel!!.setFocus(TrainingFocus.CARDIO)
@@ -68,7 +69,7 @@ class OnboardingFocusTest {
 
     @Test
     fun cardioFocusPreviewDoesNotInventLifts() = runBlocking {
-        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
         viewModel!!.setFocus(TrainingFocus.CARDIO)
         val preview = withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.preview != null }.preview!! }
         assertTrue(preview.routines.isEmpty())
@@ -80,13 +81,17 @@ class OnboardingFocusTest {
         val original = OnboardingAnswers(focus = TrainingFocus.BOTH)
         val restored = OnboardingAnswers.decodeDraft(OnboardingAnswers.encodeDraft(original))!!
         assertEquals(TrainingFocus.BOTH, restored.focus)
-        val old = OnboardingAnswers.encodeDraft(OnboardingAnswers()).substringBeforeLast("|")
+        // An eight-field draft from before the kit field existed: drop the last field only.
+        val beforeKit = OnboardingAnswers.encodeDraft(OnboardingAnswers()).substringBeforeLast("|")
+        assertEquals(TrainingFocus.STRENGTH, OnboardingAnswers.decodeDraft(beforeKit)!!.focus)
+        // A seven-part draft from before focus (and before kit) existed: drop the last two fields.
+        val old = OnboardingAnswers.encodeDraft(OnboardingAnswers()).split("|").take(7).joinToString("|")
         assertEquals(TrainingFocus.STRENGTH, OnboardingAnswers.decodeDraft(old)!!.focus)
     }
 
     @Test
     fun cardioPathSkipsLiftOnlyQuestions() = runBlocking {
-        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
         withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.step == OnboardingStep.FOCUS } }
         viewModel!!.setFocus(TrainingFocus.CARDIO)
         val days = withTimeout(TestWaits.FLOW_MS) {
@@ -106,7 +111,7 @@ class OnboardingFocusTest {
 
     @Test
     fun cardioPreviewDoesNotRaiseACatalogError() = runBlocking {
-        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
         withTimeout(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.step == OnboardingStep.FOCUS } }
         viewModel!!.setFocus(TrainingFocus.CARDIO)
         repeat(4) { viewModel!!.next() }

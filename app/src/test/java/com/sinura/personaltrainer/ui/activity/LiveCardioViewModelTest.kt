@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.ActivityWrite
 import com.sinura.personaltrainer.domain.CardioBlock
 import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.ActivityReadGate
 import com.sinura.personaltrainer.testutil.FailingGetGraphDao
@@ -85,6 +86,43 @@ class LiveCardioViewModelTest {
         assertNull(deps.cardioTimerPersistence.load())
         val completed = deps.activityRepository.get(live.id)
         assertEquals(1_500.0, completed?.cardioBlocks?.single()?.distanceMeters)
+    }
+
+    /**
+     * UX06: the distance box is kept as typed and read at Finish. Text that is not a distance
+     * stops the finish with the rule under the box; it is not dropped, and it is not rewritten.
+     */
+    @Test
+    fun finishRefusesAnUnreadableDistanceAndKeepsTheSessionLive() = runBlocking {
+        deps.preferencesRepository.setWeightUnit(WeightUnit.KG)
+        val now = JvmTime.captureNow()
+        val started = deps.startLiveActivity("Easy run", listOf(runBlock()), now)
+        val live = (started as ActivityWrite.Accepted).session
+        val vm = createViewModel(
+            sessionId = live.id,
+            elapsedRealtime = { 60_000L },
+            wallClock = { now.instantMillis + 60_000L },
+        )
+        vm.uiState.awaitFirst { it.session != null }
+
+        vm.setDistanceKm("-5")
+        vm.finish()
+
+        // Both writes: distanceError lands a moment before finishing clears, on an IO thread.
+        val refused = withTimeout(5_000) { vm.uiState.first { it.distanceError != null && !it.finishing } }
+        assertEquals(NumericEntry.DISTANCE_RULE, refused.distanceError)
+        assertEquals("-5", refused.distanceKm)
+        assertFalse(refused.finishing)
+        assertNull(vm.finishedId.value)
+        assertTrue(deps.activityRepository.get(live.id)!!.isLive)
+
+        // Retyping clears the complaint; a readable value finishes as before.
+        vm.setDistanceKm("5")
+        assertNull(vm.uiState.awaitFirst { it.distanceKm == "5" }.distanceError)
+        vm.finish()
+        val finishedId = withTimeout(5_000) { vm.finishedId.first { it != null } }
+        assertEquals(live.id, finishedId)
+        assertEquals(5_000.0, deps.activityRepository.get(live.id)!!.cardioBlocks.single().distanceMeters!!, 0.001)
     }
 
     @Test

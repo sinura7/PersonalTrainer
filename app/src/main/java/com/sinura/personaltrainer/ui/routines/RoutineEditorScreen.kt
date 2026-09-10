@@ -34,6 +34,7 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
 import com.sinura.personaltrainer.domain.ExercisePickerState
+import com.sinura.personaltrainer.domain.RoutineSaveCopy
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.NotesBlock
@@ -41,6 +42,7 @@ import com.sinura.personaltrainer.ui.components.NotesKind
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.ExerciseRow
+import com.sinura.personaltrainer.ui.components.FieldComplaint
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -87,6 +89,8 @@ fun RoutineEditorScreen(
             if (!state.isLoading && !state.failed && !state.missing && lifts.isNotEmpty()) {
                 RoutineSaveDock(
                     enabled = !state.addingLifts,
+                    saving = state.saving,
+                    error = state.saveError,
                     onSave = viewModel::saveAndLeave,
                 )
             }
@@ -199,10 +203,11 @@ fun RoutineEditorScreen(
                             exerciseId != null && state.swapCandidates(exerciseId).isNotEmpty()
                         },
                         onSwap = { id -> viewModel.requestSwap(id) },
-                        onStageTargets = { id, sets, reps, rest, kg ->
-                            viewModel.stageTargets(id, sets, reps, kg, rest)
+                        onStageTargets = { id, sets, reps, rest, kg, invalid ->
+                            viewModel.stageTargets(id, sets, reps, kg, rest, invalid)
                         },
                         onCommitTargets = { id -> viewModel.commitTargets(id) },
+                        onForgetTargetRule = { id -> viewModel.forgetTargetRule(id) },
                     )
                 }
             }
@@ -285,13 +290,30 @@ fun RoutineEditorScreen(
             onDismiss = { pendingRemoveId = null },
         )
     }
+
+    // Back could not land something Save is responsible for. Leaving is the destructive
+    // choice here — it drops the draft — so it is the red one, and "Try again" is the plain
+    // dismissal, which also covers a tap outside the dialog: retrying is never the wrong
+    // default when the alternative is losing work.
+    state.unsavedOnBack?.let { unsaved ->
+        ConfirmActionDialog(
+            title = RoutineSaveCopy.UNSAVED_TITLE,
+            body = unsaved.backPromptBody,
+            confirmLabel = RoutineSaveCopy.LEAVE_ANYWAY,
+            destructive = true,
+            onConfirm = viewModel::leaveAnyway,
+            onDismiss = viewModel::leave,
+            dismissLabel = RoutineSaveCopy.TRY_AGAIN,
+        )
+    }
 }
 
 /**
  * Back and a label. Save sits in the dock when the routine has lifts.
  *
  * Lifts, reorder, and targets still write through as they land. Save
- * flushes the name and notes and keeps the program (ADR-021).
+ * flushes the name and notes and keeps the program (ADR-021), and stays
+ * on the screen if any of that did not land.
  */
 @Composable
 internal fun RoutineEditorHeader(onBack: () -> Unit) {
@@ -307,20 +329,45 @@ object RoutineEditorTags {
     const val BACK = "routine-editor-back"
     const val ADD_LIFTS = "routine-editor-add-lifts"
     const val SAVE = "routine-editor-save"
+    const val SAVE_ERROR = "routine-editor-save-error"
 }
 
+/**
+ * The Save dock, and the one place the write-through model is explained.
+ *
+ * The caption sits above the button because the button's label — "Save" — is otherwise a
+ * small lie about the lifts, which are already saved. A failed Save says why directly above
+ * the button that was pressed, not in the banner at the top of the list the owner has
+ * scrolled past; while the attempt runs the label reads "Saving…" and the button is off,
+ * so a second press cannot start a second exit.
+ */
 @Composable
 private fun RoutineSaveDock(
     enabled: Boolean,
+    saving: Boolean,
+    error: String?,
     onSave: () -> Unit,
 ) {
     PinnedDock(
+        prelude = {
+            Text(
+                text = RoutineSaveCopy.WRITE_THROUGH,
+                style = InstrumentType.caption,
+                color = TextTertiary,
+            )
+            if (error != null) {
+                FieldComplaint(
+                    message = error,
+                    modifier = Modifier.testTag(RoutineEditorTags.SAVE_ERROR),
+                )
+            }
+        },
         volt = {
             PrimaryGymButton(
-                text = SessionOrderCopy.SAVE_ROUTINE,
+                text = RoutineSaveCopy.saveLabel(saving),
                 onClick = onSave,
                 modifier = Modifier.testTag(RoutineEditorTags.SAVE),
-                enabled = enabled,
+                enabled = enabled && !saving,
             )
         },
     )

@@ -97,6 +97,54 @@ object RoutineEditorPolicy {
             restSeconds = rest,
         )
     }
+
+    /**
+     * Whether the editor may pop after an exit attempt, and if not, what to tell the owner.
+     *
+     * Save used to pop the screen whatever the writes did: a details write that threw was
+     * logged and the exit carried on, and a target write that threw left its value staged
+     * with nobody checking. The owner saw Save succeed and lost the rename. This is the one
+     * rule that decides, from the reported outcomes, whether the exit was honest.
+     *
+     * 1. **[RoutineWriteOutcome.Stored] and [RoutineWriteOutcome.NothingToWrite] are landed.**
+     *    Nothing was lost and nothing is owed.
+     * 2. **[RoutineWriteOutcome.Failed] blocks the exit.** The value is still held — the name
+     *    and notes in state, the targets still staged — so the right answer is to stay, say
+     *    so, and let the next Save try again.
+     * 3. **[RoutineWriteOutcome.Rejected] blocks the exit too, on Save and on Back alike.**
+     *    The owner typed something the routine cannot hold. Save says so with the card's own
+     *    words and stays. Back could technically leave — nothing would be corrupted — but a
+     *    card still reading "0 sets" while Room keeps 3 is exactly the quiet loss this exists
+     *    to stop, so Back counts it as unsaved and asks, rather than dropping it.
+     * 4. **One message.** When several writes did not land, a rejection is reported before a
+     *    failure, because retrying cannot fix a rejection and the owner must change the value
+     *    first; among failures, the targets are reported before the details because the
+     *    flush ran in that order. Every unsaved write is still listed in [RoutineExitOutcome.Unsaved.items],
+     *    in flush order, for the Back prompt.
+     */
+    fun exitOutcome(
+        details: RoutineWriteOutcome,
+        targets: List<RoutineTargetsOutcome>,
+    ): RoutineExitOutcome {
+        val unsavedTargets = targets.filterNot { it.outcome.landed }
+        if (unsavedTargets.isEmpty() && details.landed) return RoutineExitOutcome.Landed
+        val items = unsavedTargets.map { RoutineSaveCopy.targetsItem(it.liftName) } +
+            listOfNotNull(RoutineSaveCopy.DETAILS_ITEM.takeUnless { details.landed })
+        val rejection = unsavedTargets.firstNotNullOfOrNull { rejectionReason(it.outcome) }
+            ?: rejectionReason(details)
+        val failure = unsavedTargets.firstNotNullOfOrNull { target ->
+            RoutineSaveCopy.targetsFailed(target.liftName).takeIf { target.outcome is RoutineWriteOutcome.Failed }
+        } ?: RoutineSaveCopy.DETAILS_FAILED.takeIf { details is RoutineWriteOutcome.Failed }
+        return RoutineExitOutcome.Unsaved(
+            message = rejection ?: failure ?: RoutineSaveCopy.DETAILS_FAILED,
+            items = items,
+        )
+    }
+
+    private fun rejectionReason(outcome: RoutineWriteOutcome): String? = when (outcome) {
+        RoutineWriteOutcome.Stored, RoutineWriteOutcome.NothingToWrite, RoutineWriteOutcome.Failed -> null
+        is RoutineWriteOutcome.Rejected -> outcome.reason
+    }
 }
 
 /** The name and notes to write on the way out of the routine editor. */

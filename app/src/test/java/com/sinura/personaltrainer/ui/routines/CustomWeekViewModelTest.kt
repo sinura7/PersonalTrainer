@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.TestSetInput
@@ -25,6 +26,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -359,6 +361,298 @@ class CustomWeekViewModelTest {
         assertEquals(squat.id, state.selectedLifts.single().exercise.id)
         assertEquals("Squat", state.selectedLifts.single().exercise.name)
         assertTrue(state.canConfirm)
+    }
+
+    @Test
+    fun aTargetBoxThatCannotBeReadBlocksConfirmWithItsRule() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val vm = createViewModel()
+        vm.uiState.awaitFirst { it.catalog.any { exercise -> exercise.id == squat.id } }
+        vm.togglePicked(squat)
+        val lift = vm.uiState.awaitFirst { it.selectedLifts.size == 1 }.selectedLifts.single()
+
+        // The reps box reads "8.5". Nothing is staged from it, so the lift keeps its stored
+        // reps — which is exactly the mismatch that must not be written past.
+        vm.stageTargets(
+            lift.id,
+            sets = 4,
+            reps = null,
+            rest = 150,
+            weightKg = 80.0,
+            invalidReason = NumericEntry.REPS_WHOLE_RULE,
+        )
+        // Read, do not wait: a card carrying a rule stages NOTHING, so waiting for targetSets
+        // to become 4 would hang until awaitFirst gave up. That is the point of the fix — the
+        // sets box reads 4 on screen and the week still holds what it held, and Confirm is
+        // what refuses. stageTargets is synchronous under an unconfined dispatcher.
+        val staged = vm.uiState.value
+        assertNotEquals(4, staged.selectedLifts.single().targetSets)
+        assertTrue(staged.canConfirm)
+        assertNull(staged.error)
+
+        vm.confirm()
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(
+            NumericEntry.REPS_WHOLE_RULE,
+            vm.uiState.awaitFirst { it.error == NumericEntry.REPS_WHOLE_RULE }.error,
+        )
+        assertFalse(vm.finished.value)
+        assertTrue(deps.routineRepository.observeAll().first().isEmpty())
+        assertFalse(deps.preferencesRepository.onboardingComplete.first())
+
+        // Fixing the box clears its complaint and lets the week through.
+        vm.stageTargets(lift.id, sets = 4, reps = 6, rest = 150, weightKg = 80.0)
+        val fixed = vm.uiState.awaitFirst { it.selectedLifts.singleOrNull()?.targetReps == 6 }
+        assertNull(fixed.error)
+
+        vm.confirm()
+        vm.finished.awaitFirst { it }
+        val routines = deps.routineRepository.observeAll().first()
+        assertEquals(6, routines.single().exercises.single().targetReps)
+    }
+
+    @Test
+    fun fixingOneCardDoesNotUnblockAnotherStillUnreadable() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
+        val vm = createViewModel()
+        vm.uiState.awaitFirst { it.catalog.size >= 2 }
+        vm.togglePicked(squat)
+        vm.togglePicked(row)
+        val lifts = vm.uiState.awaitFirst { it.selectedLifts.size == 2 }.selectedLifts
+
+        vm.stageTargets(
+            lifts.first().id,
+            sets = null,
+            reps = 6,
+            rest = 150,
+            weightKg = 80.0,
+            invalidReason = NumericEntry.SETS_RULE,
+        )
+        vm.stageTargets(
+            lifts.last().id,
+            sets = 4,
+            reps = 6,
+            rest = 150,
+            weightKg = null,
+            invalidReason = NumericEntry.WEIGHT_NEGATIVE,
+        )
+
+        vm.stageTargets(lifts.first().id, sets = 3, reps = 6, rest = 150, weightKg = 80.0)
+        vm.confirm()
+        assertEquals(
+            NumericEntry.WEIGHT_NEGATIVE,
+            vm.uiState.awaitFirst { it.error == NumericEntry.WEIGHT_NEGATIVE }.error,
+        )
+        assertFalse(vm.finished.value)
+        assertTrue(deps.routineRepository.observeAll().first().isEmpty())
+    }
+
+    @Test
+    fun fixingOneCardMovesTheComplaintToTheOneStillUnreadable() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
+        val vm = createViewModel()
+        vm.uiState.awaitFirst { it.catalog.size >= 2 }
+        vm.togglePicked(squat)
+        vm.togglePicked(row)
+        val lifts = vm.uiState.awaitFirst { it.selectedLifts.size == 2 }.selectedLifts
+
+        vm.stageTargets(
+            lifts.first().id,
+            sets = null,
+            reps = 6,
+            rest = 150,
+            weightKg = 80.0,
+            invalidReason = NumericEntry.SETS_RULE,
+        )
+        vm.stageTargets(
+            lifts.last().id,
+            sets = 4,
+            reps = null,
+            rest = 150,
+            weightKg = 80.0,
+            invalidReason = NumericEntry.REPS_WHOLE_RULE,
+        )
+        vm.confirm()
+        assertEquals(
+            NumericEntry.SETS_RULE,
+            vm.uiState.awaitFirst { it.error == NumericEntry.SETS_RULE }.error,
+        )
+
+        // The banner names the sets box. Fixing the OTHER card must not read as "all clear".
+        // Waited on the staged reps, not on the error: the error is already SETS_RULE, so
+        // `first { error == SETS_RULE }` would return the pre-stage value and assert nothing.
+        // stageTargets writes the error before the days, so days arriving means both settled.
+        vm.stageTargets(lifts.last().id, sets = 4, reps = 6, rest = 150, weightKg = 80.0)
+        assertEquals(
+            NumericEntry.SETS_RULE,
+            vm.uiState.awaitFirst {
+                it.selectedLifts.lastOrNull()?.targetReps == 6
+            }.error,
+        )
+
+        vm.stageTargets(lifts.first().id, sets = 3, reps = 6, rest = 150, weightKg = 80.0)
+        assertNull(vm.uiState.awaitFirst { it.error == null }.error)
+        vm.confirm()
+        vm.finished.awaitFirst { it }
+        assertEquals(2, deps.routineRepository.observeAll().first().single().exercises.size)
+    }
+
+    @Test
+    fun fixingATargetBoxDoesNotDismissAnUnrelatedFailure() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val vm = createViewModel()
+        vm.uiState.awaitFirst { it.catalog.isNotEmpty() }
+        vm.togglePicked(squat)
+        val lift = vm.uiState.awaitFirst { it.selectedLifts.size == 1 }.selectedLifts.single()
+
+        vm.createAndSelect("  ", "Back")
+        vm.uiState.awaitFirst { it.error == SessionOrderCopy.LIFT_NAME_REQUIRED }
+
+        vm.stageTargets(lift.id, sets = 4, reps = 6, rest = 150, weightKg = 80.0)
+        assertEquals(
+            SessionOrderCopy.LIFT_NAME_REQUIRED,
+            vm.uiState.awaitFirst { it.selectedLifts.single().targetSets == 4 }.error,
+        )
+    }
+
+    @Test
+    fun removingAnUnreadableCardTakesItsComplaintWithIt() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
+        val vm = createViewModel()
+        vm.uiState.awaitFirst { it.catalog.size >= 2 }
+        vm.togglePicked(squat)
+        vm.togglePicked(row)
+        val lifts = vm.uiState.awaitFirst { it.selectedLifts.size == 2 }.selectedLifts
+
+        vm.stageTargets(
+            lifts.first().id,
+            sets = null,
+            reps = 6,
+            rest = 150,
+            weightKg = 80.0,
+            invalidReason = NumericEntry.SETS_RULE,
+        )
+        vm.confirm()
+        vm.uiState.awaitFirst { it.error == NumericEntry.SETS_RULE }
+
+        // Deleting the card is a way of answering the complaint. Keeping the rule after the
+        // box is gone would block Confirm forever with nothing left to fix.
+        vm.removeLift(lifts.first().id)
+        assertNull(vm.uiState.awaitFirst { it.selectedLifts.size == 1 }.error)
+
+        vm.confirm()
+        vm.finished.awaitFirst { it }
+        val routines = deps.routineRepository.observeAll().first()
+        assertEquals(row.id, routines.single().exercises.single().exercise.id)
+    }
+
+    @Test
+    fun foldingAnUnreadableCardAwayTakesItsComplaintWithIt() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val vm = createViewModel()
+        vm.uiState.awaitFirst { it.catalog.any { exercise -> exercise.id == squat.id } }
+        vm.togglePicked(squat)
+        val lift = vm.uiState.awaitFirst { it.selectedLifts.size == 1 }.selectedLifts.single()
+
+        vm.stageTargets(
+            lift.id,
+            sets = null,
+            reps = 6,
+            rest = 150,
+            weightKg = 80.0,
+            invalidReason = NumericEntry.SETS_RULE,
+        )
+        vm.confirm()
+        vm.uiState.awaitFirst { it.error == NumericEntry.SETS_RULE }
+
+        // Folding the card shut discards its box text — reopening reads the stored numbers
+        // back. Keeping the rule would refuse Confirm for a box that now reads "3", with
+        // nothing on screen to fix. This is what SessionLiftEditor's DisposableEffect calls.
+        vm.forgetTargetRule(lift.id)
+        assertNull(vm.uiState.awaitFirst { it.error == null }.error)
+
+        vm.confirm()
+        vm.finished.awaitFirst { it }
+        assertEquals(squat.id, deps.routineRepository.observeAll().first().single().exercises.single().exercise.id)
+    }
+
+    @Test
+    fun foldingOneCardAwayDoesNotForgetAnotherStillUnreadable() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
+        val vm = createViewModel()
+        vm.uiState.awaitFirst { it.catalog.size >= 2 }
+        vm.togglePicked(squat)
+        vm.togglePicked(row)
+        val lifts = vm.uiState.awaitFirst { it.selectedLifts.size == 2 }.selectedLifts
+
+        vm.stageTargets(
+            lifts.first().id,
+            sets = null, reps = 6, rest = 150, weightKg = 80.0,
+            invalidReason = NumericEntry.SETS_RULE,
+        )
+        vm.stageTargets(
+            lifts.last().id,
+            sets = 4, reps = null, rest = 150, weightKg = 80.0,
+            invalidReason = NumericEntry.REPS_WHOLE_RULE,
+        )
+
+        vm.forgetTargetRule(lifts.first().id)
+
+        vm.confirm()
+        assertEquals(
+            NumericEntry.REPS_WHOLE_RULE,
+            vm.uiState.awaitFirst { it.error == NumericEntry.REPS_WHOLE_RULE }.error,
+        )
+        assertFalse(vm.finished.value)
+        assertTrue(deps.routineRepository.observeAll().first().isEmpty())
+    }
+
+    @Test
+    fun anUnreadableWeightBoxDoesNotWipeTheStoredTarget() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val vm = createViewModel()
+        vm.uiState.awaitFirst { it.catalog.any { exercise -> exercise.id == squat.id } }
+        vm.togglePicked(squat)
+        val lift = vm.uiState.awaitFirst { it.selectedLifts.size == 1 }.selectedLifts.single()
+
+        vm.stageTargets(lift.id, sets = 4, reps = 6, rest = 150, weightKg = 100.0)
+        vm.uiState.awaitFirst { it.selectedLifts.singleOrNull()?.targetWeightKg == 100.0 }
+
+        // The weight box now reads "-50". TargetEntry cannot store that, so it stages a null
+        // weight and the rule it broke — and a null weight is also how a CLEARED box says
+        // "no target", so the week used to read the refusal as a deletion and wipe the 100.
+        vm.stageTargets(
+            lift.id,
+            sets = 4,
+            reps = 6,
+            rest = 150,
+            weightKg = null,
+            invalidReason = NumericEntry.WEIGHT_NEGATIVE,
+        )
+        // Read, do not wait: the point of the fix is that NOTHING changes here, so any
+        // predicate that could pass would be a tautology. stageTargets is synchronous and the
+        // dispatcher is unconfined, so the current value is the settled one.
+        val held = vm.uiState.value.selectedLifts.single()
+        assertEquals(100.0, held.targetWeightKg)
+        assertEquals(4, held.targetSets)
+        assertEquals(6, held.targetReps)
+
+        // And it is still refused, so nothing is written past it either.
+        vm.confirm()
+        assertEquals(
+            NumericEntry.WEIGHT_NEGATIVE,
+            vm.uiState.awaitFirst { it.error == NumericEntry.WEIGHT_NEGATIVE }.error,
+        )
+        assertFalse(vm.finished.value)
+
+        // Clearing the box for real IS a deletion, and must still be honoured.
+        vm.stageTargets(lift.id, sets = 4, reps = 6, rest = 150, weightKg = null)
+        assertNull(vm.uiState.awaitFirst { it.selectedLifts.singleOrNull()?.targetWeightKg == null }
+            .selectedLifts.single().targetWeightKg)
     }
 
     private fun createViewModel(

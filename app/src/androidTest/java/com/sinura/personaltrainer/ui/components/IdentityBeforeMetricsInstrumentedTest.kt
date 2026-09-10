@@ -121,8 +121,9 @@ class IdentityBeforeMetricsInstrumentedTest {
                                 onMoveEarlier = {},
                                 onMoveLater = {},
                                 onRemove = {},
-                                onStageTargets = { _, _, _, _, _ -> },
+                                onStageTargets = { _, _, _, _, _, _ -> },
                                 onCommitTargets = {},
+                                onForgetTargetRule = {},
                             )
                         }
                     }

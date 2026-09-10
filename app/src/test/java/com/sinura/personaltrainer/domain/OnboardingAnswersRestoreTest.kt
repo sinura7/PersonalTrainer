@@ -193,13 +193,20 @@ class OnboardingAnswersRestoreTest {
         assertEquals(80.0, restored.bodyweightKg!!, 0.001)
         assertEquals(TrainingFocus.STRENGTH, restored.focus)
         assertNull(OnboardingAnswers.decodeDraft(""))
+
+        // Explicit kit survives the draft and an eight-field draft from before it still decodes.
+        val kitted = OnboardingAnswers(availableEquipment = setOf("DUMBBELL", "BARBELL"))
+        assertEquals(setOf("BARBELL", "DUMBBELL"), OnboardingAnswers.decodeDraft(OnboardingAnswers.encodeDraft(kitted))!!.availableEquipment)
+        val eightFields = OnboardingAnswers.encodeDraft(kitted).substringBeforeLast("|")
+        assertEquals(emptySet<String>(), OnboardingAnswers.decodeDraft(eightFields)!!.availableEquipment)
     }
 
     @Test
     fun draftCarriesFocusAndOldSevenPartDraftsDefaultToStrength() {
         val both = OnboardingAnswers(focus = TrainingFocus.BOTH)
         assertEquals(TrainingFocus.BOTH, OnboardingAnswers.decodeDraft(OnboardingAnswers.encodeDraft(both))!!.focus)
-        val old = OnboardingAnswers.encodeDraft(OnboardingAnswers()).substringBeforeLast("|")
+        // A seven-part draft from before focus (and before kit) existed: drop the last two fields.
+        val old = OnboardingAnswers.encodeDraft(OnboardingAnswers()).split("|").take(7).joinToString("|")
         assertEquals(6, old.count { it == '|' })
         assertEquals(TrainingFocus.STRENGTH, OnboardingAnswers.decodeDraft(old)!!.focus)
         assertEquals(TrainingFocus.CARDIO, TrainingFocus.fromStorage("cardio"))

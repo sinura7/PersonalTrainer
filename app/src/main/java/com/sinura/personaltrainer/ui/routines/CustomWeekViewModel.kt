@@ -40,6 +40,9 @@ private const val TAG = "PT/CustomWeekVM"
 
 /** [ErrorSlot] families: a success may clear only its own family's refusal. */
 private const val ERR_ADD_LIFT = "addLift"
+
+/** A target box holding text the week cannot hold. Raised by [CustomWeekViewModel.confirm]. */
+private const val ERR_TARGETS = "targets"
 private const val ERR_CONFIRM = "confirm"
 
 data class CustomWeekUiState(
@@ -85,6 +88,14 @@ class CustomWeekViewModel @JvmOverloads constructor(
     private val showPicker = MutableStateFlow(false)
     private val applying = MutableStateFlow(false)
     private val error = ErrorSlot()
+
+    /**
+     * Cards whose boxes cannot be read as written, by lift id, holding the rule each broke.
+     * Ids are minted per staged lift, so a lift on two days has two ids and two entries.
+     * In memory only: the box text itself is saved state, so after process recreation the card
+     * shows its complaint again and re-stages it on the first keystroke.
+     */
+    private val invalidTargets = mutableMapOf<String, String>()
     private val catalog = MutableStateFlow<List<Exercise>>(emptyList())
     private val extraCatalog = MutableStateFlow<List<Exercise>>(emptyList())
     private var guidedAnswers: OnboardingAnswers? = null
@@ -211,6 +222,8 @@ class CustomWeekViewModel @JvmOverloads constructor(
         val existing = days.value[day].orEmpty()
         val stored = existing.firstOrNull { it.exercise.id == exercise.id }
         val next = if (stored != null) {
+            // The tap takes the lift off the day, so the card and its complaint go together.
+            forgetTargetRule(stored.id)
             existing.filterNot { it.id == stored.id }
         } else {
             CustomWeekPolicy.addLifts(existing, listOf(exercise)) { UUID.randomUUID().toString() }
@@ -269,13 +282,51 @@ class CustomWeekViewModel @JvmOverloads constructor(
 
     fun removeLift(itemId: String) {
         if (applying.value) return
+        forgetTargetRule(itemId)
         val day = selectedDay.value
         days.value = days.value + (day to days.value[day].orEmpty().filterNot { it.id == itemId })
         persistDraft()
     }
 
-    fun stageTargets(itemId: String, sets: Int?, reps: Int?, rest: Int?, weightKg: Double?) {
+    /**
+     * The four target boxes of one card, as the owner left them.
+     *
+     * @param invalidReason non-null when a box holds text the week cannot hold — "8.5" reps, a
+     * negative load — carrying the rule it broke. Nothing is staged from such a box, so the
+     * lift keeps what it had; but the reason is remembered, because a card reading 8.5 while
+     * the week holds 5 is the quiet mismatch UX06 exists to stop. [confirm] refuses until it
+     * reads as something the week can hold. The same card, and so the same rules, as the
+     * routine editor.
+     */
+    fun stageTargets(
+        itemId: String,
+        sets: Int?,
+        reps: Int?,
+        rest: Int?,
+        weightKg: Double?,
+        invalidReason: String? = null,
+    ) {
         if (applying.value) return
+        if (invalidReason == null) {
+            invalidTargets.remove(itemId)
+            // The box was fixed, so its complaint must not outlive it — but fixing one card
+            // does not answer for another, so the banner moves to whatever is still
+            // unreadable rather than clearing outright.
+            moveTargetRuleBanner()
+        } else {
+            invalidTargets[itemId] = invalidReason
+            // Nothing is staged from a card that cannot be read, which is what the KDoc above
+            // promises and what the week did NOT do: CustomWeekPolicy.updateTargets keeps the
+            // stored value when sets, reps or rest arrive null, but a null weight CLEARS the
+            // stored target, because a cleared weight box is a real answer ("no target") and
+            // TargetEntry cannot tell that apart from a box holding "-50". So typing "-50"
+            // over a 100 kg target wiped the 100 kg — the exact silent rewrite UX06 exists to
+            // stop, in the code written to stop it. Returning here keeps every box as stored.
+            // Nothing is lost: the card re-sends all four boxes on the next keystroke, and
+            // confirm() refuses until the rule is answered.
+            persistDraft()
+            return
+        }
         val day = selectedDay.value
         days.value = days.value + (
             day to CustomWeekPolicy.updateTargets(days.value[day].orEmpty(), itemId, sets, reps, rest, weightKg)
@@ -286,6 +337,12 @@ class CustomWeekViewModel @JvmOverloads constructor(
     fun confirm() {
         val started = error.mark()
         if (applying.value || !CustomWeekPolicy.canConfirm(days.value)) return
+        // A card still showing a value the week cannot hold is unfinished work, not a value to
+        // walk past: applying would write the number underneath it instead. Say the rule and stay.
+        invalidTargets.values.firstOrNull()?.let { rule ->
+            error.fail(source = ERR_TARGETS, message = rule)
+            return
+        }
         applying.value = true
         showPicker.value = false
         val snapshot = days.value
@@ -310,6 +367,10 @@ class CustomWeekViewModel @JvmOverloads constructor(
                         )
                     }.onFailure { AppLog.w(TAG, "Publishing the custom week to Home failed", it) }
                     error.clearFrom(source = ERR_CONFIRM, before = started)
+                    // Getting past the gate above means no box was unreadable at the tap, so
+                    // this success answers the rule an earlier Confirm raised as well. Anything
+                    // staged since the tap is newer information and survives the mark.
+                    error.clearFrom(source = ERR_TARGETS, before = started)
                     _finished.value = true
                 }
                 is ApplyPlanResult.Failed ->
@@ -320,6 +381,39 @@ class CustomWeekViewModel @JvmOverloads constructor(
 
     fun dismissError() {
         error.dismiss()
+    }
+
+    /**
+     * Forget one card's complaint. A card that has gone — removed from the day, or untapped
+     * in the picker — takes its rule with it: leaving the entry behind would block Confirm on
+     * a rule with no box left to fix, a dead end with no way out of it.
+     */
+    /**
+     * The card's boxes went away — folded shut, or the lift tapped off the day — so the rule
+     * one of them broke goes with them. Holding it would refuse Confirm for a box that is no
+     * longer on screen, with nothing to correct.
+     */
+    fun forgetTargetRule(itemId: String) {
+        if (invalidTargets.remove(itemId) == null) return
+        moveTargetRuleBanner()
+    }
+
+    /**
+     * Point the banner at whatever is still unreadable, after [invalidTargets] changed.
+     *
+     * The refusal belongs to [ERR_TARGETS], so [ErrorSlot.clearFrom] answers that family and
+     * nothing else — where this used to ask whether the message text was one of the target
+     * rules. If the clear took, the banner was this family's and the next unreadable card
+     * takes it over. If it did not, an add-lift or create-lift failure is showing: a different
+     * message, and not this box's to dismiss, so it stays.
+     */
+    private fun moveTargetRuleBanner() {
+        val showing = error.message
+        error.clearFrom(source = ERR_TARGETS)
+        if (showing == null || error.message != null) return
+        invalidTargets.values.firstOrNull()?.let { rule ->
+            error.fail(source = ERR_TARGETS, message = rule)
+        }
     }
 
     private fun persistDraft() {

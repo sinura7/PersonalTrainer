@@ -364,7 +364,7 @@ class ProductionScreensPassInstrumentedTest {
         val now = JvmTime.captureNow()
         val activityIds = (1..3).map { monthsBack ->
             val day = CivilDate.fromEpochDay(now.localEpochDay - 30L * monthsBack)
-            val start = JvmTime.resolveLocal(CivilDateTime(day, hour = 12, minute = 0), now.zoneId)
+            val start = JvmTime.resolveLocal(CivilDateTime(date = day, hour = 12, minute = 0), now.zoneId)
             val write = container.confirmActivity(
                 ActivityDraft(
                     status = ActivityStatus.COMPLETED,

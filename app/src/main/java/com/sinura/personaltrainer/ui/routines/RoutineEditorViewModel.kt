@@ -22,6 +22,10 @@ import com.sinura.personaltrainer.domain.PendingPick
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineEditorLoad
 import com.sinura.personaltrainer.domain.RoutineEditorPolicy
+import com.sinura.personaltrainer.domain.RoutineExitOutcome
+import com.sinura.personaltrainer.domain.RoutineSaveCopy
+import com.sinura.personaltrainer.domain.RoutineTargetsOutcome
+import com.sinura.personaltrainer.domain.RoutineWriteOutcome
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CancellationException
@@ -48,6 +52,13 @@ private const val ERR_SWAP_LIFT = "swapLift"
 private const val ERR_SAVE = "save"
 private const val ERR_ADD_LIFT = "addLift"
 private const val ERR_TARGETS = "targets"
+
+/**
+ * A target box holding text the routine cannot store as written — "8.5" reps, "-50" rest.
+ * Its own family, not [ERR_TARGETS]: the write never happened, the complaint is the box's
+ * rule rather than the routine's, and only a commit of that same card may take it down.
+ */
+private const val ERR_TARGET_RULE = "targetRule"
 private const val ERR_REMOVE_LIFT = "removeLift"
 private const val ERR_REORDER = "reorder"
 private const val ERR_ROUTINE = "routine"
@@ -76,6 +87,21 @@ data class RoutineEditorUiState(
     val error: String? = null,
     /** True while a tap from the picker is still being written. */
     val addingLifts: Boolean = false,
+    /**
+     * True while Back or Save is landing the name, notes and staged targets. The dock reads
+     * "Saving…" and is disabled, and a second Back or Save is ignored until this clears.
+     */
+    val saving: Boolean = false,
+    /**
+     * Why the last Save stayed on the screen, rendered beside the dock where Save was pressed.
+     * Cleared when the next attempt starts. Null while nothing is owed.
+     */
+    val saveError: String? = null,
+    /**
+     * Back found required writes that did not land. The screen asks: try again, or leave
+     * without saving these. Null until Back fails; cleared when the next attempt starts.
+     */
+    val unsavedOnBack: RoutineExitOutcome.Unsaved? = null,
 ) {
     /**
      * The other lifts in this one's family, minus what the routine already holds.
@@ -119,6 +145,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     private val extraCatalog = MutableStateFlow<List<Exercise>>(emptyList())
     private val swapItemId = MutableStateFlow<String?>(null)
     private val pendingPicks = MutableStateFlow<List<PendingPick>>(emptyList())
+    private val exitState = MutableStateFlow(ExitState())
 
     /**
      * Picker writes run one at a time, in tap order. Two taps on the same row are an add
@@ -126,6 +153,12 @@ class RoutineEditorViewModel @JvmOverloads constructor(
      */
     private val pickWrites = Mutex()
     private val inFlight = ConcurrentHashMap.newKeySet<Job>()
+
+    /**
+     * True from the moment Back or Save is pressed until the attempt is decided. Every edit
+     * method checks it, so it must be reset whenever the attempt ends without popping the
+     * screen — otherwise a failed Save would leave the editor alive but deaf.
+     */
     private var leaving = false
 
     // Shared, not two independent collections: the missing-routine detector below and the
@@ -221,8 +254,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         combine(routineFlow, name, notes, searchQuery, resultsFlow) { routine, currentName, currentNotes, query, results ->
             EditorCore(routine, currentName, currentNotes, query, results)
         },
-        combine(showPicker, error.messages, load) { picker, err, loadState ->
-            EditorFlags(picker, err, loadState.phase)
+        combine(showPicker, error.messages, load, exitState) { picker, err, loadState, exit ->
+            EditorFlags(picker, err, loadState.phase, exit)
         },
         combine(
             combine(container.exerciseRepository.observeAll(), extraCatalog) { catalog, extra ->
@@ -262,6 +295,9 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             ),
             error = extras.error,
             addingLifts = catalogExtras.pending.isNotEmpty(),
+            saving = extras.exit.saving,
+            saveError = extras.exit.saveError,
+            unsavedOnBack = extras.exit.unsavedOnBack,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -350,24 +386,114 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         targetReps: Int?,
         targetWeightKg: Double?,
         restSeconds: Int?,
+        /**
+         * Non-null when a box holds text that cannot be stored as written — "8.5" reps, "-50"
+         * — carrying the rule it broke. The card has already shown it under the box; staging
+         * it here is what lets the commit refuse and Save and Back count it as unsaved, rather
+         * than reading the unparseable box as "leave this one alone" (UX06).
+         */
+        invalidReason: String? = null,
     ) {
         stagedTargets[itemId] = StagedTargets(
             targetSets = targetSets,
             targetReps = targetReps,
             targetWeightKg = targetWeightKg,
             restSeconds = restSeconds,
+            invalidReason = invalidReason,
         )
     }
 
-    /** Write one card's staged targets if they differ from what is stored. */
-    fun commitTargets(itemId: String) {
-        if (leaving) return
-        launchWrite { commitTargetsNow(itemId) }
+    /**
+     * The card's boxes went away, so the rule one of them broke goes with them.
+     *
+     * A rejection is a statement about text the owner can see and fix. Once the boxes are
+     * discarded — the card folded shut, and reopening it re-reads the stored numbers — holding
+     * the rejection refuses Save for a box that now shows a perfectly good value, with nothing
+     * on screen to correct. That is the dead end a removed card used to leave behind.
+     *
+     * The typed VALUES stay staged: they are still what the owner asked for and Save still owes
+     * them a write. Only the rule goes. An entry that held nothing but a rule is dropped
+     * outright, so it cannot make an untouched editor look dirty on the way out.
+     */
+    fun forgetTargetRule(itemId: String) {
+        var cleared = false
+        stagedTargets.computeIfPresent(itemId) { _, staged ->
+            if (staged.invalidReason == null) {
+                staged
+            } else {
+                cleared = true
+                val kept = staged.copy(invalidReason = null)
+                if (kept.targetSets == null && kept.targetReps == null &&
+                    kept.targetWeightKg == null && kept.restSeconds == null
+                ) {
+                    null
+                } else {
+                    kept
+                }
+            }
+        }
+        // No `before` mark: the box is gone, so the complaint is stale whenever it was raised.
+        if (cleared) error.clearFrom(source = ERR_TARGET_RULE)
     }
 
-    private suspend fun commitTargetsNow(itemId: String) {
-        val staged = stagedTargets[itemId] ?: return
-        val stored = routineFlow.value?.exercises?.firstOrNull { it.id == itemId } ?: return
+    /**
+     * Write one card's staged targets if they differ from what is stored.
+     *
+     * The focus-change commit. What it says goes in the screen's error slot, the same place
+     * every other write-through edit complains; the exit flush reports through the dock
+     * instead, which is why the surfacing lives here and not in [commitTargetsNow].
+     */
+    fun commitTargets(itemId: String) {
+        if (leaving) return
+        // Taken at the focus change, before anything suspends: a refusal raised after this
+        // point is newer than what this commit set out to answer and must survive it.
+        val started = error.mark()
+        launchWrite {
+            val commit = commitTargetsNow(itemId) ?: return@launchWrite
+            val result = commit.outcome
+            when (val outcome = result.outcome) {
+                // A landed value, and a box fixed back to what is stored, both answer every
+                // complaint this card had earned — the write's and the box's own rule alike.
+                RoutineWriteOutcome.Stored, RoutineWriteOutcome.NothingToWrite -> {
+                    error.clearFrom(source = ERR_TARGETS, before = started)
+                    error.clearFrom(source = ERR_TARGET_RULE, before = started)
+                }
+                is RoutineWriteOutcome.Rejected ->
+                    error.fail(source = commit.source, message = outcome.reason)
+                RoutineWriteOutcome.Failed -> error.fail(
+                    source = ERR_TARGETS,
+                    message = RoutineSaveCopy.targetsFailed(result.liftName),
+                )
+            }
+        }
+    }
+
+    /**
+     * Land one card's staged value, or report why it did not.
+     *
+     * Null when there is nothing to report at all: nothing staged, or the row the value was
+     * typed for is no longer in the routine, in which case the value is dropped because there
+     * is nothing left to write it to.
+     */
+    private suspend fun commitTargetsNow(itemId: String): TargetsCommit? {
+        val staged = stagedTargets[itemId] ?: return null
+        val stored = routineFlow.value?.exercises?.firstOrNull { it.id == itemId }
+        if (stored == null) {
+            stagedTargets.remove(itemId)
+            return null
+        }
+        // A box that could not be read as written is refused before any value is compared:
+        // nothing is written, the value stays staged so Save and Back see it, and the card's
+        // own rule is the reason.
+        staged.invalidReason?.let { reason ->
+            return TargetsCommit(
+                outcome = RoutineTargetsOutcome(
+                    stored.exercise.name,
+                    RoutineWriteOutcome.Rejected(reason),
+                ),
+                source = ERR_TARGET_RULE,
+            )
+        }
         val pending = RoutineEditorPolicy.targetsToPersist(
             typedSets = staged.targetSets,
             typedReps = staged.targetReps,
@@ -381,21 +507,33 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         if (pending == null) {
             // Identical to what is stored, so there is nothing to write and nothing to keep.
             clearStaged(itemId, staged)
-            return
+            return TargetsCommit(
+                outcome = RoutineTargetsOutcome(
+                    stored.exercise.name,
+                    RoutineWriteOutcome.NothingToWrite,
+                ),
+                source = ERR_TARGETS,
+            )
         }
-        val settled = writeTargets(
+        val outcome = writeTargets(
             itemId = itemId,
             targetSets = pending.targetSets,
             targetReps = pending.targetReps,
             targetWeightKg = pending.targetWeightKg,
             restSeconds = pending.restSeconds,
         )
-        // Kept on a failed write, so that leaving the screen is one more chance to save it —
-        // dropping it here is how a typed target disappears quietly, which is the whole reason
-        // this path exists. Dropped when the write lands, and dropped when the value was
-        // rejected: a rejected value that stayed staged would raise the same complaint on every
-        // focus change and again on the way out, and the owner has to retype it either way.
-        if (settled) clearStaged(itemId, staged)
+        // Dropped only once it is stored. A failed write is kept so that Save and Back are one
+        // more chance to land it — dropping it here is how a typed target disappears quietly,
+        // which is the whole reason this path exists. A rejected value is kept too: it used to
+        // be dropped so the same complaint would not repeat on every focus change, but a card
+        // still reading "0 sets" while Room keeps 3 has to stop Save and Back from walking past
+        // it, and the only way the exit can know is if the value is still here to be refused.
+        // Repeating the complaint is the honest price; the slot's own mark keeps it truthful.
+        if (outcome is RoutineWriteOutcome.Stored) clearStaged(itemId, staged)
+        return TargetsCommit(
+            outcome = RoutineTargetsOutcome(stored.exercise.name, outcome),
+            source = ERR_TARGETS,
+        )
     }
 
     /**
@@ -416,15 +554,17 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     }
 
     /**
-     * Write every card that still has something staged.
+     * Write every card that still has something staged, and say what became of each.
      *
      * The exit path, not the cards, because a card that is being disposed cannot be trusted to
      * finish a database write: its coroutine would be racing the view model's own teardown. By
      * the time this runs the screen is still alive and [leave] is still suspended on it.
+     *
+     * The outcomes are what the exit decides on — a failure here used to be logged and walked
+     * past. The screen's error slot is left alone: the aggregate says it once, at the dock.
      */
-    private suspend fun flushStagedTargets() {
-        stagedTargets.keys.toList().forEach { commitTargetsNow(it) }
-    }
+    private suspend fun flushStagedTargets(): List<RoutineTargetsOutcome> =
+        stagedTargets.keys.toList().mapNotNull { commitTargetsNow(it)?.outcome }
 
     /**
      * Set when this screen should be popped. Held as state for the same reason as forward
@@ -441,80 +581,180 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         _exitRequested.value = false
     }
 
+    /**
+     * Back. Lands what is owed, then pops — or stays and asks.
+     *
+     * The staged targets and the name and notes are flushed first, and the screen pops only if
+     * every one of them landed ([RoutineEditorPolicy.exitOutcome]). When something did not,
+     * the editor stays with the draft intact — the name and notes are still in state and in
+     * the saved-state handle, the failed targets are still staged — and [RoutineEditorUiState.unsavedOnBack]
+     * carries what to ask: try again, or [leaveAnyway].
+     *
+     * It used to pop regardless and log the failure. Autosave was the right call over a
+     * "discard changes?" dialog for the case where the write works; a dialog for the case where
+     * it did not is a different thing, because the alternative is losing the owner's work
+     * without a word.
+     */
     fun leave() {
         if (leaving) return
-        leaving = true
-        // The sheet goes with the screen. Its lifts are already written, so there is
-        // nothing to keep it open for, and a picker left standing would outlive the pop.
-        showPicker.value = false
+        // Nothing hydrated and nothing staged means nothing Save could owe: the read that failed
+        // or the row that is gone must not produce a "Some changes are not saved" prompt over an
+        // editor the owner never got to type into. Leave-anyway is exactly Back minus the flush.
+        if (load.value.phase != EditorPhase.EDITING && stagedTargets.isEmpty()) {
+            leaveAnyway()
+            return
+        }
+        beginExit()
         viewModelScope.launch {
-            joinWrites()
-            flushStagedTargets()
-            discardEmptyStub()
-            persistDetailsOnExit()
-            _exitRequested.value = true
+            // A read that throws on the way out (the row behind the stub check or the details
+            // compare) used to kill this coroutine with `leaving` stuck true: the editor stayed
+            // on screen deaf to Back, Save and every edit. It is now one more unsaved outcome.
+            val outcome = runCatchingCancellable {
+                joinWrites()
+                val targets = flushStagedTargets()
+                discardEmptyStub()
+                val details = persistDetailsOnExit()
+                RoutineEditorPolicy.exitOutcome(details, targets)
+            }.getOrElse { thrown ->
+                AppLog.w(TAG, "Leaving the routine editor failed before it could decide", thrown)
+                RoutineExitOutcome.Unsaved(
+                    message = RoutineSaveCopy.EXIT_READ_FAILED,
+                    items = listOf(RoutineSaveCopy.UNKNOWN_ITEMS),
+                )
+            }
+            when (outcome) {
+                RoutineExitOutcome.Landed -> _exitRequested.value = true
+                is RoutineExitOutcome.Unsaved -> stayOnScreen(unsavedOnBack = outcome)
+            }
         }
     }
 
     /**
-     * Keep the routine and leave. Name, notes, and staged targets land first.
-     * An empty stub still cannot be saved — Add lifts is the empty Volt.
+     * Keep the routine and leave. Name, notes, and staged targets land first, and the screen
+     * pops only if all of them did; otherwise it stays, says why beside the dock, and Save
+     * is the retry. An empty stub still cannot be saved — Add lifts is the empty Volt.
      */
     fun saveAndLeave() {
         if (leaving) return
-        leaving = true
-        showPicker.value = false
+        // The press itself, before anything suspends. Only refusals older than it may be
+        // taken over by the dock below; one raised while the attempt ran is newer news.
+        val started = error.mark()
+        beginExit()
         viewModelScope.launch {
-            joinWrites()
-            flushStagedTargets()
-            val id = routineId.value
-            val count = if (id == null) 0 else currentExerciseCount(id)
-            if (count <= 0) {
-                error.fail(source = ERR_SAVE, message = SessionOrderCopy.NEED_A_LIFT)
-                leaving = false
-                return@launch
+            val outcome = runCatchingCancellable {
+                joinWrites()
+                val targets = flushStagedTargets()
+                val id = routineId.value
+                val count = if (id == null) 0 else currentExerciseCount(id)
+                if (count <= 0) {
+                    error.fail(source = ERR_SAVE, message = SessionOrderCopy.NEED_A_LIFT)
+                    stayOnScreen()
+                    return@launch
+                }
+                val details = persistDetailsOnExit()
+                RoutineEditorPolicy.exitOutcome(details, targets)
+            }.getOrElse { thrown ->
+                // Same shape as leave(): a read fault is reported at the dock, not left to
+                // strand the screen with Save disabled forever.
+                AppLog.w(TAG, "Saving the routine failed before it could decide", thrown)
+                RoutineExitOutcome.Unsaved(
+                    message = RoutineSaveCopy.EXIT_READ_FAILED,
+                    items = listOf(RoutineSaveCopy.UNKNOWN_ITEMS),
+                )
             }
-            persistDetailsOnExit()
-            _exitRequested.value = true
+            when (outcome) {
+                RoutineExitOutcome.Landed -> _exitRequested.value = true
+                is RoutineExitOutcome.Unsaved -> {
+                    // Said once. The flush has just re-decided every staged target, so the two
+                    // families a card can complain in are the dock's to take over — but only
+                    // the complaints that were already showing when Save was pressed. One
+                    // raised since is a newer refusal from a card the owner has touched again.
+                    error.clearFrom(source = ERR_TARGETS, before = started)
+                    error.clearFrom(source = ERR_TARGET_RULE, before = started)
+                    stayOnScreen(saveError = outcome.message)
+                }
+            }
         }
     }
 
     /**
-     * Save the name and notes the user typed but never pressed Save on.
+     * The Back prompt's "leave without saving these".
+     *
+     * Pops without re-attempting the writes the last Back could not land: the staged targets
+     * are dropped and the typed name and notes go with the screen. Everything that wrote
+     * through — lifts, order, removals — is already in Room and is untouched. An empty stub
+     * created this session is still discarded, exactly as Back would; a routine with lifts is
+     * never deleted here.
+     *
+     * Safe to call without a prompt showing: it is Back minus the flush, nothing more.
+     */
+    fun leaveAnyway() {
+        if (leaving) return
+        beginExit()
+        viewModelScope.launch {
+            joinWrites()
+            stagedTargets.clear()
+            // The one exit that must always exit. A stub that could not be checked stays; an
+            // empty routine left behind is a nuisance, an editor that cannot be left is not.
+            runCatchingCancellable { discardEmptyStub() }
+                .onFailure { AppLog.w(TAG, "Leaving anyway could not check for an empty stub", it) }
+            _exitRequested.value = true
+        }
+    }
+
+    private fun beginExit() {
+        leaving = true
+        // The sheet goes with the attempt. Its lifts are already written, so there is
+        // nothing to keep it open for, and a picker left standing would outlive the pop.
+        showPicker.value = false
+        exitState.value = ExitState(saving = true)
+    }
+
+    /** The attempt is over and the screen is not popping: re-arm every edit method. */
+    private fun stayOnScreen(
+        saveError: String? = null,
+        unsavedOnBack: RoutineExitOutcome.Unsaved? = null,
+    ) {
+        leaving = false
+        exitState.value = ExitState(saving = false, saveError = saveError, unsavedOnBack = unsavedOnBack)
+    }
+
+    /**
+     * Save the name and notes the user typed but never pressed Save on, and say whether it
+     * worked.
      *
      * This screen writes every edit straight through to Room — adding an exercise, removing
      * one, reordering, changing targets. The name and the notes are the last two that cannot
      * be, because there is no moment during typing at which a half-typed name should be stored,
      * so they are written here instead.
      *
-     * Autosave rather than a "discard changes?" dialog: a dialog would be the one thing on this
-     * screen asking permission to keep work the user had already done, and the flagship flow is
-     * already carrying more modals than it should.
+     * A failure is reported, not swallowed: the caller decides whether the screen may pop, and
+     * the draft stays in state and in the saved-state handle so the next attempt has something
+     * to write. Cancellation is never a failure — [runCatchingCancellable] rethrows it.
      *
      * Deliberately looser than creation: a routine with no exercises is discarded by
      * [discardEmptyStub], which is what stops empty routines existing. That rule has no
      * business blocking a rename of one that already does.
      */
-    private suspend fun persistDetailsOnExit() {
-        val id = routineId.value ?: return
-        val stored = container.routineRepository.getById(id) ?: return
-        val pending = RoutineEditorPolicy.detailsToPersistOnExit(
-            // LOADING means the seed from Room has not landed, so the typed fields are still
-            // empty defaults rather than the user's text; MISSING means there is no row left.
-            hydrated = load.value.phase == EditorPhase.EDITING,
-            typedName = name.value,
-            typedNotes = notes.value,
-            storedName = stored.name,
-            storedNotes = stored.notes,
-        ) ?: return
-        try {
+    private suspend fun persistDetailsOnExit(): RoutineWriteOutcome {
+        val id = routineId.value ?: return RoutineWriteOutcome.NothingToWrite
+        return runCatchingCancellable<RoutineWriteOutcome> {
+            val stored = container.routineRepository.getById(id)
+                ?: return RoutineWriteOutcome.NothingToWrite
+            val pending = RoutineEditorPolicy.detailsToPersistOnExit(
+                // LOADING means the seed from Room has not landed, so the typed fields are still
+                // empty defaults rather than the user's text; MISSING means there is no row left.
+                hydrated = load.value.phase == EditorPhase.EDITING,
+                typedName = name.value,
+                typedNotes = notes.value,
+                storedName = stored.name,
+                storedNotes = stored.notes,
+            ) ?: return RoutineWriteOutcome.NothingToWrite
             container.routineRepository.updateDetails(id, pending.name, pending.notes)
-        } catch (thrown: CancellationException) {
-            throw thrown
-        } catch (thrown: Exception) {
-            // Keep leaving. The edit is lost either way if the write fails, and trapping the
-            // user on the screen to say so would turn one bad outcome into two.
+            RoutineWriteOutcome.Stored
+        }.getOrElse { thrown ->
             AppLog.w(TAG, "persistDetailsOnExit failed", thrown)
+            RoutineWriteOutcome.Failed
         }
     }
 
@@ -709,8 +949,10 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     }
 
     /**
-     * @return true when this value is finished with — stored, or rejected and needing retyping.
-     * False means the write itself failed and the value is worth one more attempt.
+     * One lift's targets to Room, reported rather than surfaced: the focus-change commit and
+     * the exit flush tell the owner in different places, so neither is decided here. A
+     * rejection is the value's fault and retrying cannot fix it; a failure is the write's
+     * fault and one more attempt might. Cancellation passes straight through.
      */
     private suspend fun writeTargets(
         itemId: String,
@@ -718,14 +960,12 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         targetReps: Int,
         targetWeightKg: Double?,
         restSeconds: Int,
-    ): Boolean {
-        val started = error.mark()
+    ): RoutineWriteOutcome {
         if (targetSets < 1 || targetReps < 1) {
-            error.fail(source = ERR_TARGETS, message = "Sets and reps must be at least 1.")
-            return true
+            return RoutineWriteOutcome.Rejected(RoutineSaveCopy.TARGETS_REJECTED)
         }
-        val id = ensureRoutineId() ?: return false
-        return try {
+        val id = ensureRoutineId() ?: return RoutineWriteOutcome.Failed
+        return runCatchingCancellable<RoutineWriteOutcome> {
             container.routineRepository.updateExercise(
                 itemId = itemId,
                 routineId = id,
@@ -734,12 +974,10 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 targetWeightKg = targetWeightKg,
                 restSeconds = restSeconds,
             )
-            error.clearFrom(source = ERR_TARGETS, before = started)
-            true
-        } catch (thrown: Exception) {
+            RoutineWriteOutcome.Stored
+        }.getOrElse { thrown ->
             AppLog.w(TAG, "writeTargets failed", thrown)
-            error.fail(source = ERR_TARGETS, message = "Could not update those targets. Try again.")
-            false
+            RoutineWriteOutcome.Failed
         }
     }
 
@@ -864,6 +1102,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         val targetReps: Int?,
         val targetWeightKg: Double?,
         val restSeconds: Int?,
+        val invalidReason: String? = null,
     )
 
     private data class EditorCore(
@@ -885,6 +1124,29 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         val showPicker: Boolean,
         val error: String?,
         val phase: EditorPhase,
+        val exit: ExitState,
+    )
+
+    /**
+     * One commit of a card's targets: what became of it, and which [ErrorSlot] family owns
+     * the complaint it earned. The family travels with the outcome so that the focus-change
+     * commit can raise a box's own rule under [ERR_TARGET_RULE] and the write's refusal under
+     * [ERR_TARGETS] without reading either message back to work out which it is.
+     */
+    private data class TargetsCommit(
+        val outcome: RoutineTargetsOutcome,
+        val source: String,
+    )
+
+    /**
+     * What the screen needs to know about the exit attempt in flight, or the one that just
+     * stayed. One value rather than three flows so that "saving" and "why it stayed" can
+     * never be observed half-updated.
+     */
+    private data class ExitState(
+        val saving: Boolean = false,
+        val saveError: String? = null,
+        val unsavedOnBack: RoutineExitOutcome.Unsaved? = null,
     )
 
     private companion object {

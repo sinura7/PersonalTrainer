@@ -31,9 +31,9 @@ class ComposerCopyTest {
         assertEquals("Weight lbs", ComposerCopy.weightFieldLabel(WeightUnit.LBS))
         assertEquals("5 reps · 80 kg", ComposerCopy.strengthLineSubtitle(5, 80.0, WeightUnit.KG))
         assertEquals("5 reps · 176.5 lbs", ComposerCopy.strengthLineSubtitle(5, 80.0, WeightUnit.LBS))
-        assertEquals(80.0, ComposerCopy.parseWeightToKg("80", WeightUnit.KG), 0.0)
-        assertEquals(102.5, ComposerCopy.parseWeightToKg("102,5", WeightUnit.KG), 0.0001)
-        assertEquals(5.5, ComposerCopy.parseDistanceKm("5,5")!!, 0.0001)
+        assertEquals(80.0, readyStrength("80", "5", WeightUnit.KG).weightKg, 0.0)
+        assertEquals(102.5, readyStrength("102,5", "5", WeightUnit.KG).weightKg, 0.0001)
+        assertEquals(5.5, readyCardio("30", "5,5", DistanceUnit.KM).distanceKm!!, 0.0001)
         assertEquals(
             DistanceUnit.KM,
             DistanceUnit.fromWeight(WeightUnit.KG),
@@ -42,27 +42,66 @@ class ComposerCopyTest {
             DistanceUnit.MI,
             DistanceUnit.fromWeight(WeightUnit.LBS),
         )
-        assertEquals(
-            8.04672,
-            ComposerCopy.parseDistanceToKm("5", DistanceUnit.MI)!!,
-            0.00001,
-        )
-        assertEquals(
-            8_046.72,
-            ComposerCopy.parseDistanceToMeters("5", DistanceUnit.MI)!!,
-            0.01,
-        )
-        assertEquals(
-            5.0,
-            ComposerCopy.parseDistanceToKm("5", DistanceUnit.KM)!!,
-            0.0,
-        )
+        assertEquals(8.04672, readyCardio("30", "5", DistanceUnit.MI).distanceKm!!, 0.00001)
+        assertEquals(5.0, readyCardio("30", "5", DistanceUnit.KM).distanceKm!!, 0.0)
         assertEquals(
             WeightConverter.toKg(185.0, WeightUnit.LBS),
-            ComposerCopy.parseWeightToKg("185", WeightUnit.LBS),
+            readyStrength("185", "5", WeightUnit.LBS).weightKg,
             0.0,
         )
     }
+
+    /**
+     * UX06: Add set reads both boxes as typed and refuses, box by box, what cannot be stored
+     * as written. Nothing is rewritten on the way: "8.5" reps is a refusal, not 85.
+     */
+    @Test
+    fun addSetRefusesWhatItCannotStoreAsWritten() {
+        val refused = ComposerCopy.strengthEntry("-50", "8.5", WeightUnit.KG) as StrengthEntry.RefusedSet
+        assertEquals(NumericEntry.WEIGHT_NEGATIVE, refused.weightError)
+        assertEquals(NumericEntry.REPS_WHOLE_RULE, refused.repsError)
+
+        val repsOnly = ComposerCopy.strengthEntry("60", "", WeightUnit.KG) as StrengthEntry.RefusedSet
+        assertEquals(null, repsOnly.weightError)
+        assertEquals(NumericEntry.REPS_WHOLE_RULE, repsOnly.repsError)
+
+        // No cap on a backdated set: 150 push-ups is a thing that happened.
+        assertEquals(150, readyStrength("", "150", WeightUnit.KG).reps)
+        assertEquals(NumericEntry.REPS_WHOLE_RULE, (ComposerCopy.strengthEntry("60", "0", WeightUnit.KG) as StrengthEntry.RefusedSet).repsError)
+
+        val weightOnly = ComposerCopy.strengthEntry("1.2.3", "8", WeightUnit.KG) as StrengthEntry.RefusedSet
+        assertEquals(NumericEntry.WEIGHT_RULE, weightOnly.weightError)
+        assertEquals(null, weightOnly.repsError)
+
+        // A blank weight is bodyweight, as the field's 0 default and every weight hint say.
+        val bodyweight = readyStrength("", "12", WeightUnit.LBS)
+        assertEquals(0.0, bodyweight.weightKg, 0.0)
+        assertEquals(12, bodyweight.reps)
+    }
+
+    @Test
+    fun addCardioRefusesFractionalMinutesAndUnreadableDistance() {
+        val refused = ComposerCopy.cardioEntry("2.5", "5k", DistanceUnit.KM) as CardioEntry.RefusedCardio
+        assertEquals(NumericEntry.MINUTES_RULE, refused.minutesError)
+        assertEquals(NumericEntry.DISTANCE_RULE, refused.distanceError)
+
+        val noMinutes = ComposerCopy.cardioEntry("", "", DistanceUnit.KM) as CardioEntry.RefusedCardio
+        assertEquals(NumericEntry.MINUTES_RULE, noMinutes.minutesError)
+        assertEquals(null, noMinutes.distanceError)
+
+        val zeroMinutes = ComposerCopy.cardioEntry("0", "", DistanceUnit.KM) as CardioEntry.RefusedCardio
+        assertEquals(NumericEntry.MINUTES_RULE, zeroMinutes.minutesError)
+
+        val noDistance = readyCardio("30", "", DistanceUnit.MI)
+        assertEquals(30, noDistance.minutes)
+        assertEquals(null, noDistance.distanceKm)
+    }
+
+    private fun readyStrength(weight: String, reps: String, unit: WeightUnit): StrengthEntry.ReadySet =
+        ComposerCopy.strengthEntry(weight, reps, unit) as StrengthEntry.ReadySet
+
+    private fun readyCardio(minutes: String, distance: String, unit: DistanceUnit): CardioEntry.ReadyCardio =
+        ComposerCopy.cardioEntry(minutes, distance, unit) as CardioEntry.ReadyCardio
 
     @Test
     fun saveIsTheOnlyFilledVolt() {

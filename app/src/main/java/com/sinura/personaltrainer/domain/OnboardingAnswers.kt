@@ -354,6 +354,10 @@ data class OnboardingAnswers(
                 clean.emphasis.name,
                 clean.bodyweightKg?.toString().orEmpty(),
                 clean.focus.name,
+                // Ninth field: explicit kit from Settings. Without it a draft restored after
+                // process death applied with an empty kit and replaced the owner's choice with
+                // one derived from places. Older eight-field drafts still decode (see below).
+                clean.availableEquipment.sorted().joinToString(","),
             ).joinToString("|")
         }
 
@@ -373,6 +377,11 @@ data class OnboardingAnswers(
                 bodyweightKg = parts[6].toDoubleOrNull(),
                 places = TrainingPlace.parsePlaces(parts[3]),
                 focus = TrainingFocus.fromStorage(parts.getOrNull(7)),
+                availableEquipment = parts.getOrNull(8)
+                    ?.split(',')
+                    ?.filter { it.isNotBlank() }
+                    ?.toSet()
+                    .orEmpty(),
             )
         }
 

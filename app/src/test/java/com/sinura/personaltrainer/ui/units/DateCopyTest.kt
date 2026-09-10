@@ -36,7 +36,7 @@ class DateCopyTest {
         val composer = readMain("ui/activity/ActivityComposerScreen.kt")
         assertFalse(composer.contains("Locale.US"))
         assertTrue(composer.contains("DateCopy.weekdayShort"))
-        assertTrue(composer.contains("parseDistanceToKm"))
+        assertTrue(composer.contains("ComposerCopy.cardioEntry"))
 
         val history = readMain("ui/history/HistoryScreen.kt")
         assertTrue(history.contains("DateCopy.dateTime"))

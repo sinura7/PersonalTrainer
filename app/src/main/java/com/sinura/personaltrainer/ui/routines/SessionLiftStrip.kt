@@ -21,6 +21,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -45,8 +46,11 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.TargetEntry
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
+import com.sinura.personaltrainer.ui.components.FieldComplaint
+import com.sinura.personaltrainer.ui.components.fieldError
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.ThumbSize
@@ -112,8 +116,13 @@ fun SessionLiftStrip(
     onMoveEarlier: (String) -> Unit,
     onMoveLater: (String) -> Unit,
     onRemove: (String) -> Unit,
-    onStageTargets: (String, Int?, Int?, Int?, Double?) -> Unit,
+    onStageTargets: (String, Int?, Int?, Int?, Double?, String?) -> Unit,
     onCommitTargets: (String) -> Unit,
+    /**
+     * The card folded shut, taking its four boxes and their text with it. Whatever rule
+     * those boxes broke is no longer on screen to fix, so it must not go on refusing.
+     */
+    onForgetTargetRule: (String) -> Unit,
     modifier: Modifier = Modifier,
     canSwap: (String) -> Boolean = { false },
     onSwap: (String) -> Unit = {},
@@ -158,8 +167,9 @@ fun SessionLiftStrip(
                 onMoveLater = { onMoveLater(item.id) },
                 onRemove = { onRemove(item.id) },
                 onSwap = { onSwap(item.id) },
-                onStageTargets = { sets, reps, rest, kg ->
-                    onStageTargets(item.id, sets, reps, rest, kg)
+                onForgetTargetRule = onForgetTargetRule,
+                onStageTargets = { sets, reps, rest, kg, invalid ->
+                    onStageTargets(item.id, sets, reps, rest, kg, invalid)
                 },
                 onCommitTargets = { onCommitTargets(item.id) },
                 modifier = Modifier.then(
@@ -192,8 +202,9 @@ private fun SessionLiftCard(
     onMoveLater: () -> Unit,
     onRemove: () -> Unit,
     onSwap: () -> Unit,
-    onStageTargets: (Int?, Int?, Int?, Double?) -> Unit,
+    onStageTargets: (Int?, Int?, Int?, Double?, String?) -> Unit,
     onCommitTargets: () -> Unit,
+    onForgetTargetRule: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val unit = LocalWeightUnit.current
@@ -306,6 +317,7 @@ private fun SessionLiftCard(
                 onSwap = onSwap,
                 onStageTargets = onStageTargets,
                 onCommitTargets = onCommitTargets,
+                onForgetTargetRule = onForgetTargetRule,
             )
         }
     }
@@ -323,8 +335,9 @@ private fun SessionLiftEditor(
     onMoveLater: () -> Unit,
     onRemove: () -> Unit,
     onSwap: () -> Unit,
-    onStageTargets: (Int?, Int?, Int?, Double?) -> Unit,
+    onStageTargets: (Int?, Int?, Int?, Double?, String?) -> Unit,
     onCommitTargets: () -> Unit,
+    onForgetTargetRule: (String) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -336,6 +349,24 @@ private fun SessionLiftEditor(
             modifier = Modifier.padding(horizontal = Metrics.space3),
         )
         key("${item.id}:${item.exercise.id}") {
+            // Tied to the SAME key as the boxes themselves, so it fires exactly when their
+            // text is discarded — the card folded shut, the lift removed, or this slot reused
+            // for a different lift after a reorder. Reopening re-reads the STORED numbers, so
+            // a rejection staged from text that no longer exists would refuse Save for a box
+            // showing its stored value: a dead end with nothing on screen to correct, the same
+            // shape 1801821 fixed for a removed card.
+            //
+            // A configuration change disposes too, but there `rememberSaveable` restores the
+            // typed text and CompactTargetFields re-registers the rejection on its next
+            // composition, so clearing here is self-correcting for rotation.
+            //
+            // The id is captured in a local rather than read through the lambda at dispose
+            // time: after a reorder this slot's `item` is already the NEW lift, and forgetting
+            // that one would clear a complaint the owner can still see.
+            val forgettingId = item.id
+            DisposableEffect(forgettingId) {
+                onDispose { onForgetTargetRule(forgettingId) }
+            }
             CompactTargetFields(
                 rowKey = "${item.id}:${item.exercise.id}",
                 sets = item.sets,
@@ -429,7 +460,7 @@ internal fun CompactTargetFields(
     reps: Int,
     restSeconds: Int,
     targetWeightKg: Double?,
-    onStageTargets: (Int?, Int?, Int?, Double?) -> Unit,
+    onStageTargets: (Int?, Int?, Int?, Double?, String?) -> Unit,
     onCommitTargets: () -> Unit,
     onRemove: () -> Unit,
     onSwap: (() -> Unit)?,
@@ -440,19 +471,42 @@ internal fun CompactTargetFields(
     val repsFocus = remember { FocusRequester() }
     val restFocus = remember { FocusRequester() }
     val weightFocus = remember { FocusRequester() }
+    // What each box reads when it shows the STORED target and nothing else. Held as values so
+    // the restore hook below can ask the only question that matters: is the text on screen
+    // still what the routine holds, or did the owner type something the routine does not?
+    val storedWeightText = targetWeightKg?.let { kg ->
+        WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(kg, unit))
+    }.orEmpty()
     var setsText by rememberSaveable(rowKey) { mutableStateOf(sets.toString()) }
     var repsText by rememberSaveable(rowKey) { mutableStateOf(reps.toString()) }
     var restText by rememberSaveable(rowKey) { mutableStateOf(restSeconds.toString()) }
-    var weightText by rememberSaveable(rowKey) {
-        mutableStateOf(
-            targetWeightKg?.let { kg ->
-                WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(kg, unit))
-            }.orEmpty(),
-        )
-    }
+    var weightText by rememberSaveable(rowKey) { mutableStateOf(storedWeightText) }
+    // The four boxes, read as typed. An empty box means "leave this one alone"; a box that
+    // cannot be stored as written is a complaint under that box and a rejection staged with the
+    // card, so the commit refuses it and Save and Back count it as unsaved (UX06). The text is
+    // never rewritten on the way.
+    val entry = TargetEntry.read(setsText, repsText, restText, weightText, unit)
     val stage = {
-        val kg = NumericEntry.parseWeightKg(weightText, unit)?.takeIf { it > 0.0 }
-        onStageTargets(setsText.toIntOrNull(), repsText.toIntOrNull(), restText.toIntOrNull(), kg)
+        val read = TargetEntry.read(setsText, repsText, restText, weightText, unit)
+        onStageTargets(read.typedSets, read.typedReps, read.typedRest, read.typedWeightKg, read.firstError)
+    }
+    // The box text is saved state; what was staged from it is not. After the process is
+    // reclaimed the card is rebuilt showing whatever was typed and nothing upstream knows, so
+    // Save walks past it — refusing a card the owner can see is wrong when the text cannot be
+    // read, and worse when it CAN: typing "8" into reps, losing the process before the box
+    // loses focus, and pressing Save popped the editor claiming success while the routine
+    // still held 5. Both are the same omission and both are re-registered here.
+    //
+    // The condition is "the text is not what the routine holds", not "the text is broken",
+    // because that is exactly what a pending edit is. A card showing its stored numbers stages
+    // nothing, so an untouched editor is never marked dirty and Back never asks about changes
+    // nobody made — which is the trap a blanket re-stage would fall into.
+    val differsFromStored = setsText != sets.toString() ||
+        repsText != reps.toString() ||
+        restText != restSeconds.toString() ||
+        weightText != storedWeightText
+    LaunchedEffect(rowKey, entry.hasError, differsFromStored) {
+        if (entry.hasError || differsFromStored) stage()
     }
     Column(
         modifier = Modifier.padding(start = Metrics.space3, end = Metrics.space3, bottom = Metrics.space3),
@@ -460,27 +514,29 @@ internal fun CompactTargetFields(
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
             MiniNumberField(
-                "Sets",
-                setsText,
-                Modifier.weight(1f),
-                onCommitTargets,
+                label = "Sets",
+                value = setsText,
+                modifier = Modifier.weight(1f),
+                onFocusLost = onCommitTargets,
+                error = entry.setsError,
                 ime = chain[0],
                 focusRequester = setsFocus,
                 onImeNext = { repsFocus.requestFocus() },
             ) {
-                setsText = it.filter(Char::isDigit)
+                setsText = it
                 stage()
             }
             MiniNumberField(
-                "Reps",
-                repsText,
-                Modifier.weight(1f),
-                onCommitTargets,
+                label = "Reps",
+                value = repsText,
+                modifier = Modifier.weight(1f),
+                onFocusLost = onCommitTargets,
+                error = entry.repsError,
                 ime = chain[1],
                 focusRequester = repsFocus,
                 onImeNext = { restFocus.requestFocus() },
             ) {
-                repsText = it.filter(Char::isDigit)
+                repsText = it
                 stage()
             }
         }
@@ -489,12 +545,13 @@ internal fun CompactTargetFields(
             value = restText,
             modifier = Modifier.fillMaxWidth(),
             onFocusLost = onCommitTargets,
+            error = entry.restError,
             suffix = "s",
             ime = chain[2],
             focusRequester = restFocus,
             onImeNext = { weightFocus.requestFocus() },
         ) {
-            restText = it.filter(Char::isDigit)
+            restText = it
             stage()
         }
         MiniNumberField(
@@ -504,12 +561,13 @@ internal fun CompactTargetFields(
                 .fillMaxWidth()
                 .testTag(CompactLiftTags.TARGET_WEIGHT),
             onFocusLost = onCommitTargets,
+            error = entry.weightError,
             allowDecimal = true,
             suffix = unit.suffix,
             ime = chain[3],
             focusRequester = weightFocus,
         ) {
-            weightText = decimalDigits(it)
+            weightText = it
             stage()
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
@@ -531,6 +589,12 @@ private fun MiniNumberField(
     value: String,
     modifier: Modifier,
     onFocusLost: () -> Unit,
+    /**
+     * The rule this box's text breaks, or null. Shown once the finger has left the box — a
+     * half-typed "62." would otherwise flash red on the way to "62.5" — and kept there until
+     * the text changes to something the routine can hold.
+     */
+    error: String? = null,
     allowDecimal: Boolean = false,
     suffix: String? = null,
     ime: NumericEntry.Ime = NumericEntry.Ime.NEXT,
@@ -539,17 +603,26 @@ private fun MiniNumberField(
     onValueChange: (String) -> Unit,
 ) {
     var hadFocus by remember { mutableStateOf(false) }
+    var focused by remember { mutableStateOf(false) }
+    val shownError = error?.takeIf { !focused }
+    val complaint: (@Composable () -> Unit)? = shownError?.let { message ->
+        { FieldComplaint(message) }
+    }
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label, style = InstrumentType.caption) },
         modifier = modifier
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
+            .fieldError(shownError)
             .onFocusChanged { focus ->
                 if (hadFocus && !focus.isFocused) onFocusLost()
                 hadFocus = focus.isFocused
+                focused = focus.isFocused
             },
         singleLine = true,
+        isError = shownError != null,
+        supportingText = complaint,
         textStyle = InstrumentType.numeralMd,
         suffix = suffix?.let { unit ->
             { Text(unit, style = InstrumentType.unit, color = TextSecondary) }
@@ -564,6 +637,3 @@ private fun MiniNumberField(
         ),
     )
 }
-
-/** One decimal separator, comma or point. Extra dots used to make the field unparseable and clear the load. */
-internal fun decimalDigits(raw: String): String = NumericEntry.filterDecimal(raw)

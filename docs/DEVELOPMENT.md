@@ -74,6 +74,46 @@ let release and that old debug coexist, so if you already have release on
 the phone you only gain the new debug icon beside it. Do not uninstall
 release to "make room." There is nothing to make room for.
 
+## The Android SDK in a Claude Code on the web session
+
+For most of this repo's life the real build was impossible here: Google's Maven was refused
+at the CONNECT, Gradle could not resolve the Android Gradle Plugin, and the project could not
+configure. On 10 September 2026 `dl.google.com` began answering and the real build turned out
+to work — `assembleDebug` in 5m24s, `testDebugUnitTest` 1,946 tests — so `./gradlew
+testDebugUnitTest assembleDebug lintDebug`, the merge gate, is now the check to run before a
+push, not a static approximation of it.
+
+Two things put the SDK on the machine, and they are not alternatives:
+
+**[`tools/cloud-setup-android.sh`](../tools/cloud-setup-android.sh) is the primary path.** It
+is the environment's *Setup script* at claude.ai/code, so it runs once per environment and the
+result is snapshotted — every session in that environment starts with the SDK already there and
+pays nothing. It needs `dl.google.com` and `maven.google.com` in the environment's Allowed
+domains. Read its header before editing it: it must exit 0 and finish inside five minutes or
+the snapshot is not cached.
+
+**`.claude/hooks/session-start.sh` is the per-session fallback.** An environment whose Setup
+script was never configured — or whose snapshot expired — would otherwise start with no SDK and
+no way to run the gate, which is exactly how this session began. The hook installs the same
+three packages (`platform-tools`, `platforms;android-36` for the project's `compileSdk`, and
+`build-tools;36.0.0`) into `$ANDROID_SDK_ROOT`, default `/opt/android-sdk`, and exports
+`ANDROID_HOME`/`ANDROID_SDK_ROOT` through `$CLAUDE_ENV_FILE`. Where the setup script has
+already run it finds the SDK present and does nothing, so the two never fight.
+
+**The hook is allowed to do nothing.** Egress policy is not ours to depend on. If Google's
+servers are refused it prints why, names the offline lanes, and exits 0 — a session that cannot
+reach Google is still a working session, and the static gate plus `tools/run-domain-tests.sh`
+are what it uses. It only runs when `CLAUDE_CODE_REMOTE=true`, so a developer machine keeps its
+own SDK.
+
+It runs **synchronously**, so the session does not start until the SDK is there. That costs
+about four minutes on a cold container and removes the race where a build is attempted before
+its toolchain exists. Switching it to async (`{"async": true}` as the first line) would trade
+that guarantee for a faster start.
+
+Where the real build is available, prefer it. A static checker reasons about text;
+`assembleDebug` substitutes nothing.
+
 ## Project layout
 
 ```
@@ -164,6 +204,12 @@ its exhaustiveness, a name that was never declared, a name that was used but nev
 a colour that escaped the token layer, a screen that quietly stopped calling one of its
 callbacks, and a screen reading a state field its view model never exposed. See
 [tools/README.md](../tools/README.md).
+
+`./gradlew compileDebugKotlin` sits above all of them: it is the real compiler against the
+real dependencies, and every checker above is only a cheap early warning for one class of
+thing it would have caught anyway. The checkers stay because they cost a second and need no
+SDK; they do not stand in for the build. Run the gate before any push that changes a shared
+signature.
 
 Every one of these was written from a real miss, because a check nobody has watched fail is a
 check nobody knows works. `check-missing-imports.py` came from `Surface1` shipping un-imported

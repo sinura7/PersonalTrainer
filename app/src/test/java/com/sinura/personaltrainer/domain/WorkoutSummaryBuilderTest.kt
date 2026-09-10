@@ -130,6 +130,67 @@ class WorkoutSummaryBuilderTest {
         assertEquals(5, top.reps)
     }
 
+    /**
+     * UX05-AC03: a push-up-only session is measured in reps. Its headline is its rep total,
+     * never "0 kg", and the reps are carried on the summary so the receipt can show them.
+     */
+    @Test
+    fun aBodyweightOnlySessionHeadlinesItsRepsNotZeroKilograms() {
+        val pushUp = sessionExercise("ex-pushup", "Push-up", "Chest", loadType = LoadType.BODYWEIGHT)
+        val summary = WorkoutSummaryBuilder.build(
+            session(
+                id = "s1",
+                finishedAt = at + 3_600_000,
+                sets = listOf(
+                    logged("ex-pushup", "Push-up", 0.0, 20, 0),
+                    logged("ex-pushup", "Push-up", 0.0, 15, 1000),
+                ),
+                exercises = listOf(pushUp),
+                date = at,
+            ),
+            emptyMap(),
+        )
+        assertTrue(summary.hasWork)
+        assertEquals(0.0, summary.volumeKg, 0.0)
+        assertEquals(35, summary.bodyweightReps)
+        assertEquals(SummaryHeadline.BodyweightReps(35), summary.headline)
+        assertEquals(LoadClass.BODYWEIGHT, summary.highlights.single().loadClass)
+    }
+
+    @Test
+    fun aMixedSessionLeadsWithKilogramsAndKeepsItsReps() {
+        val pushUp = sessionExercise("ex-pushup", "Push-up", "Chest", loadType = LoadType.BODYWEIGHT)
+        val squat = sessionExercise("ex-squat", "Squat", "Quads")
+        val summary = WorkoutSummaryBuilder.build(
+            session(
+                id = "s1",
+                finishedAt = at + 3_600_000,
+                sets = listOf(
+                    logged("ex-pushup", "Push-up", 0.0, 20, 0),
+                    logged("ex-squat", "Squat", 100.0, 5, 1000),
+                ),
+                exercises = listOf(pushUp, squat),
+                date = at,
+            ),
+            emptyMap(),
+        )
+        assertEquals(500.0, summary.volumeKg, 0.0)
+        assertEquals(20, summary.bodyweightReps)
+        assertEquals(SummaryHeadline.Volume(500.0), summary.headline)
+    }
+
+    @Test
+    fun aLoadedSessionWithNoTonnageFallsBackToItsSetCount() {
+        // Every set at 0 kg on a loaded lift: no kilograms and no rep measure either. The
+        // receipt leads with the one thing every finished set contributes to.
+        val summary = WorkoutSummaryBuilder.build(
+            finished(listOf(logged("ex-squat", "Squat", 0.0, 5, 0), logged("ex-squat", "Squat", 0.0, 5, 1000))),
+            emptyMap(),
+        )
+        assertTrue(summary.hasWork)
+        assertEquals(SummaryHeadline.WorkingSets(2), summary.headline)
+    }
+
     @Test
     fun aWarmupOnlySessionHasNoWork() {
         val summary = WorkoutSummaryBuilder.build(

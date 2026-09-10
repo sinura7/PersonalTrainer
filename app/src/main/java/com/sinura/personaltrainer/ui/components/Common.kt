@@ -68,6 +68,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
@@ -709,6 +710,33 @@ object NumberEntryTags {
     const val FIELD = "number-entry-field"
 }
 
+/**
+ * The rule a box or a form broke, under the thing that broke it.
+ *
+ * A polite live region, because the old banner these lines replace was one: a screen reader
+ * that hears nothing when Save re-enables has been told the save worked. Same caption style
+ * and ink everywhere so a complaint reads the same on every screen.
+ */
+@Composable
+fun FieldComplaint(message: String, modifier: Modifier = Modifier) {
+    Text(
+        text = message,
+        modifier = modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        style = InstrumentType.caption,
+        color = Danger,
+    )
+}
+
+/**
+ * Marks a text field as holding text that broke [message]'s rule, so assistive tech reads the
+ * rule instead of Material's generic "Invalid input". No-op while there is no complaint.
+ */
+fun Modifier.fieldError(message: String?): Modifier =
+    // The property is set directly rather than through the `error(...)` extension: importing a
+    // function named `error` would shadow the stdlib `error()` for every checker that reads
+    // imports by name, and the property is what the extension sets anyway.
+    if (message == null) this else semantics { this[SemanticsProperties.Error] = message }
+
 fun NumericEntry.Ime.imeAction(): ImeAction = when (this) {
     NumericEntry.Ime.NEXT -> ImeAction.Next
     NumericEntry.Ime.DONE -> ImeAction.Done
@@ -1199,8 +1227,11 @@ fun CustomRestDialog(
                 )
                 OutlinedTextField(
                     value = input,
+                    // As typed. The confirm button runs RestTimer.parseCustom and says "Use 90
+                    // or 1:30." when it cannot read the text; a filter that dropped the dot
+                    // from "1.5" used to hand that parser 15 and set a 15-second rest.
                     onValueChange = {
-                        input = it.filter { ch -> ch.isDigit() || ch == ':' }
+                        input = it
                         invalid = false
                     },
                     modifier = Modifier.fillMaxWidth(),
