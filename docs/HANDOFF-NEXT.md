@@ -24,16 +24,14 @@ the wells; it landed at live 35, the same number #217 already used, so
 Obtainium will not offer it. #219 rewrote this file. `#220` is on
 `trunk`: a drop is claimed, not assumed. `debug-live-2026-09-10-8`
 shipped 36 from `#220` (`8cf0623`) — the RPE rule and the drop lock,
-not the lift page.
+not the lift page. `#221` is on `trunk`: the drop planner fetches tags
+before it answers.
 
 Open `#202` is R18 step two (exercise detail reads both stores). It
 inherits 36 and does not bump it. After it lands, the next drop is 37.
-Do not start step three from `trunk` while `#202` is open.
-
-Open `#221` (the drop planner fetches tags before it answers) is one
-file, `tools/debug-drop-plan.py`. Overlap with `#202` is none. Do not
-start a second edit of the drop tools, `debug-live.yml`, `SETUP.md`, or
-the owner loop from `trunk`. Do not delete `claude/android-verify-my59sw`
+Do not start step three from `trunk` while `#202` is open. Do not start
+a second edit of the drop tools, `debug-live.yml`, `SETUP.md`, or the
+owner loop from `trunk`. Do not delete `claude/android-verify-my59sw`
 or `claude/ecstatic-galileo-pw9iub`.
 
 **The hosted emulator lane is green: 80 tests, 0 failed.** It has never
@@ -144,6 +142,6 @@ second build is never offered by Obtainium. That is the predicted cost of
 breaking the rule, not bad luck. It happened again the same day: `#217`
 and `#218` both claimed 35; `-6` and `-7` both carry that number.
 Obtainium still offers 35 until 36 is installed. `#220` shipped 36 as
-`debug-live-2026-09-10-8`. Open `#221` makes the planner fetch tags so it
-cannot name a spent suffix. The next drop after `#202` is 37.
+`debug-live-2026-09-10-8`. `#221` is on `trunk`. The next drop after
+`#202` is 37.
 
