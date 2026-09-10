@@ -101,9 +101,10 @@ import org.junit.runner.RunWith
  * see [mount]. Until 10 Sep 2026 this paragraph claimed the wider widths were "mounted in a
  * box wider than the viewport", and they were not — `Modifier.size` is a preferred size, so
  * the emulator's own 411 dp won and every 600 dp pass was a 411 dp pass under another name.
- * [mountIsAsWideAsItSays] now proves each width before any screen is judged at it.
+ * [mountIsAsWideAsItSaysAt600] and its siblings now prove each width before any screen is
+ * judged at it.
  */
-/** The only tag [mountIsAsWideAsItSays] needs: a box that fills whatever mount gave it. */
+/** The only tag the width guards need: a box that fills whatever mount gave it. */
 private const val WIDTH_PROBE = "screens-pass-width-probe"
 
 @RunWith(AndroidJUnit4::class)
@@ -190,29 +191,38 @@ class ProductionScreensPassInstrumentedTest {
      * The harness before the screens: every other test here is only worth its name if the
      * viewport really is the width the test says. It was not — `Modifier.size` was coerced by
      * the emulator's own 411 dp, so both 600 dp passes had never once rendered at 600 dp and
-     * nothing said so. This asserts the width itself, for every entry in
-     * [AccessibilityMatrix.widthsDp], so the matrix cannot drift from what the lane renders.
+     * nothing said so.
+     *
+     * One test per width, not a loop: `compose.setContent` may be called only once per test,
+     * so a loop over the matrix fails on its second mount with "has already set content" —
+     * which is exactly how the first draft of this guard failed on the lane.
+     * [theMatrixHasNoWidthThisFileDoesNotProve] is what stops the list and these tests
+     * drifting apart.
      *
      * A dp is allowed either side: the density that makes 1080 px exactly 600 dp is 1.8, but
-     * 411 needs 2.62773…, and rounding a fractional density back to whole dp cannot land
+     * 411 dp needs 2.62773…, and rounding a fractional density back to whole dp cannot land
      * exactly on every width.
      */
     @Test
-    fun mountIsAsWideAsItSays() {
-        AccessibilityMatrix.widthsDp.forEach { widthDp ->
-            var measured = -1
-            mount(widthDp = widthDp, fontScale = 1f) {
-                BoxWithConstraints(Modifier.fillMaxSize()) {
-                    measured = maxWidth.value.roundToInt()
-                    Box(Modifier.fillMaxSize().testTag(WIDTH_PROBE))
-                }
-            }
-            awaitTag(WIDTH_PROBE)
-            assertTrue(
-                "mount(widthDp = $widthDp) gave a viewport $measured dp wide",
-                measured in (widthDp - 1)..(widthDp + 1),
-            )
-        }
+    fun mountIsAsWideAsItSaysAt360() = assertMountIsAsWideAsItSays(360)
+
+    @Test
+    fun mountIsAsWideAsItSaysAt412() = assertMountIsAsWideAsItSays(412)
+
+    @Test
+    fun mountIsAsWideAsItSaysAt600() = assertMountIsAsWideAsItSays(600)
+
+    /**
+     * The drift guard. Adding a width to the matrix without a mount proof above would leave it
+     * asserted about but never rendered, which is the whole defect this replaced.
+     */
+    @Test
+    fun theMatrixHasNoWidthThisFileDoesNotProve() {
+        assertEquals(
+            "every width in AccessibilityMatrix.widthsDp needs a mountIsAsWideAsItSaysAt… test",
+            listOf(360, 412, 600),
+            AccessibilityMatrix.widthsDp,
+        )
     }
 
     /** The tallest width in the matrix must also leave a usable page, not a letterbox. */
@@ -226,9 +236,24 @@ class ProductionScreensPassInstrumentedTest {
             }
         }
         awaitTag(WIDTH_PROBE)
-        // Widening by density lengthens the page too: a 411 dp / 731 dp screen shown as 600 dp
-        // is 1066 dp tall. The old box pinned height at 800 dp and was clipped to 731.
+        // Widening by density lengthens the page too: a 411 x 731 dp screen shown as 600 dp is
+        // 1066 dp tall. The old box pinned height at 800 dp and was clipped to 731.
         assertTrue("widest mount was only $measuredHeight dp tall", measuredHeight >= 600)
+    }
+
+    private fun assertMountIsAsWideAsItSays(widthDp: Int) {
+        var measured = -1
+        mount(widthDp = widthDp, fontScale = 1f) {
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                measured = maxWidth.value.roundToInt()
+                Box(Modifier.fillMaxSize().testTag(WIDTH_PROBE))
+            }
+        }
+        awaitTag(WIDTH_PROBE)
+        assertTrue(
+            "mount(widthDp = $widthDp) gave a viewport $measured dp wide",
+            measured in (widthDp - 1)..(widthDp + 1),
+        )
     }
 
     @Test
