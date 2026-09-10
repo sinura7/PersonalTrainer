@@ -18,7 +18,8 @@
 > 10 Sep 2026 — Live 37: `#202` is on `trunk` (the lift page reads both
 > stores). Obtainium still offers 36 until the number rises. This packet
 > is that rise. `#225` is on `trunk` (Drive refusal copy) and rides this
-> drop. Live test 37 (`debugLiveCode` 37); the suffix is
+> drop. Open `#227` is the preflight gate (tools/docs) and does not.
+> Live test 37 (`debugLiveCode` 37); the suffix is
 > `python3 tools/debug-drop-plan.py` after merge, not a name typed here.
 >
 > 10 Sep 2026 — I: a drop is claimed, not assumed. Two packets merging nine
