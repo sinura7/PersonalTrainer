@@ -52,8 +52,18 @@ class RestTimerService : Service() {
     private var tickedSecond = 0
     private var tickPlayer: RestTickPlayer? = null
 
-    /** Last seen; the collector below keeps it current. Read by the tick, on the main thread. */
-    internal var tickPreferences: RestTimerPreferences = RestTimerPreferences.DEFAULT
+    /**
+     * Last seen; the collector below keeps it current. Read by the tick, on the
+     * main thread.
+     *
+     * Null until DataStore's first emission, and a tick that finds it null stays
+     * silent (it still reschedules). Seeding it with the defaults meant everything
+     * on: after a sticky restart with four seconds left, the ticks could sound
+     * against a toggle the owner had turned off, because the read had not landed
+     * yet. A missed tick is the right failure mode for a cue preference; a tick
+     * against "off" is not.
+     */
+    internal var tickPreferences: RestTimerPreferences? = null
     private var completing = false
     private var startedForeground = false
     private var lastShownEndsAt = Long.MIN_VALUE
@@ -196,9 +206,13 @@ class RestTimerService : Service() {
         }
         tickedEndsAt = state.endsAtElapsedRealtime
         tickedSecond = second
-        val player = tickPlayer
-        val ticked = RestTimerAlerts.tick(this, tickPreferences) { player?.play() }
-        if (ticked) tickObserver?.invoke(second)
+        val preferences = tickPreferences
+        if (preferences != null) {
+            val player = tickPlayer
+            if (RestTimerAlerts.tick(this, preferences) { player?.play() }) {
+                tickObserver?.invoke(second)
+            }
+        }
         scheduleTick(state)
     }
 
