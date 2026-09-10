@@ -34,6 +34,11 @@ a second edit of the drop tools, `debug-live.yml`, `SETUP.md`, or the
 owner loop from `trunk`. Do not delete `claude/android-verify-my59sw`
 or `claude/ecstatic-galileo-pw9iub`.
 
+Open `#222` (the golden comparator forgives one level of rasteriser
+rounding) answers the comparator question. Overlap with `#202` is
+HANDOFF and ROADMAP. Do not start a second edit of `GoldenImageAssert`
+or `FoundationGoldenTest` from `trunk`.
+
 **The hosted emulator lane is green: 80 tests, 0 failed.** It has never
 been green before. It is still `continue-on-error` and must stay that way —
 see the CI note below.
