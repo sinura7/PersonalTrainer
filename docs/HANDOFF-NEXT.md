@@ -160,9 +160,11 @@ are on `trunk`. Do **not** bump 32 here.
 Open `#213` (day-board follow-ups, live 33, drop `debug-live/2026-09-10-4`,
 vehicle `claude/android-verify-my59sw`) overlaps this packet on ROADMAP
 only. Independent Kotlin. Open `#214` (log wells belong to the next set)
-overlaps this packet on ROADMAP only; it is **dirty against `trunk`**
-(cut from live 31, claims drop `debug-live/2026-09-10-3` which `#212`
-already took) and must rebase before merge. Do not start a second edit
+overlaps this packet on ROADMAP only; it rebased onto `trunk` after
+`#212` and now also claims live 33 / `debug-live/2026-09-10-4`. `#213`
+and `#214` both edit `app/build.gradle.kts`; they cannot land as
+strangers — one inherits and becomes 34. Do not merge both for the
+same drop. Do not start a second edit
 of Home, `DayBlock`, `DailyAgendaCard`, `ThisWeekCard`, `PlanDayScreen`,
 `ActiveWorkoutScreen`, `ActiveWorkoutViewModel`, `SetEntryPanel`,
 `RepsStepper`, rest timer, Settings, `DESIGN_AUDIT.md`,
