@@ -15,6 +15,16 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 10 Sep 2026 — G: the entry wells belong to the next set. Logging one took
+> a snapshot of weight and reps at the tap and wrote it back over the wells
+> when Room returned, so a load nudged or a rep count typed in the tens of
+> milliseconds the write takes was taken back by the log's own tail — the
+> owner's "sometimes it resets one or the other". The tail now clears the
+> two per-set flags (warm-up, RPE) on the draft as it stands; the row that
+> was written keeps the tapped values. Typed reps stop being a delta
+> measured against a well that may have moved: `setReps` takes the number.
+> Live test 34 (`debugLiveCode` 34), drop `debug-live/2026-09-10-5`.
+>
 > 10 Sep 2026 — Day board follow-ups, from the same six-reviewer pass over
 > #205: a tappable block reads as a button again (`Role.Button`, which
 > `Card(onClick)` does not set and `InstrumentRow` did); Skip and Up / Down

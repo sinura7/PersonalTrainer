@@ -660,7 +660,21 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun adjustReps(delta: Int) {
-        draft.value = draft.value.copy(reps = (draft.value.reps + delta).coerceAtLeast(1))
+        setReps(draft.value.reps + delta)
+    }
+
+    /**
+     * A rep count chosen outright, rather than nudged to.
+     *
+     * Typing used to be expressed as a delta — "you asked for 8 and the well showed 5, so
+     * add 3" — computed from what the well was showing when the keypad opened. The two can
+     * differ by the time Confirm is pressed (a logged set landing, a recommendation taken),
+     * and the delta then lands on a different number than it was measured from: type 8, get
+     * 11. An absolute value cannot drift, and this is still the one write path, so nothing
+     * bypasses the floor or the draft-persist.
+     */
+    fun setReps(reps: Int) {
+        draft.value = draft.value.copy(reps = reps.coerceAtLeast(1))
         persistDraft()
     }
 
@@ -953,7 +967,15 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                     }
                 }
                 error.clearFrom(source = ERR_LOG_SET, before = started)
-                draft.value = current.copy(isWarmup = false, rpe = null)
+                // Clear the two per-set flags on whatever is in the wells NOW — not on the
+                // snapshot taken at the tap. Room's write is tens of milliseconds and a finger
+                // is faster: a weight nudged or a rep count typed for the next set, in the
+                // moment between the tap and the row landing, used to be taken back by this
+                // line. The lifter saw the number they had just chosen revert to the one they
+                // had already logged, and only sometimes, which is what made it so hard to
+                // pin down. The set that was written is `current`; the wells belong to the
+                // next one.
+                draft.value = draft.value.copy(isWarmup = false, rpe = null)
                 persistDraft()
             } catch (thrown: CancellationException) {
                 throw thrown
