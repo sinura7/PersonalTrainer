@@ -36,6 +36,11 @@ loop, `GoldenImageAssert`, or `FoundationGoldenTest` from `trunk`. Do
 not delete `claude/android-verify-my59sw` or
 `claude/ecstatic-galileo-pw9iub`.
 
+Open `#223` (ADR-024: the deterministic hosted job may gate `trunk`)
+overlaps `#202` on HANDOFF and ROADMAP. Do not start a second edit of
+`DEVELOPMENT.md`, `ADR-002`, or `architecture/README.md` from `trunk`.
+The setting itself is the owner's; an agent does not switch it on.
+
 **The hosted emulator lane is green: 80 tests, 0 failed** on `trunk`
 before `#222`; that packet adds three comparator unit tests (expected
 83). It is still `continue-on-error` and must stay that way —

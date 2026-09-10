@@ -171,8 +171,9 @@
 > `CompletedTrainingRepository.observeExerciseSets` (both stores). A
 > backdated strength day counts as a PR on that lift, not only in
 > Records. `#217`–`#222` are on `trunk`. `#220` shipped live 36 as
-> `debug-live-2026-09-10-8`. This packet inherits 36 and does not bump
-> it; the lift page needs 37 after this packet lands.
+> `debug-live-2026-09-10-8`. Open `#223` is ADR-024 (HANDOFF + ROADMAP).
+> This packet inherits 36 and does not bump it; the lift page needs 37
+> after this packet lands.
 >
 > 9 Sep 2026 — F: the multi-add picker writes as it goes. A tap in Add lifts
 > puts the lift on the routine (or on the custom week's day) immediately and a
