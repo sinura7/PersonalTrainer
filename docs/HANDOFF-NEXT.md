@@ -19,7 +19,14 @@ Start on the foot (#205, #213); the **last five seconds tick** (#206,
 since it was first pointed at the right profile (#207, #208, #209, #211);
 the golden's record corrected (#215); and the lane's own tests hardened
 (#216). #214, from another session, moved the entry wells onto the next
-set.
+set. #218 stopped the RPE chip and the extra-set button from retyping
+the wells; it landed at live 35, the same number #217 already used, so
+Obtainium will not offer it. #219 rewrote this file.
+
+Open `#202` is R18 step two (exercise detail reads both stores). It
+inherits 35 and does not bump it. Do not start step three from `trunk`
+while `#202` is open. Do not delete `claude/android-verify-my59sw` or
+`claude/ecstatic-galileo-pw9iub`.
 
 **The hosted emulator lane is green: 80 tests, 0 failed.** It has never
 been green before. It is still `continue-on-error` and must stay that way —
@@ -91,13 +98,14 @@ Biggest first, and the first two are the owner's, not a session's:
 - **Twenty-one DESIGN_AUDIT P1 rows** still genuinely open. Cheapest that
   pays: N-01, a cue preview button in Settings. Biggest felt: B-02, Body's
   first-launch emptiness.
-- **R18 convergence steps 3 and 4** — one shared detail-ViewModel shape, and
-  the activity-edit capability split — plus the five use-case extractions
-  and the seven-row parity table in
-  `architecture/completed-training-convergence.md`. Step 3 first: two detail
-  screens that can disagree about *missing* versus *failed* is the bug that
-  record exists to prevent. The log-time PR badge is **not** on this list:
-  it is a signed product fact, because activities are never logged live.
+- **R18 step two is open `#202`.** After it lands: **steps 3 and 4** —
+  one shared detail-ViewModel shape, and the activity-edit capability
+  split — plus the five use-case extractions and the seven-row parity
+  table in `architecture/completed-training-convergence.md`. Step 3
+  first: two detail screens that can disagree about *missing* versus
+  *failed* is the bug that record exists to prevent. The log-time PR
+  badge is **not** on this list: it is a signed product fact, because
+  activities are never logged live.
 - **R17 measurement** is blocked on a fixture generator and a benchmark
   module nobody has built, not on the owner's history growing. About a day.
 - **The 600 dp screen passes never run at 600 dp**: `mount` sizes a Box
@@ -124,5 +132,7 @@ One packet open at a time, on a branch, squash-merged
 10 September three pull requests were open at once and two of them bumped
 `debugLiveCode` to 33 independently — git merges that silently and the
 second build is never offered by Obtainium. That is the predicted cost of
-breaking the rule, not bad luck.
+breaking the rule, not bad luck. It happened again the same day: `#217`
+and `#218` both claimed 35; Obtainium still offers `debug-live-2026-09-10-6`
+(`#217`). The next drop is 36 after `#202` lands.
 
