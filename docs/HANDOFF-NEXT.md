@@ -159,12 +159,12 @@ now ticks now, live 32, drop `debug-live/2026-09-10-3`),
 and `#213` (day-board follow-ups, live 33, drop `debug-live/2026-09-10-4`)
 are on `trunk`. Do **not** bump 33 here.
 Open `#214` (log wells belong to the next set) overlaps this packet on
-ROADMAP only. Independent Kotlin. It still claims live 33 /
-`debug-live/2026-09-10-4`, which `#213` took; it must inherit and become
-34 before merge. Open `#215` (golden record: F3's contrast, not the
-renderer) is docs only — ROADMAP, `VISUAL_TESTING.md`, and the
-re-record evidence note. Overlaps this packet on ROADMAP only. Do not
-take its open comparator question as this packet. Do not start a
+ROADMAP only. Independent Kotlin. It now claims live 34 /
+`debug-live/2026-09-10-5`, after `#213` took 33. Open `#215` (golden
+record: F3's contrast, not the renderer) is docs only — ROADMAP,
+`VISUAL_TESTING.md`, and the re-record evidence note. Overlaps this
+packet on ROADMAP only. Do not take its open comparator question as
+this packet. Do not start a
 second edit of Home, `DayBlock`, `DailyAgendaCard`, `ThisWeekCard`,
 `PlanDayScreen`, `ActiveWorkoutScreen`, `ActiveWorkoutViewModel`,
 `SetEntryPanel`, `RepsStepper`, rest timer, Settings, `DESIGN_AUDIT.md`,
