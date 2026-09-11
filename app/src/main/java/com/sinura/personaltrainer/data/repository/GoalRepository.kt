@@ -16,6 +16,8 @@ class GoalRepository(
 ) {
     fun observeAll(): Flow<List<MeasurableGoal>> =
         dao.observeAll().map { rows -> rows.map { it.toDomain() } }
+            .observeHealth("the goals")
+            .presentValues()
 
     suspend fun all(): List<MeasurableGoal> = dao.getAll().map { it.toDomain() }
 

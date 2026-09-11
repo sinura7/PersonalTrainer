@@ -460,7 +460,7 @@ fun RestPresetChips(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        items(RestTimer.PRESETS_SECONDS) { seconds ->
+        items(RestTimer.PRESETS_SECONDS, key = { it }) { seconds ->
             InstrumentChip(
                 label = RestTimer.formatClock(seconds),
                 selected = selectedSeconds == seconds,

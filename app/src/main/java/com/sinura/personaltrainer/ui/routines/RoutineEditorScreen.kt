@@ -65,7 +65,7 @@ fun RoutineEditorScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var pendingRemoveId by rememberSaveable { mutableStateOf<String?>(null) }
     var notesOpen by rememberSaveable { mutableStateOf(false) }
-    var expandedLiftId by rememberSaveable { mutableStateOf<String?>(null) }
+    var expandedLiftRequest by rememberSaveable { mutableStateOf<String?>(null) }
     val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
 
     // Back is state, not a callback: leaving first deletes the empty stub routine, and if the
@@ -127,11 +127,12 @@ fun RoutineEditorScreen(
         }
 
         val exercises = state.routine?.exercises.orEmpty()
-        LaunchedEffect(exercises.map { it.id }) {
-            if (expandedLiftId != null && exercises.none { it.id == expandedLiftId }) {
-                expandedLiftId = null
-            }
-        }
+        // Derived, not corrected after the fact. This was a LaunchedEffect keyed on
+        // `exercises.map { it.id }` that nulled the request once the lift it named had gone —
+        // a new list allocated on every recomposition to drive a side effect whose whole job
+        // was to undo state that should never have been readable. A row that is not in the
+        // list cannot be the expanded one, so it is not one.
+        val expandedLiftId = expandedLiftRequest?.takeIf { id -> exercises.any { it.id == id } }
 
         LazyColumn(
             modifier = Modifier
@@ -200,7 +201,7 @@ fun RoutineEditorScreen(
                         },
                         selectedId = expandedLiftId,
                         onSelect = { id ->
-                            expandedLiftId = if (expandedLiftId == id) null else id
+                            expandedLiftRequest = if (expandedLiftId == id) null else id
                         },
                         onMoveEarlier = { id -> viewModel.moveExercise(id, -1) },
                         onMoveLater = { id -> viewModel.moveExercise(id, 1) },
@@ -290,7 +291,8 @@ fun RoutineEditorScreen(
             confirmLabel = "Remove",
             destructive = true,
             onConfirm = {
-                if (expandedLiftId == itemId) expandedLiftId = null
+                // No need to clear the expanded row: it is derived from the list, so a lift
+                // that is no longer on the routine is no longer the expanded one.
                 viewModel.removeExercise(itemId)
                 pendingRemoveId = null
             },

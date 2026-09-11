@@ -202,7 +202,7 @@ internal fun SecondaryLogOptions(
             item(key = "rpe-label") {
                 Kicker("RPE", modifier = Modifier.padding(horizontal = Metrics.space2))
             }
-            items((6..10).toList()) { value ->
+            items((6..10).toList(), key = { it }) { value ->
                 InstrumentChip(
                     label = value.toString(),
                     selected = rpe == value,

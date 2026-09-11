@@ -41,12 +41,18 @@ class PlannerRepository(
 
     fun observeRules(): Flow<List<ScheduleRule>> =
         dao.observeRules().map { rows -> rows.map { it.toDomain() } }
+            .observeHealth("the schedule rules")
+            .presentValues()
 
     fun observeOccurrences(): Flow<List<ScheduleOccurrence>> =
         dao.observeOccurrences().map { rows -> rows.map { it.toDomain() } }
+            .observeHealth("the planned week")
+            .presentValues()
 
     fun observeDecisions(): Flow<List<MissedWorkDecision>> =
         dao.observeDecisions().map { rows -> rows.map { it.toDomain() } }
+            .observeHealth("the missed-work decisions")
+            .presentValues()
 
     suspend fun rules(): List<ScheduleRule> = dao.getRules().map { it.toDomain() }
 

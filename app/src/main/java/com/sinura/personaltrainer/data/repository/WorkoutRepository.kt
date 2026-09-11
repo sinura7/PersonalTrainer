@@ -46,12 +46,13 @@ import com.sinura.personaltrainer.domain.SessionActivity
 import com.sinura.personaltrainer.domain.SessionEditRules
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.domain.SetLogRules
+import com.sinura.personaltrainer.domain.IdPort
 import com.sinura.personaltrainer.domain.TimePort
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkingSetCandidate
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.util.IdFactory
 import com.sinura.personaltrainer.util.JvmTime
-import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -87,12 +88,17 @@ class WorkoutRepository(
      */
     private val restoreBlocksStart: () -> Boolean = { false },
     /**
-     * The clock the history builders read civil dates from. Defaulted here, in the data
-     * layer, because naming [JvmTime] is this layer's job: `domain/` used to carry the
-     * same default and so could not be compiled without the Android-backed adapter
-     * behind it.
+     * The clock every write here stamps from, and the source of every id it mints.
+     *
+     * Defaulted in the data layer because naming [JvmTime] is this layer's job — `domain/`
+     * used to carry the same default and so could not be compiled without the Android-backed
+     * adapter behind it. Injected rather than called directly so a test can decide what "now"
+     * is: fourteen sites in this file reached for `time.nowMillis()` and
+     * `UUID.randomUUID()` on their own, which is why nothing about a logged set's stamp or a
+     * session's id was reproducible.
      */
     private val time: TimePort = JvmTime,
+    private val ids: IdPort = IdFactory.Uuid,
 ) {
     private suspend fun <T> serialized(block: suspend () -> T): T =
         dbMaintenance?.withMaintenanceLock(block) ?: block()
@@ -253,9 +259,9 @@ class WorkoutRepository(
             serialized {
             refuseIfRestoreOpen()?.let { return@serialized it }
             refuseIfOtherLive()?.let { return@serialized it }
-            val now = System.currentTimeMillis()
+            val now = time.nowMillis()
             val session = WorkoutSessionEntity(
-                id = UUID.randomUUID().toString(),
+                id = ids.newId(),
                 routineId = routine.id,
                 routineName = routine.name,
                 date = now,
@@ -266,7 +272,7 @@ class WorkoutRepository(
             )
             val exercises = routine.exercises.mapIndexed { index, item ->
                 SessionExerciseEntity(
-                    id = UUID.randomUUID().toString(),
+                    id = ids.newId(),
                     sessionId = session.id,
                     exerciseId = item.exercise.id,
                     sortOrder = index,
@@ -308,10 +314,10 @@ class WorkoutRepository(
             serialized {
             refuseIfRestoreOpen()?.let { return@serialized it }
             refuseIfOtherLive()?.let { return@serialized it }
-            val now = System.currentTimeMillis()
+            val now = time.nowMillis()
             val focus = focusTitle?.trim().orEmpty()
             val session = WorkoutSessionEntity(
-                id = UUID.randomUUID().toString(),
+                id = ids.newId(),
                 routineId = null,
                 routineName = focus.ifBlank { "Free workout" },
                 date = now,
@@ -345,8 +351,8 @@ class WorkoutRepository(
             return RepeatOutcome.Failed("That session is still in progress.")
         }
 
-        val now = System.currentTimeMillis()
-        val newId = UUID.randomUUID().toString()
+        val now = time.nowMillis()
+        val newId = ids.newId()
         val session = WorkoutSessionEntity(
             id = newId,
             // Never carry a dangling foreign key: the routine may have been deleted since.
@@ -360,7 +366,7 @@ class WorkoutRepository(
         )
         val exercises = RepeatSessionPlan.from(source).mapIndexed { index, item ->
             SessionExerciseEntity(
-                id = UUID.randomUUID().toString(),
+                id = ids.newId(),
                 sessionId = newId,
                 exerciseId = item.exerciseId,
                 sortOrder = index,
@@ -440,7 +446,7 @@ class WorkoutRepository(
             val nextOrder = workoutDao.maxSessionExerciseOrder(sessionId) + 1
             workoutDao.upsertSessionExercise(
                 SessionExerciseEntity(
-                    id = UUID.randomUUID().toString(),
+                    id = ids.newId(),
                     sessionId = sessionId,
                     exerciseId = exercise.id,
                     sortOrder = nextOrder,
@@ -500,7 +506,7 @@ class WorkoutRepository(
             workoutDao.deleteSessionExercise(itemId)
             workoutDao.upsertSessionExercise(
                 SessionExerciseEntity(
-                    id = UUID.randomUUID().toString(),
+                    id = ids.newId(),
                     sessionId = sessionId,
                     exerciseId = replacement.id,
                     sortOrder = existing.sortOrder,
@@ -536,9 +542,9 @@ class WorkoutRepository(
             val nextNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
             val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else 0.0
             val safeReps = reps.coerceAtLeast(1)
-            val completedAt = System.currentTimeMillis()
+            val completedAt = time.nowMillis()
             val row = SetLogEntity(
-                id = UUID.randomUUID().toString(),
+                id = ids.newId(),
                 sessionId = sessionId,
                 exerciseId = exerciseId,
                 setNumber = nextNumber,
@@ -558,7 +564,14 @@ class WorkoutRepository(
                 // heat map and from records, and announcing one as a PR would be a lie.
                 emptySet()
             } else {
-                recordsBrokenBy(exerciseId, sessionId, entity.weightKg, entity.reps, entity.completedAt)
+                recordsBrokenBy(
+                    exerciseId = exerciseId,
+                    sessionId = sessionId,
+                    weightKg = entity.weightKg,
+                    reps = entity.reps,
+                    completedAt = entity.completedAt,
+                    setNumber = entity.setNumber,
+                )
             },
         )
     }
@@ -685,7 +698,7 @@ class WorkoutRepository(
             val nextNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
             workoutDao.insertSet(
                 SetLogEntity(
-                    id = UUID.randomUUID().toString(),
+                    id = ids.newId(),
                     sessionId = sessionId,
                     exerciseId = exerciseId,
                     setNumber = nextNumber,
@@ -736,19 +749,20 @@ class WorkoutRepository(
     }
 
     suspend fun finishSession(sessionId: String, notes: String) {
-        val current = workoutDao.getSession(sessionId)?.session
+        // One targeted UPDATE, for the reason WorkoutDao.updateSessionNotes gives: reading the
+        // whole row and writing it all back makes every column a hostage to whatever wrote in
+        // between. Only startedAt is read, and it never changes once the session exists.
+        val startedAt = workoutDao.sessionStartedAt(sessionId)
             ?: error("This workout is no longer available.")
-        if (current.finishedAt != null) return
-        val finishedAt = System.currentTimeMillis()
-        val duration = TimeUnit.MILLISECONDS.toMinutes(finishedAt - current.startedAt)
+        val finishedAt = time.nowMillis()
+        val duration = TimeUnit.MILLISECONDS.toMinutes(finishedAt - startedAt)
             .toInt()
             .coerceAtLeast(1)
-        workoutDao.updateSession(
-            current.copy(
-                notes = notes.trim(),
-                durationMinutes = duration,
-                finishedAt = finishedAt,
-            ),
+        workoutDao.finishSession(
+            id = sessionId,
+            notes = notes.trim(),
+            durationMinutes = duration,
+            finishedAt = finishedAt,
         )
     }
 
@@ -920,8 +934,15 @@ class WorkoutRepository(
         weightKg: Double,
         reps: Int,
         completedAt: Long,
+        setNumber: Int,
     ): Set<PersonalRecordKind> {
-        val row = workoutDao.recordPriorsBefore(exerciseId, sessionId, weightKg, completedAt)
+        val row = workoutDao.recordPriorsBefore(
+            exerciseId = exerciseId,
+            sessionId = sessionId,
+            weightKg = weightKg,
+            completedAt = completedAt,
+            setNumber = setNumber,
+        )
         return PersonalRecords.detect(
             candidate = ExerciseSetRecord(
                 setId = "",
