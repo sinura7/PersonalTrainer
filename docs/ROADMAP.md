@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 11 Sep 2026 — G-05 / W-02 / T-12: idle rest says Not running. A warm-up
+> names that rest did not start. Planned duration is a label, not a
+> countdown. Inherits live 39; does not bump it.
+>
 > 11 Sep 2026 — G-02: rest Start/Skip and Log set sit in the lower dock
 > during a session. Finish stays in the header. Inherits live 39; does
 > not bump it.

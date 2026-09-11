@@ -105,6 +105,9 @@ fun ActiveWorkoutScreen(
         ?: rememberRestNotificationsEnabled()
     val session = state.session
     val selected = session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId }
+    val afterWarmup = selected?.let { lift ->
+        session?.setsFor(lift.exercise.id)?.maxByOrNull { it.completedAt }?.isWarmup == true
+    } == true
     val advance = remember(session, state.selectedExerciseId, extraSetRequested, state.editingSetId) {
         WorkoutAdvance.forSelection(
             session = session,
@@ -243,6 +246,7 @@ fun ActiveWorkoutScreen(
                             running = rest.running,
                             completedTimerId = rest.completedTimerId,
                             hideWhenIdle = LandscapeChrome.hideIdleRest(landscape),
+                            afterWarmup = afterWarmup,
                             onSkip = viewModel::skipRest,
                             onStart = viewModel::startSelectedRest,
                             onOpenRest = { session.id.let(onOpenRest) },
