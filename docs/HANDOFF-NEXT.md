@@ -95,7 +95,8 @@ Biggest first, and the first two are the owner's, not a session's:
   walking `AccessibilityMatrix`.
 - **The whole-app phase audit** owed at the close of Phase 9. Same eleven
   screens, same phone; do the two in one sitting.
-- **DESIGN_AUDIT P1 rows from that four-row list are closed.** D-08 is closed:
+- **DESIGN_AUDIT P1 rows from that four-row list are closed.** A-03 is closed:
+  the shade rest clock freezes at 0:00; it never paints a minus. D-08 is closed:
   lift cards, the set table, the equipment chip, confirm dialog, section
   header, and card-shaped loading are shared components; overlay rest stays
   superseded. D-01/D-02/D-03 are already Instrument in `Type`/`Color`/`Shape`/`Metrics`

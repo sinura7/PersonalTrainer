@@ -57,7 +57,7 @@ These are not optional polish. They are part of the product.
 | **R-03** | Rest timer plays a **completion sound** that means “next set starts now” | Generic system notification ringtone via `RestTimerAlerts`, skipped if ringer is silent | ✅ 9 Sep 2026 — bundled `res/raw/rest_done.ogg` through `RestSound`, played on the alarm stream (`RestTimerAlerts.CUE_ATTRIBUTES`, `USAGE_ALARM`) |
 | **R-04** | **Last 5 seconds tick** as a warning | Not implemented. No in-app or service tick | ✅ 10 Sep 2026 — `RestTick` (5, 4, 3, 2, 1) posted by `RestTimerService` per boundary; a click (`res/raw/rest_tick.wav` through `RestTickPlayer`, alarm stream) and a 40 ms pulse (`RestTimerAlerts.tick`); Settings **Last five seconds** toggle. Phone awake only; doze keeps the completion cue |
 | **R-05** | Rest timer **hovering popup on the phone home screen** so remaining time is visible without opening the app | Foreground notification + chronometer only. No overlay / bubble / widget **— Superseded — see §10.2 banner; the notification + last-5s ticks are the home-screen presence.** | ✅ 9 Sep 2026 — superseded — no launcher overlay; see §10.2 banner |
-| **R-06** | Rest timer **must not go negative** | Domain clock clamps to `0`. System notification `Chronometer` countdown can overshoot after `setWhen` is in the past. Users see negatives | **P0** |
+| **R-06** | Rest timer **must not go negative** | Domain clock clamps to `0`. System notification `Chronometer` countdown can overshoot after `setWhen` is in the past. Users see negatives | ✅ 11 Sep 2026 — live Chronometer only while seconds remain (ADR-012 lock-screen); at zero the shade freezes `0:00 remaining` (`RestTimer.remainingCopy`, `RestTimerNotifications.runningNotification`) then Done. Never a minus |
 | **R-07** | **Delete a routine, then create one, must not crash** | Editor auto-inserts `"Untitled routine"` on `routine/new`, `leave()` deletes the empty stub, ViewModel can keep a deleted id. Reported crash on recreate | **P0** |
 | **R-08** | Routines include **machines** as a real format (not just free-weight names in a text list) | Catalog mixes “Leg Press” / “Lat Pulldown” as names only. No equipment type, no machine grouping, no machine card design | ✅ 9 Sep 2026 — `EquipmentType` (`BARBELL`…`MACHINE`…`BODYWEIGHT`) on `Exercise.equipment` (`Models.kt`), shown as the row tag in `RoutineEditorScreen`, carried in `BackupJson` |
 
@@ -135,6 +135,8 @@ When `endAtWall` is in the past, the system Chronometer keeps counting **through
 - Do not use countdown Chronometer for a gym rest clock, **or** replace the notification the instant remaining ≤ 0 (same handler, no “until we get around to it”).
 - Prefer a custom `contentText` (`1:24 remaining`) updated every second from the service, always `coerceAtLeast(0)`.
 - Never show a minus in-app, in the overlay, or in the shade. Overtime, if we add it later, is a **separate** “+0:12 overdue” state, never `-0:12`.
+
+**Closed 11 Sep 2026.** Live lock-screen countdown stays a Chronometer while time remains (ADR-012). The instant remaining hits 0, `RestTimerNotifications` posts a frozen `0:00 remaining` card (`usesLiveChronometer` is false — no `setUsesChronometer`, custom Chronometer stopped) and `RestTimerService.handleDeadline` does that freeze *before* the async complete, so Samsung’s lingering row cannot paint a minus. Copy is `RestTimer.remainingCopy`. Overlay rest stays superseded.
 
 ### A-04 — Notification permission can be denied with no recovery  [P0 for gym use]
 
@@ -356,7 +358,7 @@ Images on the lift switcher. Rest becomes a full-screen-feeling card only while 
 | T-03 | No distinct “stand up” stinger separate from the shade notification **— Closed 9 Sep 2026: the cue is its own `MediaPlayer` on `USAGE_ALARM` (`RestTimerAlerts`), separate from the shade notification** | P1 |
 | T-04 | Silent ringer skips sound entirely. Offer a workout override (media/alarm stream) with an explicit setting, default off **— Closed 9 Sep 2026: by decision: the cue rides the alarm stream, which a silent ringer does not mute; sound has its own toggle (`setRestSoundEnabled`) rather than a media override** | P1 |
 | T-05 | Vibration is only on complete. Add tick pulses on 5–1 **— Closed 10 Sep 2026: `RestTimerAlerts.tick` — a 40 ms `createOneShot` pulse per tick under the Vibration toggle** | P1 |
-| T-06 | Notification Chronometer can go negative (A-03) | P0 |
+| T-06 | Notification Chronometer can go negative (A-03) **— Closed 11 Sep 2026: live Chronometer only while time remains; at zero the shade is frozen `0:00 remaining` then Done** | P0 |
 | T-07 | No overlay / bubble on the launcher (R-05). See §8 **— Superseded — see §10.2 banner.** **— Closed 9 Sep 2026: superseded — see §10.2 banner** | P1 |
 | T-08 | Home rest card and in-workout card can disagree for a frame (different collectors) | P2 |
 | T-09 | Presets are only 60/90/120. Need 30s (accessories) and 180s (heavy compounds) | P2 |
@@ -633,7 +635,7 @@ Document Samsung: overlay + Unrestricted battery + notification channel importan
 6. Rest card is always on; warm-up makes it confusing.
 7. Leave dialog’s primary action is Discard.
 8. Resume can show an empty session (A-01).
-9. Rest in the shade can read negative (A-03).
+9. Rest in the shade can read negative (A-03). **Closed 11 Sep 2026: frozen `0:00 remaining`, never a minus.**
 10. History is a receipt, not a story.
 
 The steppers, keep-screen-on, single in-progress session, and FGS rest are the parts that already understand the gym. Everything around them still understands a CRUD app.
@@ -722,7 +724,7 @@ Wear and a plate calculator will matter. They are not the current hole. Images, 
 
 1. **A-01** Resume always shows the real lifts and sets.
 2. **A-02** Routine create/delete lifecycle; no untitled stubs; no crash.
-3. **A-03** Timer never displays negative anywhere.
+3. **A-03** Timer never displays negative anywhere. **Closed 11 Sep 2026.**
 4. **A-04 / Q-10** Notification permission with recovery.
 5. **A-05** 0 kg working-set rule.
 

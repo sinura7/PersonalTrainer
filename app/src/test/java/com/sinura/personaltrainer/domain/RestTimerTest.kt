@@ -47,6 +47,22 @@ class RestTimerTest {
     }
 
     @Test
+    fun remainingCopyNeverShowsAMinus() {
+        assertEquals("0:00 remaining", RestTimer.remainingCopy(-12))
+        assertEquals("0:00 remaining", RestTimer.remainingCopy(0))
+        assertEquals("1:24 remaining", RestTimer.remainingCopy(84))
+        assertFalse(RestTimer.remainingCopy(-90).contains("-"))
+    }
+
+    @Test
+    fun liveChronometerOnlyWhileTimeRemains() {
+        assertTrue(RestTimer.usesLiveChronometer(1))
+        assertTrue(RestTimer.usesLiveChronometer(90))
+        assertFalse(RestTimer.usesLiveChronometer(0))
+        assertFalse(RestTimer.usesLiveChronometer(-1))
+    }
+
+    @Test
     fun sweepFractionIsFullAtStartAndEmptyAtZero() {
         assertEquals(1f, RestTimer.sweepFraction(90, 90), 0.0001f)
         assertEquals(0.5f, RestTimer.sweepFraction(45, 90), 0.0001f)
