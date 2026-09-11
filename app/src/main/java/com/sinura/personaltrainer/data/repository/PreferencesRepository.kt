@@ -110,7 +110,7 @@ data class AutoBackupSettings(
  * signature is declared once, in the interface, and the compiler proves the facade is complete.
  * Call sites are unchanged — `preferencesRepository.weightUnit` still resolves — and callers
  * that only want one area can now depend on [DisplayPrefs] or [BackupPrefs] instead of all
- * forty-six keys, which is what `BackupRepository` has been reaching through this class for.
+ * forty-six keys, which is what `BackupService` has been reaching through this class for.
  *
  * What stays here is what does not belong to one area: the Room-backed bodyweight and
  * training-block mirrors, which need DAOs, and the restore cutover, which writes across

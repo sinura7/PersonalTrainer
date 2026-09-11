@@ -335,14 +335,14 @@ class BackupCoordinator(
 
     fun signIn(activity: Activity) {
         runBackupAction("Signing in…") {
-            container.backupRepository.signIn(activity, ::awaitResolution)
+            container.backupService.signIn(activity, ::awaitResolution)
             status.value = "Signed in. Backups stay in your PersonalTrainer Backups Drive folder."
         }
     }
 
     fun signOut(activity: Activity) {
         runBackupAction("Signing out…") {
-            container.backupRepository.signOut(activity)
+            container.backupService.signOut(activity)
             backups.value = emptyList()
             status.value = "Signed out. Training data on this phone is unchanged."
         }
@@ -500,7 +500,7 @@ class BackupCoordinator(
         heldPassword = null
         runBackupAction("Uploading backup…") {
             try {
-                val file = container.backupRepository.createBackup(
+                val file = container.backupService.createBackup(
                     activity,
                     ::awaitResolution,
                     password = password,
@@ -520,7 +520,7 @@ class BackupCoordinator(
 
     fun refreshBackups(activity: Activity) {
         runBackupAction("Loading backups…") {
-            val listing = container.backupRepository.listBackups(activity, ::awaitResolution)
+            val listing = container.backupService.listBackups(activity, ::awaitResolution)
             backups.value = listing.files
             status.value = describeListing(listing)
         }
@@ -542,7 +542,7 @@ class BackupCoordinator(
 
     fun requestRestore(activity: Activity, file: DriveBackupFile) {
         runBackupAction("Checking backup…") {
-            val raw = container.backupRepository.downloadDriveBackup(
+            val raw = container.backupService.downloadDriveBackup(
                 activity,
                 file,
                 ::awaitResolution,
@@ -559,12 +559,12 @@ class BackupCoordinator(
         val plan = pendingPlan.value ?: return
         pendingPlan.value = null
         runBackupAction("Restoring backup…") {
-            val result = container.backupRepository.commitRestore(plan)
+            val result = container.backupService.commitRestore(plan)
             container.preferencesRepository.setLastRestore(
                 plan.sourceName,
                 System.currentTimeMillis(),
             )
-            restorePending.value = container.backupRepository.pendingRecovery()
+            restorePending.value = container.backupService.pendingRecovery()
             reloadSafetySnapshots()
             status.value = describeRestore(result)
         }
@@ -572,10 +572,10 @@ class BackupCoordinator(
 
     init {
         scope.launch {
-            runCatchingCancellable { container.backupRepository.recoverInterruptedRestore() }
+            runCatchingCancellable { container.backupService.recoverInterruptedRestore() }
                 .onFailure { AppLog.w(TAG, "Finishing an interrupted restore failed", it) }
             runCatchingCancellable {
-                restorePending.value = container.backupRepository.pendingRecovery()
+                restorePending.value = container.backupService.pendingRecovery()
             }.onFailure { AppLog.w(TAG, "Reading the restore journal failed", it) }
             refreshSafetySnapshots()
         }
@@ -587,8 +587,8 @@ class BackupCoordinator(
      */
     fun finishRestore() {
         runBackupAction("Finishing restore…") {
-            val recovery = container.backupRepository.recoverInterruptedRestore()
-            restorePending.value = container.backupRepository.pendingRecovery()
+            val recovery = container.backupService.recoverInterruptedRestore()
+            restorePending.value = container.backupService.pendingRecovery()
             reloadSafetySnapshots()
             status.value = describeRecovery(recovery)
         }
@@ -609,13 +609,13 @@ class BackupCoordinator(
     }
 
     private suspend fun reloadSafetySnapshots() {
-        safetySnapshots.value = container.backupRepository.listSafetySnapshots()
+        safetySnapshots.value = container.backupService.listSafetySnapshots()
     }
 
     fun requestSafetyRestore(id: String) {
         runBackupAction("Checking safety copy…") {
-            val json = container.backupRepository.readSafetySnapshot(id)
-            pendingPlan.value = container.backupRepository.prepareRestore(
+            val json = container.backupService.readSafetySnapshot(id)
+            pendingPlan.value = container.backupService.prepareRestore(
                 json,
                 sourceName = SafetySnapshotMeta.TITLE,
             )
@@ -650,7 +650,7 @@ class BackupCoordinator(
                         "That export lost its protection choice. Start it again.",
                     )
                 }
-                val json = container.backupRepository.readSafetySnapshot(id)
+                val json = container.backupService.readSafetySnapshot(id)
                 val payload = withContext(container.computeDispatcher) {
                     // A safety copy is written by restore without a size check. Refuse a
                     // copy the document budget would not let back in before spending the
@@ -690,7 +690,7 @@ class BackupCoordinator(
 
     fun deleteSafetySnapshot(id: String) {
         runBackupAction("Deleting safety copy…") {
-            container.backupRepository.deleteSafetySnapshot(id)
+            container.backupService.deleteSafetySnapshot(id)
             reloadSafetySnapshots()
             status.value = "Safety copy deleted. Training data on this phone is unchanged."
         }
@@ -727,9 +727,9 @@ class BackupCoordinator(
                     )
                 }
                 val payload = if (password != null) {
-                    container.backupRepository.exportProtected(password, envelopeIterations)
+                    container.backupService.exportProtected(password, envelopeIterations)
                 } else {
-                    container.backupRepository.exportJson()
+                    container.backupService.exportJson()
                 }
                 withContext(container.ioDispatcher) {
                     val resolver = application.contentResolver
@@ -784,7 +784,7 @@ class BackupCoordinator(
             // as the array survived — and a wrong password is the case that repeats.
             val secret = password.toCharArray()
             try {
-                pendingPlan.value = container.backupRepository.prepareRestore(
+                pendingPlan.value = container.backupService.prepareRestore(
                     raw,
                     sourceName = name,
                     password = secret,
@@ -811,7 +811,7 @@ class BackupCoordinator(
             dialogs.value = DialogGates(unlock = true)
             return
         }
-        pendingPlan.value = container.backupRepository.prepareRestore(
+        pendingPlan.value = container.backupService.prepareRestore(
             raw,
             sourceName = sourceName,
             password = password,
@@ -820,7 +820,7 @@ class BackupCoordinator(
 
     /** Backups exclude the live session on purpose; say so instead of letting the user assume. */
     private suspend fun unfinishedWorkoutNote(): String =
-        if (container.backupRepository.hasUnfinishedWorkout()) {
+        if (container.backupService.hasUnfinishedWorkout()) {
             " Your in-progress workout was left out — back up again once you finish it."
         } else {
             ""

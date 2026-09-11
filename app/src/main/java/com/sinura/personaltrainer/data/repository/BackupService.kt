@@ -31,7 +31,20 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class BackupRepository(
+/**
+ * Backup and restore, orchestrated across Drive, the local snapshot, and the restore journal.
+ *
+ * Called `BackupRepository` until this packet, which it never was. A repository owns a
+ * collection and answers questions about it; this signs in to Google, uploads a file, reads it
+ * back to verify it, writes a safety copy, replaces every row in Room, applies preferences,
+ * and keeps a journal so a crash halfway through can be finished later. Nine constructor
+ * parameters and seven collaborators, because that is what the sequence takes.
+ *
+ * The name mattered: it is the reason this sat in `data/repository/` next to eighteen classes
+ * that really are repositories, and the reason a reader looking for the backup *sequence*
+ * had no obvious place to look.
+ */
+class BackupService(
     private val localBackupRepository: LocalBackupRepository,
     private val preferencesRepository: PreferencesRepository,
     private val dbMaintenance: DbMaintenance,
@@ -618,7 +631,7 @@ class BackupRepository(
     }
 
     private companion object {
-        const val TAG = "PT/BackupRepository"
+        const val TAG = "PT/BackupService"
 
         /** Shown when Drive About could not be read. Never compared as an account. */
         const val DRIVE_LABEL = "Google Drive"

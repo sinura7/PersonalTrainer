@@ -28,7 +28,7 @@ import com.sinura.personaltrainer.activity.StartLiveActivity
 import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.repository.ActivityRepository
-import com.sinura.personaltrainer.data.repository.BackupRepository
+import com.sinura.personaltrainer.data.repository.BackupService
 import com.sinura.personaltrainer.data.repository.CompletedTrainingRepository
 import com.sinura.personaltrainer.timer.CardioTimerPersistence
 import com.sinura.personaltrainer.timer.PersistedCardioTimer
@@ -164,7 +164,7 @@ class FakeAppDependencies(
             database,
             database.workoutDao(),
             dbMaintenance,
-            restoreBlocksStart = { backupRepository.restoreBlocksStart() },
+            restoreBlocksStart = { backupService.restoreBlocksStart() },
         )
     private val prefsContext = IsolatedAppContext(context.applicationContext)
     private val prefsScope = CoroutineScope(SupervisorJob() + prefsDispatcher)
@@ -189,7 +189,7 @@ class FakeAppDependencies(
             occurrenceCleanup?.invoke(occurrenceId)
                 ?: plannerRepository.cancelRemindersFor(occurrenceId)
         },
-        restoreBlocksStart = { backupRepository.restoreBlocksStart() },
+        restoreBlocksStart = { backupService.restoreBlocksStart() },
     )
     override val completedTrainingRepository: CompletedTrainingRepository =
         CompletedTrainingRepository(workoutRepository, activityRepository, time)
@@ -271,7 +271,7 @@ class FakeAppDependencies(
         onBeforeRestore = {},
         safetySnapshotDir = safetySnapshotDir,
     )
-    override val backupRepository: BackupRepository = BackupRepository(
+    override val backupService: BackupService = BackupService(
         localBackupRepository = localBackupRepository,
         preferencesRepository = preferencesRepository,
         dbMaintenance = dbMaintenance,

@@ -384,8 +384,8 @@ class SettingsViewModelTest {
             finish = true,
             loggedSets = listOf(TestSetInput(100.0, 5)),
         )
-        val json = deps.backupRepository.exportJson()
-        deps.backupRepository.restoreFromJson(json, sourceName = "phone.json")
+        val json = deps.backupService.exportJson()
+        deps.backupService.restoreFromJson(json, sourceName = "phone.json")
 
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         val listed = withTimeout(TestWaits.FLOW_MS) {
@@ -418,9 +418,9 @@ class SettingsViewModelTest {
             finish = true,
             loggedSets = listOf(TestSetInput(100.0, 5)),
         )
-        val json = deps.backupRepository.exportJson()
-        deps.backupRepository.restoreFromJson(json, sourceName = "phone.json")
-        val id = deps.backupRepository.listSafetySnapshots().single().id
+        val json = deps.backupService.exportJson()
+        deps.backupService.restoreFromJson(json, sourceName = "phone.json")
+        val id = deps.backupService.listSafetySnapshots().single().id
 
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.backup.uiState.awaitFirst { it.safetySnapshots.isNotEmpty() }

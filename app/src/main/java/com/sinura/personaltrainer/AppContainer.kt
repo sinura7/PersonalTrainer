@@ -19,7 +19,7 @@ import com.sinura.personaltrainer.data.repository.ActivityRepository
 import com.sinura.personaltrainer.timer.SharedPrefsCardioTimerPersistence
 import com.sinura.personaltrainer.util.IdFactory
 import com.sinura.personaltrainer.util.JvmTime
-import com.sinura.personaltrainer.data.repository.BackupRepository
+import com.sinura.personaltrainer.data.repository.BackupService
 import com.sinura.personaltrainer.data.repository.CompletedTrainingRepository
 import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
@@ -65,7 +65,7 @@ class AppContainer(context: Context) : AppDependencies {
         // A lambda because plannerRepository is built further down this file; it is only ever
         // called long after construction.
         onOccurrenceCompleted = { plannerRepository.cancelRemindersFor(it) },
-        restoreBlocksStart = { backupRepository.restoreBlocksStart() },
+        restoreBlocksStart = { backupService.restoreBlocksStart() },
     )
 
     override val exerciseRepository: ExerciseRepository = ExerciseRepository(
@@ -93,7 +93,7 @@ class AppContainer(context: Context) : AppDependencies {
         database,
         database.workoutDao(),
         dbMaintenance,
-        restoreBlocksStart = { backupRepository.restoreBlocksStart() },
+        restoreBlocksStart = { backupService.restoreBlocksStart() },
     )
     override val completedTrainingRepository: CompletedTrainingRepository =
         CompletedTrainingRepository(workoutRepository, activityRepository, time)
@@ -190,7 +190,7 @@ class AppContainer(context: Context) : AppDependencies {
     override val backupPassphraseSealer: BackupPassphraseSealer =
         KeystoreBackupPassphraseSealer()
 
-    override val backupRepository: BackupRepository = BackupRepository(
+    override val backupService: BackupService = BackupService(
         localBackupRepository = LocalBackupRepository(
             database = database,
             activityDao = database.activityDao(),

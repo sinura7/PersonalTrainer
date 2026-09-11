@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
  *
  * Nineteen of the forty-six keys in `user_settings` are about backup, and they were mixed in
  * with the weight unit and the rest-timer default in one 1,070-line class. This is also the
- * only part of preferences another repository genuinely needs: `BackupRepository` takes a
+ * only part of preferences another repository genuinely needs: `BackupService` takes a
  * whole `PreferencesRepository` to reach these nineteen, which is why it ended up with nine
  * constructor parameters.
  */

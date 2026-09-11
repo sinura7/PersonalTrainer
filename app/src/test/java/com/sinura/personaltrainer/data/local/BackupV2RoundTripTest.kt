@@ -51,7 +51,7 @@ import org.robolectric.RobolectricTestRunner
  * format does not know about. These tests are the reason the format co-evolved in the same phase
  * as the schema rather than in the next one.
  *
- * Exercised through `LocalBackupRepository` + `DbMaintenance` rather than `BackupRepository` —
+ * Exercised through `LocalBackupRepository` + `DbMaintenance` rather than `BackupService` —
  * that is the same decode → validate → replaceWith → reconcile sequence, minus the Drive clients
  * that have no business being constructed in a database test.
  */

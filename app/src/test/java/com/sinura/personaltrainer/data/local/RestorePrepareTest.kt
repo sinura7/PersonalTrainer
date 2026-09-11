@@ -57,8 +57,8 @@ class RestorePrepareTest {
             loggedSets = listOf(TestSetInput(100.0, 5)),
         )
         val before = checkNotNull(deps.workoutRepository.getSession(fixture.session.id))
-        val json = deps.backupRepository.exportJson()
-        val plan = deps.backupRepository.prepareRestore(json, sourceName = "same.json")
+        val json = deps.backupService.exportJson()
+        val plan = deps.backupService.prepareRestore(json, sourceName = "same.json")
         val after = checkNotNull(deps.workoutRepository.getSession(fixture.session.id))
         assertEquals(before.id, after.id)
         assertEquals(before.finishedAt, after.finishedAt)
@@ -74,15 +74,15 @@ class RestorePrepareTest {
             loggedSets = listOf(TestSetInput(100.0, 5)),
         )
         val password = "correct-horse".toCharArray()
-        val envelope = deps.backupRepository.exportProtected(password, iterations = 1_000)
+        val envelope = deps.backupService.exportProtected(password, iterations = 1_000)
         assertTrue(BackupEnvelope.looksLike(envelope))
         try {
-            deps.backupRepository.prepareRestore(envelope, sourceName = "locked.json")
+            deps.backupService.prepareRestore(envelope, sourceName = "locked.json")
             fail("envelope without a password must ask, not decode")
         } catch (thrown: BackupException) {
             assertEquals(BackupEnvelope.NEED_PASSWORD, thrown.message)
         }
-        val plan = deps.backupRepository.prepareRestore(
+        val plan = deps.backupService.prepareRestore(
             envelope,
             sourceName = "locked.json",
             password = password,
@@ -99,7 +99,7 @@ class RestorePrepareTest {
             loggedSets = listOf(TestSetInput(100.0, 5)),
         )
         try {
-            deps.backupRepository.prepareRestore(catalogOnlyJson(), sourceName = "catalog.json")
+            deps.backupService.prepareRestore(catalogOnlyJson(), sourceName = "catalog.json")
             fail("catalog-only restore should refuse")
         } catch (thrown: BackupException) {
             assertTrue(thrown.message?.contains("refused") == true)
@@ -109,21 +109,21 @@ class RestorePrepareTest {
 
     @Test
     fun authoredInventoryCountsBodyweightAndBlocks() = runBlocking {
-        assertEquals(0, deps.backupRepository.authoredInventory().bodyweightEntries)
-        assertEquals(0, deps.backupRepository.authoredInventory().blocks)
+        assertEquals(0, deps.backupService.authoredInventory().bodyweightEntries)
+        assertEquals(0, deps.backupService.authoredInventory().blocks)
         deps.preferencesRepository.recordBodyweight(82.0, epochDay = 20_000)
-        assertEquals(1, deps.backupRepository.authoredInventory().bodyweightEntries)
+        assertEquals(1, deps.backupService.authoredInventory().bodyweightEntries)
         deps.preferencesRepository.setTrainingBlock(
             com.sinura.personaltrainer.domain.TrainingBlock(startEpochDay = 20_000, weeks = 12),
         )
-        assertEquals(1, deps.backupRepository.authoredInventory().blocks)
+        assertEquals(1, deps.backupService.authoredInventory().blocks)
     }
 
     @Test
     fun catalogOnlyFileIsRefusedWhenPhoneHasOnlyBodyweight() = runBlocking {
         deps.preferencesRepository.recordBodyweight(80.0, epochDay = 20_000)
         try {
-            deps.backupRepository.prepareRestore(catalogOnlyJson(), sourceName = "catalog.json")
+            deps.backupService.prepareRestore(catalogOnlyJson(), sourceName = "catalog.json")
             fail("catalog-only restore should refuse")
         } catch (thrown: BackupException) {
             assertEquals(AuthoredInventory.EMPTY_INCOMING_REFUSED, thrown.message)
@@ -144,10 +144,10 @@ class RestorePrepareTest {
             finish = true,
             loggedSets = listOf(TestSetInput(100.0, 5)),
         )
-        val json = deps.backupRepository.exportJson()
-        val plan = deps.backupRepository.prepareRestore(json, sourceName = "same.json")
+        val json = deps.backupService.exportJson()
+        val plan = deps.backupService.prepareRestore(json, sourceName = "same.json")
         try {
-            deps.backupRepository.commitRestore(plan)
+            deps.backupService.commitRestore(plan)
             fail("unwritable safety dir should abort restore")
         } catch (thrown: BackupException) {
             assertEquals(SafetySnapshot.MISSING_DIR, thrown.message)
@@ -163,9 +163,9 @@ class RestorePrepareTest {
             finish = true,
             loggedSets = listOf(TestSetInput(100.0, 5)),
         )
-        val incoming = deps.backupRepository.exportJson()
-        val result = deps.backupRepository.restoreFromJson(incoming, sourceName = "phone.json")
-        val snaps = deps.backupRepository.listSafetySnapshots()
+        val incoming = deps.backupService.exportJson()
+        val result = deps.backupService.restoreFromJson(incoming, sourceName = "phone.json")
+        val snaps = deps.backupService.listSafetySnapshots()
         assertEquals(1, snaps.size)
         assertEquals(result.safetySnapshotId, snaps.single().id)
         assertTrue(SafetySnapshot.isSafeId(snaps.single().id))
@@ -177,9 +177,9 @@ class RestorePrepareTest {
     @Test
     fun successfulCommitClearsTheRestoreJournal() = runBlocking {
         seedTestWorkout(deps, finish = true, loggedSets = listOf(TestSetInput(100.0, 5)))
-        val json = deps.backupRepository.exportJson()
-        deps.backupRepository.restoreFromJson(json, sourceName = "phone.json")
-        assertFalse(deps.backupRepository.restoreInProgress())
+        val json = deps.backupService.exportJson()
+        deps.backupService.restoreFromJson(json, sourceName = "phone.json")
+        assertFalse(deps.backupService.restoreInProgress())
         assertFalse(deps.restoreJournal.isOpen())
     }
 
@@ -187,7 +187,7 @@ class RestorePrepareTest {
     fun recoverFinishesPreferencesAfterRoomCommit() = runBlocking {
         seedTestWorkout(deps, finish = true, loggedSets = listOf(TestSetInput(100.0, 5)))
         deps.preferencesRepository.setWeightUnit(com.sinura.personaltrainer.domain.WeightUnit.LBS)
-        val incoming = BackupJson.decode(deps.backupRepository.exportJson()).let { doc ->
+        val incoming = BackupJson.decode(deps.backupService.exportJson()).let { doc ->
             doc.copy(preferences = doc.preferences.copy(weightUnit = "kg"))
         }
         val incomingJson = BackupJson.encode(incoming)
@@ -208,7 +208,7 @@ class RestorePrepareTest {
             deps.preferencesRepository.weightUnit.first(),
         )
         assertTrue(
-            deps.backupRepository.recoverInterruptedRestore()
+            deps.backupService.recoverInterruptedRestore()
                 is com.sinura.personaltrainer.data.backup.RestoreRecovery.Finished,
         )
         assertEquals(
@@ -268,8 +268,8 @@ class RestorePrepareTest {
         // turned a failed preferences write into a phone that could not train.
         stageEmptyJournal()
         deps.restoreJournal.mark(com.sinura.personaltrainer.data.backup.RestoreJournal.ROOM)
-        assertTrue(deps.backupRepository.restoreInProgress())
-        assertFalse(deps.backupRepository.restoreBlocksStart())
+        assertTrue(deps.backupService.restoreInProgress())
+        assertFalse(deps.backupService.restoreBlocksStart())
         val outcome = deps.workoutRepository.startFreeWorkoutSafely()
         assertTrue(outcome is com.sinura.personaltrainer.data.repository.StartSessionOutcome.Started)
     }
@@ -301,10 +301,10 @@ class RestorePrepareTest {
     @Test
     fun prepareRestoreRefusesWhileAStrengthSessionIsLive() = runBlocking {
         seedTestWorkout(deps, finish = true, loggedSets = listOf(TestSetInput(100.0, 5)))
-        val json = deps.backupRepository.exportJson()
+        val json = deps.backupService.exportJson()
         deps.workoutRepository.startFreeWorkout("Legs")
         try {
-            deps.backupRepository.prepareRestore(json, sourceName = "phone.json")
+            deps.backupService.prepareRestore(json, sourceName = "phone.json")
             fail("restore must refuse a live strength session")
         } catch (thrown: BackupException) {
             assertTrue(thrown.message.orEmpty().contains("session in progress"))
@@ -315,7 +315,7 @@ class RestorePrepareTest {
     @Test
     fun prepareRestoreRefusesWhileLiveCardioIsRunning() = runBlocking {
         seedTestWorkout(deps, finish = true, loggedSets = listOf(TestSetInput(100.0, 5)))
-        val json = deps.backupRepository.exportJson()
+        val json = deps.backupService.exportJson()
         val now = com.sinura.personaltrainer.util.JvmTime.captureNow()
         val started = deps.startLiveActivity(
             "Easy run",
@@ -339,7 +339,7 @@ class RestorePrepareTest {
         )
         assertTrue(started is com.sinura.personaltrainer.domain.ActivityWrite.Accepted)
         try {
-            deps.backupRepository.prepareRestore(json, sourceName = "phone.json")
+            deps.backupService.prepareRestore(json, sourceName = "phone.json")
             fail("restore must refuse live cardio")
         } catch (thrown: BackupException) {
             assertTrue(thrown.message.orEmpty().contains("session in progress"))

@@ -73,7 +73,7 @@ class RestoreRecoveryTest {
         deps.restoreJournal.mark(RestoreJournal.WIPING)
         // No replaceRoom: the process died before the transaction committed.
 
-        val recovery = deps.backupRepository.recoverInterruptedRestore()
+        val recovery = deps.backupService.recoverInterruptedRestore()
 
         assertEquals(RestoreRecovery.NothingChanged, recovery)
         assertFalse(deps.restoreJournal.isOpen())
@@ -94,7 +94,7 @@ class RestoreRecoveryTest {
         deps.localBackupRepository.replaceRoom(incoming)
         // The process died between the commit and mark(ROOM).
 
-        val recovery = deps.backupRepository.recoverInterruptedRestore()
+        val recovery = deps.backupService.recoverInterruptedRestore()
 
         assertEquals(RestoreRecovery.Finished("same-shape.json"), recovery)
         assertFalse(deps.restoreJournal.isOpen())
@@ -115,7 +115,7 @@ class RestoreRecoveryTest {
         stageAsRestoreWould(current, incoming)
         deps.restoreJournal.mark(RestoreJournal.WIPING)
 
-        assertEquals(RestoreRecovery.Finished("same-shape.json"), deps.backupRepository.recoverInterruptedRestore())
+        assertEquals(RestoreRecovery.Finished("same-shape.json"), deps.backupService.recoverInterruptedRestore())
         assertEquals(WeightUnit.KG, deps.preferencesRepository.weightUnit.first())
         assertFalse(deps.restoreJournal.isOpen())
     }
@@ -141,7 +141,7 @@ class RestoreRecoveryTest {
         deps.restoreJournal.mark(RestoreJournal.WIPING)
 
         // Counts differ and Room still matches the before-fingerprint: rolled back.
-        assertEquals(RestoreRecovery.NothingChanged, deps.backupRepository.recoverInterruptedRestore())
+        assertEquals(RestoreRecovery.NothingChanged, deps.backupService.recoverInterruptedRestore())
         assertEquals(1, deps.database.workoutDao().getAllSessions().size)
         assertFalse(deps.restoreJournal.isOpen())
     }
@@ -162,7 +162,7 @@ class RestoreRecoveryTest {
         val incoming = sameShapeHeavier(deps.localBackupRepository.createSnapshot())
 
         store.failWrites.set(true)
-        val result = deps.backupRepository.restoreFromJson(json = BackupJson.encode(incoming), sourceName = "phone.json")
+        val result = deps.backupService.restoreFromJson(json = BackupJson.encode(incoming), sourceName = "phone.json")
 
         // Room is in; the commit is a success with settings owed, not a failure.
         assertTrue(result.settingsPending)
@@ -170,20 +170,20 @@ class RestoreRecoveryTest {
         assertEquals(120.0, deps.database.workoutDao().getAllSets().single().weightKg, 0.0)
         assertEquals(WeightUnit.LBS, deps.preferencesRepository.weightUnit.first())
         assertEquals(RestoreJournal.ROOM, deps.restoreJournal.read()?.phase)
-        assertEquals("phone.json", deps.backupRepository.pendingRecovery())
-        assertTrue(deps.backupRepository.restoreInProgress())
+        assertEquals("phone.json", deps.backupService.pendingRecovery())
+        assertTrue(deps.backupService.restoreInProgress())
         // The training data is final, so a start is not refused while settings are owed.
-        assertFalse(deps.backupRepository.restoreBlocksStart())
+        assertFalse(deps.backupService.restoreBlocksStart())
 
         // Still failing: the next launch keeps the journal rather than discarding the input.
-        assertEquals(RestoreRecovery.SettingsPending("phone.json"), deps.backupRepository.recoverInterruptedRestore())
+        assertEquals(RestoreRecovery.SettingsPending("phone.json"), deps.backupService.recoverInterruptedRestore())
         assertEquals(RestoreJournal.ROOM, deps.restoreJournal.read()?.phase)
 
         store.failWrites.set(false)
-        assertEquals(RestoreRecovery.Finished("phone.json"), deps.backupRepository.recoverInterruptedRestore())
+        assertEquals(RestoreRecovery.Finished("phone.json"), deps.backupService.recoverInterruptedRestore())
         assertEquals(WeightUnit.KG, deps.preferencesRepository.weightUnit.first())
         assertFalse(deps.restoreJournal.isOpen())
-        assertNull(deps.backupRepository.pendingRecovery())
+        assertNull(deps.backupService.pendingRecovery())
     }
 
     // -------------------------------------------------------------------------------------
@@ -201,7 +201,7 @@ class RestoreRecoveryTest {
         assertTrue(File(deps.restoreJournalDir, RestoreJournal.INCOMING_FILE).delete())
         assertTrue(deps.restoreJournal.isOpen())
 
-        assertEquals(RestoreRecovery.Finished("same-shape.json"), deps.backupRepository.recoverInterruptedRestore())
+        assertEquals(RestoreRecovery.Finished("same-shape.json"), deps.backupService.recoverInterruptedRestore())
         assertFalse(deps.restoreJournal.isOpen())
         assertTrue(deps.workoutRepository.startFreeWorkoutSafely() is StartSessionOutcome.Started)
     }
@@ -216,7 +216,7 @@ class RestoreRecoveryTest {
         deps.restoreJournal.mark(RestoreJournal.ROOM)
         assertTrue(File(deps.restoreJournalDir, RestoreJournal.INCOMING_FILE).delete())
 
-        assertEquals(RestoreRecovery.SettingsLost("same-shape.json"), deps.backupRepository.recoverInterruptedRestore())
+        assertEquals(RestoreRecovery.SettingsLost("same-shape.json"), deps.backupService.recoverInterruptedRestore())
         assertFalse(deps.restoreJournal.isOpen())
         assertEquals(RestoreJournal.SETTINGS_LOST, deps.preferencesRepository.restoreRecoveryNote.first())
 
@@ -230,14 +230,14 @@ class RestoreRecoveryTest {
         val current = deps.localBackupRepository.createSnapshot()
         stageAsRestoreWould(current, sameShapeHeavier(current))
 
-        assertEquals(RestoreRecovery.NothingChanged, deps.backupRepository.recoverInterruptedRestore())
+        assertEquals(RestoreRecovery.NothingChanged, deps.backupService.recoverInterruptedRestore())
         assertFalse(deps.restoreJournal.isOpen())
         assertEquals(100.0, deps.database.workoutDao().getAllSets().single().weightKg, 0.0)
     }
 
     @Test
     fun noJournalIsNone() = runBlocking {
-        assertEquals(RestoreRecovery.None, deps.backupRepository.recoverInterruptedRestore())
+        assertEquals(RestoreRecovery.None, deps.backupService.recoverInterruptedRestore())
     }
 
     // -------------------------------------------------------------------------------------
@@ -260,14 +260,14 @@ class RestoreRecoveryTest {
         deps.preferencesRepository.setWeightUnit(WeightUnit.LBS)
         val incoming = sameShapeHeavier(deps.localBackupRepository.createSnapshot())
 
-        val result = deps.backupRepository.restoreFromJson(json = BackupJson.encode(incoming), sourceName = "phone.json")
+        val result = deps.backupService.restoreFromJson(json = BackupJson.encode(incoming), sourceName = "phone.json")
 
         assertTrue(result.preferencesRestored)
         assertFalse(result.settingsPending)
         assertFalse(deps.restoreJournal.isOpen())
         assertEquals(WeightUnit.KG, deps.preferencesRepository.weightUnit.first())
         assertEquals(120.0, deps.database.workoutDao().getAllSets().single().weightKg, 0.0)
-        assertNull(deps.backupRepository.pendingRecovery())
+        assertNull(deps.backupService.pendingRecovery())
     }
 
     /** Same sessions, same ids, same counts: heavier sets and a different unit. */
