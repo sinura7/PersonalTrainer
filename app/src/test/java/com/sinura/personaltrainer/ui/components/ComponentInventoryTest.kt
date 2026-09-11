@@ -19,7 +19,7 @@ class ComponentInventoryTest {
             "SetTable.kt" to "fun SetTable(",
             "ConfirmActionDialog.kt" to "fun GymDialog(",
             "GymSurfaces.kt" to "fun SectionHeader(",
-            "NumberEntryDialog.kt" to "fun NumberEntryDialog(",
+            "NumberEntryDialog.kt" to "fun <T> NumberEntryDialog(",
             "ScreenSkeleton.kt" to "fun ScreenSkeleton(",
         )
         owned.forEach { (file, signature) ->
