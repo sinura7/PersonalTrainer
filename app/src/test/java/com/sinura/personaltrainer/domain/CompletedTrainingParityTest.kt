@@ -269,7 +269,10 @@ class CompletedTrainingParityTest {
         val plan = deps.backupService.prepareRestore(json, sourceName = "parity.json")
         deps.backupService.commitRestore(plan)
 
-        assertEquals(witness, RestoreWitness.of(BackupJson.decode(deps.backupService.exportJson())))
+        // Re-export is a new snapshot (new exportedAt, a safety copy of what
+        // was just replaced). The invariant is the Room witness, the same
+        // one restore recovery uses.
+        assertEquals(witness, deps.localBackupRepository.roomWitness())
         assertEquals(fixtures.strengthId, deps.workoutRepository.getSession(fixtures.strengthId)?.id)
         assertEquals(fixtures.backdatedId, deps.activityRepository.get(fixtures.backdatedId)?.id)
         assertEquals(fixtures.cardioId, deps.activityRepository.get(fixtures.cardioId)?.id)
