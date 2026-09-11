@@ -63,6 +63,7 @@ import com.sinura.personaltrainer.domain.LiveBarKind
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.CustomWeekLaunch
 import com.sinura.personaltrainer.domain.DataHealthCopy
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.MuscleNormalizer
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.HairlineDivider
@@ -274,6 +275,7 @@ fun PersonalTrainerNav(
         OnboardingGate.UNKNOWN -> return
         OnboardingGate.UNAVAILABLE -> {
             EmptyState(
+                scene = EmptyScene.RETRY,
                 title = DataHealthCopy.SETTINGS_TITLE,
                 body = DataHealthCopy.SETTINGS_BODY,
                 actionLabel = DataHealthCopy.RETRY,

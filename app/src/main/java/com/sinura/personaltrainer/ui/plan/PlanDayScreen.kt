@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.AgendaItem
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.PlanDayCopy
 import com.sinura.personaltrainer.domain.Routine
@@ -120,6 +121,7 @@ fun PlanDayScreen(
                     }
                     if (occurrences.isEmpty() && picking == DayPicker.NONE) {
                         EmptyState(
+                            scene = EmptyScene.PLAN,
                             title = PlanDayCopy.EMPTY,
                             body = PlanDayCopy.EMPTY_BODY,
                             compact = true,

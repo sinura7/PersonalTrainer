@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.AddToRoutineCopy
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.DayLabel
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
@@ -153,6 +154,7 @@ fun ExerciseDetailScreen(
 
             state.missing -> {
                 EmptyState(
+                    scene = EmptyScene.GONE,
                     title = "Exercise missing",
                     body = "This lift was deleted from the library. Your logged sets are still in history.",
                     actionLabel = "Back",
@@ -169,6 +171,7 @@ fun ExerciseDetailScreen(
                 // Back and wrong about there being nothing else: the way to get history for a
                 // lift is to put it in a routine, which is exactly what this state is missing.
                 EmptyState(
+                    scene = EmptyScene.LOG,
                     title = "Nothing logged yet",
                     body = "Records and trends appear here once you have finished a session with this lift.",
                     actionLabel = "Add to a routine",

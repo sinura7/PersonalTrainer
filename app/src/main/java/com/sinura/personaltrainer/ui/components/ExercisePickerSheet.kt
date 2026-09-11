@@ -49,6 +49,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
@@ -270,6 +271,7 @@ fun ExercisePickerSheet(
                 if (results.isEmpty() && !canCreate) {
                     item(key = "empty") {
                         EmptyState(
+                            scene = EmptyScene.CATALOG,
                             title = if (needle.isEmpty()) "Search the library" else "No matches",
                             body = if (needle.isEmpty()) {
                                 "Type a lift name to search, or name a new one to create it."

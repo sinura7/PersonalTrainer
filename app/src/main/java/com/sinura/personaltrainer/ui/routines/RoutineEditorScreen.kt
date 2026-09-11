@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.DataHealthCopy
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
@@ -104,6 +105,7 @@ fun RoutineEditorScreen(
             // The opening read threw. Retry re-runs hydration; the header's back arrow is the way
             // out — the same shape History uses for an unreadable list.
             EmptyState(
+                scene = EmptyScene.RETRY,
                 title = DataHealthCopy.ROUTINE_EDITOR_TITLE,
                 body = DataHealthCopy.ROUTINE_EDITOR_BODY,
                 actionLabel = DataHealthCopy.RETRY,
@@ -116,6 +118,7 @@ fun RoutineEditorScreen(
         }
         if (state.missing) {
             EmptyState(
+                scene = EmptyScene.GONE,
                 title = "Routine missing",
                 body = "This routine was deleted. Create a new one from the list.",
                 actionLabel = "Back to routines",
@@ -171,6 +174,7 @@ fun RoutineEditorScreen(
             if (exercises.isEmpty()) {
                 item(key = "empty") {
                     EmptyState(
+                        scene = EmptyScene.RACK,
                         title = "Add your first lift",
                         body = SessionOrderCopy.EMPTY_EDITOR_BODY,
                         actionLabel = "Add lifts",

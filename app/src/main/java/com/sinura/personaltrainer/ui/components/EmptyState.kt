@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -21,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextDisabled
@@ -33,6 +33,7 @@ import kotlinx.coroutines.delay
 fun EmptyState(
     title: String,
     body: String,
+    scene: EmptyScene,
     modifier: Modifier = Modifier,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
@@ -44,9 +45,10 @@ fun EmptyState(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        if (!compact) {
-            TemperMark(size = TemperMarkSize)
-        }
+        EmptyIllustration(
+            scene = scene,
+            size = if (compact) EmptyArtCompactSize else EmptyArtSize,
+        )
         Text(
             title,
             style = if (compact) InstrumentType.title else InstrumentType.display,

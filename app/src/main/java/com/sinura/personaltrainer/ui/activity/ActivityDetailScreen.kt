@@ -38,6 +38,7 @@ import com.sinura.personaltrainer.domain.ActivitySession
 import com.sinura.personaltrainer.domain.CardioBlock
 import com.sinura.personaltrainer.domain.CardioCopy
 import com.sinura.personaltrainer.domain.DataHealthCopy
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.DistanceUnit
 import com.sinura.personaltrainer.domain.StrengthBlock
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -106,6 +107,7 @@ fun ActivityDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(Metrics.space2),
                 ) {
                     EmptyState(
+                        scene = EmptyScene.RETRY,
                         title = DataHealthCopy.ACTIVITY_TITLE,
                         body = DataHealthCopy.ACTIVITY_BODY,
                         actionLabel = DataHealthCopy.RETRY,
@@ -120,6 +122,7 @@ fun ActivityDetailScreen(
                     }
                 }
                 state.missing || state.session == null -> EmptyState(
+                    scene = EmptyScene.GONE,
                     title = ActivityDetailCopy.MISSING_TITLE,
                     body = ActivityDetailCopy.MISSING_BODY,
                     actionLabel = ActivityDetailCopy.missingAction(celebration),

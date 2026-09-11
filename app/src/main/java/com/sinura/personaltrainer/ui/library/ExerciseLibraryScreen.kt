@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.AddToRoutineCopy
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.LibraryFamily
@@ -210,6 +211,7 @@ fun ExerciseLibraryScreen(
                     if (state.visibleExercises.isEmpty() && state.needsAttention.isEmpty()) {
                         val filtered = state.exercises.isNotEmpty()
                         EmptyState(
+                            scene = EmptyScene.CATALOG,
                             title = if (filtered) "No matches" else "Library is empty",
                             body = if (filtered) {
                                 "Clear search or filters, or add a custom lift."

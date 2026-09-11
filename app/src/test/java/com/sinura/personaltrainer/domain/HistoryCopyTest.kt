@@ -21,6 +21,7 @@ class HistoryCopyTest {
         assertEquals("All", AnalyticsHorizon.ALL_TIME.label)
         assertEquals("session", HistoryCopy.sessionsLabel(1))
         assertEquals("sessions", HistoryCopy.sessionsLabel(0))
+        assertEquals("No sessions yet", HistoryCopy.EMPTY_TITLE)
         assertEquals(HistoryCopy.EMPTY_LOG, "Finished sessions land here.")
         assertEquals("Month", HistoryCopy.CALENDAR_MONTH)
         assertEquals("Moved most", HistoryCopy.MOVED_MOST)

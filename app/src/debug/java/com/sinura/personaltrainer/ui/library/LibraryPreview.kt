@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.sinura.personaltrainer.domain.AddToRoutineCopy
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.LoadType
@@ -65,6 +66,7 @@ private fun LibraryChromePreview() {
                 placeholder = "Name or muscle",
             )
             EmptyState(
+                scene = EmptyScene.CATALOG,
                 title = "No lifts match",
                 body = "Clear the search or add a custom lift.",
                 actionLabel = "Create lift",
