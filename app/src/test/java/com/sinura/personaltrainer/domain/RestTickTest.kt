@@ -54,4 +54,20 @@ class RestTickTest {
         assertFalse(RestTick.isDue(endsAt, 5, nowElapsedRealtime = 94_999L))
         assertFalse(RestTick.isDue(endsAt + 15_000L, 5, nowElapsedRealtime = 95_000L))
     }
+
+    @Test
+    fun lastThreeSecondsAreTheHeavierPulse() {
+        assertFalse(RestTick.isWarn(5))
+        assertFalse(RestTick.isWarn(4))
+        assertTrue(RestTick.isWarn(3))
+        assertTrue(RestTick.isWarn(2))
+        assertTrue(RestTick.isWarn(1))
+        assertFalse(RestTick.isWarn(0))
+        assertEquals(RestTick.LIGHT_PULSE_MS, RestTick.pulseMs(5))
+        assertEquals(RestTick.LIGHT_PULSE_MS, RestTick.pulseMs(4))
+        assertEquals(RestTick.WARN_PULSE_MS, RestTick.pulseMs(3))
+        assertEquals(RestTick.WARN_PULSE_MS, RestTick.pulseMs(1))
+        assertTrue(RestTick.WARN_PULSE_MS > RestTick.LIGHT_PULSE_MS)
+        assertTrue(RestTick.CAPTION.contains("Heavier on 3, 2, 1"))
+    }
 }

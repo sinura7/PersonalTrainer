@@ -68,6 +68,7 @@ import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.RestBatteryCopy
 import com.sinura.personaltrainer.domain.RestFinishFlash
 import com.sinura.personaltrainer.domain.RestIdleCopy
+import com.sinura.personaltrainer.domain.RestTick
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.TalkBackPolicy
 import com.sinura.personaltrainer.ui.theme.Danger
@@ -156,10 +157,13 @@ fun RestDock(
         remember { mutableFloatStateOf(1f) }
     }
 
-    // One tick per second through the final stretch, so the end of the rest can be felt with
-    // the phone face-down on a bench.
+    // One pulse per second through the final stretch, so the end of the rest
+    // can be felt with the phone face-down on a bench. 5–4 stay a detent;
+    // 3–1 are heavier so stand-up is in the hand, not only the clock.
     LaunchedEffect(urgent, safeRemaining) {
-        if (urgent && safeRemaining > 0) Haptics.tick(view)
+        if (urgent && safeRemaining > 0) {
+            if (RestTick.isWarn(safeRemaining)) Haptics.warn(view) else Haptics.tick(view)
+        }
     }
 
     if (!running && !justFinished) {

@@ -209,7 +209,12 @@ class RestTimerService : Service() {
         val preferences = tickPreferences
         if (preferences != null) {
             val player = tickPlayer
-            if (RestTimerAlerts.tick(this, preferences) { player?.play() }) {
+            if (RestTimerAlerts.tick(
+                    context = this,
+                    preferences = preferences,
+                    second = second,
+                ) { player?.play() }
+            ) {
                 tickObserver?.invoke(second)
             }
         }
