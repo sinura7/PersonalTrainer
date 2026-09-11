@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 11 Sep 2026 — G-02: rest Start/Skip and Log set sit in the lower dock
+> during a session. Finish stays in the header. Inherits live 39; does
+> not bump it.
+>
 > 11 Sep 2026 — B-02: first-launch Body is a gym wall, not an empty figure.
 > Catalog lifts sit under the silhouette; a muscle with no history opens
 > the lifts that train it. No Start Volt. Inherits live 39; does not bump it.

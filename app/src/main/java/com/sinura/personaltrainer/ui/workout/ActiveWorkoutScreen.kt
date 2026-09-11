@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -222,28 +223,55 @@ fun ActiveWorkoutScreen(
             )
         },
         bottomBar = {
-            if (logBarVisible) {
-                LogBar(
-                    editing = state.editingSetId != null,
-                    logging = state.logging,
-                    error = state.error,
-                    draftLabel = SetCopy.setLine(state.draft.weightKg, state.draft.reps, LoadClass.of(selected?.exercise?.loadType), unit),
-                    microRec = microRec.takeUnless {
-                        showNext || LandscapeChrome.foldMicroRecIntoCard(landscape)
-                    },
-                    loadClass = LoadClass.of(selected?.exercise?.loadType),
-                    unit = unit,
-                    showNext = showNext,
-                    onLog = {
-                        Haptics.commit(view)
-                        viewModel.logSet()
-                    },
-                    onNext = {
-                        nextExerciseId?.let(viewModel::advanceToNextLift)
-                    },
-                    onCancelEdit = viewModel::cancelEdit,
-                    onApplyMicroRec = viewModel::applyMicroRec,
-                )
+            // G-02: rest Start/Skip and Log set share the lower dock so a
+            // one-handed thumb can hit both. Finish stays in the header —
+            // it is not a mid-set act. The list above is readout and entry.
+            val showRest = session != null
+            if (showRest || logBarVisible) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (logBarVisible) Modifier
+                            else Modifier.navigationBarsPadding(),
+                        ),
+                ) {
+                    if (showRest) {
+                        RestDock(
+                            remainingSeconds = rest.remainingSeconds,
+                            totalSeconds = rest.totalSeconds,
+                            running = rest.running,
+                            completedTimerId = rest.completedTimerId,
+                            hideWhenIdle = LandscapeChrome.hideIdleRest(landscape),
+                            onSkip = viewModel::skipRest,
+                            onStart = viewModel::startSelectedRest,
+                            onOpenRest = { session.id.let(onOpenRest) },
+                        )
+                    }
+                    if (logBarVisible) {
+                        LogBar(
+                            editing = state.editingSetId != null,
+                            logging = state.logging,
+                            error = state.error,
+                            draftLabel = SetCopy.setLine(state.draft.weightKg, state.draft.reps, LoadClass.of(selected?.exercise?.loadType), unit),
+                            microRec = microRec.takeUnless {
+                                showNext || LandscapeChrome.foldMicroRecIntoCard(landscape)
+                            },
+                            loadClass = LoadClass.of(selected?.exercise?.loadType),
+                            unit = unit,
+                            showNext = showNext,
+                            onLog = {
+                                Haptics.commit(view)
+                                viewModel.logSet()
+                            },
+                            onNext = {
+                                nextExerciseId?.let(viewModel::advanceToNextLift)
+                            },
+                            onCancelEdit = viewModel::cancelEdit,
+                            onApplyMicroRec = viewModel::applyMicroRec,
+                        )
+                    }
+                }
             }
         },
     ) { padding ->
@@ -274,20 +302,11 @@ fun ActiveWorkoutScreen(
                         .fillMaxSize()
                         .padding(padding),
                 ) {
-                    // Outside the scroll on purpose. See RestDock.
+                    // Notification recovery stays above the list: it is a
+                    // banner, not a gym-floor act. Rest sits in the lower dock.
                     if (!restNotificationsEnabled) {
                         RestNotificationRecoveryRow()
                     }
-                    RestDock(
-                        remainingSeconds = rest.remainingSeconds,
-                        totalSeconds = rest.totalSeconds,
-                        running = rest.running,
-                        completedTimerId = rest.completedTimerId,
-                        hideWhenIdle = LandscapeChrome.hideIdleRest(landscape),
-                        onSkip = viewModel::skipRest,
-                        onStart = viewModel::startSelectedRest,
-                        onOpenRest = { session.id.let(onOpenRest) },
-                    )
 
                     LazyColumn(
                         state = listState,

@@ -90,7 +90,7 @@ object AccessibilityMatrix {
             title = "Active strength",
             states = requiredStates,
             voltAction = "Log set",
-            talkBackNotes = "Rest is not announced every second. Process restore keeps the set.",
+            talkBackNotes = "Rest is not announced every second. Rest Start/Skip and Log set sit in the lower dock. Process restore keeps the set.",
             automatedEvidence = true,
         ),
         PagePass(

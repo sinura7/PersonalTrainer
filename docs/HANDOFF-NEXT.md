@@ -95,7 +95,8 @@ Biggest first, and the first two are the owner's, not a session's:
   walking `AccessibilityMatrix`.
 - **The whole-app phase audit** owed at the close of Phase 9. Same eleven
   screens, same phone; do the two in one sitting.
-- **Nineteen DESIGN_AUDIT P1 rows** still genuinely open. B-02 is closed:
+- **Eighteen DESIGN_AUDIT P1 rows** still genuinely open. G-02 is closed:
+  rest Start/Skip and Log set share the lower dock. B-02 is closed:
   first-launch Body names catalog lifts and a muscle opens the lifts that
   train it. N-01 is closed: Settings Rest timer **Play complete cue** samples
   the same rest-done tone that fires at 0:00.
