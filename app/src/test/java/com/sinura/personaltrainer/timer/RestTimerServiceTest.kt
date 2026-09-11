@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.timer
 
+import android.app.Notification
 import android.app.NotificationManager
 import android.content.Intent
 import android.os.Looper
@@ -122,6 +123,48 @@ class RestTimerServiceTest {
         val manager = app.getSystemService(NotificationManager::class.java)
         assertNotNull(
             manager.activeNotifications.firstOrNull { it.id == RestTimerNotifications.RUNNING_ID },
+        )
+        controller.destroy()
+    }
+
+    /**
+     * A-03. The screen-on deadline used to leave a live Chronometer whose
+     * base was already past, so the shade painted `-0:01` until Done
+     * replaced it. Freeze first: last running frame is `0:00 remaining`.
+     */
+    @Test
+    fun deadlineFreezesTheShadeClockAtZero() {
+        val store = app.container.restTimerStore
+        store.start(1, "session-1", nowElapsedRealtime = SystemClock.elapsedRealtime())
+
+        val intent = Intent(app, RestTimerService::class.java)
+            .setAction(RestTimerService.ACTION_SYNC)
+        val controller = Robolectric.buildService(RestTimerService::class.java, intent)
+        val service = controller.create().startCommand(0, 1).get()
+        val looper = shadowOf(Looper.getMainLooper())
+        looper.idle()
+
+        val manager = app.getSystemService(NotificationManager::class.java)
+        val live = manager.activeNotifications
+            .first { it.id == RestTimerNotifications.RUNNING_ID }
+            .notification
+        assertTrue(live.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER))
+
+        looper.idleFor(Duration.ofSeconds(1))
+        looper.idle()
+
+        val after = manager.activeNotifications
+            .firstOrNull { it.id == RestTimerNotifications.RUNNING_ID }
+            ?.notification
+        if (after != null) {
+            assertFalse(after.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER))
+            assertEquals(
+                "0:00 remaining",
+                after.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString(),
+            )
+        }
+        assertNotNull(
+            manager.activeNotifications.firstOrNull { it.id == RestTimerNotifications.DONE_ID },
         )
         controller.destroy()
     }

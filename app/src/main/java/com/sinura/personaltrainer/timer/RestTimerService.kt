@@ -23,14 +23,15 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 /**
- * Owns the visible rest countdown: the ongoing lock-screen chronometer
+ * Owns the visible rest countdown: the ongoing lock-screen clock
  * and its ±15s / Skip actions.
  *
  * It is deliberately NOT the thing that guarantees the alert. A foreground
  * service does not hold the CPU awake. [RestTimerAlarmScheduler] owns waking
  * the phone, and both paths funnel into [RestTimerCompletion] so only one
- * alert ever fires. SystemUI draws the countdown; this service does not
- * re-post every second.
+ * alert ever fires. While seconds remain, SystemUI draws a live Chronometer
+ * (ADR-012). The instant remaining hits zero this service posts a frozen
+ * `0:00` card so the shade cannot paint a minus (A-03), then completes.
  *
  * Teardown follows the store: when the snapshot is no longer running after
  * it has been, [stopNow] runs. The alarm path completes through
@@ -88,6 +89,7 @@ class RestTimerService : Service() {
                     // the intent, so a -15 s that lands on five ticks five now.
                     if (startedForeground && !completing) scheduleTick(snap)
                 } else if (sawRunning) {
+                    freezeShadeAtZero(snap)
                     stopNow()
                 }
             }
@@ -235,8 +237,10 @@ class RestTimerService : Service() {
             lastShownEndsAt = state.endsAtElapsedRealtime
             return
         }
-        // Chronometer ticks in SystemUI. Re-post only when the deadline
-        // changes (±15) so we do not fight the lock-screen countdown.
+        // Chronometer ticks in SystemUI while time remains. Re-post only when
+        // the deadline changes (±15) so we do not fight the lock-screen
+        // countdown. At zero, freeze then complete — do not leave a live
+        // countdown whose base is already past.
         if (!force && state.endsAtElapsedRealtime == lastShownEndsAt) return
         lastShownEndsAt = state.endsAtElapsedRealtime
         if (remaining <= 0) {
@@ -285,6 +289,7 @@ class RestTimerService : Service() {
         completing = true
         handler.removeCallbacks(completeRunnable)
         handler.removeCallbacks(tickRunnable)
+        freezeShadeAtZero(state)
         scope.launch {
             RestTimerCompletion.completeOnce(
                 context = applicationContext,
@@ -299,6 +304,28 @@ class RestTimerService : Service() {
             } else {
                 stopNow()
             }
+        }
+    }
+
+    /**
+     * Last shade frame before Done: frozen `0:00`, no live Chronometer.
+     * Samsung keeps the running row on screen a beat after cancel; that
+     * beat must not be `-0:01`. Skip when a newer rest (+15) already
+     * replaced this generation — freezing would flash zero over the extension.
+     */
+    private fun freezeShadeAtZero(state: RestTimerSnapshot) {
+        val live = controller.snapshot.value
+        if (live.running && live.timerId != state.timerId) return
+        val frozen = RestTimerNotifications.runningNotification(this, state)
+        if (!startedForeground) {
+            startForegroundWith(frozen)
+            return
+        }
+        try {
+            getSystemService(NotificationManager::class.java)
+                ?.notify(RestTimerNotifications.RUNNING_ID, frozen)
+        } catch (_: Exception) {
+            // POST_NOTIFICATIONS denied; in-app clock still clamps to 0:00.
         }
     }
 
