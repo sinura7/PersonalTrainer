@@ -24,3 +24,18 @@ data class ActivitySummaryRow(
     val cardioSeconds: Long,
     val cardioDistanceMeters: Double?,
 )
+
+/** One lift on a finished session, for History stills. Not a set row. */
+data class SessionStillRow(
+    val sessionId: String,
+    val sortOrder: Int,
+    val id: String,
+    val name: String,
+    val muscleGroup: String,
+    val notes: String,
+    val isCustom: Boolean,
+    val equipment: String,
+    val loadType: String,
+    val movementKey: String?,
+    val imageKey: String?,
+)

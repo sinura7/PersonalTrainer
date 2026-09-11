@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toEntity
 import com.sinura.personaltrainer.data.mapper.toExerciseSetEntry
+import com.sinura.personaltrainer.data.mapper.toHistoryStills
 import com.sinura.personaltrainer.data.mapper.toRecordSet
 import com.sinura.personaltrainer.data.mapper.toSummary
 import com.sinura.personaltrainer.domain.ActivityBlock
@@ -33,11 +34,13 @@ import com.sinura.personaltrainer.logging.AppLog
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.shareIn
 
 class ActivityRepository(
@@ -111,8 +114,12 @@ class ActivityRepository(
     suspend fun all(): List<ActivitySession> =
         dao.getAllGraphs().map { it.toDomain() }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun observeCompletedSummaries(): Flow<List<SessionSummary>> =
-        dao.observeCompletedSummaries().map { rows -> rows.map { it.toSummary() } }
+        dao.observeCompletedSummaries().mapLatest { rows ->
+            val stills = dao.completedSessionStills().toHistoryStills()
+            rows.map { row -> row.toSummary(stills[row.id].orEmpty()) }
+        }
 
     fun observeCompletedSummariesHealth(): Flow<DataHealth<List<SessionSummary>>> =
         observeCompletedSummaries().observeHealth("activity history")

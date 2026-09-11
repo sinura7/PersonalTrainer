@@ -12,6 +12,7 @@ import com.sinura.personaltrainer.data.local.entity.ActivitySessionEntity
 import com.sinura.personaltrainer.data.local.entity.ActivityStrengthSetEntity
 import com.sinura.personaltrainer.data.local.entity.ActivitySummaryRow
 import com.sinura.personaltrainer.data.local.entity.ActivityTemplateEntity
+import com.sinura.personaltrainer.data.local.entity.SessionStillRow
 import com.sinura.personaltrainer.data.local.relation.ActivitySessionGraph
 import com.sinura.personaltrainer.data.local.relation.ActivityTemplateGraph
 import kotlinx.coroutines.flow.Flow
@@ -70,6 +71,36 @@ interface ActivityDao {
         """,
     )
     fun observeCompletedSummaries(): Flow<List<ActivitySummaryRow>>
+
+    /**
+     * Strength lifts on completed activities, in block order. History
+     * cards picture the first few. Catalog columns win when the row
+     * still exists so the keyed still can show; snapshot columns stand
+     * in when it does not (soft FK).
+     */
+    @Query(
+        """
+        SELECT b.sessionId AS sessionId,
+               b.sortOrder AS sortOrder,
+               COALESCE(e.id, b.exerciseId) AS id,
+               COALESCE(e.name, b.exerciseName, '') AS name,
+               COALESCE(e.muscleGroup, '') AS muscleGroup,
+               COALESCE(e.notes, '') AS notes,
+               COALESCE(e.isCustom, 0) AS isCustom,
+               COALESCE(e.equipment, b.equipment, 'OTHER') AS equipment,
+               COALESCE(e.loadType, b.loadType, 'EXTERNAL') AS loadType,
+               e.movementKey AS movementKey,
+               e.imageKey AS imageKey
+        FROM activity_blocks b
+        INNER JOIN activity_sessions s ON s.id = b.sessionId
+        LEFT JOIN exercises e ON e.id = b.exerciseId
+        WHERE s.status = 'COMPLETED'
+          AND b.kind = 'STRENGTH'
+          AND b.exerciseId IS NOT NULL
+        ORDER BY b.sessionId, b.sortOrder
+        """,
+    )
+    suspend fun completedSessionStills(): List<SessionStillRow>
 
     /**
      * Every working set of every completed activity's strength blocks, with the block's own

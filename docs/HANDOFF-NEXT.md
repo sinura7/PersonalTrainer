@@ -95,7 +95,8 @@ Biggest first, and the first two are the owner's, not a session's:
   walking `AccessibilityMatrix`.
 - **The whole-app phase audit** owed at the close of Phase 9. Same eleven
   screens, same phone; do the two in one sitting.
-- **Ten DESIGN_AUDIT P1 rows** still genuinely open. E-12 is closed:
+- **Nine DESIGN_AUDIT P1 rows** still genuinely open. I-01 is closed:
+  History list cards picture the first three lifts. E-12 is closed:
   a lift can be marked plates / stack / bodyweight / added / assisted. E-04 is closed:
   editor targets are the workout's large steppers, not tiny text boxes. S-02 is closed:
   Start Options routine cards show the first three lift stills and the kit mix.

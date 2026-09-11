@@ -74,6 +74,8 @@ class SessionSummaryTest {
         assertEquals(HistoryKind.WORKOUT, entry.kind)
         assertEquals("Push", entry.title)
         assertEquals(1, entry.workingSets)
+        assertEquals(listOf("ex-1"), summary.stills.map { it.id })
+        assertEquals(listOf("ex-1"), entry.stills.map { it.id })
     }
 
     @Test
@@ -156,6 +158,7 @@ class SessionSummaryTest {
         val cardioEntry = untitledRun.toSummary().toHistoryEntry()
         assertEquals("Cardio", cardioEntry.title)
         assertEquals(10, cardioEntry.cardioMinutes)
+        assertTrue(cardioEntry.stills.isEmpty())
 
         val untitledLift = ActivitySession(
             id = "a3",
@@ -200,6 +203,7 @@ class SessionSummaryTest {
         assertEquals(20_001L, liftSummary.localEpochDay)
         assertEquals("Workout", liftSummary.toHistoryEntry().title)
         assertEquals(0, liftSummary.toHistoryEntry().cardioMinutes)
+        assertEquals(listOf("ex-1"), liftSummary.stills.map { it.id })
     }
 
     @Test

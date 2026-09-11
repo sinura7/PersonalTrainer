@@ -175,6 +175,26 @@ class HistoryViewModelTest {
     }
 
     @Test
+    fun finishedSessionCardsCarryTheLiftStills() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        val fixture = seedTestWorkout(
+            deps = deps,
+            loggedSets = listOf(TestSetInput(weightKg = 100.0, reps = 5)),
+            finish = true,
+        )
+        viewModel = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        val state = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.uiState.first { it.monthGroups.any { group -> group.entries.isNotEmpty() } }
+        }
+        val entry = state.monthGroups.single().entries.single()
+        assertEquals(listOf(fixture.exercise.id), entry.stills.map { it.id })
+        assertEquals(listOf(fixture.exercise.id), state.summaries.single().stills.map { it.id })
+    }
+
+    @Test
     fun recordsComeFromTheWholeLogNotTheLastMonth() = runBlocking {
         deps = FakeAppDependencies(
             context = ApplicationProvider.getApplicationContext(),

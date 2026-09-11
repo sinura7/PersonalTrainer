@@ -50,6 +50,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -406,14 +407,16 @@ object SessionLogTags {
     const val TITLE = "session-log-title"
     const val DATE = "session-log-date"
     const val METRICS = "session-log-metrics"
+    const val STILLS = "session-log-stills"
 }
 
 /**
  * A finished session, as a readout rather than a receipt.
  *
- * Identity (title, date) owns the first line. Metrics live on a second
- * line with fixed columns so they still compare down a list — they wrap
- * before a 360 dp row can erase the workout's name (FND-006).
+ * Identity (title, date) owns the first line. Lift stills sit under the
+ * name so a session reads as a floor, not a receipt (I-01). Metrics live
+ * on a later line with fixed columns so they still compare down a list —
+ * they wrap before a 360 dp row can erase the workout's name (FND-006).
  */
 @Composable
 fun SessionLogRow(
@@ -426,6 +429,7 @@ fun SessionLogRow(
     modifier: Modifier = Modifier,
     unit: WeightUnit = LocalWeightUnit.current,
     onRepeat: (() -> Unit)? = null,
+    stills: List<Exercise> = emptyList(),
 ) {
     var menuOpen by rememberSaveable(title, dateLabel) { mutableStateOf(false) }
     val spoken = sessionRowSpoken(title, dateLabel, workingSets, work, durationMinutes, unit)
@@ -470,6 +474,16 @@ fun SessionLogRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                if (stills.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier.testTag(SessionLogTags.STILLS),
+                        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    ) {
+                        stills.forEach { exercise ->
+                            ExerciseThumb(exercise = exercise)
+                        }
+                    }
+                }
             }
             // Optional, and absent by default: Home's recent list is a glance, not a console.
             // History opts in. The menu sits with identity so it cannot steal metric columns.
