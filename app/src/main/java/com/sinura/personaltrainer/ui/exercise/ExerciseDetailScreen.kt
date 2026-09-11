@@ -13,12 +13,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -36,7 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.sinura.personaltrainer.domain.AddDefaults
+import com.sinura.personaltrainer.domain.AddToRoutineCopy
 import com.sinura.personaltrainer.domain.DayLabel
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
@@ -49,9 +45,9 @@ import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.toWeightLabel
+import com.sinura.personaltrainer.ui.components.AddToRoutineSheet
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
-import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.GymStatusBanner
@@ -74,8 +70,6 @@ import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.PrGold
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Surface1
-import com.sinura.personaltrainer.ui.theme.Surface3
-import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
@@ -328,84 +322,23 @@ fun ExerciseDetailScreen(
         }
     }
 
-    if (routinePickerOpen) {
-        RoutinePickerSheet(
-            exerciseName = state.exercise?.name.orEmpty(),
-            landing = state.exercise?.let { AddDefaults.landingCopy(it) },
-            routines = state.routines,
-            onDismiss = { routinePickerOpen = false },
-            onPick = { routineId ->
-                routinePickerOpen = false
-                viewModel.addToRoutine(routineId)
-            },
-        )
-    }
-}
-
-/**
- * Which routine to put this lift in.
- *
- * Routines that already hold it are shown, not hidden, and are not pressable. Hiding them
- * would answer a question the user did not ask — "why is my push day missing from this list?"
- * — and the repository's add is a silent no-op on a duplicate, so a pressable row would take
- * the tap and do nothing at all.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun RoutinePickerSheet(
-    exerciseName: String,
-    landing: String?,
-    routines: List<RoutineMembership>,
-    onDismiss: () -> Unit,
-    onPick: (String) -> Unit,
-) {
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Surface3) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = Metrics.gutter)
-                .padding(bottom = Metrics.space7),
-            verticalArrangement = Arrangement.spacedBy(Metrics.space4),
-        ) {
-            Text("Add $exerciseName to", style = InstrumentType.title, color = TextPrimary)
-            if (routines.isEmpty()) {
-                Text(
-                    "You have no routines yet. Build one in Plan and this lift can go straight into it.",
-                    style = InstrumentType.body,
-                    color = TextSecondary,
-                )
-                return@Column
-            }
-            GroupedList {
-                routines.forEachIndexed { index, membership ->
-                    if (index > 0) HairlineDivider()
-                    InstrumentRow(
-                        title = membership.routine.name,
-                        subtitle = if (membership.alreadyHolds) {
-                            "Already in this routine"
-                        } else {
-                            liftCountLabel(membership.routine.exercises.size)
-                        },
-                        onClick = if (membership.alreadyHolds) {
-                            null
-                        } else {
-                            { onPick(membership.routine.id) }
-                        },
-                    )
-                }
-            }
-            Text(
-                landing ?: "Sets, reps and rest start from this lift's defaults. Change them in the routine.",
-                style = InstrumentType.caption,
-                color = TextTertiary,
+    state.exercise?.let { exercise ->
+        if (routinePickerOpen) {
+            AddToRoutineSheet(
+                exercise = exercise,
+                destinations = state.routines.map { membership ->
+                    AddToRoutineCopy.destination(membership.routine, membership.alreadyHolds)
+                },
+                emptyBody = AddToRoutineCopy.EMPTY_DETAIL,
+                onSelect = { routineId ->
+                    routinePickerOpen = false
+                    viewModel.addToRoutine(routineId)
+                },
+                onDismiss = { routinePickerOpen = false },
             )
         }
     }
 }
-
-private fun liftCountLabel(count: Int): String =
-    if (count == 1) "1 lift" else "$count lifts"
 
 @Composable
 internal fun ExerciseDetailHeader(
