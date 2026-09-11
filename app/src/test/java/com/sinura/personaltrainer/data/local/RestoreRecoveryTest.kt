@@ -35,7 +35,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The restore fault matrix (docs/HANDOFF-2026-09-06.md §2.4) on real Room and DataStore.
+ * The restore fault matrix (docs/archive/handoffs/HANDOFF-2026-09-06.md §2.4) on real Room and DataStore.
  *
  * Each test leaves the journal exactly as a crash at one boundary would, then runs the
  * launch-time recovery and checks both stores and the journal afterwards.

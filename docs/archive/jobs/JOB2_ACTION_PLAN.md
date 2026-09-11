@@ -385,4 +385,4 @@ After each packet that ships UI:
 - [x] This file updated if we left the written line
 - [ ] Phone gates P0–P4 (owner, at home). Code is on `trunk`.
 
-What comes after this file: [JOB3_ACTION_PLAN.md](JOB3_ACTION_PLAN.md).
+What comes after this file: [JOB3_ACTION_PLAN.md](../archive/jobs/JOB3_ACTION_PLAN.md).

@@ -486,4 +486,4 @@ and a 240 dp ring on the log stay won’ts.
 - [ ] Phone: the page gate, plus any floor finding shipped this turn
 - [ ] This file updated if we left the written plan
 
-Last JVM gate: 1324 tests, 0 failures (composer chrome packet, 26 Aug 2026). Phone gates still need the owner. Job 5 is code-done except CI `trunk`. Job 6 regroup: [JOB6_REGROUP.md](JOB6_REGROUP.md).
+Last JVM gate: 1324 tests, 0 failures (composer chrome packet, 26 Aug 2026). Phone gates still need the owner. Job 5 is code-done except CI `trunk`. Job 6 regroup: [JOB6_REGROUP.md](archive/jobs/JOB6_REGROUP.md).
