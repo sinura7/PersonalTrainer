@@ -21,10 +21,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.style.TextOverflow
+import com.sinura.personaltrainer.domain.LoadClass
+import com.sinura.personaltrainer.domain.LogBarCopy
 import com.sinura.personaltrainer.domain.RpeCopy
 import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
-import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.InstrumentChip
@@ -44,7 +45,8 @@ import com.sinura.personaltrainer.ui.theme.Volt
  *
  * The button is pinned while the entry panel scrolls, so after reviewing the set list a
  * lifter could face a full-width commit button whose payload was nowhere on screen. Echoing
- * the draft in the label means the tap is never blind.
+ * the draft in the label means the tap is never blind. W-11: the Warm-up chip changes the
+ * verb (`Log warm-up` vs `Log set`) through [LogBarCopy.commit].
  *
  * Scaffold's bottomBar draws edge-to-edge. The tab bar is gone on this route, so this
  * dock owns the system-nav inset the same way the tab bar and live bar already do —
@@ -56,6 +58,7 @@ internal fun LogBar(
     logging: Boolean,
     error: String?,
     draftLabel: String,
+    warmup: Boolean,
     microRec: SetMicroRec?,
     loadClass: LoadClass,
     unit: WeightUnit,
@@ -92,11 +95,12 @@ internal fun LogBar(
         volt = {
             val nextAct = showNext && !editing
             PrimaryGymButton(
-                text = when {
-                    editing -> "Save $draftLabel"
-                    nextAct -> "Next"
-                    else -> "Log $draftLabel"
-                },
+                text = LogBarCopy.commit(
+                    editing = editing,
+                    next = showNext,
+                    warmup = warmup,
+                    draftLabel = draftLabel,
+                ),
                 onClick = if (nextAct) onNext else onLog,
                 enabled = !logging,
                 modifier = Modifier.testTag(

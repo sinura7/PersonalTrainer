@@ -263,6 +263,7 @@ fun ActiveWorkoutScreen(
                             logging = state.logging,
                             error = state.error,
                             draftLabel = SetCopy.setLine(state.draft.weightKg, state.draft.reps, LoadClass.of(selected?.exercise?.loadType), unit),
+                            warmup = state.draft.isWarmup,
                             microRec = microRec.takeUnless {
                                 showNext || LandscapeChrome.foldMicroRecIntoCard(landscape)
                             },
