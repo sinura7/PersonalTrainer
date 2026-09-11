@@ -678,6 +678,24 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun firstRestMentionsUnrestrictedBatteryUntilAcknowledged() = runBlocking {
+        val fixture = seedWorkout()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitFound()
+
+        assertFalse(deps.preferencesRepository.restBatteryHintShown.first())
+        vm.startSelectedRest()
+        deps.restTimerStore.snapshot.first { it.running }
+        withTimeout(TestWaits.FLOW_MS) { vm.restTimerState.first { it.batteryHint } }
+        assertTrue(vm.restTimerState.value.batteryHint)
+
+        vm.acknowledgeRestBatteryHint()
+        withTimeout(TestWaits.FLOW_MS) { vm.restTimerState.first { !it.batteryHint } }
+        assertTrue(deps.preferencesRepository.restBatteryHintShown.first())
+        assertTrue(vm.restTimerState.value.running)
+    }
+
+    @Test
     fun editUpdatesExistingSetWithoutStartingAnotherRestOrRecord() = runBlocking {
         val fixture = seedWorkout(targetSets = 1)
         val vm = createViewModel(fixture.session.id)

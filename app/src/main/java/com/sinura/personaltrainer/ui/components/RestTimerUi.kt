@@ -65,6 +65,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.NumericEntry
+import com.sinura.personaltrainer.domain.RestBatteryCopy
 import com.sinura.personaltrainer.domain.RestFinishFlash
 import com.sinura.personaltrainer.domain.RestIdleCopy
 import com.sinura.personaltrainer.domain.RestTimer
@@ -112,6 +113,8 @@ fun RestDock(
     completedTimerId: String? = null,
     hideWhenIdle: Boolean = false,
     afterWarmup: Boolean = false,
+    batteryHint: Boolean = false,
+    onDismissBatteryHint: () -> Unit = {},
 ) {
     var justFinished by remember { mutableStateOf(false) }
     var flashedTimerId by remember { mutableStateOf<String?>(null) }
@@ -186,12 +189,17 @@ fun RestDock(
     val kicker = TalkBackPolicy.restKicker(justFinished)
 
     HairlineDivider(startIndent = 0.dp)
-    Row(
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = Metrics.rowMin)
             .background(Surface1)
             .padding(horizontal = Metrics.space4, vertical = Metrics.space2),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = Metrics.rowMin),
         horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -237,6 +245,45 @@ fun RestDock(
                 label = "Skip",
                 onClick = onSkip,
                 modifier = Modifier.widthIn(min = 72.dp),
+            )
+        }
+    }
+        if (running && batteryHint) {
+            RestBatteryHintRow(onDismiss = onDismissBatteryHint)
+        }
+    }
+}
+
+@Composable
+fun RestBatteryHintRow(
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    testTag: String = "workout-rest-battery",
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(testTag),
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            RestBatteryCopy.SENTENCE,
+            modifier = Modifier.weight(1f),
+            style = InstrumentType.caption,
+            color = TextSecondary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        TextButton(
+            onClick = onDismiss,
+            modifier = Modifier.heightIn(min = Metrics.touchMin),
+        ) {
+            Text(
+                RestBatteryCopy.GOT_IT,
+                style = InstrumentType.bodyStrong,
+                color = Volt,
+                maxLines = 1,
             )
         }
     }

@@ -66,6 +66,7 @@ object WorkoutTestTags {
     const val SET_ENTRY = "workout-set-entry"
     const val REST_BAR = "workout-rest-bar"
     const val REST_IDLE = "workout-rest-idle"
+    const val REST_BATTERY = "workout-rest-battery"
     const val MICRO_REC = "workout-micro-rec"
     const val MICRO_REC_APPLY = "workout-micro-rec-apply"
     const val MICRO_REC_WHY = "workout-micro-rec-why"
@@ -247,6 +248,8 @@ fun ActiveWorkoutScreen(
                             completedTimerId = rest.completedTimerId,
                             hideWhenIdle = LandscapeChrome.hideIdleRest(landscape),
                             afterWarmup = afterWarmup,
+                            batteryHint = rest.batteryHint,
+                            onDismissBatteryHint = viewModel::acknowledgeRestBatteryHint,
                             onSkip = viewModel::skipRest,
                             onStart = viewModel::startSelectedRest,
                             onOpenRest = { session.id.let(onOpenRest) },

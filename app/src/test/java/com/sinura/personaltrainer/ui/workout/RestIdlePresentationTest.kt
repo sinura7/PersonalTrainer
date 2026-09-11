@@ -20,6 +20,16 @@ class RestIdlePresentationTest {
     }
 
     @Test
+    fun firstRestMentionsUnrestrictedBattery() {
+        val dock = readOwned("ui/components/RestTimerUi.kt")
+        assertTrue(dock.contains("RestBatteryCopy.SENTENCE"))
+        assertTrue(dock.contains("RestBatteryHintRow"))
+        val floor = readOwned("ui/workout/RestTimerScreen.kt")
+        assertTrue(floor.contains("RestBatteryHintRow"))
+        assertTrue(floor.contains("RestFloorTags.BATTERY"))
+    }
+
+    @Test
     fun idleFloorUsesEmptyRingAndNotRunningKicker() {
         val floor = readOwned("ui/workout/RestTimerScreen.kt")
         assertTrue(floor.contains("RestIdleCopy.KICKER"))

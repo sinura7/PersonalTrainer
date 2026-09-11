@@ -40,6 +40,7 @@ import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.ui.components.CustomRestDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.components.RestBatteryHintRow
 import com.sinura.personaltrainer.ui.components.RestControl
 import com.sinura.personaltrainer.ui.components.RestPresetChips
 import com.sinura.personaltrainer.ui.components.RestSweepRing
@@ -68,6 +69,7 @@ object RestFloorTags {
     const val BACK_TO_BAR = "rest-floor-back"
     const val NEXT = "rest-floor-next"
     const val UNSAVED = "rest-floor-unsaved"
+    const val BATTERY = "rest-floor-battery"
 }
 
 private const val URGENT_SECONDS = 10
@@ -126,6 +128,7 @@ fun RestTimerScreen(
                     onSelectPreset = viewModel::selectRestDuration,
                     onCustom = viewModel::selectCustomRest,
                     onStart = viewModel::startSelectedRest,
+                    onAcknowledgeBattery = viewModel::acknowledgeRestBatteryHint,
                     onBackToBar = onClose,
                     modifier = Modifier
                         .fillMaxSize()
@@ -146,6 +149,7 @@ private fun RestFloorBody(
     onSelectPreset: (Int) -> Unit,
     onCustom: (String) -> Boolean,
     onStart: () -> Unit,
+    onAcknowledgeBattery: () -> Unit,
     onBackToBar: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -251,6 +255,12 @@ private fun RestFloorBody(
         // Same honesty as the Settings best-effort notice: the row did not
         // reach disk, so the wakeup is not armed and a process kill ends this
         // rest in silence. One line, not a banner — the countdown still runs.
+        if (rest.running && rest.batteryHint) {
+            RestBatteryHintRow(
+                onDismiss = onAcknowledgeBattery,
+                testTag = RestFloorTags.BATTERY,
+            )
+        }
         if (rest.running && !rest.persistenceHealthy) {
             Text(
                 "Rest may not survive leaving the app.",

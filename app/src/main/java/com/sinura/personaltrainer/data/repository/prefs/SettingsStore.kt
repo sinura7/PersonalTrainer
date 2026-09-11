@@ -97,6 +97,7 @@ internal val REST_TICK = booleanPreferencesKey("rest_tick")
 internal val REST_DEFAULT = intPreferencesKey("rest_default_seconds")
 internal val REST_LAST_PRESET = intPreferencesKey("rest_last_preset_seconds")
 internal val REST_ALARM_ELIGIBLE = booleanPreferencesKey("rest_alarm_eligible")
+internal val REST_BATTERY_HINT = booleanPreferencesKey("rest_battery_hint_shown")
 
 internal val REMINDER_OPT_OUT = booleanPreferencesKey("reminder_opt_out")
 internal val REMINDER_QUIET_START = intPreferencesKey("reminder_quiet_start_hour")

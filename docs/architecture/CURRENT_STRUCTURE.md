@@ -72,7 +72,7 @@ flowchart TB
     PTA["PersonalTrainerApp<br/>(manifest android:name)"]
     AC["AppContainer(context) : AppDependencies<br/>36 typed ports"]
     DB[("TemperDatabase v4<br/>21 entities · 10 DAOs")]
-    PREFS[("user_settings DataStore<br/>46 keys · 6 prefs stores")]
+    PREFS[("user_settings DataStore<br/>47 keys · 6 prefs stores")]
     REPOS["18 repositories<br/>+ BackupService"]
     UC["workout/ + activity/ use cases"]
     VMS["22 ViewModels<br/>AppViewModel : AndroidViewModel"]
@@ -122,7 +122,7 @@ DAOs, hand-written migrations 1→2→3→4, schemas exported to `app/schemas/`.
 both database classes. Legacy `TrainerDatabase` v2 (`personal_trainer.db`)
 survives only as migration-test substrate.
 
-**Preferences** are one DataStore named `user_settings` holding 46 keys. The
+**Preferences** are one DataStore named `user_settings` holding 47 keys. The
 keys are package-level in `data/repository/prefs/`, and six areas —
 `DisplayPrefs`, `CoachingPrefs`, `PlanningPrefs`, `RestPrefs`, `ReminderPrefs`,
 `BackupPrefs` — sit behind interfaces that `PreferencesRepository` mixes in by
