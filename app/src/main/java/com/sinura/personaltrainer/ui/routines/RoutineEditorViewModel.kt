@@ -17,6 +17,7 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseOrdering
 import com.sinura.personaltrainer.domain.LibraryGrouping
 import com.sinura.personaltrainer.domain.LiftCart
+import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.PendingPick
 import com.sinura.personaltrainer.domain.Routine
@@ -964,7 +965,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         }
     }
 
-    fun createAndSelect(name: String, muscleGroup: String) {
+    fun createAndSelect(name: String, muscleGroup: String, loadType: LoadType = LoadType.EXTERNAL) {
         val started = error.mark()
         if (leaving) return
         if (name.isBlank()) {
@@ -973,7 +974,11 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         }
         launchWrite {
             try {
-                when (val result = container.exerciseRepository.createCustom(name, muscleGroup)) {
+                when (val result = container.exerciseRepository.createCustom(
+                    name,
+                    muscleGroup,
+                    loadType = loadType,
+                )) {
                     is SaveExerciseResult.DuplicateName ->
                         error.fail(source = ERR_ADD_LIFT, message = DUPLICATE_NAME_MESSAGE)
                     is SaveExerciseResult.MissingMuscle ->

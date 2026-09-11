@@ -5,6 +5,8 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.CanonicalMuscle
+import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
@@ -256,6 +258,52 @@ class ExerciseLibraryViewModelTest {
         vm.keepBothNames(custom)
         vm.uiState.awaitFirst { it.needsAttention.none { it.id == custom.id } }
         assertTrue(deps.preferencesRepository.dismissedCollisionIds.first().contains(custom.id))
+    }
+
+    @Test
+    fun saveEditorPersistsTheChosenLoadOnANewCustom() = runBlocking {
+        val vm = createViewModel()
+        vm.uiState.awaitFirst { !it.isLoading }
+        vm.openCreate()
+        val draft = checkNotNull(vm.uiState.awaitFirst { it.editor != null }.editor)
+        vm.updateEditor(
+            draft.copy(
+                name = "My push-up",
+                muscleGroup = "Chest",
+                loadType = LoadType.BODYWEIGHT,
+            ),
+        )
+        vm.saveEditor()
+        val saved = deps.exerciseRepository.observeAll().first { list ->
+            list.any { it.name == "My push-up" }
+        }.first { it.name == "My push-up" }
+        assertEquals(LoadType.BODYWEIGHT, saved.loadType)
+        assertEquals(EquipmentType.BODYWEIGHT, saved.equipment)
+        assertEquals(
+            "Created My push-up.",
+            vm.uiState.awaitFirst { it.message == "Created My push-up." }.message,
+        )
+        assertNull(vm.uiState.value.editor)
+    }
+
+    @Test
+    fun saveEditorCanReclassifyAnExistingCustom() = runBlocking {
+        val custom = (deps.exerciseRepository.createCustom("My dip", "Chest") as com.sinura.personaltrainer.data.repository.SaveExerciseResult.Saved)
+            .exercise
+        val vm = createViewModel()
+        vm.uiState.awaitFirst { it.exercises.any { it.id == custom.id } }
+        vm.openEdit(custom)
+        val draft = checkNotNull(vm.uiState.awaitFirst { it.editor?.id == custom.id }.editor)
+        assertEquals(LoadType.EXTERNAL, draft.loadType)
+        vm.updateEditor(draft.copy(loadType = LoadType.ASSISTED))
+        vm.saveEditor()
+        val saved = checkNotNull(deps.exerciseRepository.getById(custom.id))
+        assertEquals(LoadType.ASSISTED, saved.loadType)
+        assertEquals(EquipmentType.MACHINE, saved.equipment)
+        assertEquals(
+            "Updated My dip.",
+            vm.uiState.awaitFirst { it.message == "Updated My dip." }.message,
+        )
     }
 
     @Test

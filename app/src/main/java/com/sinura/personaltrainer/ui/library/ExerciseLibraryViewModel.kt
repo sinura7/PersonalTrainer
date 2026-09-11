@@ -18,6 +18,7 @@ import com.sinura.personaltrainer.domain.ExerciseUsage
 import com.sinura.personaltrainer.domain.LibraryFamily
 import com.sinura.personaltrainer.domain.LibraryFilter
 import com.sinura.personaltrainer.domain.LibraryGrouping
+import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionOrderCopy
@@ -42,6 +43,7 @@ data class ExerciseEditorDraft(
     val name: String = "",
     val muscleGroup: String = "",
     val notes: String = "",
+    val loadType: LoadType = LoadType.EXTERNAL,
 )
 
 data class ExerciseLibraryUiState(
@@ -231,6 +233,7 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
             name = exercise.name,
             muscleGroup = exercise.muscleGroup,
             notes = exercise.notes,
+            loadType = exercise.loadType,
         )
         error.dismiss()
     }
@@ -258,13 +261,19 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             try {
                 val result = if (draft.id == null) {
-                    container.exerciseRepository.createCustom(name, draft.muscleGroup, draft.notes)
+                    container.exerciseRepository.createCustom(
+                        name,
+                        draft.muscleGroup,
+                        draft.notes,
+                        draft.loadType,
+                    )
                 } else {
                     container.exerciseRepository.updateCustom(
                         id = draft.id,
                         name = name,
                         muscleGroup = draft.muscleGroup,
                         notes = draft.notes,
+                        loadType = draft.loadType,
                     )
                 }
                 when (result) {

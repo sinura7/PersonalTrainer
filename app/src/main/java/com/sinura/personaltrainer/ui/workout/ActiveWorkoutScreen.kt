@@ -431,7 +431,7 @@ fun ActiveWorkoutScreen(
                     is ExercisePickerEvent.QueryChanged -> viewModel.onSearchQuery(event.query)
                     is ExercisePickerEvent.Selected -> viewModel.addExercise(event.exercise)
                     is ExercisePickerEvent.Created ->
-                        viewModel.createAndAddExercise(event.name, event.muscleGroup)
+                        viewModel.createAndAddExercise(event.name, event.muscleGroup, event.loadType)
                     is ExercisePickerEvent.Toggled -> Unit
                     ExercisePickerEvent.Dismissed -> viewModel.setPickerVisible(false)
                     ExercisePickerEvent.ErrorDismissed -> viewModel.dismissError()

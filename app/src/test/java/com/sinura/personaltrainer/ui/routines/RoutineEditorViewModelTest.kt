@@ -11,6 +11,8 @@ import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.local.relation.RoutineWithExercises
 import com.sinura.personaltrainer.data.repository.RoutineRepository
+import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineSaveCopy
@@ -413,6 +415,20 @@ class RoutineEditorViewModelTest {
             vm.awaitState { it.error == "That name is already in your library" }.error,
         )
         assertTrue(deps.exerciseRepository.observeAll().first().none { it.isCustom })
+    }
+
+    @Test
+    fun createAndSelectPutsABodyweightCustomOnTheRoutine() = runBlocking {
+        val vm = createViewModel("new")
+        vm.awaitState { !it.isLoading }
+        vm.setPickerVisible(true)
+        vm.createAndSelect("Push-up", "Chest", LoadType.BODYWEIGHT)
+
+        val saved = awaitRoutine { it.exercises.size == 1 }
+        val lift = saved.exercises.single().exercise
+        assertEquals("Push-up", lift.name)
+        assertEquals(LoadType.BODYWEIGHT, lift.loadType)
+        assertEquals(EquipmentType.BODYWEIGHT, lift.equipment)
     }
 
     @Test

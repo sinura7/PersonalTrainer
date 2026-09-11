@@ -37,6 +37,8 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.LoadType
+import com.sinura.personaltrainer.domain.LoadTypeCopy
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SessionOrderCopy
@@ -88,7 +90,7 @@ object SessionLiftCopy {
 object CompactLiftCopy {
     const val SETS = "Sets"
     const val REPS = "Reps"
-    const val TARGET_WEIGHT = "Target weight"
+    const val TARGET_WEIGHT = LoadTypeCopy.TARGET_WEIGHT
     const val REST = "Rest"
 }
 
@@ -207,10 +209,15 @@ private fun SessionLiftCard(
     val restClock = RestTimer.formatClock(item.restSeconds)
     val loadKg = item.targetWeightKg?.takeIf { it > 0.0 }
     val loadDisplay = loadKg?.let { kg -> WeightConverter.formatLabel(kg, unit) }
+    val loadTag = LoadTypeCopy.rowTag(item.exercise)
+    val subtitle = listOf(
+        item.exercise.muscleGroup.takeIf { it.isNotBlank() },
+        loadTag,
+    ).filterNotNull().distinct().joinToString(" · ")
     val spoken = SessionOrderCopy.cardSpoken(
         number = number,
         name = item.exercise.name,
-        muscleGroup = item.exercise.muscleGroup,
+        muscleGroup = subtitle,
         sets = item.sets,
         reps = item.reps,
         restClock = restClock,
@@ -259,9 +266,9 @@ private fun SessionLiftCard(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    if (item.exercise.muscleGroup.isNotBlank()) {
+                    if (subtitle.isNotBlank()) {
                         Text(
-                            item.exercise.muscleGroup,
+                            subtitle,
                             style = InstrumentType.caption,
                             color = TextSecondary,
                             maxLines = 1,
@@ -369,6 +376,7 @@ private fun SessionLiftEditor(
                 reps = item.reps,
                 restSeconds = item.restSeconds,
                 targetWeightKg = item.targetWeightKg,
+                loadType = item.exercise.loadType,
                 onStageTargets = onStageTargets,
                 onCommitTargets = onCommitTargets,
                 onRemove = onRemove,
@@ -456,13 +464,16 @@ internal fun CompactTargetFields(
     reps: Int,
     restSeconds: Int,
     targetWeightKg: Double?,
+    loadType: LoadType = LoadType.EXTERNAL,
     onStageTargets: (Int?, Int?, Int?, Double?, String?) -> Unit,
     onCommitTargets: () -> Unit,
     onRemove: () -> Unit,
     onSwap: (() -> Unit)?,
 ) {
     val unit = LocalWeightUnit.current
-    val storedWeightKg = targetWeightKg ?: 0.0
+    val weightLabel = LoadTypeCopy.editorWeightLabel(loadType)
+    val showWeight = weightLabel != null
+    val storedWeightKg = if (showWeight) targetWeightKg ?: 0.0 else 0.0
     var setsValue by rememberSaveable(rowKey) { mutableIntStateOf(sets) }
     var repsValue by rememberSaveable(rowKey) { mutableIntStateOf(reps) }
     var restValue by rememberSaveable(rowKey) { mutableIntStateOf(restSeconds) }
@@ -483,12 +494,13 @@ internal fun CompactTargetFields(
     // knows, so Save walks past it. Re-registering a value that is not what the routine holds
     // is the same restore the typed boxes used to do. An untouched editor still stages
     // nothing, so Back never asks about changes nobody made.
+    val stagedWeight = if (showWeight) weightValue else 0.0
     val differsFromStored = setsValue != sets ||
         repsValue != reps ||
         restValue != restSeconds ||
-        TargetStepper.weightToStage(weightValue) != targetWeightKg
+        TargetStepper.weightToStage(stagedWeight) != targetWeightKg
     LaunchedEffect(rowKey, differsFromStored) {
-        if (differsFromStored) persist(setsValue, repsValue, restValue, weightValue)
+        if (differsFromStored) persist(setsValue, repsValue, restValue, stagedWeight)
     }
     val stack = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
     val setsWell: @Composable (Modifier) -> Unit = { modifier ->
@@ -559,13 +571,13 @@ internal fun CompactTargetFields(
     }
     val weightWell: @Composable (Modifier) -> Unit = { modifier ->
         NumeralWell(
-            label = CompactLiftCopy.TARGET_WEIGHT,
+            label = weightLabel ?: CompactLiftCopy.TARGET_WEIGHT,
             value = WeightConverter.formatDisplayNumber(
                 WeightConverter.toDisplayValue(weightValue, unit),
             ),
             unit = unit.suffix,
             onType = { typing = TargetWell.WEIGHT },
-            typeLabel = "Type a target weight",
+            typeLabel = "Type a ${weightLabel?.lowercase() ?: "target weight"}",
             decrementLabel = "−${unit.stepLabel}",
             incrementLabel = "+${unit.stepLabel}",
             onDecrement = {
@@ -589,15 +601,19 @@ internal fun CompactTargetFields(
             setsWell(Modifier.fillMaxWidth())
             repsWell(Modifier.fillMaxWidth())
             restWell(Modifier.fillMaxWidth())
-            weightWell(Modifier.fillMaxWidth())
+            if (showWeight) weightWell(Modifier.fillMaxWidth())
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
                 setsWell(Modifier.weight(1f))
                 repsWell(Modifier.weight(1f))
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                restWell(Modifier.weight(1f))
-                weightWell(Modifier.weight(1f))
+            if (showWeight) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                    restWell(Modifier.weight(1f))
+                    weightWell(Modifier.weight(1f))
+                }
+            } else {
+                restWell(Modifier.fillMaxWidth())
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
@@ -656,9 +672,9 @@ internal fun CompactTargetFields(
             onDismiss = { typing = null },
         )
     }
-    if (typing == TargetWell.WEIGHT) {
+    if (showWeight && typing == TargetWell.WEIGHT) {
         NumberEntryDialog(
-            title = CompactLiftCopy.TARGET_WEIGHT,
+            title = weightLabel ?: CompactLiftCopy.TARGET_WEIGHT,
             unitLabel = unit.suffix,
             initial = WeightConverter.formatDisplayNumber(
                 WeightConverter.toDisplayValue(weightValue, unit),

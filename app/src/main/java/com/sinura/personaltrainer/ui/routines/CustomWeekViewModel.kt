@@ -13,6 +13,7 @@ import com.sinura.personaltrainer.domain.CustomWeekPolicy
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseOrdering
 import com.sinura.personaltrainer.domain.LiftCart
+import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.SchedulePreferences
@@ -242,7 +243,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
         togglePicked(exercise)
     }
 
-    fun createAndSelect(name: String, muscleGroup: String) {
+    fun createAndSelect(name: String, muscleGroup: String, loadType: LoadType = LoadType.EXTERNAL) {
         if (applying.value) return
         viewModelScope.launch {
             if (name.isBlank()) {
@@ -250,7 +251,11 @@ class CustomWeekViewModel @JvmOverloads constructor(
                 return@launch
             }
             runCatchingCancellable {
-                when (val result = container.exerciseRepository.createCustom(name, muscleGroup)) {
+                when (val result = container.exerciseRepository.createCustom(
+                    name,
+                    muscleGroup,
+                    loadType = loadType,
+                )) {
                     is SaveExerciseResult.DuplicateName ->
                         error.fail(source = ERR_ADD_LIFT, message = DUPLICATE_NAME_MESSAGE)
                     is SaveExerciseResult.MissingMuscle ->

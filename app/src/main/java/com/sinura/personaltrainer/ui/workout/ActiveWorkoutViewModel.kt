@@ -20,6 +20,7 @@ import com.sinura.personaltrainer.domain.ExerciseOrdering
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
 import com.sinura.personaltrainer.domain.LibraryGrouping
 import com.sinura.personaltrainer.domain.LighterWeek
+import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.ProgressionHint
@@ -725,14 +726,22 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         }
     }
 
-    fun createAndAddExercise(name: String, muscleGroup: String) {
+    fun createAndAddExercise(
+        name: String,
+        muscleGroup: String,
+        loadType: LoadType = LoadType.EXTERNAL,
+    ) {
         viewModelScope.launch {
             if (name.isBlank()) {
                 error.fail(source = ERR_ADD_LIFT, message = "Give that lift a name.")
                 return@launch
             }
             try {
-                when (val result = container.exerciseRepository.createCustom(name, muscleGroup)) {
+                when (val result = container.exerciseRepository.createCustom(
+                    name,
+                    muscleGroup,
+                    loadType = loadType,
+                )) {
                     is SaveExerciseResult.DuplicateName ->
                         error.fail(source = ERR_ADD_LIFT, message = DUPLICATE_NAME_MESSAGE)
                     is SaveExerciseResult.MissingMuscle ->

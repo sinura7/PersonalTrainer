@@ -51,6 +51,9 @@ class ExercisePickerContractTest {
         assertEquals(1, LiftCart.cartNumber(multi.selectedOrder, squat.id))
         val created = ExercisePickerEvent.Created("Good morning", "Hamstrings")
         assertEquals("Good morning", created.name)
+        assertEquals(LoadType.EXTERNAL, created.loadType)
+        val bodyweight = ExercisePickerEvent.Created("Push-up", "Chest", LoadType.BODYWEIGHT)
+        assertEquals(LoadType.BODYWEIGHT, bodyweight.loadType)
         // Multi-add has no confirm event: a tap is the write, and Dismissed is the way out.
         assertEquals(ExercisePickerEvent.Dismissed, ExercisePickerEvent.Dismissed)
     }
