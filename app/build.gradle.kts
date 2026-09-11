@@ -306,6 +306,47 @@ val unpackRobolectricAndroidAll by tasks.registering(Copy::class) {
     into(layout.buildDirectory.dir("robolectric-android-all"))
 }
 
+// The ratchets, run by the build rather than by memory.
+//
+// tools/preflight.sh holds every static check this repo has: the domain seams, the
+// design-token ceilings, the unbounded-wait and swallowed-cancellation counts, the
+// supply-chain ledger, the version floor, and the fixture proofs that each of those
+// checkers still fails on a finding. None of it was wired into Gradle, so
+// `./gradlew testDebugUnitTest assembleDebug` — the push gate — could go green on a
+// branch that broke all of them. The only thing standing between a broken ratchet
+// and trunk was whether somebody remembered to type tools/preflight.sh.
+//
+// PT_STATIC_ONLY=1 is preflight's own switch for exactly this: it runs the checks and
+// returns before the JVM test lane, which Gradle is already doing in its own task. So
+// there is one checker list, in the shell script, and no copy of it here to drift.
+//
+// No declared outputs, so this runs every time. That is deliberate. This repo has
+// already shipped one gate that reported clean while sitting on ten findings (see the
+// summary() comment in preflight.sh), and an up-to-date check keyed on source files
+// would go stale on the inputs that are not files — git tags for the version floor,
+// the Gradle module cache for the supply-chain ledger. Thirty seconds of certainty
+// beats a cache that can lie. `-PskipStaticChecks` exists for tightening an inner
+// loop in the IDE; it is not a way through the gate.
+//
+// Same configuration-cache rule as the assembleRelease rename below: nothing the task
+// carries into execution may reference this script. isEnabled is resolved here, at
+// configuration time, into a Boolean — an onlyIf {} spec would close over `providers`
+// and fail the build with "cannot serialize Gradle script object references".
+val staticChecks = run {
+    val repoRoot = rootDir
+    val skip = providers.gradleProperty("skipStaticChecks").isPresent
+    tasks.register<Exec>("staticChecks") {
+        group = "verification"
+        description = "Runs the tools/preflight.sh static ratchets (no JVM tests)"
+        workingDir = repoRoot
+        commandLine("sh", "tools/preflight.sh")
+        environment("PT_STATIC_ONLY", "1")
+        isEnabled = !skip
+    }
+}
+
+tasks.named("check") { dependsOn(staticChecks) }
+
 // A failing unit test must say why in the console, not only in an HTML report.
 // ci.yml uploads app/build/reports/tests/, but that artifact lives on a host some
 // environments cannot reach, and Gradle's default console output prints only
@@ -315,6 +356,9 @@ val unpackRobolectricAndroidAll by tasks.registering(Copy::class) {
 // is the one artifact everyone can always read; make it carry the message.
 tasks.withType<Test>().configureEach {
     dependsOn(unpackRobolectricAndroidAll)
+    // The push gate is `testDebugUnitTest` + `assembleDebug`, not `check`, so hanging the
+    // ratchets off `check` alone would have left them exactly as unenforced as before.
+    dependsOn(staticChecks)
     systemProperty("robolectric.offline", "true")
     val robolectricJars = layout.buildDirectory.dir("robolectric-android-all")
     jvmArgumentProviders.add(

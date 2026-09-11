@@ -19,7 +19,7 @@ test counts are what ran *then*, not what runs now.
 |---|---|---|---|
 | Static gate: `PT_STATIC_ONLY=1 tools/preflight.sh` | Twenty-one source checkers, ratchets in `tools/checker-baselines.toml`, syntax check | Any machine with Python 3.11+ (`tomllib`) and Java 17 (no SDK) | every commit |
 | JVM lane: `tools/run-domain-tests.sh <jars>` | `domain/`, `util/`, `logging/`, the named workout/timer/diagnostics files and the backup codec, compiled with `kotlinc` against stubs | same | every commit |
-| Gradle unit: `./gradlew testDebugUnitTest` | The whole JVM suite including Robolectric (Room in memory, ViewModels) | SDK machine, or `ci.yml` on a push | merge into `trunk` |
+| Gradle unit: `./gradlew testDebugUnitTest` | The whole JVM suite including Robolectric (Room in memory, ViewModels) — **and the static gate above**, via `:app:staticChecks`, which every `Test` task depends on | SDK machine, or `ci.yml` on a push | merge into `trunk` |
 | Build + lint: `./gradlew assembleDebug lintDebug` | The APK compiles; no new lint issues past `app/lint-baseline.xml` | same | merge into `trunk` |
 | Instrumented sources: `./gradlew compileDebugAndroidTestKotlin` | The device tests still compile — a test-only change never reaches a device from here, and a broken one would sit unnoticed until an emulator run | same | merge into `trunk` (`ci.yml` runs it) |
 | Hosted `ci.yml`: *Tests, lint, debug build* | The same static gate, unit suite, lint and debug build the local gate runs, on every push and pull request | GitHub-hosted runner | may be a required check on `trunk` ([ADR-024](architecture/ADR-024-hosted-jvm-check.md)); the owner enables it |
@@ -30,7 +30,22 @@ test counts are what ran *then*, not what runs now.
 The merge gate is the JVM gate — static gate, Gradle unit, build — as
 [owner-loop](../.cursor/rules/owner-loop.mdc) says; a packet does not
 wait for a phone check. The phone and emulator lanes gate the signed
-gym-floor release, not the merge. Distribution is Obtainium:
+gym-floor release, not the merge.
+
+**The static gate is no longer something to remember.** `:app:staticChecks`
+runs `tools/preflight.sh` with `PT_STATIC_ONLY=1`, and every Gradle `Test`
+task depends on it, so `./gradlew testDebugUnitTest` fails on a broken
+ratchet whether or not anybody ran preflight by hand. Until 11 Sep 2026 it
+did not: the twenty-odd checkers, the design-token ceilings, the
+unbounded-wait and swallowed-cancellation counts, the supply-chain ledger
+and the version floor were all wired into `preflight.sh` and into
+`ci.yml` — and into nothing that the push gate touched. Running
+`tools/preflight.sh` directly is still the faster loop and the only way to
+get the `run-domain-tests.sh` lane; `-PskipStaticChecks` skips the Gradle
+copy while tightening an inner loop in the IDE, and is not a way through
+the gate.
+
+Distribution is Obtainium:
 Temper Debug from `debug-live-*` pre-releases signed by the stable
 debug signer ([SETUP.md](../SETUP.md) §6), gym-floor Temper from signed
 `v*` releases.
