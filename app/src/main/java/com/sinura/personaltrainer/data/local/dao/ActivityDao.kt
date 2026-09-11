@@ -36,10 +36,6 @@ interface ActivityDao {
     suspend fun getAllGraphs(): List<ActivitySessionGraph>
 
     @Transaction
-    @Query("SELECT * FROM activity_sessions WHERE status = 'COMPLETED' ORDER BY performedStartInstantMs DESC")
-    fun observeCompletedGraphs(): Flow<List<ActivitySessionGraph>>
-
-    @Transaction
     @Query("SELECT * FROM activity_sessions WHERE status = 'COMPLETED' AND performedStartInstantMs >= :minMs ORDER BY performedStartInstantMs DESC")
     fun observeCompletedGraphsSince(minMs: Long): Flow<List<ActivitySessionGraph>>
 
@@ -159,16 +155,9 @@ interface ActivityDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertCardioIntervals(intervals: List<ActivityCardioIntervalEntity>)
 
-    @Query("DELETE FROM activity_blocks WHERE sessionId = :sessionId")
-    suspend fun deleteBlocksForSession(sessionId: String)
-
     @Transaction
     @Query("SELECT * FROM activity_templates ORDER BY title")
     suspend fun getAllTemplateGraphs(): List<ActivityTemplateGraph>
-
-    @Transaction
-    @Query("SELECT * FROM activity_templates WHERE id = :id")
-    suspend fun getTemplateGraph(id: String): ActivityTemplateGraph?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertTemplate(template: ActivityTemplateEntity)

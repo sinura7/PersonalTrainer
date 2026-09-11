@@ -492,10 +492,6 @@ class HomeViewModel @JvmOverloads constructor(
         }
     }
 
-    fun addExtra(epochDay: Long, packId: String) {
-        addDaySession(epochDay, HomeDayAdd.Aux(packId), once = true)
-    }
-
     fun moveDayBlock(items: List<AgendaItem>, occurrenceId: String, delta: Int) {
         viewModelScope.launch {
             val from = items.indexOfFirst { it.occurrence.id == occurrenceId }

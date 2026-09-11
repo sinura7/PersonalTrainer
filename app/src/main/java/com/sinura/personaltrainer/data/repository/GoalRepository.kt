@@ -47,17 +47,7 @@ class GoalRepository(
         return goal
     }
 
-    suspend fun setPaused(id: String, paused: Boolean) {
-        val current = dao.getAll().firstOrNull { it.id == id } ?: return
-        dao.upsert(current.copy(paused = paused, updatedAtMs = JvmTime.nowMillis()))
-    }
-
     suspend fun delete(id: String) {
         dao.delete(id)
-    }
-
-    suspend fun replaceAll(goals: List<MeasurableGoal>) {
-        dao.deleteAll()
-        if (goals.isNotEmpty()) dao.upsertAll(goals.map { it.toEntity() })
     }
 }

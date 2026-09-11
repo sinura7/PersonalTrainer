@@ -486,18 +486,6 @@ class SettingsViewModel @JvmOverloads constructor(
         initialValue = BackupUiState(),
     )
 
-    /**
-     * Kept for tests and any leftover caller. The Settings row now navigates
-     * to the questionnaire without flipping the launch gate — Home is always
-     * the shell, and the sheet only appears when setup is still incomplete.
-     */
-    fun rerunGuidedSetup() {
-        viewModelScope.launch {
-            runCatchingCancellable { container.preferencesRepository.setOnboardingComplete(false) }
-                .onFailure { AppLog.w(TAG, "Reopening guided setup failed", it) }
-        }
-    }
-
     fun setWeightUnit(unit: WeightUnit) {
         viewModelScope.launch {
             container.preferencesRepository.setWeightUnit(unit)
@@ -847,7 +835,7 @@ class SettingsViewModel @JvmOverloads constructor(
         }
     }
 
-    fun refreshSafetySnapshots() {
+    private fun refreshSafetySnapshots() {
         viewModelScope.launch {
             runCatchingCancellable { reloadSafetySnapshots() }
                 .onFailure { AppLog.w(TAG, "Listing safety copies failed", it) }
@@ -1062,14 +1050,6 @@ class SettingsViewModel @JvmOverloads constructor(
             sourceName = sourceName,
             password = password,
         )
-    }
-
-    fun cancelFileRestore() {
-        pendingPlan.value = null
-    }
-
-    fun confirmFileRestore() {
-        confirmRestore()
     }
 
     /** Backups exclude the live session on purpose; say so instead of letting the user assume. */
