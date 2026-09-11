@@ -240,7 +240,7 @@ These apply to every screen.
 | ID | Rule | Now | Priority |
 |---|---|---|---|
 | G-01 | Primary tap targets ≥ 48×48, gym primaries ≥ 56dp | Steppers are large (good). Chips, delete icons, RPE chips are finger-fussy | ✅ 9 Sep 2026 — `Metrics.touchMin` 48 dp, `rowMin` / `control` 56 dp, `commit` 72 dp are the only sizes the design system offers (ADR-005, FND-023) |
-| G-02 | One-handed: primary actions in the lower half during a session | Rest card is **first** in the scroll; log set is mid-list; finish is at the bottom. On a tall phone the clock eats the fold | P1 |
+| G-02 | One-handed: primary actions in the lower half during a session | Rest card is **first** in the scroll; log set is mid-list; finish is at the bottom. On a tall phone the clock eats the fold | ✅ 11 Sep 2026 — `RestDock` sits in `Scaffold.bottomBar` immediately above `LogBar` (`ActiveWorkoutScreen`, tag `workout-rest-idle` / `workout-log-set`). Finish stays in the header: it is not a mid-set act. Landscape still hides idle rest (`LandscapeChrome.hideIdleRest`) |
 | G-03 | Keyboard never covers the thing you opened the sheet to pick | Add-lift focuses the search field immediately; IME covers the catalog | ✅ 9 Sep 2026 — `ExercisePickerSheet` no longer auto-focuses the search (no `FocusRequester`); the sheet is nine-tenths of the screen with the catalog under a pinned search |
 | G-04 | No duplicate information competing for the same decision | Last set card **and** “This exercise” both show the same set with Edit/Delete | ✅ 9 Sep 2026 — one `Last set ·` line (`RestFloorCopy`) and no second history block in `ActiveWorkoutScreen` |
 | G-05 | Never surprise-start rest | Rest card is always mounted, so tapping `1:00` after a warm-up feels like auto-start | P1 |

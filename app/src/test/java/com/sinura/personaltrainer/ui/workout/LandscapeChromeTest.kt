@@ -45,6 +45,29 @@ class LandscapeChromeTest {
         assertTrue(readOwned("ui/components/GymButtons.kt").contains("fun DangerGymButton"))
     }
 
+    @Test
+    fun sessionPrimaryActionsSitInTheLowerDock() {
+        // G-02: Rest Start/Skip and Log set share Scaffold.bottomBar, with
+        // RestDock immediately above LogBar so a one-handed thumb reaches
+        // both. Finish stays in the header (not a mid-set act).
+        val workout = readOwned("ui/workout/ActiveWorkoutScreen.kt")
+        val bottomBar = workout.indexOf("bottomBar")
+        val restDock = workout.indexOf("RestDock(")
+        val logBar = workout.indexOf("LogBar(")
+        val lazy = workout.indexOf("LazyColumn(")
+        assertTrue("bottomBar missing", bottomBar >= 0)
+        assertTrue("RestDock missing", restDock >= 0)
+        assertTrue("LogBar missing", logBar >= 0)
+        assertTrue("LazyColumn missing", lazy >= 0)
+        assertTrue("RestDock must live in bottomBar, not above the list", restDock > bottomBar)
+        assertTrue("LogBar must sit under RestDock in the lower dock", logBar > restDock)
+        assertTrue("the lift list must not contain RestDock or LogBar", lazy > logBar)
+        assertFalse(
+            "RestDock must not be composed in the scrolling column",
+            workout.substring(lazy).contains("RestDock("),
+        )
+    }
+
     private fun readOwned(relative: String): String {
         val roots = listOf(
             File("app/src/main/java/com/sinura/personaltrainer"),

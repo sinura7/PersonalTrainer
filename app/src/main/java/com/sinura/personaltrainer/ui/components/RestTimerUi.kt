@@ -90,12 +90,13 @@ import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import kotlinx.coroutines.delay
 
 /**
- * The rest clock, pinned as a condensed bar.
+ * The rest clock, pinned in the lower dock above Log set (G-02).
  *
  * The log used to hold an 88 dp ring and a −15 / Skip / +15 stack. That is the floor page
  * now. Here the running state is a ~56 dp row: REST, a [InstrumentType.numeralMd] clock, a
  * 4 dp track, and trailing Skip. Idle is Next rest + planned clock + Start. Preset chips
- * live on the floor. Tap the bar or the idle line to push it.
+ * live on the floor. Tap the bar or the idle line to push it. The hairline sits above the
+ * row so the list and the dock stay visually split when rest lives at the bottom.
  */
 @Composable
 fun RestDock(
@@ -157,6 +158,7 @@ fun RestDock(
 
     if (!running && !justFinished) {
         if (hideWhenIdle) return
+        HairlineDivider(startIndent = 0.dp)
         RestIdleRow(
             totalSeconds = totalSeconds,
             onStart = onStart,
@@ -166,7 +168,6 @@ fun RestDock(
                 .background(Surface1)
                 .padding(horizontal = Metrics.space4, vertical = Metrics.space2),
         )
-        HairlineDivider(startIndent = 0.dp)
         return
     }
 
@@ -180,6 +181,7 @@ fun RestDock(
     val clock = RestTimer.formatClock(if (justFinished) 0 else safeRemaining)
     val kicker = TalkBackPolicy.restKicker(justFinished)
 
+    HairlineDivider(startIndent = 0.dp)
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -234,7 +236,6 @@ fun RestDock(
             )
         }
     }
-    HairlineDivider(startIndent = 0.dp)
 }
 
 /**
