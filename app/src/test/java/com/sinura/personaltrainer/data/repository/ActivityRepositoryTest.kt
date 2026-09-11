@@ -164,6 +164,7 @@ class ActivityRepositoryTest {
         assertEquals(500.0, summaries.single().volumeKg, 0.0001)
         assertEquals(1, summaries.single().workingSets)
         assertEquals(evening.localEpochDay, summaries.single().localEpochDay)
+        assertEquals(listOf("ex-squat"), summaries.single().stills.map { it.id })
     }
 
     @Test

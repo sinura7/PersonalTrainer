@@ -258,6 +258,7 @@ fun HistoryScreen(
                                         workingSets = entry.workingSets,
                                         work = entry.work,
                                         durationMinutes = entry.durationMinutes,
+                                        stills = entry.stills,
                                         onClick = {
                                             if (entry.kind == HistoryKind.ACTIVITY) {
                                                 onOpenActivity(entry.id)
@@ -541,6 +542,7 @@ private fun DaySessionsSheet(
                         workingSets = summary.workingSets,
                         work = SetWork(volumeKg = summary.volumeKg, bodyweightReps = 0),
                         durationMinutes = summary.durationMinutes,
+                        stills = summary.stills,
                         onClick = {
                             if (summary.kind == HistoryKind.ACTIVITY) {
                                 onOpenActivity(summary.id)

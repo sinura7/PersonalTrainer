@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
 import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toExerciseSetEntry
+import com.sinura.personaltrainer.data.mapper.toHistoryStills
 import com.sinura.personaltrainer.data.mapper.toRecordSet
 import com.sinura.personaltrainer.data.mapper.toSummary
 import com.sinura.personaltrainer.data.local.dao.FinishedWorkingSetRow
@@ -143,7 +144,12 @@ class WorkoutRepository(
     fun observeSessionSummaries(): Flow<List<SessionSummary>> =
         workoutDao.observeFinishedWorkGeneration()
             .distinctUntilChanged()
-            .mapLatest { workoutDao.sessionSummaries().map { it.toDomainSummary() } }
+            .mapLatest {
+                val stills = workoutDao.sessionStills().toHistoryStills()
+                workoutDao.sessionSummaries().map { row ->
+                    row.toDomainSummary(stills[row.id].orEmpty())
+                }
+            }
 
     fun observeSessionSummariesHealth(): Flow<DataHealth<List<SessionSummary>>> =
         observeSessionSummaries().observeHealth("workout history")
@@ -1080,7 +1086,9 @@ class WorkoutRepository(
         }?.rpe
     }
 
-    private fun SessionSummaryRow.toDomainSummary(): SessionSummary = SessionSummary(
+    private fun SessionSummaryRow.toDomainSummary(
+        stills: List<Exercise> = emptyList(),
+    ): SessionSummary = SessionSummary(
         id = id,
         routineId = routineId,
         routineName = routineName,
@@ -1090,6 +1098,7 @@ class WorkoutRepository(
         workingSets = workingSets,
         volumeKg = volumeKg,
         localEpochDay = com.sinura.personaltrainer.util.JvmTime.civilDate(date).epochDay,
+        stills = stills,
     )
 
     private fun ExerciseRecordPriorsRow.toPriors(): PersonalRecords.RecordPriors =

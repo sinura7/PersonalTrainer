@@ -11,6 +11,7 @@ import com.sinura.personaltrainer.data.local.entity.ExerciseRecordPriorsRow
 import com.sinura.personaltrainer.data.local.entity.FinishedWorkGeneration
 import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SessionSummaryRow
+import com.sinura.personaltrainer.data.local.entity.SessionStillRow
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
 import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
@@ -43,6 +44,32 @@ interface WorkoutDao {
         """,
     )
     suspend fun sessionSummaries(): List<SessionSummaryRow>
+
+    /**
+     * Lifts on finished sessions, in session order. History cards picture
+     * the first few; this is one row per lift, not every set.
+     */
+    @Query(
+        """
+        SELECT se.sessionId AS sessionId,
+               se.sort_order AS sortOrder,
+               e.id AS id,
+               e.name AS name,
+               e.muscleGroup AS muscleGroup,
+               e.notes AS notes,
+               e.isCustom AS isCustom,
+               e.equipment AS equipment,
+               e.loadType AS loadType,
+               e.movementKey AS movementKey,
+               e.imageKey AS imageKey
+        FROM session_exercises se
+        INNER JOIN exercises e ON e.id = se.exerciseId
+        INNER JOIN workout_sessions s ON s.id = se.sessionId
+        WHERE s.finishedAt IS NOT NULL
+        ORDER BY se.sessionId, se.sort_order
+        """,
+    )
+    suspend fun sessionStills(): List<SessionStillRow>
 
     /**
      * Cheap fingerprint of finished work. Mentions `set_logs`, so Room still

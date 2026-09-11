@@ -13,6 +13,7 @@ data class HistoryEntry(
     val cardioMinutes: Int,
     val work: SetWork,
     val durationMinutes: Int,
+    val stills: List<Exercise> = emptyList(),
 )
 
 data class HistoryMonthGroup(
@@ -33,6 +34,7 @@ fun WorkoutSession.toHistoryEntry(
     cardioMinutes = 0,
     work = work(),
     durationMinutes = durationMinutes,
+    stills = HistoryCardCopy.stills(exercises.map { it.exercise }),
 )
 
 fun ActivitySession.toHistoryEntry(): HistoryEntry = HistoryEntry(
@@ -51,6 +53,7 @@ fun ActivitySession.toHistoryEntry(): HistoryEntry = HistoryEntry(
     cardioMinutes = cardioMinutes(),
     work = strengthWork(),
     durationMinutes = cardioMinutes().coerceAtLeast(0),
+    stills = HistoryCardCopy.stillsFromBlocks(blocks),
 )
 
 fun groupHistoryByMonth(entries: List<HistoryEntry>): List<HistoryMonthGroup> = entries
