@@ -35,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.RestFinishFlash
 import com.sinura.personaltrainer.domain.RestFloorContext
+import com.sinura.personaltrainer.domain.RestIdleCopy
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.ui.components.CustomRestDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
@@ -172,15 +173,17 @@ private fun RestFloorBody(
     val accent = when {
         justFinished -> PrGold
         urgent -> Warn
-        else -> RestCyan
+        rest.running -> RestCyan
+        else -> TextSecondary
     }
     val displaySeconds = if (justFinished) 0 else if (rest.running) safeRemaining else rest.totalSeconds
     val clock = RestTimer.formatClock(displaySeconds)
     val kicker = when {
         justFinished -> "Back to the bar"
         rest.running -> "REST"
-        else -> "Next rest"
+        else -> RestIdleCopy.KICKER
     }
+    val idleRingSeconds = if (justFinished) 0 else if (rest.running) safeRemaining else 0
 
     Column(
         modifier = modifier
@@ -194,13 +197,14 @@ private fun RestFloorBody(
             contentAlignment = Alignment.Center,
         ) {
             RestSweepRing(
-                remainingSeconds = if (justFinished) 0 else if (rest.running) safeRemaining else rest.totalSeconds,
+                remainingSeconds = idleRingSeconds,
                 totalSeconds = rest.totalSeconds,
                 accent = accent,
                 clock = clock,
                 kicker = kicker,
                 running = rest.running || justFinished,
                 finished = justFinished,
+                afterWarmup = floor.afterWarmup,
                 ringSize = LandscapeChrome.ringSizeDp(
                     LocalWindowInfo.current.containerDpSize.height.value.roundToInt(),
                 ).dp,
@@ -234,6 +238,14 @@ private fun RestFloorBody(
                 color = TextSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (!rest.running && !justFinished && floor.afterWarmup) {
+            Text(
+                RestIdleCopy.afterWarmupHint(),
+                style = InstrumentType.body,
+                color = TextSecondary,
+                maxLines = 2,
             )
         }
         // Same honesty as the Settings best-effort notice: the row did not

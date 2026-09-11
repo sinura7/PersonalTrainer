@@ -59,6 +59,35 @@ class RestFloorCopyTest {
         assertEquals("Squat", floor.exerciseName)
         assertEquals("Last set · 100 kg × 5", floor.lastSetLine)
         assertEquals("Next: 100 kg × 5 · RPE 8", floor.sessionTargetLine)
+        assertEquals(false, floor.afterWarmup)
+    }
+
+    @Test
+    fun lastWarmupMarksIdleRestAsAfterWarmup() {
+        val squat = sessionExercise("squat", "Squat", "Legs")
+        val logged = set(
+            id = "set-1",
+            sessionId = "s1",
+            exerciseId = "squat",
+            name = "Squat",
+            weightKg = 60.0,
+            reps = 8,
+            warmup = true,
+            at = 1_000L,
+        )
+        val current = session(
+            id = "s1",
+            finishedAt = null,
+            sets = listOf(logged),
+            exercises = listOf(squat),
+            date = 1_000L,
+        )
+        val floor = RestFloorCopy.context(
+            session = current,
+            selectedExerciseId = "squat",
+            unit = WeightUnit.KG,
+        )
+        assertEquals(true, floor.afterWarmup)
     }
 
     @Test
@@ -67,5 +96,6 @@ class RestFloorCopyTest {
         assertNull(floor.exerciseName)
         assertNull(floor.lastSetLine)
         assertNull(floor.sessionTargetLine)
+        assertEquals(false, floor.afterWarmup)
     }
 }

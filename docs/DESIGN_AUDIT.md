@@ -243,7 +243,7 @@ These apply to every screen.
 | G-02 | One-handed: primary actions in the lower half during a session | Rest card is **first** in the scroll; log set is mid-list; finish is at the bottom. On a tall phone the clock eats the fold | ✅ 11 Sep 2026 — `RestDock` sits in `Scaffold.bottomBar` immediately above `LogBar` (`ActiveWorkoutScreen`, tag `workout-rest-idle` / `workout-log-set`). Finish stays in the header: it is not a mid-set act. Landscape still hides idle rest (`LandscapeChrome.hideIdleRest`) |
 | G-03 | Keyboard never covers the thing you opened the sheet to pick | Add-lift focuses the search field immediately; IME covers the catalog | ✅ 9 Sep 2026 — `ExercisePickerSheet` no longer auto-focuses the search (no `FocusRequester`); the sheet is nine-tenths of the screen with the catalog under a pinned search |
 | G-04 | No duplicate information competing for the same decision | Last set card **and** “This exercise” both show the same set with Edit/Delete | ✅ 9 Sep 2026 — one `Last set ·` line (`RestFloorCopy`) and no second history block in `ActiveWorkoutScreen` |
-| G-05 | Never surprise-start rest | Rest card is always mounted, so tapping `1:00` after a warm-up feels like auto-start | P1 |
+| G-05 | Never surprise-start rest | Rest card is always mounted, so tapping `1:00` after a warm-up feels like auto-start | ✅ 11 Sep 2026 — idle rest is `Not running` + planned duration in body type, not a live `numeralMd` clock (`RestIdleCopy`, `RestIdleRow`). Start is the only start. After a warm-up the dock says `Warm-up · 1:00` |
 | G-06 | Chips show a picture + short name, not a paragraph | Workout lift chips are full names only (`Barbell Back Squat`) and truncate badly | ✅ 9 Sep 2026 — `SessionLiftStrip` chips are a still plus a short name |
 | G-07 | Destructive actions confirm with the object name and consequence | Mostly done. Finish vs discard vs keep is still easy to mis-tap (discard is the confirm button) | ✅ 9 Sep 2026 — `LeaveWorkoutDialog` / `LeaveCardioDialog` keep Keep primary and Discard in danger ink; Library asks `Delete ${exercise.name}?` |
 | G-08 | Offline is the default; network is backup only | True. Do not regress | — |
@@ -303,7 +303,7 @@ This screen **is** the app. It is currently a vertical form: rest card, chip row
 | ID | Issue | Priority |
 |---|---|---|
 | W-01 | Rest card always occupies the top, even when idle. It should collapse to a slim “Rest 1:30” control until running or just finished **— Closed 9 Sep 2026: idle rest is a 56 dp control (`LandscapeChrome.REST_IDLE_DP`, tag `workout-rest-idle`), hidden outright in landscape** | P1 |
-| W-02 | Warm-up + visible rest + preset chips feels like rest already started (device walkthrough) | P1 |
+| W-02 | Warm-up + visible rest + preset chips feels like rest already started (device walkthrough) | ✅ 11 Sep 2026 — idle dock and floor say `Not running`; the floor ring is empty until Start; chips stay duration pickers under that kicker (`RestIdleCopy`) |
 | W-03 | Add-lift sheet: search field auto-focuses; keyboard covers the default catalog. **Show the pictured grid first.** Search is explicit (icon), not auto-IME **— Closed 9 Sep 2026: `ExercisePickerSheet`: nine-tenths height, search pinned and not auto-focused, catalog with stills beneath; the create row appears only when nothing matches** | P1 |
 | W-04 | Picker rows are name + muscle. **Image required** (R-01) **— Closed 9 Sep 2026: `ExerciseThumb` on every picker row (`ExercisePickerSheet.kt`)** | P1 |
 | W-05 | Picker always shows “Muscle group for new exercise” — create-mode chrome on every search **— Closed 9 Sep 2026: the permanent muscle-group field is gone; muscle chips sit on the create row, which exists only when the query matches nothing** | P1 |
@@ -355,7 +355,7 @@ Images on the lift switcher. Rest becomes a full-screen-feeling card only while 
 | T-09 | Presets are only 60/90/120. Need 30s (accessories) and 180s (heavy compounds) | P2 |
 | T-10 | Custom parse is good (`90` / `1:30`). Dialog chrome is generic | P2 |
 | T-11 | Skipping rest should feel immediate (haptic + card collapse). | P2 |
-| T-12 | Rest does not auto-start after warm-up (correct). UI does not make that obvious | P1 |
+| T-12 | Rest does not auto-start after warm-up (correct). UI does not make that obvious | ✅ 11 Sep 2026 — `RestTimer.shouldStartAfterLog` still refuses warm-ups; idle copy names it (`RestIdleCopy.afterWarmupHint`, dock `Warm-up · 1:00`) |
 | T-13 | Per-lift rest from the routine is in `secondsToStart` but the big card always looks like a global timer | P2 |
 | T-14 | Done notification copy “Back to the bar.” is good. Channel still uses the generic sound | P2 |
 | T-15 | `-15` / `+15` / Skip on the notification are unlabeled icon-less text. Fine. Keep them  | — |

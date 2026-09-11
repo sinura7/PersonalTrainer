@@ -10,6 +10,7 @@ data class RestFloorContext(
     val exerciseName: String?,
     val lastSetLine: String?,
     val sessionTargetLine: String?,
+    val afterWarmup: Boolean = false,
 )
 
 object RestFloorCopy {
@@ -24,6 +25,7 @@ object RestFloorCopy {
                 exerciseName = null,
                 lastSetLine = null,
                 sessionTargetLine = null,
+                afterWarmup = false,
             )
         }
         val exerciseId = session.resolveSelectedExerciseId(selectedExerciseId)
@@ -36,6 +38,7 @@ object RestFloorCopy {
             exerciseName = exercise?.name ?: last?.exerciseName,
             lastSetLine = last?.let { lastSetLine(it.weightKg, it.reps, loadClass, unit) },
             sessionTargetLine = nextLine,
+            afterWarmup = last?.isWarmup == true,
         )
     }
 

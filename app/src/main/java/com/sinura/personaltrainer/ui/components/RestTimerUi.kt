@@ -66,6 +66,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.RestFinishFlash
+import com.sinura.personaltrainer.domain.RestIdleCopy
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.TalkBackPolicy
 import com.sinura.personaltrainer.ui.theme.Danger
@@ -94,9 +95,10 @@ import kotlinx.coroutines.delay
  *
  * The log used to hold an 88 dp ring and a −15 / Skip / +15 stack. That is the floor page
  * now. Here the running state is a ~56 dp row: REST, a [InstrumentType.numeralMd] clock, a
- * 4 dp track, and trailing Skip. Idle is Next rest + planned clock + Start. Preset chips
- * live on the floor. Tap the bar or the idle line to push it. The hairline sits above the
- * row so the list and the dock stay visually split when rest lives at the bottom.
+ * 4 dp track, and trailing Skip. Idle is Not running + planned duration + Start.
+ * Preset chips live on the floor. Tap the bar or the idle line to push it. The
+ * hairline sits above the row so the list and the dock stay visually split when
+ * rest lives at the bottom.
  */
 @Composable
 fun RestDock(
@@ -109,6 +111,7 @@ fun RestDock(
     modifier: Modifier = Modifier,
     completedTimerId: String? = null,
     hideWhenIdle: Boolean = false,
+    afterWarmup: Boolean = false,
 ) {
     var justFinished by remember { mutableStateOf(false) }
     var flashedTimerId by remember { mutableStateOf<String?>(null) }
@@ -161,6 +164,7 @@ fun RestDock(
         HairlineDivider(startIndent = 0.dp)
         RestIdleRow(
             totalSeconds = totalSeconds,
+            afterWarmup = afterWarmup,
             onStart = onStart,
             onOpenRest = onOpenRest,
             modifier = modifier
@@ -239,8 +243,9 @@ fun RestDock(
 }
 
 /**
- * Idle rest on the log: the next duration and Start. Chips moved to the floor page so a
- * countdown is never shown with a second row of duration controls underneath it.
+ * Idle rest on the log: not a countdown. Planned duration is a label, Start
+ * is the only start. Chips live on the floor so a countdown is never shown
+ * with a second row of duration controls underneath it.
  */
 @Composable
 fun RestIdleRow(
@@ -248,8 +253,10 @@ fun RestIdleRow(
     onStart: () -> Unit,
     onOpenRest: () -> Unit,
     modifier: Modifier = Modifier,
+    afterWarmup: Boolean = false,
 ) {
     val clock = RestTimer.formatClock(totalSeconds.coerceAtLeast(0))
+    val duration = RestIdleCopy.dockDuration(clock, afterWarmup)
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -263,17 +270,18 @@ fun RestIdleRow(
                 .testTag("workout-rest-idle")
                 .clickable(role = Role.Button, onClick = onOpenRest)
                 .semantics {
-                    contentDescription = "Next rest $clock. Open rest timer."
+                    contentDescription = RestIdleCopy.spoken(clock, afterWarmup)
                 },
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Kicker("Next rest")
+            Kicker(RestIdleCopy.KICKER)
             Text(
-                clock,
-                style = InstrumentType.numeralMd,
+                duration,
+                style = InstrumentType.bodyStrong,
                 color = TextSecondary,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
         RestControl(
@@ -338,6 +346,7 @@ fun RestSweepRing(
     modifier: Modifier = Modifier,
     clockTestTag: String? = null,
     ringSize: Dp = REST_RING_SIZE,
+    afterWarmup: Boolean = false,
 ) {
     val target = RestTimer.sweepFraction(remainingSeconds, totalSeconds)
     val progress by animateFloatAsState(
@@ -365,7 +374,11 @@ fun RestSweepRing(
     } else {
         remember { mutableFloatStateOf(1f) }
     }
-    val spoken = if (running) "Rest $clock remaining" else "Next rest $clock"
+    val spoken = if (running) {
+        "Rest $clock remaining"
+    } else {
+        RestIdleCopy.spoken(clock, afterWarmup)
+    }
     Box(
         modifier = modifier
             .size(ringSize)
