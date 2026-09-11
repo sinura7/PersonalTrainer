@@ -1,7 +1,6 @@
 package com.sinura.personaltrainer.ui.theme
 
 import java.io.File
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -22,7 +21,8 @@ class HapticsPaletteTest {
         assertTrue(haptics.contains("postDelayed"))
         assertTrue(haptics.contains("ERROR_BEAT_GAP_MS"))
         assertTrue(haptics.contains("fun celebrate("))
-        assertFalse(haptics.contains("LocalHapticFeedback"))
+        assertTrue(haptics.contains("performHapticFeedback"))
+        assertTrue(haptics.contains("LocalView.current"))
     }
 
     @Test
