@@ -277,7 +277,6 @@ internal fun WorkoutLiftCard(
                 }
             }
         }
-    }
 }
 
 /**
