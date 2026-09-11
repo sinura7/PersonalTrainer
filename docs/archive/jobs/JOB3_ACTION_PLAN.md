@@ -7,7 +7,7 @@
 
 Living plan. **Not the law.** If a clearer move shows up, take it, write it
 under *Floor findings*, strike the old line. Same method as
-[JOB2_ACTION_PLAN.md](JOB2_ACTION_PLAN.md) and [UX_PAGE_PASS.md](UX_PAGE_PASS.md).
+[JOB2_ACTION_PLAN.md](../archive/jobs/JOB2_ACTION_PLAN.md) and [UX_PAGE_PASS.md](UX_PAGE_PASS.md).
 
 Status: **done** · **next** · *later* · **won't**
 
@@ -155,7 +155,7 @@ questionnaire.
 
 **Work**
 
-- [JOB2_ACTION_PLAN.md](JOB2_ACTION_PLAN.md): P0–P4 **done** (code) / phone
+- [JOB2_ACTION_PLAN.md](../archive/jobs/JOB2_ACTION_PLAN.md): P0–P4 **done** (code) / phone
   pending. P5 later. P6 won't. Floor finding: pins survive Monday; empty week
   is the hole.
 - This file.

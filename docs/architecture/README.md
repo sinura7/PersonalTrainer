@@ -7,6 +7,12 @@ Authority order is defined in [ADR-001](ADR-001-documentation-authority.md).
 The executable program that consumes these decisions is
 [FOUNDATION_PROGRAM.md](../FOUNDATION_PROGRAM.md).
 
+**New to the code?** Start with
+[CURRENT_STRUCTURE.md](CURRENT_STRUCTURE.md) — what the packages, layers,
+wiring and verification lanes actually are today. It describes; the ADRs
+decide, and where the two disagree the ADR is right and the description needs
+fixing.
+
 A decision is binding when its status is **Accepted**. Changing one requires a
 new ADR that names what it supersedes. Silent contradiction of an accepted ADR
 is a defect.

@@ -28,8 +28,17 @@ rules stay the ones signed in [SCHEDULE_SEMANTICS.md](../SCHEDULE_SEMANTICS.md).
    `util/QuantityFormat`.
 6. **Rest timers stay `elapsedRealtime`.** They are not civil times
    (ADR-011 §8, ADR-012).
-7. **The JVM adapter may use `java.time`.** It lives in `util/JvmTime`.
-   Android UI may still format with platform locale APIs.
+7. **The JVM adapter may use `java.time`.** `object JvmTime` in
+   `util/JvmTimePort.kt`. Android UI may still format with platform locale
+   APIs.
+8. **The port is required, not defaulted.** Nothing in `domain/` may name
+   `JvmTime`. Fifteen files carried `time: TimePort = JvmTime` until
+   11 September 2026, which meant the port was declared and then defaulted
+   past — and, because `JvmTime` calls `android.os.SystemClock` while `util`
+   imports `TimePort` and `CivilDate` back, it also meant `domain` and `util`
+   could not be compiled apart. `tools/check-domain-seams.py` now rejects an
+   import of any internal package other than `domain` itself, so the whole
+   class of reach-around is closed rather than the one instance of it.
 
 ## Finding coverage
 

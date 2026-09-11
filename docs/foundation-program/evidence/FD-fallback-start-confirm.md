@@ -23,7 +23,7 @@ starts it. Cancel does not.
 
 - `tools/preflight.sh` — PASS. 1040 domain tests. 0 authority findings.
 - `./gradlew testDebugUnitTest` / `assembleDebug` — PASS (see
-  `docs/HANDOFF-2026-08-29.md` Status). Live test 13 is cut as
+  `docs/archive/handoffs/HANDOFF-2026-08-29.md` Status). Live test 13 is cut as
   pre-release `debug-live-13`.
 
 ## Known limitations

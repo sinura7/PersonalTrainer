@@ -29,7 +29,7 @@ Supplements the register in the 6 September handoff package. Entries D01–D14 k
 Template fields from the 6 September register, filled once per package.
 
 ### UX04 — routine Save
-- Exact current commit: see `docs/HANDOFF-2026-09-07-UX.md` §6.
+- Exact current commit: see `docs/archive/handoffs/HANDOFF-2026-09-07-UX.md` §6.
 - Observed user problem: Save animates and pops; a rename or typed targets never reached Room; no signal, no retry.
 - Current code: `RoutineEditorViewModel.leave/saveAndLeave` set `_exitRequested` unconditionally; `persistDetailsOnExit` swallowed the exception; `writeTargets` returned false into a discarded result. Confirmed at 156cc40 by an independent re-read that also found the read-fault bricking path.
 - ADR affected: ADR-021 item 7 (documentation addendum, D16).

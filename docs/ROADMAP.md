@@ -728,7 +728,7 @@ one tell the truth and offer one act. Living plan: [UX_PAGE_PASS.md](UX_PAGE_PAS
 workout in mind → short path → the app builds the week. P0–P4 are on `trunk`
 (shared-structure figure, emphasis, Athletic, preview copy, later fills /
 Suggest honours emphasis). Phone gates remain the owner's.
-[JOB2_ACTION_PLAN.md](JOB2_ACTION_PLAN.md). P5 sex waits for a real sentence.
+[JOB2_ACTION_PLAN.md](archive/jobs/JOB2_ACTION_PLAN.md). P5 sex waits for a real sentence.
 P6 catalog is won't — families already exist.
 
 **Job 3 · code-done on `trunk` (22 Aug 2026).** Replay stored answers
@@ -736,26 +736,26 @@ without creating routines; lighter-week marker (HOLD, not scaled sets);
 Home / Plan / setup ViewModel JVM tests; debug is
 `com.sinura.personaltrainer.debug`. Phone gates remain the owner's
 (unpin+replay, Tune+HOLD, two icons). Packets, gates, won'ts:
-[JOB3_ACTION_PLAN.md](JOB3_ACTION_PLAN.md).
+[JOB3_ACTION_PLAN.md](archive/jobs/JOB3_ACTION_PLAN.md).
 
 **Job 4 · code-done on `trunk` (22 Aug 2026).** Deload card marks this
 week; Home replay when routines exist; Settings / History / Progress
 JVM contracts; Backup caption and Finish helper tell the truth before
 the tap. Phone gates remain the owner's (card+HOLD, Home replay,
 Backup/Finish copy). Packets, gates, won'ts:
-[JOB4_ACTION_PLAN.md](JOB4_ACTION_PLAN.md).
+[JOB4_ACTION_PLAN.md](archive/jobs/JOB4_ACTION_PLAN.md).
 
 **Job 5 · code-done on `trunk`.** Rest cue, plates, type-in, pounds
 default, font-scale 2.0, prompted backup, and `ci.yml` listing
 `trunk` are on `trunk`. Phone gates remain the owner's. GitHub
 runners are not a test lane. Room v3, fifth tab, LLM, rename, sex,
 and catalog seed stay signed won't. Packets, gates, won'ts:
-[JOB5_ACTION_PLAN.md](JOB5_ACTION_PLAN.md).
+[JOB5_ACTION_PLAN.md](archive/jobs/JOB5_ACTION_PLAN.md).
 
 **Job 6 (superseded as current program, 24 Aug 2026).** Regroup for the
 four-tab logger. Leftover P0–P8 are on `trunk`. Phone-week floor finding
 (RPE explainer and sticky rest dock) landed in `2484396`. Job 6 is no
-longer the current program. [JOB6_REGROUP.md](JOB6_REGROUP.md) is
+longer the current program. [JOB6_REGROUP.md](archive/jobs/JOB6_REGROUP.md) is
 historical leftover paper. Current work:
 [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md).
 
@@ -988,4 +988,4 @@ control marks this week; progression HOLDs load. Do not rediscover this
 as an open hole.
 
 **Chosen: A** (historical). Named as Job 3 / P2 in
-[JOB3_ACTION_PLAN.md](JOB3_ACTION_PLAN.md).
+[JOB3_ACTION_PLAN.md](archive/jobs/JOB3_ACTION_PLAN.md).

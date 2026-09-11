@@ -251,7 +251,7 @@ class BackupService(
      * Writes the already-prepared document. Re-checks the live-session refuse.
      *
      * The phases and what each one owes are written down in
-     * docs/HANDOFF-2026-09-06.md §2. In short: stage → wiping → one Room transaction →
+     * docs/archive/handoffs/HANDOFF-2026-09-06.md §2. In short: stage → wiping → one Room transaction →
      * room → preferences and history tables → prefs → catalog reconcile and reminders →
      * done → delete the two journal files. Room's transaction is the only atomic step;
      * everything after it is idempotent and is finished by [recoverInterruptedRestore]

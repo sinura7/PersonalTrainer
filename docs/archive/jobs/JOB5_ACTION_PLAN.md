@@ -2,7 +2,7 @@
 
 Living plan. **Not the law.** If a clearer move shows up, take it, write it
 under *Floor findings*, strike the old line. Same method as
-[JOB4_ACTION_PLAN.md](JOB4_ACTION_PLAN.md).
+[JOB4_ACTION_PLAN.md](../archive/jobs/JOB4_ACTION_PLAN.md).
 
 > **Banner (24 Aug 2026).** This job is code-done. Its “Room v3 won’t” is
 > **superseded** for the one foundation cutover

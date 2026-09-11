@@ -11,6 +11,17 @@ This packet upgrades Room and DataStore as one persistence matrix.
 The committed v1 and v2 schema hashes stay the migration substrate.
 Versions that need a newer Kotlin serialization compiler are refused.
 
+> **Read the schema lines below as of 24 August 2026, not as of today.** The
+> signed Room and DataStore versions are still current and this document is
+> still the authority on them. The schema is not: Phase 5 cut the app to a new
+> generation, `TemperDatabase`, which is at version 4 with three migrations of
+> its own. `TrainerDatabase` v1/v2 and `MIGRATION_1_2` are the historical
+> substrate this packet froze, and freezing them is exactly why the cutover
+> made a new database rather than a v3.
+> See [`foundation-generation.md`](foundation-generation.md),
+> [`ADR-010`](ADR-010-schema-reset-migrations.md) and
+> [`app/schemas/README.md`](../../app/schemas/README.md).
+
 ## Signed matrix
 
 | Family | From | To | Why it stops here |

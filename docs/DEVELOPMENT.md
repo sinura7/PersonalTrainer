@@ -10,7 +10,7 @@ operational runbook: layout, tests, Windows notes, things that bite you.
 ## Verification and distribution lanes
 
 One table, current as of the 2026-09-06 handoff
-([HANDOFF-2026-09-06.md](HANDOFF-2026-09-06.md) §1 records the exact
+([HANDOFF-2026-09-06.md](archive/handoffs/HANDOFF-2026-09-06.md) §1 records the exact
 environment each batch was verified in). Older evidence files under
 `foundation-program/evidence/` are labelled by commit and date; their
 test counts are what ran *then*, not what runs now.

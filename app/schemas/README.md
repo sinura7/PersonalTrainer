@@ -3,9 +3,15 @@
 `TrainerDatabase` (legacy, `personal_trainer.db`) and `TemperDatabase`
 (foundation generation, `temper.db`) each have their own folder.
 `TrainerDatabase` v1/v2 stay the historical migration substrate.
-`TemperDatabase` started at version 1 and is now at version 2
-(P6.1 bodyweight / training-block tables). It is still a new
-generation, not a `TrainerDatabase` v2→v3 patch.
+`TemperDatabase` started at version 1 and is now at version **4**. It is a
+new generation, not a `TrainerDatabase` v2→v3 patch.
+
+| Version | What it added | Migration |
+|---|---|---|
+| 1 | The foundation cutover baseline | — |
+| 2 | Bodyweight entries, training blocks | `MIGRATION_TEMPER_1_2` |
+| 3 | Schedule rules, occurrences, missed-work decisions, reminder deliveries | `MIGRATION_TEMPER_2_3` |
+| 4 | Measurable goals; bodyweight zone and offset columns | `MIGRATION_TEMPER_3_4` |
 
 Every file in this directory is a JSON snapshot of one database version,
 emitted by Room's annotation processor into `room.schemaLocation`

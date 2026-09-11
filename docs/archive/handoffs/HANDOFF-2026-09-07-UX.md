@@ -1,6 +1,6 @@
 # Handoff — 7 September 2026, UX P0 batch (Fable)
 
-The verification record for the first batch of the UX handoff package prepared on 6 September 2026 (30 work packages, 97 acceptance checks; master document `Temper-UX-Design-Handoff.md`). It follows [HANDOFF-2026-09-06.md](HANDOFF-2026-09-06.md), which landed the engineering findings R01–R19 that several UX packages depend on. This record does not change any signed decision in [architecture/](architecture/README.md); one documentation addendum to ADR-021 is flagged for the owner in §5; the pre-merge review and its fixes are §6, and the compile break it did not catch is §6.1.
+The verification record for the first batch of the UX handoff package prepared on 6 September 2026 (30 work packages, 97 acceptance checks; master document `Temper-UX-Design-Handoff.md`). It follows [HANDOFF-2026-09-06.md](../archive/handoffs/HANDOFF-2026-09-06.md), which landed the engineering findings R01–R19 that several UX packages depend on. This record does not change any signed decision in [architecture/](architecture/README.md); one documentation addendum to ADR-021 is flagged for the owner in §5; the pre-merge review and its fixes are §6, and the compile break it did not catch is §6.1.
 
 The updated backlog, acceptance matrix and decision register live in [ux-program/](ux-program/UX-Decision-Log.md).
 

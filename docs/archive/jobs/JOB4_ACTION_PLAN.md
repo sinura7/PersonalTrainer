@@ -7,7 +7,7 @@
 
 Living plan. **Not the law.** If a clearer move shows up, take it, write it
 under *Floor findings*, strike the old line. Same method as
-[JOB3_ACTION_PLAN.md](JOB3_ACTION_PLAN.md).
+[JOB3_ACTION_PLAN.md](../archive/jobs/JOB3_ACTION_PLAN.md).
 
 Status: **done** · **next** · *later* · **won't**
 
