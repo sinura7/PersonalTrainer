@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.settings
 
 import android.app.Application
+import android.content.Context
 import android.content.Intent
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
@@ -22,6 +23,7 @@ import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.timer.RestTimerAlerts
 import com.sinura.personaltrainer.timer.exactAlarmSettingsIntent as buildExactAlarmSettingsIntent
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.flow.SharingStarted
@@ -251,6 +253,16 @@ class SettingsViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             container.preferencesRepository.setRestVibrationEnabled(enabled)
         }
+    }
+
+    /**
+     * Play the rest-complete cue now. Same [RestTimerAlerts.preview] path
+     * as 0:00, not a second asset.
+     */
+    fun previewRestCompleteCue(
+        play: (Context, RestTimerPreferences) -> Unit = RestTimerAlerts::preview,
+    ) {
+        play(getApplication(), uiState.value.restTimer)
     }
 
     fun setRestTickEnabled(enabled: Boolean) {

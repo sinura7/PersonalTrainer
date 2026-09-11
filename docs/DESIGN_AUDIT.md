@@ -446,7 +446,7 @@ This is the second most important design surface after Active Workout. Today it 
 
 | ID | Issue | Priority |
 |---|---|---|
-| N-01 | Rest sound/vibrate toggles exist; no preview button (“play complete cue”) | P1 |
+| N-01 | Rest sound/vibrate toggles exist; no preview button (“play complete cue”) **— Closed 11 Sep 2026: Settings Rest timer row `Play complete cue` (`RestCompleteCue.TITLE`, tag `settings-play-complete-cue`) calls `RestTimerAlerts.preview` — the same bundled `rest_done.ogg` on the alarm stream as 0:00. Sound is forced on for the sample so the row is never silent; vibration follows the switch** | P1 |
 | N-02 | No last-5s tick toggle (will need one) **— Closed 10 Sep 2026: the Last five seconds row under Rest timer (`RestTick.TITLE`, `setRestTickEnabled`), device-local, not in the backup document** | P1 |
 | N-03 | No overlay permission row (will need one) **— Superseded — no overlay permission row will be added; see §10.2 banner.** **— Closed 9 Sep 2026: superseded — see §10.2 banner** | P1 |
 | N-04 | Backup is solid conceptually. Restore needs a brutal confirm (it already should; verify copy) **— Closed 9 Sep 2026: restore previews (`RestorePreview`), confirms (`confirmRestore`) and refuses while a session is live (`BackupRepository.refuseIfLive`)** | P1 |

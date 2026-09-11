@@ -5,7 +5,9 @@ import android.app.NotificationManager
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioManager
+import android.media.MediaPlayer
 import androidx.test.core.app.ApplicationProvider
+import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -76,10 +78,15 @@ class RestSoundAssetTest {
     @Test
     fun announceWithSoundOffDoesNotThrow() {
         val context = ApplicationProvider.getApplicationContext<Context>()
+        val seen = mutableListOf<Int>()
         RestTimerAlerts.announce(
             context,
             RestTimerPreferences(soundEnabled = false, vibrationEnabled = false),
-        )
+        ) { _, resId, _ ->
+            seen += resId
+            null
+        }
+        assertTrue(seen.isEmpty())
     }
 
     @Test
@@ -97,6 +104,15 @@ class RestSoundAssetTest {
     fun announceWithVibrationDoesNotThrow() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         RestTimerAlerts.announce(
+            context,
+            RestTimerPreferences(soundEnabled = false, vibrationEnabled = true),
+        )
+    }
+
+    @Test
+    fun previewWithSoundOffDoesNotThrow() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        RestTimerAlerts.preview(
             context,
             RestTimerPreferences(soundEnabled = false, vibrationEnabled = true),
         )
@@ -159,6 +175,29 @@ class RestTimerAlertsCreateTest {
         )
         assertEquals(1, seen.size)
         assertEquals(AudioAttributes.USAGE_ALARM, seen.single().usage)
+    }
+
+    @Test
+    fun previewStartsTheBundledCueWhenSoundToggleIsOff() {
+        var resId = 0
+        var usage = 0
+        var started = false
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        RestTimerAlerts.preview(
+            context,
+            RestTimerPreferences(soundEnabled = false, vibrationEnabled = false),
+        ) { _, id, attributes ->
+            resId = id
+            usage = attributes.usage
+            object : MediaPlayer() {
+                override fun start() {
+                    started = true
+                }
+            }
+        }
+        assertEquals(R.raw.rest_done, resId)
+        assertEquals(AudioAttributes.USAGE_ALARM, usage)
+        assertTrue(started)
     }
 }
 

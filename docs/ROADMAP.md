@@ -15,6 +15,12 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 11 Sep 2026 — N-01: Settings Rest timer has **Play complete cue**.
+> The row calls `RestTimerAlerts.preview`, the same bundled
+> `rest_done.ogg` on the alarm stream as 0:00. Sound is forced on for
+> the sample so the row is never dead; vibration follows the switch.
+> Does not bump 38. Does not start B-02.
+>
 > 11 Sep 2026 — R18 step four: activity-edit capability split (notes and
 > delete on completed activities; set repair and repeat stay refused),
 > five use-case extractions (`CompleteTraining`, `RecordsCalculator`,

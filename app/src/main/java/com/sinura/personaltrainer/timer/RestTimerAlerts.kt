@@ -11,6 +11,7 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import com.sinura.personaltrainer.R
+import com.sinura.personaltrainer.domain.RestCompleteCue
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 
 object RestTimerAlerts {
@@ -35,6 +36,21 @@ object RestTimerAlerts {
         if (preferences.vibrationEnabled) {
             vibrate(context, VibrationEffect.createWaveform(COMPLETE_PATTERN, -1))
         }
+    }
+
+    /**
+     * Settings Play. Same bundled `rest_done` on the alarm stream as
+     * [announce] at 0:00 — not a second asset, not a system ringtone first.
+     *
+     * Sound is forced on so the row is never silent. Vibration still
+     * follows the live switch.
+     */
+    fun preview(
+        context: Context,
+        preferences: RestTimerPreferences,
+        createPlayer: (Context, Int, AudioAttributes) -> MediaPlayer? = ::createWithAttributes,
+    ) {
+        announce(context, RestCompleteCue.previewPreferences(preferences), createPlayer)
     }
 
     /**

@@ -10,6 +10,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import com.sinura.personaltrainer.domain.RestCompleteCue
 import com.sinura.personaltrainer.domain.RestTick
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.ui.components.CustomRestDialog
@@ -29,6 +31,7 @@ internal fun RestTimerPrefsSection(
     onAllowPreciseRestAlerts: () -> Unit,
     onSound: (Boolean) -> Unit,
     onVibrate: (Boolean) -> Unit,
+    onPreview: () -> Unit,
     onTick: (Boolean) -> Unit,
     onDefaultRest: (Int) -> Unit,
     onCustomDefault: (String) -> Boolean,
@@ -36,9 +39,9 @@ internal fun RestTimerPrefsSection(
     var showCustom by rememberSaveable { mutableStateOf(false) }
     SettingsGroup(
         title = "Rest timer",
-        caption = "The cue plays when rest ends. The last five seconds tick while the phone " +
-            "is awake. Default rest is used after a working set if the lift has none and " +
-            "you haven't picked a preset.",
+        caption = "The cue plays when rest ends. Play complete cue to hear it now. " +
+            "The last five seconds tick while the phone is awake. Default rest is used " +
+            "after a working set if the lift has none and you haven't picked a preset.",
     ) {
         if (offerExactAlarmAccess) {
             GymNoticeBanner(
@@ -62,6 +65,13 @@ internal fun RestTimerPrefsSection(
                 checked = preferences.vibrationEnabled,
                 onCheckedChange = onVibrate,
                 trailing = { InstrumentSwitch(checked = preferences.vibrationEnabled, onCheckedChange = null) },
+            )
+            HairlineDivider()
+            InstrumentRow(
+                title = RestCompleteCue.TITLE,
+                subtitle = RestCompleteCue.CAPTION,
+                modifier = Modifier.testTag(SettingsTags.PLAY_COMPLETE_CUE),
+                onClick = onPreview,
             )
             HairlineDivider()
             InstrumentRow(

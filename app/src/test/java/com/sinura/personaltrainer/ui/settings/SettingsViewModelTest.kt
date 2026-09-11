@@ -337,6 +337,40 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun playCompleteCueHandsLivePrefsToThePreview() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+
+        viewModel!!.uiState.first()
+        viewModel!!.setRestSoundEnabled(false)
+        withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.uiState.first { !it.restTimer.soundEnabled }
+        }
+        var seenSound: Boolean? = null
+        var seenVibrate: Boolean? = null
+        viewModel!!.previewRestCompleteCue { _, prefs ->
+            seenSound = prefs.soundEnabled
+            seenVibrate = prefs.vibrationEnabled
+        }
+        assertEquals(false, seenSound)
+        assertEquals(true, seenVibrate)
+    }
+
+    @Test
+    fun playCompleteCueOnTheRealPathDoesNotThrow() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.first()
+        viewModel!!.previewRestCompleteCue()
+    }
+
+    @Test
     fun bestEffortAndEligibleOffersExactAlarmSettings() = runBlocking {
         deps = FakeAppDependencies(
             ApplicationProvider.getApplicationContext(),

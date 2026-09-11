@@ -95,9 +95,10 @@ Biggest first, and the first two are the owner's, not a session's:
   walking `AccessibilityMatrix`.
 - **The whole-app phase audit** owed at the close of Phase 9. Same eleven
   screens, same phone; do the two in one sitting.
-- **Twenty-one DESIGN_AUDIT P1 rows** still genuinely open. Cheapest that
-  pays: N-01, a cue preview button in Settings. Biggest felt: B-02, Body's
-  first-launch emptiness.
+- **Twenty DESIGN_AUDIT P1 rows** still genuinely open. Cheapest that
+  pays after N-01: B-02, Body's first-launch emptiness. N-01 is closed:
+  Settings Rest timer **Play complete cue** samples the same rest-done
+  tone that fires at 0:00.
 - **R18 numbered steps 1–4 are done.** There is no step 5. Set repair on
   activity blocks needs an ADR, not another convergence step. The log-time
   PR badge stays strength-only: activities are never logged live.
