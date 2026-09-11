@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.workout
 
 import androidx.lifecycle.SavedStateHandle
+import com.sinura.personaltrainer.domain.DraftStore
 
 /**
  * Mirrors the staged workout entry into [SavedStateHandle], which is written to the saved
@@ -10,7 +11,12 @@ import androidx.lifecycle.SavedStateHandle
  * Only unlogged staging lives here. Logged sets are already in Room and remain the source of
  * truth; nothing in this class can change what was actually logged.
  */
-class SavedStateWorkoutDraft(private val handle: SavedStateHandle) {
+class SavedStateWorkoutDraft(private val handle: SavedStateHandle) : DraftStore<WorkoutDraft> {
+    override fun read(): WorkoutDraft? {
+        val id = handle.get<String>(KEY_SESSION_ID) ?: return null
+        return read(sessionId = id)
+    }
+
     fun read(sessionId: String): WorkoutDraft? {
         if (sessionId.isBlank()) return null
         val savedSessionId = handle.get<String>(KEY_SESSION_ID) ?: return null
@@ -24,6 +30,10 @@ class SavedStateWorkoutDraft(private val handle: SavedStateHandle) {
             isWarmup = handle.get<Boolean>(KEY_WARMUP) ?: false,
             notes = handle.get<String>(KEY_NOTES).orEmpty(),
         )
+    }
+
+    override fun write(value: WorkoutDraft) {
+        write(draft = value, editingSetId = editingSetId())
     }
 
     fun write(draft: WorkoutDraft, editingSetId: String? = null) {
@@ -43,7 +53,7 @@ class SavedStateWorkoutDraft(private val handle: SavedStateHandle) {
 
     fun editingSetId(): String? = handle.get<String>(KEY_EDITING_SET_ID)
 
-    fun clear() {
+    override fun clear() {
         listOf(
             KEY_SESSION_ID,
             KEY_EXERCISE_ID,

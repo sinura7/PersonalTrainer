@@ -8,9 +8,9 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.ActivitySession
-import com.sinura.personaltrainer.domain.ActivityWrite
 import com.sinura.personaltrainer.domain.CardioBlock
 import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.CompleteTrainingOutcome
 import com.sinura.personaltrainer.domain.DistanceUnit
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.logging.AppLog
@@ -75,13 +75,10 @@ class LiveCardioViewModel @JvmOverloads constructor(
     // SavedStateHandle on every change: the Room row holds what the session started as, and
     // writing a half-typed distance into it mid-session would mix committed and temporary
     // data (and bump the revision), so the draft lives here until finish() reads it.
-    private val type = MutableStateFlow(
-        savedStateHandle.get<String>(KEY_TYPE)
-            ?.let { raw -> CardioType.entries.firstOrNull { it.name == raw } }
-            ?: CardioType.RUN,
-    )
-    private val indoor = MutableStateFlow(savedStateHandle.get<Boolean>(KEY_INDOOR) ?: false)
-    private val distanceKm = MutableStateFlow(savedStateHandle.get<String>(KEY_DISTANCE).orEmpty())
+    private val inputs = SavedStateCardioDraft(savedStateHandle)
+    private val type = MutableStateFlow(inputs.read()?.type ?: CardioType.RUN)
+    private val indoor = MutableStateFlow(inputs.read()?.indoor ?: false)
+    private val distanceKm = MutableStateFlow(inputs.read()?.distanceKm.orEmpty())
     /**
      * The distance box's own complaint, kept separate from [error] on purpose (UX06).
      * [ErrorSlot] holds ONE action failure at a time; a field rule is not an action failure —
@@ -128,18 +125,18 @@ class LiveCardioViewModel @JvmOverloads constructor(
 
     fun setType(value: CardioType) {
         type.value = value
-        savedStateHandle[KEY_TYPE] = value.name
+        persistInputs()
     }
 
     fun setIndoor(value: Boolean) {
         indoor.value = value
-        savedStateHandle[KEY_INDOOR] = value
+        persistInputs()
     }
 
     fun setDistanceKm(value: String) {
         distanceKm.value = value
         distanceError.value = null
-        savedStateHandle[KEY_DISTANCE] = value
+        persistInputs()
     }
 
     /** Re-read the live row after a failed load. A no-op unless the last read actually threw. */
@@ -194,18 +191,23 @@ class LiveCardioViewModel @JvmOverloads constructor(
                 routeRef = null,
             )
             val result = runCatchingCancellable {
-                container.finishActivity(current.id, now, listOf(block))
+                container.completeTraining.finishLiveActivity(
+                    sessionId = current.id,
+                    now = now,
+                    blocks = listOf(block),
+                )
             }
             finishing.value = false
-            result.onSuccess { write ->
-                when (write) {
-                    is ActivityWrite.Accepted -> {
-                        clearTimerRow()
+            result.onSuccess { outcome ->
+                when (outcome) {
+                    is CompleteTrainingOutcome.Accepted -> {
                         forgetInputs()
-                        _finishedId.value = write.session.id
+                        _finishedId.value = outcome.id
                     }
-                    is ActivityWrite.Rejected ->
-                        error.fail(source = ERR_FINISH, message = write.reason)
+                    is CompleteTrainingOutcome.Rejected ->
+                        error.fail(source = ERR_FINISH, message = outcome.reason)
+                    is CompleteTrainingOutcome.Failed ->
+                        error.fail(source = ERR_FINISH, message = outcome.message)
                 }
             }.onFailure { thrown ->
                 AppLog.w(TAG, "Finishing live cardio failed", thrown)
@@ -266,8 +268,8 @@ class LiveCardioViewModel @JvmOverloads constructor(
         // state are the owner's later choices, and win over it after a recreation — each
         // by its own key, since the owner may have changed one and not the other.
         live.cardioBlocks.firstOrNull()?.let { block ->
-            if (!savedStateHandle.contains(KEY_TYPE)) type.value = block.type
-            if (!savedStateHandle.contains(KEY_INDOOR)) indoor.value = block.indoor
+            if (!inputs.containsType()) type.value = block.type
+            if (!inputs.containsIndoor()) indoor.value = block.indoor
         }
         ensurePersisted(live)
         while (true) {
@@ -324,11 +326,19 @@ class LiveCardioViewModel @JvmOverloads constructor(
         }
     }
 
+    private fun persistInputs() {
+        inputs.write(
+            CardioInputDraft(
+                type = type.value,
+                indoor = indoor.value,
+                distanceKm = distanceKm.value,
+            ),
+        )
+    }
+
     /** The session is over one way or the other; its inputs must not greet the next one. */
     private fun forgetInputs() {
-        savedStateHandle.remove<String>(KEY_TYPE)
-        savedStateHandle.remove<Boolean>(KEY_INDOOR)
-        savedStateHandle.remove<String>(KEY_DISTANCE)
+        inputs.clear()
     }
 
     private data class Flags(
@@ -346,8 +356,5 @@ class LiveCardioViewModel @JvmOverloads constructor(
 
     private companion object {
         const val TAG = "PT/LiveCardio"
-        const val KEY_TYPE = "liveCardio.type"
-        const val KEY_INDOOR = "liveCardio.indoor"
-        const val KEY_DISTANCE = "liveCardio.distance"
     }
 }

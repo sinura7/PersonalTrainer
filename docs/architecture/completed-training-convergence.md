@@ -39,18 +39,19 @@ session" is the live `WorkoutSession`; the other three are
 | Home last session tile | yes | yes | yes | yes | merged summaries |
 | Detail screen | Session detail | Activity detail | Activity detail | Activity detail | two screens, two view models |
 | Edit after finish: set weight/reps, delete, undo | yes | **no** | n/a | **no** | `SessionDetail` edits `set_logs`; activity blocks are immutable once completed |
-| Edit after finish: notes, delete session | yes | **no** | **no** | **no** | `WorkoutRepository.updateSessionNotes` / `deleteFinishedSession` only |
-| Repeat as a new live session | yes | **no** | n/a | **no** | `WorkoutRepository.repeatSession` |
-| Draft survives process death | yes (`WorkoutDraftCache`, `SavedStateWorkoutDraft`) | yes (`SavedStateComposerDraft`, R09) | yes (composer or live-cardio saved inputs) | yes | per-screen saved state |
+| Edit after finish: notes, delete session | yes | yes | yes | yes | `WorkoutRepository.updateSessionNotes` / `deleteFinishedSession`; `ActivityRepository.updateCompletedNotes` / `deleteCompleted` |
+| Repeat as a new live session | yes | **no** | n/a | **no** | `WorkoutRepository.repeatSession`; activities refuse with `ActivityEditCopy.REPEAT_REFUSED` |
+| Draft survives process death | yes (`DraftStore` / `SavedStateWorkoutDraft`) | yes (`DraftStore` / `SavedStateComposerDraft`) | yes (`DraftStore` / live-cardio saved inputs) | yes | per-entry saved state; clear on accepted save |
 | Read fault is `failed`, not `missing` | yes (`DataHealth` on history flows) | yes (R10) | yes (R10) | yes (R10) | `observeHealth` on every observed flow; `failed` on the two detail screens |
 | Backup export, restore, restore witness | yes | yes | yes | yes | `BackupJson` v3 carries both; `RestoreWitness` covers both (R01) |
 | Plan link and reminder cleanup | yes (`PendingOccurrence`) | yes (`afterCommit`, R06) | yes | yes | occurrence marked DONE inside the write; cleanup after |
 | One-live-at-a-time | yes | n/a | yes (live cardio) | n/a | `serialized` maintenance lock in both repositories |
 
-Bold **no** cells are the drift. They fall into two groups: reads that
-still query the strength store alone (horizon readout, past-block
-reviews, exercise detail, PR badge), and edits the activity path never
-had (set repair, notes, delete, repeat).
+Bold **no** cells are the remaining drift: set repair on an activity
+block (needs an ADR — blocks are snapshots) and repeat-as-live
+(strength only until live activities carry strength). Notes and delete
+are on both stores as of R18 step 4. Horizon readout, exercise detail
+and the two detail screens already read the shared contract (steps 1–3).
 
 ## 2. The read contract
 
@@ -100,7 +101,10 @@ What moves onto it, in order, each behind a parity test from §4:
    transaction, revision bumped, same as `completeLive`); set repair on
    an activity block needs an ADR because blocks are snapshots by design
    ([activity-contract.md](activity-contract.md) §8). Repeat-as-live
-   stays strength only until live activities carry strength.
+   stays strength only until live activities carry strength. **Done**
+   (R18 step 4): notes and delete on completed activities; set repair
+   and repeat stay refused; five use cases extracted; seven-row parity
+   table in `CompletedTrainingParityTest`.
 
 ## 3. Use cases to extract
 
@@ -137,8 +141,10 @@ activity. Robolectric (real in-memory Room through `FakeAppDependencies`):
 | Errors | a delegating DAO whose read throws yields `failed` (not `missing`) on the detail screen and a stale-marked History, and retry recovers without a duplicate row |
 
 `StandingRecordsTest` (pure JVM) and the R06–R10 Robolectric tests are
-the first rows of this table; the rest are written as each consumer
-moves.
+the first rows of this table; `CompletedTrainingParityTest` now runs
+all seven cases against the four fixtures. R18 steps 1–4 are
+implemented. There is no numbered step 5: remaining work is §5
+(R17 measurement), TalkBack, and DESIGN_AUDIT.
 
 ## 5. Measurement before optimisation (R17)
 

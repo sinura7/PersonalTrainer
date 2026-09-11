@@ -6,14 +6,14 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.appContainer
+import com.sinura.personaltrainer.domain.CompleteTrainingOutcome
 import com.sinura.personaltrainer.domain.LiveBarKind
-import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.LiveSessionRules
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.AppClock
 import com.sinura.personaltrainer.util.runCatchingCancellable
+import com.sinura.personaltrainer.workout.CompleteTraining
 import com.sinura.personaltrainer.workout.DiscardOutcome
-import com.sinura.personaltrainer.workout.FinishOutcome
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -193,51 +193,55 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
         val blocks = current?.cardioBlocks?.map { block ->
             block.copy(elapsedSeconds = elapsed, movingSeconds = elapsed)
         } ?: current?.blocks
-        when (val write = container.finishActivity(sessionId, now, blocks)) {
-            is com.sinura.personaltrainer.domain.ActivityWrite.Accepted -> {
-                container.cardioTimerPersistence.clear()
-                _actionError.value = null
-                _finishedActivityNavigation.value = write.session.id
-            }
-            is com.sinura.personaltrainer.domain.ActivityWrite.Rejected -> {
-                AppLog.w(TAG, "Finishing live cardio from the bar failed: ${write.reason}")
-                _actionError.value = write.reason
-            }
-        }
+        applyFinishOutcome(
+            outcome = container.completeTraining.finishLiveActivity(
+                sessionId = sessionId,
+                now = now,
+                blocks = blocks,
+            ),
+            activity = true,
+        )
     }
 
     fun finishFromBar() {
         val live = uiState.value ?: return
         viewModelScope.launch {
             if (live.kind == LiveBarKind.ACTIVITY) {
-                // Wrapped like the workout branch's outcomes: a read fault before the write,
-                // or anything the finish throws, used to be an uncaught coroutine failure in
-                // viewModelScope, which takes the process down for a tap on the bar.
                 runCatchingCancellable { finishActivityFromBar(live.sessionId) }
                     .onFailure { thrown ->
                         AppLog.w(TAG, "Finishing live cardio from the bar threw", thrown)
-                        _actionError.value = "Could not finish that session. Try again."
+                        _actionError.value = CompleteTraining.LIVE_FINISH_FAILED
                     }
             } else {
-                when (val outcome = container.finishWorkout(live.sessionId, notes = null)) {
-                    is FinishOutcome.Finished -> {
-                        PendingOccurrence.complete(container, outcome.sessionId)
-                        _actionError.value = null
-                        _finishedNavigation.value = outcome.sessionId
-                    }
-                    FinishOutcome.NothingLogged -> {
-                        AppLog.w(TAG, "Finishing from the bar did not complete: nothing logged")
-                        _actionError.value = "Log at least one set before finishing."
-                    }
-                    FinishOutcome.SessionMissing -> {
-                        AppLog.w(TAG, "Finishing from the bar found no live row")
-                        _actionError.value = DataHealthCopy.FINISH_NOT_FOUND
-                    }
-                    is FinishOutcome.Failed -> {
-                        AppLog.w(TAG, "Finishing from the bar did not complete: $outcome")
-                        _actionError.value = DataHealthCopy.FINISH_FAILED
-                    }
+                applyFinishOutcome(
+                    outcome = container.completeTraining.finishWorkout(
+                        sessionId = live.sessionId,
+                        notes = null,
+                    ),
+                    activity = false,
+                )
+            }
+        }
+    }
+
+    private fun applyFinishOutcome(outcome: CompleteTrainingOutcome, activity: Boolean) {
+        when (outcome) {
+            is CompleteTrainingOutcome.Accepted -> {
+                if (!activity) {
+                    PendingOccurrence.complete(container, outcome.id)
+                    _finishedNavigation.value = outcome.id
+                } else {
+                    _finishedActivityNavigation.value = outcome.id
                 }
+                _actionError.value = null
+            }
+            is CompleteTrainingOutcome.Rejected -> {
+                AppLog.w(TAG, "Finishing from the bar did not complete: ${outcome.reason}")
+                _actionError.value = outcome.reason
+            }
+            is CompleteTrainingOutcome.Failed -> {
+                AppLog.w(TAG, "Finishing from the bar failed: ${outcome.message}")
+                _actionError.value = outcome.message
             }
         }
     }

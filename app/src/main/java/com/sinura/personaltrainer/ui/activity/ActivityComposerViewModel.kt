@@ -11,7 +11,7 @@ import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.domain.ActivityBlock
 import com.sinura.personaltrainer.domain.ActivityDraft
 import com.sinura.personaltrainer.domain.ActivityOrigin
-import com.sinura.personaltrainer.domain.ActivityWrite
+import com.sinura.personaltrainer.domain.CompleteTrainingOutcome
 import com.sinura.personaltrainer.domain.CardioBlock
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CivilDate
@@ -285,15 +285,17 @@ class ActivityComposerViewModel @JvmOverloads constructor(
             saving.value = false
             write.onSuccess { result ->
                 when (result) {
-                    is ActivityWrite.Accepted -> {
+                    is CompleteTrainingOutcome.Accepted -> {
                         // Only an accepted write spends the draft, like the plan link: a
                         // rejected or thrown save keeps everything typed for the retry.
                         draft.clear()
                         error.clearFrom(source = ERR_SAVE, before = started)
-                        _savedId.value = result.session.id
+                        _savedId.value = result.id
                     }
-                    is ActivityWrite.Rejected ->
+                    is CompleteTrainingOutcome.Rejected ->
                         error.fail(source = ERR_SAVE, message = result.reason)
+                    is CompleteTrainingOutcome.Failed ->
+                        error.fail(source = ERR_SAVE, message = result.message)
                 }
             }.onFailure { thrown ->
                 AppLog.w(TAG, "Saving an activity failed", thrown)
@@ -354,7 +356,7 @@ class ActivityComposerViewModel @JvmOverloads constructor(
         }
     }
 
-    internal suspend fun confirmDraft(): ActivityWrite {
+    internal suspend fun confirmDraft(): CompleteTrainingOutcome {
         armTransfer.join()
         val now = clock.captureNow()
         val performed = clock.resolveLocal(
@@ -373,9 +375,9 @@ class ActivityComposerViewModel @JvmOverloads constructor(
         )
         // The link is spent only by an accepted write: "Nothing to save." must
         // leave it in place so the retry still marks the Plan row DONE.
-        val write = container.confirmActivity(draft, now)
-        if (write is ActivityWrite.Accepted) heldOccurrenceId = null
-        return write
+        val outcome = container.completeTraining.confirm(draft, now)
+        if (outcome is CompleteTrainingOutcome.Accepted) heldOccurrenceId = null
+        return outcome
     }
 
     private fun resolvedTitle(): String {

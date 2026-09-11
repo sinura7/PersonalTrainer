@@ -171,7 +171,11 @@ object BlockReviewBuilder {
                 .sortedBy { it.completedAt }
                 .toMutableList()
             ordered.forEach { attempt ->
-                total += PersonalRecords.detect(attempt.set, seen, loadClass).size
+                total += RecordsCalculator.detect(
+                    candidate = attempt.set,
+                    priorHistory = seen,
+                    loadClass = loadClass,
+                ).size
                 seen += attempt.set
             }
         }

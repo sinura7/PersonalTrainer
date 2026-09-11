@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.workout
 
+import com.sinura.personaltrainer.domain.DraftStore
+
 data class WorkoutDraft(
     val sessionId: String,
     val exerciseId: String?,
@@ -34,4 +36,12 @@ class WorkoutDraftCache {
     fun clearAll() {
         draft = null
     }
+
+    /** One session's slice of this cache, so finish can [DraftStore.clear] on an accepted save. */
+    fun storeFor(sessionId: String): DraftStore<WorkoutDraft> =
+        object : DraftStore<WorkoutDraft> {
+            override fun read(): WorkoutDraft? = get(sessionId)
+            override fun write(value: WorkoutDraft) = put(value)
+            override fun clear() = this@WorkoutDraftCache.clear(sessionId)
+        }
 }

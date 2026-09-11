@@ -55,6 +55,7 @@ import com.sinura.personaltrainer.timer.RestTimerGateway
 import com.sinura.personaltrainer.timer.RestTimerStatePersistence
 import com.sinura.personaltrainer.timer.RestTimerStore
 import com.sinura.personaltrainer.timer.SharedPrefsRestTimerStatePersistence
+import com.sinura.personaltrainer.workout.CompleteTraining
 import com.sinura.personaltrainer.workout.DiscardWorkout
 import com.sinura.personaltrainer.workout.FinishWorkout
 import com.sinura.personaltrainer.workout.StartLiveCardio
@@ -236,6 +237,12 @@ class FakeAppDependencies(
         workoutRepository = workoutRepository,
         restTimer = restTimerController,
         draftCache = workoutDraftCache,
+    )
+    override val completeTraining: CompleteTraining = CompleteTraining(
+        strengthFinish = finishWorkout,
+        activityConfirm = confirmActivity,
+        activityFinish = finishActivity,
+        cardioTimerPersistence = cardioTimerPersistence,
     )
     override val discardWorkout: DiscardWorkout = DiscardWorkout(
         workoutRepository = workoutRepository,
