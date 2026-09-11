@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.components.LoadTypeChipRow
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -117,6 +118,10 @@ fun ExerciseEditorSheet(
                     )
                 }
             }
+            LoadTypeChipRow(
+                selected = draft.loadType,
+                onSelect = { onDraftChange(draft.copy(loadType = it)) },
+            )
             OutlinedTextField(
                 value = draft.notes,
                 onValueChange = { onDraftChange(draft.copy(notes = it)) },

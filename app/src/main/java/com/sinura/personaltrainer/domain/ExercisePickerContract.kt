@@ -48,7 +48,11 @@ data class ExercisePickerState(
 sealed class ExercisePickerEvent {
     data class QueryChanged(val query: String) : ExercisePickerEvent()
     data class Selected(val exercise: Exercise) : ExercisePickerEvent()
-    data class Created(val name: String, val muscleGroup: String) : ExercisePickerEvent()
+    data class Created(
+        val name: String,
+        val muscleGroup: String,
+        val loadType: LoadType = LoadType.EXTERNAL,
+    ) : ExercisePickerEvent()
     /** A tap in [ExercisePickerMode.MULTI_ADD]: adds the lift, or takes it back out. */
     data class Toggled(val exercise: Exercise) : ExercisePickerEvent()
     data object Dismissed : ExercisePickerEvent()

@@ -390,7 +390,7 @@ This is the second most important design surface after Active Workout. Today it 
 | E-09 | Add-exercise picker is the same text sheet as the workout (W-03–W-05) **— Closed 9 Sep 2026: one `ExercisePickerSheet` serves the workout, the editor and the Library (`ExerciseRow` is shared by design)** | P1 |
 | E-10 | Pending default targets (3×5, 90s) are invisible until after add | P2 |
 | E-11 | Notes field is a second text box on a gym-programming screen. Collapse | P2 |
-| E-12 | No way to mark a lift bodyweight / assisted / machine stack vs plates | P1 |
+| E-12 | No way to mark a lift bodyweight / assisted / machine stack vs plates **— Closed 11 Sep 2026: custom create/edit carries `LoadType` chips (`LoadTypeChipRow`); picker create writes the chosen load (`ExercisePickerEvent.Created`); editor/library/swap rows name plates vs stack (`LoadTypeCopy.rowTag`); a bodyweight card has no kilogram well** | P1 |
 | E-13 | No supersets | P3 |
 | E-14 | Cannot preview “how this routine will look on the floor” | P2 |
 

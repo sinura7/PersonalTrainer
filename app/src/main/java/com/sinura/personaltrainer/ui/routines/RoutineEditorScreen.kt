@@ -34,6 +34,7 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
 import com.sinura.personaltrainer.domain.ExercisePickerState
+import com.sinura.personaltrainer.domain.LoadTypeCopy
 import com.sinura.personaltrainer.domain.RoutineSaveCopy
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
@@ -262,7 +263,7 @@ fun RoutineEditorScreen(
                     is ExercisePickerEvent.QueryChanged -> viewModel.onSearchQuery(event.query)
                     is ExercisePickerEvent.Selected -> Unit
                     is ExercisePickerEvent.Created ->
-                        viewModel.createAndSelect(event.name, event.muscleGroup)
+                        viewModel.createAndSelect(event.name, event.muscleGroup, event.loadType)
                     is ExercisePickerEvent.Toggled -> viewModel.togglePicked(event.exercise)
                     ExercisePickerEvent.Dismissed -> viewModel.setPickerVisible(false)
                     ExercisePickerEvent.ErrorDismissed -> viewModel.dismissError()
@@ -463,7 +464,7 @@ private fun SwapExerciseSheet(
                         ExerciseRow(
                             exercise = exercise,
                             onClick = { onSelect(exercise) },
-                            tag = exercise.equipment.label,
+                            tag = LoadTypeCopy.rowTag(exercise),
                         )
                         if (index < siblings.lastIndex) HairlineDivider()
                     }

@@ -95,6 +95,54 @@ enum class LoadType {
     ASSISTED,
     ;
 
+    /**
+     * How the load reads on a chip or a row tag.
+     *
+     * Gym-floor words, not the enum: EXTERNAL is plates on a bar or a sled, not "external",
+     * and BODYWEIGHT_PLUS is the vest or the belt, not a plus sign.
+     */
+    val label: String
+        get() = when (this) {
+            EXTERNAL -> "Plates"
+            STACK -> "Stack"
+            BODYWEIGHT -> "Bodyweight"
+            BODYWEIGHT_PLUS -> "Added"
+            ASSISTED -> "Assisted"
+        }
+
+    /**
+     * Kit a newly created custom of this load should start as.
+     *
+     * A custom has no catalog family to inherit from, so the load is the only honest
+     * signal: a stack lives on a machine, a push-up is bodyweight, plates with no kit
+     * named yet stay [EquipmentType.OTHER] until the owner picks one.
+     */
+    val defaultEquipment: EquipmentType
+        get() = when (this) {
+            EXTERNAL -> EquipmentType.OTHER
+            STACK, ASSISTED -> EquipmentType.MACHINE
+            BODYWEIGHT, BODYWEIGHT_PLUS -> EquipmentType.BODYWEIGHT
+        }
+
+    /**
+     * Kit to store when this load is chosen on a lift that already has one.
+     *
+     * A cable that becomes a stack stays a cable. A bodyweight lift that becomes plates
+     * drops the bodyweight kit rather than claiming to be a barbell we were never told.
+     */
+    fun kitFor(current: EquipmentType): EquipmentType = when (this) {
+        BODYWEIGHT, BODYWEIGHT_PLUS -> EquipmentType.BODYWEIGHT
+        ASSISTED -> when (current) {
+            EquipmentType.MACHINE, EquipmentType.OTHER -> EquipmentType.MACHINE
+            else -> current
+        }
+        STACK -> when (current) {
+            EquipmentType.CABLE, EquipmentType.MACHINE -> current
+            else -> EquipmentType.MACHINE
+        }
+        EXTERNAL -> if (current == EquipmentType.BODYWEIGHT) EquipmentType.OTHER else current
+    }
+
     companion object {
         fun fromStorage(raw: String?): LoadType =
             entries.firstOrNull { it.name == raw } ?: EXTERNAL

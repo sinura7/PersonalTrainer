@@ -48,6 +48,7 @@ import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.LibraryFamily
+import com.sinura.personaltrainer.domain.LoadTypeCopy
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
@@ -464,10 +465,11 @@ private fun LibraryRow(
     ExerciseRow(
         exercise = exercise,
         onClick = onOpen,
-        // Equipment is the thing that distinguishes eight bench presses from each other, so it
-        // is what the tag says. "Custom" still wins on the user's own lifts: which of these is
-        // mine is a more urgent question than what it is loaded with.
-        tag = if (exercise.isCustom) "Custom" else exercise.equipment.label,
+        // Equipment is the thing that distinguishes eight bench presses from each other.
+        // Load sits next to it when the kit does not already say plates-versus-stack
+        // (E-12). "Custom" still wins on the user's own lifts, with the load named when it
+        // is not the plates default.
+        tag = LoadTypeCopy.libraryTag(exercise),
     ) {
         IconButton(onClick = onAddToRoutine) {
             Icon(

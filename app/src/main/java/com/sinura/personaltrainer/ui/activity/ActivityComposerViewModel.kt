@@ -19,6 +19,7 @@ import com.sinura.personaltrainer.domain.CivilDateTime
 import com.sinura.personaltrainer.domain.ComposerCopy
 import com.sinura.personaltrainer.domain.DstGapPolicy
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.StrengthBlock
@@ -319,7 +320,11 @@ class ActivityComposerViewModel @JvmOverloads constructor(
         _createdExercise.value = null
     }
 
-    fun createExercise(name: String, muscleGroup: String) {
+    fun createExercise(
+        name: String,
+        muscleGroup: String,
+        loadType: LoadType = LoadType.EXTERNAL,
+    ) {
         val started = createError.mark()
         viewModelScope.launch {
             if (name.isBlank()) {
@@ -330,7 +335,11 @@ class ActivityComposerViewModel @JvmOverloads constructor(
                 return@launch
             }
             runCatchingCancellable {
-                when (val result = container.exerciseRepository.createCustom(name, muscleGroup)) {
+                when (val result = container.exerciseRepository.createCustom(
+                    name,
+                    muscleGroup,
+                    loadType = loadType,
+                )) {
                     is SaveExerciseResult.DuplicateName ->
                         createError.fail(
                             source = ERR_CREATE_LIFT,

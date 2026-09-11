@@ -54,6 +54,8 @@ import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
 import com.sinura.personaltrainer.domain.ExercisePickerState
 import com.sinura.personaltrainer.domain.LiftCart
+import com.sinura.personaltrainer.domain.LoadType
+import com.sinura.personaltrainer.domain.LoadTypeCopy
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.ui.theme.Hairline
@@ -242,14 +244,22 @@ fun ExercisePickerSheet(
                 if (canCreate) {
                     item(key = "create") {
                         var group by rememberSaveable(needle) { mutableStateOf("") }
+                        var loadTypeName by rememberSaveable(needle) {
+                            mutableStateOf(LoadType.EXTERNAL.name)
+                        }
+                        val loadType = LoadType.fromStorage(loadTypeName)
                         Column {
                             CreateExerciseRow(
                                 name = needle,
                                 muscleGroup = group,
+                                loadType = loadType,
                                 onMuscle = { group = it },
+                                onLoadType = { loadTypeName = it.name },
                                 onClick = {
                                     if (MuscleGroups.resolved(group) != null) {
-                                        onEvent(ExercisePickerEvent.Created(needle, group))
+                                        onEvent(
+                                            ExercisePickerEvent.Created(needle, group, loadType),
+                                        )
                                     }
                                 },
                             )
@@ -337,7 +347,7 @@ private fun PickerLiftRow(
             Modifier
         },
         onClick = onClick,
-        tag = exercise.equipment.label,
+        tag = LoadTypeCopy.rowTag(exercise),
         subtitle = subtitle,
         trailing = when {
             cartNumber != null -> {
@@ -507,7 +517,9 @@ fun ExerciseSearchField(
 private fun CreateExerciseRow(
     name: String,
     muscleGroup: String,
+    loadType: LoadType,
     onMuscle: (String) -> Unit,
+    onLoadType: (LoadType) -> Unit,
     onClick: () -> Unit,
 ) {
     val shape = RoundedCornerShape(Radius.xs)
@@ -537,6 +549,11 @@ private fun CreateExerciseRow(
                 )
             }
         }
+        LoadTypeChipRow(
+            selected = loadType,
+            onSelect = onLoadType,
+            modifier = Modifier.padding(horizontal = Metrics.gutter),
+        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -572,7 +589,11 @@ private fun CreateExerciseRow(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    if (ready) "Adds a custom ${muscleGroup.trim()} lift" else MuscleGroups.MISSING_MESSAGE,
+                    if (ready) {
+                        LoadTypeCopy.createCaption(muscleGroup, loadType)
+                    } else {
+                        MuscleGroups.MISSING_MESSAGE
+                    },
                     style = InstrumentType.caption,
                     color = TextSecondary,
                 )

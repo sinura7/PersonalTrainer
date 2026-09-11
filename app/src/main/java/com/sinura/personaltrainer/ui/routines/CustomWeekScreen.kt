@@ -270,7 +270,7 @@ fun CustomWeekScreen(
                     is ExercisePickerEvent.QueryChanged -> viewModel.onSearchQuery(event.query)
                     is ExercisePickerEvent.Selected -> Unit
                     is ExercisePickerEvent.Created ->
-                        viewModel.createAndSelect(event.name, event.muscleGroup)
+                        viewModel.createAndSelect(event.name, event.muscleGroup, event.loadType)
                     is ExercisePickerEvent.Toggled -> viewModel.togglePicked(event.exercise)
                     ExercisePickerEvent.Dismissed -> viewModel.setPickerVisible(false)
                     ExercisePickerEvent.ErrorDismissed -> viewModel.dismissError()
