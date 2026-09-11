@@ -6,11 +6,13 @@ import com.sinura.personaltrainer.data.backup.RestoreJournal
 import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.mapper.toDomain
+import com.sinura.personaltrainer.data.mapper.toEntity
 import com.sinura.personaltrainer.data.mapper.toExerciseSetEntry
 import com.sinura.personaltrainer.data.mapper.toRecordSet
 import com.sinura.personaltrainer.data.mapper.toSummary
 import com.sinura.personaltrainer.domain.ActivityBlock
 import com.sinura.personaltrainer.domain.ActivityDraft
+import com.sinura.personaltrainer.domain.ActivityEditCopy
 import com.sinura.personaltrainer.domain.ActivityOrigin
 import com.sinura.personaltrainer.domain.ActivityQueries
 import com.sinura.personaltrainer.domain.ActivityRules
@@ -232,20 +234,67 @@ class ActivityRepository(
     }
 
     /**
-     * Removes one completed activity and its blocks. The strength store has had this since
-     * session repair landed; the activity store did not, which is one row of the
-     * convergence matrix. No screen offers it yet — the instrumented screen passes use it
-     * to take their fixtures back off a real database — and a planner day that pointed at
+     * Removes one completed activity and its blocks. A planner day that pointed at
      * the row keeps its DONE status, exactly as deleting a finished strength session does.
+     * A live row is refused: discard owns that exit.
      */
-    suspend fun deleteCompleted(sessionId: String) {
-        serialized {
-            database.withTransaction {
-                val row = dao.getSessionRow(sessionId) ?: return@withTransaction
-                if (row.status == "COMPLETED") dao.deleteSession(sessionId)
+    suspend fun deleteCompleted(sessionId: String): ActivityWrite = serialized {
+        database.withTransaction {
+            val row = dao.getSessionRow(sessionId)
+                ?: return@withTransaction ActivityWrite.Rejected(ActivityEditCopy.GONE)
+            if (row.status != "COMPLETED") {
+                return@withTransaction ActivityWrite.Rejected(ActivityEditCopy.DELETE_LIVE_REFUSED)
             }
+            val graph = dao.getSessionGraph(sessionId)?.toDomain()
+            dao.deleteSession(sessionId)
+            if (graph != null) ActivityWrite.Accepted(graph) else ActivityWrite.Rejected(ActivityEditCopy.GONE)
         }
     }
+
+    /**
+     * Writes notes on a completed activity. The completed row is updated in one
+     * transaction and the revision is bumped, same as [completeLive]. Blocks stay the
+     * snapshot they were. An active row is refused: live cardio owns that draft.
+     */
+    suspend fun updateCompletedNotes(
+        sessionId: String,
+        notes: String,
+        nowMs: Long,
+    ): ActivityWrite = serialized {
+        database.withTransaction {
+            val graph = dao.getSessionGraph(sessionId)
+                ?: return@withTransaction ActivityWrite.Rejected(ActivityEditCopy.GONE)
+            val session = graph.toDomain()
+            if (session.status != ActivityStatus.COMPLETED) {
+                return@withTransaction ActivityWrite.Rejected(ActivityEditCopy.NOTES_LIVE_REFUSED)
+            }
+            val trimmed = notes.trim()
+            if (session.notes == trimmed) return@withTransaction ActivityWrite.Accepted(session)
+            val updated = session.copy(
+                notes = trimmed,
+                updatedAtMs = nowMs,
+                revision = session.revision + 1,
+            )
+            dao.updateSession(updated.toEntity())
+            ActivityWrite.Accepted(updated)
+        }
+    }
+
+    /**
+     * Activity blocks are snapshots. Set repair is a strength-session capability
+     * until an ADR reopens that (completed-training-convergence.md §2 step 4).
+     */
+    suspend fun updateStrengthSet(
+        setId: String,
+        weightKg: Double,
+        reps: Int,
+        rpe: Int?,
+        isWarmup: Boolean,
+    ): ActivityWrite = ActivityWrite.Rejected(ActivityEditCopy.SET_REPAIR_REFUSED)
+
+    /** Repeat-as-live stays strength only until live activities carry strength. */
+    suspend fun repeatCompleted(sessionId: String): ActivityWrite =
+        ActivityWrite.Rejected(ActivityEditCopy.REPEAT_REFUSED)
 
     /**
      * Completes a live session in place. Used by live cardio: the ACTIVE

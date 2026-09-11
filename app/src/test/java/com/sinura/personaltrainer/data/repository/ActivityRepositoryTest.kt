@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.activity.DiscardActivity
 import com.sinura.personaltrainer.activity.StartLiveActivity
 import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.domain.ActivityDraft
+import com.sinura.personaltrainer.domain.ActivityEditCopy
 import com.sinura.personaltrainer.domain.ActivityOrigin
 import com.sinura.personaltrainer.domain.ActivityStatus
 import com.sinura.personaltrainer.domain.ActivityWrite
@@ -360,6 +361,70 @@ class ActivityRepositoryTest {
         )
 
         assertTrue(cleared.isEmpty())
+    }
+
+    @Test
+    fun notesOnACompletedActivityBumpRevisionAndKeepBlockIds() = runBlocking {
+        val write = repository.confirm(
+            draft(ActivityOrigin.BACKDATED, ActivityStatus.COMPLETED, evening, listOf(squat()), "Evening"),
+            now,
+            ids(),
+            JvmTime,
+        ) as ActivityWrite.Accepted
+        val original = write.session
+        val blockId = original.strengthBlocks.single().id
+        val setId = original.strengthBlocks.single().sets.single().id
+
+        val updated = repository.updateCompletedNotes(original.id, "  felt strong  ", now.instantMillis)
+        assertTrue(updated is ActivityWrite.Accepted)
+        val session = (updated as ActivityWrite.Accepted).session
+        assertEquals("felt strong", session.notes)
+        assertEquals(original.revision + 1, session.revision)
+        assertEquals(blockId, session.strengthBlocks.single().id)
+        assertEquals(setId, session.strengthBlocks.single().sets.single().id)
+        assertEquals(100.0, session.strengthBlocks.single().sets.single().weightKg, 0.0)
+
+        val reread = checkNotNull(repository.get(original.id))
+        assertEquals("felt strong", reread.notes)
+        assertEquals(session.revision, reread.revision)
+        assertEquals(blockId, reread.strengthBlocks.single().id)
+    }
+
+    @Test
+    fun deleteCompletedRemovesTheRowAndLiveWritesAreRefused() = runBlocking {
+        val completed = repository.confirm(
+            draft(ActivityOrigin.BACKDATED, ActivityStatus.COMPLETED, evening, listOf(squat()), "Evening"),
+            now,
+            ids(),
+            JvmTime,
+        ) as ActivityWrite.Accepted
+        val deleted = repository.deleteCompleted(completed.session.id)
+        assertTrue(deleted is ActivityWrite.Accepted)
+        assertNull(repository.get(completed.session.id))
+
+        val live = StartLiveActivity(repository, ids(), JvmTime)("Live run", listOf(run().copy(id = "blk-live")), now)
+        val liveId = (live as ActivityWrite.Accepted).session.id
+        val liveNotes = repository.updateCompletedNotes(liveId, "nope", now.instantMillis)
+        assertEquals(ActivityEditCopy.NOTES_LIVE_REFUSED, (liveNotes as ActivityWrite.Rejected).reason)
+        val liveDelete = repository.deleteCompleted(liveId)
+        assertEquals(ActivityEditCopy.DELETE_LIVE_REFUSED, (liveDelete as ActivityWrite.Rejected).reason)
+        assertEquals(liveId, repository.getLive()?.id)
+    }
+
+    @Test
+    fun setRepairAndRepeatAreRefusedOnActivities() = runBlocking {
+        assertEquals(
+            ActivityEditCopy.SET_REPAIR_REFUSED,
+            (repository.updateStrengthSet("set-1", 200.0, 5, null, false) as ActivityWrite.Rejected).reason,
+        )
+        assertEquals(
+            ActivityEditCopy.REPEAT_REFUSED,
+            (repository.repeatCompleted("any") as ActivityWrite.Rejected).reason,
+        )
+        assertEquals(
+            ActivityEditCopy.GONE,
+            (repository.deleteCompleted("missing") as ActivityWrite.Rejected).reason,
+        )
     }
 
     private fun draft(

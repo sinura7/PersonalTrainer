@@ -10,6 +10,7 @@ import android.net.Uri
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.data.backup.AuthoredInventory
 import com.sinura.personaltrainer.data.backup.BackupEnvelope
+import com.sinura.personaltrainer.data.backup.ProtectBackup
 import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.BackupScaleBudget
@@ -656,18 +657,15 @@ class BackupCoordinator(
                     // copy the document budget would not let back in before spending the
                     // key derivation on it: the protected file would be refused at import.
                     BackupScaleBudget.requireExportable(payload = json, protected = false)
-                    // 600,000 PBKDF2 iterations plus AES-GCM over the whole history. This
-                    // ran on Main — the regular protected export already went through
-                    // the repository's IO dispatcher, this path called wrap() directly.
                     val built = if (password != null) {
-                        BackupEnvelope.wrap(json, password, envelopeIterations)
+                        ProtectBackup()(
+                            plaintext = json,
+                            password = password,
+                            iterations = envelopeIterations,
+                        )
                     } else {
                         json
                     }
-                    // A safety copy is written by restore without a size check; the export
-                    // of it is held to the same contract as every other export. The check
-                    // is a byte count over the whole payload, so it stays off Main too.
-                    BackupScaleBudget.requireExportable(payload = built, protected = password != null)
                     built
                 }
                 withContext(container.ioDispatcher) {

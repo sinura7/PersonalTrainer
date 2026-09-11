@@ -30,6 +30,7 @@ import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.PersonalRecords
+import com.sinura.personaltrainer.domain.RecordsCalculator
 import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.ProgressionAction
 import com.sinura.personaltrainer.domain.ProgressionBasis
@@ -952,7 +953,7 @@ class WorkoutRepository(
             completedAt = completedAt,
             setNumber = setNumber,
         )
-        return PersonalRecords.detect(
+        return RecordsCalculator.detect(
             candidate = ExerciseSetRecord(
                 setId = "",
                 sessionId = "",

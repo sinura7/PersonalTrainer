@@ -8,7 +8,7 @@ import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.local.entity.ActivitySessionEntity
 import com.sinura.personaltrainer.domain.ActivityOrigin
-import com.sinura.personaltrainer.domain.ActivityWrite
+import com.sinura.personaltrainer.domain.CompleteTrainingOutcome
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.testutil.TestWaits
@@ -116,8 +116,8 @@ class ActivityComposerViewModelTest {
         viewModel!!.addStrength(exercise, 100.0, 5)
         viewModel!!.removeStrength(0)
         val write = viewModel!!.confirmDraft()
-        assertTrue(write is ActivityWrite.Rejected)
-        assertEquals("Nothing to save.", (write as ActivityWrite.Rejected).reason)
+        assertTrue(write is CompleteTrainingOutcome.RuledOut)
+        assertEquals("Nothing to save.", (write as CompleteTrainingOutcome.RuledOut).reason)
         assertEquals(null, viewModel!!.savedId.value)
     }
 

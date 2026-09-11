@@ -15,6 +15,14 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 11 Sep 2026 — R18 step four: activity-edit capability split (notes and
+> delete on completed activities; set repair and repeat stay refused),
+> five use-case extractions (`CompleteTraining`, `RecordsCalculator`,
+> `ProtectBackup`/`OpenBackup`, `DraftStore`, live-bar finish through
+> the façade), and the seven-row parity table. Inherits live 38; does
+> not bump it. Next is not a numbered R18 step 5 — R17 measurement,
+> TalkBack, DESIGN_AUDIT.
+>
 > 11 Sep 2026 — Live 38: architecture stack `#232`–`#238` on `trunk`.
 > `debugLiveCode` 38; suffix from `python3 tools/debug-drop-plan.py`.
 >

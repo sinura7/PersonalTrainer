@@ -1,123 +1,77 @@
 # Start here
 
 The first thing a new session on this repository should read. Rewritten
-2026-09-10, at the end of the session that shipped the Home day board and
-the rest timer's last five seconds.
+2026-09-11, after R18 step 4 (activity-edit split, five use-case
+extractions, seven-row parity table).
 
 ## Where the code stands
 
-`debugLiveCode` is **37**; `appVersionCode` is **1** and stays there until
+`debugLiveCode` is **38**; `appVersionCode` is **1** and stays there until
 a real public artifact is cut (FOUNDATION_PROGRAM P12.3). Room is frozen at
 v4, the backup document and envelope formats are untouched, and no
 identifier is ever rewritten. Those three hold for every future packet.
 
-Landed on 10 September, in order: the emulator lane learned to print its
-own failures (#204, #210); the **Home day board** — every session today
-drawn as its own bordered block with its stills, the numbered order and
-Start on the foot (#205, #213); the **last five seconds tick** (#206,
-#212, #217); the four instrumented failures that had made the lane red
-since it was first pointed at the right profile (#207, #208, #209, #211);
-the golden's record corrected (#215); and the lane's own tests hardened
-(#216). #214, from another session, moved the entry wells onto the next
-set. #218 stopped the RPE chip and the extra-set button from retyping
-the wells; it landed at live 35, the same number #217 already used, so
-Obtainium will not offer it. #219 rewrote this file. `#220` is on
-`trunk`: a drop is claimed, not assumed. `debug-live-2026-09-10-8`
-shipped 36 from `#220` (`8cf0623`) — the RPE rule and the drop lock,
-not the lift page. `#221` is on `trunk`: the drop planner fetches tags
-before it answers. `#222` is on `trunk`: the golden comparator
-forgives one level of rasteriser rounding, capped at 256 pixels.
-`#223` is on `trunk`: ADR-024, the deterministic hosted job may gate
-`trunk`; the emulator may not. The setting is the owner's.
+R18 steps 1–4 are on `trunk` (or in this packet, landing next):
 
-`#202` is on `trunk`: R18 step two, the lift page reads both stores.
-`#225`–`#227` are on `trunk`. Live **37** shipped as
-`debug-live-2026-09-10-9` from `#226` (`52eae88`). This packet is R18
-step three: both detail screens share `CompletedTrainingDetailLoad`
-(load / missing / failed, `retry()`). It inherits 37 and does not
-bump it. Do not start step four from `trunk` while this packet is
-open. Do not start a second edit of the drop tools, `debug-live.yml`,
-`SETUP.md`, the owner loop, `GoldenImageAssert`,
-`FoundationGoldenTest`, `DEVELOPMENT.md`, or the ADRs from `trunk`.
-`claude/file-visibility-check-jraqc2` was merged to `trunk` after
-the drop (`659ed5c` / `a39917b`); it is not in 37. `#229` is on
-`trunk`: Back on the routine editor. It does not overlap this packet
-and does not ride 37. `#230` is on `trunk`: a timed-out wait names
-the thread. Test only; it rides the next drop, not 37. More leftover
-UX is on `trunk` after that (`c8c1549` / `17fc2ff` / `20ad3cf`): a
-one-column notes write, an editor mark at the tap, Use-chip persist.
-Not in 37. This packet folded it; the notes-column edit sat in
-`WorkoutRepository.kt` next to `observeSessionHealth`, different
-method. `#231` is on `trunk`: the 600 dp mount harness
-(`ProductionScreensPassInstrumentedTest.kt`). Instrumented tests; it
-rides the next drop, not 37. D16 is on `trunk`: the ADR-021
-paragraph is marked the way this repo marks them. Do not start a
-second edit of that test, `TestWaits.kt`, `RoutineEditorViewModel`,
-`WorkoutRepository.kt`, or the ADRs from `trunk`. Do not delete
-`claude/android-verify-my59sw` or `claude/ecstatic-galileo-pw9iub`.
-An agent does not switch branch protection on.
+1. History horizon and block reviews read both stores.
+2. The lift page reads both stores.
+3. Both completed-training detail screens share `CompletedTrainingDetailLoad`
+   (load / missing / failed; `retry()`). A thrown session read is
+   unavailable, not "no longer on this phone".
+4. **This packet.** Edits are per capability, not by store: notes and
+   delete on completed activities; set repair and repeat stay refused
+   (activity blocks are snapshots; repeat-as-live stays strength only).
+   Five extractions: `CompleteTraining` façade (`Written` / `RuledOut` /
+   `Failed` — the plan's Accepted / Rejected / Failed),
+   `RecordsCalculator` over `RecordSet`, `ProtectBackup` /
+   `OpenBackup`, `DraftStore<T>` with clear-on-accepted-save, live-session
+   bar finish through the façade. Seven-row parity table:
+   `CompletedTrainingParityTest`. Does **not** bump 38. Do not start a
+   numbered R18 step 5 — there isn't one.
 
-**The hosted emulator lane is green: 80 tests, 0 failed** on `trunk`
-before `#222`; that packet adds three comparator unit tests (expected
-83). It is still `continue-on-error` and must stay that way —
-see the CI note below.
+Live **38** shipped as `debug-live-2026-09-11` from the architecture stack
+`#232`–`#238`. Obtainium still offers 38 until the number rises. This
+packet rides the next drop; it is not on the phone yet.
+
+Do not open Gradle modules, localisation, a sixth tab, LLM-as-author, a
+Room v3 bump, or GitHub-hosted runners as a test lane. Do not bump
+`debugLiveCode` unless `python3 tools/debug-drop-plan.py` is cutting a
+drop.
 
 ## What is verified, and how
 
-Every packet above went through the same gate, run in this container:
+Every packet goes through the same gate, run in this container:
 
 ```bash
 PT_STATIC_ONLY=1 sh tools/preflight.sh        # 30 steps: 26 checks, 4 fixture proofs
 sh tools/hang-watchdog.sh ./gradlew testDebugUnitTest assembleDebug
-#  -> ~1900 tests, 0 failures; PersonalTrainer-1.0.0-debug.apk
 ```
 
-then CI on the pull request, then a squash merge. The emulator lane is read
-directly on each pull request rather than through its check.
+then a squash merge into `trunk`. Do **not** use GitHub-hosted runners as
+the test lane. The yaml may stay. Ignore it. Cursor JVM + Obtainium are
+how we test.
 
-Not verified, and it matters: **nothing here has been on a phone.**
+Not verified, and it matters: **R18 step 4 has not been on a phone.**
 
-**Install the `debug-live-2026-09-10-9` pre-release, version 37.** It is
-the newest Obtainium offer and carries the lift page, Drive’s own
-refusal sentence, and the preflight gate. `trunk` has later leftover
-UX merges (`claude/file-visibility-check-jraqc2`) that 37 does not
-carry. Nothing to uninstall over 36.
-
-An earlier version of this file said "install 35", which was wrong twice
-over. Two different builds carry `debugLiveCode` 35 — tag
-`debug-live-2026-09-10-6` is #217 (the silent tick) and
-`debug-live-2026-09-10-7` is #218 (the RPE entry-well fix) — because two
-sessions bumped the counter to 35 independently. Obtainium keys its update
-offer on that number, so whichever 35 is installed, the other can never be
-offered as an update. **If a version-35 build is already on the phone,
-install 36 over it** and the ambiguity is gone; nothing needs uninstalling,
-because 36 is a higher number than both. Drop-branch names are not release
-names: the branch `debug-live/2026-09-10-6` points at #218, whose tag is
-`-7`. Trust the tag, and the version, not the branch.
+**Install the newest `debug-live-2026-09-11*` pre-release, version 38.**
+That is Temper Debug (`com.sinura.personaltrainer.debug`) from Obtainium,
+pre-releases on, `PersonalTrainer-*-debug.apk`. Gym-floor Temper stays on
+the signed `PersonalTrainer-<version>.apk`. 38 does not yet include
+activity notes and delete; those land on the next drop after this packet
+merges.
 
 ## What the phone check is
 
-One install, seven things:
+One install, the live-38 checks plus, after the next drop that carries
+this packet:
 
-1. Home shows one bordered block per session, up to four lift pictures,
-   the numbered order, and Start (or **Do it today**) on the foot. Tapping
-   the block opens the same confirm as before.
-2. A Golf warm-up or cool-down block shows the pack's own sentence, not a
-   second time estimate.
-3. Start a rest, press **-15 s** so the countdown lands on five: a tick and
-   a pulse on 5, 4, 3, 2, 1, then the cue. Turn **Last five seconds** off
-   in Settings and the last five seconds go quiet while the cue still plays.
-4. With TalkBack on, a planned block announces as a **button**.
-5. Turn **Last five seconds** off, start a rest, swipe the app away with a
-   few seconds left: the last five seconds stay quiet and the cue still
-   plays at zero.
-6. Type a weight and reps by hand, then rate the effort: the wells keep what
-   was typed and the recommendation waits above **Log** with its own **Use**
-   (#218, which is why 36 and not 35).
-7. Open a lift trained both as a planned session and as a backdated
-   strength day. Both appear on that lift's page. Tapping the activity
-   row opens the activity, not the live-session screen (#202, which is
-   why 37 and not 36).
+1. Open a finished cardio or mixed activity from History. Add a note;
+   leave; come back — the note is still there. Overflow offers **Delete
+   session…** only, never Repeat, never a set editor.
+2. A finished strength session still offers Repeat, set edit, and undo
+   as before.
+3. Finish from the live-session bar still writes one completed row.
+   A thrown finish is a retry, not a crash.
 
 ## One thing waiting on the owner
 
@@ -144,17 +98,12 @@ Biggest first, and the first two are the owner's, not a session's:
 - **Twenty-one DESIGN_AUDIT P1 rows** still genuinely open. Cheapest that
   pays: N-01, a cue preview button in Settings. Biggest felt: B-02, Body's
   first-launch emptiness.
-- **R18 step three is this packet.** After it lands: **step 4** — the
-  activity-edit capability split — plus the five use-case extractions
-  and the seven-row parity table in
-  `architecture/completed-training-convergence.md`. The log-time PR
-  badge is **not** on this list: it is a signed product fact, because
-  activities are never logged live.
+- **R18 numbered steps 1–4 are done.** There is no step 5. Set repair on
+  activity blocks needs an ADR, not another convergence step. The log-time
+  PR badge stays strength-only: activities are never logged live.
 - **R17 measurement** is blocked on a fixture generator and a benchmark
-  module nobody has built, not on the owner's history growing. About a day.
-- **The 600 dp screen passes** are on `trunk` (`#231`). `mount` sets
-  density so the named width is the viewport. Instrumented only; not
-  in 37. Not this packet.
+  module nobody has built, not on the owner's history growing.
+- **The 600 dp screen passes** are on `trunk` (`#231`). Instrumented only.
 - **`required_args_mixed = 180`** is the largest debt family in
   `tools/checker-baselines.toml`. Take `required_args_lambda = 46` first as
   the proof that the ratchet-down loop works.
@@ -171,14 +120,7 @@ refused until a named fix needs it; `versionCode` stays 1.
 ## Process
 
 One packet open at a time, on a branch, squash-merged
-([ADR-002](architecture/ADR-002-execution-protocol.md) decision 1). On
-10 September three pull requests were open at once and two of them bumped
-`debugLiveCode` to 33 independently — git merges that silently and the
-second build is never offered by Obtainium. That is the predicted cost of
-breaking the rule, not bad luck. It happened again the same day: `#217`
-and `#218` both claimed 35; `-6` and `-7` both carry that number.
-Obtainium still offers 35 until 36 is installed. `#220` shipped 36 as
-`debug-live-2026-09-10-8`. `#226` shipped 37 as
-`debug-live-2026-09-10-9`. This packet inherits 37. `#229`, `#230`,
-and `#231` are on `trunk` and do not ride 37.
-
+([ADR-002](architecture/ADR-002-execution-protocol.md) decision 1).
+`trunk` is the only sitting line. Branch names: `cursor/<short-slug>-b87f`.
+JVM (`./gradlew testDebugUnitTest` + `assembleDebug`) is the push gate.
+After merge, delete the remote branch. Do not recreate `main`.

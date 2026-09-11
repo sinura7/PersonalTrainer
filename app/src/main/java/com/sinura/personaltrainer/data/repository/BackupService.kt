@@ -5,6 +5,8 @@ import android.content.IntentSender
 import com.sinura.personaltrainer.data.backup.AuthoredInventory
 import com.sinura.personaltrainer.data.backup.BackupDocument
 import com.sinura.personaltrainer.data.backup.BackupEnvelope
+import com.sinura.personaltrainer.data.backup.OpenBackup
+import com.sinura.personaltrainer.data.backup.ProtectBackup
 import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.backup.BackupScaleBudget
@@ -87,15 +89,12 @@ class BackupService(
         val session = rememberAuthorizedSession(activity, launchResolution)
         val snapshot = localBackupRepository.createSnapshot()
         val json = BackupJson.encode(snapshot)
-        BackupScaleBudget.requireExportable(payload = json, protected = false)
         val payload = if (password != null) {
-            BackupEnvelope.wrap(json, password, iterations)
+            ProtectBackup()(plaintext = json, password = password, iterations = iterations)
         } else {
+            BackupScaleBudget.requireExportable(payload = json, protected = false)
             json
         }
-        // The bytes Drive will hand back are the bytes checked here. A file this app
-        // uploads must be one its own bounded download accepts.
-        BackupScaleBudget.requireExportable(payload = payload, protected = password != null)
         val fileName = BackupJson.fileName()
         val folderId = driveRestClient.ensureBackupFolder(
             accessToken = session.accessToken,
@@ -140,7 +139,7 @@ class BackupService(
         expected: AuthoredInventory,
     ): Boolean = try {
         val raw = driveRestClient.downloadBackup(session.accessToken, uploaded.id)
-        val plaintext = BackupEnvelope.open(raw, password)
+        val plaintext = OpenBackup()(raw = raw, password = password)
         val actual = AuthoredInventory.fromDocument(BackupJson.decode(plaintext))
         val same = actual == expected
         if (!same) {
@@ -198,9 +197,11 @@ class BackupService(
         password: CharArray,
         iterations: Int = BackupEnvelope.DEFAULT_ITERATIONS,
     ): String = withContext(ioDispatcher) {
-        val envelope = BackupEnvelope.wrap(exportJson(), password, iterations)
-        BackupScaleBudget.requireExportable(payload = envelope, protected = true)
-        envelope
+        ProtectBackup()(
+            plaintext = exportJson(),
+            password = password,
+            iterations = iterations,
+        )
     }
 
     suspend fun authoredInventory(): AuthoredInventory = withContext(ioDispatcher) {
@@ -233,7 +234,7 @@ class BackupService(
         password: CharArray? = null,
     ): RestorePlan = withContext(ioDispatcher) {
         refuseIfLive()
-        val plaintext = BackupEnvelope.open(json, password)
+        val plaintext = OpenBackup()(raw = json, password = password)
         BackupScaleBudget.requireDocumentFits(plaintext)
         val document = BackupJson.decode(plaintext)
         val local = localBackupRepository.authoredInventory()

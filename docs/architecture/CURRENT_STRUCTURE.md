@@ -17,8 +17,8 @@ yet.
 
 | Source set | Files | Lines | Tests |
 |---|---|---|---|
-| `app/src/main` | 406 | 69,733 | — |
-| `app/src/test` | 274 | — | 1,990 |
+| `app/src/main` | 416 | 70,506 | — |
+| `app/src/test` | 282 | — | 2,027 |
 | `app/src/androidTest` | 23 | — | 88 |
 | `app/src/debug` | 12 | — | Compose previews and the golden-capture substrate |
 | `app/src/sharedTest` | 4 | — | `FakeClock`, `SequentialIds`, `ControllableElapsedRealtime`, `TestWaits`, compiled into both test sets |
@@ -29,12 +29,12 @@ Everything is under `com.sinura.personaltrainer`.
 
 | Package | Files | Lines | What it is |
 |---|---|---|---|
-| `domain` | 136 | 16,304 | Models, rules, calculators, policies, ports, and ~26 `*Copy.kt` text objects |
-| `ui` | 125 | 34,869 | 18 screens, 22 ViewModels, `ui/components`, `ui/theme`, `ui/navigation` |
-| `data` | 90 | 13,145 | `local/{dao,entity,relation}`, `mapper`, `repository`, `repository/prefs`, `backup` |
+| `domain` | 142 | 16,528 | Models, rules, calculators, policies, ports, and ~27 `*Copy.kt` text objects |
+| `ui` | 126 | 35,220 | 18 screens, 22 ViewModels, `ui/components`, `ui/theme`, `ui/navigation` |
+| `data` | 92 | 13,242 | `local/{dao,entity,relation}`, `mapper`, `repository`, `repository/prefs`, `backup` |
 | `timer` | 18 | 2,535 | Rest foreground service, alarm scheduler, notifications, persistence |
 | `reminder` | 9 | 480 | WorkManager scheduling, receivers, worker |
-| `workout` | 8 | 534 | Use cases: start, finish, discard, draft cache and recovery |
+| `workout` | 9 | 634 | Use cases: start, finish, discard, `CompleteTraining` façade, draft cache and recovery |
 | `diagnostics` | 4 | 332 | Redacted diagnostic bundle, crash store, event ring |
 | `util` | 6 | 297 | `JvmTime`, `IdFactory`, quantity formatting, coroutine error helpers |
 | `insights` | 2 | 345 | `TrainingInsightsPublisher` and the one source behind it |
@@ -43,7 +43,7 @@ Everything is under `com.sinura.personaltrainer`.
 
 ### `domain` depends on nothing
 
-Four imports across 136 files: `kotlin.math.abs`, `max`, `round`, and
+Four imports across 142 files: `kotlin.math.abs`, `max`, `round`, and
 `kotlinx.coroutines.CancellationException`. No app package, no `java.time`, no
 Android. `tools/check-domain-seams.py` holds that at zero and rejects an import
 of any internal package other than `domain` itself.
@@ -70,7 +70,7 @@ import further out than anything it banned.
 ```mermaid
 flowchart TB
     PTA["PersonalTrainerApp<br/>(manifest android:name)"]
-    AC["AppContainer(context) : AppDependencies<br/>35 typed ports"]
+    AC["AppContainer(context) : AppDependencies<br/>36 typed ports"]
     DB[("TemperDatabase v4<br/>21 entities · 10 DAOs")]
     PREFS[("user_settings DataStore<br/>46 keys · 6 prefs stores")]
     REPOS["18 repositories<br/>+ BackupService"]
@@ -98,7 +98,7 @@ flowchart TB
 
 **Dependency injection is a hand-rolled composition root.** No Hilt, no
 Dagger, no Koin. `PersonalTrainerApp.onCreate` builds one `AppContainer`, which
-implements `AppDependencies` — an interface of 35 typed ports. Every ViewModel
+implements `AppDependencies` — an interface of 36 typed ports. Every ViewModel
 is `@JvmOverloads constructor(application, container: AppDependencies =
 application.appContainer())`, so production gets the real graph through the
 default and tests pass `FakeAppDependencies`, which is the same repositories
@@ -137,7 +137,7 @@ rehydration, the alarm and the service cannot each fire the same finish.
 
 ## Verification
 
-`./gradlew testDebugUnitTest` runs the 1,990 unit tests **and** the whole
+`./gradlew testDebugUnitTest` runs the unit tests **and** the whole
 static gate: every `Test` task depends on `:app:staticChecks`, which runs
 `tools/preflight.sh` with `PT_STATIC_ONLY=1`. That is 26 checkers plus their
 fixture proofs — domain seams, design-token ceilings, unbounded waits,

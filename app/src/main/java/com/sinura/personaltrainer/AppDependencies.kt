@@ -22,6 +22,7 @@ import com.sinura.personaltrainer.timer.CardioTimerPersistence
 import com.sinura.personaltrainer.timer.RestTimerGateway
 import com.sinura.personaltrainer.timer.RestTimerStatePersistence
 import com.sinura.personaltrainer.timer.RestTimerStore
+import com.sinura.personaltrainer.workout.CompleteTraining
 import com.sinura.personaltrainer.workout.DiscardWorkout
 import com.sinura.personaltrainer.workout.FinishWorkout
 import com.sinura.personaltrainer.workout.StartLiveCardio
@@ -69,6 +70,7 @@ interface AppDependencies {
     val restTimerController: RestTimerGateway
     val workoutDraftCache: WorkoutDraftCache
     val finishWorkout: FinishWorkout
+    val completeTraining: CompleteTraining
     val discardWorkout: DiscardWorkout
     val trainingInsights: TrainingInsightsPublisher
     val pendingWeekSuggestion: MutableStateFlow<Boolean>
