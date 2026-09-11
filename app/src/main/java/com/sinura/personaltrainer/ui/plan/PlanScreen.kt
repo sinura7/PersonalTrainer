@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.DailyAgenda
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.MissedWorkCopy
 import com.sinura.personaltrainer.domain.OneFilledVolt
@@ -471,6 +472,7 @@ fun PlanScreen(
             if (state.routines.isEmpty()) {
                 item(key = "routines-empty") {
                     EmptyState(
+                        scene = EmptyScene.PLAN,
                         title = "Build your first plan",
                         body = StartOptionsCopy.PLAN_EMPTY_BODY,
                         actionLabel = "Create a routine",

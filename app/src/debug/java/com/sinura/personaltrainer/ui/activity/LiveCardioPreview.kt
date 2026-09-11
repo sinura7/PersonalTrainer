@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.sinura.personaltrainer.domain.CardioCopy
 import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -53,6 +54,7 @@ private fun LiveCardioMissingPreview() {
     PersonalTrainerTheme {
         CardioPreviewColumn {
             EmptyState(
+                scene = EmptyScene.GONE,
                 title = "No live cardio",
                 body = "That session is gone. Start a new one from Home.",
                 actionLabel = "Back",

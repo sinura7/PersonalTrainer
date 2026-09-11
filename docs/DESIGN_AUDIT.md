@@ -182,9 +182,14 @@ There are no exercise assets, no empty-state illustrations, no branded mark beyo
 **Partly closed, Phase 8 (21 Aug).** Every lift now has a picture: a body figure with its
 trained muscles lit and an equipment badge, on picker rows, library rows, the detail header and
 the in-workout chips. It is *drawn*, not shipped — Compose `DrawScope` against the Heat and
-outline tokens — so there are still no exercise **assets**, and there never need to be. What
-this row asked for beyond that is still open: **empty-state illustrations** and a **branded
-mark** are untouched and unowned by any phase.
+outline tokens — so there are still no exercise **assets**, and there never need to be.
+
+**Closed 11 Sep 2026.** The branded mark is `TemperMark` (About, gallery). Empty
+states no longer reuse that still: `EmptyState` takes `EmptyScene` (rack / plan /
+catalog / log / gone / retry) and `EmptyIllustration` draws it — compact and full.
+Teaching scenes carry a Volt plus. History's empty log is the same component, not
+a lone sentence. Lift pictures stay keyed stills (ADR-022); this row does not
+open the Phase 8 pictured grid.
 
 ### D-05 — Motion language is missing  [P2]
 

@@ -32,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.domain.DataHealthCopy
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.SetCopy
@@ -193,6 +194,7 @@ fun SessionDetailScreen(
                 // and it must not be shown as a deleted one.
                 state.failed -> {
                     EmptyState(
+                        scene = EmptyScene.RETRY,
                         title = DataHealthCopy.SESSION_TITLE,
                         body = DataHealthCopy.SESSION_BODY,
                         actionLabel = DataHealthCopy.RETRY,
@@ -203,6 +205,7 @@ fun SessionDetailScreen(
                 }
                 state.missing || session == null -> {
                     EmptyState(
+                        scene = EmptyScene.GONE,
                         title = "Session not found",
                         body = "This workout is no longer on this phone.",
                         actionLabel = "Back",
@@ -241,6 +244,7 @@ fun SessionDetailScreen(
                         if (lifts.isEmpty()) {
                             item {
                                 EmptyState(
+                                    scene = EmptyScene.LOG,
                                     title = "No sets logged",
                                     body = "Nothing was recorded for this workout.",
                                     compact = true,

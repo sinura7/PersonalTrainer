@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.BodyExplorer
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.BodyHeatCopy
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.CanonicalMuscle
@@ -103,6 +104,7 @@ fun ProgressScreen(
                 // A read failed; nothing was written and nothing needs starting. The remedy is
                 // to ask again, which is why this branch no longer offers "Start workout".
                 EmptyState(
+                    scene = EmptyScene.RETRY,
                     title = "Couldn’t load the map",
                     body = "Every set you have logged is still in your history — only the map " +
                         "failed to build.",

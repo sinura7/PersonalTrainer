@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.CustomWeekDayMark
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.CustomWeekPolicy
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
@@ -161,6 +162,7 @@ fun CustomWeekScreen(
                 if (lifts.isEmpty()) {
                     item {
                         EmptyState(
+                            scene = EmptyScene.RACK,
                             title = "No lifts on ${state.selectedDay.shortLabel()}",
                             body = SessionOrderCopy.EMPTY_WEEK_BODY,
                             actionLabel = "Add lifts",

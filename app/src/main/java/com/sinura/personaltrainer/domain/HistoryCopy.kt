@@ -21,6 +21,7 @@ object HistoryCopy {
     const val CALENDAR_HEAT =
         "Heat is sets that month, relative to that month's hardest day."
 
+    const val EMPTY_TITLE = "No sessions yet"
     const val EMPTY_LOG = "Finished sessions land here."
 
     const val CALENDAR_MONTH = "Month"

@@ -43,6 +43,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.AnalyticsHorizon
 import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.DataHealthCopy
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.domain.HistoryCopy
 import com.sinura.personaltrainer.domain.HistoryKind
@@ -142,6 +143,7 @@ fun HistoryScreen(
                 }
                 state.unavailable -> {
                     EmptyState(
+                        scene = EmptyScene.RETRY,
                         title = DataHealthCopy.HISTORY_TITLE,
                         body = DataHealthCopy.HISTORY_BODY,
                         actionLabel = DataHealthCopy.RETRY,
@@ -216,10 +218,11 @@ fun HistoryScreen(
                         }
                         if (state.summaries.isEmpty()) {
                             item(key = "empty-log") {
-                                Text(
-                                    HistoryCopy.EMPTY_LOG,
-                                    style = InstrumentType.body,
-                                    color = TextSecondary,
+                                EmptyState(
+                                    scene = EmptyScene.LOG,
+                                    title = HistoryCopy.EMPTY_TITLE,
+                                    body = HistoryCopy.EMPTY_LOG,
+                                    compact = true,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .testTag(HistoryTags.EMPTY)

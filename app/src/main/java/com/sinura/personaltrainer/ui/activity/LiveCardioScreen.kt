@@ -31,6 +31,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.CardioCopy
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.DataHealthCopy
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.DistanceUnit
 import com.sinura.personaltrainer.domain.LiveSessionRules
 import com.sinura.personaltrainer.domain.NumericEntry
@@ -120,6 +121,7 @@ fun LiveCardioScreen(
     ) { padding ->
         if (state.missing) {
             EmptyState(
+                scene = EmptyScene.GONE,
                 title = "No live cardio",
                 body = "That session is gone. Start a new one from Home.",
                 actionLabel = "Back",
@@ -142,6 +144,7 @@ fun LiveCardioScreen(
                 verticalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
                 EmptyState(
+                    scene = EmptyScene.RETRY,
                     title = DataHealthCopy.LIVE_CARDIO_TITLE,
                     body = DataHealthCopy.LIVE_CARDIO_BODY,
                     actionLabel = DataHealthCopy.RETRY,

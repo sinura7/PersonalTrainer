@@ -33,6 +33,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetWork
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
@@ -296,6 +297,7 @@ fun ActiveWorkoutScreen(
                 // notification. It must offer a way out — this used to be an unreachable
                 // branch behind a spinner that never resolved.
                 EmptyState(
+                    scene = EmptyScene.GONE,
                     title = "Workout missing",
                     body = "This session was finished, discarded, or replaced by a restore. " +
                         "Nothing was lost from your history.",
@@ -344,6 +346,7 @@ fun ActiveWorkoutScreen(
                         if (!session.hasLifts()) {
                             item(key = "empty-lifts") {
                                 EmptyState(
+                                    scene = EmptyScene.RACK,
                                     title = "Add a lift",
                                     body = SessionOrderCopy.EMPTY_SESSION_BODY,
                                     actionLabel = "Add a lift",

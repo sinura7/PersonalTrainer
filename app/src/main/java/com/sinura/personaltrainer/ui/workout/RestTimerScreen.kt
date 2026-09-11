@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.RestFinishFlash
 import com.sinura.personaltrainer.domain.RestFloorContext
 import com.sinura.personaltrainer.domain.RestIdleCopy
@@ -108,6 +109,7 @@ fun RestTimerScreen(
             }
             SessionLoadState.MISSING -> {
                 EmptyState(
+                    scene = EmptyScene.GONE,
                     title = "Workout missing",
                     body = "This session was finished, discarded, or replaced by a restore. " +
                         "Nothing was lost from your history.",

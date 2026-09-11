@@ -40,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.ui.findActivity
 import com.sinura.personaltrainer.domain.DataHealthCopy
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.PersonalRecordCopy
 import com.sinura.personaltrainer.domain.WeightConverter
@@ -131,6 +132,7 @@ fun WorkoutSummaryScreen(
             )
 
             state.missing -> EmptyState(
+                scene = EmptyScene.GONE,
                 title = SummaryCopy.MISSING_TITLE,
                 body = SummaryCopy.MISSING_BODY,
                 actionLabel = SummaryCopy.DONE,
@@ -144,6 +146,7 @@ fun WorkoutSummaryScreen(
                 // finished row being the evidence, not by this route having been reached; a
                 // row that is somehow not finished gets the same facts without that word.
                 EmptyState(
+                    scene = EmptyScene.LOG,
                     title = if (state.savedConfirmed) SummaryCopy.SAVED_NO_WORK_TITLE else SummaryCopy.NO_WORK_TITLE,
                     body = if (state.savedConfirmed) SummaryCopy.SAVED_NO_WORK_BODY else SummaryCopy.NO_WORK_BODY,
                     actionLabel = SummaryCopy.DONE,
@@ -385,6 +388,7 @@ private fun SummaryUnavailable(
         verticalArrangement = Arrangement.spacedBy(Metrics.space3),
     ) {
         EmptyState(
+            scene = EmptyScene.RETRY,
             title = if (savedConfirmed) {
                 SummaryCopy.SAVED_SUMMARY_UNAVAILABLE_TITLE
             } else {
