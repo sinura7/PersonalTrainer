@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.domain
 
+import kotlin.jvm.JvmName
+
 /**
  * One place to count and rank records over [RecordSet].
  *
@@ -61,6 +63,7 @@ object RecordsCalculator {
         return total
     }
 
+    @JvmName("countBrokenTraining")
     fun countBroken(
         inBlock: List<CompletedTraining>,
         beforeBlock: List<CompletedTraining>,

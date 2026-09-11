@@ -383,15 +383,15 @@ class CompletedTrainingParityTest {
             finish = true,
         )
         val backdatedAt = JvmTime.resolveLocal(
-            CivilDateTime(CivilDate.fromEpochDay(backdatedDay), hour = 10, minute = 0),
+            CivilDateTime(date = CivilDate.fromEpochDay(backdatedDay), hour = 10, minute = 0),
             now.zoneId,
         )
         val cardioAt = JvmTime.resolveLocal(
-            CivilDateTime(CivilDate.fromEpochDay(cardioDay), hour = 7, minute = 0),
+            CivilDateTime(date = CivilDate.fromEpochDay(cardioDay), hour = 7, minute = 0),
             now.zoneId,
         )
         val mixedAt = JvmTime.resolveLocal(
-            CivilDateTime(CivilDate.fromEpochDay(mixedDay), hour = 18, minute = 0),
+            CivilDateTime(date = CivilDate.fromEpochDay(mixedDay), hour = 18, minute = 0),
             now.zoneId,
         )
         val backdated = acceptedActivity(

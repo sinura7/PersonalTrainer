@@ -285,7 +285,7 @@ private fun ActivityReceiptHero(
     unit: WeightUnit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-        Kicker(ActivityDetailCopy.kicker(celebration, session), color = TextSecondary)
+        Kicker(text = ActivityDetailCopy.kicker(celebration, session), color = TextSecondary)
         if (celebration) {
             Text(
                 session.title,
