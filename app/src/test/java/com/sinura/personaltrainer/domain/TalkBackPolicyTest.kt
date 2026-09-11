@@ -62,10 +62,10 @@ class TalkBackPolicyTest {
         assertTrue(wheel.contains("NumberEntryDialog("))
         assertTrue(wheel.contains("TalkBackPolicy.parseTypedBodyweightKg"))
 
-        val settings = readOwned("ui/settings/SettingsScreen.kt")
-        assertTrue(settings.contains("checked = preferences.soundEnabled"))
-        assertTrue(settings.contains("onCheckedChange = onSound"))
-        assertTrue(settings.contains("onCheckedChange = null"))
+        val restPrefs = readOwned("ui/settings/RestTimerPrefsSection.kt")
+        assertTrue(restPrefs.contains("checked = preferences.soundEnabled"))
+        assertTrue(restPrefs.contains("onCheckedChange = onSound"))
+        assertTrue(restPrefs.contains("onCheckedChange = null"))
 
         val reminders = readOwned("ui/reminders/ReminderPrefsSection.kt")
         assertTrue(reminders.contains("checked = enabled"))
