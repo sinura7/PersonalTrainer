@@ -206,6 +206,7 @@ fun SettingsScreen(
                     },
                     onSound = viewModel::setRestSoundEnabled,
                     onVibrate = viewModel::setRestVibrationEnabled,
+                    onPreview = viewModel::previewRestCompleteCue,
                     onTick = viewModel::setRestTickEnabled,
                     onDefaultRest = viewModel::setDefaultRestSeconds,
                     onCustomDefault = viewModel::setDefaultRestCustom,
@@ -351,4 +352,5 @@ object SettingsTags {
     const val REDACT_LOGS = "settings-redact-logs"
     const val AUTO_BACKUP = "settings-auto-backup"
     const val SHOW_BACKUP_PASSWORD = "settings-show-backup-password"
+    const val PLAY_COMPLETE_CUE = "settings-play-complete-cue"
 }

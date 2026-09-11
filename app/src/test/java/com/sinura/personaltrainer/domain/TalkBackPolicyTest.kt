@@ -69,6 +69,15 @@ class TalkBackPolicyTest {
         assertTrue(restPrefs.contains("checked = preferences.soundEnabled"))
         assertTrue(restPrefs.contains("onCheckedChange = onSound"))
         assertTrue(restPrefs.contains("onCheckedChange = null"))
+        assertTrue(restPrefs.contains("title = RestCompleteCue.TITLE"))
+        assertTrue(restPrefs.contains("onClick = onPreview"))
+        assertTrue(restPrefs.contains("SettingsTags.PLAY_COMPLETE_CUE"))
+
+        val settingsScreen = readOwned("ui/settings/SettingsScreen.kt")
+        assertTrue(settingsScreen.contains("onPreview = viewModel::previewRestCompleteCue"))
+
+        val settingsVm = readOwned("ui/settings/SettingsViewModel.kt")
+        assertTrue(settingsVm.contains("RestTimerAlerts.preview"))
 
         val reminders = readOwned("ui/reminders/ReminderPrefsSection.kt")
         assertTrue(reminders.contains("checked = enabled"))
