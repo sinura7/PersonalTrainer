@@ -449,7 +449,7 @@ fun ExerciseRow(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (tag != null) InstrumentTag(tag)
+                if (tag != null) EquipmentChip(tag)
             }
         }
         if (trailing != null) trailing()
@@ -601,18 +601,6 @@ private fun CreateExerciseRow(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun InstrumentTag(label: String) {
-    val shape = RoundedCornerShape(Radius.xs)
-    Box(
-        modifier = Modifier
-            .border(Metrics.hairline, Hairline, shape)
-            .padding(horizontal = Metrics.space2, vertical = Metrics.space1),
-    ) {
-        Kicker(label, color = TextTertiary)
     }
 }
 

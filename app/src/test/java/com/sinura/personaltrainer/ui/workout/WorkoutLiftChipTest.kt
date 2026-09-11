@@ -12,8 +12,7 @@ class WorkoutLiftChipTest {
     @Test
     fun liveLiftCardsCarrySetProgressAndARestBadge() {
         val card = readOwned("ui/workout/WorkoutLiftCard.kt")
-        assertTrue(card.contains("ExerciseThumb("))
-        assertTrue(card.contains("ThumbSize.header"))
+        assertTrue(card.contains("LiftCard("))
         assertTrue(card.contains("LiftChipCopy.marks("))
         assertTrue(card.contains("LiftChipCopy.spoken("))
         assertTrue(card.contains("LiftChipCopy.REST"))
@@ -30,6 +29,10 @@ class WorkoutLiftChipTest {
         assertTrue(screen.contains("restRemainingSeconds ="))
         assertTrue(screen.contains("fun liftSets"))
         assertTrue(screen.contains("fun liftRest"))
+
+        val liftCard = readOwned("ui/components/LiftCard.kt")
+        assertTrue(liftCard.contains("ExerciseThumb("))
+        assertTrue(liftCard.contains("ThumbSize.header"))
     }
 
     private fun readOwned(relative: String): String {

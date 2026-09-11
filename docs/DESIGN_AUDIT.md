@@ -158,7 +158,7 @@ The theme is a green Material 3 scheme (`Forest` / `Leaf` / `Lime` / `Sand` / `I
 
 `Type.kt` only overrides `headlineLarge/Medium`, `titleLarge/Medium`, `bodyLarge/Medium`, `labelLarge`. Screens use `headlineSmall` and `displayMedium` / `displaySmall`, which fall through to stock Material defaults. No display face for the rest clock. No tabular numbers, so `1:08` and `1:11` jitter. No tracked labels (`REST`, `WEIGHT`, `REPS` should be a dedicated `labelSmall` + letter-spacing token).
 
-**Need:** a real scale — Display (clock), Numeric (weight/reps, tabular), Title, Body, Label, Overline. Prefer one distinctive family for display (e.g. a condensed grotesque) and a readable grotesque for UI. Do not ship system SansSerif as the brand.
+**Need:** a real scale — Display (clock), Numeric (weight/reps, tabular), Title, Body, Label, Overline. Prefer one distinctive family for display (e.g. a condensed grotesque) and a readable grotesque for UI. Do not ship system SansSerif as the brand. **— Closed 11 Sep 2026: already Instrument — `InstrumentType` is numeralHero (clock) / tabular `tnum` / title / body / kicker; Space Grotesk + Inter. Confirmed, not redrawn (D-08).**
 
 ### D-02 — Color is “gym green,” not a language  [P1]
 
@@ -167,13 +167,13 @@ Dark mode is the gym mode and should be designed first. Current dark surface (`#
 - Cards and background are too close; hierarchy collapses.
 - Lime-on-forest is used for everything primary. Rest-done, rest-running, error, and progression all need **distinct** roles.
 - No token for heat, PR, warm-up, machine vs free weight, rest warning (last 5s).
-- Light theme exists but is unloved. If we keep it, it must match the same components, not look like a different app.
+- Light theme exists but is unloved. If we keep it, it must match the same components, not look like a different app. **— Closed 11 Sep 2026: already Instrument — `Color.kt` roles Pit / Surface / Volt / PrGold / Warn / Danger / RestCyan / Heat; dark-only ADR-005. Confirmed, not redrawn (D-08).**
 
 ### D-03 — Shape, elevation, and spacing are default Material  [P1]
 
 `PrimaryGymButton` is 64dp / 16dp radius. Cards are stock. Screen padding is a repeated `20.dp` magic number. No radius scale, no card treatment that feels like a plate or a machine plate. No consistent section gap.
 
-**Need:** 4/8/12/16/24/32 spacing tokens. Card radius 20–24 for lift cards, 28+ for the rest clock. Hairline borders on dark cards instead of relying on elevation (elevation disappears on AMOLED).
+**Need:** 4/8/12/16/24/32 spacing tokens. Card radius 20–24 for lift cards, 28+ for the rest clock. Hairline borders on dark cards instead of relying on elevation (elevation disappears on AMOLED). **— Closed 11 Sep 2026: already Instrument — `Metrics` 4–32 grid + hairline, `Radius` xs–lg, no elevation. Confirmed, not redrawn (D-08).**
 
 ### D-04 — No image or illustration layer  [P1]
 
@@ -219,6 +219,8 @@ Missing, all required for a designed app:
 - `NumericKeypad` or tap-to-type on the big numbers (steppers alone are slow for 87.5)
 - Overlay / bubble rest clock
 - Skeleton loaders that match card layout (not a lone spinner)
+
+**Closed 11 Sep 2026.** The inventory is named and shared: `ExerciseThumb`, `ExerciseRow`, `LiftCard` (workout + History `FilledLiftCard`), `EquipmentChip` (the MachineCard), `SetTable` (one history), `GymDialog` (`ConfirmActionDialog` delegates), `SectionHeader`, tap-to-type `NumberEntryDialog`, `ScreenSkeleton` (what `ScreenLoading` draws). Overlay rest clock stays superseded (§10.2). Library and the picker stay `ExerciseRow`.
 
 ### D-09 — Loading, error, empty are inconsistent  [P2]
 

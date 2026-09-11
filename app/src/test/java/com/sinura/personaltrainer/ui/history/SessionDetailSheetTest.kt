@@ -18,16 +18,22 @@ class SessionDetailSheetTest {
         assertFalse(screen.contains("private fun ExerciseBlock("))
 
         val card = readOwned("ui/history/FilledLiftCard.kt")
-        assertTrue(card.contains("CountBadge("))
-        assertTrue(card.contains("ExerciseThumb("))
-        assertTrue(card.contains("ThumbSize.header"))
+        assertTrue(card.contains("LiftCard("))
+        assertTrue(card.contains("SetTable("))
+        assertTrue(card.contains("SetTableLine.fromLog"))
         assertTrue(card.contains("SessionOrderCopy.WORK"))
         assertTrue(card.contains("SessionOrderCopy.REST"))
         assertTrue(card.contains("SessionOrderCopy.LOAD"))
-        assertTrue(card.contains("SetCopy.setLine"))
-        assertTrue(card.contains("Surface2"))
         assertTrue(card.contains("SessionDetailTestTags.EDIT_SET"))
         assertFalse(card.contains("InstrumentRow("))
+
+        val liftCard = readOwned("ui/components/LiftCard.kt")
+        assertTrue(liftCard.contains("fun LiftCard("))
+        assertTrue(liftCard.contains("CountBadge("))
+        assertTrue(liftCard.contains("ExerciseThumb("))
+        assertTrue(liftCard.contains("ThumbSize.header"))
+        assertTrue(liftCard.contains("EquipmentChip("))
+        assertTrue(liftCard.contains("Surface2"))
     }
 
     private fun readOwned(relative: String): String {

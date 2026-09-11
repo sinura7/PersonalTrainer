@@ -96,6 +96,16 @@ object SetCopy {
         return "$from → $to · $sign$delta"
     }
 
+    /**
+     * The quiet line under a set in [the one set table] — number, then RPE
+     * when it was logged. Warm-up is a mark on the row, not a second word
+     * here, so the workout log and a finished session say the same thing.
+     */
+    fun tableExtras(setNumber: Int, rpe: Int?): String = buildList {
+        add("Set $setNumber")
+        rpe?.let { add("RPE $it") }
+    }.joinToString(" · ")
+
     private fun repsLabel(reps: Int): String = if (reps == 1) "1 rep" else "$reps reps"
 
     const val NOTHING_YET = "—"
