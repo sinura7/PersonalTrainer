@@ -267,12 +267,14 @@ class CompletedTrainingParityTest {
         assertTrue(document.activities.any { it.id == fixtures.mixedId })
 
         val plan = deps.backupService.prepareRestore(json, sourceName = "parity.json")
-        deps.backupService.commitRestore(plan)
+        assertEquals(witness, RestoreWitness.of(plan.document))
 
-        // Re-export is a new snapshot (new exportedAt, a safety copy of what
-        // was just replaced). The invariant is the Room witness, the same
-        // one restore recovery uses.
+        // The recovery invariant: replaceRoom leaves the same Room witness.
+        // commitRestore then reconciles the catalog, which adds rows on purpose.
+        deps.localBackupRepository.replaceRoom(document)
         assertEquals(witness, deps.localBackupRepository.roomWitness())
+
+        deps.backupService.commitRestore(plan)
         assertEquals(fixtures.strengthId, deps.workoutRepository.getSession(fixtures.strengthId)?.id)
         assertEquals(fixtures.backdatedId, deps.activityRepository.get(fixtures.backdatedId)?.id)
         assertEquals(fixtures.cardioId, deps.activityRepository.get(fixtures.cardioId)?.id)
