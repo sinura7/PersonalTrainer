@@ -74,6 +74,8 @@ object WorkoutTestTags {
     const val ADD_SET = "workout-add-set"
     const val LAST_TIME = "workout-last-time"
     fun liftCard(exerciseId: String) = "workout-lift-card-$exerciseId"
+    fun liftSets(exerciseId: String) = "workout-lift-sets-$exerciseId"
+    fun liftRest(exerciseId: String) = "workout-lift-rest-$exerciseId"
     fun lastTimeChip(setId: String) = "workout-last-time-$setId"
 }
 
@@ -374,6 +376,8 @@ fun ActiveWorkoutScreen(
                                         canEdit = logged.isEmpty(),
                                         showAddSet = isSelected &&
                                             WorkoutAdvance.cardOffersAnotherSet(logged, lift.targetSets),
+                                        restRunning = isSelected && rest.running,
+                                        restRemainingSeconds = rest.remainingSeconds,
                                     ),
                                     events = WorkoutLiftCardEvents(
                                         onSelect = { viewModel.selectExercise(lift.exercise.id) },

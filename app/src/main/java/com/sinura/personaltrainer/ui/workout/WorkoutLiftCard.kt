@@ -49,6 +49,8 @@ import java.text.DateFormat
 import java.util.Date
 import com.sinura.personaltrainer.domain.DayLabel
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
+import com.sinura.personaltrainer.domain.LiftChipCopy
+import com.sinura.personaltrainer.domain.LiftChipMarks
 import com.sinura.personaltrainer.domain.ProgressionCopy
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.SetCopy
@@ -75,6 +77,7 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.theme.Surface2
+import com.sinura.personaltrainer.ui.theme.RestCyan
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.Volt
@@ -98,6 +101,8 @@ internal data class WorkoutLiftCardState(
     val unit: WeightUnit,
     val canEdit: Boolean,
     val showAddSet: Boolean,
+    val restRunning: Boolean = false,
+    val restRemainingSeconds: Int = 0,
 )
 
 internal data class WorkoutLiftCardEvents(
@@ -138,6 +143,8 @@ internal fun WorkoutLiftCard(
     val unit = card.unit
     val canEdit = card.canEdit
     val showAddSet = card.showAddSet
+    val restRunning = card.restRunning
+    val restRemainingSeconds = card.restRemainingSeconds
     val onSelect = events.onSelect
     val onSwap = events.onSwap
     val onRemove = events.onRemove
@@ -153,6 +160,19 @@ internal fun WorkoutLiftCard(
     val onAddSet = events.onAddSet
     val workingLogged = loggedSets.count { !it.isWarmup }
     val targetSets = lift.targetSets
+    val chipMarks = LiftChipCopy.marks(
+        workingLogged = workingLogged,
+        targetSets = targetSets,
+        restSeconds = lift.restSeconds,
+        restRunningOnThisLift = restRunning,
+        remainingSeconds = restRemainingSeconds,
+    )
+    val chipSpoken = LiftChipCopy.spoken(
+        name = lift.exercise.name,
+        setProgress = chipMarks.setProgress,
+        restClock = chipMarks.restClock,
+        restLive = chipMarks.restLive,
+    )
     val entryRequester = remember { BringIntoViewRequester() }
     var previousSetCount by remember(lift.id) { mutableIntStateOf(-1) }
     // A card that has just become the selected one carries the entry wells with it, so the
@@ -192,6 +212,7 @@ internal fun WorkoutLiftCard(
                 .testTag(WorkoutTestTags.liftCard(lift.exercise.id))
                 .semantics(mergeDescendants = true) {
                     this.selected = selected
+                    contentDescription = chipSpoken
                 }
                 .padding(Metrics.space3),
             verticalAlignment = Alignment.CenterVertically,
@@ -220,11 +241,9 @@ internal fun WorkoutLiftCard(
                     )
                 }
             }
-            Text(
-                if (targetSets > 0) "$workingLogged/$targetSets" else workingLogged.toString(),
-                style = InstrumentType.numeralSm,
-                color = TextPrimary,
-                maxLines = 1,
+            LiftChipBadges(
+                marks = chipMarks,
+                exerciseId = lift.exercise.id,
             )
         }
         if (selected) {
@@ -300,6 +319,51 @@ internal fun WorkoutLiftCard(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Trailing marks on a live lift chip: `2/5` and the rest clock.
+ *
+ * Idle rest is caption, not a countdown numeral (G-05). Running rest
+ * is RestCyan plus the word Rest, so colour is never the only channel
+ * (ADR-023).
+ */
+@Composable
+private fun LiftChipBadges(
+    marks: LiftChipMarks,
+    exerciseId: String,
+) {
+    Column(
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+    ) {
+        Text(
+            marks.setProgress,
+            modifier = Modifier.testTag(WorkoutTestTags.liftSets(exerciseId)),
+            style = InstrumentType.numeralSm,
+            color = TextPrimary,
+            maxLines = 1,
+        )
+        marks.restClock?.let { clock ->
+            Row(
+                modifier = Modifier.testTag(WorkoutTestTags.liftRest(exerciseId)),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
+            ) {
+                Kicker(
+                    text = LiftChipCopy.REST,
+                    color = if (marks.restLive) RestCyan else TextSecondary,
+                    asHeading = false,
+                )
+                Text(
+                    clock,
+                    style = if (marks.restLive) InstrumentType.numeralSm else InstrumentType.caption,
+                    color = if (marks.restLive) RestCyan else TextSecondary,
+                    maxLines = 1,
+                )
             }
         }
     }
