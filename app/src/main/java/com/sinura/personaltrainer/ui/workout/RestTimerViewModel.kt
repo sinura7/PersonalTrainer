@@ -99,19 +99,24 @@ class RestTimerViewModel @JvmOverloads constructor(
         session,
         sessionResolved,
         combine(
-            restTimer.remainingSeconds,
-            restTimer.snapshot,
-            restTotal,
-            restTimer.lastCompletedTimerId,
-            restTimer.persistenceHealthy,
-        ) { remaining, snapshot, planned, completedId, healthy ->
-            RestTimerUiState(
-                remainingSeconds = remaining,
-                totalSeconds = if (snapshot.running) snapshot.totalSeconds else planned,
-                running = snapshot.running,
-                completedTimerId = completedId,
-                persistenceHealthy = healthy,
-            )
+            combine(
+                restTimer.remainingSeconds,
+                restTimer.snapshot,
+                restTotal,
+                restTimer.lastCompletedTimerId,
+                restTimer.persistenceHealthy,
+            ) { remaining, snapshot, planned, completedId, healthy ->
+                RestTimerUiState(
+                    remainingSeconds = remaining,
+                    totalSeconds = if (snapshot.running) snapshot.totalSeconds else planned,
+                    running = snapshot.running,
+                    completedTimerId = completedId,
+                    persistenceHealthy = healthy,
+                )
+            },
+            container.preferencesRepository.restBatteryHintShown,
+        ) { rest, shown ->
+            rest.copy(batteryHint = rest.running && !shown)
         },
         combine(hint, lighterWeek, container.preferencesRepository.weightUnit) { currentHint, lighter, unit ->
             Triple(currentHint, lighter, unit)
@@ -192,6 +197,12 @@ class RestTimerViewModel @JvmOverloads constructor(
             container.preferencesRepository.setLastRestPresetSeconds(seconds)
             container.preferencesRepository.markRestAlarmEligible()
             restTimer.start(seconds, sessionId)
+        }
+    }
+
+    fun acknowledgeRestBatteryHint() {
+        viewModelScope.launch {
+            container.preferencesRepository.markRestBatteryHintShown()
         }
     }
 

@@ -95,12 +95,13 @@ Biggest first, and the first two are the owner's, not a session's:
   walking `AccessibilityMatrix`.
 - **The whole-app phase audit** owed at the close of Phase 9. Same eleven
   screens, same phone; do the two in one sitting.
-- **Fifteen DESIGN_AUDIT P1 rows** still genuinely open. G-05 / W-02 / T-12
-  are closed: idle rest says **Not running**, and a warm-up names that rest
-  did not start. G-02 is closed: rest Start/Skip and Log set share the lower
-  dock. B-02 is closed: first-launch Body names catalog lifts and a muscle
-  opens the lifts that train it. N-01 is closed: Settings Rest timer **Play
-  complete cue** samples the same rest-done tone that fires at 0:00.
+- **Fourteen DESIGN_AUDIT P1 rows** still genuinely open. T-16 is closed:
+  first rest names unrestricted battery. G-05 / W-02 / T-12 are closed: idle
+  rest says **Not running**, and a warm-up names that rest did not start.
+  G-02 is closed: rest Start/Skip and Log set share the lower dock. B-02 is
+  closed: first-launch Body names catalog lifts and a muscle opens the lifts
+  that train it. N-01 is closed: Settings Rest timer **Play complete cue**
+  samples the same rest-done tone that fires at 0:00.
 - **R18 numbered steps 1–4 are done.** There is no step 5. Set repair on
   activity blocks needs an ADR, not another convergence step. The log-time
   PR badge stays strength-only: activities are never logged live.

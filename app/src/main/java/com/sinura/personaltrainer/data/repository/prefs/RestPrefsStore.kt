@@ -14,7 +14,15 @@ interface RestPrefs {
      */
     val restAlarmEligible: Flow<Boolean>
 
+    /**
+     * First-rest Samsung battery mention (T-16). Device-local: restore and
+     * [setRestTimerPreferences] leave it alone, so a backup cannot hide the
+     * line on a new phone.
+     */
+    val restBatteryHintShown: Flow<Boolean>
+
     suspend fun markRestAlarmEligible()
+    suspend fun markRestBatteryHintShown()
     suspend fun setRestSoundEnabled(enabled: Boolean)
     suspend fun setRestVibrationEnabled(enabled: Boolean)
 
@@ -43,8 +51,15 @@ internal class RestPrefsStore(private val store: SettingsStore) : RestPrefs {
     override val restAlarmEligible: Flow<Boolean> =
         store.pref { prefs -> prefs[REST_ALARM_ELIGIBLE] ?: false }
 
+    override val restBatteryHintShown: Flow<Boolean> =
+        store.pref { prefs -> prefs[REST_BATTERY_HINT] ?: false }
+
     override suspend fun markRestAlarmEligible() {
         store.data.edit { prefs -> prefs[REST_ALARM_ELIGIBLE] = true }
+    }
+
+    override suspend fun markRestBatteryHintShown() {
+        store.data.edit { prefs -> prefs[REST_BATTERY_HINT] = true }
     }
 
     override suspend fun setRestSoundEnabled(enabled: Boolean) {

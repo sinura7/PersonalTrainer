@@ -359,7 +359,7 @@ Images on the lift switcher. Rest becomes a full-screen-feeling card only while 
 | T-13 | Per-lift rest from the routine is in `secondsToStart` but the big card always looks like a global timer | P2 |
 | T-14 | Done notification copy “Back to the bar.” is good. Channel still uses the generic sound | P2 |
 | T-15 | `-15` / `+15` / Skip on the notification are unlabeled icon-less text. Fine. Keep them  | — |
-| T-16 | Samsung battery Unrestricted is documented in SETUP. In-app, first rest should mention “Allow unrestricted battery or the clock dies” | P1 |
+| T-16 | Samsung battery Unrestricted is documented in SETUP. In-app, first rest should mention “Allow unrestricted battery or the clock dies” | ✅ 11 Sep 2026 — first running rest shows `RestBatteryCopy.SENTENCE` on the dock and floor until Got it (`REST_BATTERY_HINT`, device-local). No overlay permission |
 | T-17 | No in-app tick audio while the activity is visible (service only alerts on complete) **— Closed 10 Sep 2026: the service ticks whenever rest runs with the process alive, in-app and in the shade alike (`RestTickPlayer`, alarm stream)** | P1 |
 
 ### 6.5 Routines list

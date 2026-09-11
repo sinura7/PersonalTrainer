@@ -178,6 +178,8 @@ data class RestTimerUiState(
     val completedTimerId: String? = null,
     /** False while the rest row is not on disk; the floor says so in one line. */
     val persistenceHealthy: Boolean = true,
+    /** First rest in-app: unrestricted battery, or Samsung kills the clock. */
+    val batteryHint: Boolean = false,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -374,19 +376,24 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     val restTimerState: StateFlow<RestTimerUiState> = combine(
-        restTimer.remainingSeconds,
-        restTimer.snapshot,
-        restTotal,
-        restTimer.lastCompletedTimerId,
-        restTimer.persistenceHealthy,
-    ) { remaining, snapshot, planned, completedId, healthy ->
-        RestTimerUiState(
-            remainingSeconds = remaining,
-            totalSeconds = if (snapshot.running) snapshot.totalSeconds else planned,
-            running = snapshot.running,
-            completedTimerId = completedId,
-            persistenceHealthy = healthy,
-        )
+        combine(
+            restTimer.remainingSeconds,
+            restTimer.snapshot,
+            restTotal,
+            restTimer.lastCompletedTimerId,
+            restTimer.persistenceHealthy,
+        ) { remaining, snapshot, planned, completedId, healthy ->
+            RestTimerUiState(
+                remainingSeconds = remaining,
+                totalSeconds = if (snapshot.running) snapshot.totalSeconds else planned,
+                running = snapshot.running,
+                completedTimerId = completedId,
+                persistenceHealthy = healthy,
+            )
+        },
+        container.preferencesRepository.restBatteryHintShown,
+    ) { rest, shown ->
+        rest.copy(batteryHint = rest.running && !shown)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -1143,6 +1150,12 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             container.preferencesRepository.setLastRestPresetSeconds(seconds)
             container.preferencesRepository.markRestAlarmEligible()
             restTimer.start(seconds, sessionId)
+        }
+    }
+
+    fun acknowledgeRestBatteryHint() {
+        viewModelScope.launch {
+            container.preferencesRepository.markRestBatteryHintShown()
         }
     }
 
