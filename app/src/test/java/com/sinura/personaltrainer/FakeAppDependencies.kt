@@ -27,6 +27,7 @@ import com.sinura.personaltrainer.activity.FinishActivity
 import com.sinura.personaltrainer.activity.StartLiveActivity
 import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
+import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.data.repository.ActivityRepository
 import com.sinura.personaltrainer.data.repository.BackupService
 import com.sinura.personaltrainer.data.repository.CompletedTrainingRepository
@@ -116,6 +117,11 @@ class FakeAppDependencies(
      */
     activityDaoDecorator: (ActivityDao) -> ActivityDao = { it },
     /**
+     * Wraps the workout DAO before the repository sees it. Session-detail
+     * read-fault tests hand in a delegate whose observe throws on demand.
+     */
+    workoutDaoDecorator: (WorkoutDao) -> WorkoutDao = { it },
+    /**
      * Replaces the reminder cleanup that runs after an activity commits. Null keeps the
      * production wiring; a throwing one reproduces the cleanup failure R06 is about.
      */
@@ -162,7 +168,7 @@ class FakeAppDependencies(
     override val workoutRepository: WorkoutRepository =
         WorkoutRepository(
             database,
-            database.workoutDao(),
+            workoutDaoDecorator(database.workoutDao()),
             dbMaintenance,
             restoreBlocksStart = { backupService.restoreBlocksStart() },
         )

@@ -18,6 +18,12 @@
 > 11 Sep 2026 — Live 38: architecture stack `#232`–`#238` on `trunk`.
 > `debugLiveCode` 38; suffix from `python3 tools/debug-drop-plan.py`.
 >
+> 10 Sep 2026 — R18 step three: both completed-training detail screens share
+> `CompletedTrainingDetailLoad` (load / missing / failed; `retry()`). A
+> thrown session read is unavailable, not "no longer on this phone".
+> `#226` shipped live 37 as `debug-live-2026-09-10-9`. This packet
+> inherits 38 and does not bump it.
+>
 > 10 Sep 2026 — Live 37: `#202` is on `trunk` (the lift page reads both
 > stores). Obtainium still offers 36 until the number rises. This packet
 > is that rise. `#225` is on `trunk` (Drive refusal copy) and rides this

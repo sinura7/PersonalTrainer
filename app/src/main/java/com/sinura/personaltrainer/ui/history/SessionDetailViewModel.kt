@@ -8,11 +8,13 @@ import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.repository.RepeatOutcome
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
+import com.sinura.personaltrainer.domain.CompletedTrainingDetailLoad
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,6 +22,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.delay
@@ -38,6 +43,8 @@ private const val NOTES_WRITE_DEBOUNCE_MS = 400L
 
 data class SessionDetailUiState(
     val isLoading: Boolean = true,
+    val missing: Boolean = false,
+    val failed: Boolean = false,
     val session: WorkoutSession? = null,
     val notes: String = "",
 )
@@ -50,6 +57,7 @@ data class SessionDetailUiState(
  * the screen can change is what a lifter can get wrong; what it cannot change is when any of
  * it happened.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class SessionDetailViewModel @JvmOverloads constructor(
     application: Application,
     savedStateHandle: SavedStateHandle,
@@ -57,12 +65,21 @@ class SessionDetailViewModel @JvmOverloads constructor(
 ) : AppViewModel(application, container) {
     private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
 
-    private val session: StateFlow<SessionLoad> = container.workoutRepository.observeSession(sessionId)
-        .map { SessionLoad(isLoading = false, session = it) }
-        .stateIn(
+    private val retryNonce = MutableStateFlow(0)
+
+    private val load: StateFlow<CompletedTrainingDetailLoad<WorkoutSession>> =
+        retryNonce.flatMapLatest {
+            flow {
+                emit(CompletedTrainingDetailLoad.loading())
+                emitAll(
+                    container.workoutRepository.observeSessionHealth(sessionId)
+                        .map { health -> CompletedTrainingDetailLoad.from(health) },
+                )
+            }
+        }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = SessionLoad(),
+            initialValue = CompletedTrainingDetailLoad.loading(),
         )
 
     private val notes = MutableStateFlow("")
@@ -87,10 +104,12 @@ class SessionDetailViewModel @JvmOverloads constructor(
     private val mutating = AtomicBoolean(false)
     val deletedSet: StateFlow<WorkoutRepository.DeletedSet?> = _deletedSet.asStateFlow()
 
-    val uiState: StateFlow<SessionDetailUiState> = combine(session, notes) { load, typed ->
+    val uiState: StateFlow<SessionDetailUiState> = combine(load, notes) { load, typed ->
         SessionDetailUiState(
             isLoading = load.isLoading,
-            session = load.session,
+            missing = load.missing,
+            failed = load.failed,
+            session = load.value,
             notes = typed,
         )
     }
@@ -102,8 +121,8 @@ class SessionDetailViewModel @JvmOverloads constructor(
 
     init {
         viewModelScope.launch {
-            session.collect { load ->
-                val current = load.session ?: return@collect
+            load.collect { load ->
+                val current = load.value ?: return@collect
                 lastPersistedNotes = current.notes
                 // Hydrate once — see the live workout's collector: re-seeding on a
                 // later emission restored notes the user had just cleared.
@@ -134,6 +153,12 @@ class SessionDetailViewModel @JvmOverloads constructor(
     /** Flushes the debounce tail before this back-stack entry is removed. */
     fun persistNotesForExit() {
         viewModelScope.launch { writeNotes(notes.value) }
+    }
+
+    /** Re-subscribe after a failed load. A no-op unless the last read actually threw. */
+    fun retry() {
+        if (!load.value.failed) return
+        retryNonce.value += 1
     }
 
     private suspend fun writeNotes(value: String) {
@@ -267,9 +292,4 @@ class SessionDetailViewModel @JvmOverloads constructor(
         )
     }
 
-    /** The session row plus whether it has been read yet, so "loading" and "gone" stay distinct. */
-    private data class SessionLoad(
-        val isLoading: Boolean = true,
-        val session: WorkoutSession? = null,
-    )
 }

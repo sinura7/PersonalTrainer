@@ -7,8 +7,10 @@ import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.testutil.FailingObserveSessionDao
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.TestWaits
+import com.sinura.personaltrainer.testutil.WorkoutReadGate
 import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.Dispatchers
@@ -65,6 +67,8 @@ class SessionDetailViewModelTest {
         val state = vm.uiState.awaitFirst { !it.isLoading }
 
         assertNull(state.session)
+        assertTrue(state.missing)
+        assertFalse(state.failed)
         assertFalse(state.isLoading)
     }
 
@@ -273,6 +277,29 @@ class SessionDetailViewModelTest {
 
         vm.deleted.awaitFirst { it }
         assertNull(deps.workoutRepository.getSession(fixture.id))
+    }
+
+    @Test
+    fun aFailedReadIsUnavailableNotMissingAndRetries() = runBlocking {
+        val gate = WorkoutReadGate(shouldFail = false)
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+            workoutDaoDecorator = { FailingObserveSessionDao(it, gate) },
+        )
+        val fixture = seedFinished()
+        gate.shouldFail = true
+
+        val vm = createViewModel(fixture.id)
+        val failed = withTimeout(TestWaits.FLOW_MS) { vm.uiState.first { !it.isLoading } }
+        assertTrue(failed.failed)
+        assertFalse("a read fault must not read as a deleted session", failed.missing)
+
+        gate.shouldFail = false
+        vm.retry()
+        val loaded = withTimeout(TestWaits.FLOW_MS) { vm.uiState.first { !it.isLoading && !it.failed } }
+        assertEquals(fixture.id, loaded.session?.id)
     }
 
     private fun createViewModel(sessionId: String): SessionDetailViewModel =

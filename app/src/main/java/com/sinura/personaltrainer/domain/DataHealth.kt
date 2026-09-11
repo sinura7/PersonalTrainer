@@ -66,6 +66,11 @@ object DataHealthCopy {
     const val ACTIVITY_BODY =
         "That activity could not be read. Nothing was changed. Retry, or go back."
 
+    /** A finished strength session's read threw. Same distinction as [ACTIVITY_TITLE]. */
+    const val SESSION_TITLE = "Session unavailable"
+    const val SESSION_BODY =
+        "That session could not be read. Nothing was changed. Retry, or go back."
+
     /** The live cardio row's read threw. The session is neither finished nor discarded. */
     const val LIVE_CARDIO_TITLE = "Live cardio unavailable"
     const val LIVE_CARDIO_BODY =

@@ -90,9 +90,11 @@ What moves onto it, in order, each behind a parity test from §4:
    union through `CompletedTrainingRepository.observeExerciseSets`. The
    PR badge at log time stays strength only (activities are not logged
    live), which is a product fact, not drift.
-3. **Detail screens.** Keep two composables; give them one
-   `CompletedTrainingDetailViewModel` shape (load, `missing`, `failed`,
-   retry) so the R10 semantics cannot diverge again.
+3. **Detail screens.** Two composables, two view models, one
+   `CompletedTrainingDetailLoad` shape (load, `missing`, `failed`;
+   `retry()` on each view model) so a thrown read cannot keep reading as
+   a row that is not there. Session detail re-subscribes; activity
+   detail re-runs `get`.
 4. **Edits.** Decide per capability, not by store: notes and delete are
    cheap to add to activities (a completed row is replaced in one
    transaction, revision bumped, same as `completeLive`); set repair on

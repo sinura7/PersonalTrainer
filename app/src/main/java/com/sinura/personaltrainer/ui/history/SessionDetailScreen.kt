@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.ui.units.DateCopy
+import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.WeightMeaning
 import com.sinura.personaltrainer.domain.SetWork
@@ -80,6 +81,7 @@ object SessionDetailTestTags {
     const val BACK = "session-detail-back"
     const val OPTIONS = "session-detail-options"
     const val DELETE = "session-detail-delete"
+    const val RETRY = "session-detail-retry"
 }
 
 internal fun sessionDeleteTitle(routineName: String?): String =
@@ -200,7 +202,19 @@ fun SessionDetailScreen(
                 state.isLoading -> {
                     ScreenLoading()
                 }
-                session == null -> {
+                // Before the missing branch on purpose: a failed read also has no session,
+                // and it must not be shown as a deleted one.
+                state.failed -> {
+                    EmptyState(
+                        title = DataHealthCopy.SESSION_TITLE,
+                        body = DataHealthCopy.SESSION_BODY,
+                        actionLabel = DataHealthCopy.RETRY,
+                        onAction = viewModel::retry,
+                        actionTag = SessionDetailTestTags.RETRY,
+                        modifier = Modifier.padding(Metrics.gutter),
+                    )
+                }
+                state.missing || session == null -> {
                     EmptyState(
                         title = "Session not found",
                         body = "This workout is no longer on this phone.",

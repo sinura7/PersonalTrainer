@@ -30,20 +30,32 @@ forgives one level of rasteriser rounding, capped at 256 pixels.
 `#223` is on `trunk`: ADR-024, the deterministic hosted job may gate
 `trunk`; the emulator may not. The setting is the owner's.
 
-`#202` is on `trunk`: R18 step two, the lift page reads both stores. This
-packet is the Obtainium drop so that page is offered: 36 → **37**.
-`#225` is on `trunk`: Drive refusal copy (`DriveHttp` / `DriveErrorCopy`).
-It rides 37 because it landed before the drop is cut. Open `#227` is
-the preflight gate (three source sets, a false green at ten findings,
-lambda arity). Tools and docs only — `DEVELOPMENT.md`, `tools/preflight.sh`,
-the checkers. No path overlap with this drop. It does not ride 37. Do
-not start a second edit of those tools, `debug-live.yml`, `SETUP.md`,
-the owner loop, `GoldenImageAssert`, `FoundationGoldenTest`,
-`DEVELOPMENT.md`, or the ADRs from `trunk`. Do not start R18 step
-three from `trunk` while this drop PR is open (this file). Do not
-delete `claude/android-verify-my59sw` (`#227` is on it) or
-`claude/ecstatic-galileo-pw9iub`. An agent does not switch branch
-protection on.
+`#202` is on `trunk`: R18 step two, the lift page reads both stores.
+`#225`–`#227` are on `trunk`. Live **37** shipped as
+`debug-live-2026-09-10-9` from `#226` (`52eae88`). This packet is R18
+step three: both detail screens share `CompletedTrainingDetailLoad`
+(load / missing / failed, `retry()`). It inherits 37 and does not
+bump it. Do not start step four from `trunk` while this packet is
+open. Do not start a second edit of the drop tools, `debug-live.yml`,
+`SETUP.md`, the owner loop, `GoldenImageAssert`,
+`FoundationGoldenTest`, `DEVELOPMENT.md`, or the ADRs from `trunk`.
+`claude/file-visibility-check-jraqc2` was merged to `trunk` after
+the drop (`659ed5c` / `a39917b`); it is not in 37. `#229` is on
+`trunk`: Back on the routine editor. It does not overlap this packet
+and does not ride 37. `#230` is on `trunk`: a timed-out wait names
+the thread. Test only; it rides the next drop, not 37. More leftover
+UX is on `trunk` after that (`c8c1549` / `17fc2ff` / `20ad3cf`): a
+one-column notes write, an editor mark at the tap, Use-chip persist.
+Not in 37. This packet folded it; the notes-column edit sat in
+`WorkoutRepository.kt` next to `observeSessionHealth`, different
+method. `#231` is on `trunk`: the 600 dp mount harness
+(`ProductionScreensPassInstrumentedTest.kt`). Instrumented tests; it
+rides the next drop, not 37. D16 is on `trunk`: the ADR-021
+paragraph is marked the way this repo marks them. Do not start a
+second edit of that test, `TestWaits.kt`, `RoutineEditorViewModel`,
+`WorkoutRepository.kt`, or the ADRs from `trunk`. Do not delete
+`claude/android-verify-my59sw` or `claude/ecstatic-galileo-pw9iub`.
+An agent does not switch branch protection on.
 
 **The hosted emulator lane is green: 80 tests, 0 failed** on `trunk`
 before `#222`; that packet adds three comparator unit tests (expected
@@ -65,13 +77,11 @@ directly on each pull request rather than through its check.
 
 Not verified, and it matters: **nothing here has been on a phone.**
 
-**Install version 37 after this drop publishes.** Until then the phone
-still has 36 (`debug-live-2026-09-10-8`), which does not carry the lift
-page. After this packet is on `trunk`, name the suffix with
-`python3 tools/debug-drop-plan.py` and push the command it prints —
-do not type the tag by hand. Obtainium offers 37 over 36; nothing
-needs uninstalling. Every earlier drop is the same features with fewer
-of the review's fixes folded in.
+**Install the `debug-live-2026-09-10-9` pre-release, version 37.** It is
+the newest Obtainium offer and carries the lift page, Drive’s own
+refusal sentence, and the preflight gate. `trunk` has later leftover
+UX merges (`claude/file-visibility-check-jraqc2`) that 37 does not
+carry. Nothing to uninstall over 36.
 
 An earlier version of this file said "install 35", which was wrong twice
 over. Two different builds carry `debugLiveCode` 35 — tag
@@ -134,21 +144,17 @@ Biggest first, and the first two are the owner's, not a session's:
 - **Twenty-one DESIGN_AUDIT P1 rows** still genuinely open. Cheapest that
   pays: N-01, a cue preview button in Settings. Biggest felt: B-02, Body's
   first-launch emptiness.
-- **R18 step two is on `trunk` (`#202`).** Next, after this 37 drop:
-  **steps 3 and 4** — one shared detail-ViewModel shape, and the
+- **R18 step three is this packet.** After it lands: **step 4** — the
   activity-edit capability split — plus the five use-case extractions
   and the seven-row parity table in
-  `architecture/completed-training-convergence.md`. Step 3 first: two
-  detail screens that can disagree about *missing* versus *failed* is
-  the bug that record exists to prevent. The log-time PR badge is
-  **not** on this list: it is a signed product fact, because activities
-  are never logged live.
+  `architecture/completed-training-convergence.md`. The log-time PR
+  badge is **not** on this list: it is a signed product fact, because
+  activities are never logged live.
 - **R17 measurement** is blocked on a fixture generator and a benchmark
   module nobody has built, not on the owner's history growing. About a day.
-- **The 600 dp screen passes never run at 600 dp**: `mount` sizes a Box
-  inside a `fillMaxSize` parent, so the width is coerced to the 411 dp
-  screen. `Modifier.requiredWidth` fixes it and may surface real tablet
-  bugs, which is why it is its own packet.
+- **The 600 dp screen passes** are on `trunk` (`#231`). `mount` sets
+  density so the named width is the viewport. Instrumented only; not
+  in 37. Not this packet.
 - **`required_args_mixed = 180`** is the largest debt family in
   `tools/checker-baselines.toml`. Take `required_args_lambda = 46` first as
   the proof that the ratchet-down loop works.
@@ -172,7 +178,7 @@ second build is never offered by Obtainium. That is the predicted cost of
 breaking the rule, not bad luck. It happened again the same day: `#217`
 and `#218` both claimed 35; `-6` and `-7` both carry that number.
 Obtainium still offers 35 until 36 is installed. `#220` shipped 36 as
-`debug-live-2026-09-10-8`. `#221`–`#225` and `#202` are on `trunk`.
-This packet is 37; Drive copy rides it. Open `#227` is the gate;
-it does not ride this drop.
+`debug-live-2026-09-10-8`. `#226` shipped 37 as
+`debug-live-2026-09-10-9`. This packet inherits 37. `#229`, `#230`,
+and `#231` are on `trunk` and do not ride 37.
 

@@ -230,6 +230,15 @@ class WorkoutRepository(
             .observeHealth("the active session")
             .presentValues()
 
+    /**
+     * The session row as [DataHealth], so session detail can tell a thrown
+     * read from a row that is not there. [observeSession] still swallows
+     * [DataHealth.Unavailable] for callers that only want present values.
+     */
+    fun observeSessionHealth(id: String): Flow<DataHealth<WorkoutSession?>> =
+        workoutDao.observeSession(id).map { it?.toDomain() }
+            .observeHealth("this session")
+
     fun observeInProgress(): Flow<WorkoutSession?> =
         workoutDao.observeInProgressSession().map { it?.toSummary() }
             .observeHealth("the in-progress session")
