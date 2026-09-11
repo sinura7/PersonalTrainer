@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,6 +50,7 @@ import com.sinura.personaltrainer.ui.components.InstrumentMenu
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.NotesBlock
+import com.sinura.personaltrainer.ui.components.OutlinedMarks
 import com.sinura.personaltrainer.ui.components.PinnedDock
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenHeader
@@ -248,7 +247,7 @@ private fun ActivityDetailHeader(
                     modifier = Modifier.testTag(ActivityDetailTags.OPTIONS),
                 ) {
                     Icon(
-                        Icons.Outlined.MoreVert,
+                        OutlinedMarks.MoreVert,
                         contentDescription = ActivityEditCopy.OPTIONS,
                         tint = TextSecondary,
                     )

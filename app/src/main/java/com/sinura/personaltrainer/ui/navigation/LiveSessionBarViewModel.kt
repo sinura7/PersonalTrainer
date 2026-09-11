@@ -224,7 +224,7 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
         }
     }
 
-    private fun applyFinishOutcome(outcome: CompleteTrainingOutcome, activity: Boolean) {
+    private suspend fun applyFinishOutcome(outcome: CompleteTrainingOutcome, activity: Boolean) {
         when (outcome) {
             is CompleteTrainingOutcome.Accepted -> {
                 if (!activity) {
