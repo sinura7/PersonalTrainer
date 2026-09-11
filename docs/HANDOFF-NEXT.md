@@ -95,8 +95,10 @@ Biggest first, and the first two are the owner's, not a session's:
   walking `AccessibilityMatrix`.
 - **The whole-app phase audit** owed at the close of Phase 9. Same eleven
   screens, same phone; do the two in one sitting.
-- **Thirteen DESIGN_AUDIT P1 rows** still genuinely open. I-04 is closed:
-  session detail is a filled program sheet (same cards as the floor / program).
+- **Twelve DESIGN_AUDIT P1 rows** still genuinely open. S-02 is closed:
+  Start Options routine cards show the first three lift stills and the kit mix.
+  I-04 is closed: session detail is a filled program sheet (same cards as the
+  floor / program).
   T-16 is closed: first rest names unrestricted battery. G-05 / W-02 / T-12
   are closed: idle rest says **Not running**, and a warm-up names that rest
   did not start. G-02 is closed: rest Start/Skip and Log set share the lower

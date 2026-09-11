@@ -292,7 +292,7 @@ whoever reads this table next.
 | ID | Issue | Priority |
 |---|---|---|
 | S-01 | When a session is in progress the screen correctly hides new starts. Good. The resume button is then a **third** resume path from Home | P2 |
-| S-02 | Routine cards are text. Need first three lift thumbs + machine mix | P1 |
+| S-02 | Routine cards are text. Need first three lift thumbs + machine mix **— Closed 11 Sep 2026: Start Options `RoutineRow` is a `GymCard` with the first three `ExerciseThumb` stills (`RoutineCardCopy.STILL_LIMIT`) and the kit mix (`RoutineCardCopy.mix`)** | P1 |
 | S-03 | Free workout has no personality. It should still feel like walking onto the floor (empty rack + add lift) | P2 |
 | S-04 | Empty routines CTA should create a routine, not only send you away | P2 |
 

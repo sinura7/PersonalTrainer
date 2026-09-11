@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.ui.workout
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -20,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -30,13 +32,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.ActivityDetailCopy
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.RoutineCardCopy
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.StartOptionsCopy
 import com.sinura.personaltrainer.domain.estimatedSessionMinutes
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.domain.LiveBarCopy
 import com.sinura.personaltrainer.domain.LiveBarKind
+import com.sinura.personaltrainer.ui.components.ExerciseThumb
 import com.sinura.personaltrainer.ui.components.GroupedList
+import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentRow
@@ -194,9 +199,8 @@ fun StartOptionsSheet(
             if (state.routines.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
                     Kicker("From routine")
-                    GroupedList {
-                        state.routines.forEachIndexed { index, routine ->
-                            if (index > 0) HairlineDivider()
+                    Column(verticalArrangement = Arrangement.spacedBy(Metrics.cardGap)) {
+                        state.routines.forEach { routine ->
                             RoutineRow(
                                 routine = routine,
                                 onStart = { viewModel.startRoutine(routine.id) },
@@ -243,38 +247,82 @@ fun StartOptionsSheet(
 }
 
 /**
- * A routine as something you can choose between, rather than a name and a count.
+ * A routine as a floor you can walk onto, not a name and a count.
  *
- * The two numbers on the right are what actually decides the tap in a gym: how much work
- * this is, and how long it will take. The duration is an estimate and says so — the app
- * knows the planned sets and the planned rest, which is most of a session's length.
+ * S-02: the first three lifts are pictured, and the kit mix sits under
+ * them, so a machine day looks like machines. The two numbers on the
+ * right are still what decides the tap: how much work this is, and how
+ * long it will take. The duration is an estimate and says so — the app
+ * knows the planned sets and the planned rest, which is most of a
+ * session's length.
  */
 @Composable
 private fun RoutineRow(routine: Routine, onStart: () -> Unit) {
-    // An empty routine cannot be started, so it does not offer a press or a readout either.
-    // The old card took the tap and silently did nothing.
+    // An empty routine cannot be started, so it does not offer a press
+    // or a readout either. The old card took the tap and silently did nothing.
     if (routine.exercises.isEmpty()) {
-        InstrumentRow(
-            title = routine.name,
-            subtitle = SessionOrderCopy.NEED_A_LIFT,
-        )
-    } else {
-        val lifts = remember(routine) {
-            SessionOrderCopy.numberedPreview(routine.exercises.map { it.exercise.name })
+        GymCard {
+            Text(routine.name, style = InstrumentType.title, color = TextPrimary)
+            Text(
+                SessionOrderCopy.NEED_A_LIFT,
+                style = InstrumentType.caption,
+                color = TextSecondary,
+            )
         }
-        val plannedSets = remember(routine) {
-            routine.exercises.sumOf { it.targetSets.coerceAtLeast(1) }
-        }
-        val minutes = remember(routine) { estimatedSessionMinutes(routine) }
+        return
+    }
+    val lifts = remember(routine) {
+        SessionOrderCopy.numberedPreview(routine.exercises.map { it.exercise.name })
+    }
+    val mix = remember(routine) {
+        RoutineCardCopy.mix(routine.exercises.map { it.exercise.equipment })
+    }
+    val stills = remember(routine) {
+        routine.exercises.take(RoutineCardCopy.STILL_LIMIT).map { it.exercise }
+    }
+    val plannedSets = remember(routine) {
+        routine.exercises.sumOf { it.targetSets.coerceAtLeast(1) }
+    }
+    val minutes = remember(routine) { estimatedSessionMinutes(routine) }
 
-        InstrumentRow(
-            title = routine.name,
-            subtitle = lifts,
-            onClick = onStart,
+    GymCard(onClick = onStart) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
         ) {
+            Text(
+                routine.name,
+                modifier = Modifier.weight(1f),
+                style = InstrumentType.title,
+                color = TextPrimary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
             MetricCluster(value = plannedSets.toString(), label = "sets")
             MetricCluster(value = "~$minutes", label = "min")
         }
+        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+            stills.forEach { exercise ->
+                ExerciseThumb(exercise = exercise)
+            }
+        }
+        mix?.let { kit ->
+            Text(
+                kit,
+                style = InstrumentType.caption,
+                color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Text(
+            lifts,
+            style = InstrumentType.body,
+            color = TextSecondary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
