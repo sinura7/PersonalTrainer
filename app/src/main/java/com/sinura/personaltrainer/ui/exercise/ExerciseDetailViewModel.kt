@@ -130,6 +130,7 @@ class ExerciseDetailViewModel @JvmOverloads constructor(
                 // From the library row, which this screen already has: a push-up's history is
                 // counted in reps and a bench press's in kilograms.
                 loadClass = LoadClass.of(exercise?.loadType),
+                time = time,
                 // The tonnage weeks have to start where the planner's weeks start, or "this
                 // week's volume" means two different spans in two places in the same app.
                 weekStart = preferences.weekStart,

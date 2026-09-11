@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import com.sinura.personaltrainer.util.JvmTime
 
 /** One finished session, seen through the lens of a single exercise. */
 data class ExerciseSessionSummary(
@@ -92,7 +91,7 @@ object ExerciseHistoryBuilder {
         loadClass: LoadClass = sessions.firstOrNull { session ->
             session.exercises.any { it.exercise.id == exerciseId }
         }?.loadClassOf(exerciseId) ?: LoadClass.LOADED,
-        time: TimePort = JvmTime,
+        time: TimePort,
         zoneId: String = time.defaultZoneId(),
         weekStart: Weekday = Weekday.MONDAY,
     ): ExerciseHistory = fromEntries(
@@ -121,7 +120,7 @@ object ExerciseHistoryBuilder {
         exerciseId: String,
         entries: List<ExerciseSetEntry>,
         loadClass: LoadClass,
-        time: TimePort = JvmTime,
+        time: TimePort,
         zoneId: String = time.defaultZoneId(),
         weekStart: Weekday = Weekday.MONDAY,
     ): ExerciseHistory {

@@ -6,7 +6,6 @@ import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.ScheduleKind
 import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SlotRuleImport
-import com.sinura.personaltrainer.domain.todayEpochDay
 import kotlinx.coroutines.flow.first
 
 /**
@@ -24,7 +23,7 @@ object AuxiliaryBlocks {
         epochDay: Long,
         packId: String,
         once: Boolean,
-        todayEpochDay: Long = todayEpochDay(),
+        todayEpochDay: Long,
         nowMinutes: Int = 0,
     ) {
         val pack = AuxiliaryPacks.byId(packId) ?: return

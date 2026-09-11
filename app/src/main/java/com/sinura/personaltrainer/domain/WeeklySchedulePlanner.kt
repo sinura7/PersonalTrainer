@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import com.sinura.personaltrainer.util.JvmTime
 
 object WeeklySchedulePlanner {
     const val THIN_HISTORY_SESSIONS = 3
@@ -25,7 +24,7 @@ object WeeklySchedulePlanner {
         routines: List<Routine>,
         recentSessions: List<WorkoutSession>,
         nowMs: Long,
-        time: TimePort = JvmTime,
+        time: TimePort,
         zoneId: String = time.defaultZoneId(),
         pinnedSlots: List<ScheduleSlot> = emptyList(),
         emphasis: TrainingEmphasis = TrainingEmphasis.BALANCED,

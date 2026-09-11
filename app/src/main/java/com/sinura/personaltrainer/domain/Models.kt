@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import com.sinura.personaltrainer.util.JvmTime
 
 /**
  * A lift.
@@ -135,7 +134,7 @@ data class WorkoutSession(
         listOf(date, finishedAt ?: 0L, startedAt).firstOrNull { it > 0L } ?: 0L
 
     fun performedEpochDay(
-        time: TimePort = JvmTime,
+        time: TimePort,
         zoneId: String = time.defaultZoneId(),
     ): Long = time.civilDate(performedAtMs(), zoneId).epochDay
 

@@ -367,7 +367,8 @@ class PlanViewModel @JvmOverloads constructor(
                     recommendations = current.recommendations,
                     routines = current.routines,
                     recentSessions = current.history,
-                    nowMs = System.currentTimeMillis(),
+                    nowMs = time.nowMillis(),
+                    time = time,
                     pinnedSlots = slots,
                     emphasis = emphasis,
                 )

@@ -49,6 +49,32 @@ fun DayLabel.relative(thenMs: Long, nowMs: Long, zone: ZoneId): String? =
 fun todayEpochDay(nowMs: Long, zone: ZoneId): Long =
     todayEpochDay(nowMs, JvmTime, zone.id)
 
+/**
+ * Civil today from the real clock in the default zone.
+ *
+ * The domain function carried this as `nowMs = JvmTime.nowMillis(), time = JvmTime` defaults,
+ * which is what tied `domain/` to `util/`. Tests that mean "whatever day it is now" keep
+ * saying so; the reach for the platform clock is declared here, in the test source set,
+ * where it belongs.
+ */
+fun todayEpochDay(): Long = todayEpochDay(JvmTime.nowMillis(), JvmTime)
+
+fun WorkoutSession.toSummary(): SessionSummary = toSummary(JvmTime)
+
+fun WorkoutSession.toHistoryEntry(): HistoryEntry = toHistoryEntry(JvmTime)
+
+fun BodyHeatSnapshot.rememberLifetimeWork(
+    summaries: List<SessionSummary>,
+    nowMs: Long,
+    zoneId: String,
+): BodyHeatSnapshot = rememberLifetimeWork(summaries, nowMs, JvmTime, zoneId)
+
+fun TrainingCalendarBuilder.build(
+    month: CivilYearMonth,
+    sessions: List<WorkoutSession>,
+    activities: List<ActivitySession>,
+): TrainingMonth = build(month, sessions, activities, JvmTime)
+
 fun WorkoutSession.performedEpochDay(zone: ZoneId): Long =
     performedEpochDay(JvmTime, zone.id)
 
@@ -185,9 +211,10 @@ fun TrainingInsightsInput(
         unit = unit,
         window = window,
         nowMs = nowMs,
+        time = JvmTime,
         includeWeekPlan = includeWeekPlan,
     )
-    return input.copy(time = JvmTime, zoneId = zone.id)
+    return input.copy(zoneId = zone.id)
 }
 
 fun CoachInputs(
@@ -210,6 +237,7 @@ fun CoachInputs(
         preferences = preferences,
         unit = unit,
         nowMs = nowMs,
+        time = JvmTime,
     )
-    return inputs.copy(time = JvmTime, zoneId = zone.id)
+    return inputs.copy(zoneId = zone.id)
 }

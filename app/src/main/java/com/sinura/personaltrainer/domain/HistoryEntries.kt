@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import com.sinura.personaltrainer.util.JvmTime
 
 enum class HistoryKind { WORKOUT, ACTIVITY }
 
@@ -22,7 +21,7 @@ data class HistoryMonthGroup(
 )
 
 fun WorkoutSession.toHistoryEntry(
-    time: TimePort = JvmTime,
+    time: TimePort,
     zoneId: String = time.defaultZoneId(),
 ): HistoryEntry = HistoryEntry(
     id = id,

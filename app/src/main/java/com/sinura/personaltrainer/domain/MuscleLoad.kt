@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import com.sinura.personaltrainer.util.JvmTime
 
 /**
  * The three windows the body map offers.
@@ -26,7 +25,7 @@ enum class HeatWindow(
      */
     fun startMs(
         nowMs: Long,
-        time: TimePort = JvmTime,
+        time: TimePort,
         weekStart: Weekday = Weekday.MONDAY,
         zoneId: String = time.defaultZoneId(),
     ): Long {
@@ -201,7 +200,7 @@ data class BodyHeatSnapshot(
     fun rememberLifetimeWork(
         summaries: List<SessionSummary>,
         nowMs: Long = generatedAtMs,
-        time: TimePort = JvmTime,
+        time: TimePort,
         zoneId: String = time.defaultZoneId(),
     ): BodyHeatSnapshot {
         val anyWork = hasAnyWorkingSets || summaries.any { it.hasLoggedWork() }
@@ -227,7 +226,7 @@ data class BodyHeatSnapshot(
     fun rememberLifetimeRecency(
         lastTrainedByMuscle: Map<CanonicalMuscle, Long>,
         nowMs: Long,
-        time: TimePort = JvmTime,
+        time: TimePort,
         zoneId: String = time.defaultZoneId(),
     ): BodyHeatSnapshot {
         if (lastTrainedByMuscle.isEmpty()) return this

@@ -79,6 +79,7 @@ import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.util.toLocalDate
 import java.text.DateFormat
 import java.time.Instant
@@ -628,7 +629,7 @@ private fun SessionRow(
 @Composable
 private fun dateLabel(atMs: Long): String {
     val absolute = remember(atMs) { DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(atMs)) }
-    val relative = remember(atMs) { DayLabel.relative(atMs, System.currentTimeMillis()) }
+    val relative = remember(atMs) { DayLabel.relative(atMs, JvmTime.nowMillis(), JvmTime) }
     return relative ?: absolute
 }
 

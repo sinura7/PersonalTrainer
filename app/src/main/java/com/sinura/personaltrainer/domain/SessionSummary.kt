@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import com.sinura.personaltrainer.util.JvmTime
 
 /**
  * One finished session without its set graph (P8.1 / FND-010).
@@ -25,7 +24,7 @@ data class SessionSummary(
 )
 
 fun WorkoutSession.toSummary(
-    time: TimePort = JvmTime,
+    time: TimePort,
     zoneId: String = time.defaultZoneId(),
 ): SessionSummary = SessionSummary(
     id = id,

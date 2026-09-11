@@ -24,7 +24,7 @@ import kotlinx.coroutines.delay
  * Re-reads on `ON_RESUME` and at the next local midnight.
  */
 val LocalTodayEpochDay = staticCompositionLocalOf {
-    todayEpochDay()
+    todayEpochDay(nowMs = JvmTime.nowMillis(), time = JvmTime)
 }
 
 fun millisUntilNextLocalMidnight(

@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
-"""P5.1 ratchet: domain/ must not import platform time, locale, Android, Room, or Compose."""
+"""P5.1 ratchet: domain/ must not import platform time, locale, Android, Room, or Compose.
+
+Nor any package that sits outside it. The platform bans were enough while `domain/` only
+ever reached sideways for a clock, but that reach was the whole problem: fifteen files
+carried `time: TimePort = JvmTime` defaults, `util/JvmTimePort.kt` calls
+`android.os.SystemClock`, and `util` imports `TimePort`, `CivilDate`, `WeightUnit` and
+`IdPort` straight back. So `domain/` held no Android import of its own, passed this check
+every time, and still could not be compiled without the Android-backed adapter behind it —
+a cycle no import ban expressed. `domain` is the bottom of the graph: everything may depend
+on it and it may depend on nothing.
+"""
 from __future__ import annotations
 
 import os
@@ -9,6 +19,8 @@ import sys
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DOMAIN = os.path.join(ROOT, "app/src/main/java/com/sinura/personaltrainer/domain")
 
+APP = r"com\.sinura\.personaltrainer"
+
 BANNED = [
     (re.compile(r"^import\s+java\.time\."), "java.time"),
     (re.compile(r"^import\s+java\.text\.NumberFormat"), "java.text.NumberFormat"),
@@ -16,6 +28,10 @@ BANNED = [
     (re.compile(r"^import\s+android\."), "android"),
     (re.compile(r"^import\s+androidx\.room"), "Room"),
     (re.compile(r"^import\s+androidx\.compose"), "Compose"),
+    # Every internal package except domain's own. util is the one that mattered — the
+    # JvmTime defaults — but data, ui, timer, reminder, workout, logging, insights,
+    # diagnostics and activity are the same mistake waiting to be made.
+    (re.compile(rf"^import\s+{APP}\.(?!domain\b)\w+"), "an outward app package"),
 ]
 
 def banned_import_findings(text: str, rel: str = "snippet.kt") -> list[str]:

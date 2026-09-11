@@ -6,7 +6,6 @@ import com.sinura.personaltrainer.domain.CustomWeekPolicy
 import com.sinura.personaltrainer.domain.ScheduleKind
 import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SlotRuleImport
-import com.sinura.personaltrainer.domain.todayEpochDay
 import kotlinx.coroutines.flow.first
 
 /**
@@ -24,7 +23,7 @@ object DayBlocks {
         epochDay: Long,
         routineId: String,
         once: Boolean,
-        todayEpochDay: Long = todayEpochDay(),
+        todayEpochDay: Long,
         nowMinutes: Int = 0,
     ) {
         val weekday = CivilDate.fromEpochDay(epochDay).dayOfWeek
@@ -97,7 +96,7 @@ object DayBlocks {
         epochDay: Long,
         type: CardioType,
         once: Boolean,
-        todayEpochDay: Long = todayEpochDay(),
+        todayEpochDay: Long,
         nowMinutes: Int = 0,
         preferredHour: Int = SlotRuleImport.DEFAULT_CARDIO_HOUR,
     ) {
@@ -153,7 +152,7 @@ object DayBlocks {
         preferences: PreferencesRepository,
         epochDay: Long,
         once: Boolean,
-        todayEpochDay: Long = todayEpochDay(),
+        todayEpochDay: Long,
         nowMinutes: Int = 0,
     ): String {
         val weekday = CivilDate.fromEpochDay(epochDay).dayOfWeek
