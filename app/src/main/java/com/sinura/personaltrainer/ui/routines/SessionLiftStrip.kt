@@ -611,8 +611,8 @@ internal fun CompactTargetFields(
             }
         }
     }
-    when (typing) {
-        TargetWell.SETS -> NumberEntryDialog(
+    if (typing == TargetWell.SETS) {
+        NumberEntryDialog(
             title = CompactLiftCopy.SETS,
             unitLabel = null,
             initial = setsValue.toString(),
@@ -625,7 +625,9 @@ internal fun CompactTargetFields(
             },
             onDismiss = { typing = null },
         )
-        TargetWell.REPS -> NumberEntryDialog(
+    }
+    if (typing == TargetWell.REPS) {
+        NumberEntryDialog(
             title = CompactLiftCopy.REPS,
             unitLabel = null,
             initial = repsValue.toString(),
@@ -638,7 +640,9 @@ internal fun CompactTargetFields(
             },
             onDismiss = { typing = null },
         )
-        TargetWell.REST -> NumberEntryDialog(
+    }
+    if (typing == TargetWell.REST) {
+        NumberEntryDialog(
             title = CompactLiftCopy.REST,
             unitLabel = "s",
             initial = restValue.toString(),
@@ -651,7 +655,9 @@ internal fun CompactTargetFields(
             },
             onDismiss = { typing = null },
         )
-        TargetWell.WEIGHT -> NumberEntryDialog(
+    }
+    if (typing == TargetWell.WEIGHT) {
+        NumberEntryDialog(
             title = CompactLiftCopy.TARGET_WEIGHT,
             unitLabel = unit.suffix,
             initial = WeightConverter.formatDisplayNumber(
@@ -666,7 +672,6 @@ internal fun CompactTargetFields(
             },
             onDismiss = { typing = null },
         )
-        null -> Unit
     }
 }
 
