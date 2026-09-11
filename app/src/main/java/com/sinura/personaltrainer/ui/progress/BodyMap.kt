@@ -249,13 +249,18 @@ fun MuscleHeatRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     unit: WeightUnit = LocalWeightUnit.current,
+    /**
+     * First launch: the row is a doorway to the lifts that train this muscle,
+     * not a 0/0 readout that looks broken.
+     */
+    doorway: Boolean = false,
 ) {
     val fill by animateColorAsState(
         targetValue = heatColor(load.heat),
         animationSpec = instrumentTween(Motion.BASE),
         label = "row-${load.muscle.name}",
     )
-    val spoken = muscleRowSpoken(load, unit)
+    val spoken = muscleRowSpoken(load, unit, doorway)
     InstrumentRow(
         title = load.muscle.displayName,
         modifier = modifier
@@ -273,11 +278,21 @@ fun MuscleHeatRow(
             )
         },
     ) {
-        MetricCluster(value = load.workingSets.toString(), label = "sets")
-        // Reps for a muscle trained only with bodyweight lifts. "0 kg" beside a real set
-        // count would read as the app having failed to notice the work.
-        val column = SetCopy.workColumn(load.work, unit)
-        MetricCluster(value = column.value, label = column.label)
+        if (doorway) {
+            Text(
+                text = BodyHeatCopy.SEE_LIFTS,
+                style = InstrumentType.bodyStrong,
+                color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        } else {
+            MetricCluster(value = load.workingSets.toString(), label = "sets")
+            // Reps for a muscle trained only with bodyweight lifts. "0 kg" beside a real set
+            // count would read as the app having failed to notice the work.
+            val column = SetCopy.workColumn(load.work, unit)
+            MetricCluster(value = column.value, label = column.label)
+        }
     }
 }
 
@@ -289,7 +304,15 @@ fun recencyLabel(load: MuscleLoadSummary): String = when (val days = load.daysSi
 }
 
 /** One TalkBack name for the reliable 48 dp muscle row (FND-023). */
-fun muscleRowSpoken(load: MuscleLoadSummary, unit: WeightUnit): String {
+fun muscleRowSpoken(
+    load: MuscleLoadSummary,
+    unit: WeightUnit,
+    doorway: Boolean = false,
+): String {
+    if (doorway) {
+        return "${load.muscle.displayName}, ${recencyLabel(load)}. " +
+            "Tap to see the lifts that train it."
+    }
     val column = SetCopy.workColumn(load.work, unit)
     return "${load.muscle.displayName}, ${recencyLabel(load)}, " +
         "${load.band.legendLabel} load, ${load.workingSets} sets, " +
@@ -311,8 +334,11 @@ object BodyTags {
     const val START_SHEET = "body-start-sheet"
     const val FACTS = "body-facts"
     const val SHOW_MONTH = "body-show-month"
+    const val FIRST_LIFTS = "body-first-lifts"
 
     fun muscle(muscle: CanonicalMuscle): String = "body-muscle-${muscle.name}"
+
+    fun explorerLift(exerciseId: String): String = "body-explorer-lift-$exerciseId"
 
     fun window(window: HeatWindow): String = when (window) {
         HeatWindow.DAY -> WINDOW_DAY

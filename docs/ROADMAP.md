@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 11 Sep 2026 — B-02: first-launch Body is a gym wall, not an empty figure.
+> Catalog lifts sit under the silhouette; a muscle with no history opens
+> the lifts that train it. No Start Volt. Inherits live 39; does not bump it.
+>
 > 11 Sep 2026 — Live 39: architecture stack, R18 steps 3–4, and N-01
 > (Play complete cue) on `trunk`. `debugLiveCode` 39; suffix from
 > `python3 tools/debug-drop-plan.py`.

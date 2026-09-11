@@ -10,6 +10,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.CanonicalMuscle
+import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.MuscleLoadSummary
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -56,6 +58,17 @@ private fun BodyEmptyPreview() {
                 onViewChange = {},
                 selected = null,
                 onSelect = {},
+            )
+            MuscleHeatRow(
+                load = BodyPreviewFixtures.untrainedChest,
+                selected = false,
+                onClick = {},
+                unit = WeightUnit.KG,
+                doorway = true,
+            )
+            BodyExplorerLifts(
+                lifts = listOf(BodyPreviewFixtures.squat),
+                onOpenExercise = {},
             )
         }
     }
@@ -120,5 +133,26 @@ internal object BodyPreviewFixtures {
         loads = emptyList(),
         hasAnyWorkingSets = false,
         hasWindowWorkingSets = false,
+    )
+
+    val untrainedChest = MuscleLoadSummary(
+        muscle = CanonicalMuscle.CHEST,
+        volumeKg = 0.0,
+        workingSets = 0,
+        sessionCount = 0,
+        lastTrainedAtMs = null,
+        daysSinceLastTrained = null,
+        weeklySets = 0.0,
+        heat = 0.0,
+        exercises = emptyList(),
+    )
+
+    val squat = Exercise(
+        id = "ex-barbell-back-squat",
+        name = "Barbell Back Squat",
+        muscleGroup = "Quads",
+        notes = "",
+        isCustom = false,
+        equipment = EquipmentType.BARBELL,
     )
 }

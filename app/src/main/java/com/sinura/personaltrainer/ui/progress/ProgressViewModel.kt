@@ -5,7 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
+import com.sinura.personaltrainer.domain.BodyExplorer
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
+import com.sinura.personaltrainer.domain.CoachPreferences
+import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.InsightFailure
 import com.sinura.personaltrainer.domain.LighterWeek
@@ -23,6 +26,14 @@ data class ProgressUiState(
     val window: HeatWindow = HeatWindow.CURRENT_WEEK,
     val snapshot: BodyHeatSnapshot? = null,
     val recommendations: List<TrainingRecommendation> = emptyList(),
+    /**
+     * Catalog lifts Body can name before any set is logged. Empty once there is
+     * history — the coach cards take this slot — and empty if the catalog has not
+     * loaded yet.
+     */
+    val firstLifts: List<Exercise> = emptyList(),
+    val catalog: List<Exercise> = emptyList(),
+    val coachPrefs: CoachPreferences = CoachPreferences.DEFAULT,
     /** Fatal: there is no map to draw. The screen replaces its content with a way out. */
     val error: String? = null,
     /**
@@ -54,18 +65,30 @@ class ProgressViewModel @JvmOverloads constructor(
      * wrong window on every Body open.
      */
     val uiState: StateFlow<ProgressUiState> = combine(
-        container.preferencesRepository.heatWindow,
-        container.trainingInsights.observe(
-            window = container.preferencesRepository.heatWindow,
-            refresh = refreshAt,
-            includeWeekPlan = false,
-        ),
-    ) { stored, insights ->
+        combine(
+            container.preferencesRepository.heatWindow,
+            container.trainingInsights.observe(
+                window = container.preferencesRepository.heatWindow,
+                refresh = refreshAt,
+                includeWeekPlan = false,
+            ),
+        ) { stored, insights -> stored to insights },
+        combine(
+            container.exerciseRepository.observeAll(),
+            container.preferencesRepository.coachPreferences,
+        ) { catalog, coach -> catalog to coach },
+    ) { windowAndInsights, catalogAndCoach ->
+        val (stored, insights) = windowAndInsights
+        val (catalog, coach) = catalogAndCoach
+        val hasWork = insights.snapshot?.hasAnyWorkingSets == true
         ProgressUiState(
             isLoading = false,
             window = insights.snapshot?.window ?: stored,
             snapshot = insights.snapshot,
             recommendations = insights.recommendations,
+            firstLifts = if (hasWork) emptyList() else BodyExplorer.coverage(catalog, coach),
+            catalog = catalog,
+            coachPrefs = coach,
             error = "Couldn’t load the body map. Try switching the window."
                 .takeIf { insights.failed(InsightFailure.HEAT) },
             notice = when {
