@@ -15,6 +15,9 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 11 Sep 2026 — Live 38: architecture stack `#232`–`#238` on `trunk`.
+> `debugLiveCode` 38; suffix from `python3 tools/debug-drop-plan.py`.
+>
 > 10 Sep 2026 — Live 37: `#202` is on `trunk` (the lift page reads both
 > stores). Obtainium still offers 36 until the number rises. This packet
 > is that rise. `#225` is on `trunk` (Drive refusal copy) and rides this
