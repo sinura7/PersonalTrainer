@@ -153,6 +153,51 @@ data class WorkoutSession(
     fun hasLifts(): Boolean = exercises.isNotEmpty() || sets.isNotEmpty()
 
     /**
+     * The session as a filled program sheet: one card per prescribed lift, in
+     * cart order, with the sets that were actually logged written in. Lifts that
+     * were on the plan but never touched still appear, empty — that is the sheet
+     * as programmed, not a receipt of only what got a number.
+     *
+     * When the session has no exercise rows (an older free workout that only
+     * stored sets), the distinct logged lifts are synthesised in first-seen
+     * order so history still has cards to show.
+     */
+    fun filledLifts(): List<FilledSessionLift> {
+        if (exercises.isNotEmpty()) {
+            return exercises.mapIndexed { index, row ->
+                FilledSessionLift(
+                    number = index + 1,
+                    exercise = row.exercise,
+                    targetSets = row.targetSets,
+                    targetReps = row.targetReps,
+                    targetWeightKg = row.targetWeightKg,
+                    restSeconds = row.restSeconds,
+                    sets = setsFor(row.exercise.id),
+                )
+            }
+        }
+        return sets.map { it.exerciseId to it.exerciseName }
+            .distinctBy { it.first }
+            .mapIndexed { index, (id, name) ->
+                FilledSessionLift(
+                    number = index + 1,
+                    exercise = Exercise(
+                        id = id,
+                        name = name,
+                        muscleGroup = "",
+                        notes = "",
+                        isCustom = true,
+                    ),
+                    targetSets = 0,
+                    targetReps = 0,
+                    targetWeightKg = null,
+                    restSeconds = 0,
+                    sets = setsFor(id),
+                )
+            }
+    }
+
+    /**
      * Resume must never treat a stale selected id as an empty workout.
      * Prefer the last selected lift when it is still in the session, otherwise
      * the first lift that already has sets, otherwise the first lift.
